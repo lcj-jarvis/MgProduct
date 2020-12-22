@@ -142,7 +142,7 @@ public class MgProductPropCli extends FaiClient {
                 }
                 Ref<Integer> keyRef = new Ref<Integer>();
                 FaiList<Integer> propIds = new FaiList<Integer>();
-                propIds.fromBuffer(sendBody, keyRef);
+                propIds.fromBuffer(recvBody, keyRef);
                 if (m_rt != Errno.OK || keyRef.value != ProductPropDto.Key.RL_PROP_IDS) {
                     Log.logErr(m_rt, "recv rlPropIds codec err");
                     return m_rt;

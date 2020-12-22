@@ -3,7 +3,7 @@ package fai.MgProductSpecSvr.application;
 import fai.MgProductSpecSvr.application.service.ProductSpecService;
 import fai.MgProductSpecSvr.application.service.SpecTempService;
 import fai.MgProductSpecSvr.domain.repository.DaoCtrl;
-import fai.MgProductSpecSvr.interfaces.cmd.SpecificationCmd;
+import fai.MgProductSpecSvr.interfaces.cmd.MgProductSpecCmd;
 import fai.MgProductSpecSvr.interfaces.dto.*;
 import fai.comm.jnetkit.server.ServerHandlerContext;
 import fai.comm.jnetkit.server.fai.FaiHandler;
@@ -50,7 +50,7 @@ public class MgProductSpecHandler extends FaiHandler {
     }
 
     @WrittenCmd
-    @Cmd(SpecificationCmd.SpecTempCmd.ADD_LIST)
+    @Cmd(MgProductSpecCmd.SpecTempCmd.ADD_LIST)
     private int addTpScInfoList(final FaiSession session,
                                 @ArgFlow final int flow,
                                 @ArgAid final int aid,
@@ -62,7 +62,7 @@ public class MgProductSpecHandler extends FaiHandler {
     }
 
     @WrittenCmd
-    @Cmd(SpecificationCmd.SpecTempCmd.SET_LIST)
+    @Cmd(MgProductSpecCmd.SpecTempCmd.SET_LIST)
     private int setTpScInfoList(final FaiSession session,
                                 @ArgFlow final int flow,
                                 @ArgAid final int aid,
@@ -72,7 +72,7 @@ public class MgProductSpecHandler extends FaiHandler {
                                         keyMatch = SpecTempDto.Key.UPDATER_LIST) FaiList<ParamUpdater> recvInfoList) throws IOException {
         return  m_specTempService.setTpScInfoList(session, flow, aid, unionPriId, tid, recvInfoList);
     }
-    @Cmd(SpecificationCmd.SpecTempCmd.DEL_LIST)
+    @Cmd(MgProductSpecCmd.SpecTempCmd.DEL_LIST)
     private int delTpScInfoList(final FaiSession session,
                                 @ArgFlow final int flow,
                                 @ArgAid final int aid,
@@ -82,7 +82,7 @@ public class MgProductSpecHandler extends FaiHandler {
         return  m_specTempService.delTpScInfoList(session, flow, aid, unionPriId, tpScIdList);
     }
 
-    @Cmd(SpecificationCmd.SpecTempCmd.GET_LIST)
+    @Cmd(MgProductSpecCmd.SpecTempCmd.GET_LIST)
     private int getTpScInfoList(final FaiSession session,
                                 @ArgFlow final int flow,
                                 @ArgAid final int aid,
@@ -92,7 +92,7 @@ public class MgProductSpecHandler extends FaiHandler {
     }
 
     @WrittenCmd
-    @Cmd(SpecificationCmd.SpecTempDetailCmd.ADD_LIST)
+    @Cmd(MgProductSpecCmd.SpecTempDetailCmd.ADD_LIST)
     private int addTpScDetailInfoList(final FaiSession session,
                                 @ArgFlow final int flow,
                                 @ArgAid final int aid,
@@ -105,7 +105,7 @@ public class MgProductSpecHandler extends FaiHandler {
     }
 
     @WrittenCmd
-    @Cmd(SpecificationCmd.SpecTempDetailCmd.SET_LIST)
+    @Cmd(MgProductSpecCmd.SpecTempDetailCmd.SET_LIST)
     private int setTpScDetailInfoList(final FaiSession session,
                                 @ArgFlow final int flow,
                                 @ArgAid final int aid,
@@ -118,7 +118,7 @@ public class MgProductSpecHandler extends FaiHandler {
     }
 
     @WrittenCmd
-    @Cmd(SpecificationCmd.SpecTempDetailCmd.DEL_LIST)
+    @Cmd(MgProductSpecCmd.SpecTempDetailCmd.DEL_LIST)
     private int delTpScDetailInfoList(final FaiSession session,
                                       @ArgFlow final int flow,
                                       @ArgAid final int aid,
@@ -130,7 +130,7 @@ public class MgProductSpecHandler extends FaiHandler {
         return  m_specTempService.delTpScDetailInfoList(session, flow, aid, unionPriId, rlTpScId, tpScDtIdList);
     }
 
-    @Cmd(SpecificationCmd.SpecTempDetailCmd.GET_LIST)
+    @Cmd(MgProductSpecCmd.SpecTempDetailCmd.GET_LIST)
     private int getTpScDetailInfoList(final FaiSession session,
                                 @ArgFlow final int flow,
                                 @ArgAid final int aid,
@@ -141,7 +141,7 @@ public class MgProductSpecHandler extends FaiHandler {
     }
     ///////////////////////////////////////////////////////////////////////////////
     @WrittenCmd
-    @Cmd(SpecificationCmd.ProductSpecCmd.IMPORT)
+    @Cmd(MgProductSpecCmd.ProductSpecCmd.IMPORT)
     private int importPdScInfo(final FaiSession session,
                                       @ArgFlow final int flow,
                                       @ArgAid final int aid,
@@ -155,7 +155,7 @@ public class MgProductSpecHandler extends FaiHandler {
     }
 
     @WrittenCmd
-    @Cmd(SpecificationCmd.ProductSpecCmd.UNION_SET)
+    @Cmd(MgProductSpecCmd.ProductSpecCmd.UNION_SET)
     private int unionSetPdScInfoList(final FaiSession session,
                                      @ArgFlow final int flow,
                                      @ArgAid final int aid,
@@ -172,7 +172,7 @@ public class MgProductSpecHandler extends FaiHandler {
         return  m_productSpecService.unionSetPdScInfoList(session, flow, aid, unionPriId, pdId, addPdScInfoList, delPdScIdList, updaterList);
     }
 
-    @Cmd(SpecificationCmd.ProductSpecCmd.GET_LIST)
+    @Cmd(MgProductSpecCmd.ProductSpecCmd.GET_LIST)
     private int getPdScInfoList(final FaiSession session,
                                       @ArgFlow final int flow,
                                       @ArgAid final int aid,
@@ -181,7 +181,7 @@ public class MgProductSpecHandler extends FaiHandler {
                                       @ArgBodyInteger(ProductSpecDto.Key.PD_ID) final int pdId) throws IOException {
         return  m_productSpecService.getPdScInfoList(session, flow, aid, unionPriId, pdId);
     }
-    @Cmd(SpecificationCmd.ProductSpecCmd.GET_CHECKED_LIST)
+    @Cmd(MgProductSpecCmd.ProductSpecCmd.GET_CHECKED_LIST)
     private int getPdCheckedScInfoList(final FaiSession session,
                                 @ArgFlow final int flow,
                                 @ArgAid final int aid,
@@ -191,7 +191,7 @@ public class MgProductSpecHandler extends FaiHandler {
         return  m_productSpecService.getPdCheckedScInfoList(session, flow, aid, unionPriId, pdId);
     }
 
-    @Cmd(SpecificationCmd.ProductSpecSkuCmd.SET_LIST)
+    @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.SET_LIST)
     private int setPdSkuScInfoList(final FaiSession session,
                                 @ArgFlow final int flow,
                                 @ArgAid final int aid,
@@ -203,7 +203,7 @@ public class MgProductSpecHandler extends FaiHandler {
         return  m_productSpecService.setPdSkuScInfoList(session, flow, aid, unionPriId, pdId, updaterList);
     }
 
-    @Cmd(SpecificationCmd.ProductSpecSkuCmd.GET_LIST)
+    @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_LIST)
     private int getPdSkuScInfoList(final FaiSession session,
                                    @ArgFlow final int flow,
                                    @ArgAid final int aid,

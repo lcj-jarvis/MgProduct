@@ -51,7 +51,7 @@ public class SpecStrDaoCtrl extends DaoCtrl {
 	}
 	@Override
 	protected String getTableName(){
-		return TABLE_NAME;
+		return TABLE_NAME + "_"+ String.format("%04d", aid%1000);
 	}
 
 	private static final String TABLE_NAME = "specStr";

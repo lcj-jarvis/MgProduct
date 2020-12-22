@@ -102,7 +102,7 @@ public class SpecStrProc {
             Iterator<Param> iterator = list.iterator();
             while (iterator.hasNext()){
                 Param info = iterator.next();
-                nameSet.remove(info.getInt(SpecStrEntity.Info.SC_STR_ID));
+                nameSet.remove(info.getString(SpecStrEntity.Info.NAME));
             }
             if(nameSet.isEmpty()){
                 listRef.value = list;

@@ -16,6 +16,7 @@ import fai.MgProductSpecSvr.interfaces.dto.ProductSpecDto;
 import fai.MgProductSpecSvr.interfaces.dto.ProductSpecSkuDto;
 import fai.MgProductSpecSvr.interfaces.entity.*;
 import fai.comm.jnetkit.server.fai.FaiSession;
+import fai.comm.middleground.service.ServicePub;
 import fai.comm.util.*;
 
 import java.io.IOException;
@@ -24,7 +25,7 @@ import java.util.HashSet;
 import java.util.Map;
 
 
-public class ProductSpecService extends ServicePub{
+public class ProductSpecService extends ServicePub {
     /**
      * 导入规格模板
      */

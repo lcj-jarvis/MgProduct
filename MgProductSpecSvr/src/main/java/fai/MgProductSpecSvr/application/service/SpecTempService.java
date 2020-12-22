@@ -12,6 +12,7 @@ import fai.MgProductSpecSvr.interfaces.dto.SpecTempDetailDto;
 import fai.MgProductSpecSvr.interfaces.dto.SpecTempDto;
 import fai.MgProductSpecSvr.interfaces.entity.SpecTempDetailValObj;
 import fai.comm.jnetkit.server.fai.FaiSession;
+import fai.comm.middleground.service.ServicePub;
 import fai.comm.util.*;
 
 import java.io.IOException;
@@ -20,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-public class SpecTempService extends ServicePub{
+public class SpecTempService extends ServicePub {
     /**
      * 批量添加规格模板
      */

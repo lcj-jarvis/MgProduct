@@ -1,7 +1,7 @@
 package fai.MgProductSpecSvr.interfaces.cmd;
 
 
-public class SpecificationCmd {
+public class MgProductSpecCmd {
 	// 5000  以上的范围
 	public static class ReadCmdNum{
 		public static final int NUM = 5000;

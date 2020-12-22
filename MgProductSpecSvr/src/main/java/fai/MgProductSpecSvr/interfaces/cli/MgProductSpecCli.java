@@ -1,6 +1,6 @@
 package fai.MgProductSpecSvr.interfaces.cli;
 
-import fai.MgProductSpecSvr.interfaces.cmd.SpecificationCmd;
+import fai.MgProductSpecSvr.interfaces.cmd.MgProductSpecCmd;
 import fai.MgProductSpecSvr.interfaces.dto.ProductSpecDto;
 import fai.MgProductSpecSvr.interfaces.dto.ProductSpecSkuDto;
 import fai.MgProductSpecSvr.interfaces.dto.SpecTempDetailDto;
@@ -9,15 +9,15 @@ import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
 
-public class SpecificationCli extends FaiClient {
-    public SpecificationCli(int flow) {
-        super(flow, "SpecificationCli");
+public class MgProductSpecCli extends FaiClient {
+    public MgProductSpecCli(int flow) {
+        super(flow, "MgProductSpecCli");
     }
     /**
      * 初始化
      */
     public boolean init() {
-        return init("/home/faier/etc/cli/SpecificationCli.conf", false);
+        return init("MgProductSpecCli", true);
     }
 
     /**
@@ -45,7 +45,7 @@ public class SpecificationCli extends FaiClient {
             list.toBuffer(sendBody, SpecTempDto.Key.INFO_LIST, SpecTempDto.getInfoDto());
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(SpecificationCmd.SpecTempCmd.ADD_LIST);
+            sendProtocol.setCmd(MgProductSpecCmd.SpecTempCmd.ADD_LIST);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);
@@ -97,7 +97,7 @@ public class SpecificationCli extends FaiClient {
             rlTpScIdList.toBuffer(sendBody, SpecTempDto.Key.ID_LIST);
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(SpecificationCmd.SpecTempCmd.DEL_LIST);
+            sendProtocol.setCmd(MgProductSpecCmd.SpecTempCmd.DEL_LIST);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);
@@ -150,7 +150,7 @@ public class SpecificationCli extends FaiClient {
             updaterList.toBuffer(sendBody, SpecTempDto.Key.UPDATER_LIST, SpecTempDto.getInfoDto());
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(SpecificationCmd.SpecTempCmd.SET_LIST);
+            sendProtocol.setCmd(MgProductSpecCmd.SpecTempCmd.SET_LIST);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);
@@ -201,7 +201,7 @@ public class SpecificationCli extends FaiClient {
             sendBody.putInt(SpecTempDto.Key.TID, tid);
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(SpecificationCmd.SpecTempCmd.GET_LIST);
+            sendProtocol.setCmd(MgProductSpecCmd.SpecTempCmd.GET_LIST);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);
@@ -237,7 +237,7 @@ public class SpecificationCli extends FaiClient {
             return m_rt = Errno.OK;
         } finally {
             close();
-            stat.end(m_rt != Errno.OK, m_rt);
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
         }
     }
 
@@ -268,7 +268,7 @@ public class SpecificationCli extends FaiClient {
             list.toBuffer(sendBody, SpecTempDetailDto.Key.INFO_LIST, SpecTempDetailDto.getInfoDto());
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(SpecificationCmd.SpecTempDetailCmd.ADD_LIST);
+            sendProtocol.setCmd(MgProductSpecCmd.SpecTempDetailCmd.ADD_LIST);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);
@@ -322,7 +322,7 @@ public class SpecificationCli extends FaiClient {
             tpScDtIdList.toBuffer(sendBody, SpecTempDetailDto.Key.ID_LIST);
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(SpecificationCmd.SpecTempDetailCmd.DEL_LIST);
+            sendProtocol.setCmd(MgProductSpecCmd.SpecTempDetailCmd.DEL_LIST);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);
@@ -376,7 +376,7 @@ public class SpecificationCli extends FaiClient {
             updaterList.toBuffer(sendBody, SpecTempDetailDto.Key.UPDATER_LIST, SpecTempDetailDto.getInfoDto());
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(SpecificationCmd.SpecTempDetailCmd.SET_LIST);
+            sendProtocol.setCmd(MgProductSpecCmd.SpecTempDetailCmd.SET_LIST);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);
@@ -429,7 +429,7 @@ public class SpecificationCli extends FaiClient {
             sendBody.putInt(SpecTempDetailDto.Key.RL_TP_SC_ID, rlTpScId);
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(SpecificationCmd.SpecTempDetailCmd.GET_LIST);
+            sendProtocol.setCmd(MgProductSpecCmd.SpecTempDetailCmd.GET_LIST);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);
@@ -465,7 +465,7 @@ public class SpecificationCli extends FaiClient {
             return m_rt = Errno.OK;
         } finally {
             close();
-            stat.end(m_rt != Errno.OK, m_rt);
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
         }
     }
 
@@ -493,7 +493,7 @@ public class SpecificationCli extends FaiClient {
             }
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(SpecificationCmd.ProductSpecCmd.IMPORT);
+            sendProtocol.setCmd(MgProductSpecCmd.ProductSpecCmd.IMPORT);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);
@@ -551,7 +551,7 @@ public class SpecificationCli extends FaiClient {
             }
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(SpecificationCmd.ProductSpecCmd.UNION_SET);
+            sendProtocol.setCmd(MgProductSpecCmd.ProductSpecCmd.UNION_SET);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);
@@ -606,9 +606,9 @@ public class SpecificationCli extends FaiClient {
 
             FaiProtocol sendProtocol = new FaiProtocol();
             if(onlyGetChecked){
-                sendProtocol.setCmd(SpecificationCmd.ProductSpecCmd.GET_CHECKED_LIST);
+                sendProtocol.setCmd(MgProductSpecCmd.ProductSpecCmd.GET_CHECKED_LIST);
             }else{
-                sendProtocol.setCmd(SpecificationCmd.ProductSpecCmd.GET_LIST);
+                sendProtocol.setCmd(MgProductSpecCmd.ProductSpecCmd.GET_LIST);
             }
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
@@ -646,7 +646,7 @@ public class SpecificationCli extends FaiClient {
             return m_rt = Errno.OK;
         } finally {
             close();
-            stat.end(m_rt != Errno.OK, m_rt);
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
         }
     }
 
@@ -677,7 +677,7 @@ public class SpecificationCli extends FaiClient {
             updaterList.toBuffer(sendBody, ProductSpecSkuDto.Key.UPDATER_LIST, ProductSpecSkuDto.getInfoDto());
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(SpecificationCmd.ProductSpecSkuCmd.SET_LIST);
+            sendProtocol.setCmd(MgProductSpecCmd.ProductSpecSkuCmd.SET_LIST);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);
@@ -730,7 +730,7 @@ public class SpecificationCli extends FaiClient {
             sendBody.putInt(ProductSpecSkuDto.Key.PD_ID, pdId);
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(SpecificationCmd.ProductSpecSkuCmd.GET_LIST);
+            sendProtocol.setCmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_LIST);
 
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
@@ -768,7 +768,7 @@ public class SpecificationCli extends FaiClient {
             return m_rt = Errno.OK;
         } finally {
             close();
-            stat.end(m_rt != Errno.OK, m_rt);
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
         }
     }
 }

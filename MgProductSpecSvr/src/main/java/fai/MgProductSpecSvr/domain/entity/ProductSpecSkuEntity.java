@@ -1,0 +1,32 @@
+package fai.MgProductSpecSvr.domain.entity;
+
+/**
+ * 产品规格SKU
+ */
+public class ProductSpecSkuEntity {
+    public static final class Info {
+        public static final String AID = "aid";                                     // int 企业aid    (Primary Key 1)
+        public static final String SKU_ID = "skuId";                                // bigInt SKU id（aid下自增），系统对内, 也做排序 (Primary Key 2)
+        public static final String PD_ID = "pdId";                                  // int 商品 id
+        public static final String SORT = "sort";                                   // int 排序
+        public static final String SOURCE_TID = "sourceTid";                        // int 创建规格的 项目id
+        public static final String SKU_NUM = "skuNum";                              // TODO
+        public static final String IN_PD_SC_STR_ID_LIST = "inPdScStrIdList"; // varchar(150) 规格值 FaiList<Integer>, 支持最大 15 种规格  存储到db时需要排序下，用于查询
+        public static final String FLAG = "flag";                                   // int flag
+        public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
+        public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
+    }
+    private static final String[] VALID_KEYS = new String[]{
+            Info.SKU_ID,
+            Info.SOURCE_TID,
+            Info.SORT,
+            Info.FLAG,
+            Info.SKU_NUM,
+    };
+    /**
+     * 支持批量更新的字段
+     */
+    public static String[] getValidKeys(){
+        return VALID_KEYS;
+    }
+}

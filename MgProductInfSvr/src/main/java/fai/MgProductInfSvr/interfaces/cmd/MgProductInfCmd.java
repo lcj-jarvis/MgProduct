@@ -23,6 +23,9 @@ public class MgProductInfCmd {
         public static final int NUM10 = 5010;
         /**@see ProductSpecSkuCmd#GET_LIST */
         public static final int NUM11 = 5011;
+
+        /**@see BasicCmd#GET_RLPDIDS_BY_PROP */
+        public static final int NUM12 = 5012;
     }
 
     // 1000 到 5000 的范围
@@ -75,6 +78,7 @@ public class MgProductInfCmd {
     public static class BasicCmd {
         //读命令
         public static final int GET_PROP_LIST = ReadCmdNum.NUM3;
+        public static final int GET_RLPDIDS_BY_PROP = ReadCmdNum.NUM12;
 
         //写命令
         public static final int SET_PROP_LIST = WriteCmdNum.NUM7;

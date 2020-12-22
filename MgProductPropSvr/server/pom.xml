@@ -1,11 +1,11 @@
 <?xml version="1.0" ?><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>ProductMg</groupId>
+        <groupId>MgProduct</groupId>
         <artifactId>MgProductPropSvr</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
-    <artifactId>ProductMg-MgProductPropSvr-server</artifactId>
+    <artifactId>MgProduct-MgProductPropSvr-server</artifactId>
     <packaging>jar</packaging>
     <version>1.0.0-SNAPSHOT</version>
     <dependencies>
@@ -16,9 +16,9 @@
         </dependency>
 
         <dependency>
-            <groupId>ProductMg</groupId>
-            <artifactId>ProductMg-MgProductPropSvr-interfaces</artifactId>
-            <version>${ProductMg-MgProductPropSvr-interfaces-ver}</version>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProduct-MgProductPropSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductPropSvr-interfaces-ver}</version>
         </dependency>
 
         <dependency>

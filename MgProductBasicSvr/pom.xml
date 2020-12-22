@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>ProductMg</groupId>
+    <groupId>MgProduct</groupId>
     <artifactId>MgProductBasicSvr</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
@@ -18,8 +18,8 @@
     <profiles>
         <profile>
             <modules>
-                <module>ProductMg-MgProductBasicSvr-server</module>
-                <module>ProductMg-MgProductBasicSvr-interfaces</module>
+                <module>MgProduct-MgProductBasicSvr-server</module>
+                <module>MgProduct-MgProductBasicSvr-interfaces</module>
             </modules>
         </profile>
     </profiles>

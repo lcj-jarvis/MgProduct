@@ -1,11 +1,11 @@
 <?xml version="1.0" ?><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>ProductMg</groupId>
+        <groupId>MgProduct</groupId>
         <artifactId>MgProductInfSvr</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
-    <artifactId>ProductMg-MgProductInfSvr-server</artifactId>
+    <artifactId>MgProduct-MgProductInfSvr-server</artifactId>
     <packaging>jar</packaging>
     <version>1.0.0-SNAPSHOT</version>
     <dependencies>
@@ -16,21 +16,21 @@
         </dependency>
 
         <dependency>
-            <groupId>CommonMg</groupId>
-            <artifactId>CommonMg-MgPrimaryKeySvr-interfaces</artifactId>
-            <version>${CommonMg-MgPrimaryKeySvr-interfaces-ver}</version>
+            <groupId>MgCommon</groupId>
+            <artifactId>MgCommon-MgPrimaryKeySvr-interfaces</artifactId>
+            <version>${MgCommon-MgPrimaryKeySvr-interfaces-ver}</version>
         </dependency>
 
         <dependency>
-            <groupId>ProductMg</groupId>
-            <artifactId>ProductMg-MgProductPropSvr-interfaces</artifactId>
-            <version>${ProductMg-MgProductPropSvr-interfaces-ver}</version>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProduct-MgProductPropSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductPropSvr-interfaces-ver}</version>
         </dependency>
 
         <dependency>
-            <groupId>ProductMg</groupId>
-            <artifactId>ProductMg-MgProductBasicSvr-interfaces</artifactId>
-            <version>${ProductMg-MgProductBasicSvr-interfaces-ver}</version>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProduct-MgProductBasicSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductBasicSvr-interfaces-ver}</version>
         </dependency>
 
         <dependency>

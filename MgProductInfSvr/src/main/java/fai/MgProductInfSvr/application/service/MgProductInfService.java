@@ -470,6 +470,41 @@ public class MgProductInfService extends ServicePub {
         }
         return rt;
     }
+
+    public int getRlPdByPropVal(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> proIdsAndValIds) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            FaiList<Integer> rlPdIds = new FaiList<Integer>();
+            ProductBasicService basicService = new ProductBasicService(flow);
+            rt = basicService.getRlPdByPropVal(aid, tid, unionPriId, proIdsAndValIds, rlPdIds);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            rlPdIds.toBuffer(sendBuf, ProductBasicDto.Key.RL_PD_IDS);
+            session.write(sendBuf);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+
     /**
      * 获取unionPriId
      */

@@ -12,8 +12,7 @@ public class ProductBindPropDaoCtrl extends DaoCtrl {
 
     @Override
     public String getTableName(int aid) {
-        //return TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
-        return TABLE_PREFIX;
+        return TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
     }
 
     @Override

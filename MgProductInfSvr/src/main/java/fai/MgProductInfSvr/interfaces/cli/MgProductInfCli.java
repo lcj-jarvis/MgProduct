@@ -639,4 +639,64 @@ public class MgProductInfCli extends FaiClient {
             stat.end(m_rt != Errno.OK, m_rt);
         }
     }
+
+    public int getRlPdByPropVal(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> proIdsAndValIds, FaiList<Integer> rlPdIds) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            rlPdIds.clear();
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductBasicDto.Key.TID, tid);
+            sendBody.putInt(ProductBasicDto.Key.SITE_ID, siteId);
+            sendBody.putInt(ProductBasicDto.Key.LGID, lgId);
+            sendBody.putInt(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1);
+            proIdsAndValIds.toBuffer(sendBody, ProductBasicDto.Key.BIND_PROP_INFO);
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setAid(aid);
+            sendProtocol.setCmd(MgProductInfCmd.BasicCmd.GET_RLPDIDS_BY_PROP);
+            sendProtocol.addEncodeBody(sendBody);
+
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                if (m_rt != Errno.NOT_FOUND) {
+                    Log.logErr(m_rt, "recv result err");
+                }
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = rlPdIds.fromBuffer(recvBody, keyRef);
+            if (m_rt != Errno.OK || keyRef.value != ProductBasicDto.Key.RL_PD_IDS) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
 }

@@ -32,13 +32,6 @@ public class MgProductPropSvr {
 		if(svrOption.getDebug()) {
 			dbType = FaiDbUtil.Type.DEV_MASTER;
 		}
-		/*Param daoInfo = FaiDbUtil.getDbInfo(dbType, dbInstance);
-		if (daoInfo == null || daoInfo.isEmpty()) {
-			Log.logErr("get daoInfo err");
-			return;
-		}
-		Log.logDbg("daoInfo = %s", daoInfo);
-		Log.logDbg("config.getName() = %s", config.getName());*/
 
 		int maxSize = svrOption.getDbMaxSize();
 		DaoPool daoPool = getDaoPool(config.getName(), dbType, maxSize, dbInstance);

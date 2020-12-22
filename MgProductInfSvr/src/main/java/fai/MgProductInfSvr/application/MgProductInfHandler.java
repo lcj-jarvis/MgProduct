@@ -175,5 +175,19 @@ public class MgProductInfHandler extends FaiHandler {
                                keyMatch = ProductBasicDto.Key.DEL_PROP_BIND) FaiList<Param> delPropList) throws IOException {
         return service.setProductBindPropInfo(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, addPropList, delPropList);
     }
+
+    @Cmd(MgProductInfCmd.BasicCmd.GET_RLPDIDS_BY_PROP)
+    public int getRlPdByPropVal(final FaiSession session,
+                                @ArgFlow final int flow,
+                                @ArgAid final int aid,
+                                @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
+                                @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
+                                @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
+                                @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
+                                @ArgList(classDef = ProductBasicDto.class, methodDef = "getInfoDto",
+                                keyMatch = ProductBasicDto.Key.BIND_PROP_INFO) FaiList<Param> proIdsAndValIds) throws IOException {
+        return service.getRlPdByPropVal(session, flow, aid, tid, siteId, lgId, keepPriId1, proIdsAndValIds);
+    }
+
     MgProductInfService service = new MgProductInfService();
 }

@@ -25,7 +25,9 @@ public class ProductBasicService {
 
         rt = m_cli.getPdBindProp(aid, tid, unionPriId, rlPdId, bindPropList);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "getPdBindProp error;flow=%d;aid=%d;tid=%d;unionPriId=%d;", m_flow, aid, tid, unionPriId);
+            if(rt != Errno.NOT_FOUND) {
+                Log.logErr(rt, "getPdBindProp error;flow=%d;aid=%d;tid=%d;unionPriId=%d;", m_flow, aid, tid, unionPriId);
+            }
             return rt;
         }
         return rt;
@@ -47,6 +49,23 @@ public class ProductBasicService {
         return rt;
     }
 
+    public int getRlPdByPropVal(int aid, int tid, int unionPriId, FaiList<Param> proIdsAndValIds, FaiList<Integer> rlPdIds) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.getRlPdByPropVal(aid, tid, unionPriId, proIdsAndValIds, rlPdIds);
+        if(rt != Errno.OK) {
+            if(rt != Errno.NOT_FOUND) {
+                Log.logErr(rt, "getRlPdByPropVal error;flow=%d;aid=%d;tid=%d;unionPriId=%d;", m_flow, aid, tid, unionPriId);
+            }
+            return rt;
+        }
+
+        return rt;
+    }
 
     private int m_flow;
     private MgProductBasicCli m_cli;

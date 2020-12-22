@@ -10,7 +10,7 @@ import java.util.Calendar;
 public class ProductBindPropProc {
     public ProductBindPropProc(int flow, ProductBindPropDaoCtrl dao) {
         this.m_flow = flow;
-        this.m_propAssocDao = dao;
+        this.m_bindPropDao = dao;
     }
 
     public int getPdBindPropList(int aid, int unionPriId, int rlPdId, Ref<FaiList<Param>> listRef) {
@@ -51,7 +51,7 @@ public class ProductBindPropProc {
             info.setCalendar(ProductBindPropEntity.Info.CREATE_TIME, now);
             addList.add(info);
         }
-        rt = m_propAssocDao.batchInsert(aid, infoList);
+        rt = m_bindPropDao.batchInsert(aid, infoList);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batch insert product prop assoc error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
@@ -73,7 +73,7 @@ public class ProductBindPropProc {
             matcher.and(ProductBindPropEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
             matcher.and(ProductBindPropEntity.Info.RL_PROP_ID, ParamMatcher.EQ, rlPropId);
             matcher.and(ProductBindPropEntity.Info.PROP_VAL_ID, ParamMatcher.EQ, propValId);
-            rt = m_propAssocDao.delete(aid, matcher);
+            rt = m_bindPropDao.delete(aid, matcher);
             if(rt != Errno.OK) {
                 Log.logErr(rt, "del info error;flow=%d;aid=%d;rlPdId=%d;rlPropId=%d;propValId=%d;", m_flow, aid, rlPdId, rlPropId, propValId);
                 return rt;
@@ -86,16 +86,28 @@ public class ProductBindPropProc {
 
     /**
      * 根据参数id+参数值id的列表，筛选出商品业务id
+     * 目前是直接查db
      */
-    public int getRlPdByPropVal(int aid, int unionPriId, FaiList<Param> proIdsAndValIds) {
-        int rt = Errno.ERROR;
-        ParamMatcher matcher = new ParamMatcher();
+    public int getRlPdByPropVal(int aid, int unionPriId, FaiList<Param> proIdsAndValIds, Ref<FaiList<Param>> listRef) {
+        ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         for(Param info : proIdsAndValIds) {
             int rlPropId = info.getInt(ProductBindPropEntity.Info.RL_PROP_ID);
             int propValId = info.getInt(ProductBindPropEntity.Info.PROP_VAL_ID);
             ParamMatcher tmpMatcher = new ParamMatcher(ProductBindPropEntity.Info.RL_PROP_ID, ParamMatcher.EQ, rlPropId);
             tmpMatcher.and(ProductBindPropEntity.Info.PROP_VAL_ID, ParamMatcher.EQ, propValId);
             matcher.and(tmpMatcher);
+        }
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        int rt = m_bindPropDao.select(aid, searchArg, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            return rt;
+        }
+        if (listRef.value == null || listRef.value.isEmpty()) {
+            rt = Errno.NOT_FOUND;
+            Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
         }
         return rt;
     }
@@ -113,7 +125,7 @@ public class ProductBindPropProc {
         searchArg.matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         searchArg.matcher.and(ProductBindPropEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
-        int rt = m_propAssocDao.select(aid, searchArg, listRef);
+        int rt = m_bindPropDao.select(aid, searchArg, listRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             return rt;
         }
@@ -128,5 +140,5 @@ public class ProductBindPropProc {
     }
 
     private int m_flow;
-    private ProductBindPropDaoCtrl m_propAssocDao;
+    private ProductBindPropDaoCtrl m_bindPropDao;
 }

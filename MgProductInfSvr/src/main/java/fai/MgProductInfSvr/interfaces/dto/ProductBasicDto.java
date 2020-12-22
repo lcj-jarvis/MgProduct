@@ -53,6 +53,7 @@ public class ProductBasicDto {
         public static final int PROP_BIND = 8;
         public static final int DEL_PROP_BIND = 9;
         public static final int SERIALIZE_TMP_DEF = 10;
+        public static final int RL_PD_IDS = 11;
     }
 
 

@@ -25,8 +25,9 @@ public class ProductBindPropDto {
         public static final int INFO_LIST = 2;
         public static final int UNION_PRI_ID = 3;
         public static final int TID = 4;
-        public static final int RL_PD_ID = 4;
-        public static final int PROP_BIND = 5;
-        public static final int DEL_PROP_BIND = 6;
+        public static final int RL_PD_ID = 5;
+        public static final int PROP_BIND = 6;
+        public static final int DEL_PROP_BIND = 7;
+        public static final int RL_PD_IDS = 8;
     }
 }

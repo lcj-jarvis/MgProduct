@@ -4,6 +4,7 @@ public class MgProductBasicCmd {
     // 5000  以上的范围
     public static class ReadCmdNum{
         public static final int NUM = 5000;	// PropAssocCmd.GET_LIST
+        public static final int NUM2 = 5001;	// PropAssocCmd.GET_PD_BIND_PROP
     }
 
     // 1000 到 5000 的范围
@@ -16,6 +17,7 @@ public class MgProductBasicCmd {
      */
     public static class BindPropCmd {
         public static final int GET_LIST = ReadCmdNum.NUM;
+        public static final int GET_LIST_BY_PROP = ReadCmdNum.NUM2;
 
         public static final int BATCH_SET = WriteCmdNum.NUM;
     }

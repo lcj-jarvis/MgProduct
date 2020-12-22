@@ -7,6 +7,7 @@ import fai.comm.jnetkit.server.fai.FaiHandler;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
+import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.ArgAid;
 import fai.comm.jnetkit.server.fai.annotation.args.ArgBodyInteger;
 import fai.comm.jnetkit.server.fai.annotation.args.ArgFlow;
@@ -31,6 +32,7 @@ public class MgProductBasicHandler extends FaiHandler {
         return service.getPdBindProp(session, flow, aid, unionPriId, tid, rlPdId);
     }
 
+    @WrittenCmd
     @Cmd(MgProductBasicCmd.BindPropCmd.BATCH_SET)
     public int setPdBindProp(final FaiSession session,
                             @ArgFlow final int flow,
@@ -43,6 +45,17 @@ public class MgProductBasicHandler extends FaiHandler {
                             @ArgList(classDef = ProductBindPropDto.class, methodDef = "getInfoDto",
                             keyMatch = ProductBindPropDto.Key.DEL_PROP_BIND) FaiList<Param> delList) {
         return service.setPdBindProp(session, flow, aid, unionPriId, tid, rlPdId, addList, delList);
+    }
+
+    @Cmd(MgProductBasicCmd.BindPropCmd.GET_LIST_BY_PROP)
+    public int getRlPdByPropVal(final FaiSession session,
+                             @ArgFlow final int flow,
+                             @ArgAid final int aid,
+                             @ArgBodyInteger(ProductBindPropDto.Key.UNION_PRI_ID) int unionPriId,
+                             @ArgBodyInteger(ProductBindPropDto.Key.TID) int tid,
+                             @ArgList(classDef = ProductBindPropDto.class, methodDef = "getInfoDto",
+                             keyMatch = ProductBindPropDto.Key.INFO_LIST) FaiList<Param> proIdsAndValIds) throws IOException {
+        return service.getRlPdByPropVal(session, flow, aid, unionPriId, tid, proIdsAndValIds);
     }
 
     private ProductBasicService service = new ProductBasicService();

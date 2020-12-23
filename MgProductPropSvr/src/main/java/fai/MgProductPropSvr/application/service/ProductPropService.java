@@ -77,8 +77,8 @@ public class ProductPropService extends ServicePub {
 						Log.logErr(rt, "assembly prop info error;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
 						return rt;
 					}
-					rlPropId = info.getInt(ProductPropRelEntity.Info.RL_PROP_ID);
-					propId = info.getInt(ProductPropEntity.Info.PROP_ID);
+					rlPropId = relInfo.getInt(ProductPropRelEntity.Info.RL_PROP_ID);
+					propId = relInfo.getInt(ProductPropEntity.Info.PROP_ID);
 					ProductPropCacheCtrl.setExpire(aid);
 					ProductPropProc propProc = new ProductPropProc(flow, propDao);
 					// 添加参数信息

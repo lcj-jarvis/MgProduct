@@ -209,7 +209,7 @@ public class MgProductPropCli extends FaiClient {
                     return m_rt;
                 }
                 Ref<Integer> keyRef = new Ref<Integer>();
-                sendBody.getInt(keyRef, rlPropIdRef);
+                recvBody.getInt(keyRef, rlPropIdRef);
                 if (m_rt != Errno.OK || keyRef.value != ProductPropDto.Key.RL_PROP_ID) {
                     Log.logErr(m_rt, "recv rlPropId codec err");
                     return m_rt;

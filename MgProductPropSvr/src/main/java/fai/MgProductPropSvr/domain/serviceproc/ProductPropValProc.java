@@ -141,7 +141,7 @@ public class ProductPropValProc {
 			info.setCalendar(ProductPropValEntity.Info.CREATE_TIME, now);
 			info.setCalendar(ProductPropValEntity.Info.UPDATE_TIME, now);
 		}
-		int rt = m_valDao.batchInsert(aid, valList);
+		int rt = m_valDao.batchInsert(aid, valList.clone());
 		if(rt != Errno.OK) {
 			Log.logErr(rt, "batch insert prop error;flow=%d;aid=%d;", m_flow, aid);
 			return rt;

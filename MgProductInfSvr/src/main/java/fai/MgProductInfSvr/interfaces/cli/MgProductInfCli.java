@@ -482,8 +482,11 @@ public class MgProductInfCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductPropDto.Key.TID, tid);
+            sendBody.putInt(ProductPropDto.Key.SITE_ID, tid);
+            sendBody.putInt(ProductPropDto.Key.LGID, tid);
+            sendBody.putInt(ProductPropDto.Key.KEEP_PRIID1, tid);
             sendBody.putInt(ProductPropDto.Key.LIB_ID, libId);
-            sendBody.putInt(ProductPropDto.Key.RL_PROP_ID, rlPropId);
+            sendBody.putInt(ProductPropDto.Key.RL_PROP_IDS, rlPropId);
             addList.toBuffer(sendBody, ProductPropDto.Key.VAL_LIST, ProductPropDto.getPropValInfoDto());
             setList.toBuffer(sendBody, ProductPropDto.Key.UPDATERLIST, ProductPropDto.getPropValInfoDto());
             delList.toBuffer(sendBody, ProductPropDto.Key.VAL_IDS);

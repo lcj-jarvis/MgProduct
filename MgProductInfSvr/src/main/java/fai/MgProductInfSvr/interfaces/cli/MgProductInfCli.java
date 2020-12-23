@@ -653,7 +653,7 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductBasicDto.Key.SITE_ID, siteId);
             sendBody.putInt(ProductBasicDto.Key.LGID, lgId);
             sendBody.putInt(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1);
-            proIdsAndValIds.toBuffer(sendBody, ProductBasicDto.Key.BIND_PROP_INFO);
+            proIdsAndValIds.toBuffer(sendBody, ProductBasicDto.Key.BIND_PROP_INFO, ProductBasicDto.getBindPropValDto());
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setAid(aid);
             sendProtocol.setCmd(MgProductInfCmd.BasicCmd.GET_RLPDIDS_BY_PROP);

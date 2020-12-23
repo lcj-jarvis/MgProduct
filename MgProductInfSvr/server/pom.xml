@@ -32,6 +32,11 @@
             <artifactId>MgProduct-MgProductBasicSvr-interfaces</artifactId>
             <version>${MgProduct-MgProductBasicSvr-interfaces-ver}</version>
         </dependency>
+        <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProduct-MgProductSpecSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductSpecSvr-interfaces-ver}</version>
+        </dependency>
 
         <dependency>
             <groupId>fai-comm-jnetkit</groupId>

@@ -179,7 +179,7 @@ public class ProductPropValProc {
 
 	private void initInfo(int rlPropId, FaiList<Param> list) {
 		for(Param info : list) {
-			info.setInt(ProductPropValEntity.Info.PROP_ID, rlPropId);
+			info.setInt(ProductPropValEntity.Info.RL_PROP_ID, rlPropId);
 		}
 	}
 

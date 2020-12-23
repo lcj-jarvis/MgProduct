@@ -18,7 +18,7 @@ public class ProductBasicDto {
     private static ParamDef g_bindPropValDef = new ParamDef();
     static {
         g_bindPropValDef.add(ProductBasicEntity.BindPropInfo.PROP_VAL_ID, 0);
-        g_bindPropValDef.add(ProductBasicEntity.BindPropInfo.VAL, 1);
+        g_bindPropValDef.add(ProductBasicEntity.BindPropInfo.RL_PROP_ID, 1);
     }
 
     /**

@@ -116,7 +116,7 @@ public class ProductPropProc {
 	private int getList(int aid, Ref<FaiList<Param>> listRef) {
 		// 从缓存获取数据
 		FaiList<Param> list = ProductPropCacheCtrl.getCacheList(aid);
-		if(list != null || !list.isEmpty()) {
+		if(list != null && !list.isEmpty()) {
 			listRef.value = list;
 			return Errno.OK;
 		}

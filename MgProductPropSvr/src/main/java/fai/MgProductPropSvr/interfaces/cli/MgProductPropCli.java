@@ -412,10 +412,10 @@ public class MgProductPropCli extends FaiClient {
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
-            sendBody.putInt(ProductPropDto.Key.UNION_PRI_ID, unionPriId);
-            sendBody.putInt(ProductPropDto.Key.TID, tid);
-            sendBody.putInt(ProductPropDto.Key.LIB_ID, libId);
-            sendBody.putInt(ProductPropDto.Key.RL_PROP_ID, rlPropId);
+            sendBody.putInt(ProductPropValDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductPropValDto.Key.TID, tid);
+            sendBody.putInt(ProductPropValDto.Key.LIB_ID, libId);
+            sendBody.putInt(ProductPropValDto.Key.RL_PROP_ID, rlPropId);
             setList.toBuffer(sendBody, ProductPropValDto.Key.UPDATERLIST, ProductPropValDto.getInfoDto());
             delList.toBuffer(sendBody, ProductPropValDto.Key.VAL_IDS);
             addList.toBuffer(sendBody, ProductPropValDto.Key.INFO_LIST, ProductPropValDto.getInfoDto());

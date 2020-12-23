@@ -589,6 +589,7 @@ public class ProductPropService extends ServicePub {
 			}finally {
 				lock.unlock();
 			}
+			Log.logStd("setPropValList ok;flow=%d;aid=%d;unionPriId=%d;tid=%d;", flow, aid, unionPriId, tid);
 		}finally {
 			stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
 		}

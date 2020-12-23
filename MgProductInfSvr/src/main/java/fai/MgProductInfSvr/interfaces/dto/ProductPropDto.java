@@ -32,6 +32,7 @@ public class ProductPropDto {
         g_productPropValDtoDef.add(ProductPropEntity.PropValInfo.DATA_TYPE, 5);
         g_productPropValDtoDef.add(ProductPropEntity.PropValInfo.CREATE_TIME, 6);
         g_productPropValDtoDef.add(ProductPropEntity.PropValInfo.UPDATE_TIME, 7);
+        g_productPropValDtoDef.add(ProductPropEntity.PropValInfo.RL_PROP_ID, 8);
     }
 
     public static ParamDef getPropInfoDto() {

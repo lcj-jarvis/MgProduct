@@ -32,7 +32,8 @@ public class ProductPropValProc {
 				Log.logErr("get error;flow=%d;aid=%d;propId=%s;", m_flow, aid, propId);
 				return rt;
 			}
-			initInfo(idRels.get(propId), list);
+			// 设置rlPropId
+			initInfo(idRels.get(propId), tmpRef.value);
 			list.addAll(tmpRef.value);
 		}
 		listRef.value = list;
@@ -153,7 +154,7 @@ public class ProductPropValProc {
 	private int getList(int aid, int propId, Ref<FaiList<Param>> listRef) {
 		// 从缓存获取数据
 		FaiList<Param> list = ProductPropValCacheCtrl.getCacheList(aid, propId);
-		if(list != null || !list.isEmpty()) {
+		if(list != null && !list.isEmpty()) {
 			listRef.value = list;
 			return Errno.OK;
 		}

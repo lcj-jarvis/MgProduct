@@ -128,6 +128,7 @@ public class ProductPropRelProc {
 			if(Str.isEmpty(oldInfo)){
 				continue;
 			}
+			int propId = oldInfo.getInt(ProductPropRelEntity.Info.PROP_ID);
 			oldInfo = updater.update(oldInfo, true);
 			Param data = new Param();
 			//只能修改rlFlag和sort
@@ -140,7 +141,7 @@ public class ProductPropRelProc {
 			data.assign(oldInfo, ProductPropRelEntity.Info.RL_PROP_ID);
 			dataList.add(data);
 			if(propUpdaterList != null) {
-				updateInfo.setInt(ProductPropEntity.Info.PROP_ID, 0);
+				updateInfo.setInt(ProductPropEntity.Info.PROP_ID, propId);
 				propUpdaterList.add(updater);
 			}
 		}

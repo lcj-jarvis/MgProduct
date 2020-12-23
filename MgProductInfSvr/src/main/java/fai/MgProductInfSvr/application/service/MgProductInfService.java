@@ -107,7 +107,7 @@ public class MgProductInfService extends ServicePub {
                 Log.logErr(rt, "all arg is null error;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
                 return rt;
             }
-
+            Log.logStd("set ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
             rt = Errno.OK;
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);

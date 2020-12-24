@@ -35,7 +35,10 @@ public class ProductBasicService extends ServicePub {
             try {
                 ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, bindPropDao);
                 rt = bindPropProc.getPdBindPropList(aid, unionPriId, rlPdId, listRef);
-                if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                if(rt != Errno.OK) {
+                    if(rt != Errno.NOT_FOUND) {
+                        Log.logErr(rt, "getPdBindProp error;flow=%d;aid=%d;unionPriId=%d;rlPdId=%d;", flow, aid, unionPriId, rlPdId);
+                    }
                     return rt;
                 }
             }finally {
@@ -54,7 +57,7 @@ public class ProductBasicService extends ServicePub {
         return rt;
     }
 
-    public int setPdBindProp(FaiSession session, int flow, int aid, int unionPriId, int tid, int rlPdId, FaiList<Param> addList, FaiList<Param> delList) {
+    public int setPdBindProp(FaiSession session, int flow, int aid, int unionPriId, int tid, int rlPdId, FaiList<Param> addList, FaiList<Param> delList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -106,6 +109,10 @@ public class ProductBasicService extends ServicePub {
                 lock.unlock();
             }
 
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("setPdBindProp ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }

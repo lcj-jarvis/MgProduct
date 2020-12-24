@@ -59,12 +59,12 @@ public class ProductPropService extends ServicePub {
 				if(valList != null && !valList.isEmpty()) {
 					transactionCtrl.register(valDao);
 				}
-
+				int maxSort = 0;
 				transactionCtrl.setAutoCommit(false);
 				try {
 					ProductPropRelProc propRelProc = new ProductPropRelProc(flow, relDao);
 					// 获取参数中最大的sort
-					int maxSort = propRelProc.getMaxSort(aid, unionPriId, libId);
+					maxSort = propRelProc.getMaxSort(aid, unionPriId, libId);
 					if(maxSort < 0) {
 						rt = Errno.ERROR;
 						Log.logErr(rt, "getMaxSort error;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
@@ -119,6 +119,9 @@ public class ProductPropService extends ServicePub {
 						ProductPropRelCacheCtrl.addCache(aid, unionPriId, libId, relInfo);
 						if(valList != null && !valList.isEmpty()) {
 							ProductPropValCacheCtrl.addCacheList(aid, propId, valList);
+						}
+						if(maxSort > 0) {
+							ProductPropRelCacheCtrl.setSortCache(aid, unionPriId, libId, maxSort);
 						}
 					}
 					transactionCtrl.closeDao();
@@ -286,17 +289,7 @@ public class ProductPropService extends ServicePub {
 				// 关闭dao
 				transactionCtrl.closeDao();
 			}
-
 			FaiList<Param> list = listRef.value;
-			if(searchArg.matcher == null) {
-				searchArg.matcher = new ParamMatcher();
-			}
-			searchArg.matcher.and(ProductPropEntity.Info.PROP_ID, ParamMatcher.IN, propIds);
-			searchArg.cmpor = new ParamComparator();
-			searchArg.cmpor.addKey(ProductPropEntity.Info.PROP_ID, propIds);
-
-			Searcher searcher = new Searcher(searchArg);
-			list = searcher.getParamList(list);
 			// 数据整合
 			for(Param info : list) {
 				Integer propId = info.getInt(ProductPropRelEntity.Info.PROP_ID);
@@ -308,6 +301,16 @@ public class ProductPropService extends ServicePub {
 				}
 				info.assign(resInfo);
 			}
+
+			if(searchArg.matcher == null) {
+				searchArg.matcher = new ParamMatcher();
+			}
+			searchArg.matcher.and(ProductPropEntity.Info.PROP_ID, ParamMatcher.IN, propIds);
+			searchArg.cmpor = new ParamComparator();
+			searchArg.cmpor.addKey(ProductPropEntity.Info.PROP_ID, propIds);
+
+			Searcher searcher = new Searcher(searchArg);
+			list = searcher.getParamList(list);
 
 			FaiBuffer sendBuf = new FaiBuffer(true);
 			list.toBuffer(sendBuf, ProductPropDto.Key.INFO_LIST, ProductPropDto.getInfoDto());

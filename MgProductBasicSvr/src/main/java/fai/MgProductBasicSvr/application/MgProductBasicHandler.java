@@ -43,7 +43,7 @@ public class MgProductBasicHandler extends FaiHandler {
                             @ArgList(classDef = ProductBindPropDto.class, methodDef = "getInfoDto",
                             keyMatch = ProductBindPropDto.Key.PROP_BIND) FaiList<Param> addList,
                             @ArgList(classDef = ProductBindPropDto.class, methodDef = "getInfoDto",
-                            keyMatch = ProductBindPropDto.Key.DEL_PROP_BIND) FaiList<Param> delList) {
+                            keyMatch = ProductBindPropDto.Key.DEL_PROP_BIND) FaiList<Param> delList) throws IOException {
         return service.setPdBindProp(session, flow, aid, unionPriId, tid, rlPdId, addList, delList);
     }
 

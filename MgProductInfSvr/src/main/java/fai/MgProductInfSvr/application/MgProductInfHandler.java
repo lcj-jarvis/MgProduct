@@ -183,7 +183,7 @@ public class MgProductInfHandler extends FaiHandler {
                                 @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
                                 @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
                                 @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
-                                @ArgList(classDef = ProductBasicDto.class, methodDef = "getInfoDto",
+                                @ArgList(classDef = ProductBasicDto.class, methodDef = "getBindPropValDto",
                                 keyMatch = ProductBasicDto.Key.BIND_PROP_INFO) FaiList<Param> proIdsAndValIds) throws IOException {
         return service.getRlPdByPropVal(session, flow, aid, tid, siteId, lgId, keepPriId1, proIdsAndValIds);
     }

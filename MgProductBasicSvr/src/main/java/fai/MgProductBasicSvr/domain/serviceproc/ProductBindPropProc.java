@@ -51,7 +51,7 @@ public class ProductBindPropProc {
             info.setCalendar(ProductBindPropEntity.Info.CREATE_TIME, now);
             addList.add(info);
         }
-        rt = m_bindPropDao.batchInsert(aid, infoList);
+        rt = m_bindPropDao.batchInsert(aid, addList);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batch insert product prop assoc error;flow=%d;aid=%d;", m_flow, aid);
             return rt;

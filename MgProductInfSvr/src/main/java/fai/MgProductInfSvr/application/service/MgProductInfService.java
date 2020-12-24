@@ -391,6 +391,10 @@ public class MgProductInfService extends ServicePub {
                     rlPropIds.add(rlPropId);
                 }
             }
+            if(bindPropList.isEmpty()) {
+                rt = Errno.NOT_FOUND;
+                return rt;
+            }
             ProductPropService productPropService = new ProductPropService(flow);
             FaiList<Param> propValList = new FaiList<Param>();
             // 根据参数id集合，获取参数值id集合
@@ -430,6 +434,7 @@ public class MgProductInfService extends ServicePub {
                 return rt;
             }
             FaiBuffer sendBuf = new FaiBuffer(true);
+            sendBuf.putBuffer(ProductBasicDto.Key.SERIALIZE_TMP_DEF, buf);
             resultInfo.toBuffer(sendBuf, ProductBasicDto.Key.BIND_PROP_INFO, def);
             session.write(sendBuf);
         }finally {

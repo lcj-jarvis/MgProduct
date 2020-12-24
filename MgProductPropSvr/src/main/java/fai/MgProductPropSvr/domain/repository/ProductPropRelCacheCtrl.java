@@ -11,6 +11,11 @@ public class ProductPropRelCacheCtrl extends CacheCtrl {
 		return m_cache.hgetAllFaiList(cacheKey, ProductPropRelDto.Key.INFO, ProductPropRelDto.getCacheInfoDto());
 	}
 
+	public static void delCache(int aid, int unionPriId, int libId) {
+		String cacheKey = getCacheKey(aid, unionPriId, libId);
+		m_cache.del(cacheKey);
+	}
+
 	public static void addCache(int aid, int uninoId, int libId, Param info) {
 		if(Str.isEmpty(info)) {
 			return;

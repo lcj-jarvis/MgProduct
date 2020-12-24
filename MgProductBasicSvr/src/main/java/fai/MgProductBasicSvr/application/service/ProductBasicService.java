@@ -133,11 +133,11 @@ public class ProductBasicService extends ServicePub {
                 Log.logErr("args error proIdsAndValIds is empty;flow=%d;aid=%d;", flow, aid);
                 return rt;
             }
-            Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
             ProductBindPropDaoCtrl bindPropDao = ProductBindPropDaoCtrl.getInstance(session);
+            FaiList<Integer> rlPdIds = new FaiList<Integer>();
             try {
                 ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, bindPropDao);
-                rt = bindPropProc.getRlPdByPropVal(aid, unionPriId, proIdsAndValIds, listRef);
+                rt = bindPropProc.getRlPdByPropVal(aid, unionPriId, proIdsAndValIds, rlPdIds);
                 if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
                     Log.logErr(rt, "getRlPdByPropVal error;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
                     return rt;
@@ -146,12 +146,10 @@ public class ProductBasicService extends ServicePub {
                 bindPropDao.closeDao();
             }
 
-            FaiList<Integer> rlPdIds = new FaiList<Integer>();
-            for(Param info : listRef.value) {
-                int rlPdId = info.getInt(ProductBindPropEntity.Info.RL_PD_ID);
-                if(!rlPdIds.contains(rlPdId)) {
-                    rlPdIds.add(rlPdId);
-                }
+            if(rlPdIds.isEmpty()) {
+                rt = Errno.NOT_FOUND;
+                Log.logDbg("not found;flow=%d;aid=%d;unionPriId=%d;tid=%d;", flow, aid, unionPriId, tid);
+                return rt;
             }
 
             FaiBuffer sendBuf = new FaiBuffer(true);

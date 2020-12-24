@@ -88,29 +88,79 @@ public class ProductBindPropProc {
      * 根据参数id+参数值id的列表，筛选出商品业务id
      * 目前是直接查db
      */
-    public int getRlPdByPropVal(int aid, int unionPriId, FaiList<Param> proIdsAndValIds, Ref<FaiList<Param>> listRef) {
-        ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+    public int getRlPdByPropVal(int aid, int unionPriId, FaiList<Param> proIdsAndValIds, FaiList<Integer> rlPdIds) {
+        int rt;
+        FaiList<Integer> rlPropIds = new FaiList<Integer>();
+        FaiList<Integer> propValIds = new FaiList<Integer>();
         for(Param info : proIdsAndValIds) {
             int rlPropId = info.getInt(ProductBindPropEntity.Info.RL_PROP_ID);
+            if(!rlPropIds.contains(rlPropId)) {
+                rlPropIds.add(rlPropId);
+            }
             int propValId = info.getInt(ProductBindPropEntity.Info.PROP_VAL_ID);
-            ParamMatcher tmpMatcher = new ParamMatcher(ProductBindPropEntity.Info.RL_PROP_ID, ParamMatcher.EQ, rlPropId);
-            tmpMatcher.and(ProductBindPropEntity.Info.PROP_VAL_ID, ParamMatcher.EQ, propValId);
-            matcher.and(tmpMatcher);
+            if(!propValIds.contains(propValId)) {
+                propValIds.add(propValId);
+            }
         }
+        if(rlPropIds.isEmpty() || propValIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args error;rlPropIds or propValIds is empty;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        // 先将可能符合条件的数据查出来，再做筛选, 避免循环查db
+        ParamMatcher sqlMatcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
+        sqlMatcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        sqlMatcher.and(ProductBindPropEntity.Info.RL_PROP_ID, ParamMatcher.IN, rlPropIds);
+        sqlMatcher.and(ProductBindPropEntity.Info.PROP_VAL_ID, ParamMatcher.IN, propValIds);
+        Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
         SearchArg searchArg = new SearchArg();
-        searchArg.matcher = matcher;
-        int rt = m_bindPropDao.select(aid, searchArg, listRef);
+        searchArg.matcher = sqlMatcher;
+        rt = m_bindPropDao.select(aid, searchArg, listRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             return rt;
         }
-        if (listRef.value == null || listRef.value.isEmpty()) {
+        FaiList<Param> list = listRef.value;
+        if (list == null || list.isEmpty()) {
             rt = Errno.NOT_FOUND;
             Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
+
+        for(Param info : proIdsAndValIds) {
+            int rlPropId = info.getInt(ProductBindPropEntity.Info.RL_PROP_ID);
+            int propValId = info.getInt(ProductBindPropEntity.Info.PROP_VAL_ID);
+            FaiList<Integer> tmpRlPdIds = searchRlPdByPropVal(aid, unionPriId, rlPropId, propValId, list);
+            if(rlPdIds.isEmpty()) {
+                rlPdIds.addAll(tmpRlPdIds);
+            }else {
+                rlPdIds.retainAll(tmpRlPdIds);
+            }
+        }
+
+        rt = Errno.OK;
         return rt;
     }
+
+    private FaiList<Integer> searchRlPdByPropVal(int aid, int unionPriId, int rlPropId, int propValId, FaiList<Param> searchList) {
+        ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(ProductBindPropEntity.Info.RL_PROP_ID, ParamMatcher.EQ, rlPropId);
+        matcher.and(ProductBindPropEntity.Info.PROP_VAL_ID, ParamMatcher.EQ, propValId);
+        Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        Searcher searcher = new Searcher(searchArg);
+        FaiList<Param> tmpList = searcher.getParamList(searchList);
+        FaiList<Integer> rlPdIds = new FaiList<Integer>();
+        for(Param info : tmpList) {
+            int rlPdId = info.getInt(ProductBindPropEntity.Info.RL_PD_ID);
+            if(!rlPdIds.contains(rlPdId)) {
+                rlPdIds.add(rlPdId);
+            }
+        }
+        return rlPdIds;
+    }
+
 
     private int getList(int aid, int unionPriId, int rlPdId, Ref<FaiList<Param>> listRef) {
         // 缓存中获取

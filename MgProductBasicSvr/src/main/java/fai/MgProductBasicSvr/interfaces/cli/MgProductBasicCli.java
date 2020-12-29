@@ -258,6 +258,10 @@ public class MgProductBasicCli extends FaiClient {
     }
 
     public int addProductAndRel(int aid, int tid, int unionPriId, Param info) {
+        return addProductAndRel(aid, tid, unionPriId, info, null, null);
+    }
+
+    public int addProductAndRel(int aid, int tid, int unionPriId, Param info, Ref<Integer> pdIdRef, Ref<Integer> rlPdIdRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -300,6 +304,28 @@ public class MgProductBasicCli extends FaiClient {
                 return m_rt;
             }
 
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.ERROR;
+                Log.logErr(m_rt, "recv body=null;aid=%d", aid);
+                return m_rt;
+            }
+
+            if(pdIdRef != null && rlPdIdRef != null) {
+                Ref<Integer> keyRef = new Ref<Integer>();
+                m_rt = recvBody.getInt(keyRef, pdIdRef);
+                if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.PD_ID) {
+                    Log.logErr(m_rt, "recv sid codec err");
+                    return m_rt;
+                }
+
+                m_rt = recvBody.getInt(keyRef, rlPdIdRef);
+                if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.RL_PD_ID) {
+                    Log.logErr(m_rt, "recv sid codec err");
+                    return m_rt;
+                }
+            }
+
             return m_rt;
         } finally {
             close();
@@ -308,6 +334,10 @@ public class MgProductBasicCli extends FaiClient {
     }
 
     public int bindProductRel(int aid, int tid, int unionPriId, Param info) {
+        return bindProductRel(aid, tid, unionPriId, info, null);
+    }
+
+    public int bindProductRel(int aid, int tid, int unionPriId, Param info, Ref<Integer> rlPdIdRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -348,6 +378,88 @@ public class MgProductBasicCli extends FaiClient {
             m_rt = recvProtocol.getResult();
             if (m_rt != Errno.OK) {
                 return m_rt;
+            }
+
+            if (rlPdIdRef != null) {
+                FaiBuffer recvBody = recvProtocol.getDecodeBody();
+                if (recvBody == null) {
+                    m_rt = Errno.ERROR;
+                    Log.logErr(m_rt, "recv body=null;aid=%d", aid);
+                    return m_rt;
+                }
+                Ref<Integer> keyRef = new Ref<Integer>();
+                m_rt = recvBody.getInt(keyRef, rlPdIdRef);
+                if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.RL_PD_ID) {
+                    Log.logErr(m_rt, "recv sid codec err");
+                    return m_rt;
+                }
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    public int batchBindProductRel(int aid, int tid, int unionPriId, Param info, Ref<FaiList<Integer>> rlPdIdsRef) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if (info == null || info.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "info is null");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductRelDto.Key.TID, tid);
+            sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
+            info.toBuffer(sendBody, ProductRelDto.Key.INFO, ProductRelDto.getRelAndPdDto());
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductBasicCmd.BasicCmd.ADD_REL_BIND);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            if (rlPdIdsRef != null) {
+                FaiBuffer recvBody = recvProtocol.getDecodeBody();
+                if (recvBody == null) {
+                    m_rt = Errno.ERROR;
+                    Log.logErr(m_rt, "recv body=null;aid=%d", aid);
+                    return m_rt;
+                }
+                FaiList<Integer> rlPdIds = new FaiList<Integer>();
+                Ref<Integer> keyRef = new Ref<Integer>();
+                m_rt = rlPdIds.fromBuffer(recvBody, keyRef);
+                if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.RL_PD_ID) {
+                    Log.logErr(m_rt, "recv sid codec err");
+                    return m_rt;
+                }
+                rlPdIdsRef.value = rlPdIds;
             }
 
             return m_rt;

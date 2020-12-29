@@ -465,6 +465,8 @@ public class ProductBasicService extends ServicePub {
                 } finally {
                     if(rt != Errno.OK) {
                         transactionCtrl.rollback();
+                        ProductDaoCtrl.clearIdBuilderCache(aid);
+                        ProductRelDaoCtrl.clearIdBuilderCache(aid, unionPriId);
                     }else {
                         transactionCtrl.commit();
                         // 更新缓存
@@ -589,6 +591,8 @@ public class ProductBasicService extends ServicePub {
                 } finally {
                     if(rt != Errno.OK) {
                         transactionCtrl.rollback();
+                        ProductDaoCtrl.clearIdBuilderCache(aid);
+                        ProductRelDaoCtrl.clearIdBuilderCache(aid, unionPriId);
                     }else {
                         transactionCtrl.commit();
                         // 更新缓存
@@ -603,6 +607,133 @@ public class ProductBasicService extends ServicePub {
 
             FaiBuffer sendBuf = new FaiBuffer(true);
             sendBuf.putInt(ProductRelDto.Key.RL_PD_ID, rlPdId);
+            session.write(sendBuf);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    public int batchBindProductRel(FaiSession session, int flow, int aid, int tid, int unionPriId, FaiList<Param> infoList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+            if(infoList == null || infoList.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error info is empty;flow=%d;aid=%d;uid=%d;infoList=%s", flow, aid, unionPriId, infoList);
+                return rt;
+            }
+            FaiList<Integer> pdIdList = new FaiList<>();
+            FaiList<Param> relDataList = new FaiList<>();
+            for(Param info : infoList) {
+                Integer pdId = info.getInt(ProductRelEntity.Info.PD_ID);
+                if(pdId == null) {
+                    rt = Errno.ARGS_ERROR;
+                    Log.logErr("args error, pdId is null;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
+                    return rt;
+                }
+                pdIdList.add(pdId);
+                Integer addedSid = info.getInt(ProductRelEntity.Info.ADD_SID);
+                if(addedSid == null) {
+                    rt = Errno.ARGS_ERROR;
+                    Log.logErr("args error, addedSid is null;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
+                    return rt;
+                }
+
+                int rlLibId = info.getInt(ProductRelEntity.Info.RL_LIB_ID, 1);
+                if(rlLibId <= 0) {
+                    rt = Errno.ARGS_ERROR;
+                    Log.logErr("args error, rlLibId is empty;flow=%d;aid=%d;uid=%d;rlLibId=%s", flow, aid, unionPriId, rlLibId);
+                    return rt;
+                }
+
+                int sourceTid = info.getInt(ProductRelEntity.Info.SOURCE_TID, tid);
+                if(!FaiValObj.TermId.isValidTid(sourceTid)) {
+                    rt = Errno.ARGS_ERROR;
+                    Log.logErr("args error, sourceTid is unvalid;flow=%d;aid=%d;uid=%d;sourceTid=%d;", flow, aid, unionPriId, sourceTid);
+                    return rt;
+                }
+                Calendar now = Calendar.getInstance();
+                Calendar addedTime = info.getCalendar(ProductRelEntity.Info.ADD_TIME, now);
+                Calendar lastUpdateTime = info.getCalendar(ProductRelEntity.Info.LAST_UPDATE_TIME, now);
+                Calendar sysCreateTime = info.getCalendar(ProductRelEntity.Info.CREATE_TIME, now);
+                Calendar sysUpdateTime = info.getCalendar(ProductRelEntity.Info.UPDATE_TIME, now);
+
+                Param relData = new Param();
+                relData.setInt(ProductRelEntity.Info.AID, aid);
+                relData.setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId);
+                relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
+                relData.setInt(ProductRelEntity.Info.RL_LIB_ID, rlLibId);
+                relData.setInt(ProductRelEntity.Info.SOURCE_TID, sourceTid);
+                relData.setCalendar(ProductRelEntity.Info.ADD_TIME, addedTime);
+                relData.setInt(ProductRelEntity.Info.ADD_SID, addedSid);
+                relData.setCalendar(ProductRelEntity.Info.LAST_UPDATE_TIME, lastUpdateTime);
+                relData.setCalendar(ProductRelEntity.Info.CREATE_TIME, sysCreateTime);
+                relData.setCalendar(ProductRelEntity.Info.UPDATE_TIME, sysUpdateTime);
+
+                relData.assign(info, ProductRelEntity.Info.RL_PD_ID);
+                relData.assign(info, ProductRelEntity.Info.LAST_SID);
+                relData.assign(info, ProductRelEntity.Info.STATUS);
+                relData.assign(info, ProductRelEntity.Info.UP_SALE_TIME);
+                relData.assign(info, ProductRelEntity.Info.FLAG);
+
+                relDataList.add(relData);
+            }
+
+            FaiList<Integer> rlPdIds = new FaiList<>();
+
+            Lock lock = LockUtil.getLock(aid);
+            lock.lock();
+            try {
+                //统一控制事务
+                TransactionCtrl transactionCtrl = new TransactionCtrl();
+                try {
+                    ProductRelDaoCtrl relDao = ProductRelDaoCtrl.getInstance(session);
+                    ProductDaoCtrl pdDao = ProductDaoCtrl.getInstance(session);
+                    transactionCtrl.register(relDao);
+                    transactionCtrl.register(pdDao);
+                    transactionCtrl.setAutoCommit(false);
+
+                    // 先校验商品数据是否存在
+                    ProductProc pdProc = new ProductProc(flow, pdDao);
+                    Ref<FaiList<Param>> pdInfosRef = new Ref<>();
+                    rt = pdProc.getProductList(aid, pdIdList, pdInfosRef);
+                    if(rt != Errno.OK || pdInfosRef.value.size() != pdIdList.size()) {
+                        Log.logErr(rt, "get all ids info list fail;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
+                        return rt;
+                    }
+
+                    // 新增商品业务关系
+                    ProductRelProc relProc = new ProductRelProc(flow, relDao);
+                    Ref<FaiList<Integer>> rlPdIdsRef = new Ref<>();
+                    rt = relProc.batchAddProductRel(aid, unionPriId, relDataList, rlPdIdsRef);
+                    if(rt != Errno.OK) {
+                        return rt;
+                    }
+                    rlPdIds = rlPdIdsRef.value;
+                } finally {
+                    if(rt != Errno.OK) {
+                        transactionCtrl.rollback();
+                        ProductRelDaoCtrl.clearIdBuilderCache(aid, unionPriId);
+                    }else {
+                        transactionCtrl.commit();
+                        // 更新缓存
+                        ProductRelCacheCtrl.addCacheList(aid, unionPriId, relDataList);
+                    }
+                    transactionCtrl.closeDao();
+                }
+
+            } finally {
+                lock.unlock();
+            }
+
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            rlPdIds.toBuffer(sendBuf, ProductRelDto.Key.RL_PD_IDS);
             session.write(sendBuf);
         }finally {
             stat.end(rt != Errno.OK, rt);

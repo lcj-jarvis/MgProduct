@@ -40,7 +40,7 @@ public class ProductRelDaoCtrl extends DaoCtrl {
         return m_idBuilder.build(aid, unionPriId, m_dao, needLock);
     }
 
-    public void clearIdBuilderCache(int aid, int unionPriId) {
+    public static void clearIdBuilderCache(int aid, int unionPriId) {
         m_idBuilder.clearCache(aid, unionPriId);
     }
 

@@ -59,6 +59,55 @@ public class ProductRelProc {
         return rt;
     }
 
+    public int batchAddProductRel(int aid, int unionPriId, FaiList<Param> relDataList, Ref<FaiList<Integer>> rlPdIdsRef) {
+        int rt;
+        if(relDataList == null || relDataList.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args err, infoList is empty;flow=%d;aid=%d;uid=%d;relDataList=%s;", m_flow, aid, unionPriId, relDataList);
+            return rt;
+        }
+        Ref<Integer> countRef = new Ref<>();
+        rt = getPdRelCount(aid, unionPriId, countRef);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "get pd rel count error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        int count = countRef.value + relDataList.size();
+        if(count >= ProductRelValObj.Limit.COUNT_MAX) {
+            rt = Errno.COUNT_LIMIT;
+            Log.logErr(rt, "over limit;flow=%d;aid=%d;uid=%d;count=%d;limit=%d;", m_flow, aid, unionPriId, count, ProductValObj.Limit.COUNT_MAX);
+        }
+        FaiList<Integer> rlPdIds = new FaiList<Integer>();
+        for(Param relData : relDataList) {
+            Integer rlPdId = relData.getInt(ProductRelEntity.Info.RL_PD_ID);
+            if(rlPdId == null) {
+                rlPdId = m_dao.buildId(aid, unionPriId, false);
+                if (rlPdId == null) {
+                    rt = Errno.ERROR;
+                    Log.logErr(rt, "rlPdId build error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
+                    return rt;
+                }else {
+                    rlPdId = m_dao.updateId(aid, unionPriId, rlPdId, false);
+                    if (rlPdId == null) {
+                        rt = Errno.ERROR;
+                        Log.logErr(rt, "rlPdId update error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
+                        return rt;
+                    }
+                }
+                relData.setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId);
+            }
+            rlPdIds.add(rlPdId);
+        }
+        rlPdIdsRef.value = rlPdIds;
+
+        rt = m_dao.batchInsert(aid, relDataList);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "batch insert product rel error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        return rt;
+    }
+
     public int getPdRelCount(int aid, int unionPriId, Ref<Integer> countRef) {
         // 从缓存中获取
         Integer count = ProductRelCacheCtrl.getRelCountCache(aid, unionPriId);

@@ -90,6 +90,18 @@ public class MgProductBasicHandler extends FaiHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductBasicCmd.BasicCmd.BATCH_ADD_REL_BIND)
+    public int batchBindProductRel(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid final int aid,
+                              @ArgBodyInteger(ProductRelDto.Key.TID) int tid,
+                              @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                              @ArgList(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
+                                      keyMatch = ProductRelDto.Key.INFO) FaiList<Param> infoList) throws IOException {
+        return service.batchBindProductRel(session, flow, aid, tid, unionPriId, infoList);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductBasicCmd.BasicCmd.DEL_PDS)
     public int delProductList(final FaiSession session,
                               @ArgFlow final int flow,

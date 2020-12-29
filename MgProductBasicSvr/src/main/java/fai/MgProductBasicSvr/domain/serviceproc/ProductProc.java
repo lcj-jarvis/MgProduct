@@ -126,6 +126,16 @@ public class ProductProc {
         return Errno.OK;
     }
 
+    public int getProductList(int aid, FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef) {
+        int rt = getList(aid, pdIdList, listRef);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            Log.logErr(rt, "get list error;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
+            return rt;
+        }
+
+        return rt;
+    }
+
     private int getList(int aid, FaiList<Integer> pdIds, Ref<FaiList<Param>> listRef) {
         int rt;
         if(pdIds == null || pdIds.isEmpty()) {

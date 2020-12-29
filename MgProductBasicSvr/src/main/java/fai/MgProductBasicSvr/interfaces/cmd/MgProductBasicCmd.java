@@ -3,18 +3,19 @@ package fai.MgProductBasicSvr.interfaces.cmd;
 public class MgProductBasicCmd {
     // 5000  以上的范围
     public static class ReadCmdNum{
-        public static final int NUM = 5000;	// PropAssocCmd.GET_LIST
-        public static final int NUM2 = 5001; // PropAssocCmd.GET_PD_BIND_PROP
+        public static final int NUM = 5000;	// BindPropCmd.GET_LIST
+        public static final int NUM2 = 5001; // BindPropCmd.GET_PD_BIND_PROP
         public static final int NUM3 = 5002; // BasicCmd.GET_REL
     }
 
     // 1000 到 5000 的范围
     public static class WriteCmdNum{
-        public static final int NUM = 1000; // PropAssocCmd.BATCH_SET
-        public static final int NUM2 = 1001; // PropAssocCmd.ADD_PD_AND_REL
-        public static final int NUM3 = 1002; // PropAssocCmd.ADD_REL_BIND
-        public static final int NUM4 = 1003; // PropAssocCmd.DEL_PDS
-        public static final int NUM5 = 1004; // PropAssocCmd.DEL_REL_BIND
+        public static final int NUM = 1000; // BindPropCmd.BATCH_SET
+        public static final int NUM2 = 1001; // BasicCmd.ADD_PD_AND_REL
+        public static final int NUM3 = 1002; // BasicCmd.ADD_REL_BIND
+        public static final int NUM4 = 1003; // BasicCmd.DEL_PDS
+        public static final int NUM5 = 1004; // BasicCmd.DEL_REL_BIND
+        public static final int NUM6 = 1005; // BasicCmd.BATCH_ADD_REL_BIND
     }
 
     /**
@@ -34,6 +35,7 @@ public class MgProductBasicCmd {
         public static final int ADD_REL_BIND = WriteCmdNum.NUM3;
         public static final int DEL_PDS = WriteCmdNum.NUM4;
         public static final int DEL_REL_BIND = WriteCmdNum.NUM5;
+        public static final int BATCH_ADD_REL_BIND = WriteCmdNum.NUM6;
     }
 
 }

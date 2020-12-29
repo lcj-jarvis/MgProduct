@@ -44,11 +44,11 @@ public class ProductPropDaoCtrl extends DaoCtrl {
 	}
 
 	private static DaoPool m_daoPool;
-	private static final String TABLE_PREFIX = "productProp";
+	private static final String TABLE_PREFIX = "mgProductProp";
 	private static IdBuilderWrapper m_idBuilder;
 	private static final int ID_BUILDER_INIT = 1;
 	private static IdBuilderConfig idBuilderConfig = new IdBuilderConfig.HeavyweightBuilder()
-	.buildTableName("productProp")
+	.buildTableName("mgProductProp")
 	.buildAssistTableSuffix("idBuilder")
 	.buildInitValue(ID_BUILDER_INIT)
 	.build();

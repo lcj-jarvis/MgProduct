@@ -46,11 +46,11 @@ public class ProductPropValDaoCtrl extends DaoCtrl {
 	}
 
 	private static DaoPool m_daoPool;
-	private static final String TABLE_PREFIX = "productPropVal";
+	private static final String TABLE_PREFIX = "mgProductPropVal";
 	private static IdBuilderWrapper m_idBuilder;
 	private static final int ID_BUILDER_INIT = 1;
 	private static IdBuilderConfig idBuilderConfig = new IdBuilderConfig.HeavyweightBuilder()
-	.buildTableName("productPropVal")
+	.buildTableName("mgProductPropVal")
 	.buildAssistTableSuffix("idBuilder")
 	.buildInitValue(ID_BUILDER_INIT)
 	.build();

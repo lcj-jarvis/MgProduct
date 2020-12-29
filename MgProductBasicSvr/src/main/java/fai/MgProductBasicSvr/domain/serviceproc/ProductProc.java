@@ -48,9 +48,9 @@ public class ProductProc {
                     return rt;
                 }
             }
-            pdIdRef.value = pdId;
             pdData.setInt(ProductEntity.Info.PD_ID, pdId);
         }
+        pdIdRef.value = pdId;
         rt = m_dao.insert(aid, pdData, null);
         if(rt != Errno.OK) {
             Log.logErr(rt, "insert product error;flow=%d;aid=%d;", m_flow, aid);

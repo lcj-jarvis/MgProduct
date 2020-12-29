@@ -48,9 +48,9 @@ public class ProductRelProc {
                     return rt;
                 }
             }
-            rlPdIdRef.value = rlPdId;
             relData.setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId);
         }
+        rlPdIdRef.value = rlPdId;
         rt = m_dao.insert(aid, relData, null);
         if(rt != Errno.OK) {
             Log.logErr(rt, "insert product rel error;flow=%d;aid=%d;uid=%d;relData=%s;", m_flow, aid, unionPriId, relData);

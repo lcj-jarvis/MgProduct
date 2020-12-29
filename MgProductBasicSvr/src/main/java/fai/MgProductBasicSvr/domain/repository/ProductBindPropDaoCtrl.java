@@ -33,5 +33,5 @@ public class ProductBindPropDaoCtrl extends DaoCtrl {
     }
 
     private static DaoPool m_daoPool;
-    private static final String TABLE_PREFIX = "productBindProp";
+    private static final String TABLE_PREFIX = "mgProductBindProp";
 }

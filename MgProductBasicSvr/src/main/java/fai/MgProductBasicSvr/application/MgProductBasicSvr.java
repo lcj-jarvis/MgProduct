@@ -1,8 +1,7 @@
 package fai.MgProductBasicSvr.application;
 
 import fai.MgProductBasicSvr.domain.common.LockUtil;
-import fai.MgProductBasicSvr.domain.repository.ProductBindPropCache;
-import fai.MgProductBasicSvr.domain.repository.ProductBindPropDaoCtrl;
+import fai.MgProductBasicSvr.domain.repository.*;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.cache.redis.config.RedisClientConfig;
 import fai.comm.cache.redis.pool.JedisPool;
@@ -30,11 +29,6 @@ public class MgProductBasicSvr {
         if(svrOption.getDebug()) {
             dbType = FaiDbUtil.Type.DEV_MASTER;
         }
-       /* Param daoInfo = FaiDbUtil.getDbInfo(dbType, dbInstance);
-        if (daoInfo == null || daoInfo.isEmpty()) {
-            Log.logErr("get daoInfo err");
-            return;
-        }*/
 
         int maxSize = svrOption.getDbMaxSize();
         DaoPool daoPool = getDaoPool(config.getName(), dbType, maxSize, dbInstance);
@@ -85,9 +79,15 @@ public class MgProductBasicSvr {
     }
 
     public static void init(DaoPool daoPool, RedisCacheManager cache, int lockLease) {
+        ProductDaoCtrl.init(daoPool);
+        ProductRelDaoCtrl.init(daoPool);
         ProductBindPropDaoCtrl.init(daoPool);
-        LockUtil.init(cache, lockLease);
+
+        ProductCacheCtrl.init(cache);
+        ProductRelCacheCtrl.init(cache);
         ProductBindPropCache.init(cache);
+
+        LockUtil.init(cache, lockLease);
     }
 
     @ParamKeyMapping(path = ".svr")

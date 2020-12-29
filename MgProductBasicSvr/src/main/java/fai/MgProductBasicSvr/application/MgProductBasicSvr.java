@@ -83,9 +83,7 @@ public class MgProductBasicSvr {
         ProductRelDaoCtrl.init(daoPool, cache);
         ProductBindPropDaoCtrl.init(daoPool);
 
-        ProductCacheCtrl.init(cache);
-        ProductRelCacheCtrl.init(cache);
-        ProductBindPropCache.init(cache);
+        CacheCtrl.init(cache);
 
         LockUtil.init(cache, lockLease);
     }

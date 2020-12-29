@@ -97,7 +97,7 @@ public class ProductCacheCtrl extends CacheCtrl {
         if(Str.isEmpty(countStr)) {
             return null;
         }
-        int count = Integer.getInteger(countStr);
+        int count = Parser.parseInt(countStr, -1);
         if(count < 0) {
             return null;
         }

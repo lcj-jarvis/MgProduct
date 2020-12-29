@@ -79,8 +79,8 @@ public class MgProductBasicSvr {
     }
 
     public static void init(DaoPool daoPool, RedisCacheManager cache, int lockLease) {
-        ProductDaoCtrl.init(daoPool);
-        ProductRelDaoCtrl.init(daoPool);
+        ProductDaoCtrl.init(daoPool, cache);
+        ProductRelDaoCtrl.init(daoPool, cache);
         ProductBindPropDaoCtrl.init(daoPool);
 
         ProductCacheCtrl.init(cache);

@@ -1,5 +1,6 @@
 package fai.MgProductBasicSvr.domain.repository;
 
+import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.distributedkit.idBuilder.domain.IdBuilderConfig;
 import fai.comm.distributedkit.idBuilder.wrapper.IdBuilderWrapper;
 import fai.comm.jnetkit.server.fai.FaiSession;
@@ -51,8 +52,9 @@ public class ProductRelDaoCtrl extends DaoCtrl {
         return m_idBuilder.update(aid, unionPriId, id, m_dao, needLock);
     }
 
-    public static void init(DaoPool daoPool) {
+    public static void init(DaoPool daoPool, RedisCacheManager cache) {
         m_daoPool = daoPool;
+        m_idBuilder = new IdBuilderWrapper(idBuilderConfig, cache);
     }
 
     private static DaoPool m_daoPool;

@@ -4,6 +4,7 @@ import fai.MgProductPropSvr.domain.common.LockUtil;
 import fai.MgProductPropSvr.domain.common.ProductPropCheck;
 import fai.MgProductPropSvr.domain.entity.ProductPropEntity;
 import fai.MgProductPropSvr.domain.entity.ProductPropRelEntity;
+import fai.MgProductPropSvr.domain.entity.ProductPropValEntity;
 import fai.MgProductPropSvr.domain.entity.ProductPropValObj;
 import fai.MgProductPropSvr.domain.repository.*;
 import fai.MgProductPropSvr.domain.serviceproc.ProductPropProc;
@@ -259,55 +260,54 @@ public class ProductPropService extends ServicePub {
 			transactionCtrl.register(relDao);
 
 			FaiList<Integer> propIds = new FaiList<Integer>();
-			HashMap<Integer, Param> relsMap = new HashMap<Integer, Param>();
-			Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
+			HashMap<Integer, Param> propMap = new HashMap<Integer, Param>();
+			Ref<FaiList<Param>> relListRef = new Ref<FaiList<Param>>();
 			try {
 				// 先查参数业务关系表
 				ProductPropRelProc propRelProc = new ProductPropRelProc(flow, relDao);
-				Ref<FaiList<Param>> relListRef = new Ref<FaiList<Param>>();
 				rt = propRelProc.getPropRelList(aid, unionPriId, libId, relListRef);
 				if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
 					return rt;
 				}
-				// 按照sort字段排序，保证后续拿出来的propId list是已经排好序的
-				ParamComparator cmpor = new ParamComparator(ProductPropRelEntity.Info.SORT);
-				Collections.sort(relListRef.value, cmpor);
 
-				for(int i = 0; i < relListRef.value.size(); i++) {
-					Param info = relListRef.value.get(i);
-					Integer propId = info.getInt(ProductPropRelEntity.Info.PROP_ID);
-					propIds.add(propId);
-					relsMap.put(propId, info);
-				}
-
+				Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
 				ProductPropProc propProc = new ProductPropProc(flow, propDao);
 				rt = propProc.getPropList(aid, listRef);
 				if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
 					return rt;
 				}
+
+				for(int i = 0; i < listRef.value.size(); i++) {
+					Param info = listRef.value.get(i);
+					Integer propId = info.getInt(ProductPropRelEntity.Info.PROP_ID);
+					propIds.add(propId);
+					propMap.put(propId, info);
+				}
 			}finally {
 				// 关闭dao
 				transactionCtrl.closeDao();
 			}
-			FaiList<Param> list = listRef.value;
+			FaiList<Param> list = relListRef.value;
 			// 数据整合
 			for(Param info : list) {
 				Integer propId = info.getInt(ProductPropRelEntity.Info.PROP_ID);
-				Param resInfo = relsMap.get(propId);
-				if(resInfo == null) {
+				Param propInfo = propMap.get(propId);
+				if(propInfo == null) {
 					rt = Errno.ERROR;
-					Log.logErr(rt, "data error;flow=%d;aid=%d;unionPriId=%d;tid=%d;libId=%d;", aid, unionPriId, tid, libId);
+					Log.logErr(rt, "data error;flow=%d;aid=%d;unionPriId=%d;tid=%d;libId=%d;propId=%d;", flow, aid, unionPriId, tid, libId, propId);
 					return rt;
 				}
-				info.assign(resInfo);
+				info.assign(propInfo);
 			}
 
 			if(searchArg.matcher == null) {
 				searchArg.matcher = new ParamMatcher();
 			}
 			searchArg.matcher.and(ProductPropEntity.Info.PROP_ID, ParamMatcher.IN, propIds);
-			searchArg.cmpor = new ParamComparator();
-			searchArg.cmpor.addKey(ProductPropEntity.Info.PROP_ID, propIds);
+			if(searchArg.cmpor == null) {
+				searchArg.cmpor = new ParamComparator();
+				searchArg.cmpor.addKey(ProductPropRelEntity.Info.SORT);
+			}
 
 			Searcher searcher = new Searcher(searchArg);
 			list = searcher.getParamList(list);
@@ -434,7 +434,7 @@ public class ProductPropService extends ServicePub {
 					ProductPropRelCacheCtrl.setExpire(aid, unionPriId, libId);
 					rt = propRelProc.setPropList(aid, unionPriId, libId, updaterList, propUpdaterList);
 					if(rt != Errno.OK) {
-						Log.logErr(rt, "del prop rel list error;flow=%d;aid=%d;", flow, aid);
+						Log.logErr(rt, "set prop rel list error;flow=%d;aid=%d;", flow, aid);
 						return rt;
 					}
 					// 修改参数表
@@ -443,7 +443,7 @@ public class ProductPropService extends ServicePub {
 						ProductPropCacheCtrl.setExpire(aid);
 						rt = propProc.setPropList(aid, propUpdaterList);
 						if(rt != Errno.OK) {
-							Log.logErr(rt, "del prop list error;flow=%d;aid=%d;unionPriId=%d;tid=%d;", flow, aid, unionPriId, tid);
+							Log.logErr(rt, "set prop list error;flow=%d;aid=%d;unionPriId=%d;tid=%d;", flow, aid, unionPriId, tid);
 							return rt;
 						}
 					}
@@ -510,6 +510,9 @@ public class ProductPropService extends ServicePub {
 			}
 
 			FaiList<Param> list = listRef.value;
+			// 按照sort字段排序
+			ParamComparator comp = new ParamComparator(ProductPropValEntity.Info.SORT);
+			Collections.sort(list, comp);
 			FaiBuffer sendBuf = new FaiBuffer(true);
 			list.toBuffer(sendBuf, ProductPropValDto.Key.INFO_LIST, ProductPropValDto.getInfoDto());
 			session.write(sendBuf);
@@ -626,6 +629,8 @@ public class ProductPropService extends ServicePub {
 
 		// 参数业务关系表数据
 		int rlPropId = relDao.buildId(aid, unionPriId, false);
+		int sort = recvInfo.getInt(ProductPropRelEntity.Info.SORT, 0);
+		int rlFlag = recvInfo.getInt(ProductPropRelEntity.Info.RL_FLAG, 0);
 		relInfo.setInt(ProductPropRelEntity.Info.AID, aid);
 		relInfo.setInt(ProductPropRelEntity.Info.RL_PROP_ID, rlPropId);
 		relInfo.setInt(ProductPropRelEntity.Info.PROP_ID, propId);
@@ -633,8 +638,8 @@ public class ProductPropService extends ServicePub {
 		relInfo.setInt(ProductPropRelEntity.Info.RL_LIB_ID, libId);
 		relInfo.setCalendar(ProductPropRelEntity.Info.CREATE_TIME, createTime);
 		relInfo.setCalendar(ProductPropRelEntity.Info.UPDATE_TIME, updateTime);
-		relInfo.assign(recvInfo, ProductPropRelEntity.Info.SORT);
-		relInfo.assign(recvInfo, ProductPropRelEntity.Info.RL_FLAG);
+		relInfo.setInt(ProductPropRelEntity.Info.SORT, sort);
+		relInfo.setInt(ProductPropRelEntity.Info.RL_FLAG, rlFlag);
 		return rt;
 	}
 }

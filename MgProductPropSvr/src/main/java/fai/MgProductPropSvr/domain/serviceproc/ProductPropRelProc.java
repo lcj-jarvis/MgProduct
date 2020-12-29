@@ -132,8 +132,10 @@ public class ProductPropRelProc {
 			oldInfo = updater.update(oldInfo, true);
 			Param data = new Param();
 			//只能修改rlFlag和sort
-			data.assign(oldInfo, ProductPropRelEntity.Info.SORT);
-			data.assign(oldInfo, ProductPropRelEntity.Info.RL_FLAG);
+			int sort = oldInfo.getInt(ProductPropRelEntity.Info.SORT, 0);
+			int rlFlag = oldInfo.getInt(ProductPropRelEntity.Info.RL_FLAG, 0);
+			data.setInt(ProductPropRelEntity.Info.SORT, sort);
+			data.setInt(ProductPropRelEntity.Info.RL_FLAG, rlFlag);
 
 			data.assign(oldInfo, ProductPropRelEntity.Info.AID);
 			data.assign(oldInfo, ProductPropRelEntity.Info.UNION_PRI_ID);

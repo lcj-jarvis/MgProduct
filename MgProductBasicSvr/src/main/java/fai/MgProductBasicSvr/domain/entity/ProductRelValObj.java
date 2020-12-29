@@ -6,4 +6,8 @@ public class ProductRelValObj {
         public static final int DOWN = 2; // 下架
         public static final int DEL = 3; // 删除
     }
+
+    public static class Limit {
+        public static final int COUNT_MAX = 300000;
+    }
 }

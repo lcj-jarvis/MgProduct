@@ -402,7 +402,11 @@ public class MgProductBasicCli extends FaiClient {
         }
     }
 
-    public int batchBindProductRel(int aid, int tid, int unionPriId, Param info, Ref<FaiList<Integer>> rlPdIdsRef) {
+    public int batchBindProductRel(int aid, int tid, int unionPriId, FaiList<Param> infoList) {
+        return batchBindProductRel(aid, tid, unionPriId, infoList, null);
+    }
+
+    public int batchBindProductRel(int aid, int tid, int unionPriId, FaiList<Param> infoList, Ref<FaiList<Integer>> rlPdIdsRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -411,9 +415,9 @@ public class MgProductBasicCli extends FaiClient {
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
-            if (info == null || info.isEmpty()) {
+            if (infoList == null || infoList.isEmpty()) {
                 m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "info is null");
+                Log.logErr(m_rt, "infoList is null");
                 return m_rt;
             }
 
@@ -421,7 +425,7 @@ public class MgProductBasicCli extends FaiClient {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductRelDto.Key.TID, tid);
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
-            info.toBuffer(sendBody, ProductRelDto.Key.INFO, ProductRelDto.getRelAndPdDto());
+            infoList.toBuffer(sendBody, ProductRelDto.Key.INFO_LIST, ProductRelDto.getRelAndPdDto());
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductBasicCmd.BasicCmd.ADD_REL_BIND);
@@ -455,7 +459,7 @@ public class MgProductBasicCli extends FaiClient {
                 FaiList<Integer> rlPdIds = new FaiList<Integer>();
                 Ref<Integer> keyRef = new Ref<Integer>();
                 m_rt = rlPdIds.fromBuffer(recvBody, keyRef);
-                if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.RL_PD_ID) {
+                if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.RL_PD_IDS) {
                     Log.logErr(m_rt, "recv sid codec err");
                     return m_rt;
                 }

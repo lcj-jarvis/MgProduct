@@ -97,7 +97,7 @@ public class MgProductBasicHandler extends FaiHandler {
                               @ArgBodyInteger(ProductRelDto.Key.TID) int tid,
                               @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
                               @ArgList(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
-                                      keyMatch = ProductRelDto.Key.INFO) FaiList<Param> infoList) throws IOException {
+                                      keyMatch = ProductRelDto.Key.INFO_LIST) FaiList<Param> infoList) throws IOException {
         return service.batchBindProductRel(session, flow, aid, tid, unionPriId, infoList);
     }
 

@@ -540,6 +540,7 @@ public class ProductBasicService extends ServicePub {
             Param relData = new Param();
             relData.setInt(ProductRelEntity.Info.AID, aid);
             relData.setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId);
+            relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
             relData.setInt(ProductRelEntity.Info.RL_LIB_ID, rlLibId);
             relData.setInt(ProductRelEntity.Info.SOURCE_TID, sourceTid);
             relData.setCalendar(ProductRelEntity.Info.ADD_TIME, addedTime);

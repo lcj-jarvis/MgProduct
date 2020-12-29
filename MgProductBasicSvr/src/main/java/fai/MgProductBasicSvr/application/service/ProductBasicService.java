@@ -447,7 +447,7 @@ public class ProductBasicService extends ServicePub {
                     // 新增商品数据
                     ProductProc pdProc = new ProductProc(flow, pdDao);
                     Ref<Integer> pdIdRef = new Ref<>();
-                    rt = pdProc.addProduct(aid, relData, pdIdRef);
+                    rt = pdProc.addProduct(aid, pdData, pdIdRef);
                     if(rt != Errno.OK) {
                         return rt;
                     }

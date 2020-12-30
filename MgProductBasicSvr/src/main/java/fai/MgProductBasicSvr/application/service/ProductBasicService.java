@@ -18,6 +18,7 @@ import fai.comm.middleground.service.ServicePub;
 
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.HashSet;
 import java.util.concurrent.locks.Lock;
 
 public class ProductBasicService extends ServicePub {
@@ -628,7 +629,7 @@ public class ProductBasicService extends ServicePub {
                 Log.logErr("args error info is empty;flow=%d;aid=%d;uid=%d;infoList=%s", flow, aid, unionPriId, infoList);
                 return rt;
             }
-            FaiList<Integer> pdIdList = new FaiList<>();
+            HashSet<Integer> pdIdList = new HashSet<>();
             FaiList<Param> relDataList = new FaiList<>();
             for(Param info : infoList) {
                 Integer pdId = info.getInt(ProductRelEntity.Info.PD_ID);
@@ -705,13 +706,14 @@ public class ProductBasicService extends ServicePub {
                     rt = pdProc.getProductList(aid, pdIdList, pdInfosRef);
                     if(rt != Errno.OK || pdInfosRef.value.size() != pdIdList.size()) {
                         Log.logErr(rt, "get all ids info list fail;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
+                        rt = Errno.ERROR;
                         return rt;
                     }
 
                     // 新增商品业务关系
                     ProductRelProc relProc = new ProductRelProc(flow, relDao);
                     Ref<FaiList<Integer>> rlPdIdsRef = new Ref<>();
-                    rt = relProc.batchAddProductRel(aid, unionPriId, relDataList, rlPdIdsRef);
+                    rt = relProc.batchAddProductRel(aid, unionPriId, relDataList.clone(), rlPdIdsRef);
                     if(rt != Errno.OK) {
                         return rt;
                     }

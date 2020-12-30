@@ -6,6 +6,7 @@ import fai.MgProductBasicSvr.domain.repository.ProductCacheCtrl;
 import fai.MgProductBasicSvr.domain.repository.ProductDaoCtrl;
 import fai.comm.util.*;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -115,7 +116,7 @@ public class ProductProc {
             infoRef.value = info;
             return Errno.OK;
         }
-        FaiList<Integer> pdIds = new FaiList<>();
+        HashSet<Integer> pdIds = new HashSet<>();
         pdIds.add(pdId);
         Ref<FaiList<Param>> tmpRef = new Ref<>();
         int rt = getList(aid, pdIds, tmpRef);
@@ -126,7 +127,7 @@ public class ProductProc {
         return Errno.OK;
     }
 
-    public int getProductList(int aid, FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef) {
+    public int getProductList(int aid, HashSet<Integer> pdIdList, Ref<FaiList<Param>> listRef) {
         int rt = getList(aid, pdIdList, listRef);
         if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
             Log.logErr(rt, "get list error;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
@@ -136,7 +137,7 @@ public class ProductProc {
         return rt;
     }
 
-    private int getList(int aid, FaiList<Integer> pdIds, Ref<FaiList<Param>> listRef) {
+    private int getList(int aid, HashSet<Integer> pdIds, Ref<FaiList<Param>> listRef) {
         int rt;
         if(pdIds == null || pdIds.isEmpty()) {
             rt = Errno.ARGS_ERROR;

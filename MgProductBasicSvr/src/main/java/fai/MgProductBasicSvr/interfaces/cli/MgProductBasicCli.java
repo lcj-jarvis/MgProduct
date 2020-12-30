@@ -428,7 +428,7 @@ public class MgProductBasicCli extends FaiClient {
             infoList.toBuffer(sendBody, ProductRelDto.Key.INFO_LIST, ProductRelDto.getRelAndPdDto());
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductBasicCmd.BasicCmd.ADD_REL_BIND);
+            sendProtocol.setCmd(MgProductBasicCmd.BasicCmd.BATCH_ADD_REL_BIND);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);

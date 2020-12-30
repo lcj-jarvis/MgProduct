@@ -8,7 +8,6 @@ import fai.MgProductBasicSvr.domain.repository.ProductRelDaoCtrl;
 import fai.comm.util.*;
 
 public class ProductRelProc {
-    private SearchArg searchArg;
 
     public ProductRelProc(int flow, ProductRelDaoCtrl dao) {
         this.m_flow = flow;

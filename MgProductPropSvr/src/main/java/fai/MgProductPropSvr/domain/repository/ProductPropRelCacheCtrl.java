@@ -63,9 +63,18 @@ public class ProductPropRelCacheCtrl extends CacheCtrl {
 		}
 	}
 
+	public static boolean exists(int aid, int uninoId, int libId) {
+		String cacheKey = getCacheKey(aid, uninoId, libId);
+		return m_cache.exists(cacheKey);
+	}
+
 	public static void setExpire(int aid, int uninoId, int libId) {
 		String cacheKey = getCacheKey(aid, uninoId, libId);
 		m_cache.expire(cacheKey, EXPIRE_SECOND);
+	}
+
+	public static String getCacheKey(int aid, int unionPriId, int libId) {
+		return CACHE_KEY + "-" + aid + "-" + unionPriId + "-" + libId;
 	}
 
 	public static void setSortCache(int aid, int unionPriId, int libId, int sort) {
@@ -90,10 +99,6 @@ public class ProductPropRelCacheCtrl extends CacheCtrl {
 			return null;
 		}
 		return m_cache.get(cacheKey);
-	}
-
-	public static String getCacheKey(int aid, int unionPriId, int libId) {
-		return CACHE_KEY + "-" + aid + "-" + unionPriId + "-" + libId;
 	}
 
 	public static String getSortCacheKey(int aid, int unionPriId, int libId) {

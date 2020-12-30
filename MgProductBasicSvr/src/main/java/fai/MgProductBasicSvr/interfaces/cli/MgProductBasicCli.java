@@ -194,6 +194,9 @@ public class MgProductBasicCli extends FaiClient {
         }
     }
 
+    /**
+     * 根据业务商品id，获取商品业务关系数据
+     */
     public int getRelInfoByRlId(int aid, int unionPriId, int rlPdId, Param pdRelInfo) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
@@ -257,10 +260,16 @@ public class MgProductBasicCli extends FaiClient {
         }
     }
 
+    /**
+     * 新增商品数据，并添加与当前unionPriId的关联
+     */
     public int addProductAndRel(int aid, int tid, int unionPriId, Param info) {
         return addProductAndRel(aid, tid, unionPriId, info, null, null);
     }
 
+    /**
+     * 新增商品数据，并添加与当前unionPriId的关联
+     */
     public int addProductAndRel(int aid, int tid, int unionPriId, Param info, Ref<Integer> pdIdRef, Ref<Integer> rlPdIdRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
@@ -333,10 +342,16 @@ public class MgProductBasicCli extends FaiClient {
         }
     }
 
+    /**
+     * 新增商品业务关联
+     */
     public int bindProductRel(int aid, int tid, int unionPriId, Param info) {
         return bindProductRel(aid, tid, unionPriId, info, null);
     }
 
+    /**
+     * 新增商品业务关联
+     */
     public int bindProductRel(int aid, int tid, int unionPriId, Param info, Ref<Integer> rlPdIdRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
@@ -402,10 +417,16 @@ public class MgProductBasicCli extends FaiClient {
         }
     }
 
+    /**
+     * 批量新增商品业务关联
+     */
     public int batchBindProductRel(int aid, int tid, int unionPriId, FaiList<Param> infoList) {
         return batchBindProductRel(aid, tid, unionPriId, infoList, null);
     }
 
+    /**
+     * 批量新增商品业务关联
+     */
     public int batchBindProductRel(int aid, int tid, int unionPriId, FaiList<Param> infoList, Ref<FaiList<Integer>> rlPdIdsRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
@@ -473,6 +494,9 @@ public class MgProductBasicCli extends FaiClient {
         }
     }
 
+    /**
+     * 删除商品数据，同时删除所有相关业务关联数据
+     */
     public int batchDelProduct(int aid, int tid, int unionPriId, FaiList<Integer> rlPdIds) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
@@ -523,6 +547,9 @@ public class MgProductBasicCli extends FaiClient {
         }
     }
 
+    /**
+     * 取消商品业务关联
+     */
     public int batchDelPdRelBind(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);

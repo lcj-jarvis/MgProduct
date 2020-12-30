@@ -40,36 +40,20 @@ public class ProductPropValCacheCtrl extends CacheCtrl {
 		m_cache.del(cacheKeys);
 	}
 
+	public static boolean exists(int aid, int propId) {
+		String cacheKey = getCacheKey(aid, propId);
+		return m_cache.exists(cacheKey);
+	}
+
 	public static void setExpire(int aid, int propId) {
 		String cacheKey = getCacheKey(aid, propId);
 		m_cache.expire(cacheKey, EXPIRE_SECOND);
-	}
-
-	public static void addSortCache(int aid, int propId, int sort) {
-		if(sort < 0) {
-			return;
-		}
-		String cacheKey = getSortCacheKey(aid, propId);
-		m_cache.set(cacheKey, String.valueOf(sort));
-	}
-
-	public static void delSortCache(int aid, int propId) {
-		String cacheKey = getSortCacheKey(aid, propId);
-		if(!m_cache.exists(cacheKey)) {
-			return;
-		}
-		m_cache.del(cacheKey);
 	}
 
 	public static String getCacheKey(int aid, int propId) {
 		return CACHE_KEY + "-" + aid + "-" + propId;
 	}
 
-	public static String getSortCacheKey(int aid, int propId) {
-		return SORT_CACHE_KEY + "-" + aid + "-" + propId;
-	}
-
 	private static final int EXPIRE_SECOND = 10;
 	private static final String CACHE_KEY = "MG_productPropVal";
-	private static final String SORT_CACHE_KEY = "MG_productPropValSort";
 }

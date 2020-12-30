@@ -58,6 +58,11 @@ public class ProductPropCacheCtrl extends CacheCtrl {
 		m_cache.hmsetFaiList(cacheKey, ProductPropEntity.Info.PROP_ID, Var.Type.INT, list, ProductPropDto.Key.INFO, ProductPropDto.getCacheInfoDto());
 	}
 
+	public static boolean exists(int aid) {
+		String cacheKey = getCacheKey(aid);
+		return m_cache.exists(cacheKey);
+	}
+
 	public static void setExpire(int aid) {
 		String cacheKey = getCacheKey(aid);
 		m_cache.expire(cacheKey, EXPIRE_SECOND);

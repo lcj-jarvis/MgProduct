@@ -118,7 +118,7 @@ public class ProductPropService extends ServicePub {
 						// 缓存处理
 						ProductPropCacheCtrl.addCache(aid, propInfo);
 						ProductPropRelCacheCtrl.addCache(aid, unionPriId, libId, relInfo);
-						if(valList != null && !valList.isEmpty()) {
+						if(valList != null && !valList.isEmpty() && ProductPropValCacheCtrl.exists(aid, propId)) {
 							ProductPropValCacheCtrl.addCacheList(aid, propId, valList);
 						}
 						if(maxSort > 0) {
@@ -218,8 +218,12 @@ public class ProductPropService extends ServicePub {
 						relDao.clearIdBuilderCache(aid, unionPriId);
 					}else {
 						transactionCtrl.commit();
-						ProductPropCacheCtrl.addCacheList(aid, propList);
-						ProductPropRelCacheCtrl.addCacheList(aid, unionPriId, libId, propRelList);
+						if(ProductPropCacheCtrl.exists(aid)) {
+							ProductPropCacheCtrl.addCacheList(aid, propList);
+						}
+						if(ProductPropRelCacheCtrl.exists(aid, unionPriId, libId)) {
+							ProductPropRelCacheCtrl.addCacheList(aid, unionPriId, libId, propRelList);
+						}
 						if(maxSort > 0) {
 							ProductPropRelCacheCtrl.setSortCache(aid, unionPriId, libId, maxSort);
 						}

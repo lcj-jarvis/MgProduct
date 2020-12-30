@@ -615,6 +615,9 @@ public class ProductBasicService extends ServicePub {
         return rt;
     }
 
+    /**
+     * 批量新增商品业务关联
+     */
     public int batchBindProductRel(FaiSession session, int flow, int aid, int tid, int unionPriId, FaiList<Param> infoList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
@@ -725,7 +728,9 @@ public class ProductBasicService extends ServicePub {
                     }else {
                         transactionCtrl.commit();
                         // 更新缓存
-                        ProductRelCacheCtrl.addCacheList(aid, unionPriId, relDataList);
+                        if(ProductRelCacheCtrl.exist(aid, unionPriId)) {
+                            ProductRelCacheCtrl.addCacheList(aid, unionPriId, relDataList);
+                        }
                     }
                     transactionCtrl.closeDao();
                 }

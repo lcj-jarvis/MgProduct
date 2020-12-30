@@ -2,6 +2,7 @@ package fai.MgProductPropSvr.domain.serviceproc;
 
 import fai.MgProductPropSvr.domain.common.ProductPropCheck;
 import fai.MgProductPropSvr.domain.entity.ProductPropEntity;
+import fai.MgProductPropSvr.domain.entity.ProductPropValObj;
 import fai.MgProductPropSvr.domain.repository.ProductPropCacheCtrl;
 import fai.MgProductPropSvr.domain.repository.ProductPropDaoCtrl;
 import fai.comm.util.*;
@@ -14,7 +15,29 @@ public class ProductPropProc {
 	}
 
 	public int addPropInfo(int aid, Param info) {
-		int rt = m_propDao.insert(aid, info, null);
+		Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
+		int rt = getList(aid, listRef);
+		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+			return rt;
+		}
+		FaiList<Param> list = listRef.value;
+		if(list == null) {
+			list = new FaiList<Param>();
+		}
+		int count = list.size();
+		if(count >= ProductPropValObj.Limit.COUNT_MAX) {
+			rt = Errno.COUNT_LIMIT;
+			Log.logErr(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductPropValObj.Limit.COUNT_MAX);
+			return rt;
+		}
+		String name = info.getString(ProductPropEntity.Info.NAME);
+		Param existInfo = Misc.getFirst(list, ProductPropEntity.Info.NAME, name);
+		if(!Str.isEmpty(existInfo)) {
+			rt = Errno.ALREADY_EXISTED;
+			Log.logErr(rt, "prop name is existed;flow=%d;aid=%d;name=%s;", m_flow, aid, name);
+			return rt;
+		}
+		rt = m_propDao.insert(aid, info, null);
 		if(rt != Errno.OK) {
 			Log.logErr(rt, "insert prop info error;flow=%d;aid=%d;", m_flow, aid);
 			return rt;
@@ -24,7 +47,38 @@ public class ProductPropProc {
 	}
 
 	public int addPropList(int aid, FaiList<Param> propList) {
-		int rt = m_propDao.batchInsert(aid, propList);
+		int rt;
+		if(propList == null || propList.isEmpty()) {
+			rt = Errno.ARGS_ERROR;
+			Log.logErr(rt, "args error;propList is null;aid=%d", aid);
+			return rt;
+		}
+		Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
+		rt = getList(aid, listRef);
+		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+			return rt;
+		}
+		FaiList<Param> list = listRef.value;
+		if(list == null) {
+			list = new FaiList<Param>();
+		}
+		int count = list.size() + propList.size();
+		if(count > ProductPropValObj.Limit.COUNT_MAX) {
+			rt = Errno.COUNT_LIMIT;
+			Log.logErr(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductPropValObj.Limit.COUNT_MAX);
+			return rt;
+		}
+		// 校验参数名是否已经存在
+		for(Param info : propList) {
+			String name = info.getString(ProductPropEntity.Info.NAME);
+			Param existInfo = Misc.getFirst(listRef.value, ProductPropEntity.Info.NAME, name);
+			if(!Str.isEmpty(existInfo)) {
+				rt = Errno.ALREADY_EXISTED;
+				Log.logErr(rt, "prop name is existed;flow=%d;aid=%d;name=%s;", m_flow, aid, name);
+				return rt;
+			}
+		}
+		rt = m_propDao.batchInsert(aid, propList);
 		if(rt != Errno.OK) {
 			Log.logErr(rt, "batch insert prop error;flow=%d;aid=%d;", m_flow, aid);
 			return rt;
@@ -126,6 +180,7 @@ public class ProductPropProc {
 		searchArg.matcher = new ParamMatcher(ProductPropEntity.Info.AID, ParamMatcher.EQ, aid);
 		int rt = m_propDao.select(aid, searchArg, listRef);
 		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+			Log.logErr(rt, "getList error;flow=%d;aid=%d;", m_flow, aid);
 			return rt;
 		}
 		if (listRef.value == null || listRef.value.isEmpty()) {

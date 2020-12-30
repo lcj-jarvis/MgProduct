@@ -91,7 +91,7 @@ public class ProductPropService extends ServicePub {
 
 					ProductPropRelCacheCtrl.setExpire(aid, unionPriId, libId);
 					// 添加参数业务关系数据
-					rt = propRelProc.addPropRelInfo(aid, relInfo);
+					rt = propRelProc.addPropRelInfo(aid, unionPriId, libId, relInfo);
 					if(rt != Errno.OK) {
 						Log.logErr(rt, "batch insert prop rel error;flow=%d;aid=%d;", flow, aid);
 						return rt;
@@ -207,7 +207,7 @@ public class ProductPropService extends ServicePub {
 					}
 
 					ProductPropRelCacheCtrl.setExpire(aid, unionPriId, libId);
-					rt = propRelProc.addPropRelList(aid, propRelList.clone());
+					rt = propRelProc.addPropRelList(aid, unionPriId, libId, propRelList.clone());
 					if(rt != Errno.OK) {
 						Log.logErr(rt, "batch insert prop rel error;flow=%d;aid=%d;", flow, aid);
 						return rt;
@@ -581,10 +581,12 @@ public class ProductPropService extends ServicePub {
 					}
 
 					// 新增
-					rt = valProc.addValList(aid, propId, addInfoList, false);
-					if(rt != Errno.OK) {
-						Log.logErr(rt, "add prop val list error;flow=%d;aid=%d;unionPriId=%d;tid=%d;rlPropId=%d;", flow, aid, unionPriId, tid, rlPropId);
-						return rt;
+					if(addInfoList != null && !addInfoList.isEmpty()) {
+						rt = valProc.addValList(aid, propId, addInfoList, false);
+						if(rt != Errno.OK) {
+							Log.logErr(rt, "add prop val list error;flow=%d;aid=%d;unionPriId=%d;tid=%d;rlPropId=%d;", flow, aid, unionPriId, tid, rlPropId);
+							return rt;
+						}
 					}
 				}finally {
 					if(rt != Errno.OK) {

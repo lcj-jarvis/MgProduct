@@ -33,6 +33,7 @@ public class ProductProc {
         if(count >= ProductValObj.Limit.COUNT_MAX) {
             rt = Errno.COUNT_LIMIT;
             Log.logErr(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductValObj.Limit.COUNT_MAX);
+            return rt;
         }
         Integer pdId = pdData.getInt(ProductEntity.Info.PD_ID);
         if(pdId == null) {

@@ -31,6 +31,7 @@ public class ProductRelProc {
         if(count >= ProductRelValObj.Limit.COUNT_MAX) {
             rt = Errno.COUNT_LIMIT;
             Log.logErr(rt, "over limit;flow=%d;aid=%d;uid=%d;count=%d;limit=%d;", m_flow, aid, unionPriId, count, ProductValObj.Limit.COUNT_MAX);
+            return rt;
         }
         Integer rlPdId = relData.getInt(ProductRelEntity.Info.RL_PD_ID);
         if(rlPdId == null) {
@@ -75,6 +76,7 @@ public class ProductRelProc {
         if(count >= ProductRelValObj.Limit.COUNT_MAX) {
             rt = Errno.COUNT_LIMIT;
             Log.logErr(rt, "over limit;flow=%d;aid=%d;uid=%d;count=%d;limit=%d;", m_flow, aid, unionPriId, count, ProductValObj.Limit.COUNT_MAX);
+            return rt;
         }
         FaiList<Integer> rlPdIds = new FaiList<Integer>();
         for(Param relData : relDataList) {

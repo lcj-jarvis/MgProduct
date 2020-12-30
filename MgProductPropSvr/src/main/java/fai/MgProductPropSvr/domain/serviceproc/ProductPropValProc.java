@@ -1,6 +1,7 @@
 package fai.MgProductPropSvr.domain.serviceproc;
 
 import fai.MgProductPropSvr.domain.entity.ProductPropValEntity;
+import fai.MgProductPropSvr.domain.entity.ProductPropValObj;
 import fai.MgProductPropSvr.domain.repository.ProductPropValCacheCtrl;
 import fai.MgProductPropSvr.domain.repository.ProductPropValDaoCtrl;
 import fai.comm.util.*;
@@ -128,8 +129,26 @@ public class ProductPropValProc {
 	}
 
 	public int addValList(int aid, int propId, FaiList<Param> valList, boolean needLock) {
+		int rt;
 		if(valList == null || valList.isEmpty()) {
-			return Errno.OK;
+			rt = Errno.ARGS_ERROR;
+			Log.logErr("valList is null;flow=%d;aid=%d;", m_flow, aid);
+			return rt;
+		}
+		Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
+		rt = getList(aid, propId, listRef);
+		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+			return rt;
+		}
+		FaiList<Param> list = listRef.value;
+		if(list == null) {
+			list = new FaiList<Param>();
+		}
+		int count = list.size();
+		if(count >= ProductPropValObj.Limit.COUNT_MAX) {
+			rt = Errno.COUNT_LIMIT;
+			Log.logErr(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductPropValObj.Limit.COUNT_MAX);
+			return rt;
 		}
 		Calendar now = Calendar.getInstance();
 		// 数据
@@ -142,7 +161,7 @@ public class ProductPropValProc {
 			info.setCalendar(ProductPropValEntity.Info.CREATE_TIME, now);
 			info.setCalendar(ProductPropValEntity.Info.UPDATE_TIME, now);
 		}
-		int rt = m_valDao.batchInsert(aid, valList.clone());
+		rt = m_valDao.batchInsert(aid, valList.clone());
 		if(rt != Errno.OK) {
 			Log.logErr(rt, "batch insert prop error;flow=%d;aid=%d;", m_flow, aid);
 			return rt;
@@ -165,6 +184,7 @@ public class ProductPropValProc {
 		searchArg.matcher.and(ProductPropValEntity.Info.PROP_ID, ParamMatcher.EQ, propId);
 		int rt = m_valDao.select(aid, searchArg, listRef);
 		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+			Log.logErr(rt, "getList error;flow=%d;aid=%d;propId=%d;", m_flow, aid, propId);
 			return rt;
 		}
 		if (listRef.value == null || listRef.value.isEmpty()) {

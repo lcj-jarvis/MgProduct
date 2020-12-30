@@ -2,6 +2,7 @@ package fai.MgProductPropSvr.domain.serviceproc;
 
 import fai.MgProductPropSvr.domain.entity.ProductPropEntity;
 import fai.MgProductPropSvr.domain.entity.ProductPropRelEntity;
+import fai.MgProductPropSvr.domain.entity.ProductPropRelValObj;
 import fai.MgProductPropSvr.domain.repository.ProductPropRelCacheCtrl;
 import fai.MgProductPropSvr.domain.repository.ProductPropRelDaoCtrl;
 import fai.MgProductPropSvr.interfaces.entity.ProductPropValObj;
@@ -15,8 +16,19 @@ public class ProductPropRelProc {
 		this.m_relDao = dao;
 	}
 
-	public int addPropRelInfo(int aid, Param info) {
-		int rt = m_relDao.insert(aid, info, null);
+	public int addPropRelInfo(int aid, int unionPriId, int libId , Param info) {
+		Ref<Integer> countRef = new Ref<Integer>();
+		int rt = getCount(aid, unionPriId, libId, countRef);
+		if(rt != Errno.OK) {
+			return rt;
+		}
+		int count = countRef.value;
+		if(count >= ProductPropRelValObj.Limit.COUNT_MAX) {
+			rt = Errno.COUNT_LIMIT;
+			Log.logErr(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductPropRelValObj.Limit.COUNT_MAX);
+			return rt;
+		}
+		rt = m_relDao.insert(aid, info, null);
 		if(rt != Errno.OK) {
 			Log.logErr(rt, "batch insert prop rel error;flow=%d;aid=%d;", m_flow, aid);
 			return rt;
@@ -24,8 +36,25 @@ public class ProductPropRelProc {
 		return rt;
 	}
 
-	public int addPropRelList(int aid, FaiList<Param> infoList) {
-		int rt = m_relDao.batchInsert(aid, infoList);
+	public int addPropRelList(int aid, int unionPriId, int libId, FaiList<Param> infoList) {
+		int rt;
+		if(infoList == null || infoList.isEmpty()) {
+			rt = Errno.ARGS_ERROR;
+			Log.logErr(rt, "infoList is null;flow=%d;aid=%d;uid=%d;libId=%d;", m_flow, aid, unionPriId, libId);
+			return rt;
+		}
+		Ref<Integer> countRef = new Ref<Integer>();
+		rt = getCount(aid, unionPriId, libId, countRef);
+		if(rt != Errno.OK) {
+			return rt;
+		}
+		int count = countRef.value + infoList.size();
+		if(count > ProductPropRelValObj.Limit.COUNT_MAX) {
+			rt = Errno.COUNT_LIMIT;
+			Log.logErr(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductPropRelValObj.Limit.COUNT_MAX);
+			return rt;
+		}
+		rt = m_relDao.batchInsert(aid, infoList);
 		if(rt != Errno.OK) {
 			Log.logErr(rt, "batch insert prop rel error;flow=%d;aid=%d;", m_flow, aid);
 			return rt;
@@ -200,6 +229,22 @@ public class ProductPropRelProc {
 		}
 		// 添加到缓存
 		ProductPropRelCacheCtrl.addCacheList(aid, unionPriId, libId, listRef.value);
+		return Errno.OK;
+	}
+
+	public int getCount(int aid, int unionPriId, int libId, Ref<Integer> countRef) {
+		Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
+		int rt = getList(aid, unionPriId, libId, listRef);
+		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+			Log.logErr(rt, "get count error;flow=%d;aid=%d;uid=%d;libId=%d;", m_flow, aid, unionPriId, libId);
+			return rt;
+		}
+
+		if(listRef.value == null || listRef.value.isEmpty()) {
+			countRef.value = 0;
+		}else {
+			countRef.value = listRef.value.size();
+		}
 		return Errno.OK;
 	}
 

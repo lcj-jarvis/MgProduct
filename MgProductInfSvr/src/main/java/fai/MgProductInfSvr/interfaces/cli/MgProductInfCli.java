@@ -65,7 +65,7 @@ public class MgProductInfCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            list.fromBuffer(recvBody, keyRef, ProductPropDto.getPropInfoDto());
+            m_rt = list.fromBuffer(recvBody, keyRef, ProductPropDto.getPropInfoDto());
             if (m_rt != Errno.OK || keyRef.value != ProductPropDto.Key.PROP_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
@@ -142,11 +142,13 @@ public class MgProductInfCli extends FaiClient {
                     return m_rt;
                 }
                 Ref<Integer> keyRef = new Ref<Integer>();
-                list.fromBuffer(sendBody, keyRef);
+                FaiList<Integer> propIds = new FaiList<Integer>();
+                m_rt = propIds.fromBuffer(sendBody, keyRef);
                 if (m_rt != Errno.OK || keyRef.value != ProductPropDto.Key.RL_PROP_IDS) {
                     Log.logErr(m_rt, "recv rlPropIds codec err");
                     return m_rt;
                 }
+                idsRef.value = propIds;
             }
 
             return m_rt;
@@ -326,7 +328,7 @@ public class MgProductInfCli extends FaiClient {
                     return m_rt;
                 }
                 Ref<Integer> keyRef = new Ref<Integer>();
-                recvBody.getInt(keyRef, rlPropIdRef);
+                m_rt = recvBody.getInt(keyRef, rlPropIdRef);
                 if (m_rt != Errno.OK || keyRef.value != ProductPropDto.Key.RL_PROP_ID) {
                     Log.logErr(m_rt, "recv rlPropId codec err");
                     return m_rt;
@@ -441,7 +443,7 @@ public class MgProductInfCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            list.fromBuffer(recvBody, keyRef, ProductPropDto.getPropValInfoDto());
+            m_rt = list.fromBuffer(recvBody, keyRef, ProductPropDto.getPropValInfoDto());
             if (m_rt != Errno.OK || keyRef.value != ProductPropDto.Key.VAL_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
@@ -919,7 +921,7 @@ public class MgProductInfCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            infoList.fromBuffer(recvBody, keyRef, SpecTempDto.getInfoDto());
+            m_rt = infoList.fromBuffer(recvBody, keyRef, SpecTempDto.getInfoDto());
             if (m_rt != Errno.OK || keyRef.value != SpecTempDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
@@ -1155,7 +1157,7 @@ public class MgProductInfCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            infoList.fromBuffer(recvBody, keyRef, SpecTempDetailDto.getInfoDto());
+            m_rt = infoList.fromBuffer(recvBody, keyRef, SpecTempDetailDto.getInfoDto());
             if (m_rt != Errno.OK || keyRef.value != SpecTempDetailDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
@@ -1339,7 +1341,7 @@ public class MgProductInfCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            infoList.fromBuffer(recvBody, keyRef, ProductSpecDto.getInfoDto());
+            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductSpecDto.getInfoDto());
             if (m_rt != Errno.OK || keyRef.value != ProductSpecDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
@@ -1465,7 +1467,7 @@ public class MgProductInfCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            infoList.fromBuffer(recvBody, keyRef, ProductSpecSkuDto.getInfoDto());
+            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductSpecSkuDto.getInfoDto());
             if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;

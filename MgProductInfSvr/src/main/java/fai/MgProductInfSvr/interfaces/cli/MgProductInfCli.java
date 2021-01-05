@@ -1,6 +1,5 @@
 package fai.MgProductInfSvr.interfaces.cli;
 
-import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
 import fai.MgProductInfSvr.interfaces.cmd.MgProductInfCmd;
 import fai.MgProductInfSvr.interfaces.dto.*;
 import fai.comm.netkit.FaiClient;
@@ -764,7 +763,7 @@ public class MgProductInfCli extends FaiClient {
 
                 Ref<Integer> keyRef = new Ref<Integer>();
                 m_rt = recvBody.getInt(keyRef, rlPdIdRef);
-                if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.RL_PD_ID) {
+                if (m_rt != Errno.OK || keyRef.value != ProductBasicDto.Key.RL_PD_ID) {
                     Log.logErr(m_rt, "recv sid codec err");
                     return m_rt;
                 }
@@ -836,7 +835,7 @@ public class MgProductInfCli extends FaiClient {
 
                 Ref<Integer> keyRef = new Ref<Integer>();
                 m_rt = recvBody.getInt(keyRef, rlPdIdRef);
-                if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.RL_PD_ID) {
+                if (m_rt != Errno.OK || keyRef.value != ProductBasicDto.Key.RL_PD_ID) {
                     Log.logErr(m_rt, "recv sid codec err");
                     return m_rt;
                 }
@@ -906,7 +905,7 @@ public class MgProductInfCli extends FaiClient {
                 FaiList<Integer> rlPdIds = new FaiList<Integer>();
                 Ref<Integer> keyRef = new Ref<Integer>();
                 m_rt = rlPdIds.fromBuffer(recvBody, keyRef);
-                if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.RL_PD_IDS) {
+                if (m_rt != Errno.OK || keyRef.value != ProductBasicDto.Key.RL_PD_IDS) {
                     Log.logErr(m_rt, "recv rlPdIds codec err");
                     return m_rt;
                 }

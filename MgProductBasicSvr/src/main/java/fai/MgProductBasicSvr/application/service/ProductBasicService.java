@@ -494,7 +494,7 @@ public class ProductBasicService extends ServicePub {
     /**
      * 新增商品业务关联
      */
-    public int bindProductRel(FaiSession session, int flow, int aid, int tid, int unionPriId, Param info) throws IOException {
+    public int bindProductRel(FaiSession session, int flow, int aid, int tid, int unionPriId, Param bindRlPdInfo, Param info) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -503,17 +503,31 @@ public class ProductBasicService extends ServicePub {
                 Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
                 return rt;
             }
+            if(Str.isEmpty(bindRlPdInfo)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, bindRlPdInfo is empty;flow=%d;aid=%d;uid=%d;bindRlPdInfo=%s", flow, aid, unionPriId, bindRlPdInfo);
+                return rt;
+            }
             if(Str.isEmpty(info)) {
                 rt = Errno.ARGS_ERROR;
-                Log.logErr("args error info is empty;flow=%d;aid=%d;uid=%d;info=%s", flow, aid, unionPriId, info);
+                Log.logErr("args error, info is empty;flow=%d;aid=%d;uid=%d;info=%s", flow, aid, unionPriId, info);
                 return rt;
             }
-            Integer pdId = info.getInt(ProductRelEntity.Info.PD_ID);
-            if(pdId == null) {
+            // 校验被关联的商品业务数据
+            Integer bindRlPdId = bindRlPdInfo.getInt(ProductRelEntity.Info.RL_PD_ID);
+            if(bindRlPdId == null) {
                 rt = Errno.ARGS_ERROR;
-                Log.logErr("args error, pdId is null;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
+                Log.logErr("args error, bindRlPdId is null;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
                 return rt;
             }
+            Integer bindUniPriId = bindRlPdInfo.getInt(ProductRelEntity.Info.UNION_PRI_ID);
+            if(bindUniPriId == null) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, bindUniPriId is null;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+
+            // 校验新增的商品业务数据
             Integer addedSid = info.getInt(ProductRelEntity.Info.ADD_SID);
             if(addedSid == null) {
                 rt = Errno.ARGS_ERROR;
@@ -543,7 +557,6 @@ public class ProductBasicService extends ServicePub {
             Param relData = new Param();
             relData.setInt(ProductRelEntity.Info.AID, aid);
             relData.setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId);
-            relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
             relData.setInt(ProductRelEntity.Info.RL_LIB_ID, rlLibId);
             relData.setInt(ProductRelEntity.Info.SOURCE_TID, sourceTid);
             relData.setCalendar(ProductRelEntity.Info.ADD_TIME, addedTime);
@@ -567,22 +580,21 @@ public class ProductBasicService extends ServicePub {
                 TransactionCtrl transactionCtrl = new TransactionCtrl();
                 try {
                     ProductRelDaoCtrl relDao = ProductRelDaoCtrl.getInstance(session);
-                    ProductDaoCtrl pdDao = ProductDaoCtrl.getInstance(session);
                     transactionCtrl.register(relDao);
-                    transactionCtrl.register(pdDao);
                     transactionCtrl.setAutoCommit(false);
 
-                    // 先校验商品数据是否存在
-                    ProductProc pdProc = new ProductProc(flow, pdDao);
-                    Ref<Param> pdInfoRef = new Ref<Param>();
-                    rt = pdProc.getProductInfo(aid, pdId, pdInfoRef);
-                    if(rt != Errno.OK || Str.isEmpty(pdInfoRef.value)) {
-                        Log.logErr(rt, "get pd info error;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
+                    ProductRelProc relProc = new ProductRelProc(flow, relDao);
+                    Ref<Param> bindRelRef = new Ref<Param>();
+                    rt = relProc.getProductRel(aid, bindUniPriId, bindRlPdId, bindRelRef);
+                    if(rt != Errno.OK) {
+                        Log.logErr(rt, "get bind pd rel info fail;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                        rt = Errno.ERROR;
                         return rt;
                     }
+                    int pdId = bindRelRef.value.getInt(ProductRelEntity.Info.PD_ID);
+                    relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
 
                     // 新增商品业务关系
-                    ProductRelProc relProc = new ProductRelProc(flow, relDao);
                     Ref<Integer> rlPdIdRef = new Ref<Integer>();
                     rt = relProc.addProductRel(aid, unionPriId, relData, rlPdIdRef);
                     if(rt != Errno.OK) {
@@ -618,7 +630,7 @@ public class ProductBasicService extends ServicePub {
     /**
      * 批量新增商品业务关联
      */
-    public int batchBindProductRel(FaiSession session, int flow, int aid, int tid, FaiList<Param> infoList) throws IOException {
+    public int batchBindProductRel(FaiSession session, int flow, int aid, int tid, Param bindRlPdInfo, FaiList<Param> infoList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -627,12 +639,30 @@ public class ProductBasicService extends ServicePub {
                 Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
                 return rt;
             }
-            if(infoList == null || infoList.isEmpty()) {
+            if(Str.isEmpty(bindRlPdInfo)) {
                 rt = Errno.ARGS_ERROR;
-                Log.logErr("args error info is empty;flow=%d;aid=%d;tid=%d;infoList=%s", flow, aid, tid, infoList);
+                Log.logErr("args error, bindRlPdInfo is empty;flow=%d;aid=%d;tid=%d;infoList=%s", flow, aid, tid, infoList);
                 return rt;
             }
-            HashSet<Integer> pdIdList = new HashSet<Integer>();
+            if(infoList == null || infoList.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, infoList is empty;flow=%d;aid=%d;tid=%d;infoList=%s", flow, aid, tid, infoList);
+                return rt;
+            }
+
+            Integer bindRlPdId = bindRlPdInfo.getInt(ProductRelEntity.Info.RL_PD_ID);
+            if(bindRlPdId == null) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, bindRlPdId is null;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+            Integer bindUniPriId = bindRlPdInfo.getInt(ProductRelEntity.Info.UNION_PRI_ID);
+            if(bindUniPriId == null) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, bindUniPriId is null;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+
             FaiList<Param> relDataList = new FaiList<Param>();
             HashSet<Integer> unionPriIds = new HashSet<Integer>();
             for(Param info : infoList) {
@@ -643,13 +673,6 @@ public class ProductBasicService extends ServicePub {
                     return rt;
                 }
                 unionPriIds.add(unionPriId);
-                Integer pdId = info.getInt(ProductRelEntity.Info.PD_ID);
-                if(pdId == null) {
-                    rt = Errno.ARGS_ERROR;
-                    Log.logErr("args error, pdId is null;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
-                    return rt;
-                }
-                pdIdList.add(pdId);
                 Integer addedSid = info.getInt(ProductRelEntity.Info.ADD_SID);
                 if(addedSid == null) {
                     rt = Errno.ARGS_ERROR;
@@ -679,7 +702,6 @@ public class ProductBasicService extends ServicePub {
                 Param relData = new Param();
                 relData.setInt(ProductRelEntity.Info.AID, aid);
                 relData.setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId);
-                relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
                 relData.setInt(ProductRelEntity.Info.RL_LIB_ID, rlLibId);
                 relData.setInt(ProductRelEntity.Info.SOURCE_TID, sourceTid);
                 relData.setCalendar(ProductRelEntity.Info.ADD_TIME, addedTime);
@@ -706,25 +728,23 @@ public class ProductBasicService extends ServicePub {
                 TransactionCtrl transactionCtrl = new TransactionCtrl();
                 try {
                     ProductRelDaoCtrl relDao = ProductRelDaoCtrl.getInstance(session);
-                    ProductDaoCtrl pdDao = ProductDaoCtrl.getInstance(session);
                     transactionCtrl.register(relDao);
-                    transactionCtrl.register(pdDao);
                     transactionCtrl.setAutoCommit(false);
 
                     // 先校验商品数据是否存在
-                    ProductProc pdProc = new ProductProc(flow, pdDao);
-                    Ref<FaiList<Param>> pdInfosRef = new Ref<FaiList<Param>>();
-                    rt = pdProc.getProductList(aid, pdIdList, pdInfosRef);
-                    if(rt != Errno.OK || pdInfosRef.value.size() != pdIdList.size()) {
-                        Log.logErr(rt, "get all ids info list fail;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                    ProductRelProc relProc = new ProductRelProc(flow, relDao);
+                    Ref<Param> bindRelRef = new Ref<Param>();
+                    rt = relProc.getProductRel(aid, bindUniPriId, bindRlPdId, bindRelRef);
+                    if(rt != Errno.OK) {
+                        Log.logErr(rt, "get bind pd rel info fail;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
                         rt = Errno.ERROR;
                         return rt;
                     }
+                    int pdId = bindRelRef.value.getInt(ProductRelEntity.Info.PD_ID);
 
                     // 新增商品业务关系
-                    ProductRelProc relProc = new ProductRelProc(flow, relDao);
                     Ref<FaiList<Integer>> rlPdIdsRef = new Ref<FaiList<Integer>>();
-                    rt = relProc.batchAddProductRel(aid, relDataList.clone(), rlPdIdsRef);
+                    rt = relProc.batchAddProductRel(aid, pdId, relDataList.clone(), rlPdIdsRef);
                     if(rt != Errno.OK) {
                         return rt;
                     }

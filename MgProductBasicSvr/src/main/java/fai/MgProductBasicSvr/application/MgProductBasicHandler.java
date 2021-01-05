@@ -84,9 +84,11 @@ public class MgProductBasicHandler extends FaiHandler {
                               @ArgAid final int aid,
                               @ArgBodyInteger(ProductRelDto.Key.TID) int tid,
                               @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                              @ArgParam(classDef = ProductRelDto.class, methodDef = "getInfoDto",
+                                      keyMatch = ProductRelDto.Key.INFO) Param bindRlPdInfo,
                               @ArgParam(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
-                              keyMatch = ProductRelDto.Key.INFO) Param info) throws IOException {
-        return service.bindProductRel(session, flow, aid, tid, unionPriId, info);
+                                      keyMatch = ProductRelDto.Key.INFO) Param info) throws IOException {
+        return service.bindProductRel(session, flow, aid, tid, unionPriId, bindRlPdInfo, info);
     }
 
     @WrittenCmd
@@ -95,9 +97,11 @@ public class MgProductBasicHandler extends FaiHandler {
                               @ArgFlow final int flow,
                               @ArgAid final int aid,
                               @ArgBodyInteger(ProductRelDto.Key.TID) int tid,
+                              @ArgParam(classDef = ProductRelDto.class, methodDef = "getInfoDto",
+                                      keyMatch = ProductRelDto.Key.INFO) Param bindRlPdInfo,
                               @ArgList(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
                                       keyMatch = ProductRelDto.Key.INFO_LIST) FaiList<Param> infoList) throws IOException {
-        return service.batchBindProductRel(session, flow, aid, tid, infoList);
+        return service.batchBindProductRel(session, flow, aid, tid, bindRlPdInfo, infoList);
     }
 
     @WrittenCmd

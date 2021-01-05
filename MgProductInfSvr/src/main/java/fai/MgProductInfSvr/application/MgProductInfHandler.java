@@ -394,8 +394,10 @@ public class MgProductInfHandler extends FaiHandler {
                                 @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
                                 @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
                                 @ArgParam(classDef = ProductBasicDto.class, methodDef = "getProductRelDto",
-                                        keyMatch = ProductBasicDto.Key.PD_INFO) Param info) throws IOException {
-        return service.bindProductRel(session, flow, aid, tid, siteId, lgId, keepPriId1, info);
+                                        keyMatch = ProductBasicDto.Key.PD_BIND_INFO) Param bindRlPdInfo,
+                                @ArgParam(classDef = ProductBasicDto.class, methodDef = "getProductRelDto",
+                                        keyMatch = ProductBasicDto.Key.PD_REL_INFO) Param info) throws IOException {
+        return service.bindProductRel(session, flow, aid, tid, siteId, lgId, keepPriId1, bindRlPdInfo, info);
     }
 
     @Cmd(MgProductInfCmd.BasicCmd.BATCH_ADD_PD_BIND)
@@ -403,9 +405,11 @@ public class MgProductInfHandler extends FaiHandler {
                               @ArgFlow final int flow,
                               @ArgAid final int aid,
                               @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
+                              @ArgParam(classDef = ProductBasicDto.class, methodDef = "getProductRelDto",
+                                      keyMatch = ProductBasicDto.Key.PD_BIND_INFO) Param bindRlPdInfo,
                               @ArgList(classDef = ProductBasicDto.class, methodDef = "getProductRelDto",
                                       keyMatch = ProductBasicDto.Key.PD_REL_INFO_LIST) FaiList<Param> infoList) throws IOException {
-        return service.batchBindProductRel(session, flow, aid, tid, infoList);
+        return service.batchBindProductRel(session, flow, aid, tid, bindRlPdInfo, infoList);
     }
 
     @Cmd(MgProductInfCmd.BasicCmd.BATCH_DEL_PD_BIND)

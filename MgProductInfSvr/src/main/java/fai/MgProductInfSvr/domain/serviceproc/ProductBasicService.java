@@ -93,14 +93,14 @@ public class ProductBasicService {
      * 新增商品业务关联
      * @return
      */
-    public int bindProductRel(int aid, int tid, int unionPriId, Param info, Ref<Integer> rlPdIdRef) {
+    public int bindProductRel(int aid, int tid, int unionPriId, Param bindRlPdInfo, Param info, Ref<Integer> rlPdIdRef) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.bindProductRel(aid, tid, unionPriId, info, rlPdIdRef);
+        rt = m_cli.bindProductRel(aid, tid, unionPriId, bindRlPdInfo, info, rlPdIdRef);
         if(rt != Errno.OK) {
             if(rt != Errno.NOT_FOUND) {
                 Log.logErr(rt, "bindProductRel error;flow=%d;aid=%d;tid=%d;unionPriId=%d;", m_flow, aid, tid, unionPriId);
@@ -115,14 +115,14 @@ public class ProductBasicService {
      * 批量新增商品业务关联
      * @return
      */
-    public int batchBindProductRel(int aid, int tid, FaiList<Param> infoList, Ref<FaiList<Integer>> rlPdIdsRef) {
+    public int batchBindProductRel(int aid, int tid, Param bindRlPdInfo, FaiList<Param> infoList, Ref<FaiList<Integer>> rlPdIdsRef) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
             return rt;
         }
-        rt = m_cli.batchBindProductRel(aid, tid, infoList, rlPdIdsRef);
+        rt = m_cli.batchBindProductRel(aid, tid, bindRlPdInfo, infoList, rlPdIdsRef);
         if(rt != Errno.OK) {
             if(rt != Errno.NOT_FOUND) {
                 Log.logErr(rt, "batchBindProductRel error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);

@@ -59,7 +59,7 @@ public class ProductRelProc {
         return rt;
     }
 
-    public int batchAddProductRel(int aid, FaiList<Param> relDataList, Ref<FaiList<Integer>> rlPdIdsRef) {
+    public int batchAddProductRel(int aid, int pdId, FaiList<Param> relDataList, Ref<FaiList<Integer>> rlPdIdsRef) {
         int rt;
         if(relDataList == null || relDataList.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -101,6 +101,8 @@ public class ProductRelProc {
                 relData.setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId);
             }
             rlPdIds.add(rlPdId);
+
+            relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
         }
         rlPdIdsRef.value = rlPdIds;
 

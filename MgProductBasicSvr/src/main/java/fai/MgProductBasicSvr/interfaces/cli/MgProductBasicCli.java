@@ -345,14 +345,14 @@ public class MgProductBasicCli extends FaiClient {
     /**
      * 新增商品业务关联
      */
-    public int bindProductRel(int aid, int tid, int unionPriId, Param info) {
-        return bindProductRel(aid, tid, unionPriId, info, null);
+    public int bindProductRel(int aid, int tid, int unionPriId, Param bindRlPdInfo, Param info) {
+        return bindProductRel(aid, tid, unionPriId, bindRlPdInfo, info, null);
     }
 
     /**
      * 新增商品业务关联
      */
-    public int bindProductRel(int aid, int tid, int unionPriId, Param info, Ref<Integer> rlPdIdRef) {
+    public int bindProductRel(int aid, int tid, int unionPriId, Param bindRlPdInfo, Param info, Ref<Integer> rlPdIdRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -371,6 +371,7 @@ public class MgProductBasicCli extends FaiClient {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductRelDto.Key.TID, tid);
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
+            bindRlPdInfo.toBuffer(sendBody, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto());
             info.toBuffer(sendBody, ProductRelDto.Key.INFO, ProductRelDto.getRelAndPdDto());
 
             FaiProtocol sendProtocol = new FaiProtocol();
@@ -420,14 +421,14 @@ public class MgProductBasicCli extends FaiClient {
     /**
      * 批量新增商品业务关联
      */
-    public int batchBindProductRel(int aid, int tid, FaiList<Param> infoList) {
-        return batchBindProductRel(aid, tid, infoList, null);
+    public int batchBindProductRel(int aid, int tid, Param bindRlPdInfo, FaiList<Param> infoList) {
+        return batchBindProductRel(aid, tid, bindRlPdInfo, infoList, null);
     }
 
     /**
      * 批量新增商品业务关联
      */
-    public int batchBindProductRel(int aid, int tid, FaiList<Param> infoList, Ref<FaiList<Integer>> rlPdIdsRef) {
+    public int batchBindProductRel(int aid, int tid, Param bindRlPdInfo, FaiList<Param> infoList, Ref<FaiList<Integer>> rlPdIdsRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -445,6 +446,7 @@ public class MgProductBasicCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductRelDto.Key.TID, tid);
+            bindRlPdInfo.toBuffer(sendBody, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto());
             infoList.toBuffer(sendBody, ProductRelDto.Key.INFO_LIST, ProductRelDto.getRelAndPdDto());
 
             FaiProtocol sendProtocol = new FaiProtocol();

@@ -60,6 +60,7 @@ public class ProductBasicEntity {
         public static final String CREATE_TIME = "sysCreateTime"; // datetime 创建时间
         public static final String UPDATE_TIME = "sysUpdateTime"; // datetime 更新时间
 
+        public static final String TID = "tid";  // int 项目id
         public static final String SITE_ID = "siteId"; // int 站点id
         public static final String LGID = "lgId"; // int 多语言id
         public static final String KEEP_PRI_ID1 = "keepPriId1"; //int 保留主键1

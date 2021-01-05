@@ -779,7 +779,7 @@ public class MgProductInfCli extends FaiClient {
     /**
      * 新增商品业务关联
      */
-    public int bindProductRel(int aid, int tid, int siteId, int lgId, int keepPriId1, Param info, Ref<Integer> rlPdIdRef) {
+    public int bindProductRel(int aid, int tid, int siteId, int lgId, int keepPriId1, Param bindRlPdInfo, Param info, Ref<Integer> rlPdIdRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -795,13 +795,20 @@ public class MgProductInfCli extends FaiClient {
                 return m_rt;
             }
 
+            if(Str.isEmpty(bindRlPdInfo)) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;bindRlPdInfo is empty");
+                return m_rt;
+            }
+
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductBasicDto.Key.TID, tid);
             sendBody.putInt(ProductBasicDto.Key.SITE_ID, siteId);
             sendBody.putInt(ProductBasicDto.Key.LGID, lgId);
             sendBody.putInt(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1);
-            info.toBuffer(sendBody, ProductBasicDto.Key.PD_INFO, ProductBasicDto.getProductRelDto());
+            bindRlPdInfo.toBuffer(sendBody, ProductBasicDto.Key.BIND_PROP_INFO, ProductBasicDto.getProductRelDto());
+            info.toBuffer(sendBody, ProductBasicDto.Key.PD_REL_INFO, ProductBasicDto.getProductRelDto());
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductInfCmd.BasicCmd.ADD_PD_BIND);
@@ -851,7 +858,7 @@ public class MgProductInfCli extends FaiClient {
     /**
      * 批量新增商品业务关联
      */
-    public int batchBindProductRel(int aid, int tid, FaiList<Param> infoList, Ref<FaiList<Integer>> rlPdIdsRef) {
+    public int batchBindProductRel(int aid, int tid, Param bindRlPdInfo, FaiList<Param> infoList, Ref<FaiList<Integer>> rlPdIdsRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -867,9 +874,16 @@ public class MgProductInfCli extends FaiClient {
                 return m_rt;
             }
 
+            if(Str.isEmpty(bindRlPdInfo)) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;bindRlPdInfo is empty");
+                return m_rt;
+            }
+
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductBasicDto.Key.TID, tid);
+            bindRlPdInfo.toBuffer(sendBody, ProductBasicDto.Key.BIND_PROP_INFO, ProductBasicDto.getProductRelDto());
             infoList.toBuffer(sendBody, ProductBasicDto.Key.PD_REL_INFO_LIST, ProductBasicDto.getProductRelDto());
 
             FaiProtocol sendProtocol = new FaiProtocol();

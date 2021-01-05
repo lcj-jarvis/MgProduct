@@ -1,5 +1,6 @@
 package fai.MgProductInfSvr.interfaces.cli;
 
+import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
 import fai.MgProductInfSvr.interfaces.cmd.MgProductInfCmd;
 import fai.MgProductInfSvr.interfaces.dto.*;
 import fai.comm.netkit.FaiClient;
@@ -705,6 +706,332 @@ public class MgProductInfCli extends FaiClient {
     }
 
     /**
+     * 新增商品数据，并添加业务关联
+     */
+    public int addProductAndRel(int aid, int tid, int siteId, int lgId, int keepPriId1, Param info, Ref<Integer> rlPdIdRef) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+
+            if(Str.isEmpty(info)) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;info is empty");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductBasicDto.Key.TID, tid);
+            sendBody.putInt(ProductBasicDto.Key.SITE_ID, siteId);
+            sendBody.putInt(ProductBasicDto.Key.LGID, lgId);
+            sendBody.putInt(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1);
+            info.toBuffer(sendBody, ProductBasicDto.Key.PD_INFO, ProductBasicDto.getProductDto());
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductInfCmd.BasicCmd.ADD_PD_AND_REL);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            if(rlPdIdRef != null) {
+                FaiBuffer recvBody = recvProtocol.getDecodeBody();
+                if (recvBody == null) {
+                    m_rt = Errno.ERROR;
+                    Log.logErr(m_rt, "recv body=null;aid=%d", aid);
+                    return m_rt;
+                }
+
+                Ref<Integer> keyRef = new Ref<Integer>();
+                m_rt = recvBody.getInt(keyRef, rlPdIdRef);
+                if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.RL_PD_ID) {
+                    Log.logErr(m_rt, "recv sid codec err");
+                    return m_rt;
+                }
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    /**
+     * 新增商品业务关联
+     */
+    public int bindProductRel(int aid, int tid, int siteId, int lgId, int keepPriId1, Param info, Ref<Integer> rlPdIdRef) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+
+            if(Str.isEmpty(info)) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;info is empty");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductBasicDto.Key.TID, tid);
+            sendBody.putInt(ProductBasicDto.Key.SITE_ID, siteId);
+            sendBody.putInt(ProductBasicDto.Key.LGID, lgId);
+            sendBody.putInt(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1);
+            info.toBuffer(sendBody, ProductBasicDto.Key.PD_INFO, ProductBasicDto.getProductRelDto());
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductInfCmd.BasicCmd.ADD_PD_BIND);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            if(rlPdIdRef != null) {
+                FaiBuffer recvBody = recvProtocol.getDecodeBody();
+                if (recvBody == null) {
+                    m_rt = Errno.ERROR;
+                    Log.logErr(m_rt, "recv body=null;aid=%d", aid);
+                    return m_rt;
+                }
+
+                Ref<Integer> keyRef = new Ref<Integer>();
+                m_rt = recvBody.getInt(keyRef, rlPdIdRef);
+                if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.RL_PD_ID) {
+                    Log.logErr(m_rt, "recv sid codec err");
+                    return m_rt;
+                }
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    /**
+     * 批量新增商品业务关联
+     */
+    public int batchBindProductRel(int aid, int tid, FaiList<Param> infoList, Ref<FaiList<Integer>> rlPdIdsRef) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+
+            if(infoList == null || infoList.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;infoList is empty");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductBasicDto.Key.TID, tid);
+            infoList.toBuffer(sendBody, ProductBasicDto.Key.PD_REL_INFO_LIST, ProductBasicDto.getProductRelDto());
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductInfCmd.BasicCmd.BATCH_ADD_PD_BIND);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            if(rlPdIdsRef != null) {
+                FaiBuffer recvBody = recvProtocol.getDecodeBody();
+                if (recvBody == null) {
+                    m_rt = Errno.ERROR;
+                    Log.logErr(m_rt, "recv body=null;aid=%d", aid);
+                    return m_rt;
+                }
+
+                FaiList<Integer> rlPdIds = new FaiList<Integer>();
+                Ref<Integer> keyRef = new Ref<Integer>();
+                m_rt = rlPdIds.fromBuffer(recvBody, keyRef);
+                if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.RL_PD_IDS) {
+                    Log.logErr(m_rt, "recv rlPdIds codec err");
+                    return m_rt;
+                }
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    /**
+     * 指定业务下，取消 rlPdIds 的商品业务关联
+     */
+    public int batchDelPdRelBind(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+
+            if(rlPdIds == null || rlPdIds.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;rlPdIds is empty");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductBasicDto.Key.TID, tid);
+            sendBody.putInt(ProductBasicDto.Key.SITE_ID, siteId);
+            sendBody.putInt(ProductBasicDto.Key.LGID, lgId);
+            sendBody.putInt(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1);
+            rlPdIds.toBuffer(sendBody, ProductBasicDto.Key.RL_PD_IDS);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductInfCmd.BasicCmd.BATCH_DEL_PD_BIND);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    /**
+     * 删除 rlPdIds 的商品数据及所有商品业务关联数据
+     */
+    public int batchDelProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+
+            if(rlPdIds == null || rlPdIds.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;rlPdIds is empty");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductBasicDto.Key.TID, tid);
+            sendBody.putInt(ProductBasicDto.Key.SITE_ID, siteId);
+            sendBody.putInt(ProductBasicDto.Key.LGID, lgId);
+            sendBody.putInt(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1);
+            rlPdIds.toBuffer(sendBody, ProductBasicDto.Key.RL_PD_IDS);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductInfCmd.BasicCmd.BATCH_DEL_PDS);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    /**
      * 批量添加规格模板
      */
     public int addTpScInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> list) {
@@ -1283,7 +1610,6 @@ public class MgProductInfCli extends FaiClient {
         }
     }
 
-
     /**
      * 获取产品规格列表
      */
@@ -1352,7 +1678,6 @@ public class MgProductInfCli extends FaiClient {
             stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
         }
     }
-
 
     /**
      * 批量修改产品规格SKU

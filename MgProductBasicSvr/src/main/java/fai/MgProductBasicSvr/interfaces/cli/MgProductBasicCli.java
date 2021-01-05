@@ -322,14 +322,14 @@ public class MgProductBasicCli extends FaiClient {
 
             if(pdIdRef != null && rlPdIdRef != null) {
                 Ref<Integer> keyRef = new Ref<Integer>();
-                m_rt = recvBody.getInt(keyRef, pdIdRef);
-                if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.PD_ID) {
+                m_rt = recvBody.getInt(keyRef, rlPdIdRef);
+                if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.RL_PD_ID) {
                     Log.logErr(m_rt, "recv sid codec err");
                     return m_rt;
                 }
 
-                m_rt = recvBody.getInt(keyRef, rlPdIdRef);
-                if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.RL_PD_ID) {
+                m_rt = recvBody.getInt(keyRef, pdIdRef);
+                if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.PD_ID) {
                     Log.logErr(m_rt, "recv sid codec err");
                     return m_rt;
                 }
@@ -420,14 +420,14 @@ public class MgProductBasicCli extends FaiClient {
     /**
      * 批量新增商品业务关联
      */
-    public int batchBindProductRel(int aid, int tid, int unionPriId, FaiList<Param> infoList) {
-        return batchBindProductRel(aid, tid, unionPriId, infoList, null);
+    public int batchBindProductRel(int aid, int tid, FaiList<Param> infoList) {
+        return batchBindProductRel(aid, tid, infoList, null);
     }
 
     /**
      * 批量新增商品业务关联
      */
-    public int batchBindProductRel(int aid, int tid, int unionPriId, FaiList<Param> infoList, Ref<FaiList<Integer>> rlPdIdsRef) {
+    public int batchBindProductRel(int aid, int tid, FaiList<Param> infoList, Ref<FaiList<Integer>> rlPdIdsRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -445,7 +445,6 @@ public class MgProductBasicCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductRelDto.Key.TID, tid);
-            sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
             infoList.toBuffer(sendBody, ProductRelDto.Key.INFO_LIST, ProductRelDto.getRelAndPdDto());
 
             FaiProtocol sendProtocol = new FaiProtocol();

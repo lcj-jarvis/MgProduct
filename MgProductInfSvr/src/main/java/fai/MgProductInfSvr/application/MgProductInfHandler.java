@@ -372,5 +372,65 @@ public class MgProductInfHandler extends FaiHandler {
         return service.getPdSkuScInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId);
     }
 
+    @Cmd(MgProductInfCmd.BasicCmd.ADD_PD_AND_REL)
+    public int addProductAndRel(final FaiSession session,
+                                @ArgFlow final int flow,
+                                @ArgAid final int aid,
+                                @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
+                                @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
+                                @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
+                                @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
+                                @ArgParam(classDef = ProductBasicDto.class, methodDef = "getProductDto",
+                                keyMatch = ProductBasicDto.Key.PD_INFO) Param info) throws IOException {
+        return service.addProductAndRel(session, flow, aid, tid, siteId, lgId, keepPriId1, info);
+    }
+
+    @Cmd(MgProductInfCmd.BasicCmd.ADD_PD_BIND)
+    public int bindProductRel(final FaiSession session,
+                                @ArgFlow final int flow,
+                                @ArgAid final int aid,
+                                @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
+                                @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
+                                @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
+                                @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
+                                @ArgParam(classDef = ProductBasicDto.class, methodDef = "getProductRelDto",
+                                        keyMatch = ProductBasicDto.Key.PD_INFO) Param info) throws IOException {
+        return service.bindProductRel(session, flow, aid, tid, siteId, lgId, keepPriId1, info);
+    }
+
+    @Cmd(MgProductInfCmd.BasicCmd.BATCH_ADD_PD_BIND)
+    public int batchBindProductRel(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid final int aid,
+                              @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
+                              @ArgList(classDef = ProductBasicDto.class, methodDef = "getProductRelDto",
+                                      keyMatch = ProductBasicDto.Key.PD_REL_INFO_LIST) FaiList<Param> infoList) throws IOException {
+        return service.batchBindProductRel(session, flow, aid, tid, infoList);
+    }
+
+    @Cmd(MgProductInfCmd.BasicCmd.BATCH_DEL_PD_BIND)
+    public int batchDelPdRelBind(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid final int aid,
+                                 @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
+                                 @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
+                                 @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
+                                 @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
+                                 @ArgList(keyMatch = ProductBasicDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
+        return service.batchDelPdRelBind(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIds);
+    }
+
+    @Cmd(MgProductInfCmd.BasicCmd.BATCH_DEL_PDS)
+    public int batchDelProduct(final FaiSession session,
+                               @ArgFlow final int flow,
+                               @ArgAid final int aid,
+                               @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
+                               @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
+                               @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
+                               @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
+                               @ArgList(keyMatch = ProductBasicDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
+        return service.batchDelProduct(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIds);
+    }
+
     MgProductInfService service = new MgProductInfService();
 }

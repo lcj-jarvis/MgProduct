@@ -56,6 +56,17 @@ public class MgProductInfCmd {
         public static final int NUM15 = 1015;
         /**@see ProductSpecSkuCmd#SET_LIST */
         public static final int NUM16 = 1016;
+
+        /**@see BasicCmd#ADD_PD_AND_REL */
+        public static final int NUM17 = 1017;
+        /**@see BasicCmd#ADD_PD_BIND */
+        public static final int NUM18 = 1018;
+        /**@see BasicCmd#BATCH_ADD_PD_BIND */
+        public static final int NUM19 = 1019;
+        /**@see BasicCmd#BATCH_DEL_PD_BIND */
+        public static final int NUM20 = 1020;
+        /**@see BasicCmd#BATCH_DEL_PDS */
+        public static final int NUM21 = 1021;
     }
 
     /**
@@ -82,6 +93,11 @@ public class MgProductInfCmd {
 
         //写命令
         public static final int SET_PROP_LIST = WriteCmdNum.NUM7;
+        public static final int ADD_PD_AND_REL = WriteCmdNum.NUM17;
+        public static final int ADD_PD_BIND = WriteCmdNum.NUM18;
+        public static final int BATCH_ADD_PD_BIND = WriteCmdNum.NUM19;
+        public static final int BATCH_DEL_PD_BIND = WriteCmdNum.NUM20;
+        public static final int BATCH_DEL_PDS = WriteCmdNum.NUM21;
     }
 
 

@@ -237,7 +237,7 @@ public class ProductBasicService extends ServicePub {
                 //统一控制事务
                 TransactionCtrl transactionCtrl = new TransactionCtrl();
                 FaiList<Param> idRelList = null;
-                FaiList<Integer> pdIdList = new FaiList<>();
+                FaiList<Integer> pdIdList = new FaiList<Integer>();
                 try {
                     ProductDaoCtrl pdDao = ProductDaoCtrl.getInstance(session);
                     ProductRelDaoCtrl relDao = ProductRelDaoCtrl.getInstance(session);
@@ -246,7 +246,7 @@ public class ProductBasicService extends ServicePub {
                     transactionCtrl.setAutoCommit(false);
 
                     ProductRelProc relProc = new ProductRelProc(flow, relDao);
-                    Ref<FaiList<Param>> idRelListRef = new Ref<>();
+                    Ref<FaiList<Param>> idRelListRef = new Ref<FaiList<Param>>();
                     rt = relProc.getIdRelList(aid, rlPdIds, idRelListRef);
                     if(rt != Errno.OK) {
                         Log.logErr(rt, "getIdRelList error;flow=%d;aid=%d;uid=%d;rlPdIds=%s;", flow, aid, unionPriId, rlPdIds);
@@ -315,7 +315,7 @@ public class ProductBasicService extends ServicePub {
                 Log.logErr("args error, rlPdId is not valid;aid=%d;uid=%d;rlPdId=%d;", aid, unionPriId, rlPdId);
                 return rt;
             }
-            Ref<Param> relInfoRef = new Ref<>();
+            Ref<Param> relInfoRef = new Ref<Param>();
             //统一控制事务
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
@@ -447,7 +447,7 @@ public class ProductBasicService extends ServicePub {
                     transactionCtrl.setAutoCommit(false);
                     // 新增商品数据
                     ProductProc pdProc = new ProductProc(flow, pdDao);
-                    Ref<Integer> pdIdRef = new Ref<>();
+                    Ref<Integer> pdIdRef = new Ref<Integer>();
                     rt = pdProc.addProduct(aid, pdData, pdIdRef);
                     if(rt != Errno.OK) {
                         return rt;
@@ -457,7 +457,7 @@ public class ProductBasicService extends ServicePub {
                     relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
                     // 新增业务关系
                     ProductRelProc relProc = new ProductRelProc(flow, relDao);
-                    Ref<Integer> rlPdIdRef = new Ref<>();
+                    Ref<Integer> rlPdIdRef = new Ref<Integer>();
                     rt = relProc.addProductRel(aid, unionPriId, relData, rlPdIdRef);
                     if(rt != Errno.OK) {
                         return rt;
@@ -574,7 +574,7 @@ public class ProductBasicService extends ServicePub {
 
                     // 先校验商品数据是否存在
                     ProductProc pdProc = new ProductProc(flow, pdDao);
-                    Ref<Param> pdInfoRef = new Ref<>();
+                    Ref<Param> pdInfoRef = new Ref<Param>();
                     rt = pdProc.getProductInfo(aid, pdId, pdInfoRef);
                     if(rt != Errno.OK || Str.isEmpty(pdInfoRef.value)) {
                         Log.logErr(rt, "get pd info error;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
@@ -583,7 +583,7 @@ public class ProductBasicService extends ServicePub {
 
                     // 新增商品业务关系
                     ProductRelProc relProc = new ProductRelProc(flow, relDao);
-                    Ref<Integer> rlPdIdRef = new Ref<>();
+                    Ref<Integer> rlPdIdRef = new Ref<Integer>();
                     rt = relProc.addProductRel(aid, unionPriId, relData, rlPdIdRef);
                     if(rt != Errno.OK) {
                         return rt;
@@ -618,7 +618,7 @@ public class ProductBasicService extends ServicePub {
     /**
      * 批量新增商品业务关联
      */
-    public int batchBindProductRel(FaiSession session, int flow, int aid, int tid, int unionPriId, FaiList<Param> infoList) throws IOException {
+    public int batchBindProductRel(FaiSession session, int flow, int aid, int tid, FaiList<Param> infoList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -629,12 +629,20 @@ public class ProductBasicService extends ServicePub {
             }
             if(infoList == null || infoList.isEmpty()) {
                 rt = Errno.ARGS_ERROR;
-                Log.logErr("args error info is empty;flow=%d;aid=%d;uid=%d;infoList=%s", flow, aid, unionPriId, infoList);
+                Log.logErr("args error info is empty;flow=%d;aid=%d;tid=%d;infoList=%s", flow, aid, tid, infoList);
                 return rt;
             }
-            HashSet<Integer> pdIdList = new HashSet<>();
-            FaiList<Param> relDataList = new FaiList<>();
+            HashSet<Integer> pdIdList = new HashSet<Integer>();
+            FaiList<Param> relDataList = new FaiList<Param>();
+            HashSet<Integer> unionPriIds = new HashSet<Integer>();
             for(Param info : infoList) {
+                Integer unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
+                if(unionPriId == null) {
+                    rt = Errno.ARGS_ERROR;
+                    Log.logErr("args error, unionPriId is null;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                    return rt;
+                }
+                unionPriIds.add(unionPriId);
                 Integer pdId = info.getInt(ProductRelEntity.Info.PD_ID);
                 if(pdId == null) {
                     rt = Errno.ARGS_ERROR;
@@ -689,7 +697,7 @@ public class ProductBasicService extends ServicePub {
                 relDataList.add(relData);
             }
 
-            FaiList<Integer> rlPdIds = new FaiList<>();
+            FaiList<Integer> rlPdIds = new FaiList<Integer>();
 
             Lock lock = LockUtil.getLock(aid);
             lock.lock();
@@ -705,18 +713,18 @@ public class ProductBasicService extends ServicePub {
 
                     // 先校验商品数据是否存在
                     ProductProc pdProc = new ProductProc(flow, pdDao);
-                    Ref<FaiList<Param>> pdInfosRef = new Ref<>();
+                    Ref<FaiList<Param>> pdInfosRef = new Ref<FaiList<Param>>();
                     rt = pdProc.getProductList(aid, pdIdList, pdInfosRef);
                     if(rt != Errno.OK || pdInfosRef.value.size() != pdIdList.size()) {
-                        Log.logErr(rt, "get all ids info list fail;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
+                        Log.logErr(rt, "get all ids info list fail;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
                         rt = Errno.ERROR;
                         return rt;
                     }
 
                     // 新增商品业务关系
                     ProductRelProc relProc = new ProductRelProc(flow, relDao);
-                    Ref<FaiList<Integer>> rlPdIdsRef = new Ref<>();
-                    rt = relProc.batchAddProductRel(aid, unionPriId, relDataList.clone(), rlPdIdsRef);
+                    Ref<FaiList<Integer>> rlPdIdsRef = new Ref<FaiList<Integer>>();
+                    rt = relProc.batchAddProductRel(aid, relDataList.clone(), rlPdIdsRef);
                     if(rt != Errno.OK) {
                         return rt;
                     }
@@ -724,13 +732,13 @@ public class ProductBasicService extends ServicePub {
                 } finally {
                     if(rt != Errno.OK) {
                         transactionCtrl.rollback();
-                        ProductRelDaoCtrl.clearIdBuilderCache(aid, unionPriId);
+                        for(Integer unionPriId : unionPriIds) {
+                            ProductRelDaoCtrl.clearIdBuilderCache(aid, unionPriId);
+                        }
                     }else {
                         transactionCtrl.commit();
-                        // 更新缓存
-                        if(ProductRelCacheCtrl.exist(aid, unionPriId)) {
-                            ProductRelCacheCtrl.addCacheList(aid, unionPriId, relDataList);
-                        }
+                        // 删除缓存
+                        ProductRelCacheCtrl.delCacheByUids(aid, unionPriIds);
                     }
                     transactionCtrl.closeDao();
                 }

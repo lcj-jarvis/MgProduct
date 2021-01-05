@@ -198,36 +198,39 @@ public class ProductPropService extends ServicePub {
 						return rt;
 					}
 
-					ProductPropCacheCtrl.setExpire(aid);
-					ProductPropProc propProc = new ProductPropProc(flow, propDao);
-					rt = propProc.addPropList(aid, propList.clone());
-					if(rt != Errno.OK) {
-						Log.logErr(rt, "batch insert prop error;flow=%d;aid=%d;", flow, aid);
-						return rt;
-					}
+					try {
+						ProductPropCacheCtrl.setExpire(aid);
+						ProductPropProc propProc = new ProductPropProc(flow, propDao);
+						rt = propProc.addPropList(aid, propList.clone());
+						if(rt != Errno.OK) {
+							Log.logErr(rt, "batch insert prop error;flow=%d;aid=%d;", flow, aid);
+							return rt;
+						}
 
-					ProductPropRelCacheCtrl.setExpire(aid, unionPriId, libId);
-					rt = propRelProc.addPropRelList(aid, unionPriId, libId, propRelList.clone());
-					if(rt != Errno.OK) {
-						Log.logErr(rt, "batch insert prop rel error;flow=%d;aid=%d;", flow, aid);
-						return rt;
+						ProductPropRelCacheCtrl.setExpire(aid, unionPriId, libId);
+						rt = propRelProc.addPropRelList(aid, unionPriId, libId, propRelList.clone());
+						if(rt != Errno.OK) {
+							Log.logErr(rt, "batch insert prop rel error;flow=%d;aid=%d;", flow, aid);
+							return rt;
+						}
+					} finally {
+						if(rt != Errno.OK) {
+							transactionCtrl.rollback();
+							relDao.clearIdBuilderCache(aid, unionPriId);
+						}else {
+							transactionCtrl.commit();
+							if(ProductPropCacheCtrl.exists(aid)) {
+								ProductPropCacheCtrl.addCacheList(aid, propList);
+							}
+							if(ProductPropRelCacheCtrl.exists(aid, unionPriId, libId)) {
+								ProductPropRelCacheCtrl.addCacheList(aid, unionPriId, libId, propRelList);
+							}
+							if(maxSort > 0) {
+								ProductPropRelCacheCtrl.setSortCache(aid, unionPriId, libId, maxSort);
+							}
+						}
 					}
 				}finally {
-					if(rt != Errno.OK) {
-						transactionCtrl.rollback();
-						relDao.clearIdBuilderCache(aid, unionPriId);
-					}else {
-						transactionCtrl.commit();
-						if(ProductPropCacheCtrl.exists(aid)) {
-							ProductPropCacheCtrl.addCacheList(aid, propList);
-						}
-						if(ProductPropRelCacheCtrl.exists(aid, unionPriId, libId)) {
-							ProductPropRelCacheCtrl.addCacheList(aid, unionPriId, libId, propRelList);
-						}
-						if(maxSort > 0) {
-							ProductPropRelCacheCtrl.setSortCache(aid, unionPriId, libId, maxSort);
-						}
-					}
 					transactionCtrl.closeDao();
 				}
 			}finally {
@@ -256,17 +259,18 @@ public class ProductPropService extends ServicePub {
 				Log.logErr("args error, args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
 				return rt;
 			}
-			ProductPropDaoCtrl propDao = ProductPropDaoCtrl.getInstance(session);
-			ProductPropRelDaoCtrl relDao = ProductPropRelDaoCtrl.getInstance(session);
 			//统一控制事务
 			TransactionCtrl transactionCtrl = new TransactionCtrl();
-			transactionCtrl.register(propDao);
-			transactionCtrl.register(relDao);
 
 			FaiList<Integer> propIds = new FaiList<Integer>();
 			HashMap<Integer, Param> propMap = new HashMap<Integer, Param>();
 			Ref<FaiList<Param>> relListRef = new Ref<FaiList<Param>>();
 			try {
+				ProductPropDaoCtrl propDao = ProductPropDaoCtrl.getInstance(session);
+				ProductPropRelDaoCtrl relDao = ProductPropRelDaoCtrl.getInstance(session);
+				transactionCtrl.register(propDao);
+				transactionCtrl.register(relDao);
+
 				// 先查参数业务关系表
 				ProductPropRelProc propRelProc = new ProductPropRelProc(flow, relDao);
 				rt = propRelProc.getPropRelList(aid, unionPriId, libId, relListRef);

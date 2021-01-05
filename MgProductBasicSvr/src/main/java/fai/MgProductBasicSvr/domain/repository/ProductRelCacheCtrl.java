@@ -4,6 +4,7 @@ import fai.MgProductBasicSvr.domain.entity.ProductRelEntity;
 import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
 import fai.comm.util.*;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,6 +28,14 @@ public class ProductRelCacheCtrl extends CacheCtrl {
     public static void delCache(int aid, int unionPriId) {
         String cacheKey = getCacheKey(aid, unionPriId);
         m_cache.del(cacheKey);
+    }
+
+    public static void delCacheByUids(int aid, HashSet<Integer> unionPriIds) {
+        String[] cacheKeys = getCacheKeys(aid, unionPriIds);
+        if(cacheKeys == null) {
+            return;
+        }
+        m_cache.del(cacheKeys);
     }
 
     public static void delCache(int aid, int unionPriId, int rlPdId) {
@@ -93,6 +102,18 @@ public class ProductRelCacheCtrl extends CacheCtrl {
 
     public static String getCacheKey(int aid, int unionPriId) {
         return CACHE_KEY + "-" + aid + "-" + unionPriId;
+    }
+
+    public static String[] getCacheKeys(int aid, HashSet<Integer> unionPriIds) {
+        if(unionPriIds == null || unionPriIds.isEmpty()) {
+            return null;
+        }
+        String[] keys = new String[unionPriIds.size()];
+        int index = 0;
+        for(int unionPriId : unionPriIds) {
+            keys[index++] = String.valueOf(unionPriId);
+        }
+        return keys;
     }
 
     /** productIdRel cache **/

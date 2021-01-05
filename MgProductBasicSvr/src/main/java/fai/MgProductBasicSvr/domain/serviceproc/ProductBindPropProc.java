@@ -130,6 +130,9 @@ public class ProductBindPropProc {
             int rlPropId = info.getInt(ProductBindPropEntity.Info.RL_PROP_ID);
             int propValId = info.getInt(ProductBindPropEntity.Info.PROP_VAL_ID);
             searchRlPdByPropVal(aid, unionPriId, rlPropId, propValId, rlPdIds, list);
+            if(rlPdIds.isEmpty()) {
+                break;
+            }
         }
 
         rt = Errno.OK;
@@ -149,6 +152,7 @@ public class ProductBindPropProc {
         searchArg.matcher = matcher;
         Searcher searcher = new Searcher(searchArg);
         FaiList<Param> tmpList = searcher.getParamList(searchList);
+        rlPdIds.clear();
         for(Param info : tmpList) {
             int rlPdId = info.getInt(ProductBindPropEntity.Info.RL_PD_ID);
             if(!rlPdIds.contains(rlPdId)) {

@@ -129,36 +129,32 @@ public class ProductBindPropProc {
         for(Param info : proIdsAndValIds) {
             int rlPropId = info.getInt(ProductBindPropEntity.Info.RL_PROP_ID);
             int propValId = info.getInt(ProductBindPropEntity.Info.PROP_VAL_ID);
-            FaiList<Integer> tmpRlPdIds = searchRlPdByPropVal(aid, unionPriId, rlPropId, propValId, list);
-            if(rlPdIds.isEmpty()) {
-                rlPdIds.addAll(tmpRlPdIds);
-            }else {
-                rlPdIds.retainAll(tmpRlPdIds);
-            }
+            searchRlPdByPropVal(aid, unionPriId, rlPropId, propValId, rlPdIds, list);
         }
 
         rt = Errno.OK;
         return rt;
     }
 
-    private FaiList<Integer> searchRlPdByPropVal(int aid, int unionPriId, int rlPropId, int propValId, FaiList<Param> searchList) {
+    private void searchRlPdByPropVal(int aid, int unionPriId, int rlPropId, int propValId, FaiList<Integer> rlPdIds, FaiList<Param> searchList) {
         ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         matcher.and(ProductBindPropEntity.Info.RL_PROP_ID, ParamMatcher.EQ, rlPropId);
         matcher.and(ProductBindPropEntity.Info.PROP_VAL_ID, ParamMatcher.EQ, propValId);
+        if(!rlPdIds.isEmpty()) {
+            matcher.and(ProductBindPropEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
+        }
         Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
         Searcher searcher = new Searcher(searchArg);
         FaiList<Param> tmpList = searcher.getParamList(searchList);
-        FaiList<Integer> rlPdIds = new FaiList<Integer>();
         for(Param info : tmpList) {
             int rlPdId = info.getInt(ProductBindPropEntity.Info.RL_PD_ID);
             if(!rlPdIds.contains(rlPdId)) {
                 rlPdIds.add(rlPdId);
             }
         }
-        return rlPdIds;
     }
 
 

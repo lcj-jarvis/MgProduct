@@ -807,7 +807,7 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductBasicDto.Key.SITE_ID, siteId);
             sendBody.putInt(ProductBasicDto.Key.LGID, lgId);
             sendBody.putInt(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1);
-            bindRlPdInfo.toBuffer(sendBody, ProductBasicDto.Key.BIND_PROP_INFO, ProductBasicDto.getProductRelDto());
+            bindRlPdInfo.toBuffer(sendBody, ProductBasicDto.Key.PD_BIND_INFO, ProductBasicDto.getProductRelDto());
             info.toBuffer(sendBody, ProductBasicDto.Key.PD_REL_INFO, ProductBasicDto.getProductRelDto());
 
             FaiProtocol sendProtocol = new FaiProtocol();
@@ -883,7 +883,7 @@ public class MgProductInfCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductBasicDto.Key.TID, tid);
-            bindRlPdInfo.toBuffer(sendBody, ProductBasicDto.Key.BIND_PROP_INFO, ProductBasicDto.getProductRelDto());
+            bindRlPdInfo.toBuffer(sendBody, ProductBasicDto.Key.PD_BIND_INFO, ProductBasicDto.getProductRelDto());
             infoList.toBuffer(sendBody, ProductBasicDto.Key.PD_REL_INFO_LIST, ProductBasicDto.getProductRelDto());
 
             FaiProtocol sendProtocol = new FaiProtocol();
@@ -923,6 +923,7 @@ public class MgProductInfCli extends FaiClient {
                     Log.logErr(m_rt, "recv rlPdIds codec err");
                     return m_rt;
                 }
+                rlPdIdsRef.value = rlPdIds;
             }
 
             return m_rt;

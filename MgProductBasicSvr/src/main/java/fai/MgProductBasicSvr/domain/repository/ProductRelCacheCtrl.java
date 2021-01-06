@@ -111,7 +111,7 @@ public class ProductRelCacheCtrl extends CacheCtrl {
         String[] keys = new String[unionPriIds.size()];
         int index = 0;
         for(int unionPriId : unionPriIds) {
-            keys[index++] = String.valueOf(unionPriId);
+            keys[index++] = getCacheKey(aid, unionPriId);
         }
         return keys;
     }

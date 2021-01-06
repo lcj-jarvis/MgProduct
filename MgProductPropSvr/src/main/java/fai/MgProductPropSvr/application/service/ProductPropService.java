@@ -113,6 +113,9 @@ public class ProductPropService extends ServicePub {
 				}finally {
 					if(rt != Errno.OK) {
 						transactionCtrl.rollback();
+						propDao.clearIdBuilderCache(aid);
+						relDao.clearIdBuilderCache(aid, unionPriId);
+						valDao.clearIdBuilderCache(aid);
 					}else {
 						transactionCtrl.commit();
 						// 缓存处理
@@ -216,6 +219,7 @@ public class ProductPropService extends ServicePub {
 					} finally {
 						if(rt != Errno.OK) {
 							transactionCtrl.rollback();
+							propDao.clearIdBuilderCache(aid);
 							relDao.clearIdBuilderCache(aid, unionPriId);
 						}else {
 							transactionCtrl.commit();
@@ -595,6 +599,7 @@ public class ProductPropService extends ServicePub {
 				}finally {
 					if(rt != Errno.OK) {
 						transactionCtrl.rollback();
+						valDao.clearIdBuilderCache(aid);
 					}else {
 						transactionCtrl.commit();
 						// 清掉参数值缓存

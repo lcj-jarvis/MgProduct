@@ -38,6 +38,10 @@ public class ProductPropDaoCtrl extends DaoCtrl {
 		return m_idBuilder.build(aid, m_dao, needLock);
 	}
 
+	public void clearIdBuilderCache(int aid) {
+		m_idBuilder.clearCache(aid);
+	}
+
 	public static void init(DaoPool daoPool, RedisCacheManager cache) {
 		m_daoPool = daoPool;
 		m_idBuilder = new IdBuilderWrapper(idBuilderConfig, cache);

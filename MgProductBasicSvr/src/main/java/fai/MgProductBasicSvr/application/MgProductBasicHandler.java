@@ -65,6 +65,24 @@ public class MgProductBasicHandler extends FaiHandler {
         return service.getRelInfoByRlId(session, flow, aid, unionPriId, rlPdId);
     }
 
+    @Cmd(MgProductBasicCmd.BasicCmd.GET_REL_LIST)
+    public int getRelListByRlIds(final FaiSession session,
+                                @ArgFlow final int flow,
+                                @ArgAid final int aid,
+                                @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                                @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
+        return service.getRelListByRlIds(session, flow, aid, unionPriId, rlPdIds);
+    }
+
+    @Cmd(MgProductBasicCmd.BasicCmd.GET_REDUCED_REL_LIST)
+    public int getReducedRelsByPdIds(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid final int aid,
+                                 @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                                 @ArgList(keyMatch = ProductRelDto.Key.PD_IDS) FaiList<Integer> pdIds) throws IOException {
+        return service.getReducedRelsByPdIds(session, flow, aid, unionPriId, pdIds);
+    }
+
     @WrittenCmd
     @Cmd(MgProductBasicCmd.BasicCmd.ADD_PD_AND_REL)
     public int addProductAndRel(final FaiSession session,

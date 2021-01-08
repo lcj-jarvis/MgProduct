@@ -261,6 +261,148 @@ public class MgProductBasicCli extends FaiClient {
     }
 
     /**
+     * 根据业务商品id集合，获取商品业务关系数据集合
+     */
+    public int getRelListByRlIds(int aid, int unionPriId, FaiList<Integer> rlPdIds, FaiList<Param> list) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid <= 0 || list == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "aid=%d;uid=%d;list=%s;get args error;", aid, unionPriId, list);
+                return m_rt;
+            }
+            if(rlPdIds == null || rlPdIds.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "get args error, rlPdIds is null;aid=%d;uid=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
+                return m_rt;
+            }
+            list.clear();
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
+            rlPdIds.toBuffer(sendBody, ProductRelDto.Key.RL_PD_IDS);
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setAid(aid);
+            sendProtocol.setCmd(MgProductBasicCmd.BasicCmd.GET_REL_LIST);
+            sendProtocol.addEncodeBody(sendBody);
+
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                if (m_rt != Errno.NOT_FOUND) {
+                    Log.logErr(m_rt, "recv result err");
+                }
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+
+            Ref<Integer> keyRef = new Ref<Integer>();
+            list.fromBuffer(recvBody, keyRef, ProductRelDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    /**
+     * 根据pdIds获取业务关联数据，仅获取有限的字段，aid+unionPriId+pdId+rlPdId
+     */
+    public int getReducedRelsByPdIds(int aid, int unionPriId, FaiList<Integer> pdIds, FaiList<Param> list) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid <= 0 || list == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "aid=%d;uid=%d;list=%s;get args error;", aid, unionPriId, list);
+                return m_rt;
+            }
+            if(pdIds == null || pdIds.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "get args error, pdIds is null;aid=%d;uid=%d;rlPdIds=%s;", aid, unionPriId, pdIds);
+                return m_rt;
+            }
+            list.clear();
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
+            pdIds.toBuffer(sendBody, ProductRelDto.Key.PD_IDS);
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setAid(aid);
+            sendProtocol.setCmd(MgProductBasicCmd.BasicCmd.GET_REDUCED_REL_LIST);
+            sendProtocol.addEncodeBody(sendBody);
+
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                if (m_rt != Errno.NOT_FOUND) {
+                    Log.logErr(m_rt, "recv result err");
+                }
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+
+            Ref<Integer> keyRef = new Ref<Integer>();
+            list.fromBuffer(recvBody, keyRef, ProductRelDto.getReducedInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.REDUCED_INFO) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    /**
      * 新增商品数据，并添加与当前unionPriId的关联
      */
     public int addProductAndRel(int aid, int tid, int unionPriId, Param info) {

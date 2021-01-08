@@ -43,5 +43,5 @@ public class SpecTempBizRelCacheCtrl extends CacheCtrl {
 		return CACHE_KEY_PREFIX+"-"+"-"+aid+"-"+unionPriId;
 	}
 
-	private static final String CACHE_KEY_PREFIX = "specTempBizRel";
+	private static final String CACHE_KEY_PREFIX = "MG_specTempBizRel";
 }

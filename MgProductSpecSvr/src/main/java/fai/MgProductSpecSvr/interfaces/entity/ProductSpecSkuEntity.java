@@ -10,7 +10,7 @@ public class ProductSpecSkuEntity {
         public static final String SKU_ID = "skuId";                                // bigInt SKU id（aid下自增），系统对内, 也做排序
         public static final String SORT = "sort";                                   // int 排序
         public static final String SOURCE_TID = "sourceTid";                        // int 创建规格的 项目id
-        public static final String SKU_NUM = "skuNum";                              // TODO
+        public static final String SKU_NUM = "skuNum";                              // String
         /**
          * 每个元素值:
          * @see SpecStrEntity.Info#SC_STR_ID

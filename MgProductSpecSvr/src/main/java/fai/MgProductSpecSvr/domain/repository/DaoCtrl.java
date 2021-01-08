@@ -70,6 +70,23 @@ public abstract class DaoCtrl {
 			m_daoOpened = false;
 		}
 	}
+	public int setAutoCommit(boolean autoCommit) {
+		int rt = openDao();
+		if(rt != Errno.OK){
+			return rt;
+		}
+		return m_dao.setAutoCommit(autoCommit);
+	}
+	public void commit(){
+		if(m_dao != null){
+			m_dao.commit();
+		}
+	}
+	public void rollback(){
+		if(m_dao != null){
+			m_dao.rollback();
+		}
+	}
 	/**
 	 * 用于Handler调用
 	 */
@@ -80,6 +97,15 @@ public abstract class DaoCtrl {
 		}
 		for (DaoCtrl daoCtrl : daoCtrls) {
 			daoCtrl.closeDao();
+		}
+	}
+
+	/**
+	 * 关闭系统服务时调用
+	 */
+	public static void destroy(){
+		if(m_daoProxy != null){
+			m_daoProxy.destroy();
 		}
 	}
 

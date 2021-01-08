@@ -26,6 +26,15 @@ public class MgProductInfCmd {
 
         /**@see BasicCmd#GET_RLPDIDS_BY_PROP */
         public static final int NUM12 = 5012;
+
+        /**@see StoreSalesSkuCmd#GET_LIST */
+        public static final int NUM13 = 5013;
+
+        /**@see BizSalesSummaryCmd#GET_LIST */
+        public static final int NUM14 = 5014;
+
+        /**@see SalesSummaryCmd#GET_LIST */
+        public static final int NUM15 = 5015;
     }
 
     // 1000 到 5000 的范围
@@ -67,6 +76,18 @@ public class MgProductInfCmd {
         public static final int NUM20 = 1020;
         /**@see BasicCmd#BATCH_DEL_PDS */
         public static final int NUM21 = 1021;
+
+        /**@see StoreSalesSkuCmd#SET_LIST */
+        public static final int NUM22 = 1022;
+        /**@see StoreSalesSkuCmd#REDUCE_STORE */
+        public static final int NUM23 = 1023;
+        /**@see StoreSalesSkuCmd#REDUCE_HOLDING_STORE */
+        public static final int NUM24 = 1024;
+        /**@see StoreSalesSkuCmd#MAKE_UP_STORE */
+        public static final int NUM25 = 1025;
+
+        /**@see InOutStoreRecordCmd#ADD_LIST */
+        public static final int NUM26 = 1026;
     }
 
     /**
@@ -103,7 +124,7 @@ public class MgProductInfCmd {
 
 
     /**
-     * 规格模板相关cmd
+     * 规格模板 相关 cmd
      */
     public static class SpecTempCmd {
         //读命令
@@ -117,7 +138,7 @@ public class MgProductInfCmd {
     }
 
     /**
-     * 规格模板详情相关cmd
+     * 规格模板详情 相关 cmd
      */
     public static class SpecTempDetailCmd {
         //读命令
@@ -131,7 +152,7 @@ public class MgProductInfCmd {
     }
 
     /**
-     * 商品规格相关cmd
+     * 商品规格 相关 cmd
      */
     public static class ProductSpecCmd {
         //读命令
@@ -154,4 +175,38 @@ public class MgProductInfCmd {
         //写命令
         public static final int SET_LIST = WriteCmdNum.NUM16;
     }
+
+    /**
+     * 商品规格库存销售sku 相关 cmd
+     */
+    public static class StoreSalesSkuCmd {
+        public static final int GET_LIST = ReadCmdNum.NUM13;
+
+        public static final int SET_LIST = WriteCmdNum.NUM22;
+        public static final int REDUCE_STORE = WriteCmdNum.NUM23;
+        public static final int REDUCE_HOLDING_STORE = WriteCmdNum.NUM24;
+        public static final int MAKE_UP_STORE = WriteCmdNum.NUM25;
+    }
+
+    /**
+     * 出入库存记录 相关 cmd
+     */
+    public static class InOutStoreRecordCmd {
+        public static final int ADD_LIST = WriteCmdNum.NUM26;
+    }
+
+    /**
+     * 商品业务销售汇总
+     */
+    public static class BizSalesSummaryCmd {
+        public static final int GET_LIST = ReadCmdNum.NUM14;
+    }
+
+    /**
+     * 商品销售汇总
+     */
+    public static class SalesSummaryCmd {
+        public static final int GET_LIST = ReadCmdNum.NUM15;
+    }
+
 }

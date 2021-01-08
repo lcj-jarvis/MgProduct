@@ -1,4 +1,5 @@
-<?xml version="1.0" ?><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" ?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>MgProduct</groupId>
@@ -36,6 +37,11 @@
             <groupId>MgProduct</groupId>
             <artifactId>MgProduct-MgProductSpecSvr-interfaces</artifactId>
             <version>${MgProduct-MgProductSpecSvr-interfaces-ver}</version>
+        </dependency>
+        <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProduct-MgProductStoreSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductStoreSvr-interfaces-ver}</version>
         </dependency>
 
         <dependency>
@@ -147,6 +153,7 @@
             <artifactId>log4j</artifactId>
             <version>1.2.16</version>
         </dependency>
+
         <!-- 注册与发现end -->
     </dependencies>
 

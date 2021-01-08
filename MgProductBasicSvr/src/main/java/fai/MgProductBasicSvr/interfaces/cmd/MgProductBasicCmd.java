@@ -6,6 +6,8 @@ public class MgProductBasicCmd {
         public static final int NUM = 5000;	// BindPropCmd.GET_LIST
         public static final int NUM2 = 5001; // BindPropCmd.GET_PD_BIND_PROP
         public static final int NUM3 = 5002; // BasicCmd.GET_REL
+        public static final int NUM4 = 5003; // BasicCmd.GET_REL_LIST
+        public static final int NUM5 = 5004; // BasicCmd.GET_REDUCED_REL_LIST
     }
 
     // 1000 到 5000 的范围
@@ -30,6 +32,8 @@ public class MgProductBasicCmd {
 
     public static class BasicCmd {
         public static final int GET_REL = ReadCmdNum.NUM3;
+        public static final int GET_REL_LIST = ReadCmdNum.NUM4;
+        public static final int GET_REDUCED_REL_LIST = ReadCmdNum.NUM5;
 
         public static final int ADD_PD_AND_REL = WriteCmdNum.NUM2;
         public static final int ADD_REL_BIND = WriteCmdNum.NUM3;

@@ -1,6 +1,7 @@
 package fai.MgProductBasicSvr.domain.repository;
 
 import fai.MgProductBasicSvr.domain.entity.ProductRelEntity;
+import fai.MgProductBasicSvr.interfaces.dto.ProductDto;
 import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
 import fai.comm.util.*;
 
@@ -23,6 +24,17 @@ public class ProductRelCacheCtrl extends CacheCtrl {
     public static FaiList<Param> getCacheList(int aid, int unionPriId) {
         String cacheKey = getCacheKey(aid, unionPriId);
         return m_cache.hgetAllFaiList(cacheKey, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto());
+    }
+
+    public static FaiList<Param> getCacheList(int aid, int unionPriId, List<String> rlPdIds) {
+        String cacheKey = getCacheKey(aid, unionPriId);
+        FaiList<Param> list = null;
+        try {
+            list = m_cache.hmget(cacheKey, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto(), rlPdIds);
+        } catch (Exception e) {
+            Log.logErr(e,"getCacheList error;aid=%d;rlPdIds=%s;", aid, rlPdIds);
+        }
+        return list;
     }
 
     public static void delCache(int aid, int unionPriId) {
@@ -116,31 +128,31 @@ public class ProductRelCacheCtrl extends CacheCtrl {
         return keys;
     }
 
-    /** productIdRel cache **/
-    public static void addIdRelCacheList(int aid, FaiList<Param> list) {
+    /** cache: aid+unionPriId+pdId -> rlPdId **/
+    public static void addRlIdRelCacheList(int aid, int unionPriId, FaiList<Param> list) {
         if(list == null || list.isEmpty()) {
             return;
         }
-        String cacheKey = getIdRelCacheKey(aid);
-        m_cache.hmsetFaiList(cacheKey, ProductRelEntity.Info.RL_PD_ID, Var.Type.INT, list, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto());
+        String cacheKey = getRlIdRelCacheKey(aid, unionPriId);
+        m_cache.hmsetFaiList(cacheKey, ProductRelEntity.Info.RL_PD_ID, Var.Type.INT, list, ProductRelDto.Key.REDUCED_INFO, ProductRelDto.getReducedInfoDto());
     }
 
-    public static FaiList<Param> getIdRelCacheList(int aid, FaiList<Integer> rlPdIds) {
+    public static FaiList<Param> getRlIdRelCacheList(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
         FaiList list = null;
         if(rlPdIds == null || rlPdIds.isEmpty()) {
             return list;
         }
         List<String> rlPdIdStrs = rlPdIds.stream().map(String::valueOf).collect(Collectors.toList());
-        String cacheKey = getIdRelCacheKey(aid);
+        String cacheKey = getRlIdRelCacheKey(aid, unionPriId);
         try {
-            list = m_cache.hmget(cacheKey, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto(), rlPdIdStrs);
+            list = m_cache.hmget(cacheKey, ProductRelDto.Key.REDUCED_INFO, ProductRelDto.getReducedInfoDto(), rlPdIdStrs);
         } catch (Exception e) {
             Log.logErr(e,"getCacheList error;aid=%d;rlPdIdStrs=%s;", aid, rlPdIdStrs);
         }
         return list;
     }
 
-    public static void delIdRelCache(int aid, FaiList<Integer> rlPdIds) {
+    public static void delRlIdRelCache(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
         if(rlPdIds == null || rlPdIds.isEmpty()) {
             return;
         }
@@ -148,12 +160,12 @@ public class ProductRelCacheCtrl extends CacheCtrl {
         for(int i = 0; i < rlPdIds.size(); i++) {
             rlPdIdStrs[i] = String.valueOf(rlPdIds.get(i));
         }
-        String cacheKey = getIdRelCacheKey(aid);
+        String cacheKey = getRlIdRelCacheKey(aid, unionPriId);
         m_cache.hdel(cacheKey, rlPdIdStrs);
     }
 
-    public static String getIdRelCacheKey(int aid) {
-        return ID_REL_CACHE_KEY + "-" + aid;
+    public static String getRlIdRelCacheKey(int aid, int unionPriId) {
+        return RLID_REL_CACHE_KEY + "-" + aid + "-" + unionPriId;
     }
 
     /** productRel Count cache **/
@@ -182,6 +194,6 @@ public class ProductRelCacheCtrl extends CacheCtrl {
 
     private static final int EXPIRE_SECOND = 10;
     private static final String CACHE_KEY = "MG_productRel"; // 商品业务表数据缓存，aid+unionPriId 做 cache key，rlPdId做hash key
-    private static final String ID_REL_CACHE_KEY = "MG_productIdRel"; // 商品业务表 id和业务id关系缓存，aid 做 cache key，rlPdId做hash key，数据只包含pdId+unionPriId
+    private static final String RLID_REL_CACHE_KEY = "MG_productRlIdRel"; // 商品业务表 id和业务id关系缓存，aid + unionPriId 为 cache key，pdId为hash key，数据只包含rlPdId+pdId+unionPriId
     private static final String COUNT_CACHE_KEY = "MG_productRelCount";// 商品业务表数据量缓存，aid+unionPriId 做 cache key
 }

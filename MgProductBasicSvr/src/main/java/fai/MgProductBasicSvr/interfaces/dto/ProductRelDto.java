@@ -6,6 +6,7 @@ import fai.comm.util.ParamDef;
 
 public class ProductRelDto {
     private static ParamDef g_infoDtoDef = new ParamDef();
+    private static ParamDef g_reducedInfoDtoDef = new ParamDef();
     private static ParamDef g_relAndPdDtoDef = new ParamDef();
 
     static {
@@ -24,6 +25,13 @@ public class ProductRelDto {
         g_infoDtoDef.add(ProductRelEntity.Info.FLAG, 12);
         g_infoDtoDef.add(ProductRelEntity.Info.CREATE_TIME, 13);
         g_infoDtoDef.add(ProductRelEntity.Info.UPDATE_TIME, 14);
+    }
+
+    static {
+        g_reducedInfoDtoDef.add(ProductRelEntity.Info.AID, 0);
+        g_reducedInfoDtoDef.add(ProductRelEntity.Info.RL_PD_ID, 1);
+        g_reducedInfoDtoDef.add(ProductRelEntity.Info.PD_ID, 2);
+        g_reducedInfoDtoDef.add(ProductRelEntity.Info.UNION_PRI_ID, 3);
     }
 
     static {
@@ -61,6 +69,10 @@ public class ProductRelDto {
         return g_infoDtoDef;
     }
 
+    public static ParamDef getReducedInfoDto() {
+        return g_reducedInfoDtoDef;
+    }
+
     public static ParamDef getRelAndPdDto() {
         return g_relAndPdDtoDef;
     }
@@ -73,5 +85,7 @@ public class ProductRelDto {
         public static final int RL_PD_ID = 5;
         public static final int PD_ID = 6;
         public static final int RL_PD_IDS = 7;
+        public static final int PD_IDS = 8;
+        public static final int REDUCED_INFO = 9;
     }
 }

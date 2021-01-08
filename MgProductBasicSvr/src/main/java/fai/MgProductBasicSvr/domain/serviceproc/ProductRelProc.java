@@ -325,7 +325,7 @@ public class ProductRelProc {
         }
 
         // 拿到未缓存的pdId list
-        FaiList<Integer> noCacheIds = new FaiList<>();
+        FaiList<Integer> noCacheIds = new FaiList<Integer>();
         noCacheIds.addAll(pdIds);
         for(Param info : list) {
             int pdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
@@ -333,11 +333,11 @@ public class ProductRelProc {
         }
 
         // db中获取
-        Ref<FaiList<Param>> tmpRef = new Ref<>();
+        Ref<FaiList<Param>> tmpRef = new Ref<FaiList<Param>>();
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        searchArg.matcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.IN, noCacheIds);
+        searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, noCacheIds);
         //只查aid+pdId+unionPriId+rlPdId
         String fields = ProductRelEntity.Info.AID + "," + ProductRelEntity.Info.UNION_PRI_ID + "," + ProductRelEntity.Info.PD_ID  + "," + ProductRelEntity.Info.RL_PD_ID;
         rt = m_dao.select(aid, searchArg, fields, tmpRef);

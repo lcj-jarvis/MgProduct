@@ -18,6 +18,7 @@ public class SpecTempDetailEntity {
 
     private static final String[] VALID_KEYS = new String[]{
             Info.SC_STR_ID,
+            Info.TP_SC_DT_ID,
             Info.SORT,
             Info.FLAG,
             Info.IN_SC_VAL_LIST,

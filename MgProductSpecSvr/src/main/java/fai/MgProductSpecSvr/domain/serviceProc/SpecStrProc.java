@@ -5,9 +5,7 @@ import fai.MgProductSpecSvr.domain.repository.SpecStrCacheCtrl;
 import fai.MgProductSpecSvr.domain.repository.SpecStrDaoCtrl;
 import fai.comm.util.*;
 
-import java.util.Calendar;
-import java.util.HashSet;
-import java.util.Iterator;
+import java.util.*;
 
 public class SpecStrProc {
     public SpecStrProc(SpecStrDaoCtrl daoCtrl, int flow) {
@@ -68,7 +66,7 @@ public class SpecStrProc {
             data.setString(SpecStrEntity.Info.NAME, name);
             Integer scStrId = m_daoCtrl.buildId();
             if(scStrId == null){
-                Log.logErr("batchAdd arg error;flow=%d;aid=%s;tpScId=%s;info=%s;", m_flow, aid, scStrId, info);
+                Log.logStd("batchAdd arg error;flow=%d;aid=%s;tpScId=%s;info=%s;", m_flow, aid, scStrId, info);
                 return Errno.ERROR;
             }
             if(rtIdList != null){
@@ -95,7 +93,7 @@ public class SpecStrProc {
         Log.logStd("batchAdd ok;flow=%d;aid=%d;", m_flow, aid);
         return rt;
     }
-    public int getListByNames(int aid, FaiList<String> nameList, Ref<FaiList<Param>> listRef) {
+    private int getListByNames(int aid, FaiList<String> nameList, Ref<FaiList<Param>> listRef) {
         FaiList<Param> list = SpecStrCacheCtrl.getCacheListByNames(aid, nameList);
         HashSet<String> nameSet = new HashSet<>(nameList);
         if(list != null){
@@ -127,13 +125,28 @@ public class SpecStrProc {
         listRef.value = list;
 
         SpecStrCacheCtrl.setCacheList(aid, newCacheList);
-        Log.logDbg("getList ok;flow=%d;aid=%d;nameList=%s;", m_flow, aid, nameList);
+        Log.logDbg(rt,"getList ok;flow=%d;aid=%d;nameList=%s;", m_flow, aid, nameList);
         return rt = Errno.OK;
     }
 
+    public int getNameIdMapByNames(int aid, FaiList<String> nameList, Ref<Param> nameIdMapRef){
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        int rt = getListByNames(aid, nameList, listRef);
+        if(rt != Errno.OK){
+            return rt;
+        }
+        Param nameIdMap  = new Param(true); // mapMode
+        listRef.value.parallelStream().forEach(info -> {
+            nameIdMap.setInt(info.getString(SpecStrEntity.Info.NAME), info.getInt(SpecStrEntity.Info.SC_STR_ID));
+        });
+        nameIdMapRef.value = nameIdMap;
+        return rt;
+    }
+
     public int getList(int aid, FaiList<Integer> scStrIdList, Ref<FaiList<Param>> listRef) {
-        FaiList<Param> list = SpecStrCacheCtrl.getCacheList(aid, scStrIdList);
         HashSet<Integer> scStrIdSet = new HashSet<>(scStrIdList);
+        scStrIdList = new FaiList<>(scStrIdSet); //去重
+        FaiList<Param> list = SpecStrCacheCtrl.getCacheList(aid, scStrIdList);
         if(list != null){
             Iterator<Param> iterator = list.iterator();
             while (iterator.hasNext()){
@@ -152,7 +165,6 @@ public class SpecStrProc {
         }else{
             list = new FaiList<>();
         }
-        Log.logDbg("whalelog   scStrIdList=%s", scStrIdList);
         ParamMatcher matcher = new ParamMatcher(SpecStrEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(SpecStrEntity.Info.SC_STR_ID, ParamMatcher.IN, scStrIdList);
         SearchArg searchArg = new SearchArg();
@@ -171,9 +183,7 @@ public class SpecStrProc {
         for (Integer scStrId : scStrIdSet) { // 缓存上空数据
             newCacheList.add(new Param().setInt(SpecStrEntity.Info.SC_STR_ID, scStrId));
         }
-        boolean boo = SpecStrCacheCtrl.setCacheList(aid, newCacheList);
-        Log.logDbg("whalelog  boo=%s", boo);
-        Log.logDbg("getList ok;flow=%d;aid=%d;scStrIdList=%s;", m_flow, aid, scStrIdList);
+        Log.logDbg(rt,"getList ok;flow=%d;aid=%d;scStrIdList=%s;", m_flow, aid, scStrIdList);
         return rt = Errno.OK;
     }
 

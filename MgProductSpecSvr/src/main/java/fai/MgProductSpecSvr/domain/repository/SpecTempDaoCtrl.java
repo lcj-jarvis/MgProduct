@@ -45,6 +45,9 @@ public class SpecTempDaoCtrl extends DaoCtrl {
 		}
 		return m_idBuilder.restoreMaxId(aid, flow, getTableName(), m_dao, needLock);
 	}
+	public int clearIdBuilderCache(int aid) {
+		return m_idBuilder.clearCache(aid);
+	}
 
 	@Override
 	protected DaoProxy getDaoProxy() {
@@ -58,7 +61,7 @@ public class SpecTempDaoCtrl extends DaoCtrl {
 
 	public static void initIdBuilder(RedisCacheManager codisCache){
 		if(m_idBuilder == null){
-			synchronized (SpecTempDetailDaoCtrl.class){
+			synchronized (SpecTempDaoCtrl.class){
 				if(m_idBuilder == null){
 					m_idBuilder = new IdBuilderWrapper(idBuilderConfig, codisCache);
 				}
@@ -73,4 +76,6 @@ public class SpecTempDaoCtrl extends DaoCtrl {
 			.buildAutoIncField(SpecTempEntity.Info.TP_SC_ID)
 			.build();
 	private static IdBuilderWrapper m_idBuilder;
+
+
 }

@@ -66,27 +66,6 @@ public class SpecTempProc {
         return rt;
     }
 
-    public int setSingle(int aid, int id, Param info) {
-        if(aid <= 0 || info == null || info.isEmpty()){
-            Log.logStd("batchDel arg error;flow=%d;aid=%s;id=%s;info=%s;", m_flow, aid, id, info);
-            return Errno.ARGS_ERROR;
-        }
-        Calendar now = Calendar.getInstance();
-        Param data = new Param();
-        data.assign(info, SpecTempEntity.Info.NAME);
-        data.assign(info, SpecTempEntity.Info.SOURCE_TID);
-        data.setCalendar(SpecTempEntity.Info.SYS_UPDATE_TIME, now);
-        ParamUpdater updater = new ParamUpdater(data);
-        ParamMatcher matcher = new ParamMatcher(SpecTempEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(SpecTempEntity.Info.TP_SC_ID, ParamMatcher.EQ, id);
-        int rt = m_daoCtrl.update(updater, matcher);
-        if(rt != Errno.OK) {
-            Log.logErr(rt, "setSingle error;flow=%d;aid=%s;id=%s;data=%s;", m_flow, aid, id, data);
-            return rt;
-        }
-        Log.logStd("setSingle ok;flow=%d;aid=%d;id=%s;", m_flow, aid, id);
-        return rt;
-    }
     public int batchSet(int aid, FaiList<ParamUpdater> specTempUpdaterList) {
         if(aid <= 0 || specTempUpdaterList == null || specTempUpdaterList.isEmpty()){
             Log.logErr("batchSet arg error;flow=%d;aid=%s;specTempUpdaterList=%s;", m_flow, aid, specTempUpdaterList);
@@ -98,6 +77,7 @@ public class SpecTempProc {
         Set<String> maxUpdaterKeys = Misc2.validUpdaterList(specTempUpdaterList, SpecTempEntity.getValidKeys(), data->{
             specTempIdList.add(data.getInt(SpecTempEntity.Info.TP_SC_ID));
         });
+        maxUpdaterKeys.remove(SpecTempEntity.Info.TP_SC_ID);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
         rt = getList(aid, specTempIdList, listRef);
@@ -145,6 +125,8 @@ public class SpecTempProc {
         return rt;
     }
 
+
+
     public int get(int aid, int tpScId, Ref<Param> infoRef) {
         ParamMatcher matcher = new ParamMatcher(SpecTempEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(SpecTempEntity.Info.TP_SC_ID, ParamMatcher.EQ, tpScId);
@@ -155,7 +137,7 @@ public class SpecTempProc {
             Log.logErr(rt, "get error;flow=%d;aid=%s;tpScId=%s;", m_flow, aid, tpScId);
             return rt;
         }
-        Log.logDbg("getList ok;flow=%d;aid=%d;tpScId=%s;", m_flow, aid, tpScId);
+        Log.logDbg(rt,"getList ok;flow=%d;aid=%d;tpScId=%s;", m_flow, aid, tpScId);
         return rt;
     }
 
@@ -169,13 +151,15 @@ public class SpecTempProc {
             Log.logErr(rt, "getList error;flow=%d;aid=%s;idList=%s;", m_flow, aid, idList);
             return rt;
         }
-        Log.logDbg("getList ok;flow=%d;aid=%d;idList=%s;", m_flow, aid, idList);
+        Log.logDbg(rt,"getList ok;flow=%d;aid=%d;idList=%s;", m_flow, aid, idList);
         return rt;
     }
 
 
+    public int clearIdBuilderCache(int aid){
+        int rt = m_daoCtrl.clearIdBuilderCache(aid);
+        return rt;
+    }
     private int m_flow;
     private SpecTempDaoCtrl m_daoCtrl;
-
-
 }

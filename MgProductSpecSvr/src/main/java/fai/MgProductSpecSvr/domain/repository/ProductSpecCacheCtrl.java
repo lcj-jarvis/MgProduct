@@ -124,7 +124,7 @@ public class ProductSpecCacheCtrl extends CacheCtrl {
 		return CACHE_KEY_PREFIX+"-"+aid+"-"+pdId;
 	}
 
-	private static final String CACHE_KEY_PREFIX = "productSpec";
+	private static final String CACHE_KEY_PREFIX = "MG_productSpec";
 
 
 }

@@ -229,7 +229,7 @@ public class MgProductSpecCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            infoList.fromBuffer(recvBody, keyRef, SpecTempDto.getInfoDto());
+            m_rt = infoList.fromBuffer(recvBody, keyRef, SpecTempDto.getInfoDto());
             if (m_rt != Errno.OK || keyRef.value != SpecTempDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
@@ -457,7 +457,7 @@ public class MgProductSpecCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            infoList.fromBuffer(recvBody, keyRef, SpecTempDetailDto.getInfoDto());
+            m_rt = infoList.fromBuffer(recvBody, keyRef, SpecTempDetailDto.getInfoDto());
             if (m_rt != Errno.OK || keyRef.value != SpecTempDetailDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
@@ -521,11 +521,14 @@ public class MgProductSpecCli extends FaiClient {
         }
     }
 
+    public int unionSetPdScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<Param> addList, FaiList<Integer> delList, FaiList<ParamUpdater> updaterList) {
+        return unionSetPdScInfoList(aid, tid, unionPriId, pdId, addList, delList, updaterList, null);
+    }
     /**
      * 修改产品规格总接口
      * 批量修改(包括增、删、改)指定商品的商品规格总接口；会自动生成sku规格，并且会调用商品库存服务的“刷新商品库存销售sku”
      */
-    public int unionSetPdScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<Param> addList, FaiList<Integer> delList, FaiList<ParamUpdater> updaterList) {
+    public int unionSetPdScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<Param> addList, FaiList<Integer> delList, FaiList<ParamUpdater> updaterList, FaiList<Param> rtPdScSkuInfoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -570,6 +573,22 @@ public class MgProductSpecCli extends FaiClient {
             m_rt = recvProtocol.getResult();
             if (m_rt != Errno.OK) {
                 return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            if(rtPdScSkuInfoList != null){
+                m_rt = rtPdScSkuInfoList.fromBuffer(recvBody, keyRef, ProductSpecSkuDto.getInfoDto());
+                if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuDto.Key.INFO_LIST) {
+                    Log.logErr(m_rt, "recv codec err");
+                    return m_rt;
+                }
             }
 
             return m_rt;
@@ -638,7 +657,7 @@ public class MgProductSpecCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            infoList.fromBuffer(recvBody, keyRef, ProductSpecDto.getInfoDto());
+            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductSpecDto.getInfoDto());
             if (m_rt != Errno.OK || keyRef.value != ProductSpecDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
@@ -650,11 +669,13 @@ public class MgProductSpecCli extends FaiClient {
         }
     }
 
-
+    public int setPdSkuScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<ParamUpdater> updaterList) {
+        return setPdSkuScInfoList(aid, tid, unionPriId, pdId, updaterList, null);
+    }
     /**
      * 批量修改产品规格SKU
      */
-    public int setPdSkuScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<ParamUpdater> updaterList) {
+    public int setPdSkuScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<ParamUpdater> updaterList, FaiList<Param> rtPdScSkuInfoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -698,6 +719,22 @@ public class MgProductSpecCli extends FaiClient {
                 return m_rt;
             }
 
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            if(rtPdScSkuInfoList != null){
+                m_rt = rtPdScSkuInfoList.fromBuffer(recvBody, keyRef, ProductSpecSkuDto.getInfoDto());
+                if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuDto.Key.INFO_LIST) {
+                    Log.logErr(m_rt, "recv codec err");
+                    return m_rt;
+                }
+            }
             return m_rt;
         } finally {
             close();
@@ -760,7 +797,7 @@ public class MgProductSpecCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            infoList.fromBuffer(recvBody, keyRef, ProductSpecSkuDto.getInfoDto());
+            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductSpecSkuDto.getInfoDto());
             if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;

@@ -1,10 +1,10 @@
-package fai.MgProductSpecSvr.domain.repository;
+package fai.MgProductStoreSvr.domain.repository;
 
 import fai.comm.util.Dao;
 import fai.comm.util.Errno;
 
 
-public class TransacationCrtl {
+public class TransactionCrtl {
     // 联合使用同一个
     public boolean registered(DaoCtrl daoCtrl){
         if(firstDaoCtrl == null){
@@ -24,19 +24,19 @@ public class TransacationCrtl {
         if(firstDaoCtrl == null){
             return Errno.ERROR;
         }
-        return firstDaoCtrl.getDao().setAutoCommit(autoCommit);
+        return firstDaoCtrl.setAutoCommit(autoCommit);
     }
     public void commit(){
         if(firstDaoCtrl == null){
             return;
         }
-        firstDaoCtrl.getDao().commit();
+        firstDaoCtrl.commit();
     }
     public void rollback(){
         if(firstDaoCtrl == null){
             return;
         }
-        firstDaoCtrl.getDao().rollback();
+        firstDaoCtrl.rollback();
     }
     public void closeDao(){
         if(firstDaoCtrl != null){

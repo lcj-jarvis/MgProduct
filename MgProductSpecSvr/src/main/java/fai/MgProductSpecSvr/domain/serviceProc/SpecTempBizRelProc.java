@@ -89,6 +89,7 @@ public class SpecTempBizRelProc {
         Set<String> maxUpdaterKeys = Misc2.validUpdaterList(specTempBizRelUpdaterList, SpecTempBizRelEntity.getValidKeys(), data->{
             rlTpScIdList.add(data.getInt(SpecTempBizRelEntity.Info.RL_TP_SC_ID));
         });
+        maxUpdaterKeys.remove(SpecTempBizRelEntity.Info.RL_TP_SC_ID);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
         rt = getList(aid, unionPriId, rlTpScIdList, listRef);
@@ -140,7 +141,7 @@ public class SpecTempBizRelProc {
     public int getTpScIdByRlTpScId(int aid, int unionPriId, int rlTpScId, Ref<Integer> tpScIdRef) {
         int tpScId = SpecTempBizRelCacheCtrl.getTpScId(aid, unionPriId, rlTpScId);
         if(tpScId != -1){
-            tpScIdRef.value = rlTpScId;
+            tpScIdRef.value = tpScId;
             return Errno.OK;
         }
         ParamMatcher matcher = new ParamMatcher(SpecTempBizRelEntity.Info.AID, ParamMatcher.EQ, aid);
@@ -157,7 +158,7 @@ public class SpecTempBizRelProc {
         tpScId = infoRef.value.getInt(SpecTempBizRelEntity.Info.TP_SC_ID);
         tpScIdRef.value = tpScId;
         SpecTempBizRelCacheCtrl.setTpScId(aid, unionPriId, rlTpScId, tpScId);
-        Log.logDbg("getTpScIdByRlTpScId ok;flow=%d;aid=%s;unionPriId=%s;rlTpScId=%s;tpScId=%s;", m_flow, aid, unionPriId, rlTpScId, tpScId);
+        Log.logDbg(rt,"getTpScIdByRlTpScId ok;flow=%d;aid=%s;unionPriId=%s;rlTpScId=%s;tpScId=%s;", m_flow, aid, unionPriId, rlTpScId, tpScId);
         return rt;
     }
 
@@ -177,7 +178,7 @@ public class SpecTempBizRelProc {
             Log.logErr(rt, "getList error;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
             return rt;
         }
-        Log.logDbg("get ok;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+        Log.logDbg(rt,"get ok;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
         return rt;
     }
     public int getCount(int aid, int unionPriId, FaiList<Integer> rlLibIdList, Ref<Integer> countRef) {
@@ -191,12 +192,16 @@ public class SpecTempBizRelProc {
             Log.logErr(rt, "getList error;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
             return rt;
         }
-        Log.logDbg("get ok;flow=%d;aid=%s;unionPriId=%s;countRef.value=%s", m_flow, aid, unionPriId, countRef.value);
+        Log.logDbg(rt,"get ok;flow=%d;aid=%s;unionPriId=%s;countRef.value=%s", m_flow, aid, unionPriId, countRef.value);
+        return rt;
+    }
+
+    public int clearIdBuilderCache(int aid, int unionPriId){
+        int rt = m_daoCtrl.clearIdBuilderCache(aid, unionPriId);
         return rt;
     }
 
     private int m_flow;
     private SpecTempBizRelDaoCtrl m_daoCtrl;
-
 
 }

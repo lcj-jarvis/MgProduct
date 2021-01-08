@@ -49,6 +49,12 @@ public class MgProductSpecHandler extends FaiHandler {
         }
     }
 
+    @Override
+    public void destroy() {
+        super.destroy();
+        DaoCtrl.destroy();
+    }
+
     @WrittenCmd
     @Cmd(MgProductSpecCmd.SpecTempCmd.ADD_LIST)
     private int addTpScInfoList(final FaiSession session,
@@ -151,7 +157,7 @@ public class MgProductSpecHandler extends FaiHandler {
                                       @ArgBodyInteger(ProductSpecDto.Key.RL_TP_SC_ID) final int rlTpScId,
                                       @ArgList(keyMatch = ProductSpecDto.Key.ID_LIST, useDefault = true) FaiList<Integer> tpScDtIdList) throws IOException {
         Param tpScInfo = m_specTempService.getTpScWithDetail(flow, aid, unionPriId, rlTpScId, tpScDtIdList);
-        return m_productSpecService.importPdScInfo(session, flow, aid, pdId, tpScInfo);
+        return m_productSpecService.importPdScInfo(session, flow, aid, tid, pdId, tpScInfo);
     }
 
     @WrittenCmd
@@ -169,7 +175,7 @@ public class MgProductSpecHandler extends FaiHandler {
                                      @ArgList(classDef = ProductSpecDto.class, methodDef = "getInfoDto", keyMatch = ProductSpecDto.Key.UPDATER_LIST, useDefault = true)
                                              FaiList<ParamUpdater> updaterList) throws IOException {
 
-        return  m_productSpecService.unionSetPdScInfoList(session, flow, aid, unionPriId, pdId, addPdScInfoList, delPdScIdList, updaterList);
+        return  m_productSpecService.unionSetPdScInfoList(session, flow, aid, tid, unionPriId, pdId, addPdScInfoList, delPdScIdList, updaterList);
     }
 
     @Cmd(MgProductSpecCmd.ProductSpecCmd.GET_LIST)

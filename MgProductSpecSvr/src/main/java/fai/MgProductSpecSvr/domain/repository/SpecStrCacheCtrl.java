@@ -109,7 +109,7 @@ public class SpecStrCacheCtrl extends CacheCtrl {
     public static String getCacheKey(int aid) {
         return CACHE_KEY + "-" + aid;
     }
-    private static final String CACHE_KEY = "specStr";
+    private static final String CACHE_KEY = "MG_specStr";
 
 
 }

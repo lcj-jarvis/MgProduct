@@ -10,6 +10,7 @@ import fai.comm.distributedkit.lock.PosDistributedLock;
 import fai.comm.jnetkit.config.ParamKeyMapping;
 import fai.comm.jnetkit.server.ServerConfig;
 import fai.comm.jnetkit.server.fai.FaiServer;
+import fai.comm.mq.api.MqFactory;
 import fai.comm.util.Log;
 import fai.comm.util.Param;
 
@@ -55,10 +56,13 @@ public class MgProductSpecSvr {
             // 分布式分段锁
             {
                 long lockLease = SVR_OPTION.getLockLease();
-                long lockLength = SVR_OPTION.getLockLength();
-                Log.logStd("lockLease=%d;", lockLease);
+                int lockLength = SVR_OPTION.getLockLength();
+                long retryLockTime = SVR_OPTION.getRetryLockTime();
                 Log.logStd("lockLength=%d;", lockLength);
-                LockUtil.initLock(new PosDistributedLock(m_cache, SVR_OPTION.getLockLength() , LOCK_TYPE, lockLease, m_retryLockTime));
+                Log.logStd("lockLease=%d;", lockLease);
+                Log.logStd("retryLockTime=%d;", retryLockTime);
+                LockUtil.initLock(new PosDistributedLock(m_cache, lockLength , LOCK_TYPE, lockLease, retryLockTime));
+
             }
             // 初始化idbuilder
             {
@@ -71,6 +75,7 @@ public class MgProductSpecSvr {
             }
         }
 
+
         server.setHandler(new MgProductSpecHandler(server));
         server.start();
     }
@@ -80,6 +85,15 @@ public class MgProductSpecSvr {
     public static class SvrOption {
         private int lockLease = 1000;
         private int lockLength = 1000;
+        private long retryLockTime = 200L;
+
+        public long getRetryLockTime() {
+            return retryLockTime;
+        }
+
+        public void setRetryLockTime(long retryLockTime) {
+            this.retryLockTime = retryLockTime;
+        }
 
         public int getLockLease() {
             return lockLease;
@@ -98,6 +112,5 @@ public class MgProductSpecSvr {
         }
     }
     private static SvrOption SVR_OPTION;
-    private static final String LOCK_TYPE = "SPECIFICATION_SVR_LOCK";
-    private static long m_retryLockTime = 100L;
+    private static final String LOCK_TYPE = "MG_PRODUCT_SPEC_SVR_LOCK";
 }

@@ -58,7 +58,7 @@ public class Misc2 {
         while (iterator.hasNext()){
             ParamUpdater updater = iterator.next();
             Param data = updater.getData();
-            for (int i = 0; i < data.size(); i++) {
+            for (int i = data.size()-1; i >= 0; i--) {
                 Pair<String, Object> dataPair = data.get(i);
                 String key = dataPair.first;
                 if(validKeySet != null && !validKeySet.contains(key)){

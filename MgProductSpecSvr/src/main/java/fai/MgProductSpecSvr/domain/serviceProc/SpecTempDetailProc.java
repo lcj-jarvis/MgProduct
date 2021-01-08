@@ -82,6 +82,7 @@ public class SpecTempDetailProc {
         Set<String> maxUpdaterKeys = Misc2.validUpdaterList(specTempDetailUpdaterList, SpecTempDetailEntity.getValidKeys(), data->{
             specTempDtIdList.add(data.getInt(SpecTempDetailEntity.Info.TP_SC_DT_ID));
         });
+        maxUpdaterKeys.remove(SpecTempDetailEntity.Info.TP_SC_DT_ID);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
         rt = getList(aid, tpScId, specTempDtIdList, listRef);
@@ -164,12 +165,12 @@ public class SpecTempDetailProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
         int rt =  m_daoCtrl.select(searchArg, listRef);
-        if(rt != Errno.OK) {
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             Log.logErr(rt, "getList error;flow=%d;aid=%s;", m_flow, aid);
             return rt;
         }
         initDBInfoList(listRef.value);
-        Log.logDbg("getList ok;flow=%d;aid=%d;", m_flow, aid);
+        Log.logDbg(rt,"getList ok;flow=%d;aid=%d;tpScId=%s;tpScDtIdList=%s;", m_flow, aid, tpScId, tpScDtIdList);
         return rt;
     }
 
@@ -190,9 +191,11 @@ public class SpecTempDetailProc {
         info.setList(SpecTempDetailEntity.Info.IN_SC_VAL_LIST, FaiList.parseParamList(inScValListStr, new FaiList<>()));
     }
 
+    public void clearIdBuilderCache(int aid) {
+        m_daoCtrl.clearIdBuilderCache(aid);
+    }
+
     private int m_flow;
     private SpecTempDetailDaoCtrl m_daoCtrl;
-
-
 
 }

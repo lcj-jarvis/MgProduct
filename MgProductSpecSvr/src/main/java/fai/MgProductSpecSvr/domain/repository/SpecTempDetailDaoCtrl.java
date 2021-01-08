@@ -45,6 +45,9 @@ public class SpecTempDetailDaoCtrl extends DaoCtrl {
 		}
 		return m_idBuilder.restoreMaxId(aid, flow, getTableName(), m_dao, needLock);
 	}
+	public int clearIdBuilderCache(int aid){
+		return m_idBuilder.clearCache(aid);
+	}
 
 	@Override
 	protected DaoProxy getDaoProxy() {

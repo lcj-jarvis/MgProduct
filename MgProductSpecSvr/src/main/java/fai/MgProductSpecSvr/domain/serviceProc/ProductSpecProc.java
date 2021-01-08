@@ -66,20 +66,21 @@ public class ProductSpecProc {
             return rt;
         }
         initDBInfoList(dataList);
-        ProductSpecCacheCtrl.appendPdScList(aid, pdId, dataList);
         Log.logStd("batchAdd ok;flow=%d;aid=%d;", m_flow, aid);
         return rt;
     }
 
     public int batchDel(int aid, int pdId, FaiList<Integer> pdScIdList, Ref<Boolean> needRefreshSkuRef) {
-        if(aid <= 0 || pdId <=0 || pdScIdList == null){
+        if(aid <= 0 || pdId <=0 || (pdScIdList != null && pdScIdList.isEmpty())){
             Log.logStd("batchDel error;flow=%d;aid=%s;pdId=%s;tpScDtIdList=%s;", m_flow, aid, pdId, pdScIdList);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
         ParamMatcher matcher = new ParamMatcher(ProductSpecEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductSpecEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
-        matcher.and(ProductSpecEntity.Info.PD_SC_ID, ParamMatcher.IN, pdScIdList);
+        if(pdScIdList != null){
+            matcher.and(ProductSpecEntity.Info.PD_SC_ID, ParamMatcher.IN, pdScIdList);
+        }
         if(needRefreshSkuRef != null){
             ParamMatcher queryMatcher = matcher.clone();
             queryMatcher.and(ProductSpecEntity.Info.FLAG, ParamMatcher.LAND, ProductSpecValObj.FLag.IN_PD_SC_VAL_LIST_CHECKED, ProductSpecValObj.FLag.IN_PD_SC_VAL_LIST_CHECKED);
@@ -99,7 +100,6 @@ public class ProductSpecProc {
             Log.logErr(rt, "batchDel error;flow=%d;aid=%s;pdId=%s;idList=%s;", m_flow, aid, pdId, pdScIdList);
             return rt;
         }
-        ProductSpecCacheCtrl.removeCache(aid, pdId, pdScIdList);
         Log.logStd("batchDel ok;flow=%d;aid=%d;pdId=%s;idList=%s;", m_flow, aid, pdId, pdScIdList);
         return rt;
     }
@@ -114,9 +114,10 @@ public class ProductSpecProc {
         Set<String> maxUpdaterKeys = Misc2.validUpdaterList(updaterList, ProductSpecEntity.getValidKeys(), data->{
             pdScIdList.add(data.getInt(ProductSpecEntity.Info.PD_SC_ID));
         });
+        maxUpdaterKeys.remove(ProductSpecEntity.Info.PD_SC_ID);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
-        rt = getList(aid, pdId, pdScIdList, listRef);
+        rt = getListFormDao(aid, pdId, pdScIdList, listRef);
         if(rt != Errno.OK){
             return rt;
         }
@@ -134,20 +135,12 @@ public class ProductSpecProc {
         doBatchMatcher.and(ProductSpecEntity.Info.PD_ID, ParamMatcher.EQ, "?");
         doBatchMatcher.and(ProductSpecEntity.Info.PD_SC_ID, ParamMatcher.EQ, "?");
 
-        FaiList<Param> cacheDataList = null;
-        if(ProductSpecCacheCtrl.hasCache(aid, pdId)){
-            cacheDataList = new FaiList<>(updaterList.size());
-        }
-
         Calendar now = Calendar.getInstance();
         FaiList<Param> dataList = new FaiList<>(updaterList.size());
         for (ParamUpdater updater : updaterList) {
             Integer pdScId = updater.getData().getInt(ProductSpecEntity.Info.PD_SC_ID);
             Param oldData = oldDataMap.remove(pdScId); // help gc
             Param updatedData = updater.update(oldData, true);
-            if(cacheDataList != null){
-                cacheDataList.add(updatedData);
-            }
             if(!needRefreshSkuRef.value){
                 FaiList<Integer> oldCheckIdList = getCheckIdList(oldData);
                 FaiList<Integer> updatedCheckIdList = getCheckIdList(updatedData);
@@ -188,9 +181,6 @@ public class ProductSpecProc {
             Log.logErr(rt, "batchSet error;flow=%d;aid=%s;", m_flow, aid);
             return rt;
         }
-        if(cacheDataList != null){
-            ProductSpecCacheCtrl.replaceCache(aid, pdId, cacheDataList);
-        }
         Log.logStd("batchSet ok;flow=%d;aid=%d;", m_flow, aid);
         return rt;
     }
@@ -205,55 +195,22 @@ public class ProductSpecProc {
         });
         return checkIdList;
     }
-
-    public int getList(int aid, int pdId, FaiList<Integer> pdScIdList, Ref<FaiList<Param>> listRef){
-        if(aid <= 0 || pdId <=0 || (pdScIdList != null && pdScIdList.isEmpty()) || listRef == null){
-            Log.logStd("arg error;flow=%d;aid=%s;pdId=%s;listRef=%s;", m_flow, aid, pdId, listRef);
-            return Errno.ARGS_ERROR;
-        }
-        FaiList<Param> pdScList = null;
-        if(pdScIdList != null){
-            pdScList = ProductSpecCacheCtrl.getPdScList(aid, pdId, pdScIdList);
-        }else{
-            pdScList = ProductSpecCacheCtrl.getPdScList(aid, pdId);
-        }
-        if(pdScList != null){
-            listRef.value = pdScList;
-            return Errno.OK;
-        }
-        int rt = Errno.ERROR;
+    public int getListFormDao(int aid, int pdId, FaiList<Integer> pdScIdList, Ref<FaiList<Param>> listRef){
         ParamMatcher matcher = new ParamMatcher(ProductSpecEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductSpecEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
+        if(pdScIdList != null){
+            matcher.and(ProductSpecEntity.Info.PD_SC_ID, ParamMatcher.IN, pdScIdList);
+        }
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
-        try {
-            LockUtil.lock(aid);
-            rt = m_daoCtrl.select(searchArg, listRef);
-            if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-                Log.logErr(rt, "get error;flow=%d;aid=%s;pdId=%s;pdScIdList=%s;", m_flow, aid, pdId, pdScIdList);
-                return rt;
-            }
-            pdScList = listRef.value;
-            initDBInfoList(pdScList);
-            ProductSpecCacheCtrl.initPdScList(aid, pdId, pdScList);
-        }finally {
-            LockUtil.unlock(aid);
+        int rt = m_daoCtrl.select(searchArg, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            Log.logErr(rt, "dao.select error;flow=%d;aid=%s;pdId=%s;pdScIdList=%s;", m_flow, aid, pdId, pdScIdList);
+            return rt;
         }
-        if(pdScIdList != null){
-            FaiList<Param> result = new FaiList<>(pdScIdList.size());
-            Map<Integer, Param> map = Misc2.getMap(pdScList, ProductSpecEntity.Info.PD_SC_ID);
-            pdScIdList.forEach(pdScId ->{
-                result.add(map.get(pdScId));
-            });
-            listRef.value = result;
-        }
-        Log.logDbg(rt,"getList ok;flow=%d;aid=%d;pdId=%s;pdScIdList=%s;matcher=%s;", m_flow, aid, pdId, pdScIdList, matcher.toJson());
-        return rt = Errno.OK;
+        initDBInfoList(listRef.value);
+        return rt;
     }
-    public int getList(int aid, int pdId, Ref<FaiList<Param>> listRef) {
-       return getList(aid, pdId, null, listRef);
-    }
-
     private void initDBInfoList(FaiList<Param> infoList){
         if(infoList == null || infoList.isEmpty()){
             return;
@@ -264,7 +221,40 @@ public class ProductSpecProc {
         });
     }
 
+    public int getList(int aid, int pdId, Ref<FaiList<Param>> listRef) {
+        if(aid <= 0 || pdId <=0 || listRef == null){
+            Log.logStd("arg error;flow=%d;aid=%s;pdId=%s;listRef=%s;", m_flow, aid, pdId, listRef);
+            return Errno.ARGS_ERROR;
+        }
+        FaiList<Param> pdScList = ProductSpecCacheCtrl.getPdScList(aid, pdId);
+        if(pdScList != null){
+            listRef.value = pdScList;
+            return Errno.OK;
+        }
+        int rt = Errno.ERROR;
+        try {
+            LockUtil.lock(aid);
+            rt = getListFormDao(aid, pdId, null, listRef);
+            if(rt != Errno.OK){
+                return rt;
+            }
+            pdScList = listRef.value;
+            ProductSpecCacheCtrl.initPdScList(aid, pdId, pdScList);
+        }finally {
+            LockUtil.unlock(aid);
+        }
+        Log.logDbg(rt,"getList ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
+        return rt = Errno.OK;
+    }
+
+    public void clearIdBuilderCache(int aid) {
+        m_daoCtrl.clearIdBuilderCache(aid);
+    }
+
+    public boolean clearCache(int aid, int pdId) {
+        return ProductSpecCacheCtrl.delAllCache(aid, pdId);
+    }
+
     private int m_flow;
     private ProductSpecDaoCtrl m_daoCtrl;
-
 }

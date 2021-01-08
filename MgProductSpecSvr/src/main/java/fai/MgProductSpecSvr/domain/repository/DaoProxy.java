@@ -114,6 +114,19 @@ public class DaoProxy {
         private FaiList<Param> m_bakList;
     }
 
+    public void destroy(){
+        if(m_mainDaoPoolMap != null){
+            for (DaoPool daoPool : m_mainDaoPoolMap.values()) {
+                daoPool.destory();
+            }
+        }
+        if(m_bakDaoPoolMap != null){
+            for (DaoPool daoPool : m_bakDaoPoolMap.values()) {
+                daoPool.destory();
+            }
+        }
+    }
+
     private Map<String, DaoPool> m_mainDaoPoolMap;
     private String[] m_mainInstances;
 

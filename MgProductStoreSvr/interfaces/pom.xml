@@ -1,0 +1,106 @@
+<?xml version="1.0" ?><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>MgProduct</groupId>
+        <artifactId>MgProductStoreSvr</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>MgProduct-MgProductStoreSvr-interfaces</artifactId>
+    <packaging>jar</packaging>
+    <version>1.0.0-SNAPSHOT</version>
+
+    <dependencies>
+        <dependency>
+            <groupId>fai-comm-util-arch</groupId>
+            <artifactId>fai-comm-util-arch</artifactId>
+            <version>${fai-comm-util-arch-ver}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>fai-comm-netkit</groupId>
+            <artifactId>fai-comm-netkit</artifactId>
+            <version>${fai-comm-netkit-ver}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>fai-comm-util-opt</groupId>
+            <artifactId>fai-comm-util-opt</artifactId>
+            <version>${fai-comm-util-opt-ver}</version>
+        </dependency>
+
+    </dependencies>
+
+    <distributionManagement>
+        <repository>
+            <id>${repository_id}</id>
+            <name>${repository_name}</name>
+            <url>${repository_url}</url>
+        </repository>
+
+        <snapshotRepository>
+            <id>${repository_id}</id>
+            <name>${repository_name}</name>
+            <url>${repository_url}</url>
+        </snapshotRepository>
+    </distributionManagement>
+
+    <build>
+        <finalName>${artifactId}</finalName>
+        <sourceDirectory>../src/main/java</sourceDirectory>
+        <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.6</version>
+                <configuration>
+                    <outputDirectory>${basedir}/tmp</outputDirectory>
+                </configuration>
+            </plugin>
+
+            <!-- 打包源码插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.0.1</version>
+                <configuration>
+                    <attach>true</attach>
+                    <outputDirectory>${basedir}/src-tmp</outputDirectory>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.6</source>
+                    <target>1.6</target>
+                    <includes>
+                        <include>**/interfaces/**</include>
+                    </includes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>2.5.3</version>
+                <configuration>
+                    <checkModificationExcludes>
+                        <checkModificationExclude>.project</checkModificationExclude>
+                        <checkModificationExclude>.classpath</checkModificationExclude>
+                    </checkModificationExcludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

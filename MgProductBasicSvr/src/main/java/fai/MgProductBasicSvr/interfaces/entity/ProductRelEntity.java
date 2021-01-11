@@ -19,6 +19,6 @@ public class ProductRelEntity {
         public static final String CREATE_TIME = "sysCreateTime"; // datetime 创建时间
         public static final String UPDATE_TIME = "sysUpdateTime"; // datetime 更新时间
 
-        public static final String INFO_CHECK = "infoCheck"; // 是否要校验info中的数据，中台内部使用。业务方接入可能需要添加一些空数据
+        public static final String INFO_CHECK = "infoCheck"; // boolean 是否要校验info中的数据，中台内部使用。业务方接入可能需要添加一些空数据
     }
 }

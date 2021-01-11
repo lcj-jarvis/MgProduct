@@ -1,6 +1,7 @@
 package fai.MgProductBasicSvr.application;
 
 import fai.MgProductBasicSvr.application.service.ProductBasicService;
+import fai.MgProductBasicSvr.application.service.ProductPropBindService;
 import fai.MgProductBasicSvr.interfaces.cmd.MgProductBasicCmd;
 import fai.MgProductBasicSvr.interfaces.dto.ProductBindPropDto;
 import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
@@ -27,7 +28,7 @@ public class MgProductBasicHandler extends FaiHandler {
                             @ArgBodyInteger(ProductBindPropDto.Key.UNION_PRI_ID) int unionPriId,
                             @ArgBodyInteger(ProductBindPropDto.Key.TID) int tid,
                             @ArgBodyInteger(ProductBindPropDto.Key.RL_PD_ID) int rlPdId) throws IOException {
-        return service.getPdBindProp(session, flow, aid, unionPriId, tid, rlPdId);
+        return propBindservice.getPdBindProp(session, flow, aid, unionPriId, tid, rlPdId);
     }
 
     @WrittenCmd
@@ -42,7 +43,7 @@ public class MgProductBasicHandler extends FaiHandler {
                             keyMatch = ProductBindPropDto.Key.PROP_BIND) FaiList<Param> addList,
                             @ArgList(classDef = ProductBindPropDto.class, methodDef = "getInfoDto",
                             keyMatch = ProductBindPropDto.Key.DEL_PROP_BIND) FaiList<Param> delList) throws IOException {
-        return service.setPdBindProp(session, flow, aid, unionPriId, tid, rlPdId, addList, delList);
+        return propBindservice.setPdBindProp(session, flow, aid, unionPriId, tid, rlPdId, addList, delList);
     }
 
     @Cmd(MgProductBasicCmd.BindPropCmd.GET_LIST_BY_PROP)
@@ -53,7 +54,7 @@ public class MgProductBasicHandler extends FaiHandler {
                              @ArgBodyInteger(ProductBindPropDto.Key.TID) int tid,
                              @ArgList(classDef = ProductBindPropDto.class, methodDef = "getInfoDto",
                              keyMatch = ProductBindPropDto.Key.INFO_LIST) FaiList<Param> proIdsAndValIds) throws IOException {
-        return service.getRlPdByPropVal(session, flow, aid, unionPriId, tid, proIdsAndValIds);
+        return propBindservice.getRlPdByPropVal(session, flow, aid, unionPriId, tid, proIdsAndValIds);
     }
 
     @Cmd(MgProductBasicCmd.BasicCmd.GET_REL)
@@ -144,4 +145,5 @@ public class MgProductBasicHandler extends FaiHandler {
     }
 
     private ProductBasicService service = new ProductBasicService();
+    private ProductPropBindService propBindservice = new ProductPropBindService();
 }

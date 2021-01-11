@@ -6,8 +6,8 @@ import fai.comm.util.*;
 /**
  * 商品基础信息服务
  */
-public class ProductBasicService {
-    public ProductBasicService(int flow) {
+public class ProductBasicProc {
+    public ProductBasicProc(int flow) {
         this.m_flow = flow;
         m_cli = new MgProductBasicCli(flow);
         if(!m_cli.init()) {

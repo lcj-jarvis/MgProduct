@@ -7,8 +7,8 @@ import fai.comm.util.*;
 /**
  * 商品参数服务
  */
-public class ProductPropService {
-    public ProductPropService(int flow) {
+public class ProductPropProc {
+    public ProductPropProc(int flow) {
         this.m_flow = flow;
         m_cli = new MgProductPropCli(flow);
         if(!m_cli.init()) {

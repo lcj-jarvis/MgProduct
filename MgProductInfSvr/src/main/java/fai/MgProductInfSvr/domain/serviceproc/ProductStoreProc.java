@@ -4,8 +4,8 @@ import fai.MgProductStoreSvr.interfaces.cli.MgProductStoreCli;
 import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuValObj;
 import fai.comm.util.*;
 
-public class ProductStoreService {
-    public ProductStoreService(int flow) {
+public class ProductStoreProc {
+    public ProductStoreProc(int flow) {
         this.m_flow = flow;
         m_cli = new MgProductStoreCli(flow);
         if (!m_cli.init()) {

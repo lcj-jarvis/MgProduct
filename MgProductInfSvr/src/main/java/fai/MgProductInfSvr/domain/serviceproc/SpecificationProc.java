@@ -4,8 +4,8 @@ import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
 import fai.comm.util.*;
 
 
-public class SpecificationService {
-    public SpecificationService(int flow) {
+public class SpecificationProc {
+    public SpecificationProc(int flow) {
         this.m_flow = flow;
         m_cli = new MgProductSpecCli(flow);
         if(!m_cli.init()) {

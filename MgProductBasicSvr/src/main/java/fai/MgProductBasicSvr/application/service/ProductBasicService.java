@@ -448,15 +448,25 @@ public class ProductBasicService extends ServicePub {
                 Log.logErr("args error info is empty;flow=%d;aid=%d;uid=%d;info=%s", flow, aid, unionPriId, info);
                 return rt;
             }
+            // 是否需要校验数据，初步接入中台，一些非必要数据可能存在需要添加空数据场景
+            boolean infoCheck = info.getBoolean(ProductRelEntity.Info.INFO_CHECK, true);
+
             Integer addedSid = info.getInt(ProductRelEntity.Info.ADD_SID);
-            if(addedSid == null) {
+            if(addedSid == null && !infoCheck) {
+                addedSid = 0;
+            }
+            if(infoCheck && addedSid == null) {
                 rt = Errno.ARGS_ERROR;
                 Log.logErr("args error, addedSid is null;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
                 return rt;
             }
 
+
             String name = info.getString(ProductEntity.Info.NAME);
-            if(!MgProductCheck.checkProductName(name)) {
+            if(name == null && !infoCheck) {
+                name = "";
+            }
+            if(infoCheck && !MgProductCheck.checkProductName(name)) {
                 rt = Errno.ARGS_ERROR;
                 Log.logErr("args error, name is unvalid;flow=%d;aid=%d;uid=%d;name=%s;", flow, aid, unionPriId, name);
                 return rt;
@@ -599,6 +609,9 @@ public class ProductBasicService extends ServicePub {
                 Log.logErr("args error, info is empty;flow=%d;aid=%d;uid=%d;info=%s", flow, aid, unionPriId, info);
                 return rt;
             }
+            // 是否需要校验数据，初步接入中台，一些非必要数据可能存在需要添加空数据场景
+            boolean infoCheck = info.getBoolean(ProductRelEntity.Info.INFO_CHECK, true);
+
             // 校验被关联的商品业务数据
             Integer bindRlPdId = bindRlPdInfo.getInt(ProductRelEntity.Info.RL_PD_ID);
             if(bindRlPdId == null) {
@@ -615,7 +628,10 @@ public class ProductBasicService extends ServicePub {
 
             // 校验新增的商品业务数据
             Integer addedSid = info.getInt(ProductRelEntity.Info.ADD_SID);
-            if(addedSid == null) {
+            if(addedSid == null && !infoCheck) {
+                addedSid = 0;
+            }
+            if(infoCheck && addedSid == null) {
                 rt = Errno.ARGS_ERROR;
                 Log.logErr("args error, addedSid is null;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
                 return rt;

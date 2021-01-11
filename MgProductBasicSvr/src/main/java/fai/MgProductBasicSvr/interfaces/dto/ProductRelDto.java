@@ -25,6 +25,7 @@ public class ProductRelDto {
         g_infoDtoDef.add(ProductRelEntity.Info.FLAG, 12);
         g_infoDtoDef.add(ProductRelEntity.Info.CREATE_TIME, 13);
         g_infoDtoDef.add(ProductRelEntity.Info.UPDATE_TIME, 14);
+        g_infoDtoDef.add(ProductRelEntity.Info.INFO_CHECK, 15);
     }
 
     static {
@@ -63,6 +64,8 @@ public class ProductRelDto {
         g_relAndPdDtoDef.add(ProductEntity.Info.KEEP_PROP3, 24);
         g_relAndPdDtoDef.add(ProductEntity.Info.KEEP_INT_PROP1, 25);
         g_relAndPdDtoDef.add(ProductEntity.Info.KEEP_INT_PROP2, 26);
+
+        g_relAndPdDtoDef.add(ProductRelEntity.Info.INFO_CHECK, 27);
     }
 
     public static ParamDef getInfoDto() {

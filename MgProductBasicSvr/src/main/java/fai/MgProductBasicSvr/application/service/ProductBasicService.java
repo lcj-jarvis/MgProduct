@@ -622,6 +622,9 @@ public class ProductBasicService extends ServicePub {
             FaiList<Param> relDataList = new FaiList<Param>();
             HashSet<Integer> unionPriIds = new HashSet<Integer>();
             for(Param info : infoList) {
+                // 是否需要校验数据，初步接入中台，一些非必要数据可能存在需要添加空数据场景
+                boolean infoCheck = info.getBoolean(ProductRelEntity.Info.INFO_CHECK, true);
+
                 Integer unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
                 if(unionPriId == null) {
                     rt = Errno.ARGS_ERROR;
@@ -630,7 +633,10 @@ public class ProductBasicService extends ServicePub {
                 }
                 unionPriIds.add(unionPriId);
                 Integer addedSid = info.getInt(ProductRelEntity.Info.ADD_SID);
-                if(addedSid == null) {
+                if(addedSid == null && !infoCheck) {
+                    addedSid = 0;
+                }
+                if(infoCheck && addedSid == null) {
                     rt = Errno.ARGS_ERROR;
                     Log.logErr("args error, addedSid is null;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
                     return rt;

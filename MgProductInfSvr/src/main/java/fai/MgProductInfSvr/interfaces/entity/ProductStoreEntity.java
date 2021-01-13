@@ -23,7 +23,8 @@ public class ProductStoreEntity {
         public static final String FLAG = "flag";                                   // int flag
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // Calendar 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // Calendar 修改时间
-        // for add
+
+        // for init
         public static final String IN_PD_SC_STR_NAME_LIST = ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_NAME_LIST;
     }
 
@@ -32,16 +33,19 @@ public class ProductStoreEntity {
      */
     public class InOutStoreRecordInfo{
         public static final String AID = "aid";                                     // int 企业aid
+        public static final String TID = "tid";                                     // int 项目id
         public static final String SITE_ID = "siteId";                              // int 站点id
         public static final String LGID = "lgId";                                   // int 多语言id
         public static final String KEEP_PRI_ID1 = "keepPriId1";                     // int 保留主键id1
         public static final String SKU_ID = "skuId";                                // long SKU id
         public static final String IN_OUT_STORE_REC_ID = "ioStoreRecId";            // int 出入库存记录id
+        public static final String OWNER_RL_PD_ID = "ownerPlPdId";                  // int 该商品所属者的业务商品id
         public static final String RL_PD_ID = "rlPdId";                             // int 商品业务 id
         public static final String OPT_TYPE = "optType";                            // int 出/入库操作？（或者其他操作状态）
         public static final String C_TYPE = "cType";                                // int 总部出入库方式
         public static final String S_TYPE = "sType";                                // int 门店出入库方式
         public static final String CHANGE_COUNT = "changeCount";                    // int 变动库存
+        public static final String REMAIN_COUNT = "remainCount";                    // int 变动后剩余库存
         public static final String PRICE = "price";                                 // long 采购单价（成本价）
         public static final String NUMBER = "number";                               // String 单号（天时间+4位以上顺序数字：如2010120001）
         public static final String OPT_SID = "optSid";                              // int 操作员工 id
@@ -51,6 +55,9 @@ public class ProductStoreEntity {
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String REMARK = "remark";                               // String 备注
+
+        // for init
+        public static final String IN_PD_SC_STR_NAME_LIST = ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_NAME_LIST;
     }
 
     /**

@@ -39,7 +39,7 @@ public class ProductStoreEntity {
         public static final String KEEP_PRI_ID1 = "keepPriId1";                     // int 保留主键id1
         public static final String SKU_ID = "skuId";                                // long SKU id
         public static final String IN_OUT_STORE_REC_ID = "ioStoreRecId";            // int 出入库存记录id
-        public static final String OWNER_RL_PD_ID = "ownerPlPdId";                  // int 该商品所属者的业务商品id
+        public static final String OWNER_RL_PD_ID = "ownerPlPdId";                  // int 该商品所属者的商品业务id
         public static final String RL_PD_ID = "rlPdId";                             // int 商品业务 id
         public static final String OPT_TYPE = "optType";                            // int 出/入库操作？（或者其他操作状态）
         public static final String C_TYPE = "cType";                                // int 总部出入库方式

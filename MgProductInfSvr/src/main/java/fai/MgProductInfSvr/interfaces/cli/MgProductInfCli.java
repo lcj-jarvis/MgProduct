@@ -2242,10 +2242,14 @@ public class MgProductInfCli extends FaiClient {
         }
     }
 
+
+
     /**
-     * 获取商品业务销售记录
+     * 获取指定商品所有的业务销售记录 <br/>
+     * 适用场景： <br/>
+     *    例如：悦客总店查看某个商品时，想进一步查看这个商品在门店的维度下的数据
      */
-    public int getPdBizSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> infoList){
+    public int getPdAllBizSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2269,7 +2273,7 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductStoreDto.Key.RL_PD_ID, rlPdId);
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductInfCmd.BizSalesSummaryCmd.GET_LIST);
+            sendProtocol.setCmd(MgProductInfCmd.BizSalesSummaryCmd.GET_ALL_BIZ_LIST_BY_PD_ID);
 
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
@@ -2312,7 +2316,79 @@ public class MgProductInfCli extends FaiClient {
     }
 
     /**
-     * 获取商品销售记录
+     * 获取指定业务下指定商品id集的业务销售信息 <br/>
+     * 适用场景： <br/>
+     *    例如：悦客门店查看商品 门店维度的信息汇总
+     */
+    public int getPdBizSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, FaiList<Param> infoList){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if (infoList == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "infoList error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductStoreDto.Key.TID, tid);
+            sendBody.putInt(ProductStoreDto.Key.SITE_ID, siteId);
+            sendBody.putInt(ProductStoreDto.Key.LGID, lgId);
+            sendBody.putInt(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1);
+            rlPdIdList.toBuffer(sendBody, ProductStoreDto.Key.ID_LIST);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductInfCmd.BizSalesSummaryCmd.GET_LIST_BY_PD_ID_LIST);
+
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductStoreDto.BizSalesSummary.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductStoreDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            return m_rt = Errno.OK;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+    /**
+     * 获取商品销售记录 <br/>
+     * 适用场景： <br/>
+     *    例如：悦客总店查看商品信息汇总
      */
     public int getPdSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, FaiList<Param> infoList){
         m_rt = Errno.ERROR;

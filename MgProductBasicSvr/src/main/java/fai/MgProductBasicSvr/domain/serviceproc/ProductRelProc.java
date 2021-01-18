@@ -229,6 +229,15 @@ public class ProductRelProc {
             return rt;
         }
 
+        FaiList<Param> relList = tmpRef.value;
+        if(relList == null || relList.isEmpty()) {
+            rt = Errno.NOT_FOUND;
+            Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+
+        infoRef.value = relList.get(0);
+
         rt = Errno.OK;
         return rt;
     }

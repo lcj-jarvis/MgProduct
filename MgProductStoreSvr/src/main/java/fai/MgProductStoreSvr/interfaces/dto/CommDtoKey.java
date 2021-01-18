@@ -1,6 +1,7 @@
 package fai.MgProductStoreSvr.interfaces.dto;
 
 public class CommDtoKey {
+    public static final int INFO = 0;
     public static final int UNION_PRI_ID = 1;
     public static final int TID = 2;
     public static final int PD_ID = 3;

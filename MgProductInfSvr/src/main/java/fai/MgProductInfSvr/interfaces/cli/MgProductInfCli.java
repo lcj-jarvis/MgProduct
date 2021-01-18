@@ -1074,7 +1074,12 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductSpecDto.Key.SITE_ID, siteId);
             sendBody.putInt(ProductSpecDto.Key.LGID, lgId);
             sendBody.putInt(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1);
-            list.toBuffer(sendBody, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecTemp.getInfoDto());
+            m_rt = list.toBuffer(sendBody, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecTemp.getInfoDto());
+            if(m_rt != Errno.OK){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "list err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;", aid, tid, siteId, lgId, keepPriId1);
+                return m_rt;
+            }
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductInfCmd.SpecTempCmd.ADD_LIST);
@@ -1184,7 +1189,12 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductSpecDto.Key.SITE_ID, siteId);
             sendBody.putInt(ProductSpecDto.Key.LGID, lgId);
             sendBody.putInt(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1);
-            updaterList.toBuffer(sendBody, ProductSpecDto.Key.UPDATER_LIST, ProductSpecDto.SpecTemp.getInfoDto());
+            m_rt = updaterList.toBuffer(sendBody, ProductSpecDto.Key.UPDATER_LIST, ProductSpecDto.SpecTemp.getInfoDto());
+            if(m_rt != Errno.OK){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "updaterList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;", aid, tid, siteId, lgId, keepPriId1);
+                return m_rt;
+            }
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductInfCmd.SpecTempCmd.SET_LIST);
@@ -1307,7 +1317,12 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductSpecDto.Key.LGID, lgId);
             sendBody.putInt(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1);
             sendBody.putInt(ProductSpecDto.Key.RL_TP_SC_ID, rlTpScId);
-            list.toBuffer(sendBody, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecTempDetail.getInfoDto());
+            m_rt = list.toBuffer(sendBody, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecTempDetail.getInfoDto());
+            if(m_rt != Errno.OK){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "list err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;rlTpScId=%s;", aid, tid, siteId, lgId, keepPriId1, rlTpScId);
+                return m_rt;
+            }
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductInfCmd.SpecTempDetailCmd.ADD_LIST);
@@ -1419,7 +1434,12 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductSpecDto.Key.LGID, lgId);
             sendBody.putInt(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1);
             sendBody.putInt(ProductSpecDto.Key.RL_TP_SC_ID, rlTpScId);
-            updaterList.toBuffer(sendBody, ProductSpecDto.Key.UPDATER_LIST, ProductSpecDto.SpecTempDetail.getInfoDto());
+            m_rt = updaterList.toBuffer(sendBody, ProductSpecDto.Key.UPDATER_LIST, ProductSpecDto.SpecTempDetail.getInfoDto());
+            if(m_rt != Errno.OK){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "updaterList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;rlTpScId=%s;", aid, tid, siteId, lgId, keepPriId1, rlTpScId);
+                return m_rt;
+            }
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductInfCmd.SpecTempDetailCmd.SET_LIST);
@@ -1593,13 +1613,23 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1);
             sendBody.putInt(ProductSpecDto.Key.RL_PD_ID, rlPdId);
             if (addList != null) {
-                addList.toBuffer(sendBody, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.Spec.getInfoDto());
+                m_rt = addList.toBuffer(sendBody, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.Spec.getInfoDto());
+                if(m_rt != Errno.OK){
+                    m_rt = Errno.ARGS_ERROR;
+                    Log.logErr(m_rt, "addList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;rlPdId=%s;", aid, tid, siteId, lgId, keepPriId1, rlPdId);
+                    return m_rt;
+                }
             }
             if (delList != null) {
                 delList.toBuffer(sendBody, ProductSpecDto.Key.ID_LIST);
             }
             if (updaterList != null) {
-                updaterList.toBuffer(sendBody, ProductSpecDto.Key.UPDATER_LIST, ProductSpecDto.Spec.getInfoDto());
+                m_rt = updaterList.toBuffer(sendBody, ProductSpecDto.Key.UPDATER_LIST, ProductSpecDto.Spec.getInfoDto());
+                if(m_rt != Errno.OK){
+                    m_rt = Errno.ARGS_ERROR;
+                    Log.logErr(m_rt, "updaterList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;rlPdId=%s;", aid, tid, siteId, lgId, keepPriId1, rlPdId);
+                    return m_rt;
+                }
             }
 
             FaiProtocol sendProtocol = new FaiProtocol();
@@ -1725,7 +1755,12 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductSpecDto.Key.LGID, lgId);
             sendBody.putInt(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1);
             sendBody.putInt(ProductSpecDto.Key.RL_PD_ID, rlPdId);
-            updaterList.toBuffer(sendBody, ProductSpecDto.Key.UPDATER_LIST, ProductSpecDto.SpecSku.getInfoDto());
+            m_rt = updaterList.toBuffer(sendBody, ProductSpecDto.Key.UPDATER_LIST, ProductSpecDto.SpecSku.getInfoDto());
+            if(m_rt != Errno.OK){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "updaterList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;rlPdId=%s;", aid, tid, siteId, lgId, keepPriId1, rlPdId);
+                return m_rt;
+            }
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductInfCmd.ProductSpecSkuCmd.SET_LIST);
@@ -1850,7 +1885,12 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductStoreDto.Key.LGID, lgId);
             sendBody.putInt(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1);
             sendBody.putInt(ProductStoreDto.Key.RL_PD_ID, rlPdId);
-            updaterList.toBuffer(sendBody, ProductStoreDto.Key.UPDATER_LIST, ProductStoreDto.getStoreSalesSkuDto());
+            m_rt = updaterList.toBuffer(sendBody, ProductStoreDto.Key.UPDATER_LIST, ProductStoreDto.StoreSalesSku.getInfoDto());
+            if(m_rt != Errno.OK){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "updaterList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;rlPdId=%s;", aid, tid, siteId, lgId, keepPriId1, rlPdId);
+                return m_rt;
+            }
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductInfCmd.StoreSalesSkuCmd.SET_LIST);
@@ -2069,7 +2109,7 @@ public class MgProductInfCli extends FaiClient {
     /**
      * 获取商品规格库存销售sku
      */
-    public int getPdScSkuSalesStore(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> infoList) {
+    public int getPdScSkuSalesList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2123,7 +2163,7 @@ public class MgProductInfCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductStoreDto.getStoreSalesSkuDto());
+            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductStoreDto.StoreSalesSku.getInfoDto());
             if (m_rt != Errno.OK || keyRef.value != ProductStoreDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
@@ -2139,7 +2179,11 @@ public class MgProductInfCli extends FaiClient {
      * 添加库存出入库记录
      * @param aid
      * @param tid
-     * @param infoList
+     * @param siteId 业务商品所属权的 siteId (如:悦客总店的 siteId)
+     * @param lgId 业务商品所属权的 lgId (如:悦客总店的 lgId)
+     * @param keepPriId1 业务商品所属权的 keepPriId1 (如:悦客总店的 keepPriId1)
+     * @param infoList 出入库记录集合，需要包含 siteId, lgId, keepPriId1, skuId
+     * @return
      */
     public int addInOutStoreRecordInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
@@ -2162,7 +2206,12 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductStoreDto.Key.SITE_ID, siteId);
             sendBody.putInt(ProductStoreDto.Key.LGID, lgId);
             sendBody.putInt(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1);
-            infoList.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.getInOutStoreRecordDto());
+            m_rt = infoList.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.InOutStoreRecord.getInfoDto());
+            if(m_rt != Errno.OK){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "infoList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;", aid, tid, siteId, lgId, keepPriId1);
+                return m_rt;
+            }
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductInfCmd.InOutStoreRecordCmd.ADD_LIST);
@@ -2193,10 +2242,14 @@ public class MgProductInfCli extends FaiClient {
         }
     }
 
+
+
     /**
-     * 获取商品业务销售记录
+     * 获取指定商品所有的业务销售记录 <br/>
+     * 适用场景： <br/>
+     *    例如：悦客总店查看某个商品时，想进一步查看这个商品在门店的维度下的数据
      */
-    public int getPdBizSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> infoList){
+    public int getPdAllBizSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2220,7 +2273,7 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductStoreDto.Key.RL_PD_ID, rlPdId);
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductInfCmd.BizSalesSummaryCmd.GET_LIST);
+            sendProtocol.setCmd(MgProductInfCmd.BizSalesSummaryCmd.GET_ALL_BIZ_LIST_BY_PD_ID);
 
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
@@ -2250,7 +2303,7 @@ public class MgProductInfCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductStoreDto.getBizSalesSummaryDto());
+            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductStoreDto.BizSalesSummary.getInfoDto());
             if (m_rt != Errno.OK || keyRef.value != ProductStoreDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
@@ -2263,7 +2316,79 @@ public class MgProductInfCli extends FaiClient {
     }
 
     /**
-     * 获取商品销售记录
+     * 获取指定业务下指定商品id集的业务销售信息 <br/>
+     * 适用场景： <br/>
+     *    例如：悦客门店查看商品 门店维度的信息汇总
+     */
+    public int getPdBizSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, FaiList<Param> infoList){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if (infoList == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "infoList error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductStoreDto.Key.TID, tid);
+            sendBody.putInt(ProductStoreDto.Key.SITE_ID, siteId);
+            sendBody.putInt(ProductStoreDto.Key.LGID, lgId);
+            sendBody.putInt(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1);
+            rlPdIdList.toBuffer(sendBody, ProductStoreDto.Key.ID_LIST);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductInfCmd.BizSalesSummaryCmd.GET_LIST_BY_PD_ID_LIST);
+
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductStoreDto.BizSalesSummary.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductStoreDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            return m_rt = Errno.OK;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+    /**
+     * 获取商品销售记录 <br/>
+     * 适用场景： <br/>
+     *    例如：悦客总店查看商品信息汇总
      */
     public int getPdSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
@@ -2319,7 +2444,7 @@ public class MgProductInfCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductStoreDto.getSalesSummaryDto());
+            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductStoreDto.SalesSummary.getInfoDto());
             if (m_rt != Errno.OK || keyRef.value != ProductStoreDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;

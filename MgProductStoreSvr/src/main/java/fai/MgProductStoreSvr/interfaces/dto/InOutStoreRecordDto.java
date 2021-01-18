@@ -25,6 +25,9 @@ public class InOutStoreRecordDto {
         g_dtoDef.add(InOutStoreRecordEntity.Info.FLAG, 15, Var.Type.INT);
         g_dtoDef.add(InOutStoreRecordEntity.Info.SYS_UPDATE_TIME, 16, Var.Type.CALENDAR);
         g_dtoDef.add(InOutStoreRecordEntity.Info.SYS_CREATE_TIME, 17, Var.Type.CALENDAR);
+        g_dtoDef.add(InOutStoreRecordEntity.Info.REMARK, 18, Var.Type.STRING);
+        g_dtoDef.add(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, 19, Var.Type.INT);
+        g_dtoDef.add(InOutStoreRecordEntity.Info.REMAIN_COUNT, 20, Var.Type.INT);
     }
 
     public static ParamDef getInfoDto() {

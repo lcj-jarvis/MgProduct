@@ -7,6 +7,7 @@ public class MgProductStoreCmd {
 		public static final int NUM = 5000;
 		public static final int NUM1 = 5001;
 		public static final int NUM2 = 5002;
+		public static final int NUM3= 5003;
 	}
 
 
@@ -48,7 +49,8 @@ public class MgProductStoreCmd {
 	 * 商品业务销售汇总
 	 */
 	public static class BizSalesSummaryCmd {
-		public static final int GET_LIST = ReadCmdNum.NUM1;
+		public static final int GET_LIST_BY_PD_ID = ReadCmdNum.NUM1;
+		public static final int GET_LIST = ReadCmdNum.NUM3;
 	}
 
 	/**

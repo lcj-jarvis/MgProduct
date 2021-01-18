@@ -192,12 +192,12 @@ public class SpecificationProc {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
-            Log.logErr(rt, "get SpecificationCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            Log.logErr(rt, "get SpecificationCli error;flow=%d;aid=%d;unionPriId=%d;pdId=%s;", m_flow, aid, unionPriId, pdId);
             return rt;
         }
         rt = m_cli.getPdScInfoList(aid, tid, unionPriId, pdId, infoList, onlyGetChecked);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "getPdScInfoList error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            Log.logErr(rt, "getPdScInfoList error;flow=%d;aid=%d;unionPriId=%d;pdId=%s", m_flow, aid, unionPriId, pdId);
             return rt;
         }
         return rt;

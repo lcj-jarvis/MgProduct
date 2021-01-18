@@ -165,16 +165,34 @@ public class ProductStoreProc {
         return rt;
     }
     /**
-     * 获取商品业务销售信息
+     * 获取指定商品所有的业务销售记录
      */
-    public int getBizSalesSummaryInfoList(int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<Param> infoList){
+    public int getAllBizSalesSummaryInfoList(int aid, int tid, int pdId, FaiList<Param> infoList){
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
-        rt = m_cli.getBizSalesSummaryInfoList(aid, tid, unionPriId, pdId, rlPdId, infoList);
+        rt = m_cli.getAllBizSalesSummaryInfoList(aid, tid, pdId, infoList);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "addInOutStoreRecordInfoList error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        return rt;
+    }
+
+    /**
+     * 获取指定业务下指定商品id集的业务销售信息
+     */
+    public int getBizSalesSummaryInfoListByPdIdList(int aid, int tid, int unionPriId, FaiList<Integer> pdIdList, FaiList<Param> infoList){
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        rt = m_cli.getBizSalesSummaryInfoListByPdIdList(aid, tid, unionPriId, pdIdList, infoList);
         if (rt != Errno.OK) {
             Log.logErr(rt, "addInOutStoreRecordInfoList error;flow=%d;aid=%d;", m_flow, aid);
             return rt;

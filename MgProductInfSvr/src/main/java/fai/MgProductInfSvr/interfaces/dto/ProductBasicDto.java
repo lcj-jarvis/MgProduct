@@ -39,6 +39,7 @@ public class ProductBasicDto {
         g_productDef.add(ProductBasicEntity.ProductInfo.KEEP_INT_PROP2, 23);
         g_productDef.add(ProductBasicEntity.ProductInfo.CREATE_TIME, 24);
         g_productDef.add(ProductBasicEntity.ProductInfo.UPDATE_TIME, 25);
+        g_productDef.add(ProductBasicEntity.ProductInfo.SOURCE_UNIONPRIID, 26);
     }
 
     public static ParamDef getProductDto() {

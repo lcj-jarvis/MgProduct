@@ -5,6 +5,7 @@ public class ProductEntity {
         public static final String AID = "aid"; // int 企业id
         public static final String PD_ID = "pdId"; // int 商品id
         public static final String SOURCE_TID = "sourceTid"; // int 创建商品的项目 id
+        public static final String SOURCE_UNIONPRIID = "sourceUnionPriId"; // int 创建商品的联合主键 id
         public static final String NAME = "name"; // int 创建商品的项目 id
         public static final String PD_TYPE = "productType"; // int 商品类型
         public static final String IMG_LIST = "imgList"; // varchar(255) 商品图片

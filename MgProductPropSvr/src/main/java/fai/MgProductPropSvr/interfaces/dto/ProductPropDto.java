@@ -23,6 +23,8 @@ public class ProductPropDto {
 		g_productPropDtoDef.add(ProductPropRelEntity.Info.RL_LIB_ID, 10);
 		g_productPropDtoDef.add(ProductPropRelEntity.Info.SORT, 11);
 		g_productPropDtoDef.add(ProductPropRelEntity.Info.RL_FLAG, 12);
+
+		g_productPropDtoDef.add(ProductPropEntity.Info.SOURCE_UNIONPRIID, 13);
 	}
 
 	static {
@@ -34,6 +36,7 @@ public class ProductPropDto {
 		g_cacheDtoDef.add(ProductPropEntity.Info.FLAG, 5);
 		g_cacheDtoDef.add(ProductPropEntity.Info.CREATE_TIME, 6);
 		g_cacheDtoDef.add(ProductPropEntity.Info.UPDATE_TIME, 7);
+		g_cacheDtoDef.add(ProductPropEntity.Info.SOURCE_UNIONPRIID, 8);
 	}
 
 	public static ParamDef getInfoDto() {

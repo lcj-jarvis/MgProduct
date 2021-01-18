@@ -339,6 +339,7 @@ public class ProductBasicService extends ServicePub {
                 Log.logErr("args error, sourceTid is unvalid;flow=%d;aid=%d;uid=%d;sourceTid=%d;", flow, aid, unionPriId, sourceTid);
                 return rt;
             }
+            int sourceUnionPriId = info.getInt(ProductEntity.Info.SOURCE_UNIONPRIID, unionPriId);
             Calendar now = Calendar.getInstance();
             Calendar addedTime = info.getCalendar(ProductRelEntity.Info.ADD_TIME, now);
             Calendar lastUpdateTime = info.getCalendar(ProductRelEntity.Info.LAST_UPDATE_TIME, now);
@@ -365,6 +366,7 @@ public class ProductBasicService extends ServicePub {
             Param pdData = new Param();
             pdData.setInt(ProductEntity.Info.AID, aid);
             pdData.setInt(ProductEntity.Info.SOURCE_TID, sourceTid);
+            pdData.setInt(ProductEntity.Info.SOURCE_UNIONPRIID, sourceUnionPriId);
             pdData.setString(ProductEntity.Info.NAME, name);
             pdData.setCalendar(ProductEntity.Info.CREATE_TIME, sysCreateTime);
             pdData.setCalendar(ProductEntity.Info.UPDATE_TIME, sysUpdateTime);

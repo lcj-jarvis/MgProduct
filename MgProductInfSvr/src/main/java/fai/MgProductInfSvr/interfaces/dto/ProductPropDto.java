@@ -21,6 +21,8 @@ public class ProductPropDto {
         g_productPropDtoDef.add(ProductPropEntity.PropInfo.RL_FLAG, 7);
         g_productPropDtoDef.add(ProductPropEntity.PropInfo.CREATE_TIME, 8);
         g_productPropDtoDef.add(ProductPropEntity.PropInfo.UPDATE_TIME, 9);
+        g_productPropDtoDef.add(ProductPropEntity.PropInfo.SOURCE_TID, 10);
+        g_productPropDtoDef.add(ProductPropEntity.PropInfo.SOURCE_UNIONPRIID, 11);
     }
 
     static {

@@ -636,6 +636,7 @@ public class ProductPropService extends ServicePub {
 		propInfo.setInt(ProductPropEntity.Info.AID, aid);
 		propInfo.setInt(ProductPropEntity.Info.PROP_ID, propId);
 		propInfo.setInt(ProductPropEntity.Info.SOURCE_TID, tid);
+		propInfo.setInt(ProductPropEntity.Info.SOURCE_UNIONPRIID, unionPriId);
 		propInfo.setString(ProductPropEntity.Info.NAME, name);
 		propInfo.setInt(ProductPropEntity.Info.TYPE, type);
 		propInfo.setInt(ProductPropEntity.Info.FLAG, flag);

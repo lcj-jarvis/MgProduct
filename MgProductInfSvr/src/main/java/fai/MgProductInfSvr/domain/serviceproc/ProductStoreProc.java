@@ -141,7 +141,7 @@ public class ProductStoreProc {
         }
         rt = m_cli.getPdScSkuSalesStore(aid, tid, unionPriId, pdId, rlPdId, infoList);
         if (rt != Errno.OK) {
-            Log.logErr(rt, "setPdSkuScInfoList error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            Log.logErr(rt, "getPdScSkuSalesStore error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
         return rt;
@@ -164,6 +164,25 @@ public class ProductStoreProc {
         }
         return rt;
     }
+
+    /**
+     * 批量删除商品所有库存销售相关信息
+     */
+    public int batchDelPdAllStoreSales(int aid, int tid, FaiList<Integer> pdIdList){
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
+            return rt;
+        }
+        rt = m_cli.batchDelPdAllStoreSales(aid, tid, pdIdList);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "getStoreSkuSummaryInfoList error;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
+            return rt;
+        }
+        return rt;
+    }
+
     /**
      * 获取指定商品所有的业务销售记录
      */
@@ -176,7 +195,7 @@ public class ProductStoreProc {
         }
         rt = m_cli.getAllBizSalesSummaryInfoList(aid, tid, pdId, infoList);
         if (rt != Errno.OK) {
-            Log.logErr(rt, "addInOutStoreRecordInfoList error;flow=%d;aid=%d;", m_flow, aid);
+            Log.logErr(rt, "getAllBizSalesSummaryInfoList error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
         return rt;
@@ -194,7 +213,7 @@ public class ProductStoreProc {
         }
         rt = m_cli.getBizSalesSummaryInfoListByPdIdList(aid, tid, unionPriId, pdIdList, infoList);
         if (rt != Errno.OK) {
-            Log.logErr(rt, "addInOutStoreRecordInfoList error;flow=%d;aid=%d;", m_flow, aid);
+            Log.logErr(rt, "getBizSalesSummaryInfoListByPdIdList error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
         return rt;
@@ -212,12 +231,29 @@ public class ProductStoreProc {
         }
         rt = m_cli.getSalesSummaryInfoList(aid, tid, unionPriId, pdIdList, infoList);
         if (rt != Errno.OK) {
-            Log.logErr(rt, "addInOutStoreRecordInfoList error;flow=%d;aid=%d;", m_flow, aid);
+            Log.logErr(rt, "getSalesSummaryInfoList error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
         return rt;
     }
 
+    /**
+     * 获取库存SKU汇总信息
+     */
+    public int getStoreSkuSummaryInfoList(int aid, int tid, SearchArg searchArg, FaiList<Param> list){
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        rt = m_cli.getStoreSkuSummaryInfoList(aid, tid, searchArg, list);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "getStoreSkuSummaryInfoList error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        return rt;
+    }
 
 
     private int m_flow;

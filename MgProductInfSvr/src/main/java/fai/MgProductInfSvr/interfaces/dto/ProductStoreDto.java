@@ -79,11 +79,11 @@ public class ProductStoreDto {
             g_infoDtoDef.add(ProductStoreEntity.BizSalesSummaryInfo.VIRTUAL_SALES, 9, Var.Type.INT);
             g_infoDtoDef.add(ProductStoreEntity.BizSalesSummaryInfo.SALES, 10, Var.Type.INT);
             g_infoDtoDef.add(ProductStoreEntity.BizSalesSummaryInfo.COUNT, 11, Var.Type.INT);
-            g_infoDtoDef.add(ProductStoreEntity.BizSalesSummaryInfo.REMAIN_COUNT, 11, Var.Type.INT);
-            g_infoDtoDef.add(ProductStoreEntity.BizSalesSummaryInfo.HOLDING_COUNT, 12, Var.Type.INT);
-            g_infoDtoDef.add(ProductStoreEntity.BizSalesSummaryInfo.FLAG, 13, Var.Type.INT);
-            g_infoDtoDef.add(ProductStoreEntity.BizSalesSummaryInfo.SYS_CREATE_TIME, 14, Var.Type.CALENDAR);
-            g_infoDtoDef.add(ProductStoreEntity.BizSalesSummaryInfo.SYS_UPDATE_TIME, 15, Var.Type.CALENDAR);
+            g_infoDtoDef.add(ProductStoreEntity.BizSalesSummaryInfo.REMAIN_COUNT, 12, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.BizSalesSummaryInfo.HOLDING_COUNT, 13, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.BizSalesSummaryInfo.FLAG, 14, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.BizSalesSummaryInfo.SYS_CREATE_TIME, 15, Var.Type.CALENDAR);
+            g_infoDtoDef.add(ProductStoreEntity.BizSalesSummaryInfo.SYS_UPDATE_TIME, 16, Var.Type.CALENDAR);
         }
         public static ParamDef getInfoDto() {
             return g_infoDtoDef;
@@ -94,7 +94,7 @@ public class ProductStoreDto {
         private static ParamDef g_infoDtoDef = new ParamDef();
         static {
             g_infoDtoDef.add(ProductStoreEntity.SalesSummaryInfo.AID, 0, Var.Type.INT);
-            g_infoDtoDef.add(ProductStoreEntity.SalesSummaryInfo.PD_ID, 1, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.SalesSummaryInfo.RL_PD_ID, 1, Var.Type.INT);
             g_infoDtoDef.add(ProductStoreEntity.SalesSummaryInfo.MIN_PRICE, 2, Var.Type.LONG);
             g_infoDtoDef.add(ProductStoreEntity.SalesSummaryInfo.MAX_PRICE, 3, Var.Type.LONG);
             g_infoDtoDef.add(ProductStoreEntity.SalesSummaryInfo.COUNT, 4, Var.Type.INT);
@@ -102,6 +102,25 @@ public class ProductStoreDto {
             g_infoDtoDef.add(ProductStoreEntity.SalesSummaryInfo.HOLDING_COUNT, 6, Var.Type.INT);
             g_infoDtoDef.add(ProductStoreEntity.SalesSummaryInfo.SYS_CREATE_TIME, 7, Var.Type.CALENDAR);
             g_infoDtoDef.add(ProductStoreEntity.SalesSummaryInfo.SYS_UPDATE_TIME, 8, Var.Type.CALENDAR);
+        }
+        public static ParamDef getInfoDto() {
+            return g_infoDtoDef;
+        }
+    }
+
+    public static final class StoreSkuSummary{
+        private static ParamDef g_infoDtoDef = new ParamDef();
+        static {
+            g_infoDtoDef.add(ProductStoreEntity.StoreSkuSummaryInfo.AID, 0, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.StoreSkuSummaryInfo.SKU_ID, 1, Var.Type.LONG);
+            g_infoDtoDef.add(ProductStoreEntity.StoreSkuSummaryInfo.RL_PD_ID, 2, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.StoreSkuSummaryInfo.COUNT, 3, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.StoreSkuSummaryInfo.REMAIN_COUNT, 4, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.StoreSkuSummaryInfo.HOLDING_COUNT, 5, Var.Type.INT);
+
+
+            g_infoDtoDef.add(ProductStoreEntity.StoreSkuSummaryInfo.SYS_CREATE_TIME, 8, Var.Type.CALENDAR);
+            g_infoDtoDef.add(ProductStoreEntity.StoreSkuSummaryInfo.SYS_UPDATE_TIME, 9, Var.Type.CALENDAR);
         }
         public static ParamDef getInfoDto() {
             return g_infoDtoDef;
@@ -123,5 +142,8 @@ public class ProductStoreDto {
         public static final int COUNT = 12;
         public static final int REDUCE_MODE = 13;
         public static final int EXPIRE_TIME_SECONDS = 14;
+
+        public static final int SEARCH_ARG = 15;
+        public static final int TOTAL_SIZE = 16;
     }
 }

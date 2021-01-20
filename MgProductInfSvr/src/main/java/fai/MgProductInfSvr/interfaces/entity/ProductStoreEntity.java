@@ -84,8 +84,8 @@ public class ProductStoreEntity {
      * 商品销售总表
      */
     public static final class SalesSummaryInfo {
-        public static final String AID = "aid";                                     // int 企业aid    (Primary Key 1)
-        public static final String PD_ID = "pdId";                                  // int 商品 id    (Primary Key 2)
+        public static final String AID = "aid";                                     // int 企业aid
+        public static final String RL_PD_ID = "rlPdId";                             // int 商品业务id
         public static final String MIN_PRICE = "minPrice";                          // long 商品交易最小价格(做搜索，从 sku 冗余)
         public static final String MAX_PRICE = "maxPrice";                          // long 商品交易最小价格(做搜索，从 sku 冗余)
         public static final String COUNT = "count";                                 // int 商品总库存（数据不完全实时，做搜索，从 sku 冗余）
@@ -94,4 +94,20 @@ public class ProductStoreEntity {
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
     }
+
+    /**
+     * 库存sku 汇总
+     */
+    public static final class StoreSkuSummaryInfo{
+        public static final String AID = "aid";                                     // int 企业aid
+        public static final String SKU_ID = "skuId";                                // long skuId
+        public static final String RL_PD_ID = "rlPdId";                             // int 商品业务 id    冗余 做查询  可异步更新
+        public static final String COUNT = "count";                                 // int 商品总库存（数据不完全实时，做搜索，从 sku 冗余） 可异步更新
+        public static final String REMAIN_COUNT = "remainCount";                    // int 商品总剩余库存（数据不完全实时，做搜索，从 sku 冗余） 可异步更新
+        public static final String HOLDING_COUNT = "holdingCount";                  // int 商品总预扣库存（数据不完全实时，做搜索，从 sku 冗余） 可异步更新
+
+        public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
+        public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
+    }
+
 }

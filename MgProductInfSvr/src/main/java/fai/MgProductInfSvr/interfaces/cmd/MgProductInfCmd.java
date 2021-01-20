@@ -38,6 +38,9 @@ public class MgProductInfCmd {
 
         /**@see BizSalesSummaryCmd#GET_LIST_BY_PD_ID_LIST */
         public static final int NUM16 = 5016;
+
+        /**@see StoreSkuSummaryCmd#GET_LIST */
+        public static final int NUM17 = 5017;
     }
 
     // 1000 到 5000 的范围
@@ -212,5 +215,12 @@ public class MgProductInfCmd {
     public static class SalesSummaryCmd {
         public static final int GET_LIST = ReadCmdNum.NUM15;
     }
+    /**
+     * 库存sku 汇总
+     */
+    public static class StoreSkuSummaryCmd {
+        public static final int GET_LIST = ReadCmdNum.NUM17;
+    }
+
 
 }

@@ -8,6 +8,9 @@ import fai.comm.util.Param;
 import fai.comm.util.Parser;
 import fai.comm.util.Var;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 public class SpecTempBizRelCacheCtrl extends CacheCtrl {
 
 
@@ -33,14 +36,53 @@ public class SpecTempBizRelCacheCtrl extends CacheCtrl {
 	public static int getTpScId(int aid, int unionPriId, int rlTpScId){
 		return Parser.parseInt(m_cache.hget(getRlTpScIdCachKey(aid, unionPriId), String.valueOf(rlTpScId)), -1);
 	}
-	//private static final String CACHE_RL_TP_SC_ID__TP_SC_ID = "rlTpScId-tpScId";
+
+	public static boolean delTpScId(int aid, int unionPriId, Set<Integer> rlTpScIdSet){
+		if(rlTpScIdSet == null || rlTpScIdSet.isEmpty()){
+			return true;
+		}
+		String[] rlTpScIdStrSet = rlTpScIdSet.stream().map(String::valueOf).collect(Collectors.toList()).toArray(new String[]{});
+		return m_cache.hdel(getRlTpScIdCachKey(aid, unionPriId), rlTpScIdStrSet);
+	}
+
+	public static boolean delTpScId(int aid, int unionPriId, int rlTpScId){
+		return m_cache.hdel(getRlTpScIdCachKey(aid, unionPriId), String.valueOf(rlTpScId));
+	}
+
+
+	public static void setCacheDirty(int aid, Set<Integer> unionPriIdSet){
+		if(unionPriIdSet == null || unionPriIdSet.isEmpty()){
+			return;
+		}
+		for (Integer unionPriId : unionPriIdSet) {
+			setCacheDirty(aid, unionPriId);
+		}
+	}
+	public static void setCacheDirty(int aid, int unionPriId){
+		String cacheKey = getCacheKey(aid, unionPriId);
+		m_cache.expire(cacheKey, DIRTY_EXPIRE_SECOND);
+	}
+
+	public static void setRlTpScIdCacheDirty(int aid, Set<Integer> unionPriIdSet){
+		if(unionPriIdSet == null || unionPriIdSet.isEmpty()){
+			return;
+		}
+		for (Integer unionPriId : unionPriIdSet) {
+			setRlTpScIdCacheDirty(aid, unionPriId);
+		}
+	}
+
+	public static void setRlTpScIdCacheDirty(int aid, int unionPriId){
+		String cacheKey = getRlTpScIdCachKey(aid, unionPriId);
+		m_cache.expire(cacheKey, DIRTY_EXPIRE_SECOND);
+	}
 
 	private static String getRlTpScIdCachKey(int aid, int unionPriId){
-		return CACHE_KEY_PREFIX+"-rlTpScId-"+aid+"-"+unionPriId;
+		return CACHE_KEY_PREFIX+"-rlTpScId:"+aid+"-"+unionPriId;
 	}
 
 	private static String getCacheKey(int aid, int unionPriId){
-		return CACHE_KEY_PREFIX+"-"+"-"+aid+"-"+unionPriId;
+		return CACHE_KEY_PREFIX+":"+aid+"-"+unionPriId;
 	}
 
 	private static final String CACHE_KEY_PREFIX = "MG_specTempBizRel";

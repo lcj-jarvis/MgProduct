@@ -65,6 +65,7 @@ public class MgProductSpecCmd {
 
 		public static final int IMPORT = WriteCmdNum.NUM7;
 		public static final int UNION_SET = WriteCmdNum.NUM8;
+		public static final int BATCH_DEL_PD_ALL_SC = WriteCmdNum.NUM10;
 	}
 
 	/**

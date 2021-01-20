@@ -33,6 +33,7 @@ public class StoreSalesSkuEntity {
             Info.SORT,
             Info.PRICE,
             Info.ORIGIN_PRICE,
+            Info.REMAIN_COUNT,
             Info.MIN_AMOUNT,
             Info.MAX_AMOUNT,
             Info.DURATION,

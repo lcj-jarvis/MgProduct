@@ -18,6 +18,7 @@ public class ProductSpecSkuDto {
         g_dtoDef.add(ProductSpecSkuEntity.Info.FLAG, 8, Var.Type.INT);
         g_dtoDef.add(ProductSpecSkuEntity.Info.SYS_CREATE_TIME, 9, Var.Type.CALENDAR);
         g_dtoDef.add(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME, 10, Var.Type.CALENDAR);
+        g_dtoDef.add(ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID, 11, Var.Type.INT);
     }
     public static ParamDef getInfoDto() {
         return g_dtoDef;

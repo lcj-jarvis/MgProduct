@@ -9,14 +9,14 @@ public class SpecTempEntity {
         public static final String TP_SC_ID = "tpScId";                             // int 规格模板 id （aid下自增） (Primary Key 2)
         public static final String NAME = "name";                                   // varchar(100) 规格模板名称
         public static final String SOURCE_TID = "sourceTid";                        // int 创建规格模板的 项目id
+        public static final String SOURCE_UNION_PRI_ID = "sourceUnionPriId";        // int 创建产品规格的 联合主键id
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
     }
 
     private static final String[] VALID_KEYS = new String[]{
           Info.TP_SC_ID,
-          Info.NAME,
-          Info.SOURCE_TID
+          Info.NAME
     };
     /**
      * 支持批量更新的字段

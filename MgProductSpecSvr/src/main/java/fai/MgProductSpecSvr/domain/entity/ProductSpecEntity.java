@@ -10,6 +10,7 @@ public class ProductSpecEntity {
         public static final String SC_STR_ID = "scStrId";                           // int 规格字符串 id (Primary Key 3)
         public static final String PD_SC_ID = "pdScId";                             // int 商品规格 id
         public static final String SOURCE_TID = "sourceTid";                        // int 创建产品规格的 项目id
+        public static final String SOURCE_UNION_PRI_ID = "sourceUnionPriId";        // int 创建产品规格的 联合主键id
         public static final String SORT = "sort";                                   // int 排序
         public static final String FLAG = "flag";                                   // int flag
         public static final String IN_PD_SC_VAL_LIST = "inPdScValList";             // varchar(4000) 规格值FaiList<Param>, 支持最大50个值
@@ -19,10 +20,9 @@ public class ProductSpecEntity {
     private static final String[] VALID_KEYS = new String[]{
             Info.SC_STR_ID,
             Info.PD_SC_ID,
-            Info.SOURCE_TID,
             Info.SORT,
             Info.FLAG,
-            Info.IN_PD_SC_VAL_LIST,
+            Info.IN_PD_SC_VAL_LIST
     };
     /**
      * 支持批量更新的字段

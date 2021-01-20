@@ -42,7 +42,12 @@ public class MgProductSpecCli extends FaiClient {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(SpecTempDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(SpecTempDto.Key.TID, tid);
-            list.toBuffer(sendBody, SpecTempDto.Key.INFO_LIST, SpecTempDto.getInfoDto());
+            m_rt = list.toBuffer(sendBody, SpecTempDto.Key.INFO_LIST, SpecTempDto.getInfoDto());
+            if(m_rt != Errno.OK){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "list error");
+                return m_rt;
+            }
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductSpecCmd.SpecTempCmd.ADD_LIST);
@@ -147,7 +152,12 @@ public class MgProductSpecCli extends FaiClient {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(SpecTempDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(SpecTempDto.Key.TID, tid);
-            updaterList.toBuffer(sendBody, SpecTempDto.Key.UPDATER_LIST, SpecTempDto.getInfoDto());
+            m_rt = updaterList.toBuffer(sendBody, SpecTempDto.Key.UPDATER_LIST, SpecTempDto.getInfoDto());
+            if(m_rt != Errno.OK){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "updaterList error");
+                return m_rt;
+            }
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductSpecCmd.SpecTempCmd.SET_LIST);
@@ -265,7 +275,12 @@ public class MgProductSpecCli extends FaiClient {
             sendBody.putInt(SpecTempDetailDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(SpecTempDetailDto.Key.TID, tid);
             sendBody.putInt(SpecTempDetailDto.Key.RL_TP_SC_ID, rlTpScId);
-            list.toBuffer(sendBody, SpecTempDetailDto.Key.INFO_LIST, SpecTempDetailDto.getInfoDto());
+            m_rt = list.toBuffer(sendBody, SpecTempDetailDto.Key.INFO_LIST, SpecTempDetailDto.getInfoDto());
+            if(m_rt != Errno.OK){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "list error");
+                return m_rt;
+            }
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductSpecCmd.SpecTempDetailCmd.ADD_LIST);
@@ -373,7 +388,12 @@ public class MgProductSpecCli extends FaiClient {
             sendBody.putInt(SpecTempDetailDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(SpecTempDetailDto.Key.TID, tid);
             sendBody.putInt(SpecTempDetailDto.Key.RL_TP_SC_ID, rlTpScId);
-            updaterList.toBuffer(sendBody, SpecTempDetailDto.Key.UPDATER_LIST, SpecTempDetailDto.getInfoDto());
+            m_rt = updaterList.toBuffer(sendBody, SpecTempDetailDto.Key.UPDATER_LIST, SpecTempDetailDto.getInfoDto());
+            if(m_rt != Errno.OK){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "updaterList error");
+                return m_rt;
+            }
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductSpecCmd.SpecTempDetailCmd.SET_LIST);
@@ -544,13 +564,23 @@ public class MgProductSpecCli extends FaiClient {
             sendBody.putInt(ProductSpecDto.Key.TID, tid);
             sendBody.putInt(ProductSpecDto.Key.PD_ID, pdId);
             if(addList != null){
-                addList.toBuffer(sendBody, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.getInfoDto());
+                m_rt = addList.toBuffer(sendBody, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.getInfoDto());
+                if(m_rt != Errno.OK){
+                    m_rt = Errno.ARGS_ERROR;
+                    Log.logErr(m_rt, "addList error");
+                    return m_rt;
+                }
             }
             if(delList != null){
                 delList.toBuffer(sendBody, ProductSpecDto.Key.ID_LIST);
             }
             if(updaterList != null){
-                updaterList.toBuffer(sendBody, ProductSpecDto.Key.UPDATER_LIST, ProductSpecDto.getInfoDto());
+                m_rt = updaterList.toBuffer(sendBody, ProductSpecDto.Key.UPDATER_LIST, ProductSpecDto.getInfoDto());
+                if(m_rt != Errno.OK){
+                    m_rt = Errno.ARGS_ERROR;
+                    Log.logErr(m_rt, "updaterList error");
+                    return m_rt;
+                }
             }
 
             FaiProtocol sendProtocol = new FaiProtocol();
@@ -598,6 +628,52 @@ public class MgProductSpecCli extends FaiClient {
         }
     }
 
+    /**
+     * 批量删除商品所有规格
+     */
+    public int batchDelPdAllSc(int aid, int tid, int unionPriId, FaiList<Integer> pdIdList){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0 || pdIdList == null || pdIdList.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error；aid=%s;pdIdList=%s;", aid, pdIdList);
+                return m_rt;
+            }
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductSpecDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductSpecDto.Key.TID, tid);
+            pdIdList.toBuffer(sendBody, ProductSpecDto.Key.PD_ID_LIST);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductSpecCmd.ProductSpecCmd.BATCH_DEL_PD_ALL_SC);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
 
     /**
      * 获取产品规格列表
@@ -695,7 +771,12 @@ public class MgProductSpecCli extends FaiClient {
             sendBody.putInt(ProductSpecSkuDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(ProductSpecSkuDto.Key.TID, tid);
             sendBody.putInt(ProductSpecSkuDto.Key.PD_ID, pdId);
-            updaterList.toBuffer(sendBody, ProductSpecSkuDto.Key.UPDATER_LIST, ProductSpecSkuDto.getInfoDto());
+            m_rt = updaterList.toBuffer(sendBody, ProductSpecSkuDto.Key.UPDATER_LIST, ProductSpecSkuDto.getInfoDto());
+            if(m_rt != Errno.OK){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "updaterList error");
+                return m_rt;
+            }
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductSpecCmd.ProductSpecSkuCmd.SET_LIST);

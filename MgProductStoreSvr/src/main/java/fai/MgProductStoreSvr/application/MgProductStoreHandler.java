@@ -1,14 +1,12 @@
 package fai.MgProductStoreSvr.application;
 
 import fai.MgProductStoreSvr.application.mq.BizSalesReportConsumeListener;
+import fai.MgProductStoreSvr.application.mq.StoreSkuReportConsumeListener;
 import fai.MgProductStoreSvr.application.service.StoreService;
 import fai.MgProductStoreSvr.domain.repository.DaoCtrl;
 import fai.MgProductStoreSvr.interfaces.cmd.MgProductStoreCmd;
 import fai.MgProductStoreSvr.interfaces.conf.MqConfig;
-import fai.MgProductStoreSvr.interfaces.dto.BizSalesSummaryDto;
-import fai.MgProductStoreSvr.interfaces.dto.InOutStoreRecordDto;
-import fai.MgProductStoreSvr.interfaces.dto.SalesSummaryDto;
-import fai.MgProductStoreSvr.interfaces.dto.StoreSalesSkuDto;
+import fai.MgProductStoreSvr.interfaces.dto.*;
 import fai.comm.jnetkit.server.ServerConfig;
 import fai.comm.jnetkit.server.ServerHandlerContext;
 import fai.comm.jnetkit.server.fai.FaiHandler;
@@ -41,11 +39,13 @@ public class MgProductStoreHandler extends FaiHandler {
 
         Consumer consumer = MqFactory.createConsumer(MqConfig.BizSalesReport.CONSUMER);
         consumer.subscribe(MqConfig.BizSalesReport.TOPIC, MqConfig.BizSalesReport.TAG, new BizSalesReportConsumeListener(m_storeService));
+        consumer.subscribe(MqConfig.StoreSkuReport.TOPIC, MqConfig.StoreSkuReport.TAG, new StoreSkuReportConsumeListener(m_storeService));
         rt = consumer.start();
         if (rt != Errno.OK) {
             Log.logErr(rt, "consumer start err;");
             throw new RuntimeException("consumer start err");
         }
+
     }
     private void shutDownMq(){
         MqFactory.getProducer(MqConfig.BizSalesReport.PRODUCER).shutdown();
@@ -139,8 +139,10 @@ public class MgProductStoreHandler extends FaiHandler {
                                  @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
                                  @ArgBodyLong(StoreSalesSkuDto.Key.SKU_ID) final long skuId,
                                  @ArgBodyInteger(StoreSalesSkuDto.Key.RL_ORDER_ID) final int rlOrderId,
-                                 @ArgBodyInteger(StoreSalesSkuDto.Key.COUNT) final int count) throws IOException {
-        return  m_storeService.reducePdSkuHoldingStore(session, flow, aid, tid, unionPriId, skuId, rlOrderId, count);
+                                 @ArgBodyInteger(StoreSalesSkuDto.Key.COUNT) final int count,
+                                 @ArgParam(classDef = InOutStoreRecordDto.class, methodDef ="getInfoDto", keyMatch=StoreSalesSkuDto.Key.OUT_STORE_RECORD_INFO)
+                                                    Param outStoreRecordInfo) throws IOException {
+        return  m_storeService.reducePdSkuHoldingStore(session, flow, aid, tid, unionPriId, skuId, rlOrderId, count, outStoreRecordInfo);
     }
     @WrittenCmd
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.MAKE_UP_STORE)
@@ -179,15 +181,23 @@ public class MgProductStoreHandler extends FaiHandler {
     }
 
 
-    @Cmd(MgProductStoreCmd.BizSalesSummaryCmd.GET_LIST)
-    private int getBizSalesSummaryInfoList(final FaiSession session,
+    @Cmd(MgProductStoreCmd.BizSalesSummaryCmd.GET_LIST_BY_PD_ID)
+    private int getBizSalesSummaryInfoListByPdId(final FaiSession session,
                                      @ArgFlow final int flow,
                                      @ArgAid final int aid,
                                      @ArgBodyInteger(BizSalesSummaryDto.Key.TID) final int tid,
-                                     @ArgBodyInteger(BizSalesSummaryDto.Key.UNION_PRI_ID) final int unionPriId,
-                                     @ArgBodyInteger(BizSalesSummaryDto.Key.PD_ID) final int pdId,
-                                     @ArgBodyInteger(BizSalesSummaryDto.Key.RL_PD_ID) final int rlPdId) throws IOException {
-        return  m_storeService.getBizSalesSummaryInfoList(session, flow, aid, tid, unionPriId, pdId, rlPdId);
+                                     @ArgBodyInteger(BizSalesSummaryDto.Key.PD_ID) final int pdId) throws IOException {
+        return  m_storeService.getBizSalesSummaryInfoListByPdId(session, flow, aid, tid, pdId);
+    }
+
+    @Cmd(MgProductStoreCmd.BizSalesSummaryCmd.GET_LIST)
+    private int getBizSalesSummaryInfoList(final FaiSession session,
+                                           @ArgFlow final int flow,
+                                           @ArgAid final int aid,
+                                           @ArgBodyInteger(BizSalesSummaryDto.Key.TID) final int tid,
+                                           @ArgBodyInteger(BizSalesSummaryDto.Key.UNION_PRI_ID) final int unionPriId,
+                                           @ArgList(keyMatch = SalesSummaryDto.Key.ID_LIST) FaiList<Integer> pdIdList) throws IOException {
+        return  m_storeService.getBizSalesSummaryInfoList(session, flow, aid, tid, unionPriId, pdIdList);
     }
 
     @Cmd(MgProductStoreCmd.SalesSummaryCmd.GET_LIST)
@@ -200,6 +210,26 @@ public class MgProductStoreHandler extends FaiHandler {
         return  m_storeService.getSalesSummaryInfoList(session, flow, aid, tid, unionPriId, pdIdList);
     }
 
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_DEL_PD_ALL_STORE_SALES)
+    private int batchDelPdAllStoreSales(final FaiSession session,
+                                            @ArgFlow final int flow,
+                                            @ArgAid final int aid,
+                                            @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
+                                            @ArgList(keyMatch = StoreSalesSkuDto.Key.ID_LIST)
+                                                    FaiList<Integer> pdIdList) throws IOException {
+        return  m_storeService.batchDelPdAllStoreSales(session, flow, aid, tid, pdIdList);
+    }
+
+    @Cmd(MgProductStoreCmd.StoreSkuSummaryCmd.GET_LIST)
+    private int getStoreSkuSummaryInfoList(final FaiSession session,
+                                        @ArgFlow final int flow,
+                                        @ArgAid final int aid,
+                                        @ArgBodyInteger(StoreSkuSummaryDto.Key.TID) final int tid,
+                                        @ArgSearchArg(StoreSkuSummaryDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
+        return  m_storeService.getStoreSkuSummaryInfoList(session, flow, aid, tid, searchArg);
+    }
 
     private StoreService m_storeService = new StoreService();
 }

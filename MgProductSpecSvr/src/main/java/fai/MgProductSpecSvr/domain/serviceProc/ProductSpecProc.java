@@ -5,6 +5,7 @@ import fai.MgProductSpecSvr.domain.comm.LockUtil;
 import fai.MgProductSpecSvr.domain.comm.Misc2;
 import fai.MgProductSpecSvr.domain.entity.ProductSpecEntity;
 import fai.MgProductSpecSvr.domain.entity.ProductSpecValObj;
+import fai.MgProductSpecSvr.domain.entity.SpecTempDetailEntity;
 import fai.MgProductSpecSvr.domain.repository.ProductSpecCacheCtrl;
 import fai.MgProductSpecSvr.domain.repository.ProductSpecDaoCtrl;
 import fai.comm.util.*;
@@ -21,7 +22,7 @@ public class ProductSpecProc {
     }
     public int batchAdd(int aid, int pdId, FaiList<Param> infoList, FaiList<Integer> rtIdList, Ref<Boolean> needRefreshSkuRef) {
         if(aid <= 0 || pdId <= 0 || infoList == null || infoList.isEmpty()){
-            Log.logStd("batchAdd error;flow=%d;aid=%s;pdId=%s;infoList=%s;", m_flow, aid, pdId, infoList);
+            Log.logStd("batchAdd arg error;flow=%d;aid=%s;pdId=%s;infoList=%s;", m_flow, aid, pdId, infoList);
             return Errno.ARGS_ERROR;
         }
         FaiList<Param> dataList = new FaiList<>(infoList.size());
@@ -59,7 +60,7 @@ public class ProductSpecProc {
             data.setCalendar(ProductSpecEntity.Info.SYS_UPDATE_TIME, now);
             dataList.add(data);
         }
-
+        cacheManage.addNeedDelCachedPdId(aid, pdId);
         int rt = m_daoCtrl.batchInsert(dataList, null);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batchAdd error;flow=%d;aid=%s;pdId=%s;", m_flow, aid, pdId);
@@ -69,10 +70,26 @@ public class ProductSpecProc {
         Log.logStd("batchAdd ok;flow=%d;aid=%d;", m_flow, aid);
         return rt;
     }
-
+    public int batchDel(int aid, FaiList<Integer> pdIdList) {
+        if(aid <= 0 || (pdIdList != null && pdIdList.isEmpty())){
+            Log.logStd("batchDel arg error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+            return Errno.ARGS_ERROR;
+        }
+        int rt = Errno.ERROR;
+        ParamMatcher matcher = new ParamMatcher(ProductSpecEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductSpecEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        cacheManage.addNeedDelCachedPdIdList(aid, pdIdList);
+        rt = m_daoCtrl.delete(matcher);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "batchDel error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+            return rt;
+        }
+        Log.logStd("batchDel ok;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
+        return rt;
+    }
     public int batchDel(int aid, int pdId, FaiList<Integer> pdScIdList, Ref<Boolean> needRefreshSkuRef) {
         if(aid <= 0 || pdId <=0 || (pdScIdList != null && pdScIdList.isEmpty())){
-            Log.logStd("batchDel error;flow=%d;aid=%s;pdId=%s;tpScDtIdList=%s;", m_flow, aid, pdId, pdScIdList);
+            Log.logStd("batchDel arg error;flow=%d;aid=%s;pdId=%s;tpScDtIdList=%s;", m_flow, aid, pdId, pdScIdList);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -95,6 +112,7 @@ public class ProductSpecProc {
                 needRefreshSkuRef.value = true;
             }
         }
+        cacheManage.addNeedDelCachedPdId(aid, pdId);
         rt = m_daoCtrl.delete(matcher);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batchDel error;flow=%d;aid=%s;pdId=%s;idList=%s;", m_flow, aid, pdId, pdScIdList);
@@ -106,23 +124,58 @@ public class ProductSpecProc {
 
     public int batchSet(int aid, int pdId, FaiList<ParamUpdater> updaterList, Ref<Boolean> needRefreshSkuRef) {
         if(aid <= 0 || pdId <=0 || updaterList == null || updaterList.isEmpty()){
-            Log.logStd("batchDel error;flow=%d;aid=%s;pdId=%s;tpScDtIdList=%s;", m_flow, aid, pdId, updaterList);
+            Log.logStd("batchDel arg error;flow=%d;aid=%s;pdId=%s;tpScDtIdList=%s;", m_flow, aid, pdId, updaterList);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
         FaiList<Integer> pdScIdList = new FaiList<>(updaterList.size());
+        Set<Integer> scStrIdSet = new HashSet<>();
         Set<String> maxUpdaterKeys = Misc2.validUpdaterList(updaterList, ProductSpecEntity.getValidKeys(), data->{
             pdScIdList.add(data.getInt(ProductSpecEntity.Info.PD_SC_ID));
+            Integer scStrId = data.getInt(ProductSpecEntity.Info.SC_STR_ID);
+            if(scStrId != null){
+                scStrIdSet.add(scStrId);
+            }
         });
         maxUpdaterKeys.remove(ProductSpecEntity.Info.PD_SC_ID);
 
+        Set<Integer> alreadyExistedScStrIdSet = new HashSet<>();
+        if(!scStrIdSet.isEmpty()){
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            rt = getListFromDao(aid, pdId, new FaiList<>(scStrIdSet), listRef, ProductSpecEntity.Info.SC_STR_ID);
+            if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                return rt;
+            }
+            alreadyExistedScStrIdSet = OptMisc.getValSet(listRef.value, ProductSpecEntity.Info.SC_STR_ID);
+        }
+
         Ref<FaiList<Param>> listRef = new Ref<>();
-        rt = getListFormDao(aid, pdId, pdScIdList, listRef);
+        rt = getListFromDaoByPdScIdList(aid, pdId, pdScIdList, listRef);
         if(rt != Errno.OK){
             return rt;
         }
-        Map<Integer, Param> oldDataMap = Misc2.getMap(listRef.value, ProductSpecEntity.Info.PD_SC_ID);
+        if(pdScIdList.size() != listRef.value.size()){
+            Log.logStd("batchDel arg err;flow=%d;aid=%s;pdId=%updaterList=%s;", m_flow, aid, pdId, updaterList);
+            return rt = Errno.NOT_FOUND;
+        }
+
+        // 用于转化将要改的数据的主键，因为存在：旧数据（商品规格1，商品规格2）新数据（商品规格2，商品规格1），即同一个商品下有两个商品规格的名称对调，而规格值集合不变
+        FaiList<Integer> needConvertScStrIdList = new FaiList<>();
+        Map<Integer, Param> oldDataMap = new HashMap<>(listRef.value.size()*4/3+1);
+        for (Param info : listRef.value) {
+            Integer pdScId = info.getInt(ProductSpecEntity.Info.PD_SC_ID);
+            oldDataMap.put(pdScId, info);
+            Integer oldScStrId = info.getInt(ProductSpecEntity.Info.SC_STR_ID);
+            if(alreadyExistedScStrIdSet.remove(oldScStrId)){
+                needConvertScStrIdList.add(oldScStrId);
+            }
+        }
         listRef.value = null; // help gc
+        if(!alreadyExistedScStrIdSet.isEmpty()){ // 要改的商品规格名称已经存在
+            rt = Errno.ALREADY_EXISTED;
+            Log.logErr(rt, "already existed;flow=%s;aid=%s;pdId=%s;alreadyExistedScStrIdSet=%s", m_flow, aid, pdId, alreadyExistedScStrIdSet);
+            return rt;
+        }
 
         ParamUpdater doBatchUpdater = new ParamUpdater();
         maxUpdaterKeys.forEach(key->{
@@ -176,6 +229,22 @@ public class ProductSpecProc {
             }
             dataList.add(data);
         }
+
+        if(!needConvertScStrIdList.isEmpty()){
+            ParamMatcher convertMatcher = new ParamMatcher();
+            convertMatcher.and(ProductSpecEntity.Info.AID, ParamMatcher.EQ, aid);
+            convertMatcher.and(ProductSpecEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
+            convertMatcher.and(ProductSpecEntity.Info.SC_STR_ID, ParamMatcher.IN, needConvertScStrIdList);
+            ParamUpdater convertUpdater = new ParamUpdater();
+            convertUpdater.add(ProductSpecEntity.Info.SC_STR_ID, ParamUpdater.DEC, Integer.MAX_VALUE);
+            rt = m_daoCtrl.update(convertUpdater, convertMatcher);
+            if(rt != Errno.OK) {
+                Log.logErr(rt, "update error;flow=%d;aid=%s;convertUpdater.sql=%s;convertMatcher.sql=%s;data=%s;", m_flow, aid, convertUpdater.getSql(), convertMatcher.getSql());
+                return rt;
+            }
+        }
+
+        cacheManage.addNeedDelCachedPdId(aid, pdId);
         rt = m_daoCtrl.batchUpdate(doBatchUpdater, doBatchMatcher, dataList);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batchSet error;flow=%d;aid=%s;", m_flow, aid);
@@ -195,7 +264,22 @@ public class ProductSpecProc {
         });
         return checkIdList;
     }
-    public int getListFormDao(int aid, int pdId, FaiList<Integer> pdScIdList, Ref<FaiList<Param>> listRef){
+    public int getListFromDao(int aid, int pdId, FaiList<Integer> scStrIdList, Ref<FaiList<Param>> listRef, String ... fields){
+        ParamMatcher matcher = new ParamMatcher(ProductSpecEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductSpecEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
+        matcher.and(ProductSpecEntity.Info.SC_STR_ID, ParamMatcher.IN, scStrIdList);
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        int rt = m_daoCtrl.select(searchArg, listRef, fields);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            Log.logErr(rt, "dao.select error;flow=%d;aid=%s;pdId=%s;scStrIdList=%s;", m_flow, aid, pdId, scStrIdList);
+            return rt;
+        }
+        initDBInfoList(listRef.value);
+        return rt;
+    }
+
+    public int getListFromDaoByPdScIdList(int aid, int pdId, FaiList<Integer> pdScIdList, Ref<FaiList<Param>> listRef){
         ParamMatcher matcher = new ParamMatcher(ProductSpecEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductSpecEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
         if(pdScIdList != null){
@@ -234,8 +318,9 @@ public class ProductSpecProc {
         int rt = Errno.ERROR;
         try {
             LockUtil.lock(aid);
-            rt = getListFormDao(aid, pdId, null, listRef);
-            if(rt != Errno.OK){
+            rt = getListFromDaoByPdScIdList(aid, pdId, null, listRef);
+            if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                Log.logErr(rt,"getListFormDao err;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
                 return rt;
             }
             pdScList = listRef.value;
@@ -244,17 +329,53 @@ public class ProductSpecProc {
             LockUtil.unlock(aid);
         }
         Log.logDbg(rt,"getList ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
-        return rt = Errno.OK;
+        return rt;
     }
 
     public void clearIdBuilderCache(int aid) {
         m_daoCtrl.clearIdBuilderCache(aid);
     }
 
-    public boolean clearCache(int aid, int pdId) {
-        return ProductSpecCacheCtrl.delAllCache(aid, pdId);
+    public boolean deleteDirtyCache(int aid) {
+        return cacheManage.deleteDirtyCache(aid);
     }
+
 
     private int m_flow;
     private ProductSpecDaoCtrl m_daoCtrl;
+
+    private CacheManage cacheManage = new CacheManage();
+    private static class CacheManage{
+
+        public CacheManage() {
+            init();
+        }
+
+        private Set<Integer> needDelCachedPdIdSet;
+        private void addNeedDelCachedPdIdList(int aid, FaiList<Integer> pdIdList){
+            if(pdIdList == null || pdIdList.isEmpty()){
+                return;
+            }
+            HashSet<Integer> pdIdSet = new HashSet<>(pdIdList);
+            ProductSpecCacheCtrl.setCacheDirty(aid, new HashSet<>(pdIdSet));
+            needDelCachedPdIdSet.addAll(pdIdSet);
+        }
+        private void addNeedDelCachedPdId(int aid, int pdId){
+            ProductSpecCacheCtrl.setCacheDirty(aid, pdId);
+            needDelCachedPdIdSet.add(pdId);
+        }
+
+        private boolean deleteDirtyCache(int aid){
+            try {
+                boolean boo = ProductSpecCacheCtrl.delCache(aid, needDelCachedPdIdSet);
+                return boo;
+            }finally {
+                init();
+            }
+        }
+
+        private void init() {
+            needDelCachedPdIdSet = new HashSet<>();
+        }
+    }
 }

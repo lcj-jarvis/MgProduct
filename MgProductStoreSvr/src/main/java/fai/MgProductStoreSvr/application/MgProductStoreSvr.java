@@ -1,9 +1,11 @@
 package fai.MgProductStoreSvr.application;
 
-import fai.MgProductStoreSvr.application.task.BizSalesReportTask;
 import fai.MgProductStoreSvr.application.task.HoldingStoreMakeUpTask;
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
-import fai.MgProductStoreSvr.domain.repository.*;
+import fai.MgProductStoreSvr.domain.repository.CacheCtrl;
+import fai.MgProductStoreSvr.domain.repository.DaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.DaoProxy;
+import fai.MgProductStoreSvr.domain.repository.InOutStoreRecordDaoCtrl;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.cache.redis.config.RedisClientConfig;
 import fai.comm.cache.redis.pool.JedisPool;
@@ -25,6 +27,8 @@ public class MgProductStoreSvr {
 
         // svr option
         SVR_OPTION = config.getConfigObject(SvrOption.class);
+
+        Log.logDbg("SVR_OPTION=%s", SVR_OPTION);
 
         DaoProxy daoProxy = new DaoProxy(config);
         // dao相关
@@ -120,6 +124,14 @@ public class MgProductStoreSvr {
             this.lockLength = lockLength;
         }
 
+        @Override
+        public String toString() {
+            return "SvrOption{" +
+                    "lockLease=" + lockLease +
+                    ", lockLength=" + lockLength +
+                    ", retryLockTime=" + retryLockTime +
+                    '}';
+        }
     }
     @ParamKeyMapping(path = ".svr.bizSalesReportTask")
     public static class BizSalesReportTaskOption {

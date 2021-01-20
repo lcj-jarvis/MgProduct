@@ -618,4 +618,135 @@ public class MgProductStoreCli extends FaiClient {
         }
     }
 
+
+    /**
+     * 批量删除商品所有库存销售相关信息
+     */
+    public int batchDelPdAllStoreSales(int aid, int tid, FaiList<Integer> pdIdList){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(pdIdList == null || pdIdList.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "pdIdList error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(StoreSalesSkuDto.Key.TID, tid);
+            pdIdList.toBuffer(sendBody, StoreSalesSkuDto.Key.ID_LIST);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_DEL_PD_ALL_STORE_SALES);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK), m_rt);
+        }
+    }
+
+    /**
+     * 获取库存SKU汇总信息
+     */
+    public int getStoreSkuSummaryInfoList(int aid, int tid, SearchArg searchArg, FaiList<Param> list){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "aid error");
+                return m_rt;
+            }
+            if(searchArg == null || searchArg.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "searchArg error");
+                return m_rt;
+            }
+            if(list == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "list error");
+                return m_rt;
+            }
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(StoreSkuSummaryDto.Key.TID, tid);
+            searchArg.toBuffer(sendBody, StoreSkuSummaryDto.Key.SEARCH_ARG);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.StoreSkuSummaryCmd.GET_LIST);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = list.fromBuffer(recvBody, keyRef, StoreSkuSummaryDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != StoreSkuSummaryDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            if(searchArg.totalSize != null){
+                recvBody.getInt(keyRef, searchArg.totalSize);
+                if(keyRef.value != StoreSkuSummaryDto.Key.TOTAL_SIZE){
+                    m_rt = Errno.CODEC_ERROR;
+                    Log.logErr(m_rt, "recv total size null");
+                    return m_rt;
+                }
+            }
+
+            return m_rt = Errno.OK;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK), m_rt);
+        }
+    }
+
 }

@@ -55,6 +55,17 @@ public class SalesSummaryProc {
         Log.logStd("ok!;flow=%s;aid=%s;pdId=%s;", m_flow, aid, pdId);
         return rt;
     }
+    public int batchDel(int aid, FaiList<Integer> pdIdList) {
+        ParamMatcher matcher = new ParamMatcher(SalesSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SalesSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        int rt = m_daoCtrl.delete(matcher);
+        if(rt != Errno.OK){
+            Log.logStd(rt, "delete err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
+            return rt;
+        }
+        Log.logStd("ok;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
+        return rt;
+    }
     public int getInfoListFromDao(int aid, FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef) {
         if(aid <= 0 || pdIdList == null || pdIdList.isEmpty() || listRef == null){
             Log.logStd("arg error;flow=%d;aid=%s;pdIdList=%s;listRef=%s;", m_flow, aid, pdIdList, listRef);

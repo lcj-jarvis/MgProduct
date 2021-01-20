@@ -18,6 +18,9 @@ public class CacheCtrl {
 		return true;
 	}
 
-
+	/**
+	 * 设置脏数据过期时间
+	 */
+	protected static final int DIRTY_EXPIRE_SECOND = 10;
 	protected static RedisCacheManager m_cache;
 }

@@ -157,7 +157,7 @@ public class MgProductSpecHandler extends FaiHandler {
                                       @ArgBodyInteger(ProductSpecDto.Key.RL_TP_SC_ID) final int rlTpScId,
                                       @ArgList(keyMatch = ProductSpecDto.Key.ID_LIST, useDefault = true) FaiList<Integer> tpScDtIdList) throws IOException {
         Param tpScInfo = m_specTempService.getTpScWithDetail(flow, aid, unionPriId, rlTpScId, tpScDtIdList);
-        return m_productSpecService.importPdScInfo(session, flow, aid, tid, pdId, tpScInfo);
+        return m_productSpecService.importPdScInfo(session, flow, aid, tid, unionPriId, pdId, tpScInfo);
     }
 
     @WrittenCmd
@@ -176,6 +176,18 @@ public class MgProductSpecHandler extends FaiHandler {
                                              FaiList<ParamUpdater> updaterList) throws IOException {
 
         return  m_productSpecService.unionSetPdScInfoList(session, flow, aid, tid, unionPriId, pdId, addPdScInfoList, delPdScIdList, updaterList);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductSpecCmd.ProductSpecCmd.BATCH_DEL_PD_ALL_SC)
+    private int batchDelPdAllSc(final FaiSession session,
+                                     @ArgFlow final int flow,
+                                     @ArgAid final int aid,
+                                     @ArgBodyInteger(ProductSpecDto.Key.UNION_PRI_ID) final int unionPriId,
+                                     @ArgBodyInteger(ProductSpecDto.Key.TID) final int tid,
+                                     @ArgList(keyMatch = ProductSpecDto.Key.PD_ID_LIST)
+                                             FaiList<Integer> pdIdList) throws IOException {
+        return  m_productSpecService.batchDelPdAllSc(session, flow, aid, tid, unionPriId, pdIdList);
     }
 
     @Cmd(MgProductSpecCmd.ProductSpecCmd.GET_LIST)

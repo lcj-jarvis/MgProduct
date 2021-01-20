@@ -2,8 +2,6 @@ package fai.MgProductStoreSvr.domain.repository;
 
 import fai.comm.util.*;
 
-import java.util.Vector;
-
 /**
  * dao ctrl中不再对传进来的数据做解析校验
  * 主要是处理dao相关逻辑
@@ -11,6 +9,18 @@ import java.util.Vector;
 public class BizSalesReportDaoCtrl extends DaoCtrl  {
     private BizSalesReportDaoCtrl(int flow, int aid) {
         super(flow, aid);
+        this.group = TABLE_ENUM.getGroup();
+    }
+    public static BizSalesReportDaoCtrl getInstanceWithRegistered(int flow, int aid, TransactionCrtl transactionCrtl) {
+        if(transactionCrtl == null){
+            return null;
+        }
+        BizSalesReportDaoCtrl daoCtrl = getInstance(flow, aid);
+        if(!transactionCrtl.registered(daoCtrl)){
+            Log.logErr("registered BizSalesReportDaoCtrl err;flow=%d;aid=%d;", flow, aid);
+            return null;
+        }
+        return daoCtrl;
     }
     public static BizSalesReportDaoCtrl getInstance(int flow, int aid) {
         if(m_daoProxy == null) {
@@ -36,13 +46,12 @@ public class BizSalesReportDaoCtrl extends DaoCtrl  {
         return rt;
     }
 
-    @Override
-    protected DaoProxy getDaoProxy() {
-        return m_daoProxy;
+    protected DaoPool getDaoPool() {
+        return m_daoProxy.getDaoPool(aid, getGroup());
     }
     @Override
     protected String getTableName(){
-        return TABLE_NAME;
+        return TABLE_ENUM.getTable();
     }
-    private static final String TABLE_NAME = "bizSalesReport";
+    public static final TableDBMapping.TableEnum TABLE_ENUM = TableDBMapping.TableEnum.MG_BIZ_SALES_REPORT;
 }

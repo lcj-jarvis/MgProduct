@@ -1,7 +1,8 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
+import fai.MgProductStoreSvr.domain.comm.Misc2;
 import fai.MgProductStoreSvr.domain.entity.BizSalesSummaryEntity;
-import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuEntity;
+import fai.MgProductStoreSvr.domain.repository.BizSalesSummaryCacheCtrl;
 import fai.MgProductStoreSvr.domain.repository.BizSalesSummaryDaoCtrl;
 import fai.comm.util.*;
 
@@ -38,7 +39,7 @@ public class BizSalesSummaryProc {
         }
 
         Ref<FaiList<Param>> listRef = new Ref<>();
-        int rt = getInfoListFromDao(aid, pdId, unionPriIdList, listRef);
+        int rt = getInfoListByUnionPriIdListFromDao(aid, unionPriIdList, pdId, listRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             return rt;
         }
@@ -71,6 +72,7 @@ public class BizSalesSummaryProc {
             }
             batchUpdateDataList.add(updateData);
         }
+        Map<Integer, FaiList<Integer>> unionPirIdPdIdListMap = new HashMap<>();
         for (Param info : unionPriIdInfoMap.values()) {
             Param addData = new Param();
             addData.setInt(BizSalesSummaryEntity.Info.AID, aid);
@@ -104,6 +106,13 @@ public class BizSalesSummaryProc {
             addData.setCalendar(BizSalesSummaryEntity.Info.SYS_UPDATE_TIME, now);
             addData.setCalendar(BizSalesSummaryEntity.Info.SYS_CREATE_TIME, now);
             addDataList.add(addData);
+
+            FaiList<Integer> pdIdList = unionPirIdPdIdListMap.get(unionPriId);
+            if(pdIdList == null){
+                pdIdList = new FaiList<>();
+                unionPirIdPdIdListMap.put(unionPriId, pdIdList);
+            }
+            pdIdList.add(pdId);
         }
         if(!addDataList.isEmpty()){
             rt = m_daoCtrl.batchInsert(addDataList, null, true);
@@ -122,7 +131,7 @@ public class BizSalesSummaryProc {
             doBatchMatcher.and(BizSalesSummaryEntity.Info.AID, ParamMatcher.EQ, "?");
             doBatchMatcher.and(BizSalesSummaryEntity.Info.PD_ID, ParamMatcher.EQ, "?");
             doBatchMatcher.and(BizSalesSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
-
+            cacheManage.addNeedDelCacheKeyMap(aid, unionPirIdPdIdListMap);
             rt = m_daoCtrl.batchUpdate(doBatchUpdater, doBatchMatcher, batchUpdateDataList);
             if(rt != Errno.OK){
                 Log.logErr("batchUpdate err;flow=%s;aid=%s;pdId=%s;doBatchUpdater.json=%s;batchUpdateDataList=%s;", m_flow, aid, pdId, doBatchUpdater.toJson(), batchUpdateDataList);
@@ -166,9 +175,34 @@ public class BizSalesSummaryProc {
                     "max(" + BizSalesSummaryEntity.Info.MAX_PRICE + ") as "+BizSalesSummaryEntity.ReportInfo.MAX_PRICE+" ";
 
 
-    public int getInfoListFromDao(int aid, int pdId, FaiList<Integer> unionPriIdList, Ref<FaiList<Param>> listRef){
+    public int batchDel(int aid, FaiList<Integer> pdIdList) {
+        ParamMatcher matcher = new ParamMatcher(BizSalesSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(BizSalesSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        int rt = m_daoCtrl.select(searchArg, listRef, BizSalesSummaryEntity.Info.UNION_PRI_ID);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            Log.logStd(rt, "select err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
+            return rt;
+        }
+        Map<Integer, FaiList<Integer>> unionPirIdPdIdListMap = new HashMap<>(listRef.value.size()*4/3+1);
+        for (Param info : listRef.value) {
+            unionPirIdPdIdListMap.put(info.getInt(BizSalesSummaryEntity.Info.UNION_PRI_ID), pdIdList);
+        }
+        cacheManage.addNeedDelCacheKeyMap(aid, unionPirIdPdIdListMap);
+        rt = m_daoCtrl.delete(matcher);
+        if(rt != Errno.OK){
+            Log.logStd(rt, "delete err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
+            return rt;
+        }
+        Log.logStd("ok;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
+        return rt;
+    }
+
+    public int getInfoListByUnionPriIdListFromDao(int aid, FaiList<Integer> unionPriIdList, int pdId, Ref<FaiList<Param>> listRef){
         if(aid <= 0 || pdId <= 0 || (unionPriIdList != null && unionPriIdList.isEmpty())|| listRef == null){
-            Log.logStd("arg error;flow=%d;aid=%s;pdId=%s;unionPriIdList=%s;listRef=%s;", m_flow, aid, pdId, unionPriIdList, listRef);
+            Log.logStd("arg error;flow=%d;aid=%s;unionPriIdList=%s;pdId=%s;listRef=%s;", m_flow, aid, unionPriIdList, pdId, listRef);
             return Errno.ARGS_ERROR;
         }
         ParamMatcher matcher = new ParamMatcher(BizSalesSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
@@ -187,6 +221,98 @@ public class BizSalesSummaryProc {
         return rt;
     }
 
+    public int getInfoListByPdIdListFromDao(int aid, int unionPriId, FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef){
+        if(aid <= 0 || unionPriId <= 0 || pdIdList == null || pdIdList.isEmpty() || listRef == null){
+            Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;pdIdList=%s;listRef=%s;", m_flow, aid, unionPriId, pdIdList, listRef);
+            return Errno.ARGS_ERROR;
+        }
+        ParamMatcher matcher = new ParamMatcher(BizSalesSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(BizSalesSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(BizSalesSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        int rt = m_daoCtrl.select(searchArg, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            Log.logErr(rt, "select err;flow=%d;aid=%s;unionPriId=%s;pdIdList=%s;", m_flow, aid, unionPriId, pdIdList);
+            return rt;
+        }
+        Log.logDbg("ok!;flow=%d;aid=%s;unionPriId=%s;pdIdList=%s;", m_flow, aid, unionPriId, pdIdList);
+        return rt;
+    }
+
+    public int getInfoListByPdIdList(int aid, int unionPriId, FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef){
+        if(aid <= 0 || unionPriId <= 0 || pdIdList == null || pdIdList.isEmpty() || listRef == null){
+            Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;pdIdList=%s;listRef=%s;", m_flow, aid, unionPriId, pdIdList, listRef);
+            return Errno.ARGS_ERROR;
+        }
+        HashSet<Integer> pdIdSet = new HashSet<>(pdIdList);
+        FaiList<Param> cacheList = BizSalesSummaryCacheCtrl.getCacheList(aid, unionPriId, new FaiList<>(pdIdSet));
+        if(cacheList == null){
+            cacheList = new FaiList<>();
+        }
+        Map<Integer, Param> map = Misc2.getMap(cacheList, BizSalesSummaryEntity.Info.PD_ID);
+        if(cacheList.size() == pdIdSet.size()){
+            getResult(pdIdList, listRef, map);
+            return Errno.OK;
+        }
+
+        Set<Integer> cachePdIdSet = map.keySet();
+        pdIdSet.removeAll(cachePdIdSet);
+
+        int rt = getInfoListByPdIdListFromDao(aid, unionPriId, new FaiList<>(pdIdSet), listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            return rt;
+        }
+
+        FaiList<Param> fromDaoInfoList = listRef.value;
+        listRef.value = null;
+        map.putAll(Misc2.getMap(fromDaoInfoList, BizSalesSummaryEntity.Info.PD_ID));
+        getResult(pdIdList, listRef, map);
+
+        BizSalesSummaryCacheCtrl.appendCacheList(aid, unionPriId, fromDaoInfoList);
+        return Errno.OK;
+    }
+
+    private void getResult(FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef, Map<Integer, Param> map) {
+        FaiList<Param> resultList = new FaiList<>(pdIdList.size());
+        for (Integer pdId : pdIdList) {
+            resultList.add(map.get(pdId));
+
+        }
+        listRef.value = resultList;
+    }
+    public void deleteDirtyCache(int aid){
+        cacheManage.deleteDirtyCache(aid);
+    }
+
     private int m_flow;
     private BizSalesSummaryDaoCtrl m_daoCtrl;
+
+    private CacheManage cacheManage = new CacheManage();
+
+
+
+    private static class CacheManage{
+        private Map<Integer, FaiList<Integer>> needDelCacheKeyMap;
+        public CacheManage() {
+            init();
+        }
+        private void init() {
+            needDelCacheKeyMap = new HashMap<>();
+        }
+        public void deleteDirtyCache(int aid){
+            try {
+                BizSalesSummaryCacheCtrl.delCache(aid, needDelCacheKeyMap);
+            }finally {
+                init();
+            }
+        }
+        private void addNeedDelCacheKeyMap(int aid, Map<Integer, FaiList<Integer>> unionPirIdPdIdListMap){
+            if(unionPirIdPdIdListMap == null){
+                return;
+            }
+            BizSalesSummaryCacheCtrl.setCacheDirty(aid, unionPirIdPdIdListMap.keySet());
+            needDelCacheKeyMap.putAll(unionPirIdPdIdListMap);
+        }
+    }
 }

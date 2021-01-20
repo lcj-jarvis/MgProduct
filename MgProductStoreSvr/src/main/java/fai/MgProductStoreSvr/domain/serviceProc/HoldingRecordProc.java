@@ -16,18 +16,24 @@ public class HoldingRecordProc {
     }
 
     public int add(int aid, int unionPriId, long skuId, int rlOrderId, int count, int expireTimeSeconds) {
-        if(aid <= 0 || unionPriId <= 0 || skuId <= 0 || rlOrderId <= 0 || count <= 0 || expireTimeSeconds <= 0){
+        if(aid <= 0 || unionPriId <= 0 || skuId <= 0 || rlOrderId <= 0 || count <= 0 || expireTimeSeconds < 0){
             Log.logStd("add error;flow=%d;aid=%d;unionPriId=%s;skuId=%s;rlOrderId=%s;count=%s;expireTimeSeconds=%s", m_flow, aid, unionPriId, skuId, rlOrderId, count, expireTimeSeconds);
             return Errno.ARGS_ERROR;
         }
         Calendar now = Calendar.getInstance();
+        Calendar expireTime = Misc2.addSecond(now, expireTimeSeconds);
+        if(expireTimeSeconds == 0){
+            expireTime.set(Calendar.YEAR, 9999); // 不过期
+        }
         Param data = new Param();
         data.setInt(HoldingRecordEntity.Info.AID, aid);
         data.setInt(HoldingRecordEntity.Info.UNION_PRI_ID, unionPriId);
         data.setLong(HoldingRecordEntity.Info.SKU_ID, skuId);
         data.setInt(HoldingRecordEntity.Info.RL_ORDER_ID, rlOrderId);
         data.setInt(HoldingRecordEntity.Info.COUNT, count);
-        data.setCalendar(HoldingRecordEntity.Info.EXPIRE_TIME, Misc2.addSecond(now, expireTimeSeconds));
+
+
+        data.setCalendar(HoldingRecordEntity.Info.EXPIRE_TIME, expireTime);
         data.setCalendar(HoldingRecordEntity.Info.SYS_CREATE_TIME, now);
         int rt = m_daoCtrl.insert(data);
         if(rt != Errno.OK){

@@ -3,8 +3,10 @@ package fai.MgProductStoreSvr.application.task;
 import fai.MgProductStoreSvr.application.MgProductStoreSvr;
 import fai.MgProductStoreSvr.domain.entity.HoldingRecordEntity;
 import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuValObj;
-import fai.MgProductStoreSvr.domain.repository.DaoProxy;
+import fai.MgProductStoreSvr.domain.repository.HoldingRecordDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.TableDBMapping;
 import fai.MgProductStoreSvr.interfaces.cli.MgProductStoreCli;
+import fai.comm.middleground.repository.DaoProxy;
 import fai.comm.util.*;
 
 import java.util.Calendar;
@@ -39,7 +41,7 @@ public class HoldingStoreMakeUpTask implements Runnable{
             Dao dao = null;
             try {
                 MgProductStoreCli cli = createCli(flow);
-                dao = m_daoProxy.getTaskDao(flow, 0);
+                dao = m_daoProxy.getDaoPool(0, GROUP).getDao();
                 Calendar now = Calendar.getInstance();
                 Dao.SelectArg selectArg = new Dao.SelectArg();
                 selectArg.table = TABLE;
@@ -84,5 +86,6 @@ public class HoldingStoreMakeUpTask implements Runnable{
 
     private DaoProxy m_daoProxy;
     MgProductStoreSvr.HoldingStoreMakeUpTaskOption m_taskOption;
-    private static final String TABLE = "holdingRecord";
+    private static final String TABLE = TableDBMapping.TableEnum.MG_HOLDING_RECORD.getTable();
+    private static final String GROUP = TableDBMapping.TableEnum.MG_HOLDING_RECORD.getTaskGroup();
 }

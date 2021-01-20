@@ -2,14 +2,16 @@ package fai.MgProductStoreSvr.domain.serviceProc;
 
 
 import fai.MgProductStoreSvr.domain.comm.Misc2;
+import fai.MgProductStoreSvr.domain.comm.PdKey;
+import fai.MgProductStoreSvr.domain.comm.SkuStoreKey;
 import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuEntity;
 import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuValObj;
+import fai.MgProductStoreSvr.domain.repository.StoreSalesSkuCacheCtrl;
 import fai.MgProductStoreSvr.domain.repository.StoreSalesSkuDaoCtrl;
 import fai.comm.util.*;
 
-import java.util.Calendar;
-import java.util.Map;
-import java.util.Set;
+import java.sql.SQLClientInfoException;
+import java.util.*;
 
 
 public class StoreSalesSkuProc {
@@ -17,10 +19,9 @@ public class StoreSalesSkuProc {
         m_daoCtrl = daoCtrl;
         m_flow = flow;
     }
-
-    public int batchAdd(int aid, int pdId, FaiList<Param> infoList) {
-        if(aid <= 0 || pdId <= 0 || infoList == null || infoList.isEmpty()){
-            Log.logStd("batchAdd error;flow=%d;aid=%s;pdId=%s;infoList=%s;", m_flow, aid, pdId, infoList);
+    public int batchAdd(int aid, Integer pdId, FaiList<Param> infoList) {
+        if(aid <= 0 || (pdId != null && pdId <= 0) || infoList == null || infoList.isEmpty()){
+            Log.logStd("batchAdd arg error;flow=%d;aid=%s;pdId=%s;infoList=%s;", m_flow, aid, pdId, infoList);
             return Errno.ARGS_ERROR;
         }
         FaiList<Param> dataList = new FaiList<>(infoList.size());
@@ -31,6 +32,13 @@ public class StoreSalesSkuProc {
             data.assign(info, StoreSalesSkuEntity.Info.UNION_PRI_ID);
             data.assign(info, StoreSalesSkuEntity.Info.RL_PD_ID);
             data.assign(info, StoreSalesSkuEntity.Info.SKU_ID);
+            if(pdId == null){
+                pdId = info.getInt(StoreSalesSkuEntity.Info.PD_ID);
+                if(pdId == null || pdId <= 0){
+                    Log.logStd("batchAdd pdId arg error;flow=%d;aid=%s;pdId=%s;info=%s;", m_flow, aid, pdId, info);
+                    return Errno.ARGS_ERROR;
+                }
+            }
             data.setInt(StoreSalesSkuEntity.Info.PD_ID, pdId);
             data.assign(info, StoreSalesSkuEntity.Info.SKU_TYPE);
             data.assign(info, StoreSalesSkuEntity.Info.SORT);
@@ -62,31 +70,30 @@ public class StoreSalesSkuProc {
             Log.logStd("batchAdd error;flow=%d;aid=%s;pdId=%s;delSkuIdList=%s;", m_flow, aid, pdId, delSkuIdList);
             return Errno.ARGS_ERROR;
         }
-        // TODO
         int rt = Errno.ERROR;
         ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
         matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, delSkuIdList);
 
         rt = m_daoCtrl.delete(matcher);
+        if(rt != Errno.OK){
+            Log.logStd(rt, "delete err;flow=%s;aid=%s;pdId=%s;delSkuIdList=%s;", m_flow, aid, pdId, delSkuIdList);
+            return rt;
+        }
         Log.logStd("batchDel ok;flow=%d;aid=%d;pdId=%s;delSkuIdList=%s;", m_flow, aid, pdId, delSkuIdList);
         return rt;
     }
-    /*public int batchDel(int aid, int pdId, FaiList<Integer> unionPriIdList) {
-        if(aid <= 0 || pdId <=0 || (unionPriIdList != null && unionPriIdList.isEmpty())){
-            Log.logStd("batchDel error;flow=%d;aid=%s;pdId=%s;tpScDtIdList=%s;", m_flow, aid, pdId, unionPriIdList);
-            return Errno.ARGS_ERROR;
-        }
-        int rt = Errno.ERROR;
+    public int batchDel(int aid, FaiList<Integer> pdIdList) {
         ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
-        if(unionPriIdList != null){
-            matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIdList);
+        matcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        int rt = m_daoCtrl.delete(matcher);
+        if(rt != Errno.OK){
+            Log.logStd(rt, "delete err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
+            return rt;
         }
-        rt = m_daoCtrl.delete(matcher);
-        Log.logStd("batchDel ok;flow=%d;aid=%d;pdId=%s;idList=%s;", m_flow, aid, pdId, unionPriIdList);
+        Log.logStd("ok;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
         return rt;
-    }*/
+    }
 
     public int batchSet(int aid, int unionPriId, int pdId, FaiList<ParamUpdater> updaterList) {
         if(aid <= 0 || pdId <=0 || updaterList == null || updaterList.isEmpty()){
@@ -139,6 +146,7 @@ public class StoreSalesSkuProc {
                 data.setInt(StoreSalesSkuEntity.Info.FLAG, flag);
                 Log.logDbg("whalelog data=%s", data);
             }
+
             data.setCalendar(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, now);
 
             { // matcher
@@ -232,14 +240,138 @@ public class StoreSalesSkuProc {
     }
 
     /**
+     * 检查是否存在sku, 没有则生成
+     * @param aid
+     * @param ownerUnionPriId
+     * @param needCheckSkuStoreKeyPdKeyMap
+     * @return
+     */
+    public int checkAndAdd(int aid, int ownerUnionPriId, Map<SkuStoreKey, PdKey> needCheckSkuStoreKeyPdKeyMap) {
+        if(needCheckSkuStoreKeyPdKeyMap == null || needCheckSkuStoreKeyPdKeyMap.isEmpty()){
+            Log.logStd("checkAndAdd arg error;flow=%s;aid=%s;ownerUnionPriId=%s;needCheckSkuStoreKeyPdKeyMap=%s;", m_flow, aid, ownerUnionPriId, needCheckSkuStoreKeyPdKeyMap);
+            return Errno.ARGS_ERROR;
+        }
+        Map<Integer, Set<Long>> uidSkuIdSetMap = new HashMap<>();
+        for (SkuStoreKey skuStoreKey : needCheckSkuStoreKeyPdKeyMap.keySet()) {
+            Set<Long> skuIdSet = uidSkuIdSetMap.get(skuStoreKey.unionPriId);
+            if(skuIdSet == null){
+                skuIdSet = new HashSet<>();
+                uidSkuIdSetMap.put(skuStoreKey.unionPriId, skuIdSet);
+            }
+            skuIdSet.add(skuStoreKey.skuId);
+        }
+        int rt = Errno.ERROR;
+        Set<Long> needAddedSkuIdSet = new HashSet<>();
+        for (Map.Entry<Integer, Set<Long>> uidSkuIdSetEntry : uidSkuIdSetMap.entrySet()) {
+            int uid = uidSkuIdSetEntry.getKey();
+            Set<Long> skuIdSet = uidSkuIdSetEntry.getValue();
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            rt = getListFromDaoBySkuIdList(aid, uid, new FaiList<>(skuIdSet), listRef, StoreSalesSkuEntity.Info.SKU_ID);
+            if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                return rt;
+            }
+            for (Param info : listRef.value) {
+                skuIdSet.remove(info.getLong(StoreSalesSkuEntity.Info.SKU_ID));
+            }
+            needAddedSkuIdSet.addAll(skuIdSet);
+        }
+        if(needAddedSkuIdSet.isEmpty()){
+            return Errno.OK;
+        }
+        // 生关联的sku
+        FaiList<Param> addInfoList = new FaiList<>(needAddedSkuIdSet.size());
+        for (Map.Entry<Integer, Set<Long>> uidSkuIdSetEntry : uidSkuIdSetMap.entrySet()) {
+            int uid = uidSkuIdSetEntry.getKey();
+            Set<Long> skuIdSet = uidSkuIdSetEntry.getValue();
+            for (Long skuId : skuIdSet) {
+                PdKey pdKey = needCheckSkuStoreKeyPdKeyMap.get(new SkuStoreKey(uid, skuId));
+                addInfoList.add(
+                        new Param()
+                                .setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, uid)
+                                .setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId)
+                                .setInt(StoreSalesSkuEntity.Info.PD_ID, pdKey.pdId)
+                                .setInt(StoreSalesSkuEntity.Info.RL_PD_ID, pdKey.rlPdId)
+                );
+            }
+        }
+        rt = batchAdd(aid, null, addInfoList);
+        if(rt != Errno.OK){
+            return rt;
+        }
+        Log.logDbg("flow=%s;aid=%s;ownerUnionPriId=%s;addInfoList=%s;", m_flow, aid, ownerUnionPriId, addInfoList);
+        Log.logStd("ok!;flow=%s;aid=%s;ownerUnionPriId=%s;", m_flow, aid, ownerUnionPriId);
+        return rt;
+    }
+
+    /**
+     * 悲观锁锁住数据，一定要命中索引！不然升级为表锁就GG
+     */
+    @Deprecated
+    public int selectForUpdate(int aid, Map<SkuStoreKey, Integer> skuStoreCountMap, Map<SkuStoreKey, Integer> changeBeforeSkuStoreCountMap){
+        if(aid <= 0 || skuStoreCountMap == null || skuStoreCountMap.isEmpty() || changeBeforeSkuStoreCountMap == null){
+            Log.logStd("selectForUpdate arg error;flow=%s;aid=%s;skuStoreCountMap=%s;changeBeforeSkuStoreCountMap=%s;", m_flow, aid, skuStoreCountMap, changeBeforeSkuStoreCountMap);
+            return Errno.ARGS_ERROR;
+        }
+        int rt = Errno.ERROR;
+        Map<Integer, FaiList<Long>> unionPriIdSkuIdListMap = new HashMap<>();
+        for (SkuStoreKey skuStoreKey : skuStoreCountMap.keySet()) {
+            int unionPriId = skuStoreKey.unionPriId;
+            FaiList<Long> skuIdList = unionPriIdSkuIdListMap.get(unionPriId);
+            if(skuIdList == null){
+                skuIdList = new FaiList<>();
+                unionPriIdSkuIdListMap.put(unionPriId, skuIdList);
+            }
+            skuIdList.add(skuStoreKey.skuId);
+        }
+        for (Map.Entry<Integer, FaiList<Long>> unionPriIdSkuIdListEntry : unionPriIdSkuIdListMap.entrySet()) {
+            Integer unionPriId = unionPriIdSkuIdListEntry.getKey();
+            FaiList<Long> skuIdList = unionPriIdSkuIdListEntry.getValue();
+            StringBuilder sb = new StringBuilder("(");
+            for (int i = 0; i < skuIdList.size(); i++) {
+                Long skuId = skuIdList.get(i);
+                if(i != 0){
+                    sb.append(",");
+                }
+                sb.append(skuId);
+            }
+            sb.append(")");
+
+            String selectForUpdateSql = "SELECT " + StoreSalesSkuEntity.Info.SKU_ID + "," + StoreSalesSkuEntity.Info.REMAIN_COUNT + ","+ StoreSalesSkuEntity.Info.HOLDING_COUNT
+                    + " FROM " + m_daoCtrl.getTableName()
+                    + " WHERE " + StoreSalesSkuEntity.Info.AID +"=" + aid
+                    + " AND " + StoreSalesSkuEntity.Info.UNION_PRI_ID + "=" + unionPriId
+                    + " AND " + StoreSalesSkuEntity.Info.SKU_ID + " IN " + sb.toString()
+                    + " FOR UPDATE "
+                    + " ;";
+            Log.logDbg("whalelog sql=%s;", selectForUpdateSql);
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            rt = m_daoCtrl.executeQuery(selectForUpdateSql, listRef);
+            if(rt != Errno.OK){
+                Log.logErr(rt,"selectForUpdate err;flow=%s;aid=%s;sql=%s;", m_flow, aid, selectForUpdateSql);
+                return rt;
+            }
+            if(listRef.value.size() != skuIdList.size()){
+                rt = Errno.NOT_FOUND;
+                Log.logErr(rt,"size no match;flow=%s;aid=%s;sql=%s;", m_flow, aid, selectForUpdateSql);
+                return rt;
+            }
+            for (Param info : listRef.value) {
+                Long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                int count = info.getInt(StoreSalesSkuEntity.Info.REMAIN_COUNT) + info.getInt(StoreSalesSkuEntity.Info.HOLDING_COUNT);
+                changeBeforeSkuStoreCountMap.put(new SkuStoreKey(unionPriId, skuId), count);
+            }
+        }
+        return rt;
+    }
+    /**
      * 会改到count 和 remainCount
      */
     public int batchChangeStore(int aid, Map<SkuStoreKey, Integer> skuStoreCountMap) {
         if(aid <= 0 || skuStoreCountMap == null || skuStoreCountMap.isEmpty()){
-            Log.logStd("batchChangeStore error;aid=%s;skuStoreCountMap=%s;",  aid, skuStoreCountMap);
+            Log.logStd("batchChangeStore arg error;flow=%s;aid=%s;skuStoreCountMap=%s;", m_flow, aid, skuStoreCountMap);
             return Errno.ARGS_ERROR;
         }
-        int rt = Errno.ERROR;
+        int rt = Errno.OK;
         for (Map.Entry<SkuStoreKey, Integer> skuStoreKeyCountEntry : skuStoreCountMap.entrySet()) {
             /*
               count 取相反数，便于更新
@@ -366,14 +498,57 @@ public class StoreSalesSkuProc {
         searchArg.matcher = matcher;
         rt = m_daoCtrl.selectFirst(searchArg, infoRef, fields);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
-            Log.logStd("dao.select error;flow=%d;aid=%s;unionPriId=%s;skuId=%s;", m_flow, aid, unionPriId, skuId);
+            Log.logStd("dao.selectFirst error;flow=%d;aid=%s;unionPriId=%s;skuId=%s;", m_flow, aid, unionPriId, skuId);
             return rt;
         }
 
-        Log.logDbg(rt,"getListFromDao ok;flow=%d;aid=%d;unionPriId=%s;skuId=%s;", m_flow, aid, unionPriId, skuId);
+        Log.logDbg(rt,"getInfoFromDao ok;flow=%d;aid=%d;unionPriId=%s;skuId=%s;", m_flow, aid, unionPriId, skuId);
         return rt;
     }
+    public int getListFromDaoBySkuIdList(int aid, int unionPriId, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef, String ... fields){
+        if(skuIdList == null || skuIdList.isEmpty() || listRef == null){
+            Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;skuIdList=%s;listRef=%s;fields=%s", m_flow, aid, unionPriId, skuIdList, listRef, fields);
+            return Errno.ARGS_ERROR;
+        }
+        int rt = Errno.ERROR;
+        ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
 
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        rt = m_daoCtrl.select(searchArg, listRef, fields);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            Log.logStd("dao.select error;flow=%d;aid=%s;unionPriId=%s;skuIdList=%s;", m_flow, aid, unionPriId, skuIdList);
+            return rt;
+        }
+
+        Log.logDbg(rt,"getInfoListFromDao ok;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;", m_flow, aid, unionPriId, skuIdList);
+        return rt;
+    }
+    public int getReportList(int aid, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef){
+        if(aid <= 0 || skuIdList == null || skuIdList.isEmpty() || listRef == null){
+            Log.logStd("arg error;flow=%d;aid=%s;skuIdList=%s;listRef=%s;", m_flow, aid, skuIdList, listRef);
+            return Errno.ARGS_ERROR;
+        }
+        int rt = Errno.ERROR;
+
+        Dao.SelectArg selectArg = new Dao.SelectArg();
+        selectArg.field = StoreSalesSkuEntity.Info.PD_ID + ", " +
+                StoreSalesSkuEntity.Info.SKU_ID + ", " +
+                COMM_REPORT_FIELDS;
+        selectArg.group = StoreSalesSkuEntity.Info.SKU_ID;
+        selectArg.searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        selectArg.searchArg.matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
+        rt = m_daoCtrl.select(selectArg, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            Log.logStd("dao.select error;flow=%d;aid=%s;skuIdList=%s;", m_flow, aid, skuIdList);
+            return rt;
+        }
+        initReportInfoList(listRef.value);
+        Log.logDbg(rt,"getReportList ok;flow=%d;aid=%d;skuIdList=%s;", m_flow, aid, skuIdList);
+        return rt;
+    }
     public int getReportList(int aid, int pdId, Ref<FaiList<Param>> listRef){
         if(aid <= 0 || pdId <=0 || listRef == null){
             Log.logStd("arg error;flow=%d;aid=%s;pdId=%s;listRef=%s;", m_flow, aid, pdId, listRef);
@@ -393,7 +568,7 @@ public class StoreSalesSkuProc {
             Log.logStd("dao.select error;flow=%d;aid=%s;pdId=%s;", m_flow, aid, pdId);
             return rt;
         }
-
+        initReportInfoList(listRef.value);
         Log.logDbg(rt,"getReportList ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
         return rt;
     }
@@ -420,10 +595,41 @@ public class StoreSalesSkuProc {
         }else{
             infoRef.value = listRef.value.get(0);
         }
+        initReportInfo(infoRef.value);
         Log.logDbg(rt,"getReportInfo ok;flow=%d;aid=%d;pdId=%s;unionPriId=%s;", m_flow, aid, pdId, unionPriId);
         return rt;
     }
-
+    public int getReportInfo(int aid, long skuId, Ref<Param> infoRef) {
+        int rt = Errno.ERROR;
+        Dao.SelectArg selectArg = new Dao.SelectArg();
+        selectArg.field = COMM_REPORT_FIELDS;
+        selectArg.searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        selectArg.searchArg.matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.EQ, skuId);
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        rt = m_daoCtrl.select(selectArg, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            Log.logStd("dao.select error;flow=%d;aid=%s;skuId=%s;", m_flow, aid, skuId);
+            return rt;
+        }
+        if(listRef.value.isEmpty()){
+            infoRef.value = new Param();
+        }else{
+            infoRef.value = listRef.value.get(0);
+        }
+        initReportInfo(infoRef.value);
+        Log.logDbg(rt,"getReportInfo ok;flow=%d;aid=%d;skuId=%s;", m_flow, aid, skuId);
+        return rt;
+    }
+    private void initReportInfoList(FaiList<Param> list){
+        for (Param info : list) {
+            initReportInfo(info);
+        }
+    }
+    private void initReportInfo(Param info){
+        if(info.getLong(StoreSalesSkuEntity.ReportInfo.MIN_PRICE, Long.MAX_VALUE) == Long.MAX_VALUE){
+            info.setLong(StoreSalesSkuEntity.ReportInfo.MIN_PRICE, 0L);
+        }
+    }
     /**
      * min(if(flag&0x1=0x1, price, 0x7fffffffffffffffL)) 设置过价格的才参与计算最小值。
      */
@@ -441,14 +647,20 @@ public class StoreSalesSkuProc {
         }
         int rt = Errno.ERROR;
 
-
+        FaiList<Param> cacheList = StoreSalesSkuCacheCtrl.getCacheList(aid, unionPriId, pdId);
+        if(cacheList != null){
+            listRef.value = cacheList;
+            return Errno.OK;
+        }
         rt = getListFromDao(aid, unionPriId, pdId, listRef);
-
+        if(rt != Errno.OK){
+            return rt;
+        }
+        StoreSalesSkuCacheCtrl.setCacheList(aid, unionPriId, pdId, listRef.value);
 
         Log.logDbg(rt,"getList ok;flow=%d;aid=%d;unionPriId=%s;pdId=%s;", m_flow, aid, unionPriId, pdId);
         return rt = Errno.OK;
     }
-
 
 
     private int m_flow;

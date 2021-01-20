@@ -49,8 +49,8 @@ public class SpecStrDaoCtrl extends DaoCtrl {
 	}
 
 	@Override
-	protected DaoProxy getDaoProxy() {
-		return m_daoProxy;
+	protected DaoPool getDaoPool() {
+		return m_daoProxy.getDaoPool(getAid(), getGroup());
 	}
 	@Override
 	protected String getTableName(){

@@ -30,6 +30,7 @@ public class ProductSpecDto {
         g_dtoDef.add(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST, 8, getInPdScValListDtoDef(), Var.Type.FAI_LIST);
         g_dtoDef.add(ProductSpecEntity.Info.SYS_CREATE_TIME, 9, Var.Type.CALENDAR);
         g_dtoDef.add(ProductSpecEntity.Info.SYS_UPDATE_TIME, 10, Var.Type.CALENDAR);
+        g_dtoDef.add(ProductSpecEntity.Info.SOURCE_UNION_PRI_ID, 11, Var.Type.INT);
     }
 
     public static ParamDef getInfoDto() {
@@ -47,6 +48,7 @@ public class ProductSpecDto {
         public static final int ID = 8;
         public static final int ID_LIST = 9;
         public static final int RL_TP_SC_ID = 10;
+        public static final int PD_ID_LIST = 11;
     }
 
     /**
@@ -74,6 +76,7 @@ public class ProductSpecDto {
             g_cacheDtoDef.add(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST, 8, getInPdScValListDtoDef(), Var.Type.FAI_LIST);
             g_cacheDtoDef.add(ProductSpecEntity.Info.SYS_CREATE_TIME, 9, Var.Type.CALENDAR);
             g_cacheDtoDef.add(ProductSpecEntity.Info.SYS_UPDATE_TIME, 10, Var.Type.CALENDAR);
+            g_cacheDtoDef.add(ProductSpecEntity.Info.SOURCE_UNION_PRI_ID, 11, Var.Type.INT);
         }
 
         public static ParamDef getCacheDto() {

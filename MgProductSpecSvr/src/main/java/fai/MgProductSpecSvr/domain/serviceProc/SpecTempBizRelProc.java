@@ -7,6 +7,7 @@ import fai.MgProductSpecSvr.domain.repository.SpecTempBizRelDaoCtrl;
 import fai.comm.util.*;
 
 import java.util.Calendar;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -68,6 +69,7 @@ public class SpecTempBizRelProc {
         ParamMatcher matcher = new ParamMatcher(SpecTempBizRelEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(SpecTempBizRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         matcher.and(SpecTempBizRelEntity.Info.RL_TP_SC_ID, ParamMatcher.IN, rlTpScIdList);
+        cacheManage.addNeedDelCachedRlTpScIdList(aid, unionPriId, rlTpScIdList);
         int rt = m_daoCtrl.delete(matcher);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batchDel error;flow=%d;aid=%s;rlTpScIdList=%s;", m_flow, aid, rlTpScIdList);
@@ -95,6 +97,10 @@ public class SpecTempBizRelProc {
         rt = getList(aid, unionPriId, rlTpScIdList, listRef);
         if(rt != Errno.OK){
             return rt;
+        }
+        if(rlTpScIdList.size() != listRef.value.size()){
+            Log.logStd("batchDel arg err;flow=%d;aid=%s;unionPriId=%s;updaterList=%s;", m_flow, aid, unionPriId, specTempBizRelUpdaterList);
+            return rt = Errno.NOT_FOUND;
         }
         Map<Integer, Param> oldDataMap = Misc2.getMap(listRef.value, SpecTempBizRelEntity.Info.RL_TP_SC_ID);
         listRef.value = null; // help gc
@@ -203,5 +209,41 @@ public class SpecTempBizRelProc {
 
     private int m_flow;
     private SpecTempBizRelDaoCtrl m_daoCtrl;
+    private CacheManage cacheManage = new CacheManage();
 
+    public void deleteDirtyCache(int aid, int unionPriId) {
+        cacheManage.delNeedDelCache(aid, unionPriId);
+    }
+
+    private static class CacheManage{
+        public CacheManage() {
+            init();
+        }
+
+        private Set<Integer> needDelCachedRlTpScIdSet;
+        private void addNeedDelCachedRlTpScIdList(int aid, int unionPriId, FaiList<Integer> rlTpScIdList){
+            if(rlTpScIdList == null || rlTpScIdList.isEmpty()){
+                return;
+            }
+            SpecTempBizRelCacheCtrl.setRlTpScIdCacheDirty(aid, unionPriId);
+            needDelCachedRlTpScIdSet.addAll(rlTpScIdList);
+        }
+        private void addNeedDelCachedRlTpScId(int aid, int unionPriId, int rlTpScId){
+            SpecTempBizRelCacheCtrl.setRlTpScIdCacheDirty(aid, unionPriId);
+            needDelCachedRlTpScIdSet.add(rlTpScId);
+        }
+
+        private boolean delNeedDelCache(int aid, int unionPriId){
+            try {
+                boolean boo = SpecTempBizRelCacheCtrl.delTpScId(aid, unionPriId, needDelCachedRlTpScIdSet);
+                return boo;
+            }finally {
+                init();
+            }
+        }
+
+        private void init() {
+            needDelCachedRlTpScIdSet = new HashSet<>();
+        }
+    }
 }

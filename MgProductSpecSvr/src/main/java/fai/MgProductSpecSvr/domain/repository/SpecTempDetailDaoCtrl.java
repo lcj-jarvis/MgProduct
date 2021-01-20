@@ -4,6 +4,7 @@ import fai.MgProductSpecSvr.domain.entity.SpecTempDetailEntity;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.distributedkit.idBuilder.domain.IdBuilderConfig;
 import fai.comm.distributedkit.idBuilder.wrapper.IdBuilderWrapper;
+import fai.comm.util.DaoPool;
 import fai.comm.util.Errno;
 import fai.comm.util.Log;
 
@@ -50,8 +51,8 @@ public class SpecTempDetailDaoCtrl extends DaoCtrl {
 	}
 
 	@Override
-	protected DaoProxy getDaoProxy() {
-		return m_daoProxy;
+	protected DaoPool getDaoPool() {
+		return m_daoProxy.getDaoPool(getAid(), getGroup());
 	}
 	@Override
 	protected String getTableName(){

@@ -1,48 +1,71 @@
 package fai.MgProductStoreSvr.domain.repository;
 
 import fai.comm.util.Dao;
+import fai.comm.util.DaoPool;
 import fai.comm.util.Errno;
+import fai.comm.util.Log;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 public class TransactionCrtl {
-    // 联合使用同一个
     public boolean registered(DaoCtrl daoCtrl){
-        if(firstDaoCtrl == null){
-            daoCtrl.openDao();
-            firstDaoCtrl = daoCtrl;
-            return true;
-        }
-
-        // 共同的daoProxy 才可以使用共同的dao
-        if(!firstDaoCtrl.getDaoProxy().equals(daoCtrl.getDaoProxy())){
+        if(daoCtrl == null){
             return false;
         }
+        DaoPool daoPool = daoCtrl.getDaoPool();
+        DaoCtrl firstDaoCtrl = firstDaoCtrlCache.get(daoPool);
+        if(firstDaoCtrl == null){
+            firstDaoCtrlCache.put(daoPool, daoCtrl);
+            return daoCtrl.openDao() == Errno.OK && registeredDaoCtrlSet.add(daoCtrl);
+        }
         Dao dao = firstDaoCtrl.getDao();
-        return daoCtrl.openDao(dao) == Errno.OK;
+        return daoCtrl.openDao(dao) == Errno.OK && registeredDaoCtrlSet.add(daoCtrl);
     }
     public int setAutoCommit(boolean autoCommit){
-        if(firstDaoCtrl == null){
-            return Errno.ERROR;
+        for (DaoCtrl daoCtrl : firstDaoCtrlCache.values()) {
+            int rt = daoCtrl.setAutoCommit(autoCommit);
+            if(rt != Errno.OK){
+                Log.logErr(rt, "daoCtrl.setAutoCommit err;flow=%s;group=%s;tableName=%s;", daoCtrl.getFlow(), daoCtrl.getGroup(), daoCtrl.getTableName());
+                return rt;
+            }
         }
-        return firstDaoCtrl.setAutoCommit(autoCommit);
+        return Errno.OK;
     }
     public void commit(){
-        if(firstDaoCtrl == null){
-            return;
+        for (DaoCtrl daoCtrl : firstDaoCtrlCache.values()) {
+            daoCtrl.commit();
         }
-        firstDaoCtrl.commit();
     }
     public void rollback(){
-        if(firstDaoCtrl == null){
-            return;
+        for (DaoCtrl daoCtrl : firstDaoCtrlCache.values()) {
+            daoCtrl.rollback();
         }
-        firstDaoCtrl.rollback();
     }
     public void closeDao(){
-        if(firstDaoCtrl != null){
-            firstDaoCtrl.closeDao();
+        for (Map.Entry<DaoPool, DaoCtrl> daoPoolDaoCtrlEntry : firstDaoCtrlCache.entrySet()) {
+            DaoCtrl daoCtrl = daoPoolDaoCtrlEntry.getValue();
+            daoCtrl.closeDao();
+            firstDaoCtrlCache.put(daoPoolDaoCtrlEntry.getKey(), null);
         }
     }
 
-    private DaoCtrl firstDaoCtrl = null;
+    /**
+     * 检查 DaoCtrl 是否注册成功
+     */
+    public boolean checkRegistered(DaoCtrl ... daoCtrls){
+        for (DaoCtrl daoCtrl : daoCtrls) {
+            if(!registeredDaoCtrlSet.contains(daoCtrl)){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private Map<DaoPool, DaoCtrl> firstDaoCtrlCache = new HashMap<>();
+    private Set<DaoCtrl> registeredDaoCtrlSet = new HashSet<>();
 }

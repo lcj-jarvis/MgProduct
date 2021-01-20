@@ -11,10 +11,12 @@ public class InOutStoreRecordEntity {
         public static final String IN_OUT_STORE_REC_ID = "ioStoreRecId";            // int 出入库存记录id (Primary Key 4)
         public static final String PD_ID = "pdId";                                  // int 商品 id
         public static final String RL_PD_ID = "rlPdId";                             // int 商品业务 id
-        public static final String OPT_TYPE = "optType";                            // tinyInt(2) 出/入库操作？（或者其他操作状态）
-        public static final String C_TYPE = "cType";                                // tinyInt(3) 总部出入库方式
-        public static final String S_TYPE = "sType";                                // tinyInt(3) 门店出入库方式
+        public static final String OPT_TYPE = "optType";                            // tinyInt 出/入库操作？（或者其他操作状态）
+        public static final String C_TYPE = "cType";                                // tinyInt 总部出入库方式
+        public static final String S_TYPE = "sType";                                // tinyInt 门店出入库方式
         public static final String CHANGE_COUNT = "changeCount";                    // int 变动库存
+        public static final String AVAILABLE_COUNT = "availableCount";              // int 当前入库记录剩余可用库存量
+        public static final String REMAIN_COUNT = "remainCount";                    // int 变动后剩余库存
         public static final String PRICE = "price";                                 // bigint 采购单价（成本价）
         public static final String NUMBER = "number";                               // varchar(15) 单号（天时间+4位以上顺序数字：如2010120001）
         public static final String OPT_SID = "optSid";                              // int 操作员工 id

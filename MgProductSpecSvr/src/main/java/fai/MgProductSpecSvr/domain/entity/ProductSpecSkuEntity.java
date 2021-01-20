@@ -10,6 +10,7 @@ public class ProductSpecSkuEntity {
         public static final String PD_ID = "pdId";                                  // int 商品 id
         public static final String SORT = "sort";                                   // int 排序
         public static final String SOURCE_TID = "sourceTid";                        // int 创建规格的 项目id
+        public static final String SOURCE_UNION_PRI_ID = "sourceUnionPriId";        // int 创建产品规格的 联合主键id
         public static final String SKU_NUM = "skuNum";                              // varchar(32) 条码
         public static final String IN_PD_SC_STR_ID_LIST = "inPdScStrIdList";        // varchar(150) 规格值 FaiList<Integer>, 支持最大 15 种规格  存储到db时需要排序下，用于查询
         public static final String FLAG = "flag";                                   // int flag
@@ -18,10 +19,9 @@ public class ProductSpecSkuEntity {
     }
     private static final String[] VALID_KEYS = new String[]{
             Info.SKU_ID,
-            Info.SOURCE_TID,
             Info.SORT,
             Info.FLAG,
-            Info.SKU_NUM,
+            Info.SKU_NUM
     };
     /**
      * 支持批量更新的字段

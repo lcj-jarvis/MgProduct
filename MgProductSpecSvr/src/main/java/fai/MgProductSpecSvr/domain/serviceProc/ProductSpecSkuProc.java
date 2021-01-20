@@ -35,7 +35,7 @@ public class ProductSpecSkuProc {
             }
             data.setLong(ProductSpecSkuEntity.Info.SKU_ID, skuId);
             data.assign(info, ProductSpecSkuEntity.Info.SORT);
-            data.assign(info, ProductSpecSkuEntity.Info.SOURCE_TID); // TODO
+            data.assign(info, ProductSpecSkuEntity.Info.SOURCE_TID);
             data.assign(info, ProductSpecSkuEntity.Info.SKU_NUM); // TODO
             FaiList<Integer> inPdScStrIdList = info.getListNullIsEmpty(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST);
             data.setString(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList.toJson());
@@ -51,6 +51,21 @@ public class ProductSpecSkuProc {
             return rt;
         }
         Log.logStd("batchAdd ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
+        return rt;
+    }
+    public int batchDel(int aid, FaiList<Integer> pdIdList) {
+        if(aid <= 0 || pdIdList == null || pdIdList.isEmpty()){
+            Log.logStd("batchDel arg error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+            return Errno.ARGS_ERROR;
+        }
+        ParamMatcher delMatcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        delMatcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        int rt = m_daoCtrl.delete(delMatcher);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "batchDel error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+            return rt;
+        }
+        Log.logStd("batchDel ok;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
         return rt;
     }
     public int batchDel(int aid, int pdId, FaiList<Long> delSkuIdList) {
@@ -75,7 +90,7 @@ public class ProductSpecSkuProc {
         return rt;
     }
 
-    public int refreshSku(int aid, int pdId, FaiList<FaiList<Integer>> skuList, FaiList<Long> rtIdList) {
+    public int refreshSku(int aid, int tid, int unionPriId, int pdId, FaiList<FaiList<Integer>> skuList, FaiList<Long> rtIdList) {
         if(aid <= 0 || pdId <= 0 || skuList == null){
             return Errno.ARGS_ERROR;
         }
@@ -85,7 +100,12 @@ public class ProductSpecSkuProc {
         }
         FaiList<Param> infoList = new FaiList<>(skuList.size());
         skuList.forEach(inPdScStrIdList->{
-            infoList.add(new Param().setList(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList));
+            infoList.add(
+                    new Param()
+                    .setList(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList)
+                    .setInt(ProductSpecSkuEntity.Info.SOURCE_TID, tid)
+                    .setInt(ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID, unionPriId)
+            );
         });
         rt = batchAdd(aid, pdId, infoList, rtIdList);
         if(rt != Errno.OK){
@@ -105,12 +125,17 @@ public class ProductSpecSkuProc {
         Set<String> maxUpdaterKeys = Misc2.validUpdaterList(updaterList, ProductSpecSkuEntity.getValidKeys(), data->{
             skuIdList.add(data.getLong(ProductSpecSkuEntity.Info.SKU_ID));
         });
+
         maxUpdaterKeys.remove(ProductSpecSkuEntity.Info.SKU_ID);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
         rt = getListFromDao(aid, pdId, skuIdList, listRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             return rt;
+        }
+        if(skuIdList.size() != listRef.value.size()){
+            Log.logStd("batchDel arg err;flow=%d;aid=%s;pdId=%updaterList=%s;", m_flow, aid, pdId, updaterList);
+            return rt = Errno.NOT_FOUND;
         }
         rt = Errno.OK;
         Map<Integer, Param> oldDataMap = Misc2.getMap(listRef.value, ProductSpecSkuEntity.Info.SKU_ID);
@@ -133,7 +158,6 @@ public class ProductSpecSkuProc {
             long skuId = updater.getData().getLong(ProductSpecSkuEntity.Info.SKU_ID);
             Param oldData = oldDataMap.remove(skuId); // help gc
             Param updatedData = updater.update(oldData, true);
-
             Param data = new Param();
             maxUpdaterKeys.forEach(key->{
                 data.assign(updatedData, key);

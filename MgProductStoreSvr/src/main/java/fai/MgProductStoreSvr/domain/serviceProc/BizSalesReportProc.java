@@ -3,6 +3,7 @@ package fai.MgProductStoreSvr.domain.serviceProc;
 import fai.MgProductStoreSvr.domain.entity.BizSalesReportEntity;
 import fai.MgProductStoreSvr.domain.entity.BizSalesReportValObj;
 import fai.MgProductStoreSvr.domain.repository.BizSalesReportDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.TransactionCrtl;
 import fai.MgProductStoreSvr.interfaces.conf.MqConfig;
 import fai.comm.mq.api.MqFactory;
 import fai.comm.mq.api.Producer;
@@ -137,4 +138,18 @@ public class BizSalesReportProc {
         Log.logStd("ok;flow=%s;aid=%s;unionPriId=%s;pdId=%s;flag=%s;", m_flow, aid, unionPriId, pdId, flag);
         return rt;
     }
+
+    public int batchDel(int aid, FaiList<Integer> pdIdList) {
+        ParamMatcher matcher = new ParamMatcher();
+        matcher.and(BizSalesReportEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(BizSalesReportEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        int rt = m_daoCtrl.delete(matcher);
+        if(rt != Errno.OK){
+            Log.logStd(rt, "delete err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
+            return rt;
+        }
+        Log.logStd("ok;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
+        return rt;
+    }
+
 }

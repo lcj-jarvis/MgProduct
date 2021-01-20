@@ -4,6 +4,7 @@ import fai.MgProductSpecSvr.domain.entity.ProductSpecEntity;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.distributedkit.idBuilder.domain.IdBuilderConfig;
 import fai.comm.distributedkit.idBuilder.wrapper.IdBuilderWrapper;
+import fai.comm.util.DaoPool;
 import fai.comm.util.Errno;
 import fai.comm.util.Log;
 
@@ -16,6 +17,8 @@ public class ProductSpecDaoCtrl extends DaoCtrl {
 	private ProductSpecDaoCtrl(int flow, int aid) {
 		super(flow, aid);
 	}
+
+
 
 	public static ProductSpecDaoCtrl getInstance(int flow, int aid) {
 		if(m_daoProxy == null) {
@@ -49,9 +52,10 @@ public class ProductSpecDaoCtrl extends DaoCtrl {
 		return m_idBuilder.clearCache(aid);
 	}
 
+
 	@Override
-	protected DaoProxy getDaoProxy() {
-		return m_daoProxy;
+	protected DaoPool getDaoPool() {
+		return m_daoProxy.getDaoPool(getAid(), getGroup());
 	}
 	@Override
 	protected String getTableName(){

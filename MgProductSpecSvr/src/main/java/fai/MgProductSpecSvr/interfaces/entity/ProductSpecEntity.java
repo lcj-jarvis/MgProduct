@@ -11,6 +11,7 @@ public class ProductSpecEntity {
         public static final String NAME = SpecStrEntity.Info.NAME;
         public static final String PD_SC_ID = "pdScId";                             // int 商品规格 id
         public static final String SOURCE_TID = "sourceTid";                        // int 创建产品规格的 项目id
+        public static final String SOURCE_UNION_PRI_ID = "sourceUnionPriId";        // int 创建产品规格的 联合主键id
         public static final String SORT = "sort";                                   // int 排序
         public static final String FLAG = "flag";                                   // int flag
         /**

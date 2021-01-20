@@ -1,10 +1,10 @@
-package fai.MgProductStoreSvr.domain.serviceProc;
+package fai.MgProductStoreSvr.domain.comm;
 
 import java.util.Objects;
 
 public class SkuStoreKey {
-    int unionPriId;
-    long skuId;
+    public int unionPriId;
+    public long skuId;
 
     public SkuStoreKey(int unionPriId, long skuId) {
         this.unionPriId = unionPriId;

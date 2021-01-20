@@ -24,13 +24,14 @@ public abstract class DaoCtrl {
 	 */
 	public static void init(DaoProxy daoProxy) {
 		m_daoProxy = daoProxy;
+		defaultGroup = m_daoProxy.getDefaulGroup();
 	}
 	protected int openDao(Dao dao) {
 		if(m_daoOpened) {
 			return Errno.OK;
 		}
 		if(dao == null){
-			m_dao = getDaoProxy().getDao(flow, aid);
+			m_dao = getDaoPool().getDao();
 			LinkedList<DaoCtrl> daoCtrls = openedDaoRecord.get(Thread.currentThread().getId());
 			if(daoCtrls == null){
 				daoCtrls = new LinkedList<>();
@@ -264,7 +265,10 @@ public abstract class DaoCtrl {
 	}
 
 
-	protected abstract DaoProxy getDaoProxy();
+	/**
+	 * 获取daopool
+	 */
+	protected abstract DaoPool getDaoPool();
 
 	protected abstract String getTableName();
 
@@ -277,14 +281,22 @@ public abstract class DaoCtrl {
 	protected int getFlow(){
 		return flow;
 	}
+	protected String getGroup(){
+		if(group == null){
+			return defaultGroup;
+		}
+		return group;
+	}
 
 	protected boolean m_daoOpened = false;
 	protected Dao m_dao;
 	private boolean useCommDao = false;
 	protected int flow;
 	protected int aid;
+	protected String group;
 
 	protected static DaoProxy m_daoProxy;
+	protected static String defaultGroup;
 
 	private static ConcurrentHashMap<Long, LinkedList<DaoCtrl>> openedDaoRecord = new ConcurrentHashMap<>();
 }

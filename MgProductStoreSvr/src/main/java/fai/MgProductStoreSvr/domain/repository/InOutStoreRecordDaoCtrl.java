@@ -4,6 +4,7 @@ import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordEntity;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.distributedkit.idBuilder.domain.IdBuilderConfig;
 import fai.comm.distributedkit.idBuilder.wrapper.IdBuilderWrapper;
+import fai.comm.util.DaoPool;
 import fai.comm.util.Errno;
 import fai.comm.util.Log;
 
@@ -15,6 +16,19 @@ public class InOutStoreRecordDaoCtrl extends DaoCtrl {
 
 	private InOutStoreRecordDaoCtrl(int flow, int aid) {
 		super(flow, aid);
+		this.group = TABLE_ENUM.getGroup();
+	}
+
+	public static InOutStoreRecordDaoCtrl getInstanceWithRegistered(int flow, int aid, TransactionCrtl transactionCrtl) {
+		if(transactionCrtl == null){
+			return null;
+		}
+		InOutStoreRecordDaoCtrl daoCtrl = getInstance(flow, aid);
+		if(!transactionCrtl.registered(daoCtrl)){
+			Log.logErr("registered InOutStoreRecordDaoCtrl err;flow=%d;aid=%d;", flow, aid);
+			return null;
+		}
+		return daoCtrl;
 	}
 
 	public static InOutStoreRecordDaoCtrl getInstance(int flow, int aid) {
@@ -50,14 +64,13 @@ public class InOutStoreRecordDaoCtrl extends DaoCtrl {
 	}
 
 	@Override
-	protected DaoProxy getDaoProxy() {
-		return m_daoProxy;
+	protected DaoPool getDaoPool() {
+		return m_daoProxy.getDaoPool(aid, getGroup());
 	}
 	@Override
 	protected String getTableName(){
-		return TABLE_NAME + "_"+ String.format("%04d", aid%1000);
+		return TABLE_ENUM.getTable() + "_"+ String.format("%04d", aid%1000);
 	}
-	private static final String TABLE_NAME = "inOutStoreRecord";
 
 	public static void initIdBuilder(RedisCacheManager codisCache){
 		if(m_idBuilder == null){
@@ -68,12 +81,16 @@ public class InOutStoreRecordDaoCtrl extends DaoCtrl {
 			}
 		}
 	}
+	public static final TableDBMapping.TableEnum TABLE_ENUM = TableDBMapping.TableEnum.MG_IN_OUT_STORE_RECORD;
+
 	private static final int ID_BUILDER_INIT = 1;
 	private static IdBuilderConfig idBuilderConfig = new IdBuilderConfig.HeavyweightBuilder()
-			.buildTableName(TABLE_NAME)
+			.buildTableName(TABLE_ENUM.getTable())
 			.buildInitValue(ID_BUILDER_INIT)
 			.buildAssistTableSuffix("idBuilder")
 			.buildAutoIncField(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID)
 			.build();
 	private static IdBuilderWrapper m_idBuilder;
+
+
 }

@@ -1,5 +1,6 @@
 package fai.MgProductStoreSvr.domain.repository;
 
+import fai.comm.util.DaoPool;
 import fai.comm.util.Log;
 
 /**
@@ -10,6 +11,19 @@ public class SalesSummaryDaoCtrl extends DaoCtrl {
 
     private SalesSummaryDaoCtrl(int flow, int aid) {
         super(flow, aid);
+        this.group = TABLE_ENUM.getGroup();
+    }
+
+    public static SalesSummaryDaoCtrl getInstanceWithRegistered(int flow, int aid, TransactionCrtl transactionCrtl) {
+        if(transactionCrtl == null){
+            return null;
+        }
+        SalesSummaryDaoCtrl daoCtrl = getInstance(flow, aid);
+        if(!transactionCrtl.registered(daoCtrl)){
+            Log.logErr("registered SalesSummaryDaoCtrl err;flow=%d;aid=%d;", flow, aid);
+            return null;
+        }
+        return daoCtrl;
     }
 
     public static SalesSummaryDaoCtrl getInstance(int flow, int aid) {
@@ -20,17 +34,16 @@ public class SalesSummaryDaoCtrl extends DaoCtrl {
         return new SalesSummaryDaoCtrl(flow, aid);
     }
 
-
-
     @Override
-    protected DaoProxy getDaoProxy() {
-        return m_daoProxy;
+    protected DaoPool getDaoPool() {
+        return m_daoProxy.getDaoPool(aid, getGroup());
     }
+
     @Override
     protected String getTableName(){
-        return TABLE_NAME+ "_"+ String.format("%04d", aid%1000);
+        return TABLE_ENUM.getTable()+ "_"+ String.format("%04d", aid%1000);
     }
-    private static final String TABLE_NAME = "salesSummary";
 
+    public static final TableDBMapping.TableEnum TABLE_ENUM = TableDBMapping.TableEnum.MG_SALES_SUMMARY;
 
 }

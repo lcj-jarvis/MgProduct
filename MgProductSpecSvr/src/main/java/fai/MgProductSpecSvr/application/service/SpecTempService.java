@@ -46,6 +46,7 @@ public class SpecTempService extends ServicePub {
                 Param specTempInfo = new Param();
                 specTempInfo.setString(SpecTempEntity.Info.NAME, name);
                 specTempInfo.setInt(SpecTempEntity.Info.SOURCE_TID, tid);
+                specTempInfo.setInt(SpecTempEntity.Info.SOURCE_UNION_PRI_ID, unionPriId);
                 specTempList.add(specTempInfo);
 
                 Param specTempBizRelInfo = new Param();
@@ -233,6 +234,7 @@ public class SpecTempService extends ServicePub {
                             return rt;
                         }
                         transactionCrtl.commit();
+                        specTempBizRelProc.deleteDirtyCache(aid, unionPriId);
                     }
                 }finally {
                     LockUtil.unlock(aid);
@@ -305,6 +307,7 @@ public class SpecTempService extends ServicePub {
                             return rt;
                         }
                         transactionCrtl.commit();
+                        specTempBizRelProc.deleteDirtyCache(aid, unionPriId);
                     }
                 }finally {
                     LockUtil.unlock(aid);
@@ -705,7 +708,7 @@ public class SpecTempService extends ServicePub {
             SpecTempDetailDaoCtrl specTempDetailDaoCtrl = SpecTempDetailDaoCtrl.getInstance(flow, aid);
             try {
                 SpecTempDetailProc specTempDetailProc = new SpecTempDetailProc(specTempDetailDaoCtrl, flow);
-                rt = specTempDetailProc.getList(aid, tpScId, null, specTempDetailListRef);
+                rt = specTempDetailProc.getListFromDaoByTpScDtIdList(aid, tpScId, null, specTempDetailListRef);
                 if(rt != Errno.OK){
                     return rt;
                 }
@@ -814,7 +817,7 @@ public class SpecTempService extends ServicePub {
             SpecTempDetailDaoCtrl specTempDetailDaoCtrl = SpecTempDetailDaoCtrl.getInstance(flow, aid);
             try {
                 SpecTempDetailProc specTempDetailProc = new SpecTempDetailProc(specTempDetailDaoCtrl, flow);
-                rt = specTempDetailProc.getList(aid, tpScId, tpScDtIdList, specTempDetailInfoListRef);
+                rt = specTempDetailProc.getListFromDaoByTpScDtIdList(aid, tpScId, tpScDtIdList, specTempDetailInfoListRef);
                 if(rt != Errno.OK){
                     return null;
                 }

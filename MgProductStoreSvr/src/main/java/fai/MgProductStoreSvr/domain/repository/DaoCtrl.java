@@ -1,5 +1,6 @@
 package fai.MgProductStoreSvr.domain.repository;
 
+import fai.comm.middleground.repository.DaoProxy;
 import fai.comm.util.*;
 
 import java.util.Iterator;
@@ -18,19 +19,16 @@ public abstract class DaoCtrl {
 		this.m_dao = dao;
 	}
 
-	/**
-	 * 子类可以重写改方法进行扩展
-	 * @param daoProxy
-	 */
 	public static void init(DaoProxy daoProxy) {
 		m_daoProxy = daoProxy;
+		defaultGroup = m_daoProxy.getDefaulGroup();
 	}
 	protected int openDao(Dao dao) {
 		if(m_daoOpened) {
 			return Errno.OK;
 		}
 		if(dao == null){
-			m_dao = getDaoProxy().getDao(flow, aid);
+			m_dao = getDaoPool().getDao();
 			LinkedList<DaoCtrl> daoCtrls = openedDaoRecord.get(Thread.currentThread().getId());
 			if(daoCtrls == null){
 				daoCtrls = new LinkedList<>();
@@ -295,18 +293,30 @@ public abstract class DaoCtrl {
 	}
 
 
-	protected abstract DaoProxy getDaoProxy();
-
+	/**
+	 * 获取daopool
+	 */
+	protected abstract DaoPool getDaoPool();
+	/**
+	 * 获取要操作的数据表
+	 */
 	protected abstract String getTableName();
 
 	protected Dao getDao(){
 		return m_dao;
 	}
-	protected int getAid(){
-		return aid;
+	protected String getGroup(){
+		if(group == null){
+			return defaultGroup;
+		}
+		return group;
 	}
-	protected int getFlow(){
+	public int getFlow() {
 		return flow;
+	}
+
+	public int getAid() {
+		return aid;
 	}
 
 	protected boolean m_daoOpened = false;
@@ -314,10 +324,10 @@ public abstract class DaoCtrl {
 	private boolean useCommDao = false;
 	protected int flow;
 	protected int aid;
+	protected String group;
 
+	protected static String defaultGroup;
 	protected static DaoProxy m_daoProxy;
 
 	private static ConcurrentHashMap<Long, LinkedList<DaoCtrl>> openedDaoRecord = new ConcurrentHashMap<>();
-
-
 }

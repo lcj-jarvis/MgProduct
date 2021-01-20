@@ -2,14 +2,20 @@ package fai.MgProductInfSvr.application;
 
 import fai.MgProductInfSvr.application.service.*;
 import fai.MgProductInfSvr.interfaces.cmd.MgProductInfCmd;
-import fai.MgProductInfSvr.interfaces.dto.*;
+import fai.MgProductInfSvr.interfaces.dto.ProductBasicDto;
+import fai.MgProductInfSvr.interfaces.dto.ProductPropDto;
+import fai.MgProductInfSvr.interfaces.dto.ProductSpecDto;
+import fai.MgProductInfSvr.interfaces.dto.ProductStoreDto;
 import fai.comm.jnetkit.server.fai.FaiHandler;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
 import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
-import fai.comm.util.*;
+import fai.comm.util.FaiList;
+import fai.comm.util.Param;
+import fai.comm.util.ParamUpdater;
+import fai.comm.util.SearchArg;
 
 import java.io.IOException;
 
@@ -560,8 +566,18 @@ public class MgProductInfHandler extends FaiHandler {
                                           @ArgList(keyMatch = ProductStoreDto.Key.ID_LIST) FaiList<Integer> rlPdIdList) throws IOException {
         return storeService.getSalesSummaryInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIdList);
     }
+    @Cmd(MgProductInfCmd.StoreSkuSummaryCmd.GET_LIST)
+    public int getStoreSkuSummaryInfoList(final FaiSession session,
+                                       @ArgFlow final int flow,
+                                       @ArgAid final int aid,
+                                       @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
+                                       @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
+                                       @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
+                                       @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
+                                       @ArgSearchArg(ProductStoreDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
+        return storeService.getStoreSkuSummaryInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, searchArg);
+    }
 
-    MgProductInfService service = new MgProductInfService();
 
     ProductBasicService basicService = new ProductBasicService();
     ProductPropService propService = new ProductPropService();

@@ -2460,7 +2460,7 @@ public class MgProductInfCli extends FaiClient {
      * 获取库存SKU汇总信息
      * 目前分页限制100
      */
-    public int getStoreSkuSummaryInfoList(int aid, int tid, SearchArg searchArg, FaiList<Param> list){
+    public int getStoreSkuSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, SearchArg searchArg, FaiList<Param> list){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2482,6 +2482,9 @@ public class MgProductInfCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductStoreDto.Key.TID, tid);
+            sendBody.putInt(ProductStoreDto.Key.SITE_ID, siteId);
+            sendBody.putInt(ProductStoreDto.Key.LGID, lgId);
+            sendBody.putInt(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1);
             searchArg.toBuffer(sendBody, ProductStoreDto.Key.SEARCH_ARG);
 
             FaiProtocol sendProtocol = new FaiProtocol();

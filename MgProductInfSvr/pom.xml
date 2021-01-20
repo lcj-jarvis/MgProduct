@@ -16,14 +16,10 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <profiles>
-        <profile>
-            <modules>
-                <module>MgProduct-MgProductInfSvr-server</module>
-                <module>MgProduct-MgProductInfSvr-interfaces</module>
-            </modules>
-        </profile>
-    </profiles>
+    <modules>
+        <module>MgProductInfSvr-server</module>
+        <module>MgProductInfSvr-interfaces</module>
+    </modules>
     <distributionManagement>
         <repository>
             <id>${repository_id}</id>

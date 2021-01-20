@@ -15,13 +15,9 @@
         <artifactId>fai-pom-ver-site</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
-    <profiles>
-        <profile>
-            <modules>
-                <module>MgProduct-MgProductBasicSvr-server</module>
-                <module>MgProduct-MgProductBasicSvr-interfaces</module>
-            </modules>
-        </profile>
-    </profiles>
+    <modules>
+        <module>MgProductBasicSvr-server</module>
+        <module>MgProductBasicSvr-interfaces</module>
+    </modules>
 </project>
 

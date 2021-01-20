@@ -17,12 +17,8 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <profiles>
-         <profile>
-             <modules>
-                 <module>MgProduct-MgProductSpecSvr-server</module>
-                 <module>MgProduct-MgProductSpecSvr-interfaces</module>
-             </modules>
-         </profile>
-    </profiles>
+     <modules>
+         <module>MgProductSpecSvr-server</module>
+         <module>MgProductSpecSvr-interfaces</module>
+     </modules>
 </project>

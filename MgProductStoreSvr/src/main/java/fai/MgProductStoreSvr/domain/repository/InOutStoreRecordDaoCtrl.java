@@ -19,12 +19,12 @@ public class InOutStoreRecordDaoCtrl extends DaoCtrl {
 		this.group = TABLE_ENUM.getGroup();
 	}
 
-	public static InOutStoreRecordDaoCtrl getInstanceWithRegistered(int flow, int aid, TransactionCrtl transactionCrtl) {
-		if(transactionCrtl == null){
+	public static InOutStoreRecordDaoCtrl getInstanceWithRegistered(int flow, int aid, TransactionCtrl transactionCtrl) {
+		if(transactionCtrl == null){
 			return null;
 		}
 		InOutStoreRecordDaoCtrl daoCtrl = getInstance(flow, aid);
-		if(!transactionCrtl.registered(daoCtrl)){
+		if(!transactionCtrl.registered(daoCtrl)){
 			Log.logErr("registered InOutStoreRecordDaoCtrl err;flow=%d;aid=%d;", flow, aid);
 			return null;
 		}

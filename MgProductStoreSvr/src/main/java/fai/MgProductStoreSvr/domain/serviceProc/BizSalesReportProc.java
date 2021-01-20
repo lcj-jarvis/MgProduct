@@ -3,7 +3,6 @@ package fai.MgProductStoreSvr.domain.serviceProc;
 import fai.MgProductStoreSvr.domain.entity.BizSalesReportEntity;
 import fai.MgProductStoreSvr.domain.entity.BizSalesReportValObj;
 import fai.MgProductStoreSvr.domain.repository.BizSalesReportDaoCtrl;
-import fai.MgProductStoreSvr.domain.repository.TransactionCrtl;
 import fai.MgProductStoreSvr.interfaces.conf.MqConfig;
 import fai.comm.mq.api.MqFactory;
 import fai.comm.mq.api.Producer;

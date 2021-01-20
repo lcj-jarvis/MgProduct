@@ -8,7 +8,7 @@ import fai.comm.util.Log;
 import java.util.*;
 
 
-public class TransactionCrtl {
+public class TransactionCtrl {
     public boolean registered(DaoCtrl daoCtrl){
         if(daoCtrl == null){
             return false;

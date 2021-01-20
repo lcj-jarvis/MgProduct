@@ -1,7 +1,6 @@
 package fai.MgProductSpecSvr.application.service;
 
 
-import com.sun.corba.se.impl.oa.poa.AOMEntry;
 import fai.MgProductSpecSvr.domain.comm.LockUtil;
 import fai.MgProductSpecSvr.domain.comm.Misc2;
 import fai.MgProductSpecSvr.domain.comm.ProductSpecSkuArgCheck;
@@ -9,7 +8,7 @@ import fai.MgProductSpecSvr.domain.comm.SpecStrArgCheck;
 import fai.MgProductSpecSvr.domain.repository.ProductSpecDaoCtrl;
 import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuDaoCtrl;
 import fai.MgProductSpecSvr.domain.repository.SpecStrDaoCtrl;
-import fai.MgProductSpecSvr.domain.repository.TransactionCrtl;
+import fai.MgProductSpecSvr.domain.repository.TransactionCtrl;
 import fai.MgProductSpecSvr.domain.serviceProc.ProductSpecProc;
 import fai.MgProductSpecSvr.domain.serviceProc.ProductSpecSkuProc;
 import fai.MgProductSpecSvr.domain.serviceProc.SpecStrProc;
@@ -131,15 +130,15 @@ public class ProductSpecService extends ServicePub {
             }
 
             Ref<FaiList<Param>> productSpecSkuListRef = new Ref<>();
-            TransactionCrtl transactionCrtl = new TransactionCrtl();
+            TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
                 ProductSpecDaoCtrl productSpecDaoCtrl = ProductSpecDaoCtrl.getInstance(flow, aid);
                 ProductSpecSkuDaoCtrl productSpecSkuDaoCtrl = ProductSpecSkuDaoCtrl.getInstance(flow, aid);
-                if(!transactionCrtl.registered(productSpecDaoCtrl)){
+                if(!transactionCtrl.registered(productSpecDaoCtrl)){
                     Log.logErr("registered ProductSpecDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
                     return rt=Errno.ERROR;
                 }
-                if(!transactionCrtl.registered(productSpecSkuDaoCtrl)){
+                if(!transactionCtrl.registered(productSpecSkuDaoCtrl)){
                     Log.logErr("registered ProductSpecSkuDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
                     return rt=Errno.ERROR;
                 }
@@ -148,7 +147,7 @@ public class ProductSpecService extends ServicePub {
                 try {
                     LockUtil.lock(aid);
                     try {
-                        transactionCrtl.setAutoCommit(false);
+                        transactionCtrl.setAutoCommit(false);
                         Ref<Boolean> needReFreshSkuRef = new Ref<>(false);
                         if (hasAdd) {
                             rt = productSpecProc.batchAdd(aid, pdId, addPdScInfoList, null, needReFreshSkuRef);
@@ -243,12 +242,12 @@ public class ProductSpecService extends ServicePub {
                         throw e;
                     }finally {
                         if(rt != Errno.OK){
-                            transactionCrtl.rollback();
+                            transactionCtrl.rollback();
                             productSpecProc.clearIdBuilderCache(aid);
                             productSpecSkuProc.clearIdBuilderCache(aid);
                             return rt;
                         }
-                        transactionCrtl.commit();
+                        transactionCtrl.commit();
                     }
                 }finally {
                     LockUtil.unlock(aid);
@@ -259,7 +258,7 @@ public class ProductSpecService extends ServicePub {
                     return rt;
                 }
             }finally {
-                transactionCrtl.closeDao();
+                transactionCtrl.closeDao();
             }
             FaiList<Param> productSpecSkuList = productSpecSkuListRef.value;
             Log.logDbg("flow=%d;aid=%d;pdId=%d;productSpecSkuList=%s", flow, aid, pdId, productSpecSkuList);
@@ -283,15 +282,15 @@ public class ProductSpecService extends ServicePub {
                 return rt;
             }
 
-            TransactionCrtl transactionCrtl = new TransactionCrtl();
+            TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
                 ProductSpecDaoCtrl productSpecDaoCtrl = ProductSpecDaoCtrl.getInstance(flow, aid);
                 ProductSpecSkuDaoCtrl productSpecSkuDaoCtrl = ProductSpecSkuDaoCtrl.getInstance(flow, aid);
-                if(!transactionCrtl.registered(productSpecDaoCtrl)){
+                if(!transactionCtrl.registered(productSpecDaoCtrl)){
                     Log.logErr("registered ProductSpecDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
                     return rt=Errno.ERROR;
                 }
-                if(!transactionCrtl.registered(productSpecSkuDaoCtrl)){
+                if(!transactionCtrl.registered(productSpecSkuDaoCtrl)){
                     Log.logErr("registered ProductSpecSkuDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
                     return rt=Errno.ERROR;
                 }
@@ -300,7 +299,7 @@ public class ProductSpecService extends ServicePub {
                 try {
                     LockUtil.lock(aid);
                     try {
-                        transactionCrtl.setAutoCommit(false);
+                        transactionCtrl.setAutoCommit(false);
 
                         rt = productSpecProc.batchDel(aid, pdIdList);
                         if(rt != Errno.OK){
@@ -312,19 +311,19 @@ public class ProductSpecService extends ServicePub {
                         }
                     }finally {
                         if(rt != Errno.OK){
-                            transactionCrtl.rollback();
+                            transactionCtrl.rollback();
                             productSpecProc.clearIdBuilderCache(aid);
                             productSpecSkuProc.clearIdBuilderCache(aid);
                             return rt;
                         }
-                        transactionCrtl.commit();
+                        transactionCtrl.commit();
                     }
                     productSpecProc.deleteDirtyCache(aid);
                 }finally {
                     LockUtil.unlock(aid);
                 }
             }finally {
-                transactionCrtl.closeDao();
+                transactionCtrl.closeDao();
             }
             rt = Errno.OK;
             FaiBuffer sendBuf = new FaiBuffer(true);

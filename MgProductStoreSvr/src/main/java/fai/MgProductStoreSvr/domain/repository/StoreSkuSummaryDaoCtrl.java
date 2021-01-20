@@ -14,12 +14,12 @@ public class StoreSkuSummaryDaoCtrl extends DaoCtrl {
         this.group = TABLE_ENUM.getGroup();
     }
 
-    public static StoreSkuSummaryDaoCtrl getInstanceWithRegistered(int flow, int aid, TransactionCrtl transactionCrtl) {
-        if(transactionCrtl == null){
+    public static StoreSkuSummaryDaoCtrl getInstanceWithRegistered(int flow, int aid, TransactionCtrl transactionCtrl) {
+        if(transactionCtrl == null){
             return null;
         }
         StoreSkuSummaryDaoCtrl daoCtrl = getInstance(flow, aid);
-        if(!transactionCrtl.registered(daoCtrl)){
+        if(!transactionCtrl.registered(daoCtrl)){
             Log.logErr("registered StoreSkuSummaryDaoCtrl err;flow=%d;aid=%d;", flow, aid);
             return null;
         }

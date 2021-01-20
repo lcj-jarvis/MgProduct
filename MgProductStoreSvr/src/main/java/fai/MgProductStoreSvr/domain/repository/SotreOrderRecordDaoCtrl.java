@@ -14,12 +14,12 @@ public class SotreOrderRecordDaoCtrl extends DaoCtrl {
 		this.group = TABLE_ENUM.getGroup();
 	}
 
-	public static SotreOrderRecordDaoCtrl getInstanceWithRegistered(int flow, int aid, TransactionCrtl transactionCrtl) {
-		if(transactionCrtl == null){
+	public static SotreOrderRecordDaoCtrl getInstanceWithRegistered(int flow, int aid, TransactionCtrl transactionCtrl) {
+		if(transactionCtrl == null){
 			return null;
 		}
 		SotreOrderRecordDaoCtrl daoCtrl = getInstance(flow, aid);
-		if(!transactionCrtl.registered(daoCtrl)){
+		if(!transactionCtrl.registered(daoCtrl)){
 			Log.logErr("registered SotreOrderRecordDaoCtrl err;flow=%d;aid=%d;", flow, aid);
 			return null;
 		}

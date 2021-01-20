@@ -61,15 +61,15 @@ public class SpecTempService extends ServicePub {
                 specTempBizRelInfo.assign(info, SpecTempBizRelEntity.Info.FLAG);
                 specTempBizRelList.add(specTempBizRelInfo);
             }
-            TransactionCrtl transactionCrtl = new TransactionCrtl();
+            TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
                 SpecTempDaoCtrl specTempDaoCtrl = SpecTempDaoCtrl.getInstance(flow, aid);
-                if(!transactionCrtl.registered(specTempDaoCtrl)){
+                if(!transactionCtrl.registered(specTempDaoCtrl)){
                     Log.logErr("registered SpecTempDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
                     return rt=Errno.ERROR;
                 }
                 SpecTempBizRelDaoCtrl specTempBizRelDaoCtrl = SpecTempBizRelDaoCtrl.getInstance(flow, aid);
-                if(!transactionCrtl.registered(specTempBizRelDaoCtrl)){
+                if(!transactionCtrl.registered(specTempBizRelDaoCtrl)){
                     Log.logErr("registered SpecTempBizRelDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
                     return rt=Errno.ERROR;
                 }
@@ -88,7 +88,7 @@ public class SpecTempService extends ServicePub {
                         return rt;
                     }
                     try {
-                        transactionCrtl.setAutoCommit(false);
+                        transactionCtrl.setAutoCommit(false);
                         FaiList<Integer> rtIdList = new FaiList<>();
                         rt = specTempProc.batchAdd(aid, specTempList, rtIdList);
                         if(rt != Errno.OK){
@@ -108,18 +108,18 @@ public class SpecTempService extends ServicePub {
                         throw e;
                     }finally {
                         if(rt != Errno.OK){
-                            transactionCrtl.rollback();
+                            transactionCtrl.rollback();
                             specTempProc.clearIdBuilderCache(aid);
                             specTempBizRelProc.clearIdBuilderCache(aid, unionPriId);
                             return rt;
                         }
-                        transactionCrtl.commit();
+                        transactionCtrl.commit();
                     }
                 }finally {
                     LockUtil.unlock(aid);
                 }
             }finally {
-                transactionCrtl.closeDao();
+                transactionCtrl.closeDao();
             }
             rt = Errno.OK;
             FaiBuffer sendBuf = new FaiBuffer(true);
@@ -188,15 +188,15 @@ public class SpecTempService extends ServicePub {
                 specTempBizRelUpdaterList.add(specTempBizRelUpdater);
             }
 
-            TransactionCrtl transactionCrtl = new TransactionCrtl();
+            TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
                 SpecTempDaoCtrl specTempDaoCtrl = SpecTempDaoCtrl.getInstance(flow, aid);
-                if(!transactionCrtl.registered(specTempDaoCtrl)){
+                if(!transactionCtrl.registered(specTempDaoCtrl)){
                     Log.logErr("useSameDao SpecTempDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
                     return rt=Errno.ERROR;
                 }
                 SpecTempBizRelDaoCtrl specTempBizRelDaoCtrl = SpecTempBizRelDaoCtrl.getInstance(flow, aid);
-                if(!transactionCrtl.registered(specTempBizRelDaoCtrl)){
+                if(!transactionCtrl.registered(specTempBizRelDaoCtrl)){
                     Log.logErr("useSameDao SpecTempBizRelDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
                     return rt=Errno.ERROR;
                 }
@@ -216,7 +216,7 @@ public class SpecTempService extends ServicePub {
                         specTempUpdater.getData().setInt(SpecTempEntity.Info.TP_SC_ID, specTempBizRelInfo.getInt(SpecTempBizRelEntity.Info.TP_SC_ID));
                     }
                     try {
-                        transactionCrtl.setAutoCommit(false);
+                        transactionCtrl.setAutoCommit(false);
                         rt = specTempProc.batchSet(aid, specTempUpdaterList);
                         if(rt != Errno.OK){
                             return rt;
@@ -230,17 +230,17 @@ public class SpecTempService extends ServicePub {
                         throw e;
                     }finally {
                         if(rt != Errno.OK){
-                            transactionCrtl.rollback();
+                            transactionCtrl.rollback();
                             return rt;
                         }
-                        transactionCrtl.commit();
+                        transactionCtrl.commit();
                         specTempBizRelProc.deleteDirtyCache(aid, unionPriId);
                     }
                 }finally {
                     LockUtil.unlock(aid);
                 }
             }finally {
-                transactionCrtl.closeDao();
+                transactionCtrl.closeDao();
             }
 
             rt = Errno.OK;
@@ -264,15 +264,15 @@ public class SpecTempService extends ServicePub {
                 Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;rlTpScIdList=%s;", flow, aid, unionPriId, rlTpScIdList);
                 return rt;
             }
-            TransactionCrtl transactionCrtl = new TransactionCrtl();
+            TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
                 SpecTempDaoCtrl specTempDaoCtrl = SpecTempDaoCtrl.getInstance(flow, aid);
-                if(!transactionCrtl.registered(specTempDaoCtrl)){
+                if(!transactionCtrl.registered(specTempDaoCtrl)){
                     Log.logErr("useSameDao SpecTempDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
                     return rt=Errno.ERROR;
                 }
                 SpecTempBizRelDaoCtrl specTempBizRelDaoCtrl = SpecTempBizRelDaoCtrl.getInstance(flow, aid);
-                if(!transactionCrtl.registered(specTempBizRelDaoCtrl)){
+                if(!transactionCtrl.registered(specTempBizRelDaoCtrl)){
                     Log.logErr("useSameDao SpecTempBizRelDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
                     return rt=Errno.ERROR;
                 }
@@ -289,7 +289,7 @@ public class SpecTempService extends ServicePub {
                     }
                     FaiList<Integer> tpScIdList = Misc2.getValList(listRef.value, SpecTempBizRelEntity.Info.TP_SC_ID);
                     try {
-                        transactionCrtl.setAutoCommit(false);
+                        transactionCtrl.setAutoCommit(false);
                         rt = specTempProc.batchDel(aid, tpScIdList);
                         if(rt != Errno.OK){
                             return rt;
@@ -303,17 +303,17 @@ public class SpecTempService extends ServicePub {
                         throw e;
                     }finally {
                         if(rt != Errno.OK){
-                            transactionCrtl.rollback();
+                            transactionCtrl.rollback();
                             return rt;
                         }
-                        transactionCrtl.commit();
+                        transactionCtrl.commit();
                         specTempBizRelProc.deleteDirtyCache(aid, unionPriId);
                     }
                 }finally {
                     LockUtil.unlock(aid);
                 }
             }finally {
-                transactionCrtl.closeDao();
+                transactionCtrl.closeDao();
             }
             rt = Errno.OK;
             FaiBuffer sendBuf = new FaiBuffer(true);

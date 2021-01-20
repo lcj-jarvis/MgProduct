@@ -11,12 +11,12 @@ public class BizSalesReportDaoCtrl extends DaoCtrl  {
         super(flow, aid);
         this.group = TABLE_ENUM.getGroup();
     }
-    public static BizSalesReportDaoCtrl getInstanceWithRegistered(int flow, int aid, TransactionCrtl transactionCrtl) {
-        if(transactionCrtl == null){
+    public static BizSalesReportDaoCtrl getInstanceWithRegistered(int flow, int aid, TransactionCtrl transactionCtrl) {
+        if(transactionCtrl == null){
             return null;
         }
         BizSalesReportDaoCtrl daoCtrl = getInstance(flow, aid);
-        if(!transactionCrtl.registered(daoCtrl)){
+        if(!transactionCtrl.registered(daoCtrl)){
             Log.logErr("registered BizSalesReportDaoCtrl err;flow=%d;aid=%d;", flow, aid);
             return null;
         }

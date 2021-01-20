@@ -43,7 +43,7 @@ public class StoreSkuSummaryDaoCtrl extends DaoCtrl {
     }
     @Override
     protected String getTableName(){
-        return TABLE_ENUM.getTable()+ "_"+ String.format("%04d", aid);
+        return TABLE_ENUM.getTable()+ "_"+ String.format("%04d", aid%1000);
     }
 
     public static final TableDBMapping.TableEnum TABLE_ENUM = TableDBMapping.TableEnum.MG_STORE_SKU_SUMMARY;

@@ -631,7 +631,7 @@ public class MgProductSpecCli extends FaiClient {
     /**
      * 批量删除商品所有规格
      */
-    public int batchDelPdAllSc(int aid, int tid, int unionPriId, FaiList<Integer> pdIdList){
+    public int batchDelPdAllSc(int aid, int tid, FaiList<Integer> pdIdList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -642,7 +642,6 @@ public class MgProductSpecCli extends FaiClient {
             }
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
-            sendBody.putInt(ProductSpecDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(ProductSpecDto.Key.TID, tid);
             pdIdList.toBuffer(sendBody, ProductSpecDto.Key.PD_ID_LIST);
 

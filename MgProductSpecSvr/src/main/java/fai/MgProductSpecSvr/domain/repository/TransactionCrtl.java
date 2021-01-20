@@ -5,10 +5,7 @@ import fai.comm.util.DaoPool;
 import fai.comm.util.Errno;
 import fai.comm.util.Log;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 
 public class TransactionCrtl {
@@ -46,10 +43,12 @@ public class TransactionCrtl {
         }
     }
     public void closeDao(){
-        for (Map.Entry<DaoPool, DaoCtrl> daoPoolDaoCtrlEntry : firstDaoCtrlCache.entrySet()) {
+        Iterator<Map.Entry<DaoPool, DaoCtrl>> iterator = firstDaoCtrlCache.entrySet().iterator();
+        while (iterator.hasNext()){
+            Map.Entry<DaoPool, DaoCtrl> daoPoolDaoCtrlEntry =  iterator.next();
             DaoCtrl daoCtrl = daoPoolDaoCtrlEntry.getValue();
             daoCtrl.closeDao();
-            firstDaoCtrlCache.put(daoPoolDaoCtrlEntry.getKey(), null);
+            iterator.remove();
         }
     }
 

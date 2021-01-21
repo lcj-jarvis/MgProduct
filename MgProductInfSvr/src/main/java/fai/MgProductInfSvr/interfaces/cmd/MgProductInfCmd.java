@@ -85,11 +85,11 @@ public class MgProductInfCmd {
 
         /**@see StoreSalesSkuCmd#SET_LIST */
         public static final int NUM22 = 1022;
-        /**@see StoreSalesSkuCmd#REDUCE_STORE */
+        /**@see StoreSalesSkuCmd#BATCH_REDUCE_STORE */
         public static final int NUM23 = 1023;
-        /**@see StoreSalesSkuCmd#REDUCE_HOLDING_STORE */
+        /**@see StoreSalesSkuCmd#BATCH_REDUCE_HOLDING_STORE */
         public static final int NUM24 = 1024;
-        /**@see StoreSalesSkuCmd#MAKE_UP_STORE */
+        /**@see StoreSalesSkuCmd#BATCH_MAKE_UP_STORE */
         public static final int NUM25 = 1025;
 
         /**@see InOutStoreRecordCmd#ADD_LIST */
@@ -189,9 +189,9 @@ public class MgProductInfCmd {
         public static final int GET_LIST = ReadCmdNum.NUM13;
 
         public static final int SET_LIST = WriteCmdNum.NUM22;
-        public static final int REDUCE_STORE = WriteCmdNum.NUM23;
-        public static final int REDUCE_HOLDING_STORE = WriteCmdNum.NUM24;
-        public static final int MAKE_UP_STORE = WriteCmdNum.NUM25;
+        public static final int BATCH_REDUCE_STORE = WriteCmdNum.NUM23;
+        public static final int BATCH_REDUCE_HOLDING_STORE = WriteCmdNum.NUM24;
+        public static final int BATCH_MAKE_UP_STORE = WriteCmdNum.NUM25;
     }
 
     /**

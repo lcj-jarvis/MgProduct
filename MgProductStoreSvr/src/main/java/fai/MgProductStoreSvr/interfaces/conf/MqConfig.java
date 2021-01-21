@@ -20,4 +20,9 @@ public class MqConfig {
         public static final String TOPIC = "mg_productStore_storeSkuReport_topic";
         public static final String TAG = "mg_productStore_storeSkuReport_tag";
     }
+    public class StoreSalesDelCheck extends Comm {
+        public static final String TOPIC = "mg_productStore_storeSalesDelCheck_topic";
+        public static final String TAG = "mg_productStore_storeSalesDelCheck_tag";
+    }
+
 }

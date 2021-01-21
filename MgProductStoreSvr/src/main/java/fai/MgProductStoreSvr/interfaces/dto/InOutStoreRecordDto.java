@@ -28,6 +28,8 @@ public class InOutStoreRecordDto {
         g_dtoDef.add(InOutStoreRecordEntity.Info.REMARK, 18, Var.Type.STRING);
         g_dtoDef.add(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, 19, Var.Type.INT);
         g_dtoDef.add(InOutStoreRecordEntity.Info.REMAIN_COUNT, 20, Var.Type.INT);
+        g_dtoDef.add(InOutStoreRecordEntity.Info.RL_ORDER_CODE, 21, Var.Type.STRING);
+        g_dtoDef.add(InOutStoreRecordEntity.Info.RL_REFUND_ID, 22, Var.Type.STRING);
     }
 
     public static ParamDef getInfoDto() {

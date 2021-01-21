@@ -113,24 +113,14 @@ public class ProductStoreService extends MgProductInfService {
     }
 
     /**
-     * 扣减库存
-     * @param session
-     * @param flow
-     * @param aid
-     * @param tid
-     * @param siteId
-     * @param lgId
-     * @param keepPriId1
-     * @param skuId
-     * @param rlOrderId 业务订单id
-     * @param count 扣减数量
+     * 批量扣减库存
+     * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
+     * @param rlOrderCode 业务订单id/code
      * @param reduceMode
-     *  扣减模式 {@link ProductStoreValObj.StoreSalesSku.ReduceMode}
+     * 扣减模式 {@link ProductStoreValObj.StoreSalesSku.ReduceMode}
      * @param expireTimeSeconds 配合预扣模式，单位s
-     * @return
-     * @throws IOException
      */
-    public int reducePdSkuStore(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, long skuId, int rlOrderId, int count, int reduceMode, int expireTimeSeconds) throws IOException  {
+    public int batchReducePdSkuStore(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> skuIdCountList, String rlOrderCode, int reduceMode, int expireTimeSeconds) throws IOException  {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -149,7 +139,7 @@ public class ProductStoreService extends MgProductInfService {
             int unionPriId = idRef.value;
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-            rt = productStoreProc.reducePdSkuStore(aid, tid, unionPriId, skuId, rlOrderId, count, reduceMode, expireTimeSeconds);
+            rt = productStoreProc.batchReducePdSkuStore(aid, tid, unionPriId, skuIdCountList, rlOrderCode, reduceMode, expireTimeSeconds);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -162,20 +152,16 @@ public class ProductStoreService extends MgProductInfService {
         return rt;
     }
 
+
     /**
+     * 批量扣减预扣库存
      * 预扣模式 {@link ProductStoreValObj.StoreSalesSku.ReduceMode#HOLDING} 步骤2
-     * @param session
-     * @param flow
-     * @param aid
-     * @param tid
-     * @param siteId
-     * @param lgId
-     * @param keepPriId1
-     * @param skuId
-     * @param rlOrderId 业务订单id
-     * @param count 扣减数量
+     * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
+     * @param rlOrderCode 业务订单id/code
+     * @param outStoreRecordInfo 出库记录
+     * @return
      */
-    public int reducePdSkuHoldingStore(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, long skuId, int rlOrderId, int count) throws IOException  {
+    public int batchReducePdSkuHoldingStore(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> skuIdCountList, String rlOrderCode, Param outStoreRecordInfo) throws IOException  {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -194,7 +180,7 @@ public class ProductStoreService extends MgProductInfService {
             int unionPriId = idRef.value;
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-            rt = productStoreProc.reducePdSkuHoldingStore(aid, tid, unionPriId, skuId, rlOrderId, count);
+            rt = productStoreProc.batchReducePdSkuHoldingStore(aid, tid, unionPriId, skuIdCountList, rlOrderCode, outStoreRecordInfo);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -207,24 +193,16 @@ public class ProductStoreService extends MgProductInfService {
         return rt;
     }
 
+
     /**
-     * 扣减库存
-     * @param session
-     * @param flow
-     * @param aid
-     * @param tid
-     * @param siteId
-     * @param lgId
-     * @param keepPriId1
-     * @param skuId
-     * @param rlOrderId 业务订单id
-     * @param count 扣减数量
+     * 补偿库存
+     * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
+     * @param rlOrderCode 业务订单id/code
      * @param reduceMode
      *  扣减模式 {@link ProductStoreValObj.StoreSalesSku.ReduceMode}
      * @return
-     * @throws IOException
      */
-    public int makeUpStore(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, long skuId, int rlOrderId, int count, int reduceMode) throws IOException  {
+    public int batchMakeUpStore(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> skuIdCountList, String rlOrderCode, int reduceMode) throws IOException  {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -243,7 +221,7 @@ public class ProductStoreService extends MgProductInfService {
             int unionPriId = idRef.value;
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-            rt = productStoreProc.makeUpStore(aid, unionPriId, skuId, rlOrderId, count, reduceMode);
+            rt = productStoreProc.batchMakeUpStore(aid, unionPriId, skuIdCountList, rlOrderCode, reduceMode);
             if(rt != Errno.OK) {
                 return rt;
             }

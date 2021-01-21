@@ -272,13 +272,13 @@ public class ProductSpecService extends ServicePub {
         return rt;
     }
 
-    public int batchDelPdAllSc(FaiSession session, int flow, int aid, int tid, int unionPriId, FaiList<Integer> pdIdList) throws IOException {
+    public int batchDelPdAllSc(FaiSession session, int flow, int aid, int tid, FaiList<Integer> pdIdList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
-            if (aid <= 0 || tid <= 0 || unionPriId<=0 || pdIdList == null || pdIdList.isEmpty()) {
+            if (aid <= 0 || tid <= 0 || pdIdList == null || pdIdList.isEmpty()) {
                 rt = Errno.ARGS_ERROR;
-                Log.logErr("arg err;flow=%d;aid=%d;tid=%s;unionPriId=%s;pdIdList=%s;", flow, aid, tid, unionPriId, pdIdList);
+                Log.logErr("arg err;flow=%d;aid=%d;tid=%s;pdIdList=%s;", flow, aid, tid, pdIdList);
                 return rt;
             }
 
@@ -287,11 +287,11 @@ public class ProductSpecService extends ServicePub {
                 ProductSpecDaoCtrl productSpecDaoCtrl = ProductSpecDaoCtrl.getInstance(flow, aid);
                 ProductSpecSkuDaoCtrl productSpecSkuDaoCtrl = ProductSpecSkuDaoCtrl.getInstance(flow, aid);
                 if(!transactionCtrl.registered(productSpecDaoCtrl)){
-                    Log.logErr("registered ProductSpecDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
+                    Log.logErr("registered ProductSpecDaoCtrl err;flow=%d;aid=%d;", flow, aid);
                     return rt=Errno.ERROR;
                 }
                 if(!transactionCtrl.registered(productSpecSkuDaoCtrl)){
-                    Log.logErr("registered ProductSpecSkuDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
+                    Log.logErr("registered ProductSpecSkuDaoCtrl err;flow=%d;aid=%d;", flow, aid);
                     return rt=Errno.ERROR;
                 }
                 ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(productSpecSkuDaoCtrl, flow);

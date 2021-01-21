@@ -35,11 +35,12 @@ public class StoreSalesSkuDto {
     }
 
     public static class Key extends CommDtoKey{
-        public static final int RL_ORDER_ID = 11;
+        public static final int RL_ORDER_CODE = 11;
         public static final int COUNT = 12;
         public static final int REDUCE_MODE = 13;
         public static final int EXPIRE_TIME_SECONDS = 14;
-        public static final int OUT_STORE_RECORD_INFO = 15;
+        public static final int IN_OUT_STORE_RECORD_INFO = 15;
+        public static final int SKU_ID_COUNT_LIST = 16;
     }
 
     public static class CacheDto{

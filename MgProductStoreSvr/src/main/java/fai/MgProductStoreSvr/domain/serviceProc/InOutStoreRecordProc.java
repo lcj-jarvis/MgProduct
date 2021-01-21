@@ -1,6 +1,5 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
-import fai.MgProductStoreSvr.domain.comm.SkuStoreKey;
 import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordEntity;
 import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordValObj;
 import fai.MgProductStoreSvr.domain.repository.InOutStoreRecordDaoCtrl;
@@ -16,6 +15,25 @@ public class InOutStoreRecordProc {
         m_flow = flow;
     }
 
+    /**
+     * 批量添加出库记录
+     */
+    public int batchAddOutStoreRecord(int aid, int unionPriId,  Map<Long, Integer> skuIdCountMap, Param info) {
+        if(aid <= 0 || unionPriId <= 0 || skuIdCountMap == null || info == null || info.isEmpty()){
+            Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;skuIdCountMap=%s;info=%s;", m_flow, aid, unionPriId, skuIdCountMap, info);
+            return Errno.ARGS_ERROR;
+        }
+        FaiList<Param> dataList = new FaiList<>(skuIdCountMap.size());
+        skuIdCountMap.forEach((skuId, count)->{
+            Param data = info.clone();
+            data.setInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, unionPriId);
+            data.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
+            data.setInt(InOutStoreRecordEntity.Info.CHANGE_COUNT, count);
+            dataList.add(data);
+        });
+
+        return batchAdd(aid, dataList);
+    }
     /**
      * 添加一条出库记录
      */
@@ -37,6 +55,14 @@ public class InOutStoreRecordProc {
         int rt = Errno.ERROR;
         Calendar now = Calendar.getInstance();
         String yyMMdd = Parser.parseString(now, "yyMMdd");
+
+        Integer ioStoreRecId = m_daoCtrl.buildId();
+        if(ioStoreRecId == null){
+            Log.logErr("buildId err aid=%s", aid);
+            return Errno.ERROR;
+        }
+        String number = yyMMdd+String.format("%04d", ioStoreRecId);
+
         for (Param info : infoList) {
             int unionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, 0);
             long skuId = info.getLong(InOutStoreRecordEntity.Info.SKU_ID, 0L);
@@ -53,6 +79,7 @@ public class InOutStoreRecordProc {
             searchArg.matcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
             searchArg.matcher.and(InOutStoreRecordEntity.Info.SKU_ID, ParamMatcher.EQ, skuId);
             searchArg.cmpor = new ParamComparator(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, true);
+
             Ref<Param> infoRef = new Ref<>();
             rt = m_daoCtrl.selectFirst(searchArg, infoRef);
             if(rt != Errno.OK && rt != Errno.NOT_FOUND){
@@ -60,6 +87,7 @@ public class InOutStoreRecordProc {
                 return rt;
             }
             Param recentlyRecord = infoRef.value;
+            Log.logDbg("whalelog  recentlyRecord=%s", recentlyRecord);
             int pdId = info.getInt(InOutStoreRecordEntity.Info.PD_ID, recentlyRecord.getInt(InOutStoreRecordEntity.Info.PD_ID, 0));
             int rlPdId = info.getInt(InOutStoreRecordEntity.Info.RL_PD_ID, recentlyRecord.getInt(InOutStoreRecordEntity.Info.RL_PD_ID, 0));
             if(pdId == 0 || rlPdId == 0){
@@ -75,11 +103,6 @@ public class InOutStoreRecordProc {
                 rt = Errno.ARGS_ERROR;
                 Log.logErr(rt, e, "arg err;flow=%d;aid=%d;info=%s;oldRemainCount=%s;", m_flow, aid, info, oldRemainCount);
                 return rt;
-            }
-            Integer ioStoreRecId = m_daoCtrl.buildId();
-            if(ioStoreRecId == null){
-                Log.logErr("buildId err aid=%s", aid);
-                return Errno.ERROR;
             }
 
             Param data = new Param();
@@ -99,12 +122,14 @@ public class InOutStoreRecordProc {
                 data.setInt(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, changeCount);
             }
             data.assign(info, InOutStoreRecordEntity.Info.PRICE);
-            data.setString(InOutStoreRecordEntity.Info.NUMBER, yyMMdd+String.format("%04d", ioStoreRecId));
+            data.setString(InOutStoreRecordEntity.Info.NUMBER, number);
             data.assign(info, InOutStoreRecordEntity.Info.OPT_SID);
             data.assign(info, InOutStoreRecordEntity.Info.HEAD_SID);
             data.assign(info, InOutStoreRecordEntity.Info.OPT_TIME);
             data.assign(info, InOutStoreRecordEntity.Info.FLAG);
             data.assign(info, InOutStoreRecordEntity.Info.REMARK);
+            data.assign(info, InOutStoreRecordEntity.Info.RL_ORDER_CODE);
+            data.assign(info, InOutStoreRecordEntity.Info.RL_REFUND_ID);
             data.assign(info, InOutStoreRecordEntity.Info.KEEP_INT_PROP1);
             data.assign(info, InOutStoreRecordEntity.Info.KEEP_PROP1);
             data.setCalendar(InOutStoreRecordEntity.Info.SYS_UPDATE_TIME, now);

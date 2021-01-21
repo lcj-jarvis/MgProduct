@@ -10,7 +10,6 @@ import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class MgProductInfCli extends FaiClient {
@@ -1996,7 +1995,7 @@ public class MgProductInfCli extends FaiClient {
      * @param outStoreRecordInfo 出库记录
      * @return
      */
-    public int batchReducePdSkuHoldingStore(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> skuIdCountList, String rlOrderCode, Param outStoreRecordInfo) throws IOException {
+    public int batchReducePdSkuHoldingStore(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> skuIdCountList, String rlOrderCode, Param outStoreRecordInfo){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2063,7 +2062,7 @@ public class MgProductInfCli extends FaiClient {
      *  扣减模式 {@link ProductStoreValObj.StoreSalesSku.ReduceMode}
      * @return
      */
-    public int batchMakeUpPdSkuStore(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> skuIdCountList, String rlOrderCode, int reduceMode) throws IOException {
+    public int batchMakeUpPdSkuStore(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> skuIdCountList, String rlOrderCode, int reduceMode){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {

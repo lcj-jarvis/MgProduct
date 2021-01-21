@@ -11,6 +11,7 @@ import fai.comm.cache.redis.config.RedisClientConfig;
 import fai.comm.cache.redis.pool.JedisPool;
 import fai.comm.cache.redis.pool.JedisPoolFactory;
 import fai.comm.distributedkit.lock.PosDistributedLock;
+import fai.comm.distributedkit.lock.support.FaiLockGenerator;
 import fai.comm.jnetkit.config.ParamKeyMapping;
 import fai.comm.jnetkit.server.ServerConfig;
 import fai.comm.jnetkit.server.fai.FaiServer;
@@ -59,13 +60,15 @@ public class MgProductStoreSvr {
             }
             // 分布式分段锁
             {
-                long lockLease = SVR_OPTION.getLockLease();
                 int lockLength = SVR_OPTION.getLockLength();
+                int lockLease = SVR_OPTION.getLockLease();
                 long retryLockTime = SVR_OPTION.getRetryLockTime();
                 Log.logStd("lockLength=%d;", lockLength);
                 Log.logStd("lockLease=%d;", lockLease);
                 Log.logStd("retryLockTime=%d;", retryLockTime);
-                LockUtil.initLock(new PosDistributedLock(m_cache, lockLength , LOCK_TYPE, lockLease, retryLockTime));
+
+                FaiLockGenerator lockGenerator = new FaiLockGenerator(m_cache);
+                LockUtil.initLock(lockGenerator, lockLease, retryLockTime);
             }
             // 初始化idbuilder
             {
@@ -74,13 +77,6 @@ public class MgProductStoreSvr {
         }
         // 异步任务
         {
-            /*BizSalesReportTaskOption bizSalesReportTaskOption = config.getConfigObject(BizSalesReportTaskOption.class);
-            Log.logStd("%s", bizSalesReportTaskOption);
-            if(bizSalesReportTaskOption.isOpen()){
-                Thread bizSalesReportTask = new Thread(new BizSalesReportTask(daoProxy, bizSalesReportTaskOption), "BizSalesReportTask");
-                bizSalesReportTask.start();
-                server.addCoreThread(bizSalesReportTask);
-            }*/
             HoldingStoreMakeUpTaskOption holdingStoreMakeUpTaskOption = config.getConfigObject(HoldingStoreMakeUpTaskOption.class);
             Log.logStd("%s", holdingStoreMakeUpTaskOption);
             if(holdingStoreMakeUpTaskOption.isOpen()){
@@ -133,65 +129,7 @@ public class MgProductStoreSvr {
                     '}';
         }
     }
-    @ParamKeyMapping(path = ".svr.bizSalesReportTask")
-    public static class BizSalesReportTaskOption {
-        private boolean open = false;
-        private int startSleepMinutes = 5; // 延迟启动
-        private int batchSize = 10;
-        private int errSleepSeconds = 10;
-        private int emptyTaskSleepSeconds = 1;
 
-        public boolean isOpen() {
-            return open;
-        }
-
-        public void setOpen(boolean open) {
-            this.open = open;
-        }
-
-        public int getStartSleepMinutes() {
-            return startSleepMinutes;
-        }
-
-        public void setStartSleepMinutes(int startSleepMinutes) {
-            this.startSleepMinutes = startSleepMinutes;
-        }
-
-        public int getBatchSize() {
-            return batchSize;
-        }
-
-        public void setBatchSize(int batchSize) {
-            this.batchSize = batchSize;
-        }
-
-        public int getErrSleepSeconds() {
-            return errSleepSeconds;
-        }
-
-        public void setErrSleepSeconds(int errSleepSeconds) {
-            this.errSleepSeconds = errSleepSeconds;
-        }
-
-        public int getEmptyTaskSleepSeconds() {
-            return emptyTaskSleepSeconds;
-        }
-
-        public void setEmptyTaskSleepSeconds(int emptyTaskSleepSeconds) {
-            this.emptyTaskSleepSeconds = emptyTaskSleepSeconds;
-        }
-
-        @Override
-        public String toString() {
-            return "BizSalesReportTaskOption{" +
-                    "open=" + open +
-                    ", startSleepMinutes=" + startSleepMinutes +
-                    ", batchSize=" + batchSize +
-                    ", errSleepSeconds=" + errSleepSeconds +
-                    ", emptyTaskSleepSeconds=" + emptyTaskSleepSeconds +
-                    '}';
-        }
-    }
     @ParamKeyMapping(path = ".svr.holdingStoreMakeUpTask")
     public static class HoldingStoreMakeUpTaskOption {
         private boolean open = false;

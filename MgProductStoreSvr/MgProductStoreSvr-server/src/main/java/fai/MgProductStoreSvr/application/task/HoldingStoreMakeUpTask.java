@@ -3,12 +3,12 @@ package fai.MgProductStoreSvr.application.task;
 import fai.MgProductStoreSvr.application.MgProductStoreSvr;
 import fai.MgProductStoreSvr.domain.entity.HoldingRecordEntity;
 import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuValObj;
-import fai.MgProductStoreSvr.domain.repository.HoldingRecordDaoCtrl;
 import fai.MgProductStoreSvr.domain.repository.TableDBMapping;
 import fai.MgProductStoreSvr.interfaces.cli.MgProductStoreCli;
 import fai.comm.middleground.repository.DaoProxy;
 import fai.comm.util.*;
 
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
 
@@ -56,11 +56,18 @@ public class HoldingStoreMakeUpTask implements Runnable{
                 for (Param info : list) {
                     int aid = info.getInt(HoldingRecordEntity.Info.AID);
                     int unionPriId = info.getInt(HoldingRecordEntity.Info.UNION_PRI_ID);
-                    int skuId = info.getInt(HoldingRecordEntity.Info.SKU_ID);
-                    int rlOrderId = info.getInt(HoldingRecordEntity.Info.RL_ORDER_ID);
+                    Long skuId = info.getLong(HoldingRecordEntity.Info.SKU_ID);
+                    String rlOrderCode = info.getString(HoldingRecordEntity.Info.RL_ORDER_CODE);
                     int count = info.getInt(HoldingRecordEntity.Info.COUNT);
+                    FaiList<Param> skuIdCountList = new FaiList<>(
+                            Arrays.asList(
+                                    new Param()
+                                            .setLong(HoldingRecordEntity.Info.SKU_ID, skuId)
+                                            .setInt(HoldingRecordEntity.Info.COUNT, count)
+                            )
+                    );
                     Log.logDbg("whalelog  info=%s", info);
-                    int rt = cli.makeUpStore(aid, unionPriId, skuId, rlOrderId, count, StoreSalesSkuValObj.ReduceMode.HOLDING);
+                    int rt = cli.batchMakeUpStore(aid, unionPriId, skuIdCountList, rlOrderCode, StoreSalesSkuValObj.ReduceMode.HOLDING);
                     if(rt != Errno.OK){
                         errCount++;
                     }

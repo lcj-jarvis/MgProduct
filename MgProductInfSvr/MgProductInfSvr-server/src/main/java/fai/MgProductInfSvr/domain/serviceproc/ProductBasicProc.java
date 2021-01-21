@@ -156,6 +156,27 @@ public class ProductBasicProc {
     }
 
     /**
+     * 批量新增商品业务关联
+     */
+    public int batchBindProductRel(int aid, int tid, Param bindRlPdInfo, FaiList<Param> infoList) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        rt = m_cli.batchBindProductRel(aid, tid, bindRlPdInfo, infoList);
+        if(rt != Errno.OK) {
+            if(rt != Errno.NOT_FOUND) {
+                Log.logErr(rt, "batchBindProductRel error;flow=%d;aid=%d;", m_flow, aid);
+            }
+            return rt;
+        }
+
+        return rt;
+    }
+
+    /**
      * 删除指定id列表(rlPdIds)的商品数据，同时删除所有相关业务关联数据
      * @return
      */
@@ -192,6 +213,47 @@ public class ProductBasicProc {
         if(rt != Errno.OK) {
             if(rt != Errno.NOT_FOUND) {
                 Log.logErr(rt, "getRelInfoByRlId error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            }
+            return rt;
+        }
+
+        return rt;
+    }
+
+    /**
+     * 根据业务商品id集合，获取商品业务关系数据集合
+     */
+    public int getRelListByRlIds(int aid, int unionPriId, FaiList<Integer> rlPdIds, FaiList<Param> list) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.getRelListByRlIds(aid, unionPriId, rlPdIds, list);
+        if(rt != Errno.OK) {
+            if(rt != Errno.NOT_FOUND) {
+                Log.logErr(rt, "getRelListByRlIds error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            }
+            return rt;
+        }
+
+        return rt;
+    }
+    /**
+     * 根据pdIds获取业务关联数据，仅获取有限的字段，aid+unionPriId+pdId+rlPdId
+     */
+    public int getReducedRelsByPdIds(int aid, int unionPriId, FaiList<Integer> pdIds, FaiList<Param> list){
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.getReducedRelsByPdIds(aid, unionPriId, pdIds, list);
+        if(rt != Errno.OK) {
+            if(rt != Errno.NOT_FOUND) {
+                Log.logErr(rt, "getReducedRelsByPdIds error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             }
             return rt;
         }

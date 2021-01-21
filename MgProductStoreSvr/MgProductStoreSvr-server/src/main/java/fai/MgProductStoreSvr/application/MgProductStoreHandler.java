@@ -116,45 +116,46 @@ public class MgProductStoreHandler extends FaiHandler {
     }
 
     @WrittenCmd
-    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.REDUCE_STORE)
-    private int reducePdSkuStore(final FaiSession session,
-                                     @ArgFlow final int flow,
-                                     @ArgAid final int aid,
-                                     @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
-                                     @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
-                                     @ArgBodyLong(StoreSalesSkuDto.Key.SKU_ID) final long skuId,
-                                     @ArgBodyInteger(StoreSalesSkuDto.Key.RL_ORDER_ID) final int rlOrderId,
-                                     @ArgBodyInteger(StoreSalesSkuDto.Key.COUNT) final int count,
-                                     @ArgBodyInteger(StoreSalesSkuDto.Key.REDUCE_MODE) final int reduceMode,
-                                     @ArgBodyInteger(StoreSalesSkuDto.Key.EXPIRE_TIME_SECONDS) final int expireTimeSeconds) throws IOException {
-        return  m_storeService.reducePdSkuStore(session, flow, aid, tid, unionPriId, skuId, rlOrderId, count, reduceMode, expireTimeSeconds);
-    }
-
-    @WrittenCmd
-    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.REDUCE_HOLDING_STORE)
-    private int reducePdSkuHoldingStore(final FaiSession session,
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_REDUCE_STORE)
+    private int batchReducePdSkuStore(final FaiSession session,
                                  @ArgFlow final int flow,
                                  @ArgAid final int aid,
                                  @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
                                  @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
-                                 @ArgBodyLong(StoreSalesSkuDto.Key.SKU_ID) final long skuId,
-                                 @ArgBodyInteger(StoreSalesSkuDto.Key.RL_ORDER_ID) final int rlOrderId,
-                                 @ArgBodyInteger(StoreSalesSkuDto.Key.COUNT) final int count,
-                                 @ArgParam(classDef = InOutStoreRecordDto.class, methodDef ="getInfoDto", keyMatch=StoreSalesSkuDto.Key.OUT_STORE_RECORD_INFO)
-                                                    Param outStoreRecordInfo) throws IOException {
-        return  m_storeService.reducePdSkuHoldingStore(session, flow, aid, tid, unionPriId, skuId, rlOrderId, count, outStoreRecordInfo);
+                                 @ArgList(classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto", keyMatch = StoreSalesSkuDto.Key.SKU_ID_COUNT_LIST)
+                                          FaiList<Param> skuIdCountList,
+                                 @ArgBodyString(StoreSalesSkuDto.Key.RL_ORDER_CODE) final String rlOrderCode,
+                                 @ArgBodyInteger(StoreSalesSkuDto.Key.REDUCE_MODE) final int reduceMode,
+                                 @ArgBodyInteger(StoreSalesSkuDto.Key.EXPIRE_TIME_SECONDS) final int expireTimeSeconds) throws IOException {
+        return  m_storeService.batchReducePdSkuStore(session, flow, aid, tid, unionPriId, skuIdCountList, rlOrderCode, reduceMode, expireTimeSeconds);
     }
+
     @WrittenCmd
-    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.MAKE_UP_STORE)
-    private int makeUpStore(final FaiSession session,
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_REDUCE_HOLDING_STORE)
+    private int batchReducePdSkuHoldingStore(final FaiSession session,
+                                        @ArgFlow final int flow,
+                                        @ArgAid final int aid,
+                                        @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
+                                        @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
+                                        @ArgList(classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto", keyMatch = StoreSalesSkuDto.Key.SKU_ID_COUNT_LIST)
+                                                 FaiList<Param> skuIdCountList,
+                                        @ArgBodyString(StoreSalesSkuDto.Key.RL_ORDER_CODE) final String rlOrderCode,
+                                        @ArgParam(classDef = InOutStoreRecordDto.class, methodDef ="getInfoDto", keyMatch=StoreSalesSkuDto.Key.IN_OUT_STORE_RECORD_INFO)
+                                                Param outStoreRecordInfo) throws IOException {
+        return  m_storeService.batchReducePdSkuHoldingStore(session, flow, aid, tid, unionPriId, skuIdCountList, rlOrderCode, outStoreRecordInfo);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_MAKE_UP_STORE)
+    private int batchMakeUpStore(final FaiSession session,
                             @ArgFlow final int flow,
                             @ArgAid final int aid,
                             @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
-                            @ArgBodyLong(StoreSalesSkuDto.Key.SKU_ID) final long skuId,
-                            @ArgBodyInteger(StoreSalesSkuDto.Key.RL_ORDER_ID) final int rlOrderId,
-                            @ArgBodyInteger(StoreSalesSkuDto.Key.COUNT) final int count,
+                            @ArgList(classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto", keyMatch = StoreSalesSkuDto.Key.SKU_ID_COUNT_LIST)
+                                     FaiList<Param> skuIdCountList,
+                            @ArgBodyString(StoreSalesSkuDto.Key.RL_ORDER_CODE) final String rlOrderCode,
                             @ArgBodyInteger(StoreSalesSkuDto.Key.REDUCE_MODE) final int reduceMode) throws IOException {
-        return  m_storeService.makeUpStore(session, flow, aid, unionPriId, skuId, rlOrderId, count, reduceMode);
+        return  m_storeService.batchMakeUpStore(session, flow, aid, unionPriId, skuIdCountList, rlOrderCode, reduceMode);
     }
 
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.GET_LIST)

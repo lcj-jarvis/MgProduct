@@ -60,6 +60,8 @@ public class ProductStoreDto {
             g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.OWNER_RL_PD_ID, 21, Var.Type.INT);
             g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.REMAIN_COUNT, 22, Var.Type.INT);
             g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.IN_PD_SC_STR_NAME_LIST, 23, Var.Type.FAI_LIST);
+            g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.RL_ORDER_CODE, 24, Var.Type.STRING);
+            g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.RL_REFUND_ID, 25, Var.Type.STRING);
 
         }
         public static ParamDef getInfoDto() {
@@ -138,12 +140,13 @@ public class ProductStoreDto {
         public static final int ID_LIST = 9;
         public static final int SKU_ID = 10;
 
-        public static final int RL_ORDER_ID = 11;
+        public static final int RL_ORDER_CODE = 11;
         public static final int COUNT = 12;
         public static final int REDUCE_MODE = 13;
         public static final int EXPIRE_TIME_SECONDS = 14;
 
         public static final int SEARCH_ARG = 15;
         public static final int TOTAL_SIZE = 16;
+        public static final int IN_OUT_STORE_RECODR = 17;
     }
 }

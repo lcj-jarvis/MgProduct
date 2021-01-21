@@ -57,9 +57,6 @@ public class InOutStoreRecordValObj {
                 default:
                     throw new RuntimeException("optType err;optType="+ optType);
             }
-            if(count < 0){
-                throw new RuntimeException("compute err;result count="+count);
-            }
             return count;
         }
     }

@@ -139,25 +139,20 @@ public class MgProductStoreCli extends FaiClient {
     }
 
     /**
-     * 扣减库存
-     * @param aid
-     * @param tid
-     * @param unionPriId
-     * @param skuId
-     * @param rlOrderId 业务订单id
-     * @param count 扣减数量
+     * 批量扣减库存
+     * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
+     * @param rlOrderCode 业务订单id/code
      * @param reduceMode
      * 扣减模式 {@link StoreSalesSkuValObj.ReduceMode}
      * @param expireTimeSeconds 配合预扣模式，单位s
-     * @return
      */
-    public int reducePdSkuStore(int aid, int tid, int unionPriId, long skuId, int rlOrderId, int count, int reduceMode, int expireTimeSeconds){
+    public int batchReducePdSkuStore(int aid, int tid, int unionPriId, FaiList<Param> skuIdCountList, String rlOrderCode, int reduceMode, int expireTimeSeconds){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
-            if (aid == 0 || tid == 0 || unionPriId == 0 || skuId == 0 || rlOrderId == 0 || count == 0 || reduceMode == 0 || expireTimeSeconds < 0) {
+            if (aid == 0 || tid == 0 || unionPriId == 0 || skuIdCountList == null || skuIdCountList.isEmpty() || Str.isEmpty(rlOrderCode) || reduceMode == 0 || expireTimeSeconds < 0) {
                 m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "args error;aid=%s;tid=%s;unionPriId=%s;skuId=%s;rlOrderId=%s;count=%s;reduceMode=%s;expireTimeSeconds=%s;", aid, tid, unionPriId, skuId, rlOrderId, count, reduceMode, expireTimeSeconds);
+                Log.logErr(m_rt, "args error;aid=%s;tid=%s;unionPriId=%s;skuIdCountList=%s;rlOrderCode=%s;reduceMode=%s;expireTimeSeconds=%s;", aid, tid, unionPriId, skuIdCountList, rlOrderCode, reduceMode, expireTimeSeconds);
                 return m_rt;
             }
 
@@ -165,14 +160,13 @@ public class MgProductStoreCli extends FaiClient {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(StoreSalesSkuDto.Key.TID, tid);
             sendBody.putInt(StoreSalesSkuDto.Key.UNION_PRI_ID, unionPriId);
-            sendBody.putLong(StoreSalesSkuDto.Key.SKU_ID, skuId);
-            sendBody.putInt(StoreSalesSkuDto.Key.RL_ORDER_ID, rlOrderId);
-            sendBody.putInt(StoreSalesSkuDto.Key.COUNT, count);
+            skuIdCountList.toBuffer(sendBody, StoreSalesSkuDto.Key.SKU_ID_COUNT_LIST, StoreSalesSkuDto.getInfoDto());
+            sendBody.putString(StoreSalesSkuDto.Key.RL_ORDER_CODE, rlOrderCode);
             sendBody.putInt(StoreSalesSkuDto.Key.REDUCE_MODE, reduceMode);
             sendBody.putInt(StoreSalesSkuDto.Key.EXPIRE_TIME_SECONDS, expireTimeSeconds);
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.REDUCE_STORE);
+            sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_REDUCE_STORE);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);
@@ -199,42 +193,33 @@ public class MgProductStoreCli extends FaiClient {
         }
     }
 
-    @Deprecated
-    public int reducePdSkuHoldingStore(int aid, int tid, int unionPriId, long skuId, int rlOrderId, int count){
-        Param outStoreRecordInfo = new Param();
-        return reducePdSkuHoldingStore(aid, tid, unionPriId, skuId, rlOrderId, count, outStoreRecordInfo);
-    }
     /**
+     * 批量扣减预扣库存
      * 预扣模式 {@link StoreSalesSkuValObj.ReduceMode#HOLDING} 步骤2
-     * @param aid
-     * @param tid
-     * @param unionPriId
-     * @param skuId
-     * @param rlOrderId 业务订单id
-     * @param count 扣减数量
+     * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
+     * @param rlOrderCode 业务订单id/code
      * @param outStoreRecordInfo 出库记录
+     * @return
      */
-    public int reducePdSkuHoldingStore(int aid, int tid, int unionPriId, long skuId, int rlOrderId, int count, Param outStoreRecordInfo){
+    public int batchReducePdSkuHoldingStore(int aid, int tid, int unionPriId, FaiList<Param> skuIdCountList, String rlOrderCode, Param outStoreRecordInfo){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
-            if (aid == 0 || tid == 0 || unionPriId == 0 || skuId == 0 || rlOrderId == 0 || count == 0 || outStoreRecordInfo == null ) {
+            if (aid == 0 || tid == 0 || unionPriId == 0 || skuIdCountList == null || skuIdCountList.isEmpty() || Str.isEmpty(rlOrderCode) || outStoreRecordInfo == null ) {
                 m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "args error;aid=%s;tid=%s;unionPriId=%s;skuId=%s;rlOrderId=%s;count=%s;outStoreRecordInfo=%s;", aid, tid, unionPriId, skuId, rlOrderId, count, outStoreRecordInfo);
+                Log.logErr(m_rt, "args error;aid=%s;tid=%s;unionPriId=%s;skuIdCountList=%s;rlOrderCode=%s;outStoreRecordInfo=%s;", aid, tid, unionPriId, skuIdCountList, rlOrderCode, outStoreRecordInfo);
                 return m_rt;
             }
-
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(StoreSalesSkuDto.Key.TID, tid);
             sendBody.putInt(StoreSalesSkuDto.Key.UNION_PRI_ID, unionPriId);
-            sendBody.putLong(StoreSalesSkuDto.Key.SKU_ID, skuId);
-            sendBody.putInt(StoreSalesSkuDto.Key.RL_ORDER_ID, rlOrderId);
-            sendBody.putInt(StoreSalesSkuDto.Key.COUNT, count);
-            outStoreRecordInfo.toBuffer(sendBody, StoreSalesSkuDto.Key.OUT_STORE_RECORD_INFO, InOutStoreRecordDto.getInfoDto());
+            skuIdCountList.toBuffer(sendBody, StoreSalesSkuDto.Key.SKU_ID_COUNT_LIST, StoreSalesSkuDto.getInfoDto());
+            sendBody.putString(StoreSalesSkuDto.Key.RL_ORDER_CODE, rlOrderCode);
+            outStoreRecordInfo.toBuffer(sendBody, StoreSalesSkuDto.Key.IN_OUT_STORE_RECORD_INFO, InOutStoreRecordDto.getInfoDto());
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.REDUCE_HOLDING_STORE);
+            sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_REDUCE_HOLDING_STORE);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);
@@ -260,28 +245,34 @@ public class MgProductStoreCli extends FaiClient {
             stat.end((m_rt != Errno.OK), m_rt);
         }
     }
+
     /**
-     * 补偿库存
+     * 批量补偿库存
+     * @param unionPriId
+     * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
+     * @param rlOrderCode 业务订单id/code
+     * @param reduceMode
+     * 扣减模式 {@link StoreSalesSkuValObj.ReduceMode}
+     * @return
      */
-    public int makeUpStore(int aid, int unionPriId, long skuId, int rlOrderId, int count, int reduceMode){
+    public int batchMakeUpStore(int aid, int unionPriId, FaiList<Param> skuIdCountList, String rlOrderCode, int reduceMode){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
-            if (aid == 0) {
+            if (aid == 0 || unionPriId == 0 || skuIdCountList == null || skuIdCountList.isEmpty() || Str.isEmpty(rlOrderCode)) {
                 m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "args error");
+                Log.logErr(m_rt, "args error;aid=%s;unionPriId=%s;skuIdCountList=%s;rlOrderCode=%s;", aid, unionPriId, skuIdCountList, rlOrderCode);
                 return m_rt;
             }
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(StoreSalesSkuDto.Key.UNION_PRI_ID, unionPriId);
-            sendBody.putLong(StoreSalesSkuDto.Key.SKU_ID, skuId);
-            sendBody.putInt(StoreSalesSkuDto.Key.RL_ORDER_ID, rlOrderId);
-            sendBody.putInt(StoreSalesSkuDto.Key.COUNT, count);
+            skuIdCountList.toBuffer(sendBody, StoreSalesSkuDto.Key.SKU_ID_COUNT_LIST, StoreSalesSkuDto.getInfoDto());
+            sendBody.putString(StoreSalesSkuDto.Key.RL_ORDER_CODE, rlOrderCode);
             sendBody.putInt(StoreSalesSkuDto.Key.REDUCE_MODE, reduceMode);
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.MAKE_UP_STORE);
+            sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_MAKE_UP_STORE);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);

@@ -1,7 +1,6 @@
 package fai.MgProductStoreSvr.interfaces.dto;
 
-import fai.MgProductStoreSvr.domain.entity.StoreSkuSummaryEntity;
-import fai.MgProductStoreSvr.interfaces.entity.SalesSummaryEntity;
+import fai.MgProductStoreSvr.interfaces.entity.StoreSkuSummaryEntity;
 import fai.comm.util.ParamDef;
 import fai.comm.util.Var;
 

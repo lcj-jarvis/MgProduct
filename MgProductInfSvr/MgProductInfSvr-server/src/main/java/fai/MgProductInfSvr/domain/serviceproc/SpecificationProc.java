@@ -237,6 +237,24 @@ public class SpecificationProc {
         return rt;
     }
 
+    /**
+     * 批量删除商品所有规格
+     */
+    public int batchDelPdAllSc(int aid, int tid, FaiList<Integer> pdIdList) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get SpecificationCli error;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
+            return rt;
+        }
+        rt = m_cli.batchDelPdAllSc(aid, tid, pdIdList);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "getPdSkuScInfoList error;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
+            return rt;
+        }
+        return rt;
+    }
+
 
     private int m_flow;
     private MgProductSpecCli m_cli;

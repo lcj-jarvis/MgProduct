@@ -2,7 +2,10 @@ package fai.MgProductStoreSvr.domain.comm;
 
 import java.util.Objects;
 
-public class SkuStoreKey {
+/**
+ * 实现排序接口，先比较 unionPriId 再比较 skuId
+ */
+public class SkuStoreKey implements Comparable<SkuStoreKey>  {
     public int unionPriId;
     public long skuId;
 
@@ -31,5 +34,14 @@ public class SkuStoreKey {
                 "unionPriId=" + unionPriId +
                 ", skuId=" + skuId +
                 '}';
+    }
+
+    @Override
+    public int compareTo(SkuStoreKey other) {
+        int compareResult = Integer.compare(this.unionPriId, other.unionPriId);
+        if(compareResult == 0){
+            compareResult = Long.compare(this.skuId, other.skuId);
+        }
+        return compareResult;
     }
 }

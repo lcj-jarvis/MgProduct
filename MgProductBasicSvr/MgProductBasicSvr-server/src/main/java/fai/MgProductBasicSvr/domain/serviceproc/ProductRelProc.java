@@ -56,7 +56,7 @@ public class ProductRelProc {
             relData.setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId);
         }
         rlPdIdRef.value = rlPdId;
-        rt = m_dao.insert(aid, relData, null);
+        rt = m_dao.insert(relData);
         if(rt != Errno.OK) {
             Log.logErr(rt, "insert product rel error;flow=%d;aid=%d;uid=%d;relData=%s;", m_flow, aid, unionPriId, relData);
             return rt;
@@ -111,7 +111,7 @@ public class ProductRelProc {
         }
         rlPdIdsRef.value = rlPdIds;
 
-        rt = m_dao.batchInsert(aid, relDataList);
+        rt = m_dao.batchInsert(relDataList, null, true);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batch insert product rel error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
@@ -133,7 +133,7 @@ public class ProductRelProc {
         searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         String fields = "count(*) as cnt";
         Ref<FaiList<Param>> listRef = new Ref<>();
-        int rt = m_dao.select(aid, searchArg, fields, listRef);
+        int rt = m_dao.select(searchArg, listRef, fields);
         if(rt != Errno.OK) {
             return rt;
         }
@@ -161,7 +161,7 @@ public class ProductRelProc {
         ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         matcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
-        rt = m_dao.delete(aid, matcher);
+        rt = m_dao.delete(matcher);
         if(rt != Errno.OK) {
             Log.logErr(rt, "del product rel error;flow=%d;aid=%d;unionPridId=%d;rlPdIds=%d;", m_flow, aid, unionPriId, rlPdIds);
             return rt;
@@ -184,9 +184,8 @@ public class ProductRelProc {
 
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
-        String fields = ProductRelEntity.Info.UNION_PRI_ID;
         Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
-        rt = m_dao.select(aid, searchArg, fields, listRef);
+        rt = m_dao.select(searchArg, listRef, ProductRelEntity.Info.UNION_PRI_ID);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             Log.logErr(rt, "get unionPriId error;flow=%d;aid=%d;pdIds=%d;", m_flow, aid, pdIds);
             return rt;
@@ -198,7 +197,7 @@ public class ProductRelProc {
             int unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
             returnUids.add(unionPriId);
         }
-        rt = m_dao.delete(aid, matcher);
+        rt = m_dao.delete(matcher);
         if(rt != Errno.OK) {
             Log.logErr(rt, "del product rel error;flow=%d;aid=%d;pdIds=%d;", m_flow, aid, pdIds);
             return rt;
@@ -293,7 +292,7 @@ public class ProductRelProc {
         searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         searchArg.matcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.IN, noCacheIds);
-        rt = m_dao.select(aid, searchArg, tmpRef);
+        rt = m_dao.select(searchArg, tmpRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             return rt;
         }
@@ -348,8 +347,7 @@ public class ProductRelProc {
         searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, noCacheIds);
         //只查aid+pdId+unionPriId+rlPdId
-        String fields = ProductRelEntity.Info.AID + "," + ProductRelEntity.Info.UNION_PRI_ID + "," + ProductRelEntity.Info.PD_ID  + "," + ProductRelEntity.Info.RL_PD_ID;
-        rt = m_dao.select(aid, searchArg, fields, tmpRef);
+        rt = m_dao.select(searchArg, tmpRef, ProductRelEntity.Info.AID, ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             return rt;
         }

@@ -5,16 +5,14 @@ import fai.MgProductBasicSvr.domain.common.MgProductCheck;
 import fai.MgProductBasicSvr.domain.entity.ProductEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductRelEntity;
 import fai.MgProductBasicSvr.domain.repository.*;
-import fai.MgProductBasicSvr.domain.serviceproc.ProductBindPropProc;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductProc;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductRelProc;
-import fai.MgProductBasicSvr.interfaces.dto.ProductBindPropDto;
 import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
 import fai.comm.middleground.FaiValObj;
-import fai.comm.middleground.repository.TransactionCtrl;
-import fai.comm.middleground.service.ServicePub;
+import fai.middleground.svrutil.repository.TransactionCtrl;
+import fai.middleground.svrutil.service.ServicePub;
 
 import java.io.IOException;
 import java.util.Calendar;
@@ -39,7 +37,7 @@ public class ProductBasicService extends ServicePub {
             Lock lock = LockUtil.getLock(aid);
             lock.lock();
             try {
-                ProductRelDaoCtrl relDao = ProductRelDaoCtrl.getInstance(session);
+                ProductRelDaoCtrl relDao = ProductRelDaoCtrl.getInstance(flow, aid);
                 try {
                     ProductRelProc relProc = new ProductRelProc(flow, relDao);
                     ProductRelCacheCtrl.setExpire(aid, unionPriId);
@@ -93,8 +91,8 @@ public class ProductBasicService extends ServicePub {
                 FaiList<Integer> pdIdList = new FaiList<Integer>();
                 FaiList<Integer> returnUids = new FaiList<Integer>();
                 try {
-                    ProductDaoCtrl pdDao = ProductDaoCtrl.getInstance(session);
-                    ProductRelDaoCtrl relDao = ProductRelDaoCtrl.getInstance(session);
+                    ProductDaoCtrl pdDao = ProductDaoCtrl.getInstance(flow, aid);
+                    ProductRelDaoCtrl relDao = ProductRelDaoCtrl.getInstance(flow, aid);
                     transactionCtrl.register(pdDao);
                     transactionCtrl.register(relDao);
                     transactionCtrl.setAutoCommit(false);
@@ -173,7 +171,7 @@ public class ProductBasicService extends ServicePub {
             //统一控制事务
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
-                ProductRelDaoCtrl relDaoCtrl = ProductRelDaoCtrl.getInstance(session);
+                ProductRelDaoCtrl relDaoCtrl = ProductRelDaoCtrl.getInstance(flow, aid);
                 transactionCtrl.register(relDaoCtrl);
                 ProductRelProc relProc = new ProductRelProc(flow, relDaoCtrl);
                 rt = relProc.getProductRel(aid, unionPriId, rlPdId, relInfoRef);
@@ -216,7 +214,7 @@ public class ProductBasicService extends ServicePub {
             //统一控制事务
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
-                ProductRelDaoCtrl relDaoCtrl = ProductRelDaoCtrl.getInstance(session);
+                ProductRelDaoCtrl relDaoCtrl = ProductRelDaoCtrl.getInstance(flow, aid);
                 transactionCtrl.register(relDaoCtrl);
                 ProductRelProc relProc = new ProductRelProc(flow, relDaoCtrl);
                 rt = relProc.getProductRelList(aid, unionPriId, rlPdIds, listRef);
@@ -259,7 +257,7 @@ public class ProductBasicService extends ServicePub {
             //统一控制事务
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
-                ProductRelDaoCtrl relDaoCtrl = ProductRelDaoCtrl.getInstance(session);
+                ProductRelDaoCtrl relDaoCtrl = ProductRelDaoCtrl.getInstance(flow, aid);
                 transactionCtrl.register(relDaoCtrl);
                 ProductRelProc relProc = new ProductRelProc(flow, relDaoCtrl);
                 rt = relProc.getRlPdIdList(aid, unionPriId, pdIds, listRef);
@@ -392,8 +390,8 @@ public class ProductBasicService extends ServicePub {
                 //统一控制事务
                 TransactionCtrl transactionCtrl = new TransactionCtrl();
                 try {
-                    ProductRelDaoCtrl relDao = ProductRelDaoCtrl.getInstance(session);
-                    ProductDaoCtrl pdDao = ProductDaoCtrl.getInstance(session);
+                    ProductRelDaoCtrl relDao = ProductRelDaoCtrl.getInstance(flow, aid);
+                    ProductDaoCtrl pdDao = ProductDaoCtrl.getInstance(flow, aid);
                     transactionCtrl.register(relDao);
                     transactionCtrl.register(pdDao);
                     transactionCtrl.setAutoCommit(false);
@@ -537,7 +535,7 @@ public class ProductBasicService extends ServicePub {
                 //统一控制事务
                 TransactionCtrl transactionCtrl = new TransactionCtrl();
                 try {
-                    ProductRelDaoCtrl relDao = ProductRelDaoCtrl.getInstance(session);
+                    ProductRelDaoCtrl relDao = ProductRelDaoCtrl.getInstance(flow, aid);
                     transactionCtrl.register(relDao);
                     transactionCtrl.setAutoCommit(false);
 
@@ -691,7 +689,7 @@ public class ProductBasicService extends ServicePub {
                 //统一控制事务
                 TransactionCtrl transactionCtrl = new TransactionCtrl();
                 try {
-                    ProductRelDaoCtrl relDao = ProductRelDaoCtrl.getInstance(session);
+                    ProductRelDaoCtrl relDao = ProductRelDaoCtrl.getInstance(flow, aid);
                     transactionCtrl.register(relDao);
                     transactionCtrl.setAutoCommit(false);
 

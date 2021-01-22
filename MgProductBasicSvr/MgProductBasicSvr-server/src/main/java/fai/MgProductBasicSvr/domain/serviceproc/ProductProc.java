@@ -53,7 +53,7 @@ public class ProductProc {
             pdData.setInt(ProductEntity.Info.PD_ID, pdId);
         }
         pdIdRef.value = pdId;
-        rt = m_dao.insert(aid, pdData, null);
+        rt = m_dao.insert(pdData);
         if(rt != Errno.OK) {
             Log.logErr(rt, "insert product error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
@@ -72,7 +72,7 @@ public class ProductProc {
         ParamMatcher matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
         matcher.and(ProductEntity.Info.SOURCE_TID, ParamMatcher.EQ, tid);
-        rt = m_dao.delete(aid, matcher);
+        rt = m_dao.delete(matcher);
         if(rt != Errno.OK) {
             Log.logErr(rt, "del product list error;flow=%d;aid=%d;pdIds=%d;", m_flow, aid, pdIds);
             return rt;
@@ -93,7 +93,7 @@ public class ProductProc {
         searchArg.matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
         String fields = "count(*) as cnt";
         Ref<FaiList<Param>> listRef = new Ref<>();
-        int rt = m_dao.select(aid, searchArg, fields, listRef);
+        int rt = m_dao.select(searchArg, listRef, fields);
         if(rt != Errno.OK) {
             return rt;
         }
@@ -171,7 +171,7 @@ public class ProductProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductEntity.Info.PD_ID, ParamMatcher.IN, noCacheIds);
-        rt = m_dao.select(aid, searchArg, tmpRef);
+        rt = m_dao.select(searchArg, tmpRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             return rt;
         }

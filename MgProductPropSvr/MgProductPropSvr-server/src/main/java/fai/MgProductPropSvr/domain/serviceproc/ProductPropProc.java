@@ -37,7 +37,7 @@ public class ProductPropProc {
 			Log.logErr(rt, "prop name is existed;flow=%d;aid=%d;name=%s;", m_flow, aid, name);
 			return rt;
 		}
-		rt = m_propDao.insert(aid, info, null);
+		rt = m_propDao.insert(info);
 		if(rt != Errno.OK) {
 			Log.logErr(rt, "insert prop info error;flow=%d;aid=%d;", m_flow, aid);
 			return rt;
@@ -78,7 +78,7 @@ public class ProductPropProc {
 				return rt;
 			}
 		}
-		rt = m_propDao.batchInsert(aid, propList);
+		rt = m_propDao.batchInsert(propList, null, true);
 		if(rt != Errno.OK) {
 			Log.logErr(rt, "batch insert prop error;flow=%d;aid=%d;", m_flow, aid);
 			return rt;
@@ -139,7 +139,7 @@ public class ProductPropProc {
 		ParamUpdater doBatchUpdater = new ParamUpdater(item);
 		item.setString(ProductPropEntity.Info.NAME, "?");
 		item.setString(ProductPropEntity.Info.FLAG, "?");
-		rt = m_propDao.doBatchUpdate(aid, doBatchUpdater, doBatchMatcher, dataList, false);
+		rt = m_propDao.doBatchUpdate(doBatchUpdater, doBatchMatcher, dataList, false);
 		if(rt != Errno.OK){
 			Log.logErr(rt, "doBatchUpdate product prop error;flow=%d;aid=%d;updateList=%s", m_flow, aid, dataList);
 			return rt;
@@ -158,7 +158,7 @@ public class ProductPropProc {
 
 		ParamMatcher matcher = new ParamMatcher(ProductPropEntity.Info.AID, ParamMatcher.EQ, aid);
 		matcher.and(ProductPropEntity.Info.PROP_ID, ParamMatcher.IN, delIdList);
-		rt = m_propDao.delete(aid, matcher);
+		rt = m_propDao.delete(matcher);
 		if(rt != Errno.OK){
 			Log.logErr(rt, "delPropList error;flow=%d;aid=%d;delIdList=%s", m_flow, aid, delIdList);
 			return rt;
@@ -178,7 +178,7 @@ public class ProductPropProc {
 		// 从db获取数据
 		SearchArg searchArg = new SearchArg();
 		searchArg.matcher = new ParamMatcher(ProductPropEntity.Info.AID, ParamMatcher.EQ, aid);
-		int rt = m_propDao.select(aid, searchArg, listRef);
+		int rt = m_propDao.select(searchArg, listRef);
 		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
 			Log.logErr(rt, "getList error;flow=%d;aid=%d;", m_flow, aid);
 			return rt;

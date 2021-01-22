@@ -28,7 +28,7 @@ public class ProductPropRelProc {
 			Log.logErr(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductPropRelValObj.Limit.COUNT_MAX);
 			return rt;
 		}
-		rt = m_relDao.insert(aid, info, null);
+		rt = m_relDao.insert(info);
 		if(rt != Errno.OK) {
 			Log.logErr(rt, "batch insert prop rel error;flow=%d;aid=%d;", m_flow, aid);
 			return rt;
@@ -54,7 +54,7 @@ public class ProductPropRelProc {
 			Log.logErr(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductPropRelValObj.Limit.COUNT_MAX);
 			return rt;
 		}
-		rt = m_relDao.batchInsert(aid, infoList);
+		rt = m_relDao.batchInsert(infoList, null, true);
 		if(rt != Errno.OK) {
 			Log.logErr(rt, "batch insert prop rel error;flow=%d;aid=%d;", m_flow, aid);
 			return rt;
@@ -74,7 +74,7 @@ public class ProductPropRelProc {
 		matcher.and(ProductPropRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
 		matcher.and(ProductPropRelEntity.Info.RL_LIB_ID, ParamMatcher.EQ, libId);
 		matcher.and(ProductPropRelEntity.Info.RL_PROP_ID, ParamMatcher.IN, delRlIdList);
-		rt = m_relDao.delete(aid, matcher);
+		rt = m_relDao.delete(matcher);
 		if(rt != Errno.OK){
 			Log.logErr(rt, "delPropList error;flow=%d;aid=%d;delRlIdList=%s", m_flow, aid, delRlIdList);
 			return rt;
@@ -186,7 +186,7 @@ public class ProductPropRelProc {
 		ParamUpdater doBatchUpdater = new ParamUpdater(item);
 		item.setString(ProductPropRelEntity.Info.SORT, "?");
 		item.setString(ProductPropRelEntity.Info.RL_FLAG, "?");
-		rt = m_relDao.doBatchUpdate(aid, doBatchUpdater, doBatchMatcher, dataList, false);
+		rt = m_relDao.doBatchUpdate(doBatchUpdater, doBatchMatcher, dataList, false);
 		if(rt != Errno.OK){
 			Log.logErr(rt, "doBatchUpdate product prop error;flow=%d;aid=%d;updateList=%s", m_flow, aid, dataList);
 			return rt;
@@ -218,7 +218,7 @@ public class ProductPropRelProc {
 		searchArg.matcher = new ParamMatcher(ProductPropRelEntity.Info.AID, ParamMatcher.EQ, aid);
 		searchArg.matcher.and(ProductPropRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
 		searchArg.matcher.and(ProductPropRelEntity.Info.RL_LIB_ID, ParamMatcher.EQ, libId);
-		int rt = m_relDao.select(aid, searchArg, listRef);
+		int rt = m_relDao.select(searchArg, listRef);
 		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
 			return rt;
 		}
@@ -260,7 +260,7 @@ public class ProductPropRelProc {
 		searchArg.matcher.and(ProductPropRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
 		searchArg.matcher.and(ProductPropRelEntity.Info.RL_LIB_ID, ParamMatcher.EQ, libId);
 		Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
-		int rt = m_relDao.select(aid, searchArg, "max(sort) as sort", listRef);
+		int rt = m_relDao.select(searchArg, listRef, "max(sort) as sort");
 		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
 			return -1;
 		}

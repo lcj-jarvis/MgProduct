@@ -4,18 +4,24 @@ import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.distributedkit.idBuilder.domain.IdBuilderConfig;
 import fai.comm.distributedkit.idBuilder.wrapper.IdBuilderWrapper;
 import fai.comm.jnetkit.server.fai.FaiSession;
-import fai.comm.middleground.repository.DaoCtrl;
+import fai.comm.util.Dao;
 import fai.comm.util.DaoPool;
 import fai.comm.util.Errno;
 import fai.comm.util.Log;
+import fai.middleground.svrutil.repository.DaoCtrl;
 
 public class ProductRelDaoCtrl extends DaoCtrl {
-    private ProductRelDaoCtrl(FaiSession session) {
-        super(session);
+
+    public ProductRelDaoCtrl(int flow, int aid) {
+        super(flow, aid);
+    }
+
+    public ProductRelDaoCtrl(int flow, int aid, Dao dao) {
+        super(flow, aid, dao);
     }
 
     @Override
-    public String getTableName(int aid) {
+    public String getTableName() {
         return TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
     }
 
@@ -24,12 +30,12 @@ public class ProductRelDaoCtrl extends DaoCtrl {
         return m_daoPool;
     }
 
-    public static ProductRelDaoCtrl getInstance(FaiSession session) {
+    public static ProductRelDaoCtrl getInstance(int flow, int aid) {
         if(m_daoPool == null) {
             Log.logErr("m_daoPool is not init;");
             return null;
         }
-        return new ProductRelDaoCtrl(session);
+        return new ProductRelDaoCtrl(flow, aid);
     }
 
     public Integer buildId(int aid, int unionPriId, boolean needLock) {

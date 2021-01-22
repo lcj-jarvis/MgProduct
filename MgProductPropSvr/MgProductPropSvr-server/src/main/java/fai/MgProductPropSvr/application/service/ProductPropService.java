@@ -15,8 +15,8 @@ import fai.MgProductPropSvr.interfaces.dto.ProductPropValDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
 import fai.comm.middleground.FaiValObj;
-import fai.comm.middleground.repository.TransactionCtrl;
-import fai.comm.middleground.service.ServicePub;
+import fai.middleground.svrutil.repository.TransactionCtrl;
+import fai.middleground.svrutil.service.ServicePub;
 
 import java.io.IOException;
 import java.util.Calendar;
@@ -50,9 +50,9 @@ public class ProductPropService extends ServicePub {
 			Lock lock = LockUtil.getLock(aid);
 			lock.lock();
 			try {
-				ProductPropDaoCtrl propDao = ProductPropDaoCtrl.getInstance(session);
-				ProductPropRelDaoCtrl relDao = ProductPropRelDaoCtrl.getInstance(session);
-				ProductPropValDaoCtrl valDao = ProductPropValDaoCtrl.getInstance(session);
+				ProductPropDaoCtrl propDao = ProductPropDaoCtrl.getInstance(flow, aid);
+				ProductPropRelDaoCtrl relDao = ProductPropRelDaoCtrl.getInstance(flow, aid);
+				ProductPropValDaoCtrl valDao = ProductPropValDaoCtrl.getInstance(flow, aid);
 				// 统一控制事务
 				TransactionCtrl transactionCtrl = new TransactionCtrl();
 				transactionCtrl.register(propDao);
@@ -163,8 +163,8 @@ public class ProductPropService extends ServicePub {
 			Lock lock = LockUtil.getLock(aid);
 			lock.lock();
 			try {
-				ProductPropDaoCtrl propDao = ProductPropDaoCtrl.getInstance(session);
-				ProductPropRelDaoCtrl relDao = ProductPropRelDaoCtrl.getInstance(session);
+				ProductPropDaoCtrl propDao = ProductPropDaoCtrl.getInstance(flow, aid);
+				ProductPropRelDaoCtrl relDao = ProductPropRelDaoCtrl.getInstance(flow, aid);
 				// 统一控制事务
 				TransactionCtrl transactionCtrl = new TransactionCtrl();
 				transactionCtrl.register(propDao);
@@ -270,8 +270,8 @@ public class ProductPropService extends ServicePub {
 			HashMap<Integer, Param> propMap = new HashMap<Integer, Param>();
 			Ref<FaiList<Param>> relListRef = new Ref<FaiList<Param>>();
 			try {
-				ProductPropDaoCtrl propDao = ProductPropDaoCtrl.getInstance(session);
-				ProductPropRelDaoCtrl relDao = ProductPropRelDaoCtrl.getInstance(session);
+				ProductPropDaoCtrl propDao = ProductPropDaoCtrl.getInstance(flow, aid);
+				ProductPropRelDaoCtrl relDao = ProductPropRelDaoCtrl.getInstance(flow, aid);
 				transactionCtrl.register(propDao);
 				transactionCtrl.register(relDao);
 
@@ -353,9 +353,9 @@ public class ProductPropService extends ServicePub {
 			Lock lock = LockUtil.getLock(aid);
 			lock.lock();
 			try {
-				ProductPropDaoCtrl propDao = ProductPropDaoCtrl.getInstance(session);
-				ProductPropRelDaoCtrl relDao = ProductPropRelDaoCtrl.getInstance(session);
-				ProductPropValDaoCtrl valDao = ProductPropValDaoCtrl.getInstance(session);
+				ProductPropDaoCtrl propDao = ProductPropDaoCtrl.getInstance(flow, aid);
+				ProductPropRelDaoCtrl relDao = ProductPropRelDaoCtrl.getInstance(flow, aid);
+				ProductPropValDaoCtrl valDao = ProductPropValDaoCtrl.getInstance(flow, aid);
 				//统一控制事务
 				TransactionCtrl transactionCtrl = new TransactionCtrl();
 				transactionCtrl.register(propDao);
@@ -431,8 +431,8 @@ public class ProductPropService extends ServicePub {
 			Lock lock = LockUtil.getLock(aid);
 			lock.lock();
 			try {
-				ProductPropDaoCtrl propDao = ProductPropDaoCtrl.getInstance(session);
-				ProductPropRelDaoCtrl relDao = ProductPropRelDaoCtrl.getInstance(session);
+				ProductPropDaoCtrl propDao = ProductPropDaoCtrl.getInstance(flow, aid);
+				ProductPropRelDaoCtrl relDao = ProductPropRelDaoCtrl.getInstance(flow, aid);
 				//统一控制事务
 				TransactionCtrl transactionCtrl = new TransactionCtrl();
 				transactionCtrl.register(propDao);
@@ -495,8 +495,8 @@ public class ProductPropService extends ServicePub {
 				Log.logErr("args error, args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
 				return rt;
 			}
-			ProductPropRelDaoCtrl relDao = ProductPropRelDaoCtrl.getInstance(session);
-			ProductPropValDaoCtrl valDao = ProductPropValDaoCtrl.getInstance(session);
+			ProductPropRelDaoCtrl relDao = ProductPropRelDaoCtrl.getInstance(flow, aid);
+			ProductPropValDaoCtrl valDao = ProductPropValDaoCtrl.getInstance(flow, aid);
 			//统一控制事务
 			TransactionCtrl transactionCtrl = new TransactionCtrl();
 			transactionCtrl.register(relDao);
@@ -547,7 +547,7 @@ public class ProductPropService extends ServicePub {
 			FaiList<Integer> rlProIds = new FaiList<Integer>();
 			rlProIds.add(rlPropId);
 			int propId = 0;
-			ProductPropRelDaoCtrl relDao = ProductPropRelDaoCtrl.getInstance(session);
+			ProductPropRelDaoCtrl relDao = ProductPropRelDaoCtrl.getInstance(flow, aid);
 			try {
 				ProductPropRelProc relProc = new ProductPropRelProc(flow, relDao);
 				FaiList<Integer> proIds = relProc.getIdsByRlIds(aid, unionPriId, libId, rlProIds);
@@ -564,7 +564,7 @@ public class ProductPropService extends ServicePub {
 			Lock lock = LockUtil.getLock(aid);
 			lock.lock();
 			try {
-				ProductPropValDaoCtrl valDao = ProductPropValDaoCtrl.getInstance(session);
+				ProductPropValDaoCtrl valDao = ProductPropValDaoCtrl.getInstance(flow, aid);
 				//统一控制事务
 				TransactionCtrl transactionCtrl = new TransactionCtrl();
 				transactionCtrl.register(valDao);

@@ -52,7 +52,7 @@ public class ProductPropValProc {
 		ParamMatcher matcher = new ParamMatcher(ProductPropValEntity.Info.AID, ParamMatcher.EQ, aid);
 		matcher.and(ProductPropValEntity.Info.PROP_ID, ParamMatcher.EQ, propId);
 		matcher.and(ProductPropValEntity.Info.PROP_VAL_ID, ParamMatcher.IN, delValIds);
-		int rt = m_valDao.delete(aid, matcher);
+		int rt = m_valDao.delete(matcher);
 		if(rt != Errno.OK){
 			Log.logErr(rt, "delValList error;flow=%d;aid=%d;propId=%d;delIdList=%s", m_flow, aid, propId, delValIds);
 			return rt;
@@ -67,7 +67,7 @@ public class ProductPropValProc {
 		}
 		ParamMatcher matcher = new ParamMatcher(ProductPropValEntity.Info.AID, ParamMatcher.EQ, aid);
 		matcher.and(ProductPropValEntity.Info.PROP_ID, ParamMatcher.IN, propIds);
-		int rt = m_valDao.delete(aid, matcher);
+		int rt = m_valDao.delete(matcher);
 		if(rt != Errno.OK){
 			Log.logErr(rt, "delValList error;flow=%d;aid=%d;propIds=%s;", m_flow, aid, propIds);
 			return rt;
@@ -120,7 +120,7 @@ public class ProductPropValProc {
 		item.setString(ProductPropValEntity.Info.DATA_TYPE, "?");
 		item.setString(ProductPropValEntity.Info.UPDATE_TIME, "?");
 
-		rt = m_valDao.doBatchUpdate(aid, doBatchUpdater, doBatchMatcher, dataList, false);
+		rt = m_valDao.doBatchUpdate(doBatchUpdater, doBatchMatcher, dataList, false);
 		if(rt != Errno.OK){
 			Log.logErr(rt, "doBatchUpdate product prop error;flow=%d;aid=%d;updateList=%s", m_flow, aid, dataList);
 			return rt;
@@ -161,7 +161,7 @@ public class ProductPropValProc {
 			info.setCalendar(ProductPropValEntity.Info.CREATE_TIME, now);
 			info.setCalendar(ProductPropValEntity.Info.UPDATE_TIME, now);
 		}
-		rt = m_valDao.batchInsert(aid, valList.clone());
+		rt = m_valDao.batchInsert(valList.clone(), null, true);
 		if(rt != Errno.OK) {
 			Log.logErr(rt, "batch insert prop error;flow=%d;aid=%d;", m_flow, aid);
 			return rt;
@@ -182,7 +182,7 @@ public class ProductPropValProc {
 		SearchArg searchArg = new SearchArg();
 		searchArg.matcher = new ParamMatcher(ProductPropValEntity.Info.AID, ParamMatcher.EQ, aid);
 		searchArg.matcher.and(ProductPropValEntity.Info.PROP_ID, ParamMatcher.EQ, propId);
-		int rt = m_valDao.select(aid, searchArg, listRef);
+		int rt = m_valDao.select(searchArg, listRef);
 		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
 			Log.logErr(rt, "getList error;flow=%d;aid=%d;propId=%d;", m_flow, aid, propId);
 			return rt;

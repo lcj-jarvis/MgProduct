@@ -1,17 +1,23 @@
 package fai.MgProductBasicSvr.domain.repository;
 
 import fai.comm.jnetkit.server.fai.FaiSession;
+import fai.comm.util.Dao;
 import fai.comm.util.DaoPool;
 import fai.comm.util.Log;
-import fai.comm.middleground.repository.DaoCtrl;
+import fai.middleground.svrutil.repository.DaoCtrl;
 
 public class ProductBindPropDaoCtrl extends DaoCtrl {
-    private ProductBindPropDaoCtrl(FaiSession session) {
-        super(session);
+
+    public ProductBindPropDaoCtrl(int flow, int aid) {
+        super(flow, aid);
+    }
+
+    public ProductBindPropDaoCtrl(int flow, int aid, Dao dao) {
+        super(flow, aid, dao);
     }
 
     @Override
-    public String getTableName(int aid) {
+    public String getTableName() {
         return TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
     }
 
@@ -20,12 +26,12 @@ public class ProductBindPropDaoCtrl extends DaoCtrl {
         return m_daoPool;
     }
 
-    public static ProductBindPropDaoCtrl getInstance(FaiSession session) {
+    public static ProductBindPropDaoCtrl getInstance(int flow, int aid) {
         if(m_daoPool == null) {
             Log.logErr("m_daoPool is not init;");
             return null;
         }
-        return new ProductBindPropDaoCtrl(session);
+        return new ProductBindPropDaoCtrl(flow, aid);
     }
 
     public static void init(DaoPool daoPool) {

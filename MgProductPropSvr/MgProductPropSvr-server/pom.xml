@@ -16,6 +16,12 @@
         </dependency>
 
         <dependency>
+            <groupId>fai-middleground-svrutil</groupId>
+            <artifactId>fai-middleground-svrutil</artifactId>
+            <version>${fai-middleground-svrutil-ver}</version>
+        </dependency>
+
+        <dependency>
             <groupId>MgProduct</groupId>
             <artifactId>MgProductPropSvr-interfaces</artifactId>
             <version>${MgProduct-MgProductPropSvr-interfaces-ver}</version>

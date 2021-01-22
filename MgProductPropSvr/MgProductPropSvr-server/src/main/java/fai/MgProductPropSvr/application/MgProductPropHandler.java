@@ -10,7 +10,7 @@ import fai.comm.jnetkit.server.fai.annotation.Cmd;
 import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
 import fai.comm.util.*;
-import fai.comm.middleground.service.MiddleGroundHandler;
+import fai.middleground.svrutil.service.MiddleGroundHandler;
 
 import java.io.IOException;
 

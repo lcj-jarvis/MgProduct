@@ -5,7 +5,6 @@ import fai.MgProductBasicSvr.application.service.ProductPropBindService;
 import fai.MgProductBasicSvr.interfaces.cmd.MgProductBasicCmd;
 import fai.MgProductBasicSvr.interfaces.dto.ProductBindPropDto;
 import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
-import fai.comm.jnetkit.server.fai.FaiHandler;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
@@ -13,10 +12,11 @@ import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
 import fai.comm.util.FaiList;
 import fai.comm.util.Param;
+import fai.middleground.svrutil.service.MiddleGroundHandler;
 
 import java.io.IOException;
 
-public class MgProductBasicHandler extends FaiHandler {
+public class MgProductBasicHandler extends MiddleGroundHandler {
     public MgProductBasicHandler(FaiServer server) {
         super(server);
     }

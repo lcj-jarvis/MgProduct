@@ -225,52 +225,58 @@ public class StoreService{
     }
 
     /**
-     * 扣减库存
+     * 批量扣减库存
      * @return
      */
-    public int reducePdSkuStore(FaiSession session, int flow, int aid, int tid, int unionPriId, long skuId, int rlOrderId, int count, int reduceMode, int expireTimeSeconds) throws IOException {
+    public int batchReducePdSkuStore(FaiSession session, int flow, int aid, int tid, int unionPriId, FaiList<Param> skuIdCountList, String rlOrderCode, int reduceMode, int expireTimeSeconds) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
-            if (aid <= 0 || unionPriId<= 0 || skuId<= 0 || rlOrderId <= 0 || count <= 0 || reduceMode <= 0 || expireTimeSeconds < 0) {
+            if (aid <= 0 || unionPriId<= 0 || skuIdCountList == null || skuIdCountList.isEmpty() || Str.isEmpty(rlOrderCode) || reduceMode <= 0 || expireTimeSeconds < 0) {
                 rt = Errno.ARGS_ERROR;
-                Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;skuId=%s;rlOrderId=%s;count=%s;reduceMode=%s;expireTimeSeconds=%s;", flow, aid, unionPriId, skuId, rlOrderId, count, reduceMode, expireTimeSeconds);
+                Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;skuIdCountList=%s;rlOrderCode=%s;reduceMode=%s;expireTimeSeconds=%s;", flow, aid, unionPriId, skuIdCountList, rlOrderCode, reduceMode, expireTimeSeconds);
                 return rt;
             }
-
+            Map<Long, Integer> skuIdCountMap = new TreeMap<>(); // 使用 有序map, 避免事务中 批量修改时如果无序 相互锁住 导致死锁
+            FaiList<Long> skuIdList = new FaiList<>(skuIdCountList.size());
+            for (Param info : skuIdCountList) {
+                long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                int count = info.getInt(StoreSalesSkuEntity.Info.COUNT);
+                skuIdList.add(skuId);
+                skuIdCountMap.put(skuId, count);
+            }
             boolean holdingMode = reduceMode == StoreSalesSkuValObj.ReduceMode.HOLDING;
-            int pdId = 0;
+            FaiList<Integer> pdIdList = new FaiList<>();
             // 事务
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
                 StoreSalesSkuDaoCtrl storeSalesSkuDaoCtrl = StoreSalesSkuDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
                 SotreOrderRecordDaoCtrl sotreOrderRecordDaoCtrl = SotreOrderRecordDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
                 HoldingRecordDaoCtrl holdingRecordDaoCtrl = HoldingRecordDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                if(!transactionCtrl.checkRegistered(storeSalesSkuDaoCtrl, sotreOrderRecordDaoCtrl, holdingRecordDaoCtrl)){
+                if (!transactionCtrl.checkRegistered(storeSalesSkuDaoCtrl, sotreOrderRecordDaoCtrl, holdingRecordDaoCtrl)) {
                     return rt = Errno.ERROR;
                 }
 
                 StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
                 StoreOrderRecordProc storeOrderRecordProc = new StoreOrderRecordProc(sotreOrderRecordDaoCtrl, flow);
                 HoldingRecordProc holdingRecordProc = new HoldingRecordProc(holdingRecordDaoCtrl, flow);
-
-                Ref<Param> infoRef = new Ref<>();
-                rt = storeSalesSkuProc.getInfoFromDao(aid, unionPriId, skuId, infoRef, StoreSalesSkuEntity.Info.PD_ID);
+                Ref<FaiList<Param>> listRef = new Ref<>();
+                rt = storeSalesSkuProc.getListFromDaoBySkuIdList(aid, unionPriId, skuIdList, listRef, StoreSalesSkuEntity.Info.PD_ID);
                 if(rt != Errno.OK){
                     return rt;
                 }
-                pdId = infoRef.value.getInt(StoreSalesSkuEntity.Info.PD_ID);
+                pdIdList = Misc2.getValList(listRef.value, StoreSalesSkuEntity.Info.PD_ID);
                 try {
                     transactionCtrl.setAutoCommit(false);
                     if(holdingMode){ // 生成预扣记录
-                        rt = holdingRecordProc.add(aid, unionPriId, skuId, rlOrderId, count, expireTimeSeconds);
+                        rt = holdingRecordProc.batchAdd(aid, unionPriId, skuIdCountMap, rlOrderCode, expireTimeSeconds);
                     }else { // 生成库存订单关联记录
-                        rt = storeOrderRecordProc.add(aid, unionPriId, skuId, rlOrderId, count);
+                        rt = storeOrderRecordProc.batchAdd(aid, unionPriId, skuIdCountMap, rlOrderCode);
                     }
                     if(rt != Errno.OK){
                         return rt;
                     }
-                    rt = storeSalesSkuProc.reduceStore(aid, unionPriId, skuId, count, holdingMode, false);
+                    rt = storeSalesSkuProc.batchReduceStore(aid, unionPriId, skuIdCountMap, holdingMode, false);
                     if(rt != Errno.OK){
                         return rt;
                     }
@@ -281,36 +287,42 @@ public class StoreService{
                     }
                     transactionCtrl.commit();
                 }
+
             }finally {
                 transactionCtrl.closeDao();
             }
-
-            transactionCtrl = new TransactionCtrl();
-            try {
-                BizSalesReportDaoCtrl bizSalesReportDaoCtrl = BizSalesReportDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                transactionCtrl.setAutoCommit(false);
-                BizSalesReportProc bizSalesReportProc = new BizSalesReportProc(bizSalesReportDaoCtrl, flow);
-                // 提交库存上报任务，提交失败暂不处理
-                if(bizSalesReportProc.addReportCountTask(aid, unionPriId, pdId) != Errno.OK){
-                    transactionCtrl.rollback();
-                }else{
-                    transactionCtrl.commit();
+            if(pdIdList.size() > 0){
+                transactionCtrl = new TransactionCtrl();
+                try {
+                    BizSalesReportDaoCtrl bizSalesReportDaoCtrl = BizSalesReportDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+                    transactionCtrl.setAutoCommit(false);
+                    BizSalesReportProc bizSalesReportProc = new BizSalesReportProc(bizSalesReportDaoCtrl, flow);
+                    for (Integer pdId : pdIdList) { // TODO 先简单处理
+                        // 提交库存上报任务，提交失败暂不处理
+                        if(bizSalesReportProc.addReportCountTask(aid, unionPriId, pdId) != Errno.OK){
+                            transactionCtrl.rollback();
+                        }else{
+                            transactionCtrl.commit();
+                        }
+                    }
+                }finally {
+                    transactionCtrl.closeDao();
                 }
-            }finally {
-                transactionCtrl.closeDao();
             }
-
-            addStoreSkuReportMq(flow, aid, skuId);
+            if(skuIdList.size()> 0){ // TODO 先简单处理
+                for (Long skuId : skuIdList) {
+                    addStoreSkuReportMq(flow, aid, skuId);
+                }
+            }
 
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
-            Log.logDbg("aid=%d;unionPriId=%s;skuId=%s;rlOrderId=%s;count=%s;reduceMode=%s;expireTimeSeconds=%s;", aid, unionPriId, skuId, rlOrderId, count, reduceMode, expireTimeSeconds);
-        }finally {
+            Log.logDbg("aid=%d;unionPriId=%s;skuIdCountMap=%s;rlOrderCode=%s;reduceMode=%s;expireTimeSeconds=%s;", aid, unionPriId, skuIdCountMap, rlOrderCode, reduceMode, expireTimeSeconds);
+        } finally {
             stat.end(rt != Errno.OK, rt);
         }
         return rt;
     }
-
     private int addStoreSkuReportMq(int flow, int aid, long skuId){
         Param sendInfo = new Param();
         sendInfo.setInt(StoreSkuSummaryEntity.Info.AID, aid);
@@ -339,35 +351,35 @@ public class StoreService{
     }
 
     /**
-     * 扣减预扣库存
-     * @return
+     * 批量扣减预扣库存
      */
-    public int reducePdSkuHoldingStore(FaiSession session, int flow, int aid, int tid, int unionPriId, long skuId, int rlOrderId, int count, Param outStoreRecordInfo){
+    public int batchReducePdSkuHoldingStore(FaiSession session, int flow, int aid, int tid, int unionPriId, FaiList<Param> skuIdCountList, String rlOrderCode, Param outStoreRecordInfo) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
-            if (aid <= 0 || unionPriId<= 0 || skuId<= 0 || rlOrderId <= 0 || count <= 0 || outStoreRecordInfo == null || outStoreRecordInfo.isEmpty()) {
+            if (aid <= 0 || unionPriId<= 0 || skuIdCountList == null || skuIdCountList.isEmpty() || Str.isEmpty(rlOrderCode) || outStoreRecordInfo == null || outStoreRecordInfo.isEmpty()) {
                 rt = Errno.ARGS_ERROR;
-                Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;skuId=%s;rlOrderId=%s;count=%s;outStoreRecordInfo=%s;", flow, aid, unionPriId, skuId, rlOrderId, count, outStoreRecordInfo);
+                Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;skuIdCountList=%s;rlOrderCode=%s;outStoreRecordInfo=%s;", flow, aid, unionPriId, skuIdCountList, rlOrderCode, outStoreRecordInfo);
                 return rt;
             }
+
+            Map<Long, Integer> skuIdChangeCountMap = new TreeMap<>(); // 使用 有序map, 避免事务中 批量修改时如果无序 相互锁住 导致死锁
+            FaiList<Long> skuIdList = new FaiList<>(skuIdCountList.size());
+            for (Param info : skuIdCountList) {
+                long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                int count = info.getInt(StoreSalesSkuEntity.Info.COUNT);
+                skuIdList.add(skuId);
+                skuIdChangeCountMap.put(skuId, count);
+            }
+
             // 事务
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
-                InOutStoreRecordDaoCtrl inOutStoreRecordDaoCtrl = InOutStoreRecordDaoCtrl.getInstance(flow, aid);
-                if(!transactionCtrl.registered(inOutStoreRecordDaoCtrl)){
-                    Log.logErr("registered InOutStoreRecordDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;skuId=%s;rlOrderId=%s", flow, aid, unionPriId, skuId, rlOrderId);
-                    return rt=Errno.ERROR;
-                }
-                StoreSalesSkuDaoCtrl storeSalesSkuDaoCtrl = StoreSalesSkuDaoCtrl.getInstance(flow, aid);
-                if(!transactionCtrl.registered(storeSalesSkuDaoCtrl)){
-                    Log.logErr("registered StoreSalesSkuDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;skuId=%s;rlOrderId=%s", flow, aid, unionPriId, skuId, rlOrderId);
-                    return rt=Errno.ERROR;
-                }
-                HoldingRecordDaoCtrl holdingRecordDaoCtrl = HoldingRecordDaoCtrl.getInstance(flow, aid);
-                if(!transactionCtrl.registered(holdingRecordDaoCtrl)){
-                    Log.logErr("registered HoldingRecordDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;skuId=%s;rlOrderId=%s", flow, aid, unionPriId, skuId, rlOrderId);
-                    return rt=Errno.ERROR;
+                InOutStoreRecordDaoCtrl inOutStoreRecordDaoCtrl = InOutStoreRecordDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+                StoreSalesSkuDaoCtrl storeSalesSkuDaoCtrl = StoreSalesSkuDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+                HoldingRecordDaoCtrl holdingRecordDaoCtrl = HoldingRecordDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+                if(!transactionCtrl.checkRegistered(storeSalesSkuDaoCtrl, holdingRecordDaoCtrl, holdingRecordDaoCtrl)){
+                    return rt = Errno.ERROR;
                 }
 
                 InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(inOutStoreRecordDaoCtrl, flow);
@@ -378,26 +390,40 @@ public class StoreService{
                     try {
                         transactionCtrl.setAutoCommit(false);
                         // 删掉预扣记录
-                        rt = holdingRecordProc.logicDel(aid, unionPriId, skuId, rlOrderId);
-                        if(rt != Errno.OK){
-                            return rt;
-                        }
-
-                        outStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.CHANGE_COUNT, count);
-                        outStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.OPT_TYPE, InOutStoreRecordValObj.OptType.OUT);
-                        rt = inOutStoreRecordProc.addOutStoreRecord(aid, unionPriId, skuId, outStoreRecordInfo);
+                        rt = holdingRecordProc.batchLogicDel(aid, unionPriId, skuIdList, rlOrderCode);
                         if(rt != Errno.OK){
                             return rt;
                         }
 
                         // 扣减预扣库存
-                        rt = storeSalesSkuProc.reduceStore(aid, unionPriId, skuId, count, true, true);
+                        rt = storeSalesSkuProc.batchReduceStore(aid, unionPriId, skuIdChangeCountMap, true, true);
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
+
+                        Ref<FaiList<Param>> listRef = new Ref<>();
+                        rt = storeSalesSkuProc.getListFromDaoBySkuIdList(aid, unionPriId, skuIdList, listRef, StoreSalesSkuEntity.Info.SKU_ID, StoreSalesSkuEntity.Info.REMAIN_COUNT, StoreSalesSkuEntity.Info.HOLDING_COUNT);
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
+                        Map<SkuStoreKey, Integer> changeCountAfterSkuStoreCountMap = new HashMap<>(listRef.value.size()*4/3+1);
+                        for (Param info : listRef.value) {
+                            long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                            int remainCount = info.getInt(StoreSalesSkuEntity.Info.REMAIN_COUNT);
+                            int holdingCount = info.getInt(StoreSalesSkuEntity.Info.HOLDING_COUNT);
+                            changeCountAfterSkuStoreCountMap.put(new SkuStoreKey(unionPriId, skuId), remainCount+holdingCount);
+                        }
+
+                        // 添加出库记录
+                        outStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.OPT_TYPE, InOutStoreRecordValObj.OptType.OUT);
+                        rt = inOutStoreRecordProc.batchAddOutStoreRecord(aid, unionPriId, skuIdChangeCountMap, changeCountAfterSkuStoreCountMap, outStoreRecordInfo);
                         if(rt != Errno.OK){
                             return rt;
                         }
                     }finally {
                         if(rt != Errno.OK){
                             transactionCtrl.rollback();
+                            inOutStoreRecordProc.clearIdBuilderCache(aid);
                             return rt;
                         }
                         transactionCtrl.commit();
@@ -408,26 +434,39 @@ public class StoreService{
             }finally {
                 transactionCtrl.closeDao();
             }
-            Log.logDbg("aid=%d;unionPriId=%s;skuId=%s;rlOrderId=%s;count=%s;", aid, unionPriId, skuId, rlOrderId, count);
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logDbg("aid=%d;unionPriId=%s;skuIdChangeCountMap=%s;rlOrderCode=%s;", aid, unionPriId, skuIdChangeCountMap, rlOrderCode);
         }finally {
             stat.end(rt != Errno.OK, rt);
         }
         return rt;
     }
+
     /**
-     * 补偿库存
+     * 批量补偿库存
      */
-    public int makeUpStore(FaiSession session, int flow, int aid, int unionPriId, long skuId, int rlOrderId, int count, int reduceMode) throws IOException {
+    public int batchMakeUpStore(FaiSession session, int flow, int aid, int unionPriId, FaiList<Param> skuIdCountList, String rlOrderCode, int reduceMode) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
-            if (aid <= 0 || unionPriId <= 0 || skuId <= 0 || rlOrderId <= 0) {
+            if (aid <= 0 || unionPriId <= 0 || skuIdCountList == null || skuIdCountList.isEmpty() || Str.isEmpty(rlOrderCode)) {
                 rt = Errno.ARGS_ERROR;
-                Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;skuId=%s;rlOrderId=%s;", flow, aid, unionPriId, skuId, rlOrderId);
+                Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;skuIdCountList=%s;rlOrderCode=%s;", flow, aid, unionPriId, skuIdCountList, rlOrderCode);
                 return rt;
             }
+
+            Map<Long, Integer> skuIdCountMap = new TreeMap<>(); // 使用 有序map, 避免事务中 批量修改时如果无序 相互锁住 导致死锁
+            FaiList<Long> skuIdList = new FaiList<>(skuIdCountList.size());
+            for (Param info : skuIdCountList) {
+                long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                int count = info.getInt(StoreSalesSkuEntity.Info.COUNT);
+                skuIdList.add(skuId);
+                skuIdCountMap.put(skuId, count);
+            }
+
             boolean holdingMode = reduceMode == StoreSalesSkuValObj.ReduceMode.HOLDING;
-            int pdId = 0;
+            FaiList<Integer> pdIdList = new FaiList<>();
             // 事务
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
@@ -440,21 +479,21 @@ public class StoreService{
                 StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
                 HoldingRecordProc holdingRecordProc = new HoldingRecordProc(holdingRecordDaoCtrl, flow);
 
-                Ref<Param> infoRef = new Ref<>();
-                rt = storeSalesSkuProc.getInfoFromDao(aid, unionPriId, skuId, infoRef, StoreSalesSkuEntity.Info.PD_ID);
+                Ref<FaiList<Param>> listRef = new Ref<>();
+                rt = storeSalesSkuProc.getListFromDaoBySkuIdList(aid, unionPriId, skuIdList, listRef, StoreSalesSkuEntity.Info.PD_ID);
                 if(rt != Errno.OK){
                     return rt;
                 }
-                pdId = infoRef.value.getInt(StoreSalesSkuEntity.Info.PD_ID);
+                pdIdList = Misc2.getValList(listRef.value, StoreSalesSkuEntity.Info.PD_ID);
 
                 try {
                     transactionCtrl.setAutoCommit(false);
-                    rt = storeSalesSkuProc.makeUpStore(aid, unionPriId, skuId, count, holdingMode);
+                    rt = storeSalesSkuProc.batchMakeUpStore(aid, unionPriId, skuIdCountMap, holdingMode);
                     if(rt != Errno.OK){
                         return rt;
                     }
                     if(holdingMode){
-                        rt = holdingRecordProc.logicDel(aid, unionPriId, skuId, rlOrderId);
+                        rt = holdingRecordProc.batchLogicDel(aid, unionPriId, skuIdList, rlOrderCode);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -469,25 +508,33 @@ public class StoreService{
             }finally {
                 transactionCtrl.closeDao();
             }
-            transactionCtrl = new TransactionCtrl();
-            try {
-                BizSalesReportDaoCtrl bizSalesReportDaoCtrl = BizSalesReportDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                transactionCtrl.setAutoCommit(false);
-                BizSalesReportProc bizSalesReportProc = new BizSalesReportProc(bizSalesReportDaoCtrl, flow);
-                // 提交库存上报任务，提交失败暂不处理，不参与事务
-                if(bizSalesReportProc.addReportCountTask(aid, unionPriId, pdId) != Errno.OK){
-                    bizSalesReportDaoCtrl.rollback();
-                }else{
-                    bizSalesReportDaoCtrl.commit();
+            if(pdIdList.size() > 0){
+                transactionCtrl = new TransactionCtrl();
+                try {
+                    BizSalesReportDaoCtrl bizSalesReportDaoCtrl = BizSalesReportDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+                    transactionCtrl.setAutoCommit(false);
+                    BizSalesReportProc bizSalesReportProc = new BizSalesReportProc(bizSalesReportDaoCtrl, flow);
+                    for (Integer pdId : pdIdList) { // TODO 先简单处理
+                        // 提交库存上报任务，提交失败暂不处理
+                        if(bizSalesReportProc.addReportCountTask(aid, unionPriId, pdId) != Errno.OK){
+                            transactionCtrl.rollback();
+                        }else{
+                            transactionCtrl.commit();
+                        }
+                    }
+                }finally {
+                    transactionCtrl.closeDao();
                 }
-            }finally {
-                transactionCtrl.closeDao();
             }
-            addStoreSkuReportMq(flow, aid, skuId);
+            if(skuIdList.size()> 0){ // TODO 先简单处理
+                for (Long skuId : skuIdList) {
+                    addStoreSkuReportMq(flow, aid, skuId);
+                }
+            }
 
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
-            Log.logStd("ok;flow=%s;aid=%s;unionPriId=%s;skuId=%s;rlOrderId=%s;", flow, aid, unionPriId, skuId, rlOrderId);
+            Log.logStd("ok;flow=%s;aid=%s;unionPriId=%s;skuIdCountMap=%s;rlOrderCode=%s;", flow, aid, unionPriId, skuIdCountMap, rlOrderCode);
         }finally {
             stat.end(rt != Errno.OK, rt);
         }
@@ -543,10 +590,11 @@ public class StoreService{
                 Log.logErr("arg err;flow=%d;aid=%d;infoList=%s;ownerUnionPriId=%s;", flow, aid, ownerUnionPriId, infoList);
                 return rt;
             }
-            Map<SkuStoreKey, Integer> skuStoreCountMap = new HashMap<>(infoList.size()*4/3+1);
+            Map<SkuStoreKey, Integer> skuStoreChangeCountMap = new TreeMap<>(); // 使用 有序map, 避免事务中 批量修改时如果无序 相互锁住 导致死锁
             Set<Integer> pdIdSet = new HashSet<>();
-            Map<SkuStoreKey, PdKey> needCheckSkuStoreKeyPdKeyMap = new HashMap<>();
+            Map<SkuStoreKey, PdKey> needCheckSkuStoreKeyPdKeyMap = new TreeMap<>(); // 使用 有序map, 避免事务中 批量修改时如果无序 相互锁住 导致死锁
             Set<Long> skuIdSet = new HashSet<>();
+            Set<SkuStoreKey> needGetChangeCountAfterSkuStoreKeySet = new HashSet<>();
             for (Param info : infoList) {
                 int unionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, 0);
                 if (unionPriId <= 0) {
@@ -584,7 +632,7 @@ public class StoreService{
                 if(unionPriId != ownerUnionPriId){
                     needCheckSkuStoreKeyPdKeyMap.put(skuStoreKey, new PdKey(unionPriId, pdId, rlPdId));
                 }
-                Integer count = skuStoreCountMap.get(skuStoreKey);
+                Integer count = skuStoreChangeCountMap.get(skuStoreKey);
                 if(count == null){
                     count = 0;
                 }
@@ -595,9 +643,11 @@ public class StoreService{
                     Log.logErr(rt, e, "arg err;flow=%d;aid=%d;info=%s;", flow, aid, info);
                     return rt;
                 }
-                skuStoreCountMap.put(skuStoreKey, count);
+                skuStoreChangeCountMap.put(skuStoreKey, count);
+                if(!info.containsKey(InOutStoreRecordEntity.Info.REMAIN_COUNT)){ // 兼容数据迁移
+                    needGetChangeCountAfterSkuStoreKeySet.add(skuStoreKey);
+                }
             }
-
             // 事务
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
@@ -620,17 +670,25 @@ public class StoreService{
                     try {
                         transactionCtrl.setAutoCommit(false);
                         if (!needCheckSkuStoreKeyPdKeyMap.isEmpty()) {
+                            // 检查是否存在sku, 没有则生成
                             rt = storeSalesSkuProc.checkAndAdd(aid, ownerUnionPriId, needCheckSkuStoreKeyPdKeyMap);
                             if (rt != Errno.OK) {
                                 return rt;
                             }
                         }
-
-                        rt = storeSalesSkuProc.batchChangeStore(aid, skuStoreCountMap);
+                        // 批量更新库存
+                        rt = storeSalesSkuProc.batchChangeStore(aid, skuStoreChangeCountMap);
                         if (rt != Errno.OK) {
                             return rt;
                         }
-                        rt = inOutStoreRecordProc.batchAdd(aid, infoList);
+
+                        Map<SkuStoreKey, Integer> changeCountAfterSkuStoreCountMap = new HashMap<>();
+                        rt = storeSalesSkuProc.getStoreCountFromDao(aid, needGetChangeCountAfterSkuStoreKeySet, changeCountAfterSkuStoreCountMap);
+                        if (rt != Errno.OK) {
+                            return rt;
+                        }
+                        // 批量添加记录
+                        rt = inOutStoreRecordProc.batchAdd(aid, infoList, changeCountAfterSkuStoreCountMap);
                         if (rt != Errno.OK) {
                             return rt;
                         }
@@ -1031,8 +1089,12 @@ public class StoreService{
             }
             if(searchArg.limit > 100){
                 Log.logErr("searchArg.limit err;flow=%d;aid=%d;searchArg.limit=%s;", flow, aid, searchArg.limit);
-                return rt;
+                return rt = Errno.ARGS_ERROR;
             }
+
+            ParamMatcher baseMatcher = new ParamMatcher(StoreSkuSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+            baseMatcher.and(searchArg.matcher);
+            searchArg.matcher = baseMatcher;
 
             Ref<FaiList<Param>> listRef = new Ref<>();
             StoreSkuSummaryDaoCtrl storeSkuSummaryDaoCtrl = StoreSkuSummaryDaoCtrl.getInstance(flow, aid);

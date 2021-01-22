@@ -22,6 +22,9 @@ public class MgProductStoreCmd {
 		public static final int NUM6 = 1006;
 		public static final int NUM7 = 1007;
 		public static final int NUM8 = 1008;
+		public static final int NUM9 = 1009;
+		public static final int NUM10 = 1010;
+		public static final int NUM11 = 1011;
 	}
 
 	////////////////// cmd对外定义，实际做cmd读写分离 ////////////////////
@@ -34,10 +37,16 @@ public class MgProductStoreCmd {
 
 		public static final int REFRESH = WriteCmdNum.NUM;
 		public static final int SET_LIST = WriteCmdNum.NUM2;
+
 		public static final int REDUCE_STORE = WriteCmdNum.NUM3;
 		public static final int REDUCE_HOLDING_STORE = WriteCmdNum.NUM4;
 		public static final int MAKE_UP_STORE = WriteCmdNum.NUM7;
+
 		public static final int BATCH_DEL_PD_ALL_STORE_SALES = WriteCmdNum.NUM8;
+
+		public static final int BATCH_REDUCE_STORE = WriteCmdNum.NUM9;
+		public static final int BATCH_REDUCE_HOLDING_STORE = WriteCmdNum.NUM10;
+		public static final int BATCH_MAKE_UP_STORE = WriteCmdNum.NUM11;
 
 	}
 

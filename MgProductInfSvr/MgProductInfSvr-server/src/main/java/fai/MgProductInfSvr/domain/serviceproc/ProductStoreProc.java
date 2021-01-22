@@ -51,26 +51,21 @@ public class ProductStoreProc {
     }
 
     /**
-     * 扣减库存
-     *
-     * @param aid
-     * @param tid
-     * @param unionPriId
-     * @param skuId
-     * @param rlOrderId         业务订单id
-     * @param count             扣减数量
-     * @param reduceMode        扣减模式 {@link StoreSalesSkuValObj.ReduceMode}
+     * 批量扣减库存
+     * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
+     * @param rlOrderCode 业务订单id/code
+     * @param reduceMode
+     * 扣减模式 {@link StoreSalesSkuValObj.ReduceMode}
      * @param expireTimeSeconds 配合预扣模式，单位s
-     * @return
      */
-    public int reducePdSkuStore(int aid, int tid, int unionPriId, long skuId, int rlOrderId, int count, int reduceMode, int expireTimeSeconds) {
+    public int batchReducePdSkuStore(int aid, int tid, int unionPriId, FaiList<Param> skuIdCountList, String rlOrderCode, int reduceMode, int expireTimeSeconds){
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.reducePdSkuStore(aid, tid, unionPriId, skuId, rlOrderId, count, reduceMode, expireTimeSeconds);
+        rt = m_cli.batchReducePdSkuStore(aid, tid, unionPriId, skuIdCountList, rlOrderCode, reduceMode, expireTimeSeconds);
         if (rt != Errno.OK) {
             Log.logErr(rt, "reducePdSkuStore error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
@@ -79,23 +74,21 @@ public class ProductStoreProc {
     }
 
     /**
+     * 批量扣减预扣库存
      * 预扣模式 {@link StoreSalesSkuValObj.ReduceMode#HOLDING} 步骤2
-     *
-     * @param aid
-     * @param tid
-     * @param unionPriId
-     * @param skuId
-     * @param rlOrderId  业务订单id
-     * @param count      扣减数量
+     * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
+     * @param rlOrderCode 业务订单id/code
+     * @param outStoreRecordInfo 出库记录
+     * @return
      */
-    public int reducePdSkuHoldingStore(int aid, int tid, int unionPriId, long skuId, int rlOrderId, int count) {
+    public int batchReducePdSkuHoldingStore(int aid, int tid, int unionPriId, FaiList<Param> skuIdCountList, String rlOrderCode, Param outStoreRecordInfo){
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.reducePdSkuHoldingStore(aid, tid, unionPriId, skuId, rlOrderId, count);
+        rt = m_cli.batchReducePdSkuHoldingStore(aid, tid, unionPriId, skuIdCountList, rlOrderCode, outStoreRecordInfo);
         if (rt != Errno.OK) {
             Log.logErr(rt, "reducePdSkuHoldingStore error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
@@ -103,25 +96,24 @@ public class ProductStoreProc {
         return rt;
     }
 
+
     /**
      * 补偿库存
-     *
-     * @param aid
      * @param unionPriId
-     * @param skuId
-     * @param rlOrderId  业务订单id
-     * @param count      补偿数量
-     * @param reduceMode 扣减模式 {@link StoreSalesSkuValObj.ReduceMode}
+     * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
+     * @param rlOrderCode 业务订单id/code
+     * @param reduceMode
+     * 扣减模式 {@link StoreSalesSkuValObj.ReduceMode}
      * @return
      */
-    public int makeUpStore(int aid, int unionPriId, long skuId, int rlOrderId, int count, int reduceMode) {
+    public int batchMakeUpStore(int aid, int unionPriId, FaiList<Param> skuIdCountList, String rlOrderCode, int reduceMode) {
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.makeUpStore(aid, unionPriId, skuId, rlOrderId, count, reduceMode);
+        rt = m_cli.batchMakeUpStore(aid, unionPriId, skuIdCountList, rlOrderCode, reduceMode);
         if (rt != Errno.OK) {
             Log.logErr(rt, "makeUpStore error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
@@ -141,7 +133,7 @@ public class ProductStoreProc {
         }
         rt = m_cli.getPdScSkuSalesStore(aid, tid, unionPriId, pdId, rlPdId, infoList);
         if (rt != Errno.OK) {
-            Log.logErr(rt, "setPdSkuScInfoList error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            Log.logErr(rt, "getPdScSkuSalesStore error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
         return rt;
@@ -164,6 +156,25 @@ public class ProductStoreProc {
         }
         return rt;
     }
+
+    /**
+     * 批量删除商品所有库存销售相关信息
+     */
+    public int batchDelPdAllStoreSales(int aid, int tid, FaiList<Integer> pdIdList){
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
+            return rt;
+        }
+        rt = m_cli.batchDelPdAllStoreSales(aid, tid, pdIdList);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "getStoreSkuSummaryInfoList error;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
+            return rt;
+        }
+        return rt;
+    }
+
     /**
      * 获取指定商品所有的业务销售记录
      */
@@ -176,7 +187,7 @@ public class ProductStoreProc {
         }
         rt = m_cli.getAllBizSalesSummaryInfoList(aid, tid, pdId, infoList);
         if (rt != Errno.OK) {
-            Log.logErr(rt, "addInOutStoreRecordInfoList error;flow=%d;aid=%d;", m_flow, aid);
+            Log.logErr(rt, "getAllBizSalesSummaryInfoList error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
         return rt;
@@ -194,7 +205,7 @@ public class ProductStoreProc {
         }
         rt = m_cli.getBizSalesSummaryInfoListByPdIdList(aid, tid, unionPriId, pdIdList, infoList);
         if (rt != Errno.OK) {
-            Log.logErr(rt, "addInOutStoreRecordInfoList error;flow=%d;aid=%d;", m_flow, aid);
+            Log.logErr(rt, "getBizSalesSummaryInfoListByPdIdList error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
         return rt;
@@ -212,12 +223,29 @@ public class ProductStoreProc {
         }
         rt = m_cli.getSalesSummaryInfoList(aid, tid, unionPriId, pdIdList, infoList);
         if (rt != Errno.OK) {
-            Log.logErr(rt, "addInOutStoreRecordInfoList error;flow=%d;aid=%d;", m_flow, aid);
+            Log.logErr(rt, "getSalesSummaryInfoList error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
         return rt;
     }
 
+    /**
+     * 获取库存SKU汇总信息
+     */
+    public int getStoreSkuSummaryInfoList(int aid, int tid, SearchArg searchArg, FaiList<Param> list){
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        rt = m_cli.getStoreSkuSummaryInfoList(aid, tid, searchArg, list);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "getStoreSkuSummaryInfoList error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        return rt;
+    }
 
 
     private int m_flow;

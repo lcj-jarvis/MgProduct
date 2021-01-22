@@ -3,6 +3,8 @@ package fai.MgProductInfSvr.application.service;
 import fai.MgPrimaryKeySvr.interfaces.entity.MgPrimaryKeyEntity;
 import fai.MgProductInfSvr.domain.serviceproc.ProductBasicProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductPropProc;
+import fai.MgProductInfSvr.domain.serviceproc.ProductStoreProc;
+import fai.MgProductInfSvr.domain.serviceproc.SpecificationProc;
 import fai.MgProductInfSvr.interfaces.dto.ProductBasicDto;
 import fai.MgProductInfSvr.interfaces.entity.ProductBasicEntity;
 import fai.comm.jnetkit.server.fai.FaiSession;
@@ -459,9 +461,32 @@ public class ProductBasicService extends MgProductInfService {
             }
             int unionPriId = idRef.value;
 
+            ProductStoreProc storeProc = new ProductStoreProc(flow);
+            SpecificationProc specificationProc = new SpecificationProc(flow);
             ProductBasicProc basicService = new ProductBasicProc(flow);
+            FaiList<Param> list = new FaiList<>();
+            rt = basicService.getRelListByRlIds(aid, unionPriId, rlPdIds, list);
+            if(rt != Errno.OK){
+                return rt;
+            }
+            FaiList<Integer> pdIdList = OptMisc.getValList(list, ProductBasicEntity.ProductRelInfo.PD_ID);
+            // 没分布式事务很难做一致性
+
+            // 删除商品基础信息
             rt = basicService.batchDelProduct(aid, tid, unionPriId, rlPdIds);
             if(rt != Errno.OK) {
+                return rt;
+            }
+            // 删除库存销售相关信息
+            rt = storeProc.batchDelPdAllStoreSales(aid, tid, pdIdList);
+            if(rt != Errno.OK){
+                Log.logErr(rt, "batchDelPdAllStoreSales err;aid=%s;tid=%s;pdIdList=%s;", aid, tid, pdIdList);
+                return rt;
+            }
+            // 删除商品规格相关信息
+            rt = specificationProc.batchDelPdAllSc(aid, tid, pdIdList);
+            if(rt != Errno.OK){
+                Log.logErr(rt, "batchDelPdAllStoreSales err;aid=%s;tid=%s;pdIdList=%s;", aid, tid, pdIdList);
                 return rt;
             }
 

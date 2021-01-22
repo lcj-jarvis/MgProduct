@@ -17,26 +17,41 @@ public class InOutStoreRecordProc {
     }
 
     /**
-     * 添加一条出库记录
+     * 批量添加出库记录
      */
-    public int addOutStoreRecord(int aid, int unionPriId, long skuId, Param info) {
-        if(aid <= 0 || unionPriId <= 0 || skuId <= 0 || info == null || info.isEmpty()){
-            Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;skuId=%s;info=%s;", m_flow, aid, unionPriId, skuId, info);
+    public int batchAddOutStoreRecord(int aid, int unionPriId, Map<Long, Integer> skuIdChangeCountMap, Map<SkuStoreKey, Integer> changeCountAfterSkuStoreCountMap, Param info) {
+        if(aid <= 0 || unionPriId <= 0 || skuIdChangeCountMap == null || info == null || info.isEmpty()){
+            Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;skuIdChangeCountMap=%s;info=%s;", m_flow, aid, unionPriId, skuIdChangeCountMap, info);
             return Errno.ARGS_ERROR;
         }
-        info.setInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, unionPriId);
-        info.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
-        return batchAdd(aid, new FaiList<>(Arrays.asList(info)));
+        FaiList<Param> dataList = new FaiList<>(skuIdChangeCountMap.size());
+        skuIdChangeCountMap.forEach((skuId, count)->{
+            Param data = info.clone();
+            data.setInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, unionPriId);
+            data.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
+            data.setInt(InOutStoreRecordEntity.Info.CHANGE_COUNT, count);
+            dataList.add(data);
+        });
+
+        return batchAdd(aid, dataList, changeCountAfterSkuStoreCountMap);
     }
 
-    public int batchAdd(int aid, FaiList<Param> infoList) {
-        if(aid <= 0 || infoList == null || infoList.isEmpty()){
-            Log.logStd("arg error;flow=%d;aid=%s;infoList=%s;", m_flow, aid, infoList);
+    public int batchAdd(int aid, FaiList<Param> infoList, Map<SkuStoreKey, Integer> changeCountAfterSkuStoreCountMap) {
+        if(aid <= 0 || infoList == null || infoList.isEmpty() || changeCountAfterSkuStoreCountMap == null){
+            Log.logStd("arg error;flow=%d;aid=%s;infoList=%s;changeCountAfterSkuStoreCountMap=%s;", m_flow, aid, infoList, changeCountAfterSkuStoreCountMap);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
         Calendar now = Calendar.getInstance();
         String yyMMdd = Parser.parseString(now, "yyMMdd");
+
+        Integer ioStoreRecId = m_daoCtrl.buildId();
+        if(ioStoreRecId == null){
+            Log.logErr("buildId err aid=%s", aid);
+            return Errno.ERROR;
+        }
+        String number = yyMMdd+String.format("%04d", ioStoreRecId);
+
         for (Param info : infoList) {
             int unionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, 0);
             long skuId = info.getLong(InOutStoreRecordEntity.Info.SKU_ID, 0L);
@@ -46,40 +61,15 @@ public class InOutStoreRecordProc {
                 Log.logStd("arg error;flow=%d;aid=%s;info=%s;", m_flow, aid, info);
                 return rt = Errno.ARGS_ERROR;
             }
-            // 查出 最近的一条 出/入 库记录 因为最近的一条记录总是记录这条记录产生后的剩余库存
-            SearchArg searchArg = new SearchArg();
-            searchArg.matcher = new ParamMatcher();
-            searchArg.matcher.and(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
-            searchArg.matcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-            searchArg.matcher.and(InOutStoreRecordEntity.Info.SKU_ID, ParamMatcher.EQ, skuId);
-            searchArg.cmpor = new ParamComparator(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, true);
-            Ref<Param> infoRef = new Ref<>();
-            rt = m_daoCtrl.selectFirst(searchArg, infoRef);
-            if(rt != Errno.OK && rt != Errno.NOT_FOUND){
-                Log.logStd("selectFirst error;flow=%d;aid=%s;info=%s;", m_flow, aid, info);
-                return rt;
+            int pdId = info.getInt(InOutStoreRecordEntity.Info.PD_ID, 0);
+            int rlPdId = info.getInt(InOutStoreRecordEntity.Info.RL_PD_ID, 0);
+            Integer remainCount = info.getInt(InOutStoreRecordEntity.Info.REMAIN_COUNT);
+            if(remainCount == null){ // 导入数据时不处理
+                remainCount = changeCountAfterSkuStoreCountMap.get(new SkuStoreKey(unionPriId, skuId));
             }
-            Param recentlyRecord = infoRef.value;
-            int pdId = info.getInt(InOutStoreRecordEntity.Info.PD_ID, recentlyRecord.getInt(InOutStoreRecordEntity.Info.PD_ID, 0));
-            int rlPdId = info.getInt(InOutStoreRecordEntity.Info.RL_PD_ID, recentlyRecord.getInt(InOutStoreRecordEntity.Info.RL_PD_ID, 0));
             if(pdId == 0 || rlPdId == 0){
-                Log.logStd("arg 2 error;flow=%d;aid=%s;info=%s;", m_flow, aid, info);
+                Log.logStd("arg 3 error;flow=%d;aid=%s;info=%s;", m_flow, aid, info);
                 return rt = Errno.ARGS_ERROR;
-            }
-
-            int oldRemainCount = recentlyRecord.getInt(InOutStoreRecordEntity.Info.REMAIN_COUNT, 0);
-            int remainCount = 0;
-            try {
-                remainCount = InOutStoreRecordValObj.OptType.computeCount(optType, oldRemainCount, changeCount);
-            }catch (RuntimeException e){
-                rt = Errno.ARGS_ERROR;
-                Log.logErr(rt, e, "arg err;flow=%d;aid=%d;info=%s;oldRemainCount=%s;", m_flow, aid, info, oldRemainCount);
-                return rt;
-            }
-            Integer ioStoreRecId = m_daoCtrl.buildId();
-            if(ioStoreRecId == null){
-                Log.logErr("buildId err aid=%s", aid);
-                return Errno.ERROR;
             }
 
             Param data = new Param();
@@ -99,20 +89,27 @@ public class InOutStoreRecordProc {
                 data.setInt(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, changeCount);
             }
             data.assign(info, InOutStoreRecordEntity.Info.PRICE);
-            data.setString(InOutStoreRecordEntity.Info.NUMBER, yyMMdd+String.format("%04d", ioStoreRecId));
+            data.setString(InOutStoreRecordEntity.Info.NUMBER, number);
             data.assign(info, InOutStoreRecordEntity.Info.OPT_SID);
             data.assign(info, InOutStoreRecordEntity.Info.HEAD_SID);
             data.assign(info, InOutStoreRecordEntity.Info.OPT_TIME);
             data.assign(info, InOutStoreRecordEntity.Info.FLAG);
             data.assign(info, InOutStoreRecordEntity.Info.REMARK);
+            data.assign(info, InOutStoreRecordEntity.Info.RL_ORDER_CODE);
+            data.assign(info, InOutStoreRecordEntity.Info.RL_REFUND_ID);
             data.assign(info, InOutStoreRecordEntity.Info.KEEP_INT_PROP1);
             data.assign(info, InOutStoreRecordEntity.Info.KEEP_PROP1);
-            data.setCalendar(InOutStoreRecordEntity.Info.SYS_UPDATE_TIME, now);
-            data.setCalendar(InOutStoreRecordEntity.Info.SYS_CREATE_TIME, now);
+            data.assign(info, InOutStoreRecordEntity.Info.SYS_UPDATE_TIME);
+            data.assign(info, InOutStoreRecordEntity.Info.SYS_CREATE_TIME);
+            if(!data.containsKey(InOutStoreRecordEntity.Info.SYS_CREATE_TIME)){
+                data.setCalendar(InOutStoreRecordEntity.Info.SYS_CREATE_TIME, now);
+            }
+            if(!data.containsKey(InOutStoreRecordEntity.Info.SYS_UPDATE_TIME)){
+                data.setCalendar(InOutStoreRecordEntity.Info.SYS_UPDATE_TIME, now);
+            }
 
             if(optType == InOutStoreRecordValObj.OptType.OUT){ // 如果是出库操作 需要消耗入库记录的库存
-
-                rt = reduceStoreInRecord(aid, unionPriId, skuId, changeCount);
+                rt = reduceStoreInRecord(aid, unionPriId, skuId, remainCount);
                 if(rt != Errno.OK){
                     return rt;
                 }
@@ -131,10 +128,10 @@ public class InOutStoreRecordProc {
     /**
      * 先进先出方式扣减入库记录的有效库存
      */
-    private int reduceStoreInRecord(int aid, int unionPriId, long skuId, int changeCount){
+    private int reduceStoreInRecord(int aid, int unionPriId, long skuId, int remainCount){
         int rt = Errno.ERROR;
         // 批量查询的大小
-        int batchSize = changeCount > 10 ? 10 : changeCount;
+        int batchSize = 10;
         SearchArg searchArg = new SearchArg();
         ParamMatcher commMatcher = new ParamMatcher();
         commMatcher.and(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
@@ -143,49 +140,53 @@ public class InOutStoreRecordProc {
         commMatcher.and(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, ParamMatcher.GT, 0); // 可用库存必须大于0
 
         searchArg.matcher = commMatcher;
+        searchArg.cmpor = new ParamComparator(InOutStoreRecordEntity.Info.SYS_UPDATE_TIME, true); // 跟进创建时间降序排序
         searchArg.limit = batchSize;
-        while (changeCount > 0){
+        int setIoStoreRecId = 0;
+        int setAvailableCount = 0;
+        FaiList<Integer> notFillZeroIdList = new FaiList<>();
+        int start = 0;
+        while (remainCount > 0){
+            searchArg.start = start;
             Ref<FaiList<Param>> listRef = new Ref<>();
-            rt = m_daoCtrl.select(searchArg, listRef);
+            rt = m_daoCtrl.select(searchArg, listRef, InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, InOutStoreRecordEntity.Info.AVAILABLE_COUNT);
             if(rt != Errno.OK){
-                Log.logErr("dao select err;flow=%s;aid=%s;unionPriId=%s;skuId=%s;changeCount=%s", m_flow, aid,unionPriId, skuId, changeCount);
+                Log.logErr("dao select err;flow=%s;aid=%s;unionPriId=%s;skuId=%s;remainCount=%s", m_flow, aid,unionPriId, skuId, remainCount);
                 return rt;
             }
             FaiList<Param> list = listRef.value;
-            FaiList<Param> dataList = new FaiList<>();
             for (Param info : list) {
                 int availableCount = info.getInt(InOutStoreRecordEntity.Info.AVAILABLE_COUNT);
                 int ioStoreRecId = info.getInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID);
-                Param data = new Param();
-                dataList.add(data);
-                data.setInt(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, 0);
-                { // for batch matcher
-                    data.setInt(InOutStoreRecordEntity.Info.AID, aid);
-                    data.setInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, unionPriId);
-                    data.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
-                    data.setInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, ioStoreRecId);
-                }
-                if(availableCount >= changeCount){
-                    data.setInt(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, availableCount-changeCount);
-                    changeCount = 0;
+                notFillZeroIdList.add(ioStoreRecId);
+                if(availableCount >= remainCount){
+                    setAvailableCount = remainCount;
+                    setIoStoreRecId = ioStoreRecId;
+                    remainCount = 0;
                     break;
                 }else{
-                    changeCount -= availableCount;
+                    remainCount -= availableCount;
                 }
             }
-            ParamUpdater batchUpdater = new ParamUpdater();
-            batchUpdater.getData().setString(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, "?");
-
-            ParamMatcher batchMatcher = new ParamMatcher();
-            batchMatcher.and(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, "?");
-            batchMatcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
-            batchMatcher.and(InOutStoreRecordEntity.Info.SKU_ID, ParamMatcher.EQ, "?");
-            batchMatcher.and(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, ParamMatcher.EQ, "?");
-            rt = m_daoCtrl.batchUpdate(batchUpdater, batchMatcher, dataList);
-            if(rt != Errno.OK){
-                Log.logErr("dao batchUpdate err;flow=%s;aid=%s;unionPriId=%s;skuId=%s;dataList=%s", m_flow, aid,unionPriId, skuId, dataList);
-                return rt;
-            }
+            start += batchSize;
+        }
+        ParamUpdater fillZeroUpdater = new ParamUpdater();
+        fillZeroUpdater.getData().setInt(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, 0);
+        ParamMatcher fillZeroMatcher = commMatcher.clone();
+        fillZeroMatcher.and(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, ParamMatcher.NOT_IN, notFillZeroIdList);
+        rt = m_daoCtrl.update(fillZeroUpdater, fillZeroMatcher);
+        if(rt != Errno.OK){
+            Log.logErr(rt, "m_daoCtrl.update err;flow=%s;aid=%s;fillZeroMatcher.json=%s;", m_flow, aid, fillZeroMatcher.toJson());
+            return rt;
+        }
+        ParamUpdater setUpdater = new ParamUpdater();
+        setUpdater.getData().setInt(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, setAvailableCount);
+        ParamMatcher setMatcher = commMatcher.clone();
+        setMatcher.and(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, ParamMatcher.EQ, setIoStoreRecId);
+        rt = m_daoCtrl.update(fillZeroUpdater, fillZeroMatcher);
+        if(rt != Errno.OK){
+            Log.logErr(rt, "m_daoCtrl.update err;flow=%s;aid=%s;setAvailableCount=%s;setIoStoreRecId=%s;", m_flow, aid, setAvailableCount, setIoStoreRecId);
+            return rt;
         }
         Log.logStd("ok!flow=%s;aid=%s;", m_flow, aid);
         return rt;
@@ -203,8 +204,6 @@ public class InOutStoreRecordProc {
         Log.logStd("ok;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
         return rt;
     }
-
-
 
 
     public int clearIdBuilderCache(int aid){

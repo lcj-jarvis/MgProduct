@@ -6,9 +6,9 @@ import fai.MgProductBasicSvr.domain.serviceproc.ProductBindPropProc;
 import fai.MgProductBasicSvr.interfaces.dto.ProductBindPropDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
-import fai.comm.middleground.service.ServicePub;
 import fai.comm.util.*;
 import fai.middleground.svrutil.repository.TransactionCtrl;
+import fai.middleground.svrutil.service.ServicePub;
 
 import java.io.IOException;
 import java.util.concurrent.locks.Lock;

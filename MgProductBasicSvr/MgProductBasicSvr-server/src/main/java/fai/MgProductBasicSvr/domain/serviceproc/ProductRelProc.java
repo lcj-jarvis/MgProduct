@@ -77,8 +77,8 @@ public class ProductRelProc {
             if(pdId != null) {
                 relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
             }
-            pdId = relData.getInt(ProductRelEntity.Info.PD_ID);
-            if(pdId == null) {
+            Integer curPdId = relData.getInt(ProductRelEntity.Info.PD_ID);
+            if(curPdId == null) {
                 rt = Errno.ARGS_ERROR;
                 Log.logErr(rt, "args error, pdId is null;flow=%d;aid=%d;uid=%d;", m_flow, aid);
                 return rt;

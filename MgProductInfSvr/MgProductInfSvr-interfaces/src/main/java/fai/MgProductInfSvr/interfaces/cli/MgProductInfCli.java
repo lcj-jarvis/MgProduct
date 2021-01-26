@@ -1,11 +1,10 @@
 package fai.MgProductInfSvr.interfaces.cli;
 
 import fai.MgProductInfSvr.interfaces.cmd.MgProductInfCmd;
-import fai.MgProductInfSvr.interfaces.dto.ProductBasicDto;
-import fai.MgProductInfSvr.interfaces.dto.ProductPropDto;
-import fai.MgProductInfSvr.interfaces.dto.ProductSpecDto;
-import fai.MgProductInfSvr.interfaces.dto.ProductStoreDto;
+import fai.MgProductInfSvr.interfaces.dto.*;
+import fai.MgProductInfSvr.interfaces.entity.ProductStoreEntity;
 import fai.MgProductInfSvr.interfaces.entity.ProductStoreValObj;
+import fai.MgProductInfSvr.interfaces.entity.ProductTempEntity;
 import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
@@ -2466,10 +2465,32 @@ public class MgProductInfCli extends FaiClient {
     }
 
     /**
-     * 获取库存SKU汇总信息
-     * 目前分页限制100
+     * 获取库存SKU汇总信息，
+     * 例如：悦客 所有门店 sku维度 的汇总信息
+     * @param tid 创建商品的tid
+     * @param siteId 创建商品siteId
+     * @param lgId 创建商品的lgId
+     * @param keepPriId1 创建商品的keepPriId1
      */
     public int getStoreSkuSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, SearchArg searchArg, FaiList<Param> list){
+        return getStoreSkuSummaryInfoList(aid, tid, siteId, lgId, keepPriId1, false, searchArg, list);
+    }
+
+
+    /**
+     * 获取库存SKU汇总信息
+     * @param tid 创建商品的tid | 相关联的tid
+     * @param siteId 创建商品siteId | 相关联的siteId
+     * @param lgId 创建商品的lgId | 相关联的lgId
+     * @param keepPriId1 创建商品的keepPriId1 | 相关联的keepPriId1
+     * @param isBiz 是否是 查询 业务（主键）+sku 维度
+     * @param searchArg
+     * 分页限制：100
+     * {@link ProductStoreEntity.StoreSkuSummaryInfo#COUNT}  可查询、排序
+     * {@link ProductStoreEntity.StoreSkuSummaryInfo#REMAIN_COUNT}  可查询、排序
+     * {@link ProductStoreEntity.StoreSkuSummaryInfo#HOLDING_COUNT}  可查询、排序
+     */
+    public int getStoreSkuSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, boolean isBiz, SearchArg searchArg, FaiList<Param> list){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2495,6 +2516,7 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductStoreDto.Key.LGID, lgId);
             sendBody.putInt(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1);
             searchArg.toBuffer(sendBody, ProductStoreDto.Key.SEARCH_ARG);
+            sendBody.putBoolean(ProductStoreDto.Key.IS_BIZ, isBiz);
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductInfCmd.StoreSkuSummaryCmd.GET_LIST);
@@ -2547,4 +2569,121 @@ public class MgProductInfCli extends FaiClient {
         }
     }
 
+    /**
+     * 批量同步spu 为 sku
+     * @param ownerTid 创建商品的 tid
+     * @param ownerSiteId 创建商品的 siteId
+     * @param ownerLgId 创建商品的 lgId
+     * @param ownerKeepPriId1 创建商品的 keepPriId1
+     * @param spuInfoList Param见 {@link ProductTempEntity.ProductInfo}
+     */
+    public int synSPU2SKU(int aid, int ownerTid, int ownerSiteId, int ownerLgId, int ownerKeepPriId1, FaiList<Param> spuInfoList){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "aid error");
+                return m_rt;
+            }
+            if(spuInfoList == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "spuInfoList error");
+                return m_rt;
+            }
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductTempDto.Key.TID, ownerTid);
+            sendBody.putInt(ProductTempDto.Key.SITE_ID, ownerSiteId);
+            sendBody.putInt(ProductTempDto.Key.LGID, ownerLgId);
+            sendBody.putInt(ProductTempDto.Key.KEEP_PRIID1, ownerKeepPriId1);
+            spuInfoList.toBuffer(sendBody, ProductTempDto.Key.INFO_LIST, ProductTempDto.Info.getInfoDto());
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductInfCmd.TempCmd.SYN_SPU_TO_SKU);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK), m_rt);
+        }
+    }
+
+    /**
+     * 批量同步 出入库记录
+     * @param ownerTid 创建商品的 tid
+     * @param ownerSiteId 创建商品的 siteId
+     * @param ownerLgId 创建商品的 lgId
+     * @param ownerKeepPriId1 创建商品的 keepPriId1
+     * @param recordInfoList 出入库记录集 Param见 {@link ProductTempEntity.StoreRecordInfo}
+     */
+    public int synInOutStoreRecord(int aid, int ownerTid, int ownerSiteId, int ownerLgId, int ownerKeepPriId1, FaiList<Param> recordInfoList){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "aid error");
+                return m_rt;
+            }
+            if(recordInfoList == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "recordInfoList error");
+                return m_rt;
+            }
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductTempDto.Key.TID, ownerTid);
+            sendBody.putInt(ProductTempDto.Key.SITE_ID, ownerSiteId);
+            sendBody.putInt(ProductTempDto.Key.LGID, ownerLgId);
+            sendBody.putInt(ProductTempDto.Key.KEEP_PRIID1, ownerKeepPriId1);
+            recordInfoList.toBuffer(sendBody, ProductTempDto.Key.INFO_LIST, ProductTempDto.StoreRecord.getInfoDto());
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductInfCmd.TempCmd.SYN_IN_OUT_STORE_RECORD);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK), m_rt);
+        }
+    }
 }

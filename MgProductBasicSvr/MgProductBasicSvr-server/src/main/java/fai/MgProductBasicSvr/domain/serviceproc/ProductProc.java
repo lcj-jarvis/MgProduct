@@ -35,29 +35,75 @@ public class ProductProc {
             Log.logErr(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductValObj.Limit.COUNT_MAX);
             return rt;
         }
-        Integer pdId = pdData.getInt(ProductEntity.Info.PD_ID);
-        if(pdId == null) {
-            pdId = m_dao.buildId(aid, false);
-            if (pdId == null) {
-                rt = Errno.ERROR;
-                Log.logErr(rt, "pdId build error;flow=%d;aid=%d;", m_flow, aid);
-                return rt;
-            }else {
-                pdId = m_dao.updateId(aid, pdId, false);
-                if (pdId == null) {
-                    rt = Errno.ERROR;
-                    Log.logErr(rt, "pdId update error;flow=%d;aid=%d;", m_flow, aid);
-                    return rt;
-                }
-            }
-            pdData.setInt(ProductEntity.Info.PD_ID, pdId);
+        rt = creatAndSetId(aid, pdData);
+        if(rt != Errno.OK) {
+            return rt;
         }
+        Integer pdId = pdData.getInt(ProductEntity.Info.PD_ID);
         pdIdRef.value = pdId;
         rt = m_dao.insert(pdData);
         if(rt != Errno.OK) {
             Log.logErr(rt, "insert product error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
+        return rt;
+    }
+
+    public int batchAddProduct(int aid, FaiList<Param> pdDataList, FaiList<Integer> pdIdList) {
+        int rt;
+        if(pdDataList == null || pdDataList.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args err, pdDataList is empty;flow=%d;aid=%d;pdData=%s", m_flow, aid, pdDataList);
+            return rt;
+        }
+        Ref<Integer> countRef = new Ref<>();
+        rt = getPdCount(aid, countRef);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "get pd rel count error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        int count = countRef.value + pdDataList.size();
+        if(count > ProductValObj.Limit.COUNT_MAX) {
+            rt = Errno.COUNT_LIMIT;
+            Log.logErr(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductValObj.Limit.COUNT_MAX);
+            return rt;
+        }
+        for(Param pdData : pdDataList) {
+            rt = creatAndSetId(aid, pdData);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            Integer pdId = pdData.getInt(ProductEntity.Info.PD_ID);
+            pdIdList.add(pdId);
+        }
+
+        rt = m_dao.batchInsert(pdDataList, null, false);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "insert product error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        return rt;
+    }
+
+    private int creatAndSetId(int aid, Param info) {
+        int rt = Errno.OK;
+        Integer pdId = info.getInt(ProductEntity.Info.PD_ID);
+        if(pdId == null) {
+            pdId = m_dao.buildId(aid, false);
+            if (pdId == null) {
+                rt = Errno.ERROR;
+                Log.logErr(rt, "pdId build error;flow=%d;aid=%d;", m_flow, aid);
+                return rt;
+            }
+        }else {
+            pdId = m_dao.updateId(aid, pdId, false);
+            if (pdId == null) {
+                rt = Errno.ERROR;
+                Log.logErr(rt, "pdId update error;flow=%d;aid=%d;", m_flow, aid);
+                return rt;
+            }
+        }
+        info.setInt(ProductEntity.Info.PD_ID, pdId);
         return rt;
     }
 

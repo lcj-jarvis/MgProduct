@@ -97,6 +97,18 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductBasicCmd.BasicCmd.BATCH_ADD_PD_AND_REL)
+    public int batchAddProductAndRel(final FaiSession session,
+                               @ArgFlow final int flow,
+                               @ArgAid final int aid,
+                               @ArgBodyInteger(ProductRelDto.Key.TID) int tid,
+                               @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                               @ArgList(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
+                                       keyMatch = ProductRelDto.Key.INFO) FaiList<Param> list) throws IOException {
+        return service.batchAddProductAndRel(session, flow, aid, tid, unionPriId, list);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductBasicCmd.BasicCmd.ADD_REL_BIND)
     public int bindProductRel(final FaiSession session,
                               @ArgFlow final int flow,
@@ -121,6 +133,17 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                               @ArgList(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
                                       keyMatch = ProductRelDto.Key.INFO_LIST) FaiList<Param> infoList) throws IOException {
         return service.batchBindProductRel(session, flow, aid, tid, bindRlPdInfo, infoList);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BasicCmd.BATCH_ADD_PDS_REL_BIND)
+    public int batchBindProductsRel(final FaiSession session,
+                                   @ArgFlow final int flow,
+                                   @ArgAid final int aid,
+                                   @ArgBodyInteger(ProductRelDto.Key.TID) int tid,
+                                   @ArgList(classDef = ProductRelDto.class, methodDef = "getTmpBindDto",
+                                           keyMatch = ProductRelDto.Key.INFO_LIST) FaiList<Param> infoList) throws IOException {
+        return service.batchBindProductsRel(session, flow, aid, tid, infoList);
     }
 
     @WrittenCmd

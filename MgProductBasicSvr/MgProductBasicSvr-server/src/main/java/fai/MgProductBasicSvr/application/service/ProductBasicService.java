@@ -16,6 +16,7 @@ import fai.middleground.svrutil.service.ServicePub;
 
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.locks.Lock;
 
@@ -295,91 +296,13 @@ public class ProductBasicService extends ServicePub {
                 Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
                 return rt;
             }
-            if(Str.isEmpty(info)) {
-                rt = Errno.ARGS_ERROR;
-                Log.logErr("args error info is empty;flow=%d;aid=%d;uid=%d;info=%s", flow, aid, unionPriId, info);
-                return rt;
-            }
-            // 是否需要校验数据，初步接入中台，一些非必要数据可能存在需要添加空数据场景
-            boolean infoCheck = info.getBoolean(ProductRelEntity.Info.INFO_CHECK, true);
-
-            Integer addedSid = info.getInt(ProductRelEntity.Info.ADD_SID);
-            if(addedSid == null && !infoCheck) {
-                addedSid = 0;
-            }
-            if(infoCheck && addedSid == null) {
-                rt = Errno.ARGS_ERROR;
-                Log.logErr("args error, addedSid is null;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
-                return rt;
-            }
-
-
-            String name = info.getString(ProductEntity.Info.NAME);
-            if(name == null && !infoCheck) {
-                name = "";
-            }
-            if(infoCheck && !MgProductCheck.checkProductName(name)) {
-                rt = Errno.ARGS_ERROR;
-                Log.logErr("args error, name is unvalid;flow=%d;aid=%d;uid=%d;name=%s;", flow, aid, unionPriId, name);
-                return rt;
-            }
-
-            int rlLibId = info.getInt(ProductRelEntity.Info.RL_LIB_ID, 1);
-            if(rlLibId <= 0) {
-                rt = Errno.ARGS_ERROR;
-                Log.logErr("args error, rlLibId is empty;flow=%d;aid=%d;uid=%d;rlLibId=%s", flow, aid, unionPriId, rlLibId);
-                return rt;
-            }
-
-            int sourceTid = info.getInt(ProductRelEntity.Info.SOURCE_TID, tid);
-            if(!FaiValObj.TermId.isValidTid(sourceTid)) {
-                rt = Errno.ARGS_ERROR;
-                Log.logErr("args error, sourceTid is unvalid;flow=%d;aid=%d;uid=%d;sourceTid=%d;", flow, aid, unionPriId, sourceTid);
-                return rt;
-            }
-            int sourceUnionPriId = info.getInt(ProductEntity.Info.SOURCE_UNIONPRIID, unionPriId);
-            Calendar now = Calendar.getInstance();
-            Calendar addedTime = info.getCalendar(ProductRelEntity.Info.ADD_TIME, now);
-            Calendar lastUpdateTime = info.getCalendar(ProductRelEntity.Info.LAST_UPDATE_TIME, now);
-            Calendar sysCreateTime = info.getCalendar(ProductRelEntity.Info.CREATE_TIME, now);
-            Calendar sysUpdateTime = info.getCalendar(ProductRelEntity.Info.UPDATE_TIME, now);
-
-            Param relData = new Param();
-            relData.setInt(ProductRelEntity.Info.AID, aid);
-            relData.setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId);
-            relData.setInt(ProductRelEntity.Info.RL_LIB_ID, rlLibId);
-            relData.setInt(ProductRelEntity.Info.SOURCE_TID, sourceTid);
-            relData.setCalendar(ProductRelEntity.Info.ADD_TIME, addedTime);
-            relData.setInt(ProductRelEntity.Info.ADD_SID, addedSid);
-            relData.setCalendar(ProductRelEntity.Info.LAST_UPDATE_TIME, lastUpdateTime);
-            relData.setCalendar(ProductRelEntity.Info.CREATE_TIME, sysCreateTime);
-            relData.setCalendar(ProductRelEntity.Info.UPDATE_TIME, sysUpdateTime);
-
-            relData.assign(info, ProductRelEntity.Info.RL_PD_ID);
-            relData.assign(info, ProductRelEntity.Info.LAST_SID);
-            relData.assign(info, ProductRelEntity.Info.STATUS);
-            relData.assign(info, ProductRelEntity.Info.UP_SALE_TIME);
-            relData.assign(info, ProductRelEntity.Info.FLAG);
-
             Param pdData = new Param();
-            pdData.setInt(ProductEntity.Info.AID, aid);
-            pdData.setInt(ProductEntity.Info.SOURCE_TID, sourceTid);
-            pdData.setInt(ProductEntity.Info.SOURCE_UNIONPRIID, sourceUnionPriId);
-            pdData.setString(ProductEntity.Info.NAME, name);
-            pdData.setCalendar(ProductEntity.Info.CREATE_TIME, sysCreateTime);
-            pdData.setCalendar(ProductEntity.Info.UPDATE_TIME, sysUpdateTime);
+            Param relData = new Param();
 
-            pdData.assign(info, ProductEntity.Info.PD_TYPE);
-            pdData.assign(info, ProductEntity.Info.IMG_LIST);
-            pdData.assign(info, ProductEntity.Info.VIDEO_LIST);
-            pdData.assign(info, ProductEntity.Info.UNIT);
-            pdData.assign(info, ProductEntity.Info.FLAG);
-            pdData.assign(info, ProductEntity.Info.FLAG1);
-            pdData.assign(info, ProductEntity.Info.KEEP_PROP1);
-            pdData.assign(info, ProductEntity.Info.KEEP_PROP2);
-            pdData.assign(info, ProductEntity.Info.KEEP_PROP3);
-            pdData.assign(info, ProductEntity.Info.KEEP_INT_PROP1);
-            pdData.assign(info, ProductEntity.Info.KEEP_INT_PROP2);
+            rt = assemblyInfo(flow, aid, tid, unionPriId, info, relData, pdData);
+            if(rt != Errno.OK) {
+                return rt;
+            }
 
             Integer rlPdId = 0;
             Integer pdId = 0;
@@ -438,6 +361,176 @@ public class ProductBasicService extends ServicePub {
         }finally {
             stat.end(rt != Errno.OK, rt);
         }
+        return rt;
+    }
+
+    /**
+     * 批量添加商品，并添加与当前unionPriId的关联
+     */
+    public int batchAddProductAndRel(FaiSession session, int flow, int aid, int tid, int unionPriId, FaiList<Param> addList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+            FaiList<Param> relDataList = new FaiList<Param>();
+            FaiList<Param> pdDataList = new FaiList<Param>();
+            for(int i = 0;i < addList.size(); i++) {
+                Param pdData = new Param();
+                Param relData = new Param();
+                Param info = addList.get(i);
+                rt = assemblyInfo(flow, aid, tid, unionPriId, info, relData, pdData);
+                if(rt != Errno.OK) {
+                    return rt;
+                }
+                relDataList.add(relData);
+                pdDataList.add(pdData);
+            }
+
+            Lock lock = LockUtil.getLock(aid);
+            lock.lock();
+            try {
+                //统一控制事务
+                TransactionCtrl transactionCtrl = new TransactionCtrl();
+                try {
+                    ProductRelDaoCtrl relDao = ProductRelDaoCtrl.getInstance(flow, aid);
+                    ProductDaoCtrl pdDao = ProductDaoCtrl.getInstance(flow, aid);
+                    transactionCtrl.register(relDao);
+                    transactionCtrl.register(pdDao);
+                    transactionCtrl.setAutoCommit(false);
+                    // 新增商品数据
+                    ProductProc pdProc = new ProductProc(flow, pdDao);
+                    FaiList<Integer> pdIdList = new FaiList<Integer>();
+                    rt = pdProc.batchAddProduct(aid, pdDataList, pdIdList);
+                    if(rt != Errno.OK) {
+                        return rt;
+                    }
+
+                    for(int i = 0;i < relDataList.size(); i++) {
+                        Param relData = relDataList.get(i);
+                        relData.setInt(ProductRelEntity.Info.PD_ID, pdIdList.get(i));
+                    }
+                    // 新增业务关系
+                    ProductRelProc relProc = new ProductRelProc(flow, relDao);
+                    Ref<FaiList<Integer>> rlPdIdsRef = new Ref<FaiList<Integer>>();
+                    rt = relProc.batchAddProductRel(aid, null, relDataList, rlPdIdsRef);
+                    if(rt != Errno.OK) {
+                        return rt;
+                    }
+                } finally {
+                    if(rt != Errno.OK) {
+                        transactionCtrl.rollback();
+                        ProductDaoCtrl.clearIdBuilderCache(aid);
+                        ProductRelDaoCtrl.clearIdBuilderCache(aid, unionPriId);
+                    }else {
+                        transactionCtrl.commit();
+                        // 更新缓存
+                        ProductCacheCtrl.addCacheList(aid, pdDataList);
+                        ProductRelCacheCtrl.delCache(aid, unionPriId);
+                    }
+                    transactionCtrl.closeDao();
+                }
+
+            } finally {
+                lock.unlock();
+            }
+
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    private int assemblyInfo(int flow, int aid, int tid, int unionPriId, Param info, Param relData, Param pdData) {
+        int rt = Errno.OK;
+        if(Str.isEmpty(info)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error info is empty;flow=%d;aid=%d;uid=%d;info=%s", flow, aid, unionPriId, info);
+            return rt;
+        }
+        // 是否需要校验数据，初步接入中台，一些非必要数据可能存在需要添加空数据场景
+        boolean infoCheck = info.getBoolean(ProductRelEntity.Info.INFO_CHECK, true);
+
+        Integer addedSid = info.getInt(ProductRelEntity.Info.ADD_SID);
+        if(addedSid == null && !infoCheck) {
+            addedSid = 0;
+        }
+        if(infoCheck && addedSid == null) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, addedSid is null;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
+            return rt;
+        }
+
+        String name = info.getString(ProductEntity.Info.NAME);
+        if(name == null && !infoCheck) {
+            name = "";
+        }
+        if(infoCheck && !MgProductCheck.checkProductName(name)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, name is unvalid;flow=%d;aid=%d;uid=%d;name=%s;", flow, aid, unionPriId, name);
+            return rt;
+        }
+
+        int rlLibId = info.getInt(ProductRelEntity.Info.RL_LIB_ID, 1);
+        if(rlLibId <= 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, rlLibId is empty;flow=%d;aid=%d;uid=%d;rlLibId=%s", flow, aid, unionPriId, rlLibId);
+            return rt;
+        }
+
+        int sourceTid = info.getInt(ProductRelEntity.Info.SOURCE_TID, tid);
+        if(!FaiValObj.TermId.isValidTid(sourceTid)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, sourceTid is unvalid;flow=%d;aid=%d;uid=%d;sourceTid=%d;", flow, aid, unionPriId, sourceTid);
+            return rt;
+        }
+        int sourceUnionPriId = info.getInt(ProductEntity.Info.SOURCE_UNIONPRIID, unionPriId);
+        Calendar now = Calendar.getInstance();
+        Calendar addedTime = info.getCalendar(ProductRelEntity.Info.ADD_TIME, now);
+        Calendar lastUpdateTime = info.getCalendar(ProductRelEntity.Info.LAST_UPDATE_TIME, now);
+        Calendar sysCreateTime = info.getCalendar(ProductRelEntity.Info.CREATE_TIME, now);
+        Calendar sysUpdateTime = info.getCalendar(ProductRelEntity.Info.UPDATE_TIME, now);
+
+        relData.setInt(ProductRelEntity.Info.AID, aid);
+        relData.setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId);
+        relData.setInt(ProductRelEntity.Info.RL_LIB_ID, rlLibId);
+        relData.setInt(ProductRelEntity.Info.SOURCE_TID, sourceTid);
+        relData.setCalendar(ProductRelEntity.Info.ADD_TIME, addedTime);
+        relData.setInt(ProductRelEntity.Info.ADD_SID, addedSid);
+        relData.setCalendar(ProductRelEntity.Info.LAST_UPDATE_TIME, lastUpdateTime);
+        relData.setCalendar(ProductRelEntity.Info.CREATE_TIME, sysCreateTime);
+        relData.setCalendar(ProductRelEntity.Info.UPDATE_TIME, sysUpdateTime);
+
+        relData.assign(info, ProductRelEntity.Info.RL_PD_ID);
+        relData.assign(info, ProductRelEntity.Info.LAST_SID);
+        relData.assign(info, ProductRelEntity.Info.STATUS);
+        relData.assign(info, ProductRelEntity.Info.UP_SALE_TIME);
+        relData.assign(info, ProductRelEntity.Info.FLAG);
+
+        pdData.setInt(ProductEntity.Info.AID, aid);
+        pdData.setInt(ProductEntity.Info.SOURCE_TID, sourceTid);
+        pdData.setInt(ProductEntity.Info.SOURCE_UNIONPRIID, sourceUnionPriId);
+        pdData.setString(ProductEntity.Info.NAME, name);
+        pdData.setCalendar(ProductEntity.Info.CREATE_TIME, sysCreateTime);
+        pdData.setCalendar(ProductEntity.Info.UPDATE_TIME, sysUpdateTime);
+
+        pdData.assign(info, ProductEntity.Info.PD_TYPE);
+        pdData.assign(info, ProductEntity.Info.IMG_LIST);
+        pdData.assign(info, ProductEntity.Info.VIDEO_LIST);
+        pdData.assign(info, ProductEntity.Info.UNIT);
+        pdData.assign(info, ProductEntity.Info.FLAG);
+        pdData.assign(info, ProductEntity.Info.FLAG1);
+        pdData.assign(info, ProductEntity.Info.KEEP_PROP1);
+        pdData.assign(info, ProductEntity.Info.KEEP_PROP2);
+        pdData.assign(info, ProductEntity.Info.KEEP_PROP3);
+        pdData.assign(info, ProductEntity.Info.KEEP_INT_PROP1);
+        pdData.assign(info, ProductEntity.Info.KEEP_INT_PROP2);
+
         return rt;
     }
 
@@ -706,7 +799,7 @@ public class ProductBasicService extends ServicePub {
 
                     // 新增商品业务关系
                     Ref<FaiList<Integer>> rlPdIdsRef = new Ref<FaiList<Integer>>();
-                    rt = relProc.batchAddProductRel(aid, pdId, relDataList.clone(), rlPdIdsRef);
+                    rt = relProc.batchAddProductRel(aid, pdId, relDataList, rlPdIdsRef);
                     if(rt != Errno.OK) {
                         return rt;
                     }
@@ -735,6 +828,208 @@ public class ProductBasicService extends ServicePub {
         }finally {
             stat.end(rt != Errno.OK, rt);
         }
+        return rt;
+    }
+
+    /**
+     * 批量新增商品业务关联，同时绑定多个产品数据，给悦客接入进销存中心临时使用的
+     * 接入完成后，废除，该接口禁止对外开放
+     */
+    public int batchBindProductsRel(FaiSession session, int flow, int aid, int tid, FaiList<Param> recvList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+            if(recvList == null || recvList.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, recvList is empty;flow=%d;aid=%d;tid=%d;recvList=%s", flow, aid, tid, recvList);
+                return rt;
+            }
+
+            FaiList<Integer> bindPdIds = new FaiList<Integer>();
+            for(Param recvInfo : recvList) {
+                Integer pdId = recvInfo.getInt(ProductRelEntity.Info.PD_ID);
+                if(pdId == null) {
+                    rt = Errno.ARGS_ERROR;
+                    Log.logErr("args error, pdId is null;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                    return rt;
+                }
+                bindPdIds.add(pdId);
+            }
+            // 根据要绑定的pdId集合，获取对应已绑定的unionPriId
+            HashMap<Integer, FaiList<Integer>> pdRels =  new HashMap<Integer, FaiList<Integer>>();
+            rt = getBoundUniPriIds(flow, aid, bindPdIds, pdRels);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+
+            FaiList<Param> relDataList = new FaiList<Param>();
+            HashSet<Integer> unionPriIds = new HashSet<Integer>();
+            for(Param recvInfo : recvList) {
+                Integer pdId = recvInfo.getInt(ProductRelEntity.Info.PD_ID);
+                if(pdId == null) {
+                    rt = Errno.ARGS_ERROR;
+                    Log.logErr("args error, pdId is null;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                    return rt;
+                }
+                FaiList<Integer> boundUniPriIds = pdRels.get(pdId);
+                if(boundUniPriIds == null) {
+                    rt = Errno.ARGS_ERROR;
+                    Log.logErr(rt, "bind pdId is not exist;flow=%d;aid=%d;tid=%d;pdId=%d;", flow, aid, tid, pdId);
+                    return rt;
+                }
+                // 要绑定pdId的数据集合
+                FaiList<Param> infoList = recvInfo.getList(ProductRelEntity.Info.BIND_LIST);
+                if(infoList == null || infoList.isEmpty()) {
+                    rt = Errno.ARGS_ERROR;
+                    Log.logErr(rt, "bind list is null;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                    return rt;
+                }
+                for(Param info : infoList) {
+                    Integer unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
+                    if(unionPriId == null) {
+                        rt = Errno.ARGS_ERROR;
+                        Log.logErr("args error, unionPriId is null;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                        return rt;
+                    }
+                    // 该unionPriId已经绑定该pdId，则跳过
+                    if(boundUniPriIds.contains(unionPriId)) {
+                        continue;
+                    }
+                    unionPriIds.add(unionPriId);
+                    // 是否需要校验数据，初步接入中台，一些非必要数据可能存在需要添加空数据场景
+                    boolean infoCheck = info.getBoolean(ProductRelEntity.Info.INFO_CHECK, true);
+                    Integer addedSid = info.getInt(ProductRelEntity.Info.ADD_SID);
+                    if(addedSid == null && !infoCheck) {
+                        addedSid = 0;
+                    }
+                    if(infoCheck && addedSid == null) {
+                        rt = Errno.ARGS_ERROR;
+                        Log.logErr("args error, addedSid is null;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
+                        return rt;
+                    }
+
+                    int rlLibId = info.getInt(ProductRelEntity.Info.RL_LIB_ID, 1);
+                    if(rlLibId <= 0) {
+                        rt = Errno.ARGS_ERROR;
+                        Log.logErr("args error, rlLibId is empty;flow=%d;aid=%d;uid=%d;rlLibId=%s", flow, aid, unionPriId, rlLibId);
+                        return rt;
+                    }
+
+                    int sourceTid = info.getInt(ProductRelEntity.Info.SOURCE_TID, tid);
+                    if(!FaiValObj.TermId.isValidTid(sourceTid)) {
+                        rt = Errno.ARGS_ERROR;
+                        Log.logErr("args error, sourceTid is unvalid;flow=%d;aid=%d;uid=%d;sourceTid=%d;", flow, aid, unionPriId, sourceTid);
+                        return rt;
+                    }
+                    Calendar now = Calendar.getInstance();
+                    Calendar addedTime = info.getCalendar(ProductRelEntity.Info.ADD_TIME, now);
+                    Calendar lastUpdateTime = info.getCalendar(ProductRelEntity.Info.LAST_UPDATE_TIME, now);
+                    Calendar sysCreateTime = info.getCalendar(ProductRelEntity.Info.CREATE_TIME, now);
+                    Calendar sysUpdateTime = info.getCalendar(ProductRelEntity.Info.UPDATE_TIME, now);
+
+                    Param relData = new Param();
+                    relData.setInt(ProductRelEntity.Info.AID, aid);
+                    relData.setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId);
+                    relData.setInt(ProductRelEntity.Info.RL_LIB_ID, rlLibId);
+                    relData.setInt(ProductRelEntity.Info.SOURCE_TID, sourceTid);
+                    relData.setCalendar(ProductRelEntity.Info.ADD_TIME, addedTime);
+                    relData.setInt(ProductRelEntity.Info.ADD_SID, addedSid);
+                    relData.setCalendar(ProductRelEntity.Info.LAST_UPDATE_TIME, lastUpdateTime);
+                    relData.setCalendar(ProductRelEntity.Info.CREATE_TIME, sysCreateTime);
+                    relData.setCalendar(ProductRelEntity.Info.UPDATE_TIME, sysUpdateTime);
+
+                    relData.assign(info, ProductRelEntity.Info.RL_PD_ID);
+                    relData.assign(info, ProductRelEntity.Info.LAST_SID);
+                    relData.assign(info, ProductRelEntity.Info.STATUS);
+                    relData.assign(info, ProductRelEntity.Info.UP_SALE_TIME);
+                    relData.assign(info, ProductRelEntity.Info.FLAG);
+
+                    relDataList.add(relData);
+                }
+            }
+
+
+            Lock lock = LockUtil.getLock(aid);
+            lock.lock();
+            try {
+                //统一控制事务
+                TransactionCtrl transactionCtrl = new TransactionCtrl();
+                try {
+                    ProductRelDaoCtrl relDao = ProductRelDaoCtrl.getInstance(flow, aid);
+                    transactionCtrl.register(relDao);
+                    transactionCtrl.setAutoCommit(false);
+
+                    // 先校验商品数据是否存在
+                    ProductRelProc relProc = new ProductRelProc(flow, relDao);
+
+                    // 新增商品业务关系
+                    Ref<FaiList<Integer>> rlPdIdsRef = new Ref<FaiList<Integer>>();
+                    rt = relProc.batchAddProductRel(aid, null, relDataList, rlPdIdsRef);
+                    if(rt != Errno.OK) {
+                        return rt;
+                    }
+                } finally {
+                    if(rt != Errno.OK) {
+                        transactionCtrl.rollback();
+                        for(Integer unionPriId : unionPriIds) {
+                            ProductRelDaoCtrl.clearIdBuilderCache(aid, unionPriId);
+                        }
+                    }else {
+                        transactionCtrl.commit();
+                        // 删除缓存
+                        ProductRelCacheCtrl.delCacheByUids(aid, unionPriIds);
+                    }
+                    transactionCtrl.closeDao();
+                }
+
+            } finally {
+                lock.unlock();
+            }
+
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    private int getBoundUniPriIds(int flow, int aid, FaiList<Integer> pdIds, HashMap<Integer, FaiList<Integer>> pdRels) {
+        int rt = Errno.ERROR;
+        ProductRelDaoCtrl relDao = null;
+        try {
+            relDao = ProductRelDaoCtrl.getInstance(flow, aid);
+            ProductRelProc relProc = new ProductRelProc(flow, relDao);
+            Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
+            rt = relProc.getBoundUniPriIds(aid, pdIds, listRef);
+            if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                Log.logErr(rt, "getRlPdInfoByPdIds fail;flow=%d;aid=%d;pdIds=%d;", flow, aid, pdIds);
+                rt = Errno.ERROR;
+                return rt;
+            }
+            FaiList<Param> list = listRef.value;
+            for(int i = 0; i < list.size(); i++) {
+                Param info = list.get(i);
+                Integer pdId = info.getInt(ProductRelEntity.Info.PD_ID);
+                Integer unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
+                FaiList<Integer> unionPriIds = pdRels.get(pdId);
+                if(unionPriIds == null) {
+                    unionPriIds = new FaiList<Integer>();
+                    pdRels.put(pdId, unionPriIds);
+                }
+                unionPriIds.add(unionPriId);
+            }
+        }finally {
+            if(relDao != null) {
+                relDao.closeDao();
+            }
+        }
+
         return rt;
     }
 }

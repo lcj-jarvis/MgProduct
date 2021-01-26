@@ -437,8 +437,17 @@ public class ProductBasicService extends ServicePub {
             } finally {
                 lock.unlock();
             }
+            FaiList<Param> idInfoList = new FaiList<Param>();
+            for(int i = 0;i < relDataList.size(); i++) {
+                Param relData = relDataList.get(i);
+                Param idInfo = new Param();
+                idInfo.assign(relData, ProductRelEntity.Info.PD_ID);
+                idInfo.assign(relData, ProductRelEntity.Info.RL_PD_ID);
+                idInfoList.add(idInfo);
+            }
 
             FaiBuffer sendBuf = new FaiBuffer(true);
+            idInfoList.toBuffer(sendBuf, ProductRelDto.Key.INFO_LIST, ProductRelDto.getInfoDto());
             session.write(sendBuf);
         }finally {
             stat.end(rt != Errno.OK, rt);

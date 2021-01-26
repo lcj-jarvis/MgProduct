@@ -64,7 +64,7 @@ public class MgProductBasicCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            list.fromBuffer(recvBody, keyRef, ProductBindPropDto.getInfoDto());
+            m_rt = list.fromBuffer(recvBody, keyRef, ProductBindPropDto.getInfoDto());
             if (m_rt != Errno.OK || keyRef.value != ProductBindPropDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
@@ -180,7 +180,7 @@ public class MgProductBasicCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            rlPdIds.fromBuffer(recvBody, keyRef);
+            m_rt = rlPdIds.fromBuffer(recvBody, keyRef);
             if (m_rt != Errno.OK || keyRef.value != ProductBindPropDto.Key.RL_PD_IDS) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
@@ -246,7 +246,7 @@ public class MgProductBasicCli extends FaiClient {
             }
 
             Ref<Integer> keyRef = new Ref<Integer>();
-            pdRelInfo.fromBuffer(recvBody, keyRef, ProductRelDto.getInfoDto());
+            m_rt = pdRelInfo.fromBuffer(recvBody, keyRef, ProductRelDto.getInfoDto());
             if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.INFO) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
@@ -317,7 +317,7 @@ public class MgProductBasicCli extends FaiClient {
             }
 
             Ref<Integer> keyRef = new Ref<Integer>();
-            list.fromBuffer(recvBody, keyRef, ProductRelDto.getInfoDto());
+            m_rt = list.fromBuffer(recvBody, keyRef, ProductRelDto.getInfoDto());
             if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
@@ -388,7 +388,7 @@ public class MgProductBasicCli extends FaiClient {
             }
 
             Ref<Integer> keyRef = new Ref<Integer>();
-            list.fromBuffer(recvBody, keyRef, ProductRelDto.getReducedInfoDto());
+            m_rt = list.fromBuffer(recvBody, keyRef, ProductRelDto.getReducedInfoDto());
             if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.REDUCED_INFO) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
@@ -487,7 +487,7 @@ public class MgProductBasicCli extends FaiClient {
     /**
      * 批量新增商品数据，并添加与当前unionPriId的关联
      */
-    public int batchAddProductAndRel(int aid, int tid, int unionPriId, FaiList<Param> list) {
+    public int batchAddProductAndRel(int aid, int tid, int unionPriId, FaiList<Param> list, FaiList<Param> idInfoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -501,6 +501,7 @@ public class MgProductBasicCli extends FaiClient {
                 Log.logErr(m_rt, "list is null;aid=%d;tid=%d;", aid, tid);
                 return m_rt;
             }
+            idInfoList.clear();
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
@@ -527,6 +528,20 @@ public class MgProductBasicCli extends FaiClient {
             }
             m_rt = recvProtocol.getResult();
             if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = idInfoList.fromBuffer(recvBody, keyRef, ProductRelDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
                 return m_rt;
             }
 

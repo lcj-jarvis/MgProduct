@@ -290,7 +290,7 @@ public class ProductRelProc {
         FaiList<Integer> noCacheIds = new FaiList<>();
         noCacheIds.addAll(rlPdIds);
         for(Param info : list) {
-            int rlPdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
+            Integer rlPdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
             noCacheIds.remove(rlPdId);
         }
 
@@ -344,7 +344,7 @@ public class ProductRelProc {
         FaiList<Integer> noCacheIds = new FaiList<Integer>();
         noCacheIds.addAll(pdIds);
         for(Param info : list) {
-            int pdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
+            Integer pdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
             noCacheIds.remove(pdId);
         }
 

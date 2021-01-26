@@ -208,7 +208,7 @@ public class ProductProc {
         FaiList<Integer> noCacheIds = new FaiList<>();
         noCacheIds.addAll(pdIds);
         for(Param info : list) {
-            int pdId = info.getInt(ProductEntity.Info.PD_ID);
+            Integer pdId = info.getInt(ProductEntity.Info.PD_ID);
             noCacheIds.remove(pdId);
         }
 

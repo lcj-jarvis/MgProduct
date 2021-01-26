@@ -4,6 +4,9 @@ import fai.MgProductInfSvr.interfaces.entity.ProductStoreEntity;
 import fai.comm.util.ParamDef;
 import fai.comm.util.Var;
 
+/**
+ * 库存服务
+ */
 public class ProductStoreDto {
 
     public static final class StoreSalesSku{
@@ -148,5 +151,6 @@ public class ProductStoreDto {
         public static final int SEARCH_ARG = 15;
         public static final int TOTAL_SIZE = 16;
         public static final int IN_OUT_STORE_RECODR = 17;
+        public static final int IS_BIZ = 18;
     }
 }

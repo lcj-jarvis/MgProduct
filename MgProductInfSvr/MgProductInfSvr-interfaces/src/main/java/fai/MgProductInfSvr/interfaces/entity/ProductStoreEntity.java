@@ -55,8 +55,8 @@ public class ProductStoreEntity {
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String REMARK = "remark";                               // String 备注
-        public static final String RL_ORDER_CODE = "rlOrderCode";                   // varchar(32) 业务订单code/id
-        public static final String RL_REFUND_ID = "rlRefundId";                     // varchar(32) 业务退款编号
+        public static final String RL_ORDER_CODE = "rlOrderCode";                   // String 业务订单code/id
+        public static final String RL_REFUND_ID = "rlRefundId";                     // String 业务退款编号
         // for init
         public static final String IN_PD_SC_STR_NAME_LIST = ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_NAME_LIST;
     }

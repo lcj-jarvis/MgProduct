@@ -94,6 +94,11 @@ public class MgProductInfCmd {
 
         /**@see InOutStoreRecordCmd#ADD_LIST */
         public static final int NUM26 = 1026;
+
+        /**@see TempCmd#SYN_SPU_TO_SKU */
+        public static final int NUM27 = 1027;
+        /**@see TempCmd#SYN_IN_OUT_STORE_RECORD */
+        public static final int NUM28 = 1028;
     }
 
     /**
@@ -222,5 +227,13 @@ public class MgProductInfCmd {
         public static final int GET_LIST = ReadCmdNum.NUM17;
     }
 
-
+    /**
+     * 临时的 cmd
+     */
+    public static class TempCmd{
+        // 同步spu 数据到sku
+        public static final int SYN_SPU_TO_SKU = WriteCmdNum.NUM27;
+        // 同步出入库记录
+        public static final int SYN_IN_OUT_STORE_RECORD = WriteCmdNum.NUM28;
+    }
 }

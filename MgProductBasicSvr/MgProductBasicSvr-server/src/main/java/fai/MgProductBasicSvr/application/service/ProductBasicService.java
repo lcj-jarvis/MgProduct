@@ -962,7 +962,12 @@ public class ProductBasicService extends ServicePub {
                     relDataList.add(relData);
                 }
             }
-
+            if(relDataList.isEmpty()) {
+                rt = Errno.OK;
+                FaiBuffer sendBuf = new FaiBuffer(true);
+                session.write(sendBuf);
+                return rt;
+            }
 
             Lock lock = LockUtil.getLock(aid);
             lock.lock();

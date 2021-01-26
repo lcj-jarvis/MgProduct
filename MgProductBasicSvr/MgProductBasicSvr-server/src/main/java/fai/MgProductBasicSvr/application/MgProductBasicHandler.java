@@ -5,7 +5,6 @@ import fai.MgProductBasicSvr.application.service.ProductPropBindService;
 import fai.MgProductBasicSvr.interfaces.cmd.MgProductBasicCmd;
 import fai.MgProductBasicSvr.interfaces.dto.ProductBindPropDto;
 import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
-import fai.comm.jnetkit.server.fai.FaiHandler;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
@@ -13,10 +12,11 @@ import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
 import fai.comm.util.FaiList;
 import fai.comm.util.Param;
+import fai.middleground.svrutil.service.MiddleGroundHandler;
 
 import java.io.IOException;
 
-public class MgProductBasicHandler extends FaiHandler {
+public class MgProductBasicHandler extends MiddleGroundHandler {
     public MgProductBasicHandler(FaiServer server) {
         super(server);
     }
@@ -97,6 +97,18 @@ public class MgProductBasicHandler extends FaiHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductBasicCmd.BasicCmd.BATCH_ADD_PD_AND_REL)
+    public int batchAddProductAndRel(final FaiSession session,
+                               @ArgFlow final int flow,
+                               @ArgAid final int aid,
+                               @ArgBodyInteger(ProductRelDto.Key.TID) int tid,
+                               @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                               @ArgList(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
+                                       keyMatch = ProductRelDto.Key.INFO) FaiList<Param> list) throws IOException {
+        return service.batchAddProductAndRel(session, flow, aid, tid, unionPriId, list);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductBasicCmd.BasicCmd.ADD_REL_BIND)
     public int bindProductRel(final FaiSession session,
                               @ArgFlow final int flow,
@@ -121,6 +133,17 @@ public class MgProductBasicHandler extends FaiHandler {
                               @ArgList(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
                                       keyMatch = ProductRelDto.Key.INFO_LIST) FaiList<Param> infoList) throws IOException {
         return service.batchBindProductRel(session, flow, aid, tid, bindRlPdInfo, infoList);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BasicCmd.BATCH_ADD_PDS_REL_BIND)
+    public int batchBindProductsRel(final FaiSession session,
+                                   @ArgFlow final int flow,
+                                   @ArgAid final int aid,
+                                   @ArgBodyInteger(ProductRelDto.Key.TID) int tid,
+                                   @ArgList(classDef = ProductRelDto.class, methodDef = "getTmpBindDto",
+                                           keyMatch = ProductRelDto.Key.INFO_LIST) FaiList<Param> infoList) throws IOException {
+        return service.batchBindProductsRel(session, flow, aid, tid, infoList);
     }
 
     @WrittenCmd

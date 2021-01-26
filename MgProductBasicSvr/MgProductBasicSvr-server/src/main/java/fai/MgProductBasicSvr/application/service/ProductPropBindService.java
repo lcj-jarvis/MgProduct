@@ -6,9 +6,9 @@ import fai.MgProductBasicSvr.domain.serviceproc.ProductBindPropProc;
 import fai.MgProductBasicSvr.interfaces.dto.ProductBindPropDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
-import fai.comm.middleground.repository.TransactionCtrl;
-import fai.comm.middleground.service.ServicePub;
 import fai.comm.util.*;
+import fai.middleground.svrutil.repository.TransactionCtrl;
+import fai.middleground.svrutil.service.ServicePub;
 
 import java.io.IOException;
 import java.util.concurrent.locks.Lock;
@@ -28,7 +28,7 @@ public class ProductPropBindService extends ServicePub {
                 return rt;
             }
 
-            ProductBindPropDaoCtrl bindPropDao = ProductBindPropDaoCtrl.getInstance(session);
+            ProductBindPropDaoCtrl bindPropDao = ProductBindPropDaoCtrl.getInstance(flow, aid);
             //统一控制事务
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             transactionCtrl.register(bindPropDao);
@@ -74,7 +74,7 @@ public class ProductPropBindService extends ServicePub {
             Lock lock = LockUtil.getLock(aid);
             lock.lock();
             try {
-                ProductBindPropDaoCtrl bindPropDao = ProductBindPropDaoCtrl.getInstance(session);
+                ProductBindPropDaoCtrl bindPropDao = ProductBindPropDaoCtrl.getInstance(flow, aid);
                 //统一控制事务
                 TransactionCtrl transactionCtrl = new TransactionCtrl();
                 transactionCtrl.register(bindPropDao);
@@ -141,7 +141,7 @@ public class ProductPropBindService extends ServicePub {
                 return rt;
             }
             FaiList<Integer> rlPdIds = new FaiList<Integer>();
-            ProductBindPropDaoCtrl bindPropDao = ProductBindPropDaoCtrl.getInstance(session);
+            ProductBindPropDaoCtrl bindPropDao = ProductBindPropDaoCtrl.getInstance(flow, aid);
             try {
                 ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, bindPropDao);
                 rt = bindPropProc.getRlPdByPropVal(aid, unionPriId, proIdsAndValIds, rlPdIds);

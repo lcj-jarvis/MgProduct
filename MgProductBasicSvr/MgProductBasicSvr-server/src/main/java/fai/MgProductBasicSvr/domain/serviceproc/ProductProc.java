@@ -35,29 +35,75 @@ public class ProductProc {
             Log.logErr(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductValObj.Limit.COUNT_MAX);
             return rt;
         }
+        rt = creatAndSetId(aid, pdData);
+        if(rt != Errno.OK) {
+            return rt;
+        }
         Integer pdId = pdData.getInt(ProductEntity.Info.PD_ID);
+        pdIdRef.value = pdId;
+        rt = m_dao.insert(pdData);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "insert product error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        return rt;
+    }
+
+    public int batchAddProduct(int aid, FaiList<Param> pdDataList, FaiList<Integer> pdIdList) {
+        int rt;
+        if(pdDataList == null || pdDataList.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args err, pdDataList is empty;flow=%d;aid=%d;pdData=%s", m_flow, aid, pdDataList);
+            return rt;
+        }
+        Ref<Integer> countRef = new Ref<>();
+        rt = getPdCount(aid, countRef);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "get pd rel count error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        int count = countRef.value + pdDataList.size();
+        if(count > ProductValObj.Limit.COUNT_MAX) {
+            rt = Errno.COUNT_LIMIT;
+            Log.logErr(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductValObj.Limit.COUNT_MAX);
+            return rt;
+        }
+        for(Param pdData : pdDataList) {
+            rt = creatAndSetId(aid, pdData);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            Integer pdId = pdData.getInt(ProductEntity.Info.PD_ID);
+            pdIdList.add(pdId);
+        }
+
+        rt = m_dao.batchInsert(pdDataList, null, false);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "insert product error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        return rt;
+    }
+
+    private int creatAndSetId(int aid, Param info) {
+        int rt = Errno.OK;
+        Integer pdId = info.getInt(ProductEntity.Info.PD_ID);
         if(pdId == null) {
             pdId = m_dao.buildId(aid, false);
             if (pdId == null) {
                 rt = Errno.ERROR;
                 Log.logErr(rt, "pdId build error;flow=%d;aid=%d;", m_flow, aid);
                 return rt;
-            }else {
-                pdId = m_dao.updateId(aid, pdId, false);
-                if (pdId == null) {
-                    rt = Errno.ERROR;
-                    Log.logErr(rt, "pdId update error;flow=%d;aid=%d;", m_flow, aid);
-                    return rt;
-                }
             }
-            pdData.setInt(ProductEntity.Info.PD_ID, pdId);
+        }else {
+            pdId = m_dao.updateId(aid, pdId, false);
+            if (pdId == null) {
+                rt = Errno.ERROR;
+                Log.logErr(rt, "pdId update error;flow=%d;aid=%d;", m_flow, aid);
+                return rt;
+            }
         }
-        pdIdRef.value = pdId;
-        rt = m_dao.insert(aid, pdData, null);
-        if(rt != Errno.OK) {
-            Log.logErr(rt, "insert product error;flow=%d;aid=%d;", m_flow, aid);
-            return rt;
-        }
+        info.setInt(ProductEntity.Info.PD_ID, pdId);
         return rt;
     }
 
@@ -72,7 +118,7 @@ public class ProductProc {
         ParamMatcher matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
         matcher.and(ProductEntity.Info.SOURCE_TID, ParamMatcher.EQ, tid);
-        rt = m_dao.delete(aid, matcher);
+        rt = m_dao.delete(matcher);
         if(rt != Errno.OK) {
             Log.logErr(rt, "del product list error;flow=%d;aid=%d;pdIds=%d;", m_flow, aid, pdIds);
             return rt;
@@ -93,7 +139,7 @@ public class ProductProc {
         searchArg.matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
         String fields = "count(*) as cnt";
         Ref<FaiList<Param>> listRef = new Ref<>();
-        int rt = m_dao.select(aid, searchArg, fields, listRef);
+        int rt = m_dao.select(searchArg, listRef, fields);
         if(rt != Errno.OK) {
             return rt;
         }
@@ -171,7 +217,7 @@ public class ProductProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductEntity.Info.PD_ID, ParamMatcher.IN, noCacheIds);
-        rt = m_dao.select(aid, searchArg, tmpRef);
+        rt = m_dao.select(searchArg, tmpRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             return rt;
         }

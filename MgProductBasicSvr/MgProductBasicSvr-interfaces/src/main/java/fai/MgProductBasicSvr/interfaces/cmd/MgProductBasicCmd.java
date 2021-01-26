@@ -18,6 +18,8 @@ public class MgProductBasicCmd {
         public static final int NUM4 = 1003; // BasicCmd.DEL_PDS
         public static final int NUM5 = 1004; // BasicCmd.DEL_REL_BIND
         public static final int NUM6 = 1005; // BasicCmd.BATCH_ADD_REL_BIND
+        public static final int NUM7 = 1006; // BasicCmd.BATCH_ADD_PD_AND_REL
+        public static final int NUM8 = 1007; // BasicCmd.BATCH_ADD_PDS_REL_BIND
     }
 
     /**
@@ -40,6 +42,8 @@ public class MgProductBasicCmd {
         public static final int DEL_PDS = WriteCmdNum.NUM4;
         public static final int DEL_REL_BIND = WriteCmdNum.NUM5;
         public static final int BATCH_ADD_REL_BIND = WriteCmdNum.NUM6;
+        public static final int BATCH_ADD_PD_AND_REL = WriteCmdNum.NUM7;
+        public static final int BATCH_ADD_PDS_REL_BIND = WriteCmdNum.NUM8;
     }
 
 }

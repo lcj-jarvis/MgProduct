@@ -1,7 +1,6 @@
 package fai.MgProductBasicSvr.domain.repository;
 
 import fai.MgProductBasicSvr.domain.entity.ProductRelEntity;
-import fai.MgProductBasicSvr.interfaces.dto.ProductDto;
 import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
 import fai.comm.util.*;
 

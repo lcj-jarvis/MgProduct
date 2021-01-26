@@ -51,7 +51,7 @@ public class ProductBindPropProc {
             info.setCalendar(ProductBindPropEntity.Info.CREATE_TIME, now);
             addList.add(info);
         }
-        rt = m_bindPropDao.batchInsert(aid, addList);
+        rt = m_bindPropDao.batchInsert(addList, null, true);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batch insert product prop assoc error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
@@ -73,7 +73,7 @@ public class ProductBindPropProc {
             matcher.and(ProductBindPropEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
             matcher.and(ProductBindPropEntity.Info.RL_PROP_ID, ParamMatcher.EQ, rlPropId);
             matcher.and(ProductBindPropEntity.Info.PROP_VAL_ID, ParamMatcher.EQ, propValId);
-            rt = m_bindPropDao.delete(aid, matcher);
+            rt = m_bindPropDao.delete(matcher);
             if(rt != Errno.OK) {
                 Log.logErr(rt, "del info error;flow=%d;aid=%d;rlPdId=%d;rlPropId=%d;propValId=%d;", m_flow, aid, rlPdId, rlPropId, propValId);
                 return rt;
@@ -115,7 +115,7 @@ public class ProductBindPropProc {
         Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = sqlMatcher;
-        rt = m_bindPropDao.select(aid, searchArg, listRef);
+        rt = m_bindPropDao.select(searchArg, listRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             return rt;
         }
@@ -175,7 +175,7 @@ public class ProductBindPropProc {
         searchArg.matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         searchArg.matcher.and(ProductBindPropEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
-        int rt = m_bindPropDao.select(aid, searchArg, listRef);
+        int rt = m_bindPropDao.select(searchArg, listRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             return rt;
         }

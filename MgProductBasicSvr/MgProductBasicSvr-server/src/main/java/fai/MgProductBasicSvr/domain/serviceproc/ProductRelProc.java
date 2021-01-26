@@ -56,7 +56,7 @@ public class ProductRelProc {
             relData.setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId);
         }
         rlPdIdRef.value = rlPdId;
-        rt = m_dao.insert(aid, relData, null);
+        rt = m_dao.insert(relData);
         if(rt != Errno.OK) {
             Log.logErr(rt, "insert product rel error;flow=%d;aid=%d;uid=%d;relData=%s;", m_flow, aid, unionPriId, relData);
             return rt;
@@ -64,7 +64,7 @@ public class ProductRelProc {
         return rt;
     }
 
-    public int batchAddProductRel(int aid, int pdId, FaiList<Param> relDataList, Ref<FaiList<Integer>> rlPdIdsRef) {
+    public int batchAddProductRel(int aid, Integer pdId, FaiList<Param> relDataList, Ref<FaiList<Integer>> rlPdIdsRef) {
         int rt;
         if(relDataList == null || relDataList.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -74,6 +74,16 @@ public class ProductRelProc {
 
         FaiList<Integer> rlPdIds = new FaiList<Integer>();
         for(Param relData : relDataList) {
+            if(pdId != null) {
+                relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
+            }
+            pdId = relData.getInt(ProductRelEntity.Info.PD_ID);
+            if(pdId == null) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr(rt, "args error, pdId is null;flow=%d;aid=%d;uid=%d;", m_flow, aid);
+                return rt;
+            }
+
             int unionPriId = relData.getInt(ProductRelEntity.Info.UNION_PRI_ID);
             Ref<Integer> countRef = new Ref<>();
             rt = getPdRelCount(aid, unionPriId, countRef);
@@ -106,12 +116,10 @@ public class ProductRelProc {
                 relData.setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId);
             }
             rlPdIds.add(rlPdId);
-
-            relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
         }
         rlPdIdsRef.value = rlPdIds;
 
-        rt = m_dao.batchInsert(aid, relDataList);
+        rt = m_dao.batchInsert(relDataList, null, false);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batch insert product rel error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
@@ -133,7 +141,7 @@ public class ProductRelProc {
         searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         String fields = "count(*) as cnt";
         Ref<FaiList<Param>> listRef = new Ref<>();
-        int rt = m_dao.select(aid, searchArg, fields, listRef);
+        int rt = m_dao.select(searchArg, listRef, fields);
         if(rt != Errno.OK) {
             return rt;
         }
@@ -161,7 +169,7 @@ public class ProductRelProc {
         ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         matcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
-        rt = m_dao.delete(aid, matcher);
+        rt = m_dao.delete(matcher);
         if(rt != Errno.OK) {
             Log.logErr(rt, "del product rel error;flow=%d;aid=%d;unionPridId=%d;rlPdIds=%d;", m_flow, aid, unionPriId, rlPdIds);
             return rt;
@@ -184,9 +192,8 @@ public class ProductRelProc {
 
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
-        String fields = ProductRelEntity.Info.UNION_PRI_ID;
         Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
-        rt = m_dao.select(aid, searchArg, fields, listRef);
+        rt = m_dao.select(searchArg, listRef, ProductRelEntity.Info.UNION_PRI_ID);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             Log.logErr(rt, "get unionPriId error;flow=%d;aid=%d;pdIds=%d;", m_flow, aid, pdIds);
             return rt;
@@ -198,7 +205,7 @@ public class ProductRelProc {
             int unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
             returnUids.add(unionPriId);
         }
-        rt = m_dao.delete(aid, matcher);
+        rt = m_dao.delete(matcher);
         if(rt != Errno.OK) {
             Log.logErr(rt, "del product rel error;flow=%d;aid=%d;pdIds=%d;", m_flow, aid, pdIds);
             return rt;
@@ -293,7 +300,7 @@ public class ProductRelProc {
         searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         searchArg.matcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.IN, noCacheIds);
-        rt = m_dao.select(aid, searchArg, tmpRef);
+        rt = m_dao.select(searchArg, tmpRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             return rt;
         }
@@ -348,8 +355,7 @@ public class ProductRelProc {
         searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, noCacheIds);
         //只查aid+pdId+unionPriId+rlPdId
-        String fields = ProductRelEntity.Info.AID + "," + ProductRelEntity.Info.UNION_PRI_ID + "," + ProductRelEntity.Info.PD_ID  + "," + ProductRelEntity.Info.RL_PD_ID;
-        rt = m_dao.select(aid, searchArg, fields, tmpRef);
+        rt = m_dao.select(searchArg, tmpRef, ProductRelEntity.Info.AID, ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             return rt;
         }
@@ -367,6 +373,25 @@ public class ProductRelProc {
         ProductRelCacheCtrl.addRlIdRelCacheList(aid, unionPriId, tmpRef.value);
 
         listRef.value = list;
+        return Errno.OK;
+    }
+
+    public int getBoundUniPriIds(int aid, FaiList<Integer> pdIds, Ref<FaiList<Param>> listRef) {
+        // db中获取
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        //只查aid+pdId+unionPriId+rlPdId
+        int rt = m_dao.select(searchArg, listRef, ProductRelEntity.Info.AID, ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            return rt;
+        }
+        if(listRef.value == null || listRef.value.isEmpty()) {
+            rt = Errno.NOT_FOUND;
+            Log.logDbg(rt, "not found;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+
         return Errno.OK;
     }
 

@@ -31,6 +31,7 @@ public class ProductTempEntity {
     public class ProductInfo extends Basic{
         public static final String PRICE = "price";                                 // long 商品价格
         public static final String SPEC_NAME = "specName";                          // String 规格
+        public static final String SPEC_VAL_NAME = "specValName";                   // String 规格值
         public static final String COUNT = "count";                                 // int 设置的库存
         public static final String REMAIN_COUNT = "remainCount";                    // int 剩余库存
         public static final String HOLDING_COUNT = "holdingCount";                  // int 预扣库存

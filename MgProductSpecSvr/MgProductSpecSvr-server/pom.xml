@@ -139,21 +139,12 @@
             <artifactId>log4j</artifactId>
             <version>1.2.16</version>
         </dependency>
-        <dependency>
-            <groupId>fai-comm-util-arch</groupId>
-            <artifactId>fai-comm-util-arch</artifactId>
-            <version>1.0.5</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>fai-comm-jnetkit</groupId>
-            <artifactId>fai-comm-jnetkit</artifactId>
-            <version>1.0.1-SNAPSHOT</version>
-            <scope>compile</scope>
-        </dependency>
         <!-- 注册与发现end -->
     </dependencies>
 
+    <properties>
+        <svr-tmp-dir>${basedir}/svr-tmp/</svr-tmp-dir>
+    </properties>
     <build>
         <finalName>MgProductSpecSvr</finalName>
         <sourceDirectory>src/main/java</sourceDirectory>
@@ -164,10 +155,6 @@
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
-                    <!--<includes>
-                        <include>**/application/**</include>
-                        <include>**/domain/**</include>
-                    </includes>-->
                 </configuration>
             </plugin>
 
@@ -179,7 +166,7 @@
                     <filesets>
                         <!-- 删除文件夹lib -->
                         <fileset>
-                            <directory>${user.home}/sbin/${project.parent.artifactId}</directory>
+                            <directory>${svr-tmp-dir}</directory>
                         </fileset>
                     </filesets>
                 </configuration>
@@ -197,7 +184,7 @@
                             <mainClass>fai.MgProductSpecSvr.application.MgProductSpecSvr</mainClass>
                         </manifest>
                     </archive>
-                    <outputDirectory>${user.home}/sbin/${project.parent.artifactId}</outputDirectory>
+                    <outputDirectory>${svr-tmp-dir}</outputDirectory>
                 </configuration>
             </plugin>
 
@@ -214,11 +201,33 @@
                             <goal>copy-dependencies</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${user.home}/sbin/${project.parent.artifactId}</outputDirectory>
+                            <outputDirectory>${svr-tmp-dir}</outputDirectory>
                             <overWriteReleases>false</overWriteReleases>
                             <overWriteSnapshots>false</overWriteSnapshots>
                             <overWriteIfNewer>true</overWriteIfNewer>
                         </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-lib-sbin</id>
+                        <phase>package</phase>
+                        <configuration>
+                            <tasks>
+                                <copy todir="${user.home}/sbin/${project.parent.artifactId}">
+                                    <fileset dir="${svr-tmp-dir}">
+                                        <include name="*" />
+                                    </fileset>
+                                </copy>
+                            </tasks>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>

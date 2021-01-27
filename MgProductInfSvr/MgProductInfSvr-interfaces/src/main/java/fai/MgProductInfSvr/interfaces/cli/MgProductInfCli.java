@@ -1857,6 +1857,79 @@ public class MgProductInfCli extends FaiClient {
             stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
         }
     }
+    /**
+     * 根据业务商品id获取skuId集
+     */
+    public int getPdSkuIdInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, FaiList<Param> infoList) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(rlPdIdList == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "rlPdIdList error");
+                return m_rt;
+            }
+            if (infoList == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "infoList error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductSpecDto.Key.TID, tid);
+            sendBody.putInt(ProductSpecDto.Key.SITE_ID, siteId);
+            sendBody.putInt(ProductSpecDto.Key.LGID, lgId);
+            sendBody.putInt(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1);
+            rlPdIdList.toBuffer(sendBody, ProductSpecDto.Key.ID_LIST);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductInfCmd.ProductSpecSkuCmd.GET_SKU_ID_LIST);
+
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductSpecDto.SpecSku.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductSpecDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            return m_rt = Errno.OK;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
 
     /**
      * 修改商品规格库存销售sku

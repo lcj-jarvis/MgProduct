@@ -123,6 +123,18 @@ public class ProductSpecService extends ServicePub {
                     return Errno.ARGS_ERROR;
                 }
                 specStrNameSet.add(name);
+                FaiList<Param> inPdScValList = spuInfo.getList(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST);
+                if(inPdScValList == null || inPdScValList.size() != 1){
+                    Log.logErr("arg inPdScValList err;flow=%d;aid=%d;pdId=%s;inPdScValList=%s;", flow, aid, pdId, inPdScValList);
+                    return Errno.ARGS_ERROR;
+                }
+                Param inPdScVal = inPdScValList.get(0);
+                String valName = inPdScVal.getString(fai.MgProductSpecSvr.interfaces.entity.ProductSpecValObj.InPdScValList.Item.NAME);
+                if(!SpecStrArgCheck.isValidName(valName)){
+                    Log.logErr("arg valName err;flow=%d;aid=%d;pdId=%s;valName=%s", flow, aid, pdId, valName);
+                    return Errno.ARGS_ERROR;
+                }
+                specStrNameSet.add(valName);
             }
             // 获取规格字符串 值-id map
             Param specStrNameIdMap = new Param(true);
@@ -145,13 +157,17 @@ public class ProductSpecService extends ServicePub {
             // 组装成sku
             Map<Integer, Param> pdId_pdScInfoMap = new HashMap<>(spuInfoList.size()*4/3+1);
             Map<Integer, Param> pdId_pdScSkuInfoMap = new HashMap<>(spuInfoList.size()*4/3+1);
-            String defaultInPdScValList = genDefaultInPdScValList(specStrNameIdMap);
-            String defaultInPdScStrIdList = genDefaultInPdScIdList(specStrNameIdMap);
             for (Param spuInfo : spuInfoList) {
                 int pdId = spuInfo.getInt(ProductSpecEntity.Info.PD_ID);
                 String name = spuInfo.getString(SpecStrEntity.Info.NAME);
                 // 获取规格字符串 id
                 int specStrId = specStrNameIdMap.getInt(name);
+                FaiList<Param> inPdScValList = spuInfo.getList(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST);
+                Param inPdScVal = inPdScValList.get(0);
+                String valName = (String) inPdScVal.remove(fai.MgProductSpecSvr.interfaces.entity.ProductSpecValObj.InPdScValList.Item.NAME);
+
+                int valScStrId = specStrNameIdMap.getInt(valName);
+                inPdScVal.setInt(ProductSpecValObj.InPdScValList.Item.SC_STR_ID, valScStrId);
                 {
                     Param pdScInfo = new Param();
                     pdScInfo.setInt(ProductSpecEntity.Info.SC_STR_ID, specStrId);
@@ -159,7 +175,7 @@ public class ProductSpecService extends ServicePub {
                     pdScInfo.setInt(ProductSpecEntity.Info.SOURCE_UNION_PRI_ID, unionPriId);
                     pdScInfo.setInt(ProductSpecEntity.Info.SORT, ProductSpecValObj.Default.SORT);
                     pdScInfo.setInt(ProductSpecEntity.Info.FLAG, ProductSpecValObj.FLag.ALL|ProductSpecValObj.FLag.IN_PD_SC_VAL_LIST_CHECKED);
-                    pdScInfo.setString(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST, defaultInPdScValList);
+                    pdScInfo.setString(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST, inPdScValList.toJson());
                     pdId_pdScInfoMap.put(pdId, pdScInfo);
                 }
                 {
@@ -167,7 +183,7 @@ public class ProductSpecService extends ServicePub {
                     pdScSkuInfo.setInt(ProductSpecSkuEntity.Info.SOURCE_TID, tid);
                     pdScSkuInfo.setInt(ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID, unionPriId);
                     pdScSkuInfo.setInt(ProductSpecSkuEntity.Info.SORT, ProductSpecValObj.Default.SORT);
-                    pdScSkuInfo.setString(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, defaultInPdScStrIdList);
+                    pdScSkuInfo.setString(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, new FaiList<>(Arrays.asList(valScStrId)).toJson());
                     pdId_pdScSkuInfoMap.put(pdId, pdScSkuInfo);
                 }
             }
@@ -231,18 +247,6 @@ public class ProductSpecService extends ServicePub {
         }
         return rt;
     }
-
-    private String genDefaultInPdScValList(Param specStrNameIdMap) {
-        int defaultScStrId = specStrNameIdMap.getInt(ProductSpecValObj.Default.InPdScValList.NAME);
-        FaiList<Param> inPdScValList = new FaiList<>();
-        inPdScValList.add(new Param().setInt(ProductSpecValObj.InPdScValList.Item.SC_STR_ID, defaultScStrId).setBoolean(ProductSpecValObj.InPdScValList.Item.CHECK, true));
-        return inPdScValList.toJson();
-    }
-    private String genDefaultInPdScIdList(Param specStrNameIdMap) {
-        int defaultScStrId = specStrNameIdMap.getInt(ProductSpecValObj.Default.InPdScValList.NAME);
-        return new FaiList<>(Arrays.asList(defaultScStrId)).toJson();
-    }
-
 
     public int unionSetPdScInfoList(FaiSession session, int flow, int aid, int tid, int unionPriId, int pdId, FaiList<Param> addPdScInfoList,
                                     FaiList<Integer> delPdScIdList, FaiList<ParamUpdater> updaterList) throws IOException {

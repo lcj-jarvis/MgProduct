@@ -33,13 +33,15 @@ public class SpecStrProc {
         }
         HashSet<String> nameSet = new HashSet<>(nameList);
         FaiList<Param> infoList = listRef.value;
-        FaiList<Param> needBatchAddList = new FaiList<>(nameList.size()-infoList.size());
+
         for (Param info : infoList) {
             String name = info.getString(SpecStrEntity.Info.NAME);
             if(nameSet.remove(name)){
                 nameIdMap.setInt(name, info.getInt(SpecStrEntity.Info.SC_STR_ID));
             }
         }
+
+        FaiList<Param> needBatchAddList = new FaiList<>(nameSet.size());
         for (String name : nameSet) {
             needBatchAddList.add(new Param().setString(SpecStrEntity.Info.NAME, name));
         }

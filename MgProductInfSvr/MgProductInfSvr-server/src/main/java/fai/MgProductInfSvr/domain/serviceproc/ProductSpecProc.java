@@ -219,6 +219,7 @@ public class ProductSpecProc {
         }
         return rt;
     }
+
     /**
      * 获取产品规格SKU列表
      */
@@ -253,7 +254,24 @@ public class ProductSpecProc {
         }
         return rt;
     }
-
+    /**
+     * 根据 pdId 获取 pdId-skuId 集
+     * @param pdIdList
+     */
+    public int getPdSkuIdInfoList(int aid, int tid, FaiList<Integer> pdIdList, FaiList<Param> list) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        rt = m_cli.getPdSkuIdInfoList(aid, tid, pdIdList, list);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "getPdSkuIdInfoList error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        return rt;
+    }
     /**
      * 批量删除商品所有规格
      */
@@ -271,20 +289,8 @@ public class ProductSpecProc {
         }
         return rt;
     }
-    public int getPdSkuIdInfoList(int aid, int tid, FaiList<Integer> pdIdList, FaiList<Param> list) {
-        int rt = Errno.ERROR;
-        if(m_cli == null) {
-            rt = Errno.ERROR;
-            Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;", m_flow, aid);
-            return rt;
-        }
-        rt = m_cli.getPdSkuIdInfoList(aid, tid, pdIdList, list);
-        if(rt != Errno.OK) {
-            Log.logErr(rt, "getPdSkuIdInfoList error;flow=%d;aid=%d;", m_flow, aid);
-            return rt;
-        }
-        return rt;
-    }
+
+
 
 
     private int m_flow;

@@ -28,6 +28,7 @@ public class ProductTempDto {
             g_infoDtoDef.add(ProductTempEntity.ProductInfo.COUNT, 11, Var.Type.INT);
             g_infoDtoDef.add(ProductTempEntity.ProductInfo.REMAIN_COUNT, 12, Var.Type.INT);
             g_infoDtoDef.add(ProductTempEntity.ProductInfo.HOLDING_COUNT, 13, Var.Type.INT);
+            g_infoDtoDef.add(ProductTempEntity.ProductInfo.SPEC_VAL_NAME, 14, Var.Type.STRING);
         }
         public static ParamDef getInfoDto() {
             return g_infoDtoDef;

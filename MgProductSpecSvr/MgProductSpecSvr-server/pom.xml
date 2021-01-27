@@ -194,7 +194,6 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <!-- TODO main-->
                             <mainClass>fai.MgProductSpecSvr.application.MgProductSpecSvr</mainClass>
                         </manifest>
                     </archive>

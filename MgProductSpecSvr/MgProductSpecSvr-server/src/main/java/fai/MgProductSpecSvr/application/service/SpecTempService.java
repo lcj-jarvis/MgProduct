@@ -11,9 +11,9 @@ import fai.MgProductSpecSvr.domain.serviceProc.SpecTempProc;
 import fai.MgProductSpecSvr.interfaces.dto.SpecTempDetailDto;
 import fai.MgProductSpecSvr.interfaces.dto.SpecTempDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
-import fai.comm.middleground.service.ServicePub;
 import fai.comm.util.*;
 import fai.middleground.svrutil.repository.TransactionCtrl;
+import fai.middleground.svrutil.service.ServicePub;
 
 import java.io.IOException;
 import java.util.*;

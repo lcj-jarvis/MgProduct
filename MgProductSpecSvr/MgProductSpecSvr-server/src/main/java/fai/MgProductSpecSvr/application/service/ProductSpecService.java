@@ -324,7 +324,6 @@ public class ProductSpecService extends ServicePub {
                             return Errno.SIZE_LIMIT;
                         }
                         if (!needReFreshSkuRef.value) {
-                            // TODO 修改规格值名称的场景
                             HashMap<String, FaiList<Integer>> newSkuMap = new HashMap<>( skuList.size() * 4 / 3 +1);
                             skuList.forEach(sku -> {
                                 FaiList<Integer> tmpSku = new FaiList<>(sku);

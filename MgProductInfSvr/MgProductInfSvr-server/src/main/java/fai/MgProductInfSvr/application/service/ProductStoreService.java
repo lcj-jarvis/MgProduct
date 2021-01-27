@@ -311,7 +311,6 @@ public class ProductStoreService extends MgProductInfService {
             }
             // 添加产品同时初始化库存时，还没生成skuId，只能通过规格值的字符串集间接获取skuId
             Map<Integer, Map<FaiList<String>, Long>> ownerRlPdId_inPdScStrNameSkuIdMapMap = new HashMap<>();
-            // TODO whale
             int ownerUnionPriId = idRef.value;
             Map<Integer, Integer> ownerRlPdIdPdIdMap = new HashMap<>();
             Map<BizPriKey, Integer> bizPriKeyUnionPriIdMap = new HashMap<>();

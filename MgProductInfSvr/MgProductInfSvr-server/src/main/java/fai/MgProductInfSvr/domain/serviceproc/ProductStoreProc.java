@@ -32,6 +32,42 @@ public class ProductStoreProc {
     }
 
     /**
+     * 批量同步 库存销售 spu数据到sku
+     */
+    public int batchSynchronousStoreSalesSPU2SKU(int aid, int sourceTid, int sourceUnionPriId, FaiList<Param> spuStoreSalesInfoList){
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        rt = m_cli.batchSynchronousStoreSalesSPU2SKU(aid, sourceTid, sourceUnionPriId, spuStoreSalesInfoList);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        return rt;
+    }
+
+    /**
+     * 批量同步 出入库记录
+     */
+    public int batchSynchronousInOutStoreRecord(int aid, int sourceTid, int sourceUnionPriId, FaiList<Param> spuStoreSalesInfoList){
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        rt = m_cli.batchSynchronousInOutStoreRecord(aid, sourceTid, sourceUnionPriId, spuStoreSalesInfoList);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        return rt;
+    }
+
+    /**
      * 修改商品规格库存销售sku
      */
     public int setPdScSkuSalesStore(int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) {
@@ -228,18 +264,22 @@ public class ProductStoreProc {
         }
         return rt;
     }
-
     /**
      * 获取库存SKU汇总信息
      */
-    public int getStoreSkuSummaryInfoList(int aid, int tid, SearchArg searchArg, FaiList<Param> list){
+    public int getStoreSkuSummaryInfoList(int aid, int tid, int unionPriId, SearchArg searchArg, FaiList<Param> list, boolean isBiz){
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
-        rt = m_cli.getStoreSkuSummaryInfoList(aid, tid, searchArg, list);
+        if(isBiz){
+            rt = m_cli.getBizStoreSkuSummaryInfoList(aid, tid, unionPriId, searchArg, list);
+        }else{
+            rt = m_cli.getStoreSkuSummaryInfoList(aid, tid, unionPriId, searchArg, list);
+        }
+
         if (rt != Errno.OK) {
             Log.logErr(rt, "getStoreSkuSummaryInfoList error;flow=%d;aid=%d;", m_flow, aid);
             return rt;

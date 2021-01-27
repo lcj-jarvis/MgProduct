@@ -2,20 +2,14 @@ package fai.MgProductInfSvr.application;
 
 import fai.MgProductInfSvr.application.service.*;
 import fai.MgProductInfSvr.interfaces.cmd.MgProductInfCmd;
-import fai.MgProductInfSvr.interfaces.dto.ProductBasicDto;
-import fai.MgProductInfSvr.interfaces.dto.ProductPropDto;
-import fai.MgProductInfSvr.interfaces.dto.ProductSpecDto;
-import fai.MgProductInfSvr.interfaces.dto.ProductStoreDto;
+import fai.MgProductInfSvr.interfaces.dto.*;
 import fai.comm.jnetkit.server.fai.FaiHandler;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
 import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
-import fai.comm.util.FaiList;
-import fai.comm.util.Param;
-import fai.comm.util.ParamUpdater;
-import fai.comm.util.SearchArg;
+import fai.comm.util.*;
 
 import java.io.IOException;
 
@@ -579,8 +573,42 @@ public class MgProductInfHandler extends FaiHandler {
                                        @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
                                        @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
                                        @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
-                                       @ArgSearchArg(ProductStoreDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
-        return storeService.getStoreSkuSummaryInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, searchArg);
+                                       @ArgSearchArg(ProductStoreDto.Key.SEARCH_ARG) SearchArg searchArg,
+                                       @ArgBodyBoolean(value = ProductStoreDto.Key.IS_BIZ, useDefault = true) boolean isBiz) throws IOException {
+        return storeService.getStoreSkuSummaryInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, searchArg, isBiz);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.TempCmd.SYN_SPU_TO_SKU)
+    public int synSPU2SKU(final FaiSession session,
+                                          @ArgFlow final int flow,
+                                          @ArgAid final int aid,
+                                          @ArgBodyInteger(ProductTempDto.Key.TID) int tid,
+                                          @ArgBodyInteger(ProductTempDto.Key.SITE_ID) int siteId,
+                                          @ArgBodyInteger(ProductTempDto.Key.LGID) int lgId,
+                                          @ArgBodyInteger(ProductTempDto.Key.KEEP_PRIID1) int keepPriId1,
+                                          @ArgList(keyMatch = ProductTempDto.Key.INFO_LIST,
+                                                  classDef = ProductTempDto.Info.class, methodDef = "getInfoDto") FaiList<Param> spuInfoList) throws IOException {
+        int rt = specService.batchSynchronousSPU2SKU(session, flow, aid, tid, siteId, lgId, keepPriId1, spuInfoList);
+        if(rt != Errno.OK){
+            return rt;
+        }
+        rt = storeService.batchSynchronousSPU2SKU(session, flow, aid, tid, siteId, lgId, keepPriId1, spuInfoList);
+        return rt;
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.TempCmd.SYN_IN_OUT_STORE_RECORD)
+    public int synInOutStoreRecord(final FaiSession session,
+                          @ArgFlow final int flow,
+                          @ArgAid final int aid,
+                          @ArgBodyInteger(ProductTempDto.Key.TID) int tid,
+                          @ArgBodyInteger(ProductTempDto.Key.SITE_ID) int siteId,
+                          @ArgBodyInteger(ProductTempDto.Key.LGID) int lgId,
+                          @ArgBodyInteger(ProductTempDto.Key.KEEP_PRIID1) int keepPriId1,
+                          @ArgList(keyMatch = ProductTempDto.Key.INFO_LIST,
+                                  classDef = ProductTempDto.StoreRecord.class, methodDef = "getInfoDto") FaiList<Param> recordInfoList) throws IOException {
+        return storeService.batchSynchronousInOutStoreRecord(session, flow, aid, tid, siteId, lgId, keepPriId1, recordInfoList);
     }
 
 

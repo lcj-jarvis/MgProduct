@@ -8,6 +8,7 @@ public class BizSalesSummaryEntity {
         public static final String AID = "aid";                                     // int 企业aid    (Primary Key 1)
         public static final String UNION_PRI_ID = "unionPriId";                     // int 联合主键 id  (Primary Key 2)
         public static final String PD_ID = "pdId";                                  // int 商品 id    (Primary Key 3)
+        public static final String SOURCE_UNION_PRI_ID = "sourceUnionPriId";        // int 创建商品的联合主键 id
         public static final String RL_PD_ID = "rlPdId";                             // int 商品业务 id
         public static final String PRICE_TYPE = "priceType";                        // int 价格类型（定价、面议）
         public static final String MODE_TYPE = "modeType";                          // int 服务预约模式
@@ -28,6 +29,7 @@ public class BizSalesSummaryEntity {
     }
 
     public static final class ReportInfo{
+        public static final String SOURCE_UNION_PRI_ID = "sourceUnionPriId";        // int 创建商品的联合主键 id
         public static final String SUM_COUNT = "sumCount";
         public static final String SUM_REMAIN_COUNT = "sumRemainCount";
         public static final String SUM_HOLDING_COUNT = "sumHoldingCount";

@@ -4,7 +4,7 @@ import fai.MgPrimaryKeySvr.interfaces.entity.MgPrimaryKeyEntity;
 import fai.MgProductInfSvr.domain.serviceproc.ProductBasicProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductPropProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductStoreProc;
-import fai.MgProductInfSvr.domain.serviceproc.SpecificationProc;
+import fai.MgProductInfSvr.domain.serviceproc.ProductSpecProc;
 import fai.MgProductInfSvr.interfaces.dto.ProductBasicDto;
 import fai.MgProductInfSvr.interfaces.entity.ProductBasicEntity;
 import fai.comm.jnetkit.server.fai.FaiSession;
@@ -462,7 +462,7 @@ public class ProductBasicService extends MgProductInfService {
             int unionPriId = idRef.value;
 
             ProductStoreProc storeProc = new ProductStoreProc(flow);
-            SpecificationProc specificationProc = new SpecificationProc(flow);
+            ProductSpecProc productSpecProc = new ProductSpecProc(flow);
             ProductBasicProc basicService = new ProductBasicProc(flow);
             FaiList<Param> list = new FaiList<>();
             rt = basicService.getRelListByRlIds(aid, unionPriId, rlPdIds, list);
@@ -484,7 +484,7 @@ public class ProductBasicService extends MgProductInfService {
                 return rt;
             }
             // 删除商品规格相关信息
-            rt = specificationProc.batchDelPdAllSc(aid, tid, pdIdList);
+            rt = productSpecProc.batchDelPdAllSc(aid, tid, pdIdList);
             if(rt != Errno.OK){
                 Log.logErr(rt, "batchDelPdAllStoreSales err;aid=%s;tid=%s;pdIdList=%s;", aid, tid, pdIdList);
                 return rt;

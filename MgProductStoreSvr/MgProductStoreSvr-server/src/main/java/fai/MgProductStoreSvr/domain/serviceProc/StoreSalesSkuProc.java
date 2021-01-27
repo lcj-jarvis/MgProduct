@@ -6,9 +6,11 @@ import fai.MgProductStoreSvr.domain.comm.PdKey;
 import fai.MgProductStoreSvr.domain.comm.SkuStoreKey;
 import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuEntity;
 import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuValObj;
+import fai.MgProductStoreSvr.domain.entity.StoreSkuSummaryEntity;
 import fai.MgProductStoreSvr.domain.repository.StoreSalesSkuDaoCtrl;
 import fai.comm.util.*;
 
+import java.lang.reflect.Parameter;
 import java.util.*;
 
 
@@ -38,6 +40,7 @@ public class StoreSalesSkuProc {
                 }
             }
             data.setInt(StoreSalesSkuEntity.Info.PD_ID, pdId);
+            data.assign(info, StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID);
             data.assign(info, StoreSalesSkuEntity.Info.SKU_TYPE);
             data.assign(info, StoreSalesSkuEntity.Info.SORT);
             data.assign(info, StoreSalesSkuEntity.Info.COUNT);
@@ -61,6 +64,89 @@ public class StoreSalesSkuProc {
 
         int rt = m_daoCtrl.batchInsert(dataList, null, true);
         Log.logStd("batchAdd ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
+        return rt;
+    }
+    public int batchSynchronousSPU2SKU(int aid, Map<Integer, Map<Long, Param>> unionPriId_skuId_salesStoreDataMapMap, Set<String> maxUpdateFieldSet) {
+        if(aid <= 0 || unionPriId_skuId_salesStoreDataMapMap == null || unionPriId_skuId_salesStoreDataMapMap.isEmpty() || maxUpdateFieldSet == null || maxUpdateFieldSet.isEmpty()){
+            Log.logStd("batchSynchronous arg error;flow=%d;aid=%s;unionPriId_skuId_salesStoreDataMapMap=%s;maxUpdateFieldSet=%s;", m_flow, aid, unionPriId_skuId_salesStoreDataMapMap, maxUpdateFieldSet);
+            return Errno.ARGS_ERROR;
+        }
+        Set<String> maxGetFieldSet = new HashSet<>(maxUpdateFieldSet);
+        maxGetFieldSet.add(StoreSalesSkuEntity.Info.SKU_ID); // 添加需要额外获取的字段
+
+        int rt = Errno.ERROR;
+        Calendar now = Calendar.getInstance();
+        for (Map.Entry<Integer, Map<Long, Param>> unionPriId_skuId_salesStoreDataMapEntry : unionPriId_skuId_salesStoreDataMapMap.entrySet()) {
+            int unionPriId = unionPriId_skuId_salesStoreDataMapEntry.getKey();
+            Map<Long, Param> skuId_salesStoreDataMap = unionPriId_skuId_salesStoreDataMapEntry.getValue();
+            FaiList<Long> skuIdList = new FaiList<>(skuId_salesStoreDataMap.keySet());
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            rt = getListFromDaoBySkuIdList(aid, unionPriId, skuIdList, listRef, maxGetFieldSet.toArray(new String[]{}));
+            if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                return rt;
+            }
+            FaiList<Param> oldInfoList = listRef.value;
+            FaiList<Param> batchUpdateDataList = new FaiList<>(oldInfoList.size());
+            for (Param oldInfo : oldInfoList) {
+                Long skuId = oldInfo.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                Param newInfo = skuId_salesStoreDataMap.remove(skuId); // 移除，剩余的就是要新增的
+                Param data = new Param();
+                for (String field : maxUpdateFieldSet) {
+                    data.assign(oldInfo, field); // 先赋值旧数据
+                    data.assign(newInfo, field); // 再覆盖
+                }
+                data.setCalendar(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, now);
+                { // matcher
+                    data.setInt(StoreSalesSkuEntity.Info.AID, aid);
+                    data.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId);
+                    data.setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId);
+                }
+                batchUpdateDataList.add(data);
+            }
+            if(!batchUpdateDataList.isEmpty()){
+                ParamUpdater batchUpdater = new ParamUpdater();
+                for (String field : maxUpdateFieldSet) {
+                    batchUpdater.getData().setString(field, "?");
+                }
+                batchUpdater.getData().setString(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, "?");
+
+                ParamMatcher batchMatcher = new ParamMatcher();
+                batchMatcher.and(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, "?");
+                batchMatcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
+                batchMatcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.EQ, "?");
+                rt = m_daoCtrl.batchUpdate(batchUpdater, batchMatcher, batchUpdateDataList);
+                if(rt != Errno.OK){
+                    Log.logStd(rt, "m_daoCtrl batchUpdate err;flow=%s;aid=%s;batchUpdateDataList=%s;", m_flow, aid, batchUpdateDataList);
+                    return rt;
+                }
+            }
+            if(!skuId_salesStoreDataMap.isEmpty()){
+                FaiList<Param> addDataList = new FaiList<>(skuId_salesStoreDataMap.size());
+                for (Map.Entry<Long, Param> skuId_salesStoreDataEntry : skuId_salesStoreDataMap.entrySet()) {
+                    long skuId = skuId_salesStoreDataEntry.getKey();
+                    Param data = new Param();
+                    data.setInt(StoreSalesSkuEntity.Info.AID, aid);
+                    data.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId);
+                    data.setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId);
+                    data.setCalendar(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, now);
+                    data.setCalendar(StoreSalesSkuEntity.Info.SYS_CREATE_TIME, now);
+                    Param info = skuId_salesStoreDataEntry.getValue();
+                    data.assign(info, StoreSalesSkuEntity.Info.PD_ID);
+                    for (String field : maxUpdateFieldSet) {
+                        data.assign(info, field);
+                    }
+                    addDataList.add(data);
+                }
+                rt = m_daoCtrl.batchInsert(addDataList, null, true);
+                if(rt != Errno.OK){
+                    Log.logStd(rt, "m_daoCtrl batchInsert err;flow=%s;aid=%s;addDataList=%s;", m_flow, aid, addDataList);
+                    return rt;
+                }
+            }
+
+            Log.logStd("doing;flow=%s;aid=%s;unionPruId=%s;skuIdList=%s;", m_flow, aid, unionPriId, skuIdList);
+        }
+        Log.logStd("ok;flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
     public int batchDel(int aid, int pdId, FaiList<Long> delSkuIdList) {
@@ -328,6 +414,7 @@ public class StoreSalesSkuProc {
                 addInfoList.add(
                         new Param()
                                 .setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, uid)
+                                .setInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, ownerUnionPriId)
                                 .setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId)
                                 .setInt(StoreSalesSkuEntity.Info.PD_ID, pdKey.pdId)
                                 .setInt(StoreSalesSkuEntity.Info.RL_PD_ID, pdKey.rlPdId)
@@ -527,6 +614,44 @@ public class StoreSalesSkuProc {
         return rt;
     }
 
+    public int getCountAndTotalCostFromDao(int aid, Set<SkuStoreKey> skuStoreKeySet, Map<SkuStoreKey, Param> skuCountAndTotalCostMap) {
+        if(skuStoreKeySet == null || skuStoreKeySet.isEmpty() || skuCountAndTotalCostMap == null){
+            Log.logStd("arg error;flow=%d;aid=%s;skuStoreKeySet=%s;skuCountAndTotalCostMap=%s;", m_flow, aid, skuStoreKeySet, skuCountAndTotalCostMap);
+            return Errno.ARGS_ERROR;
+        }
+        Map<Integer, FaiList<Long>> unionPriIdSkuIdListMap = new HashMap<>();
+        for (SkuStoreKey skuStoreKey : skuStoreKeySet) {
+            int unionPriId = skuStoreKey.unionPriId;
+            FaiList<Long> skuIdList = unionPriIdSkuIdListMap.get(unionPriId);
+            if(skuIdList == null){
+                skuIdList = new FaiList<>();
+                unionPriIdSkuIdListMap.put(unionPriId, skuIdList);
+            }
+            skuIdList.add(skuStoreKey.skuId);
+        }
+        int rt = Errno.ERROR;
+        for (Map.Entry<Integer, FaiList<Long>> unionPriIdSkuIdListEntry : unionPriIdSkuIdListMap.entrySet()) {
+            Integer unionPriId = unionPriIdSkuIdListEntry.getKey();
+            FaiList<Long> skuIdList = unionPriIdSkuIdListEntry.getValue();
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            rt = getListFromDaoBySkuIdList(aid, unionPriId, skuIdList, listRef,
+                    StoreSalesSkuEntity.Info.SKU_ID,
+                    StoreSalesSkuEntity.Info.REMAIN_COUNT,
+                    StoreSalesSkuEntity.Info.HOLDING_COUNT,
+                    StoreSalesSkuEntity.Info.FIFO_TOTAL_COST,
+                    StoreSalesSkuEntity.Info.MW_TOTAL_COST);
+            if(rt != Errno.OK){
+                return rt;
+            }
+            for (Param info : listRef.value) {
+                long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                skuCountAndTotalCostMap.put(new SkuStoreKey(unionPriId, skuId), info);
+            }
+        }
+
+        return Errno.OK;
+    }
+
     public int getStoreCountFromDao(int aid, Set<SkuStoreKey> skuStoreKeySet, Map<SkuStoreKey, Integer> skuStoreCountMap) {
         if(skuStoreKeySet == null || skuStoreKeySet.isEmpty() || skuStoreCountMap == null){
             Log.logStd("arg error;flow=%d;aid=%s;skuStoreKeySet=%s;skuStoreCountMap=%s;", m_flow, aid, skuStoreKeySet, skuStoreCountMap);
@@ -582,6 +707,27 @@ public class StoreSalesSkuProc {
         Log.logDbg(rt,"getInfoListFromDao ok;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;", m_flow, aid, unionPriId, skuIdList);
         return rt;
     }
+
+    /**
+     * 查询库存
+     */
+    public int searchStoreSkuSummaryFromDao(int aid, SearchArg searchArg, Ref<FaiList<Param>> listRef) {
+        if(aid <= 0 || searchArg == null || searchArg.matcher == null || searchArg.matcher.isEmpty() || listRef == null){
+            Log.logStd("arg error;flow=%d;aid=%s;searchArg=%s;listRef=%s;", m_flow, aid, searchArg, listRef);
+            return Errno.ARGS_ERROR;
+        }
+        int rt = Errno.ERROR;
+        Dao.SelectArg selectArg = new Dao.SelectArg();
+        selectArg.field = StoreSalesSkuEntity.getStoreSkuSummaryFields();
+        selectArg.searchArg = searchArg;
+        rt = m_daoCtrl.select(selectArg, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            Log.logStd("dao.select error;flow=%d;aid=%s;searchArg.matcher.toJson=%s;", m_flow, aid, searchArg.matcher.toJson());
+            return rt;
+        }
+        Log.logDbg(rt,"getReportList ok;flow=%d;aid=%d;searchArg.matcher.toJson=%s;", m_flow, aid, searchArg.matcher.toJson());
+        return rt;
+    }
     public int getReportList(int aid, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef){
         if(aid <= 0 || skuIdList == null || skuIdList.isEmpty() || listRef == null){
             Log.logStd("arg error;flow=%d;aid=%s;skuIdList=%s;listRef=%s;", m_flow, aid, skuIdList, listRef);
@@ -594,6 +740,31 @@ public class StoreSalesSkuProc {
                 StoreSalesSkuEntity.Info.SKU_ID + ", " +
                 COMM_REPORT_FIELDS;
         selectArg.group = StoreSalesSkuEntity.Info.SKU_ID;
+        selectArg.searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        selectArg.searchArg.matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
+        rt = m_daoCtrl.select(selectArg, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            Log.logStd("dao.select error;flow=%d;aid=%s;skuIdList=%s;", m_flow, aid, skuIdList);
+            return rt;
+        }
+        initReportInfoList(listRef.value);
+        Log.logDbg(rt,"getReportList ok;flow=%d;aid=%d;skuIdList=%s;", m_flow, aid, skuIdList);
+        return rt;
+    }
+    public int getReportList4synSPU2SKU(int aid, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef){
+        if(aid <= 0 || skuIdList == null || skuIdList.isEmpty() || listRef == null){
+            Log.logStd("arg error;flow=%d;aid=%s;skuIdList=%s;listRef=%s;", m_flow, aid, skuIdList, listRef);
+            return Errno.ARGS_ERROR;
+        }
+        int rt = Errno.ERROR;
+
+        Dao.SelectArg selectArg = new Dao.SelectArg();
+        selectArg.field = StoreSalesSkuEntity.Info.PD_ID + ", " +
+                StoreSalesSkuEntity.Info.RL_PD_ID + ", " +
+                StoreSalesSkuEntity.Info.SKU_ID + ", " +
+                StoreSalesSkuEntity.Info.UNION_PRI_ID + ", " +
+                COMM_REPORT_FIELDS;
+        selectArg.group = StoreSalesSkuEntity.Info.UNION_PRI_ID + "," + StoreSalesSkuEntity.Info.SKU_ID;
         selectArg.searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
         selectArg.searchArg.matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
         rt = m_daoCtrl.select(selectArg, listRef);
@@ -689,7 +860,7 @@ public class StoreSalesSkuProc {
     /**
      * min(if(flag&0x1=0x1, price, 0x7fffffffffffffffL)) 设置过价格的才参与计算最小值。
      */
-    private static final String COMM_REPORT_FIELDS =
+    private static final String COMM_REPORT_FIELDS = StoreSalesSkuEntity.ReportInfo.SOURCE_UNION_PRI_ID+", "+
             "sum(" + StoreSalesSkuEntity.Info.COUNT + ") as " + StoreSalesSkuEntity.ReportInfo.SUM_COUNT + ", " +
             "sum(" + StoreSalesSkuEntity.Info.REMAIN_COUNT + ") as " + StoreSalesSkuEntity.ReportInfo.SUM_REMAIN_COUNT + ", " +
             "sum(" + StoreSalesSkuEntity.Info.HOLDING_COUNT + ") as "+StoreSalesSkuEntity.ReportInfo.SUM_HOLDING_COUNT+", " +

@@ -14,6 +14,7 @@ public class StoreSkuSummaryEntity {
         public static final String AID = "aid";                                     // int 企业aid    (Primary Key 1)
         public static final String SKU_ID = "skuId";                                // bigint skuId     (Primary Key 2)
         public static final String PD_ID = "pdId";                                  // int 商品 id    冗余 做查询  可异步更新
+        public static final String SOURCE_UNION_PRI_ID = "sourceUnionPriId";        // int 创建商品的联合主键 id
         public static final String COUNT = "count";                                 // int 商品总库存（数据不完全实时，做搜索，从 sku 冗余） 可异步更新
         public static final String REMAIN_COUNT = "remainCount";                    // int 商品总剩余库存（数据不完全实时，做搜索，从 sku 冗余） 可异步更新
         public static final String HOLDING_COUNT = "holdingCount";                  // int 商品总预扣库存（数据不完全实时，做搜索，从 sku 冗余） 可异步更新

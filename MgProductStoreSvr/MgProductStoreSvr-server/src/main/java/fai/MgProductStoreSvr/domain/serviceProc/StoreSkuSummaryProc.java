@@ -14,6 +14,8 @@ public class StoreSkuSummaryProc {
         m_flow = flow;
     }
 
+
+
     public int report(int aid, long skuId, Param info) {
         if(aid <= 0 || info == null || info.isEmpty()){
             Log.logStd("arg error;flow=%d;aid=%s;info=%s;", m_flow, aid, info);
@@ -53,6 +55,78 @@ public class StoreSkuSummaryProc {
         }
 
         Log.logStd("ok!;flow=%s;aid=%s;skuId=%s;", m_flow, aid, skuId);
+        return rt;
+    }
+    public int report4synSPU2SKU(int aid, Map<Long, Param> skuIdStoreSkuSummaryInfoMap) {
+        if(aid <= 0 || skuIdStoreSkuSummaryInfoMap == null || skuIdStoreSkuSummaryInfoMap.isEmpty()){
+            Log.logStd("arg error;flow=%d;aid=%s;skuIdStoreSkuSummaryInfoMap=%s;", m_flow, aid, skuIdStoreSkuSummaryInfoMap);
+            return Errno.ARGS_ERROR;
+        }
+        int rt = Errno.ERROR;
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        Calendar now = Calendar.getInstance();
+        FaiList<Long> skuIdList = new FaiList<>(skuIdStoreSkuSummaryInfoMap.keySet());
+        rt = getListFromDao(aid, skuIdList, listRef, StoreSkuSummaryEntity.Info.SKU_ID);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            return rt;
+        }
+        FaiList<Param> oldInfoList = listRef.value;
+        FaiList<Param> batchUpdateDataList = new FaiList<>();
+        for (Param oldInfo : oldInfoList) {
+            Long skuId = oldInfo.getLong(StoreSkuSummaryEntity.Info.SKU_ID);
+            Param newInfo = skuIdStoreSkuSummaryInfoMap.remove(skuId);
+            Param data = new Param();
+            { // for update
+                data.assign(newInfo, StoreSkuSummaryEntity.Info.COUNT);
+                data.assign(newInfo, StoreSkuSummaryEntity.Info.REMAIN_COUNT);
+                data.assign(newInfo, StoreSkuSummaryEntity.Info.HOLDING_COUNT);
+                data.setCalendar(StoreSkuSummaryEntity.Info.SYS_UPDATE_TIME, now);
+            }
+            { // for matcher
+                data.setInt(StoreSkuSummaryEntity.Info.AID, aid);
+                data.setLong(StoreSkuSummaryEntity.Info.SKU_ID, skuId);
+            }
+            batchUpdateDataList.add(data);
+        }
+        if(!batchUpdateDataList.isEmpty()){
+            ParamUpdater batchUpdater = new ParamUpdater();
+            batchUpdater.getData()
+                    .setString(StoreSkuSummaryEntity.Info.COUNT, "?")
+                    .setString(StoreSkuSummaryEntity.Info.REMAIN_COUNT, "?")
+                    .setString(StoreSkuSummaryEntity.Info.HOLDING_COUNT, "?")
+                    .setString(StoreSkuSummaryEntity.Info.SYS_UPDATE_TIME, "?")
+            ;
+            ParamMatcher batchMatcher = new ParamMatcher();
+            batchMatcher.and(StoreSkuSummaryEntity.Info.AID, ParamMatcher.EQ, "?");
+            batchMatcher.and(StoreSkuSummaryEntity.Info.SKU_ID, ParamMatcher.EQ, "?");
+
+            rt = m_daoCtrl.batchUpdate(batchUpdater, batchMatcher, batchUpdateDataList);
+            if(rt != Errno.OK){
+                Log.logStd("dao.batchUpdate error;flow=%d;aid=%s;batchUpdateDataList=%s;", m_flow, aid, batchUpdateDataList);
+            }
+        }
+        if(!skuIdStoreSkuSummaryInfoMap.isEmpty()){
+            FaiList<Param> addDataList = new FaiList<>(skuIdStoreSkuSummaryInfoMap.size());
+            for (Map.Entry<Long, Param> skuIdStoreSkuSummaryInfoEntry : skuIdStoreSkuSummaryInfoMap.entrySet()) {
+                Long skuId = skuIdStoreSkuSummaryInfoEntry.getKey();
+                Param info = skuIdStoreSkuSummaryInfoEntry.getValue();
+                Param data = new Param();
+                data.setCalendar(StoreSkuSummaryEntity.Info.SYS_CREATE_TIME, now);
+                data.setCalendar(StoreSkuSummaryEntity.Info.SYS_UPDATE_TIME, now);
+                data.setInt(StoreSkuSummaryEntity.Info.AID, aid);
+                data.setLong(StoreSkuSummaryEntity.Info.SKU_ID, skuId);
+                data.assign(info, StoreSkuSummaryEntity.Info.SOURCE_UNION_PRI_ID);
+                data.assign(info, StoreSkuSummaryEntity.Info.COUNT);
+                data.assign(info, StoreSkuSummaryEntity.Info.REMAIN_COUNT);
+                data.assign(info, StoreSkuSummaryEntity.Info.HOLDING_COUNT);
+                addDataList.add(data);
+            }
+            rt = m_daoCtrl.batchInsert(addDataList, null, true);
+            if(rt != Errno.OK){
+                Log.logStd("dao.batchInsert error;flow=%d;aid=%s;addDataList=%s;", m_flow, aid, addDataList);
+            }
+        }
+        Log.logStd("ok!;flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
     public int report(int aid, FaiList<Param> infoList) {
@@ -146,14 +220,14 @@ public class StoreSkuSummaryProc {
         return rt;
     }
 
-    private int getListFromDao(int aid, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef) {
+    private int getListFromDao(int aid, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef, String ... fields) {
         int rt = Errno.ERROR;
         ParamMatcher matcher = new ParamMatcher(StoreSkuSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(StoreSkuSummaryEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
 
-        rt = m_daoCtrl.select(searchArg, listRef);
+        rt = m_daoCtrl.select(searchArg, listRef, fields);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             Log.logStd("dao.select error;flow=%d;aid=%s;skuIdList=%s;", m_flow, aid, skuIdList);
         }
@@ -175,5 +249,6 @@ public class StoreSkuSummaryProc {
 
     private int m_flow;
     private StoreSkuSummaryDaoCtrl m_daoCtrl;
+
 
 }

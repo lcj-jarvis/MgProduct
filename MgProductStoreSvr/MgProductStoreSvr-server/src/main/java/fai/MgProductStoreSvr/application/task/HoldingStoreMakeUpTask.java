@@ -5,8 +5,8 @@ import fai.MgProductStoreSvr.domain.entity.HoldingRecordEntity;
 import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuValObj;
 import fai.MgProductStoreSvr.domain.repository.TableDBMapping;
 import fai.MgProductStoreSvr.interfaces.cli.MgProductStoreCli;
-import fai.comm.middleground.repository.DaoProxy;
 import fai.comm.util.*;
+import fai.middleground.svrutil.repository.DaoProxy;
 
 import java.util.Arrays;
 import java.util.Calendar;

@@ -77,6 +77,111 @@ public class MgProductStoreCli extends FaiClient {
             stat.end(m_rt != Errno.OK, m_rt);
         }
     }
+    /**
+     * 批量同步 库存销售 spu数据到sku
+     */
+    public int batchSynchronousStoreSalesSPU2SKU(int aid, int sourceTid, int sourceUnionPriId, FaiList<Param> spuStoreSalesInfoList){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(StoreSalesSkuDto.Key.TID, sourceTid);
+            sendBody.putInt(StoreSalesSkuDto.Key.UNION_PRI_ID, sourceUnionPriId);
+            m_rt = spuStoreSalesInfoList.toBuffer(sendBody, StoreSalesSkuDto.Key.INFO_LIST, StoreSalesSkuDto.getInfoDto());
+            if(m_rt != Errno.OK){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "pdScSkuInfoList error;");
+                return m_rt;
+            }
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_SYN_SPU_TO_SKU);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    /**
+     * 批量同步 出入库记录
+     */
+    public int batchSynchronousInOutStoreRecord(int aid, int sourceTid, int sourceUnionPriId, FaiList<Param> recordInfoList){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(StoreSalesSkuDto.Key.TID, sourceTid);
+            sendBody.putInt(StoreSalesSkuDto.Key.UNION_PRI_ID, sourceUnionPriId);
+            m_rt = recordInfoList.toBuffer(sendBody, InOutStoreRecordDto.Key.INFO_LIST, InOutStoreRecordDto.getInfoDto());
+            if(m_rt != Errno.OK){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "pdScSkuInfoList error;");
+                return m_rt;
+            }
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.InOutStoreRecordCmd.BATCH_SYN_RECORD);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
 
     /**
      * 修改商品规格库存销售sku
@@ -661,11 +766,10 @@ public class MgProductStoreCli extends FaiClient {
             stat.end((m_rt != Errno.OK), m_rt);
         }
     }
-
     /**
-     * 获取库存SKU汇总信息
+     * 获取 业务 库存SKU信息
      */
-    public int getStoreSkuSummaryInfoList(int aid, int tid, SearchArg searchArg, FaiList<Param> list){
+    public int getBizStoreSkuSummaryInfoList(int aid, int tid, int unionPriId, SearchArg searchArg, FaiList<Param> list){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -687,6 +791,86 @@ public class MgProductStoreCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(StoreSkuSummaryDto.Key.TID, tid);
+            sendBody.putInt(StoreSkuSummaryDto.Key.UNION_PRI_ID, unionPriId);
+            searchArg.toBuffer(sendBody, StoreSkuSummaryDto.Key.SEARCH_ARG);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.StoreSkuSummaryCmd.BIZ_GET_LIST);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = list.fromBuffer(recvBody, keyRef, StoreSkuSummaryDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != StoreSkuSummaryDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            if(searchArg.totalSize != null){
+                recvBody.getInt(keyRef, searchArg.totalSize);
+                if(keyRef.value != StoreSkuSummaryDto.Key.TOTAL_SIZE){
+                    m_rt = Errno.CODEC_ERROR;
+                    Log.logErr(m_rt, "recv total size null");
+                    return m_rt;
+                }
+            }
+
+            return m_rt = Errno.OK;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK), m_rt);
+        }
+    }
+
+    /**
+     * 获取库存SKU汇总信息
+     */
+    public int getStoreSkuSummaryInfoList(int aid, int tid, int sourceUnionPriId, SearchArg searchArg, FaiList<Param> list){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "aid error");
+                return m_rt;
+            }
+            if(searchArg == null || searchArg.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "searchArg error");
+                return m_rt;
+            }
+            if(list == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "list error");
+                return m_rt;
+            }
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(StoreSkuSummaryDto.Key.TID, tid);
+            sendBody.putInt(StoreSkuSummaryDto.Key.UNION_PRI_ID, sourceUnionPriId);
             searchArg.toBuffer(sendBody, StoreSkuSummaryDto.Key.SEARCH_ARG);
 
             FaiProtocol sendProtocol = new FaiProtocol();

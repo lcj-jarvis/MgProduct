@@ -1,6 +1,8 @@
 package fai.MgProductStoreSvr.domain.repository;
 
 import fai.comm.util.*;
+import fai.middleground.svrutil.repository.DaoCtrl;
+import fai.middleground.svrutil.repository.TransactionCtrl;
 
 /**
  * dao ctrl中不再对传进来的数据做解析校验
@@ -18,7 +20,7 @@ public class StoreSalesSkuDaoCtrl extends DaoCtrl {
 			return null;
 		}
 		StoreSalesSkuDaoCtrl daoCtrl = getInstance(flow, aid);
-		if(!transactionCtrl.registered(daoCtrl)){
+		if(!transactionCtrl.register(daoCtrl)){
 			Log.logErr("registered StoreSalesSkuDaoCtrl err;flow=%d;aid=%d;", flow, aid);
 			return null;
 		}

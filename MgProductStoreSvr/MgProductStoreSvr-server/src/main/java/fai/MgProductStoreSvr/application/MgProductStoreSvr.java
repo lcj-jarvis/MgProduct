@@ -3,20 +3,19 @@ package fai.MgProductStoreSvr.application;
 import fai.MgProductStoreSvr.application.task.HoldingStoreMakeUpTask;
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
 import fai.MgProductStoreSvr.domain.repository.CacheCtrl;
-import fai.MgProductStoreSvr.domain.repository.DaoCtrl;
-import fai.MgProductStoreSvr.domain.repository.DaoProxy;
 import fai.MgProductStoreSvr.domain.repository.InOutStoreRecordDaoCtrl;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.cache.redis.config.RedisClientConfig;
 import fai.comm.cache.redis.pool.JedisPool;
 import fai.comm.cache.redis.pool.JedisPoolFactory;
-import fai.comm.distributedkit.lock.PosDistributedLock;
 import fai.comm.distributedkit.lock.support.FaiLockGenerator;
 import fai.comm.jnetkit.config.ParamKeyMapping;
 import fai.comm.jnetkit.server.ServerConfig;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.util.Log;
 import fai.comm.util.Param;
+import fai.middleground.svrutil.repository.DaoCtrl;
+import fai.middleground.svrutil.repository.DaoProxy;
 
 import java.io.IOException;
 

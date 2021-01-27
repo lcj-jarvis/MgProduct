@@ -13,11 +13,12 @@ import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.mq.api.MqFactory;
 import fai.comm.util.Log;
 import fai.comm.util.Param;
+import fai.middleground.svrutil.repository.DaoCtrl;
+import fai.middleground.svrutil.repository.DaoProxy;
 
 import java.io.IOException;
 
 public class MgProductSpecSvr {
-
 
     public static void main(String[] args) throws IOException {
         ServerConfig config = new ServerConfig(args);

@@ -12,6 +12,7 @@ public class MgProductSpecCmd {
 		public static final int NUM6 = 5005;
 		public static final int NUM7 = 5006;
 		public static final int NUM8 = 5007;
+		public static final int NUM9 = 5009;
 	}
 
 
@@ -27,6 +28,7 @@ public class MgProductSpecCmd {
 		public static final int NUM8 = 1007;
 		public static final int NUM9 = 1008;
 		public static final int NUM10 = 1009;
+		public static final int NUM11 = 1011;
 	}
 
 	////////////////// cmd对外定义，实际做cmd读写分离 ////////////////////
@@ -66,6 +68,7 @@ public class MgProductSpecCmd {
 		public static final int IMPORT = WriteCmdNum.NUM7;
 		public static final int UNION_SET = WriteCmdNum.NUM8;
 		public static final int BATCH_DEL_PD_ALL_SC = WriteCmdNum.NUM10;
+		public static final int BATCH_SYN_SPU_TO_SKU = WriteCmdNum.NUM11;
 	}
 
 	/**
@@ -73,6 +76,7 @@ public class MgProductSpecCmd {
 	 */
 	public static class ProductSpecSkuCmd {
 		public static final int GET_LIST = ReadCmdNum.NUM8;
+		public static final int GET_SKU_ID_INFO_LIST_BY_PD_ID_LIST = ReadCmdNum.NUM9;
 
 		public static final int SET_LIST = WriteCmdNum.NUM9;
 	}

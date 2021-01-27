@@ -3,6 +3,9 @@ package fai.MgProductStoreSvr.domain.entity;
 
 import fai.comm.util.Errno;
 import fai.comm.util.Log;
+import fai.comm.util.Parser;
+
+import java.util.Calendar;
 
 /**
  * 出入库记录
@@ -60,5 +63,14 @@ public class InOutStoreRecordValObj {
             return count;
         }
     }
+    public static final class Number{
+        public static String genNumber(String yyMMdd, int ioStoreRecId){
+            return yyMMdd+String.format("%04d", ioStoreRecId);
+        }
 
+        public static String genNumber(Calendar calendar, int ioStoreRecId){
+            String yyMMdd = Parser.parseString(calendar, "yyMMdd");
+            return genNumber(yyMMdd, ioStoreRecId);
+        }
+    }
 }

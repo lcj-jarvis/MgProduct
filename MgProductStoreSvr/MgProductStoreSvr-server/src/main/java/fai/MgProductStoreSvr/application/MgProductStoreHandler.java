@@ -3,15 +3,12 @@ package fai.MgProductStoreSvr.application;
 import fai.MgProductStoreSvr.application.mq.BizSalesReportConsumeListener;
 import fai.MgProductStoreSvr.application.mq.StoreSkuReportConsumeListener;
 import fai.MgProductStoreSvr.application.service.StoreService;
-import fai.MgProductStoreSvr.domain.repository.DaoCtrl;
 import fai.MgProductStoreSvr.interfaces.cmd.MgProductStoreCmd;
 import fai.MgProductStoreSvr.interfaces.conf.MqConfig;
 import fai.MgProductStoreSvr.interfaces.dto.*;
 import fai.comm.jnetkit.server.ServerConfig;
-import fai.comm.jnetkit.server.ServerHandlerContext;
-import fai.comm.jnetkit.server.fai.FaiHandler;
-import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.FaiServer;
+import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
 import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
@@ -19,10 +16,11 @@ import fai.comm.mq.api.Consumer;
 import fai.comm.mq.api.MqFactory;
 import fai.comm.mq.api.Producer;
 import fai.comm.util.*;
+import fai.middleground.svrutil.service.MiddleGroundHandler;
 
 import java.io.IOException;
 
-public class MgProductStoreHandler extends FaiHandler {
+public class MgProductStoreHandler extends MiddleGroundHandler {
     public MgProductStoreHandler(FaiServer server) {
         super(server);
         ServerConfig serverConfig = server.getConfig();
@@ -52,37 +50,10 @@ public class MgProductStoreHandler extends FaiHandler {
         MqFactory.getConsumer(MqConfig.BizSalesReport.CONSUMER).shutdown();
     }
 
-    @Override
-    public boolean fallback(int flow, final FaiSession session, final Exception cause) {
-        int aid = -1;
-        int cmd = -1;
-        try {
-            aid = session.getAid();
-            cmd = session.getCmd();
-            // 业务方可以覆盖 fallback 方法来定制异常回调，不输出日志
-            session.write(Errno.ERROR);
-        } catch (IOException e) {
-            // 远程客户端发送失败了，直接关闭连接了
-            return true;
-        } finally {
-            Log.logErr(cause, "FaiHandler task error;flow=%d;aid=%d;cmd=%d", flow, aid, cmd);
-        }
-        return false;
-    }
-    @Override
-    public void channelRead(final ServerHandlerContext context,
-                            final Object message) throws Exception {
-        try {
-            super.channelRead(context, message);
-        }finally {
-            DaoCtrl.closeDao4End();
-        }
-    }
 
     @Override
     public void destroy() {
         super.destroy();
-        DaoCtrl.destroy();
         shutDownMq();
     }
 
@@ -100,6 +71,29 @@ public class MgProductStoreHandler extends FaiHandler {
         return  m_storeService.refreshPdScSkuSalesStore(session, flow, aid, tid, unionPriId, pdId, rlPdId, pdScSkuInfoList);
     }
 
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_SYN_SPU_TO_SKU)
+    private int batchSynchronousStoreSalesSPU2SKU(final FaiSession session,
+                                         @ArgFlow final int flow,
+                                         @ArgAid final int aid,
+                                         @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int sourceTid,
+                                         @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int sourceUnionPriId,
+                                         @ArgList(classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto", keyMatch = StoreSalesSkuDto.Key.INFO_LIST)
+                                                 FaiList<Param> spuStoreSalesInfoList) throws IOException {
+        return  m_storeService.batchSynchronousStoreSalesSPU2SKU(session, flow, aid, sourceTid, sourceUnionPriId, spuStoreSalesInfoList);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.InOutStoreRecordCmd.BATCH_SYN_RECORD)
+    private int batchSynchronousInOutStoreRecord(final FaiSession session,
+                                                 @ArgFlow final int flow,
+                                                 @ArgAid final int aid,
+                                                 @ArgBodyInteger(InOutStoreRecordDto.Key.TID) final int sourceTid,
+                                                 @ArgBodyInteger(InOutStoreRecordDto.Key.UNION_PRI_ID) final int sourceUnionPriId,
+                                                 @ArgList(classDef = InOutStoreRecordDto.class, methodDef = "getInfoDto", keyMatch = InOutStoreRecordDto.Key.INFO_LIST)
+                                                         FaiList<Param> infoList) throws IOException {
+        return  m_storeService.batchSynchronousInOutStoreRecord(session, flow, aid, sourceTid, sourceUnionPriId, infoList);
+    }
 
     @WrittenCmd
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.SET_LIST)
@@ -223,13 +217,24 @@ public class MgProductStoreHandler extends FaiHandler {
         return  m_storeService.batchDelPdAllStoreSales(session, flow, aid, tid, pdIdList);
     }
 
+    @Cmd(MgProductStoreCmd.StoreSkuSummaryCmd.BIZ_GET_LIST)
+    private int getBizStoreSkuSummaryInfoList(final FaiSession session,
+                                           @ArgFlow final int flow,
+                                           @ArgAid final int aid,
+                                           @ArgBodyInteger(StoreSkuSummaryDto.Key.TID) final int tid,
+                                           @ArgBodyInteger(StoreSkuSummaryDto.Key.UNION_PRI_ID) final int unionPriId,
+                                           @ArgSearchArg(StoreSkuSummaryDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
+        return  m_storeService.getBizStoreSkuSummaryInfoList(session, flow, aid, tid, unionPriId, searchArg);
+    }
+
     @Cmd(MgProductStoreCmd.StoreSkuSummaryCmd.GET_LIST)
     private int getStoreSkuSummaryInfoList(final FaiSession session,
                                         @ArgFlow final int flow,
                                         @ArgAid final int aid,
                                         @ArgBodyInteger(StoreSkuSummaryDto.Key.TID) final int tid,
+                                        @ArgBodyInteger(StoreSkuSummaryDto.Key.UNION_PRI_ID) final int sourceUnionPriId,
                                         @ArgSearchArg(StoreSkuSummaryDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
-        return  m_storeService.getStoreSkuSummaryInfoList(session, flow, aid, tid, searchArg);
+        return  m_storeService.getStoreSkuSummaryInfoList(session, flow, aid, tid, sourceUnionPriId, searchArg);
     }
 
     private StoreService m_storeService = new StoreService();

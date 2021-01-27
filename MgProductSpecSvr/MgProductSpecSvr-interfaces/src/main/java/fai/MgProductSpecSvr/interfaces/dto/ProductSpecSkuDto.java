@@ -35,5 +35,6 @@ public class ProductSpecSkuDto {
         public static final int UPDATER_LIST = 7;
         public static final int ID = 8;
         public static final int ID_LIST = 9;
+        public static final int PD_ID_LIST = 10;
     }
 }

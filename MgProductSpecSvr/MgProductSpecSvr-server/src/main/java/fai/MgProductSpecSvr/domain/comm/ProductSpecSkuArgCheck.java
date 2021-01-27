@@ -8,6 +8,7 @@ import fai.MgProductSpecSvr.domain.entity.ProductSpecSkuValObj;
 public class ProductSpecSkuArgCheck {
 
     /**
+     * 校验skuNum
      */
     public static boolean isValidSkuNum(String skuNum) {
         if(skuNum == null){

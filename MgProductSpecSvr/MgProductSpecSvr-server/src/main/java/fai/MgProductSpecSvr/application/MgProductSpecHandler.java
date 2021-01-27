@@ -2,7 +2,6 @@ package fai.MgProductSpecSvr.application;
 
 import fai.MgProductSpecSvr.application.service.ProductSpecService;
 import fai.MgProductSpecSvr.application.service.SpecTempService;
-import fai.MgProductSpecSvr.domain.repository.DaoCtrl;
 import fai.MgProductSpecSvr.interfaces.cmd.MgProductSpecCmd;
 import fai.MgProductSpecSvr.interfaces.dto.*;
 import fai.comm.jnetkit.server.ServerHandlerContext;
@@ -13,47 +12,16 @@ import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.util.*;
+import fai.middleground.svrutil.repository.DaoCtrl;
+import fai.middleground.svrutil.service.MiddleGroundHandler;
 
 import java.io.IOException;
 
-public class MgProductSpecHandler extends FaiHandler {
+public class MgProductSpecHandler extends MiddleGroundHandler {
     public MgProductSpecHandler(FaiServer server) {
         super(server);
     }
 
-    @Override
-    public boolean fallback(int flow, final FaiSession session, final Exception cause) {
-        int aid = -1;
-        int cmd = -1;
-        try {
-            aid = session.getAid();
-            cmd = session.getCmd();
-            // 业务方可以覆盖 fallback 方法来定制异常回调，不输出日志
-
-            session.write(Errno.ERROR);
-        } catch (IOException e) {
-            // 远程客户端发送失败了，直接关闭连接了
-            return true;
-        } finally {
-            Log.logErr(cause, "FaiHandler task error;flow=%d;aid=%d;cmd=%d", flow, aid, cmd);
-        }
-        return false;
-    }
-    @Override
-    public void channelRead(final ServerHandlerContext context,
-                            final Object message) throws Exception {
-        try {
-            super.channelRead(context, message);
-        }finally {
-            DaoCtrl.closeDao4End();
-        }
-    }
-
-    @Override
-    public void destroy() {
-        super.destroy();
-        DaoCtrl.destroy();
-    }
 
     @WrittenCmd
     @Cmd(MgProductSpecCmd.SpecTempCmd.ADD_LIST)
@@ -161,6 +129,18 @@ public class MgProductSpecHandler extends FaiHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductSpecCmd.ProductSpecCmd.BATCH_SYN_SPU_TO_SKU)
+    private int batchSynchronousSPU2SKU(final FaiSession session,
+                                        @ArgFlow final int flow,
+                                        @ArgAid final int aid,
+                                        @ArgBodyInteger(ProductSpecDto.Key.TID) final int tid,
+                                        @ArgBodyInteger(ProductSpecDto.Key.UNION_PRI_ID) final int unionPriId,
+                                        @ArgList(classDef = ProductSpecDto.class, methodDef = "getInfoDto", keyMatch = ProductSpecDto.Key.INFO_LIST)
+                                                    FaiList<Param> spuInfoList) throws IOException {
+        return m_productSpecService.batchSynchronousSPU2SKU(session, flow, aid, tid, unionPriId, spuInfoList);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductSpecCmd.ProductSpecCmd.UNION_SET)
     private int unionSetPdScInfoList(final FaiSession session,
                                      @ArgFlow final int flow,
@@ -229,6 +209,15 @@ public class MgProductSpecHandler extends FaiHandler {
                                    @ArgBodyInteger(ProductSpecSkuDto.Key.TID) final int tid,
                                    @ArgBodyInteger(ProductSpecSkuDto.Key.PD_ID) final int pdId) throws IOException {
         return  m_productSpecService.getPdSkuScInfoList(session, flow, aid, unionPriId, pdId);
+    }
+
+    @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_SKU_ID_INFO_LIST_BY_PD_ID_LIST)
+    private int getPdSkuIdInfoList(final FaiSession session,
+                                   @ArgFlow final int flow,
+                                   @ArgAid final int aid,
+                                   @ArgBodyInteger(ProductSpecSkuDto.Key.TID) final int tid,
+                                   @ArgList(keyMatch = ProductSpecSkuDto.Key.PD_ID_LIST) final FaiList<Integer> pdIdList) throws IOException {
+        return  m_productSpecService.getPdSkuIdInfoList(session, flow, aid, pdIdList);
     }
 
     private SpecTempService m_specTempService = new SpecTempService();

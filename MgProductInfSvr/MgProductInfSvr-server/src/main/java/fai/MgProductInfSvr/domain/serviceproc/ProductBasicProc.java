@@ -260,6 +260,48 @@ public class ProductBasicProc {
 
         return rt;
     }
+    /**
+     * 批量新增商品数据，并添加与当前unionPriId的关联
+     */
+    public int batchAddProductAndRel(int aid, int tid, int unionPriId, FaiList<Param> list, FaiList<Param> idInfoList){
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.batchAddProductAndRel(aid, tid, unionPriId, list, idInfoList);
+        if(rt != Errno.OK) {
+            if(rt != Errno.NOT_FOUND) {
+                Log.logErr(rt, "batchAddProductAndRel error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            }
+            return rt;
+        }
+
+        return rt;
+    }
+
+    /**
+     * 批量新增商品业务关联，同时绑定多个产品数据，给悦客接入进销存中心临时使用的
+     * 接入完成后，废除，该接口禁止对外开放
+     */
+    public int batchBindProductsRel(int aid, int tid, FaiList<Param> list){
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
+            return rt;
+        }
+        rt = m_cli.batchBindProductsRel(aid, tid, list);
+        if(rt != Errno.OK) {
+            if(rt != Errno.NOT_FOUND) {
+                Log.logErr(rt, "batchAddProductAndRel error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
+            }
+            return rt;
+        }
+
+        return rt;
+    }
 
     private int m_flow;
     private MgProductBasicCli m_cli;

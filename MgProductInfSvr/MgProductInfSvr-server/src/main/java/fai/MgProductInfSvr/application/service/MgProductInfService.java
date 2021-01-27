@@ -3,8 +3,8 @@ package fai.MgProductInfSvr.application.service;
 import fai.MgPrimaryKeySvr.interfaces.cli.MgPrimaryKeyCli;
 import fai.MgProductBasicSvr.interfaces.cli.MgProductBasicCli;
 import fai.MgProductBasicSvr.interfaces.entity.ProductRelEntity;
-import fai.comm.middleground.service.ServicePub;
 import fai.comm.util.*;
+import fai.middleground.svrutil.service.ServicePub;
 
 /**
  * 维护接口服务各个service共用的方法

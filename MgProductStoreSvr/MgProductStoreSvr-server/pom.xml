@@ -16,14 +16,14 @@
             <version>${fai-comm-middleground-ver}</version>
         </dependency>
         <dependency>
-            <groupId>MgProduct</groupId>
-            <artifactId>MgProduct-MgProductStoreSvr-interfaces</artifactId>
-            <version>${MgProduct-MgProductStoreSvr-interfaces-ver}</version>
+            <groupId>fai-middleground-svrutil</groupId>
+            <artifactId>fai-middleground-svrutil</artifactId>
+            <version>${fai-middleground-svrutil-ver}</version>
         </dependency>
         <dependency>
             <groupId>MgProduct</groupId>
-            <artifactId>MgProduct-MgProductSpecSvr-interfaces</artifactId>
-            <version>${MgProduct-MgProductSpecSvr-interfaces-ver}</version>
+            <artifactId>MgProductStoreSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductStoreSvr-interfaces-ver}</version>
         </dependency>
 
         <dependency>
@@ -138,18 +138,6 @@
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
             <version>1.2.16</version>
-        </dependency>
-        <dependency>
-            <groupId>fai-comm-util-arch</groupId>
-            <artifactId>fai-comm-util-arch</artifactId>
-            <version>1.0.5</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>fai-comm-jnetkit</groupId>
-            <artifactId>fai-comm-jnetkit</artifactId>
-            <version>1.0.1-SNAPSHOT</version>
-            <scope>compile</scope>
         </dependency>
         <!-- 注册与发现end -->
     </dependencies>

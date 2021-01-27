@@ -2,6 +2,8 @@ package fai.MgProductStoreSvr.domain.repository;
 
 import fai.comm.util.DaoPool;
 import fai.comm.util.Log;
+import fai.middleground.svrutil.repository.DaoCtrl;
+import fai.middleground.svrutil.repository.TransactionCtrl;
 
 /**
  * dao ctrl中不再对传进来的数据做解析校验
@@ -19,7 +21,7 @@ public class HoldingRecordDaoCtrl extends DaoCtrl {
 			return null;
 		}
 		HoldingRecordDaoCtrl daoCtrl = getInstance(flow, aid);
-		if(!transactionCtrl.registered(daoCtrl)){
+		if(!transactionCtrl.register(daoCtrl)){
 			Log.logErr("registered HoldingRecordDaoCtrl err;flow=%d;aid=%d;", flow, aid);
 			return null;
 		}

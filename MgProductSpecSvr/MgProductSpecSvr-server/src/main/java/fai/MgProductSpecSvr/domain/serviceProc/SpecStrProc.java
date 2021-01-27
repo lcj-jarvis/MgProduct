@@ -80,7 +80,7 @@ public class SpecStrProc {
             dataList.add(data);
         }
 
-        int rt = m_daoCtrl.batchInsert(dataList, null);
+        int rt = m_daoCtrl.batchInsert(dataList, null, false);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batchAdd error;flow=%d;aid=%s;", m_flow, aid);
             return rt;

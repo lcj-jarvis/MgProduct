@@ -1,8 +1,5 @@
 package fai.MgProductSpecSvr.domain.entity;
 
-import fai.comm.util.FaiList;
-import fai.comm.util.Param;
-
 /**
  * 产品规格 - 值对象
  */
@@ -21,12 +18,14 @@ public class ProductSpecValObj {
     public static final class Default{
         public static final int SORT = 1;
         public static final class InPdScValList{
-            public static final FaiList<Param> IN_PD_SC_VAL_LIST = new FaiList<Param>();
+            public static final String IN_PD_SC_VAL_LIST_STR = "[{}]";
             public static final class Item{
                 public static final boolean CHECK = false;
                 public static final String FILE_ID = "";
             }
+            public static final String NAME = "全部"; // 规格值名称
         }
+        public static final String ALL_PRODUCT_SPEC_NAME = "全部"; // 商品规格无规格时的规格名称，配合Flag.ALL使用，因为有可能客户自定义了
     }
 
     /**

@@ -5,14 +5,13 @@ import fai.MgProductBasicSvr.interfaces.entity.ProductRelEntity;
 import fai.MgProductInfSvr.domain.comm.BizPriKey;
 import fai.MgProductInfSvr.domain.serviceproc.ProductBasicProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductStoreProc;
-import fai.MgProductInfSvr.domain.serviceproc.SpecificationProc;
+import fai.MgProductInfSvr.domain.serviceproc.ProductSpecProc;
 import fai.MgProductInfSvr.interfaces.dto.ProductStoreDto;
-import fai.MgProductInfSvr.interfaces.entity.ProductBasicEntity;
-import fai.MgProductInfSvr.interfaces.entity.ProductSpecEntity;
-import fai.MgProductInfSvr.interfaces.entity.ProductStoreEntity;
-import fai.MgProductInfSvr.interfaces.entity.ProductStoreValObj;
+import fai.MgProductInfSvr.interfaces.entity.*;
+import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
 import fai.MgProductStoreSvr.interfaces.entity.InOutStoreRecordEntity;
 import fai.MgProductStoreSvr.interfaces.entity.SalesSummaryEntity;
+import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity;
 import fai.MgProductStoreSvr.interfaces.entity.StoreSkuSummaryEntity;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
@@ -76,9 +75,9 @@ public class ProductStoreService extends MgProductInfService {
             if(inPdScStrNameInfoMap.size() > 0){
                 Log.logDbg("whalelog  updaterList=%s", updaterList);
                 Log.logDbg("whalelog inPdScStrNameInfoMap=%s", inPdScStrNameInfoMap);
-                SpecificationProc specificationProc = new SpecificationProc(flow);
+                ProductSpecProc productSpecProc = new ProductSpecProc(flow);
                 FaiList<Param> infoList = new FaiList<Param>();
-                rt = specificationProc.getPdSkuScInfoList(aid, tid, unionPriId, pdId, infoList);
+                rt = productSpecProc.getPdSkuScInfoList(aid, tid, unionPriId, pdId, infoList);
                 if(rt != Errno.OK) {
                     return rt;
                 }
@@ -312,7 +311,7 @@ public class ProductStoreService extends MgProductInfService {
             }
             // 添加产品同时初始化库存时，还没生成skuId，只能通过规格值的字符串集间接获取skuId
             Map<Integer, Map<FaiList<String>, Long>> ownerRlPdId_inPdScStrNameSkuIdMapMap = new HashMap<>();
-
+            // TODO whale
             int ownerUnionPriId = idRef.value;
             Map<Integer, Integer> ownerRlPdIdPdIdMap = new HashMap<>();
             Map<BizPriKey, Integer> bizPriKeyUnionPriIdMap = new HashMap<>();
@@ -447,12 +446,12 @@ public class ProductStoreService extends MgProductInfService {
             }
 
             if(ownerRlPdId_inPdScStrNameSkuIdMapMap.size() > 0){
-                SpecificationProc specificationProc = new SpecificationProc(flow);
+                ProductSpecProc productSpecProc = new ProductSpecProc(flow);
                 for (Map.Entry<Integer, Map<FaiList<String>, Long>> ownerRlPdId_inPdScStrNameSkuIdMapEntry : ownerRlPdId_inPdScStrNameSkuIdMapMap.entrySet()) {
                     Integer ownerRlPdId = ownerRlPdId_inPdScStrNameSkuIdMapEntry.getKey();
                     Integer ownerPdId = ownerRlPdIdPdIdMap.get(ownerRlPdId);
                     FaiList<Param> pdSkuScInfoList = new FaiList<Param>();
-                    rt = specificationProc.getPdSkuScInfoList(aid, ownerTid, ownerUnionPriId, ownerPdId, pdSkuScInfoList);
+                    rt = productSpecProc.getPdSkuScInfoList(aid, ownerTid, ownerUnionPriId, ownerPdId, pdSkuScInfoList);
                     if(rt != Errno.OK) {
                         return rt;
                     }
@@ -655,14 +654,18 @@ public class ProductStoreService extends MgProductInfService {
     }
 
     /**
-     * 获取库存SKU汇总信息
-     * @param tid 商品所属权的 tid
-     * @param siteId 商品所属权的 siteId
-     * @param lgId 商品所属权的 lgId
-     * @param keepPriId1 商品所属权的 keepPriId1
+     * 获取库存SKU信息
+     * @param tid tid
+     * @param siteId siteId
+     * @param lgId lgId
+     * @param keepPriId1 keepPriId1
      * @param searchArg 查询条件
+     * @param isBiz 是否是 查业务。
+     *              false: 查询的结果是所有业务的信息汇总，这时 tid、siteId、lgId、keepPriId1，是业务商品所属权的主键信息（例如悦客的总店）；
+     *              true: 查询的结果是指定业务的信息，这时 tid、siteId、lgId、keepPriId1，是业务商品关联的主键信息（例如悦客的门店）。
+     *
      */
-    public int getStoreSkuSummaryInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, SearchArg searchArg)  throws IOException {
+    public int getStoreSkuSummaryInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, SearchArg searchArg, boolean isBiz)  throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -671,8 +674,6 @@ public class ProductStoreService extends MgProductInfService {
                 Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
                 return rt;
             }
-
-
 
             // 获取unionPriId
             Ref<Integer> idRef = new Ref<Integer>();
@@ -685,7 +686,7 @@ public class ProductStoreService extends MgProductInfService {
             ProductBasicProc productBasicProc = new ProductBasicProc(flow);
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
             FaiList<Param> infoList = new FaiList<Param>();
-            rt = productStoreProc.getStoreSkuSummaryInfoList(aid, tid, searchArg, infoList);
+            rt = productStoreProc.getStoreSkuSummaryInfoList(aid, tid, unionPriId, searchArg, infoList, isBiz);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -728,4 +729,299 @@ public class ProductStoreService extends MgProductInfService {
         return rt;
     }
 
+    /**
+     * 批量同步 库存销售 spu数据到sku
+     * @param ownerTid ownerTid
+     * @param ownerSiteId ownerSiteId
+     * @param ownerLgId ownerLgId
+     * @param ownerKeepPriId1 ownerKeepPriId1
+     * @param spuInfoList Param见 {@link ProductTempEntity.ProductInfo}
+     * @return
+     */
+    public int batchSynchronousSPU2SKU(FaiSession session, int flow, int aid, int ownerTid, int ownerSiteId, int ownerLgId, int ownerKeepPriId1, FaiList<Param> spuInfoList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(ownerTid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, ownerTid is not valid;flow=%d;aid=%d;ownerTid=%d;", flow, aid, ownerTid);
+                return rt;
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, ownerTid, ownerSiteId, ownerLgId, ownerKeepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int ownerUnionPriId = idRef.value;
+            Map<BizPriKey, Integer> bizPriKeyUnionPriIdMap = new HashMap<>();
+            Map<Integer, FaiList<Param>> pdIdBindPdRelListMap = new HashMap<>();
+            FaiList<Param> searchArgList = new FaiList<>();
+            for (Param info : spuInfoList) {
+                int tid = info.getInt(ProductTempEntity.ProductInfo.TID, ownerTid);
+                int siteId = info.getInt(ProductTempEntity.ProductInfo.SITE_ID, -1);
+                int lgId = info.getInt(ProductTempEntity.ProductInfo.LGID, -1);
+                int keepPriId1 = info.getInt(ProductTempEntity.ProductInfo.KEEP_PRI_ID1, -1);
+                int pdId = info.getInt(ProductTempEntity.ProductInfo.Internal.PD_ID);
+                int rlPdId = info.getInt(ProductTempEntity.ProductInfo.RL_PD_ID);
+                if(!FaiValObj.TermId.isValidTid(tid) || siteId < 0 || lgId < 0 || keepPriId1 < 0 ){
+                    Log.logErr("arg siteId|lgId|keepPriId1 err;flow=%d;aid=%d;ownerTid=%d;info=%s;", flow, aid, ownerTid, info);
+                    return Errno.ARGS_ERROR;
+                }
+                BizPriKey bizPriKey = new BizPriKey(tid, siteId, lgId, keepPriId1);
+                {
+                    if(!bizPriKeyUnionPriIdMap.containsKey(bizPriKey)){
+                        bizPriKeyUnionPriIdMap.put(bizPriKey, null);
+                        searchArgList.add(
+                                new Param().setInt(MgPrimaryKeyEntity.Info.TID, tid)
+                                        .setInt(MgPrimaryKeyEntity.Info.SITE_ID, siteId)
+                                        .setInt(MgPrimaryKeyEntity.Info.LGID, lgId)
+                                        .setInt(MgPrimaryKeyEntity.Info.KEEP_PRI_ID1, keepPriId1)
+                        );
+                    }
+                }
+                FaiList<Param> bindPdRelList = pdIdBindPdRelListMap.get(pdId);
+                if(bindPdRelList == null){
+                    bindPdRelList = new FaiList<>();
+                    pdIdBindPdRelListMap.put(pdId, bindPdRelList);
+                }
+                bindPdRelList.add(
+                        new Param()
+                                .setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId)
+                                .setObject(ProductRelEntity.Info.UNION_PRI_ID, bizPriKey)
+                );
+            }
+
+            // 获取联合主键
+            FaiList<Param> primaryKeyList = new FaiList<>();
+            rt = getPrimaryKeyList(flow, aid, searchArgList, primaryKeyList);
+            if(rt != Errno.OK){
+                return rt;
+            }
+            for (Param primaryKeyInfo : primaryKeyList) {
+                int tid = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.TID);
+                int siteId = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.SITE_ID);
+                int lgId = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.LGID);
+                int keepPriId1 = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.KEEP_PRI_ID1);
+                int unionPriId = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.UNION_PRI_ID);
+                bizPriKeyUnionPriIdMap.put(new BizPriKey(tid, siteId, lgId, keepPriId1), unionPriId);
+            }
+            FaiList<Param> batchBindPdRelList = new FaiList<>();
+            for (Map.Entry<Integer, FaiList<Param>> pdIdBindPdRelListEntry : pdIdBindPdRelListMap.entrySet()) {
+                Integer pdId = pdIdBindPdRelListEntry.getKey();
+                FaiList<Param> bindPdRelList = pdIdBindPdRelListEntry.getValue();
+                for (Param bindPdRelInfo : bindPdRelList) {
+                    BizPriKey bizPriKey = (BizPriKey)bindPdRelInfo.remove(ProductBasicEntity.ProductRelInfo.UNION_PRI_ID);
+                    Integer unionPriId = bizPriKeyUnionPriIdMap.get(bizPriKey);
+                    bindPdRelInfo.setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId);
+                    bindPdRelInfo.setBoolean(ProductRelEntity.Info.INFO_CHECK, false);
+                }
+                batchBindPdRelList.add(
+                        new Param()
+                                .setInt(ProductRelEntity.Info.PD_ID, pdId)
+                                .setList(ProductRelEntity.Info.BIND_LIST, bindPdRelList)
+                );
+            }
+            if (!batchBindPdRelList.isEmpty()){
+                ProductBasicProc productBasicProc = new ProductBasicProc(flow);
+                rt = productBasicProc.batchBindProductsRel(aid, ownerTid, batchBindPdRelList);
+                if(rt != Errno.OK){
+                    Log.logErr(rt, "batchBindProductsRel err;aid=%s;ownerTid=%s;batchBindPdRelList=%s", aid, ownerTid, batchBindPdRelList);
+                    return rt;
+                }
+            }
+
+            FaiList<Param> spuStoreSalesInfoList = new FaiList<>();
+            for (Param info : spuInfoList) {
+                int tid = info.getInt(ProductTempEntity.ProductInfo.TID, ownerTid);
+                int siteId = info.getInt(ProductTempEntity.ProductInfo.SITE_ID, -1);
+                int lgId = info.getInt(ProductTempEntity.ProductInfo.LGID, -1);
+                int keepPriId1 = info.getInt(ProductTempEntity.ProductInfo.KEEP_PRI_ID1, -1);
+                int rlPdId = info.getInt(ProductTempEntity.ProductInfo.RL_PD_ID);
+                int pdId = info.getInt(ProductTempEntity.ProductInfo.Internal.PD_ID);
+                long skuId = info.getLong(ProductTempEntity.ProductInfo.Internal.SKU_ID);
+                int unionPriId = bizPriKeyUnionPriIdMap.get(new BizPriKey(tid, siteId, lgId, keepPriId1));
+
+                Param spuStoreSalesInfo = new Param();
+                spuStoreSalesInfo.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId);
+                spuStoreSalesInfo.setInt(StoreSalesSkuEntity.Info.PD_ID, pdId);
+                spuStoreSalesInfo.setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId);
+                spuStoreSalesInfo.setInt(StoreSalesSkuEntity.Info.RL_PD_ID, rlPdId);
+
+                spuStoreSalesInfo.assign(info, ProductTempEntity.ProductInfo.PRICE, StoreSalesSkuEntity.Info.PRICE);
+                spuStoreSalesInfo.assign(info, ProductTempEntity.ProductInfo.COUNT, StoreSalesSkuEntity.Info.COUNT);
+                spuStoreSalesInfo.assign(info, ProductTempEntity.ProductInfo.REMAIN_COUNT, StoreSalesSkuEntity.Info.REMAIN_COUNT);
+                spuStoreSalesInfo.assign(info, ProductTempEntity.ProductInfo.HOLDING_COUNT, StoreSalesSkuEntity.Info.HOLDING_COUNT);
+                spuStoreSalesInfoList.add(spuStoreSalesInfo);
+            }
+
+            ProductStoreProc productStoreProc = new ProductStoreProc(flow);
+            rt = productStoreProc.batchSynchronousStoreSalesSPU2SKU(aid, ownerTid, ownerUnionPriId, spuStoreSalesInfoList);
+            if(rt != Errno.OK){
+                Log.logErr(rt, "batchBindProductsRel err;aid=%s;ownerTid=%s;spuStoreSalesInfoList=%s", aid, ownerTid, spuStoreSalesInfoList);
+                return rt;
+            }
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * 批量同步 出入库记录
+     * @param ownerTid ownerTid
+     * @param ownerSiteId ownerSiteId
+     * @param ownerLgId ownerLgId
+     * @param ownerKeepPriId1 ownerKeepPriId1
+     * @param recordInfoList recordInfoList
+     * @return
+     */
+    public int batchSynchronousInOutStoreRecord(FaiSession session, int flow, int aid, int ownerTid, int ownerSiteId, int ownerLgId, int ownerKeepPriId1, FaiList<Param> recordInfoList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(ownerTid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, ownerTid is not valid;flow=%d;aid=%d;ownerTid=%d;", flow, aid, ownerTid);
+                return rt;
+            }
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, ownerTid, ownerSiteId, ownerLgId, ownerKeepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int ownerUnionPriId = idRef.value;
+            Map<Integer, Integer> ownerRlPdIdPdIdMap = new HashMap<>();
+            Map<BizPriKey, Integer> bizPriKeyUnionPriIdMap = new HashMap<>();
+            FaiList<Param> searchArgList = new FaiList<>();
+            for (Param recordInfo : recordInfoList) {
+                int ownerRlPdId = recordInfo.getInt(ProductTempEntity.StoreRecordInfo.OWNER_RL_PD_ID, 0);
+                int rlPdId = recordInfo.getInt(ProductTempEntity.StoreRecordInfo.RL_PD_ID, 0);
+                int tid = recordInfo.getInt(ProductTempEntity.StoreRecordInfo.TID, ownerTid);
+                int siteId = recordInfo.getInt(ProductTempEntity.StoreRecordInfo.SITE_ID, -1);
+                int lgId = recordInfo.getInt(ProductTempEntity.StoreRecordInfo.LGID, -1);
+                int keepPriId1 = recordInfo.getInt(ProductTempEntity.StoreRecordInfo.KEEP_PRI_ID1, -1);
+                int ioStoreRecId = recordInfo.getInt(ProductTempEntity.StoreRecordInfo.IN_OUT_STORE_REC_ID, -1);
+                if(ownerRlPdId == 0 || rlPdId == 0 || !FaiValObj.TermId.isValidTid(tid) || siteId < 0 || lgId < 0 || keepPriId1 < 0 || ioStoreRecId < 0){
+                    Log.logErr("arg ownerRlPdId|rlPdId|siteId|lgId|keepPriId1|ioStoreRecId err;flow=%d;aid=%d;ownerTid=%d;recordInfo=%s;", flow, aid, ownerTid, recordInfo);
+                    return Errno.ARGS_ERROR;
+                }
+                ownerRlPdIdPdIdMap.put(ownerRlPdId, null);
+                BizPriKey bizPriKey = new BizPriKey(tid, siteId, lgId, keepPriId1);
+                {
+                    if(!bizPriKeyUnionPriIdMap.containsKey(bizPriKey)){
+                        bizPriKeyUnionPriIdMap.put(bizPriKey, null);
+                        searchArgList.add(
+                                new Param().setInt(MgPrimaryKeyEntity.Info.TID, tid)
+                                        .setInt(MgPrimaryKeyEntity.Info.SITE_ID, siteId)
+                                        .setInt(MgPrimaryKeyEntity.Info.LGID, lgId)
+                                        .setInt(MgPrimaryKeyEntity.Info.KEEP_PRI_ID1, keepPriId1)
+                        );
+                    }
+                }
+            }
+            // 获取联合主键
+            FaiList<Param> primaryKeyList = new FaiList<>();
+            rt = getPrimaryKeyList(flow, aid, searchArgList, primaryKeyList);
+            if(rt != Errno.OK){
+                return rt;
+            }
+            for (Param primaryKeyInfo : primaryKeyList) {
+                int tid = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.TID);
+                int siteId = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.SITE_ID);
+                int lgId = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.LGID);
+                int keepPriId1 = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.KEEP_PRI_ID1);
+                int unionPriId = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.UNION_PRI_ID);
+                bizPriKeyUnionPriIdMap.put(new BizPriKey(tid, siteId, lgId, keepPriId1), unionPriId);
+            }
+            // 获取rlPdId-pdId
+            FaiList<Integer> ownerRlPdIdList = new FaiList<>(ownerRlPdIdPdIdMap.keySet());
+            ProductBasicProc productBasicProc = new ProductBasicProc(flow);
+            FaiList<Param> list = new FaiList<>();
+            rt = productBasicProc.getRelListByRlIds(aid, ownerUnionPriId, ownerRlPdIdList, list);
+            if(rt != Errno.OK){
+                Log.logErr(rt, "getRelListByRlIds err;flow=%s;aid=%s;ownerRlPdIdList=%s;", flow, aid, ownerRlPdIdList);
+                return rt;
+            }
+            if(ownerRlPdIdList.size() != list.size()){
+                rt = Errno.ERROR;
+                Log.logErr(rt, "size err;flow=%s;aid=%s;ownerUnionPriId=%s;ownerRlPdIdList.size=%s;list.size=%s;ownerRlPdIdList=%s;list=%s;", flow, aid, ownerUnionPriId, ownerRlPdIdList.size(), list.size(), ownerRlPdIdList, list);
+                return rt;
+            }
+            FaiList<Integer> pdIdList = new FaiList<>();
+            for (Param info : list) {
+                Integer rlPdId = info.getInt(ProductBasicEntity.ProductRelInfo.RL_PD_ID);
+                Integer pdId = info.getInt(ProductBasicEntity.ProductRelInfo.PD_ID);
+                pdIdList.add(pdId);
+                ownerRlPdIdPdIdMap.put(rlPdId, pdId);
+            }
+            // 获取pdId-skuId
+            ProductSpecProc productSpecProc = new ProductSpecProc(flow);
+            list = new FaiList<>();
+            rt = productSpecProc.getPdSkuIdInfoList(aid, ownerTid, pdIdList, list);
+            if(rt != Errno.OK){
+                Log.logErr(rt, "getPdSkuIdInfoList err;flow=%s;aid=%s;pdIdList=%s;", flow, aid, pdIdList);
+                return rt;
+            }
+            if(pdIdList.size() != list.size()){
+                rt = Errno.ERROR;
+                Log.logErr(rt, "size err;flow=%s;aid=%s;pdIdList.size=%s;list.size=%s;pdIdList=%s;list=%s;", flow, aid, pdIdList.size(), list.size(), pdIdList, list);
+                return rt;
+            }
+            Map<Integer, Long> pdIdSkuIdMap = new HashMap<>(pdIdList.size()*4/3+1);
+            for (Param info : list) {
+                Integer pdId = info.getInt(ProductSpecSkuEntity.Info.PD_ID);
+                long skuId = info.getLong(ProductSpecSkuEntity.Info.SKU_ID);
+                pdIdSkuIdMap.put(pdId, skuId);
+            }
+            FaiList<Param> synRecordInfoList = new FaiList<>(recordInfoList.size());
+            for (Param recordInfo : recordInfoList) {
+                int ownerRlPdId = recordInfo.getInt(ProductTempEntity.StoreRecordInfo.OWNER_RL_PD_ID, 0);
+                int rlPdId = recordInfo.getInt(ProductTempEntity.StoreRecordInfo.RL_PD_ID, 0);
+                int tid = recordInfo.getInt(ProductTempEntity.StoreRecordInfo.TID, ownerTid);
+                int siteId = recordInfo.getInt(ProductTempEntity.StoreRecordInfo.SITE_ID, -1);
+                int lgId = recordInfo.getInt(ProductTempEntity.StoreRecordInfo.LGID, -1);
+                int keepPriId1 = recordInfo.getInt(ProductTempEntity.StoreRecordInfo.KEEP_PRI_ID1, -1);
+                int ioStoreRecId = recordInfo.getInt(ProductTempEntity.StoreRecordInfo.IN_OUT_STORE_REC_ID, -1);
+                Param synRecordInfo = new Param();
+                int unionPriId = bizPriKeyUnionPriIdMap.get(new BizPriKey(tid, siteId, lgId, keepPriId1));
+                int pdId = ownerRlPdIdPdIdMap.get(ownerRlPdId);
+                long skuId = pdIdSkuIdMap.get(pdId);
+                synRecordInfo.setInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, unionPriId);
+                synRecordInfo.setInt(InOutStoreRecordEntity.Info.PD_ID, pdId);
+                synRecordInfo.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
+                synRecordInfo.setInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, ioStoreRecId);
+                synRecordInfo.setInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
+
+                synRecordInfo.assign(recordInfo, ProductTempEntity.StoreRecordInfo.OPT_TYPE, InOutStoreRecordEntity.Info.OPT_TYPE);
+                synRecordInfo.assign(recordInfo, ProductTempEntity.StoreRecordInfo.C_TYPE, InOutStoreRecordEntity.Info.C_TYPE);
+                synRecordInfo.assign(recordInfo, ProductTempEntity.StoreRecordInfo.S_TYPE, InOutStoreRecordEntity.Info.S_TYPE);
+                synRecordInfo.assign(recordInfo, ProductTempEntity.StoreRecordInfo.CHANGE_COUNT, InOutStoreRecordEntity.Info.CHANGE_COUNT);
+                synRecordInfo.assign(recordInfo, ProductTempEntity.StoreRecordInfo.REMAIN_COUNT, InOutStoreRecordEntity.Info.REMAIN_COUNT);
+                synRecordInfo.assign(recordInfo, ProductTempEntity.StoreRecordInfo.REMARK, InOutStoreRecordEntity.Info.REMARK);
+                synRecordInfo.assign(recordInfo, ProductTempEntity.StoreRecordInfo.RL_ORDER_CODE, InOutStoreRecordEntity.Info.RL_ORDER_CODE);
+                synRecordInfo.assign(recordInfo, ProductTempEntity.StoreRecordInfo.RL_REFUND_ID, InOutStoreRecordEntity.Info.RL_REFUND_ID);
+                synRecordInfo.assign(recordInfo, ProductTempEntity.StoreRecordInfo.OPT_SID, InOutStoreRecordEntity.Info.OPT_SID);
+                synRecordInfo.assign(recordInfo, ProductTempEntity.StoreRecordInfo.HEAD_SID, InOutStoreRecordEntity.Info.HEAD_SID);
+
+                synRecordInfoList.add(synRecordInfo);
+            }
+
+            ProductStoreProc productStoreProc = new ProductStoreProc(flow);
+            rt = productStoreProc.batchSynchronousInOutStoreRecord(aid, ownerTid, ownerUnionPriId, synRecordInfoList);
+            if(rt != Errno.OK){
+                return rt;
+            }
+
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
 }

@@ -21,7 +21,8 @@ public class ProductSpecSkuEntity {
             Info.SKU_ID,
             Info.SORT,
             Info.FLAG,
-            Info.SKU_NUM
+            Info.SKU_NUM,
+            Info.IN_PD_SC_STR_ID_LIST
     };
     /**
      * 支持批量更新的字段

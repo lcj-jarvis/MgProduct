@@ -14,6 +14,91 @@ public class BizSalesSummaryProc {
         m_flow = flow;
     }
 
+    public int report4synSPU2SKU(int aid, Map<Integer, Map<Integer, Param>> unionPriId_pdId_bizSalesSummaryInfoMapMap) {
+        if(aid <= 0 || unionPriId_pdId_bizSalesSummaryInfoMapMap == null || unionPriId_pdId_bizSalesSummaryInfoMapMap.isEmpty()){
+            Log.logStd("arg error;flow=%d;aid=%s;unionPriId_pdId_bizSalesSummaryInfoMapMap=%s;", m_flow, aid, unionPriId_pdId_bizSalesSummaryInfoMapMap);
+            return Errno.ARGS_ERROR;
+        }
+        int rt = Errno.ERROR;
+        Calendar now = Calendar.getInstance();
+        for (Map.Entry<Integer, Map<Integer, Param>> unionPriId_pdId_bizSalesSummaryInfoMapEntry : unionPriId_pdId_bizSalesSummaryInfoMapMap.entrySet()) {
+            int unionPriId = unionPriId_pdId_bizSalesSummaryInfoMapEntry.getKey();
+            Map<Integer, Param> pdId_bizSalesSummaryInfoMap = unionPriId_pdId_bizSalesSummaryInfoMapEntry.getValue();
+            FaiList<Integer> pdIdList = new FaiList<>(pdId_bizSalesSummaryInfoMap.keySet());
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            rt = getInfoListByPdIdListFromDao(aid, unionPriId, pdIdList, listRef, BizSalesSummaryEntity.Info.PD_ID);
+            if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                return rt;
+            }
+            FaiList<Param> batchUpdateDataList = new FaiList<>();
+            FaiList<Param> oldInfoList = listRef.value;
+            for (Param oldInfo : oldInfoList) {
+                Integer pdId = oldInfo.getInt(BizSalesSummaryEntity.Info.PD_ID);
+                Param newInfo = pdId_bizSalesSummaryInfoMap.remove(pdId);
+                Param data = new Param();
+                data.assign(newInfo, BizSalesSummaryEntity.Info.MAX_PRICE);
+                data.assign(newInfo, BizSalesSummaryEntity.Info.MIN_PRICE);
+                data.assign(newInfo, BizSalesSummaryEntity.Info.COUNT);
+                data.assign(newInfo, BizSalesSummaryEntity.Info.REMAIN_COUNT);
+                data.assign(newInfo, BizSalesSummaryEntity.Info.HOLDING_COUNT);
+                data.setCalendar(BizSalesSummaryEntity.Info.SYS_UPDATE_TIME, now);
+
+                data.setInt(BizSalesSummaryEntity.Info.AID, aid);
+                data.setInt(BizSalesSummaryEntity.Info.UNION_PRI_ID, unionPriId);
+                data.setInt(BizSalesSummaryEntity.Info.PD_ID, pdId);
+                batchUpdateDataList.add(data);
+            }
+            if(!batchUpdateDataList.isEmpty()){
+                ParamUpdater batchUpdater = new ParamUpdater();
+                batchUpdater.getData().setString(BizSalesSummaryEntity.Info.MAX_PRICE, "?");
+                batchUpdater.getData().setString(BizSalesSummaryEntity.Info.MIN_PRICE, "?");
+                batchUpdater.getData().setString(BizSalesSummaryEntity.Info.COUNT, "?");
+                batchUpdater.getData().setString(BizSalesSummaryEntity.Info.REMAIN_COUNT, "?");
+                batchUpdater.getData().setString(BizSalesSummaryEntity.Info.HOLDING_COUNT, "?");
+                batchUpdater.getData().setString(BizSalesSummaryEntity.Info.SYS_UPDATE_TIME, "?");
+
+                ParamMatcher batchMatcher = new ParamMatcher();
+                batchMatcher.and(BizSalesSummaryEntity.Info.AID,ParamMatcher.EQ, "?");
+                batchMatcher.and(BizSalesSummaryEntity.Info.UNION_PRI_ID,ParamMatcher.EQ, "?");
+                batchMatcher.and(BizSalesSummaryEntity.Info.PD_ID,ParamMatcher.EQ, "?");
+                rt = m_daoCtrl.batchUpdate(batchUpdater, batchMatcher, batchUpdateDataList);
+                if(rt != Errno.OK){
+                    Log.logErr(rt,"m_daoCtrl.batchUpdate err;flow=%s;aid=%s;batchUpdateDataList=%s;", m_flow, aid, batchUpdateDataList);
+                    return rt;
+                }
+            }
+            if(!pdId_bizSalesSummaryInfoMap.isEmpty()){
+                FaiList<Param> addDataList = new FaiList<>();
+                for (Map.Entry<Integer, Param> pdId_bizSalesSummaryInfoEntry : pdId_bizSalesSummaryInfoMap.entrySet()) {
+                    Integer pdId = pdId_bizSalesSummaryInfoEntry.getKey();
+                    Param bizSalesSummaryInfo = pdId_bizSalesSummaryInfoEntry.getValue();
+                    Param data = new Param();
+                    data.setInt(BizSalesSummaryEntity.Info.AID, aid);
+                    data.setInt(BizSalesSummaryEntity.Info.UNION_PRI_ID, unionPriId);
+                    data.setInt(BizSalesSummaryEntity.Info.PD_ID, pdId);
+                    data.setCalendar(BizSalesSummaryEntity.Info.SYS_UPDATE_TIME, now);
+                    data.setCalendar(BizSalesSummaryEntity.Info.SYS_CREATE_TIME, now);
+                    data.assign(bizSalesSummaryInfo, BizSalesSummaryEntity.Info.SOURCE_UNION_PRI_ID);
+                    data.assign(bizSalesSummaryInfo, BizSalesSummaryEntity.Info.RL_PD_ID);
+                    data.assign(bizSalesSummaryInfo, BizSalesSummaryEntity.Info.MAX_PRICE);
+                    data.assign(bizSalesSummaryInfo, BizSalesSummaryEntity.Info.MIN_PRICE);
+                    data.assign(bizSalesSummaryInfo, BizSalesSummaryEntity.Info.COUNT);
+                    data.assign(bizSalesSummaryInfo, BizSalesSummaryEntity.Info.REMAIN_COUNT);
+                    data.assign(bizSalesSummaryInfo, BizSalesSummaryEntity.Info.HOLDING_COUNT);
+                    addDataList.add(data);
+                }
+                rt = m_daoCtrl.batchInsert(addDataList, null, true);
+                if(rt != Errno.OK){
+                    Log.logErr(rt,"m_daoCtrl.batchInsert err;flow=%s;aid=%s;batchUpdateDataList=%s;", m_flow, aid, batchUpdateDataList);
+                    return rt;
+                }
+            }
+            Log.logStd("doing;flow=%s;aid=%s;unionPruId=%s;pdIdList=%s;", m_flow, aid, unionPriId, pdIdList);
+        }
+
+        Log.logStd("ok;flow=%s;aid=%s;", m_flow, aid);
+        return rt;
+    }
     public int report(int aid, int pdId, FaiList<Param> infoList) {
         if(aid <= 0 || pdId <= 0 || infoList == null || infoList.isEmpty()){
             Log.logStd("arg error;flow=%d;aid=%s;pdId=%s;infoList=%s;", m_flow, aid, pdId, infoList);
@@ -167,7 +252,7 @@ public class BizSalesSummaryProc {
         Log.logDbg(rt,"getReportList ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
         return rt;
     }
-    private static final String COMM_REPORT_FIELDS =
+    private static final String COMM_REPORT_FIELDS = BizSalesSummaryEntity.ReportInfo.SOURCE_UNION_PRI_ID+", "+
             "sum(" + BizSalesSummaryEntity.Info.COUNT + ") as " + BizSalesSummaryEntity.ReportInfo.SUM_COUNT + ", " +
                     "sum(" + BizSalesSummaryEntity.Info.REMAIN_COUNT + ") as " + BizSalesSummaryEntity.ReportInfo.SUM_REMAIN_COUNT + ", " +
                     "sum(" + BizSalesSummaryEntity.Info.HOLDING_COUNT + ") as "+BizSalesSummaryEntity.ReportInfo.SUM_HOLDING_COUNT+", " +
@@ -221,7 +306,7 @@ public class BizSalesSummaryProc {
         return rt;
     }
 
-    public int getInfoListByPdIdListFromDao(int aid, int unionPriId, FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef){
+    public int getInfoListByPdIdListFromDao(int aid, int unionPriId, FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef, String ... fields){
         if(aid <= 0 || unionPriId <= 0 || pdIdList == null || pdIdList.isEmpty() || listRef == null){
             Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;pdIdList=%s;listRef=%s;", m_flow, aid, unionPriId, pdIdList, listRef);
             return Errno.ARGS_ERROR;
@@ -231,7 +316,7 @@ public class BizSalesSummaryProc {
         matcher.and(BizSalesSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
-        int rt = m_daoCtrl.select(searchArg, listRef);
+        int rt = m_daoCtrl.select(searchArg, listRef, fields);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             Log.logErr(rt, "select err;flow=%d;aid=%s;unionPriId=%s;pdIdList=%s;", m_flow, aid, unionPriId, pdIdList);
             return rt;
@@ -289,6 +374,7 @@ public class BizSalesSummaryProc {
     private BizSalesSummaryDaoCtrl m_daoCtrl;
 
     private CacheManage cacheManage = new CacheManage();
+
 
 
 

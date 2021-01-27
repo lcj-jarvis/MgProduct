@@ -19,6 +19,7 @@ import fai.comm.mq.api.SendResult;
 import fai.comm.mq.exception.MqClientException;
 import fai.comm.mq.message.FaiMqMessage;
 import fai.comm.util.*;
+import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
 import java.util.*;
@@ -73,6 +74,7 @@ public class StoreService{
                 for (Map.Entry<Long, Param> skuIdPdScSkuInfoEntry : skuIdPdScSkuInfoMap.entrySet()) {
                     addInfoList.add(new Param()
                             .setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId)
+                            .setInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, unionPriId)
                             .setInt(StoreSalesSkuEntity.Info.RL_PD_ID, rlPdId)
                             .setLong(StoreSalesSkuEntity.Info.SKU_ID, skuIdPdScSkuInfoEntry.getKey())
                     );
@@ -137,6 +139,274 @@ public class StoreService{
                 FaiBuffer sendBuf = new FaiBuffer(true);
                 session.write(sendBuf);
             }
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+    /**
+     * 批量同步 库存销售 spu数据到sku
+     */
+    public int batchSynchronousStoreSalesSPU2SKU(FaiSession session, int flow, int aid, int sourceTid, int sourceUnionPriId, FaiList<Param> spuStoreSalesInfoList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || sourceUnionPriId == 0 || spuStoreSalesInfoList == null || spuStoreSalesInfoList.isEmpty()){
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;sourceUnionPriId=%s;spuStoreSalesInfoList=%s", flow, aid, sourceUnionPriId, spuStoreSalesInfoList);
+                return rt;
+            }
+            Map<Integer, Map<Long, Param>> unionPriId_skuId_salesStoreDataMapMap = new HashMap<>();
+            // 需要更新的最多key集
+            Set<String> maxUpdateKeySet = new HashSet<>();
+            FaiList<Long> skuIdList = new FaiList<>();
+            for (Param spuSalesStoreInfo : spuStoreSalesInfoList) {
+                int unionPriId = spuSalesStoreInfo.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, 0);
+                int pdId = spuSalesStoreInfo.getInt(StoreSalesSkuEntity.Info.PD_ID, 0);
+                int rlPdId = spuSalesStoreInfo.getInt(StoreSalesSkuEntity.Info.RL_PD_ID, 0);
+                long skuId = spuSalesStoreInfo.getLong(StoreSalesSkuEntity.Info.SKU_ID, 0L);
+                if(unionPriId <= 0 || pdId <= 0 || rlPdId <= 0 || skuId <= 0){
+                    rt = Errno.ARGS_ERROR;
+                    Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;pdId=%s;rlPdId=%s;skuId=%s;", flow, aid, unionPriId, pdId, rlPdId, skuId);
+                    return rt;
+                }
+                skuIdList.add(skuId);
+                Map<Long, Param> skuId_SalesStoreDataMap = unionPriId_skuId_salesStoreDataMapMap.get(unionPriId);
+                if(skuId_SalesStoreDataMap == null){
+                    skuId_SalesStoreDataMap = new HashMap<>();
+                    unionPriId_skuId_salesStoreDataMapMap.put(unionPriId, skuId_SalesStoreDataMap);
+                }
+                Param skuSalesStoreData = new Param();
+                skuSalesStoreData.setInt(StoreSalesSkuEntity.Info.AID, aid);
+                skuSalesStoreData.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId);
+                skuSalesStoreData.setInt(StoreSalesSkuEntity.Info.PD_ID, pdId);
+                skuSalesStoreData.setInt(StoreSalesSkuEntity.Info.RL_PD_ID, rlPdId);
+                skuSalesStoreData.setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId);
+                skuSalesStoreData.setInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
+                skuSalesStoreData.assign(spuSalesStoreInfo, StoreSalesSkuEntity.Info.SKU_TYPE);
+                skuSalesStoreData.assign(spuSalesStoreInfo, StoreSalesSkuEntity.Info.SORT);
+                skuSalesStoreData.assign(spuSalesStoreInfo, StoreSalesSkuEntity.Info.COUNT);
+                skuSalesStoreData.assign(spuSalesStoreInfo, StoreSalesSkuEntity.Info.REMAIN_COUNT);
+                skuSalesStoreData.assign(spuSalesStoreInfo, StoreSalesSkuEntity.Info.HOLDING_COUNT);
+                skuSalesStoreData.assign(spuSalesStoreInfo, StoreSalesSkuEntity.Info.PRICE);
+                skuSalesStoreData.assign(spuSalesStoreInfo, StoreSalesSkuEntity.Info.ORIGIN_PRICE);
+                skuSalesStoreData.assign(spuSalesStoreInfo, StoreSalesSkuEntity.Info.MIN_AMOUNT);
+                skuSalesStoreData.assign(spuSalesStoreInfo, StoreSalesSkuEntity.Info.MAX_AMOUNT);
+                skuSalesStoreData.assign(spuSalesStoreInfo, StoreSalesSkuEntity.Info.DURATION);
+                skuSalesStoreData.assign(spuSalesStoreInfo, StoreSalesSkuEntity.Info.VIRTUAL_COUNT);
+                maxUpdateKeySet.addAll(skuSalesStoreData.keySet());
+                skuId_SalesStoreDataMap.put(skuId, skuSalesStoreData);
+            }
+            maxUpdateKeySet.removeAll(Arrays.asList(StoreSalesSkuEntity.Info.AID, StoreSalesSkuEntity.Info.UNION_PRI_ID, StoreSalesSkuEntity.Info.PD_ID, StoreSalesSkuEntity.Info.RL_PD_ID, StoreSalesSkuEntity.Info.SKU_ID));
+
+            TransactionCtrl transactionCtrl = new TransactionCtrl();
+            try {
+                LockUtil.lock(aid);
+                StoreSalesSkuDaoCtrl storeSalesSkuDaoCtrl = StoreSalesSkuDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+                BizSalesSummaryDaoCtrl bizSalesSummaryDaoCtrl = BizSalesSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+                SalesSummaryDaoCtrl salesSummaryDaoCtrl = SalesSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+                StoreSkuSummaryDaoCtrl storeSkuSummaryDaoCtrl = StoreSkuSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+
+                if(!transactionCtrl.checkRegistered(storeSalesSkuDaoCtrl, bizSalesSummaryDaoCtrl, salesSummaryDaoCtrl, storeSkuSummaryDaoCtrl)){
+                    return rt = Errno.ERROR;
+                }
+
+                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
+                BizSalesSummaryProc bizSalesSummaryProc = new BizSalesSummaryProc(bizSalesSummaryDaoCtrl, flow);
+                SalesSummaryProc salesSummaryProc = new SalesSummaryProc(salesSummaryDaoCtrl, flow);
+                StoreSkuSummaryProc storeSkuSummaryProc = new StoreSkuSummaryProc(storeSkuSummaryDaoCtrl, flow);
+
+                try {
+                    transactionCtrl.setAutoCommit(false);
+                    rt = storeSalesSkuProc.batchSynchronousSPU2SKU(aid, unionPriId_skuId_salesStoreDataMapMap, maxUpdateKeySet);
+                    if(rt != Errno.OK){
+                        return rt;
+                    }
+                    Ref<FaiList<Param>> listRef = new Ref<>();
+                    rt = storeSalesSkuProc.getReportList4synSPU2SKU(aid, skuIdList, listRef);
+                    if(rt != Errno.OK){
+                        return rt;
+                    }
+                    FaiList<Param> reportInfoList = listRef.value;
+                    Map<Integer, Map<Integer, Param>> unionPriId_pdId_bizSalesSummaryInfoMapMap = new HashMap<>();
+                    Map<Integer, Param> pdIdSalesSummaryInfoMap = new HashMap<>();
+                    Map<Long, Param> skuIdStoreSkuSummaryInfoMap = new HashMap<>();
+                    for (Param reportInfo : reportInfoList) {
+                        int pdId = reportInfo.getInt(StoreSalesSkuEntity.Info.PD_ID);
+                        int unionPriId = reportInfo.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+                        long skuId = reportInfo.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                        {
+                            Param bizSalesSummaryInfo = new Param();
+                            assemblyBizSalesSummaryInfo(bizSalesSummaryInfo, reportInfo, BizSalesReportValObj.Flag.REPORT_PRICE|BizSalesReportValObj.Flag.REPORT_COUNT);
+                            Map<Integer, Param> pdId_bizSalesSummaryInfoMap = unionPriId_pdId_bizSalesSummaryInfoMapMap.get(unionPriId);
+                            if(pdId_bizSalesSummaryInfoMap == null){
+                                pdId_bizSalesSummaryInfoMap = new HashMap<>();
+                                unionPriId_pdId_bizSalesSummaryInfoMapMap.put(unionPriId, pdId_bizSalesSummaryInfoMap);
+                            }
+                            pdId_bizSalesSummaryInfoMap.put(pdId, bizSalesSummaryInfo);
+                        }
+                        int sumCount = reportInfo.getInt(StoreSalesSkuEntity.ReportInfo.SUM_COUNT);
+                        int sumRemainCount = reportInfo.getInt(StoreSalesSkuEntity.ReportInfo.SUM_REMAIN_COUNT);
+                        int sumHoldingCount = reportInfo.getInt(StoreSalesSkuEntity.ReportInfo.SUM_HOLDING_COUNT);
+                        long maxPrice= reportInfo.getInt(StoreSalesSkuEntity.ReportInfo.MAX_PRICE);
+                        long minPrice= reportInfo.getInt(StoreSalesSkuEntity.ReportInfo.MIN_PRICE);
+                        {
+                            Param salesSummaryInfo = pdIdSalesSummaryInfoMap.get(pdId);
+                            if(salesSummaryInfo == null){
+                                salesSummaryInfo = new Param();
+                                salesSummaryInfo.setInt(SalesSummaryEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
+                                pdIdSalesSummaryInfoMap.put(pdId, salesSummaryInfo);
+                            }
+                            int lastCount = salesSummaryInfo.getInt(SalesSummaryEntity.Info.COUNT, 0);
+                            int lastRemainCount = salesSummaryInfo.getInt(SalesSummaryEntity.Info.REMAIN_COUNT, 0);
+                            int lastHoldingCount = salesSummaryInfo.getInt(SalesSummaryEntity.Info.HOLDING_COUNT, 0);
+                            long lastMaxPrice =  salesSummaryInfo.getLong(SalesSummaryEntity.Info.MAX_PRICE, Long.MIN_VALUE);
+                            long lastMinPrice =  salesSummaryInfo.getLong(SalesSummaryEntity.Info.MIN_PRICE, Long.MAX_VALUE);
+                            salesSummaryInfo.setInt(SalesSummaryEntity.Info.COUNT, lastCount+sumCount);
+                            salesSummaryInfo.setInt(SalesSummaryEntity.Info.REMAIN_COUNT, lastRemainCount + sumRemainCount);
+                            salesSummaryInfo.setInt(SalesSummaryEntity.Info.HOLDING_COUNT, lastHoldingCount + sumHoldingCount);
+                            salesSummaryInfo.setLong(SalesSummaryEntity.Info.MAX_PRICE, Math.max(lastMaxPrice, maxPrice));
+                            salesSummaryInfo.setLong(SalesSummaryEntity.Info.MIN_PRICE, Math.min(lastMinPrice, minPrice));
+                        }
+                        {
+                            Param storeSkuSummaryInfo = skuIdStoreSkuSummaryInfoMap.get(skuId);
+                            if(storeSkuSummaryInfo == null){
+                                storeSkuSummaryInfo = new Param();
+                                storeSkuSummaryInfo.setInt(StoreSkuSummaryEntity.Info.PD_ID, pdId);
+                                storeSkuSummaryInfo.setInt(StoreSkuSummaryEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
+                                skuIdStoreSkuSummaryInfoMap.put(skuId, storeSkuSummaryInfo);
+                            }
+                            int lastCount = storeSkuSummaryInfo.getInt(StoreSkuSummaryEntity.Info.COUNT, 0);
+                            int lastRemainCount = storeSkuSummaryInfo.getInt(StoreSkuSummaryEntity.Info.REMAIN_COUNT, 0);
+                            int lastHoldingCount = storeSkuSummaryInfo.getInt(StoreSkuSummaryEntity.Info.HOLDING_COUNT, 0);
+                            storeSkuSummaryInfo.setInt(StoreSkuSummaryEntity.Info.COUNT, lastCount+sumCount);
+                            storeSkuSummaryInfo.setInt(StoreSkuSummaryEntity.Info.REMAIN_COUNT, lastRemainCount + sumRemainCount);
+                            storeSkuSummaryInfo.setInt(StoreSkuSummaryEntity.Info.HOLDING_COUNT, lastHoldingCount + sumHoldingCount);
+                        }
+                    }
+
+                    rt = bizSalesSummaryProc.report4synSPU2SKU(aid, unionPriId_pdId_bizSalesSummaryInfoMapMap);
+                    if(rt != Errno.OK){
+                        return rt;
+                    }
+
+                    rt = salesSummaryProc.report4synSPU2SKU(aid, pdIdSalesSummaryInfoMap);
+                    if(rt != Errno.OK){
+                        return rt;
+                    }
+
+                    rt = storeSkuSummaryProc.report4synSPU2SKU(aid, skuIdStoreSkuSummaryInfoMap);
+                    if(rt != Errno.OK){
+                        return rt;
+                    }
+
+                }finally {
+                    if(rt != Errno.OK){
+                        transactionCtrl.rollback();
+                        bizSalesSummaryProc.deleteDirtyCache(aid);
+                        return rt;
+                    }
+                    transactionCtrl.commit();
+                }
+            }finally {
+                LockUtil.unlock(aid);
+                transactionCtrl.closeDao();
+            }
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("ok!aid=%s;",aid);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * 批量同步 出入库记录
+     * 不会汇总信息
+     */
+    public int batchSynchronousInOutStoreRecord(FaiSession session, int flow, int aid, int sourceTid, int sourceUnionPriId, FaiList<Param> infoList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || infoList == null || infoList.isEmpty()){
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;infoList=%s", flow, aid, infoList);
+                return rt;
+            }
+            FaiList<Param> batchAddDataList = new FaiList<>(infoList.size());
+            for (Param info : infoList) {
+                int unionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, 0);
+                long skuId = info.getLong(InOutStoreRecordEntity.Info.SKU_ID, 0L);
+                int ioStoreRecId = info.getInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, 0);
+                int pdId = info.getInt(InOutStoreRecordEntity.Info.PD_ID, 0);
+                int rlPdId = info.getInt(InOutStoreRecordEntity.Info.RL_PD_ID, 0);
+                int optType = info.getInt(InOutStoreRecordEntity.Info.OPT_TYPE, 0);
+                Calendar createTime = info.getCalendar(InOutStoreRecordEntity.Info.SYS_CREATE_TIME);
+                if(unionPriId == 0 || skuId == 0 || ioStoreRecId == 0 || pdId == 0 || rlPdId ==0 || optType ==0){
+                    rt = Errno.ARGS_ERROR;
+                    Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;skuId=%s;ioStoreRecId=%s;pdId=%s;rlPdId=%s;optType=%s;", flow, aid, unionPriId, skuId, ioStoreRecId, pdId, rlPdId, optType);
+                    return rt;
+                }
+                String number = InOutStoreRecordValObj.Number.genNumber(createTime, ioStoreRecId);
+                Param data = new Param();
+                data.setInt(InOutStoreRecordEntity.Info.AID, aid);
+                data.setInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, unionPriId);
+                data.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
+                data.setInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, ioStoreRecId);
+                data.setInt(InOutStoreRecordEntity.Info.PD_ID, pdId);
+                data.setInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
+                data.setInt(InOutStoreRecordEntity.Info.OPT_TYPE, optType);
+                data.assign(info, InOutStoreRecordEntity.Info.C_TYPE);
+                data.assign(info, InOutStoreRecordEntity.Info.S_TYPE);
+                data.assign(info, InOutStoreRecordEntity.Info.CHANGE_COUNT);
+                data.assign(info, InOutStoreRecordEntity.Info.CHANGE_COUNT, InOutStoreRecordEntity.Info.AVAILABLE_COUNT);
+                data.assign(info, InOutStoreRecordEntity.Info.REMAIN_COUNT);
+                data.assign(info, InOutStoreRecordEntity.Info.PRICE);
+                data.setString(InOutStoreRecordEntity.Info.NUMBER, number);
+                data.assign(info, InOutStoreRecordEntity.Info.OPT_SID);
+                data.assign(info, InOutStoreRecordEntity.Info.HEAD_SID);
+                data.assign(info, InOutStoreRecordEntity.Info.OPT_TIME);
+                data.assign(info, InOutStoreRecordEntity.Info.FLAG);
+                data.assign(info, InOutStoreRecordEntity.Info.SYS_UPDATE_TIME);
+                data.setCalendar(InOutStoreRecordEntity.Info.SYS_CREATE_TIME, createTime);
+                data.assign(info, InOutStoreRecordEntity.Info.REMARK);
+                data.assign(info, InOutStoreRecordEntity.Info.RL_ORDER_CODE);
+                data.assign(info, InOutStoreRecordEntity.Info.RL_REFUND_ID);
+                batchAddDataList.add(data);
+            }
+            TransactionCtrl transactionCtrl = new TransactionCtrl();
+            try {
+                InOutStoreRecordDaoCtrl inOutStoreRecordDaoCtrl = InOutStoreRecordDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+                if(!transactionCtrl.checkRegistered(inOutStoreRecordDaoCtrl)){
+                    return rt = Errno.ERROR;
+                }
+                InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(inOutStoreRecordDaoCtrl, flow);
+                try {
+                    LockUtil.lock(aid);
+                    try {
+                        transactionCtrl.setAutoCommit(false);
+                        rt = inOutStoreRecordProc.synBatchAdd(aid, batchAddDataList);
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
+                    }finally {
+                        if(rt != Errno.OK){
+                            transactionCtrl.rollback();
+                            inOutStoreRecordProc.clearIdBuilderCache(aid);
+                            return rt;
+                        }
+                        transactionCtrl.commit();
+                    }
+                }finally {
+                    LockUtil.unlock(aid);
+                }
+            }finally {
+                transactionCtrl.closeDao();
+            }
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("ok!aid=%s;",aid);
+        }finally {
             stat.end(rt != Errno.OK, rt);
         }
         return rt;
@@ -317,7 +587,7 @@ public class StoreService{
 
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
-            Log.logDbg("aid=%d;unionPriId=%s;skuIdCountMap=%s;rlOrderCode=%s;reduceMode=%s;expireTimeSeconds=%s;", aid, unionPriId, skuIdCountMap, rlOrderCode, reduceMode, expireTimeSeconds);
+            Log.logStd("aid=%d;unionPriId=%s;skuIdCountMap=%s;rlOrderCode=%s;reduceMode=%s;expireTimeSeconds=%s;", aid, unionPriId, skuIdCountMap, rlOrderCode, reduceMode, expireTimeSeconds);
         } finally {
             stat.end(rt != Errno.OK, rt);
         }
@@ -364,12 +634,14 @@ public class StoreService{
             }
 
             Map<Long, Integer> skuIdChangeCountMap = new TreeMap<>(); // 使用 有序map, 避免事务中 批量修改时如果无序 相互锁住 导致死锁
+            Set<SkuStoreKey> skuStoreKeySet = new HashSet<>();
             FaiList<Long> skuIdList = new FaiList<>(skuIdCountList.size());
             for (Param info : skuIdCountList) {
                 long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
                 int count = info.getInt(StoreSalesSkuEntity.Info.COUNT);
                 skuIdList.add(skuId);
                 skuIdChangeCountMap.put(skuId, count);
+                skuStoreKeySet.add(new SkuStoreKey(unionPriId, skuId));
             }
 
             // 事务
@@ -401,22 +673,16 @@ public class StoreService{
                             return rt;
                         }
 
-                        Ref<FaiList<Param>> listRef = new Ref<>();
-                        rt = storeSalesSkuProc.getListFromDaoBySkuIdList(aid, unionPriId, skuIdList, listRef, StoreSalesSkuEntity.Info.SKU_ID, StoreSalesSkuEntity.Info.REMAIN_COUNT, StoreSalesSkuEntity.Info.HOLDING_COUNT);
-                        if(rt != Errno.OK){
+
+                        Map<SkuStoreKey, Param> changeCountAfterSkuStoreCountAndTotalCostMap = new HashMap<>();
+                        rt = storeSalesSkuProc.getCountAndTotalCostFromDao(aid, skuStoreKeySet, changeCountAfterSkuStoreCountAndTotalCostMap);
+                        if (rt != Errno.OK) {
                             return rt;
-                        }
-                        Map<SkuStoreKey, Integer> changeCountAfterSkuStoreCountMap = new HashMap<>(listRef.value.size()*4/3+1);
-                        for (Param info : listRef.value) {
-                            long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
-                            int remainCount = info.getInt(StoreSalesSkuEntity.Info.REMAIN_COUNT);
-                            int holdingCount = info.getInt(StoreSalesSkuEntity.Info.HOLDING_COUNT);
-                            changeCountAfterSkuStoreCountMap.put(new SkuStoreKey(unionPriId, skuId), remainCount+holdingCount);
                         }
 
                         // 添加出库记录
                         outStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.OPT_TYPE, InOutStoreRecordValObj.OptType.OUT);
-                        rt = inOutStoreRecordProc.batchAddOutStoreRecord(aid, unionPriId, skuIdChangeCountMap, changeCountAfterSkuStoreCountMap, outStoreRecordInfo);
+                        rt = inOutStoreRecordProc.batchAddOutStoreRecord(aid, unionPriId, skuIdChangeCountMap, changeCountAfterSkuStoreCountAndTotalCostMap, outStoreRecordInfo);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -436,7 +702,7 @@ public class StoreService{
             }
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
-            Log.logDbg("aid=%d;unionPriId=%s;skuIdChangeCountMap=%s;rlOrderCode=%s;", aid, unionPriId, skuIdChangeCountMap, rlOrderCode);
+            Log.logStd("aid=%d;unionPriId=%s;skuIdChangeCountMap=%s;rlOrderCode=%s;", aid, unionPriId, skuIdChangeCountMap, rlOrderCode);
         }finally {
             stat.end(rt != Errno.OK, rt);
         }
@@ -682,13 +948,13 @@ public class StoreService{
                             return rt;
                         }
 
-                        Map<SkuStoreKey, Integer> changeCountAfterSkuStoreCountMap = new HashMap<>();
-                        rt = storeSalesSkuProc.getStoreCountFromDao(aid, needGetChangeCountAfterSkuStoreKeySet, changeCountAfterSkuStoreCountMap);
+                        Map<SkuStoreKey, Param> changeCountAfterSkuStoreCountAndTotalCostMap = new HashMap<>();
+                        rt = storeSalesSkuProc.getCountAndTotalCostFromDao(aid, needGetChangeCountAfterSkuStoreKeySet, changeCountAfterSkuStoreCountAndTotalCostMap);
                         if (rt != Errno.OK) {
                             return rt;
                         }
                         // 批量添加记录
-                        rt = inOutStoreRecordProc.batchAdd(aid, infoList, changeCountAfterSkuStoreCountMap);
+                        rt = inOutStoreRecordProc.batchAdd(aid, infoList, changeCountAfterSkuStoreCountAndTotalCostMap);
                         if (rt != Errno.OK) {
                             return rt;
                         }
@@ -1073,12 +1339,51 @@ public class StoreService{
         }
         return rt;
     }
+    /**
+     * 获取 业务 库存SKU信息
+     */
+    public int getBizStoreSkuSummaryInfoList(FaiSession session, int flow, int aid, int tid, int unionPriId, SearchArg searchArg) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || searchArg == null || searchArg.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;searchArg=%s;", flow, aid, searchArg);
+                return rt;
+            }
+            if(searchArg.limit > 100){
+                Log.logErr("searchArg.limit err;flow=%d;aid=%d;searchArg.limit=%s;", flow, aid, searchArg.limit);
+                return rt = Errno.ARGS_ERROR;
+            }
 
+            ParamMatcher baseMatcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+            baseMatcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+            baseMatcher.and(searchArg.matcher);
+            searchArg.matcher = baseMatcher;
+
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            StoreSalesSkuDaoCtrl storeSalesSkuDaoCtrl = StoreSalesSkuDaoCtrl.getInstance(flow, aid);
+            try {
+                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
+                rt = storeSalesSkuProc.searchStoreSkuSummaryFromDao(aid, searchArg, listRef);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                    return rt;
+                }
+            }finally {
+                storeSalesSkuDaoCtrl.closeDao();
+            }
+            sendStoreSkuSummary(session, searchArg, listRef);
+            Log.logDbg("aid=%d;searchArg.matcher.toJson=%s", aid, searchArg.matcher.toJson());
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
 
     /**
      * 获取库存SKU汇总信息
      */
-    public int getStoreSkuSummaryInfoList(FaiSession session, int flow, int aid, int tid, SearchArg searchArg) throws IOException {
+    public int getStoreSkuSummaryInfoList(FaiSession session, int flow, int aid, int tid, int sourceUnionPriId, SearchArg searchArg) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -1093,6 +1398,7 @@ public class StoreService{
             }
 
             ParamMatcher baseMatcher = new ParamMatcher(StoreSkuSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+            baseMatcher.and(StoreSkuSummaryEntity.Info.SOURCE_UNION_PRI_ID, ParamMatcher.EQ, sourceUnionPriId);
             baseMatcher.and(searchArg.matcher);
             searchArg.matcher = baseMatcher;
 
@@ -1107,18 +1413,22 @@ public class StoreService{
             }finally {
                 storeSkuSummaryDaoCtrl.closeDao();
             }
-            FaiList<Param> infoList = listRef.value;
-            FaiBuffer sendBuf = new FaiBuffer(true);
-            infoList.toBuffer(sendBuf, StoreSkuSummaryDto.Key.INFO_LIST, StoreSkuSummaryDto.getInfoDto());
-            if(searchArg.totalSize != null){
-                sendBuf.putInt(StoreSkuSummaryDto.Key.TOTAL_SIZE, searchArg.totalSize.value);
-            }
-            session.write(sendBuf);
-            Log.logDbg("aid=%d;searchArg.matcher.sql=%s", aid, searchArg.matcher.getSql());
+            sendStoreSkuSummary(session, searchArg, listRef);
+            Log.logDbg("aid=%d;searchArg.matcher.toJson=%s", aid, searchArg.matcher.toJson());
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }
         return rt;
+    }
+
+    private void sendStoreSkuSummary(FaiSession session, SearchArg searchArg, Ref<FaiList<Param>> listRef) throws IOException {
+        FaiList<Param> infoList = listRef.value;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        infoList.toBuffer(sendBuf, StoreSkuSummaryDto.Key.INFO_LIST, StoreSkuSummaryDto.getInfoDto());
+        if(searchArg.totalSize != null){
+            sendBuf.putInt(StoreSkuSummaryDto.Key.TOTAL_SIZE, searchArg.totalSize.value);
+        }
+        session.write(sendBuf);
     }
 
     /**
@@ -1142,6 +1452,7 @@ public class StoreService{
     private void assemblyBizSalesSummaryInfo(Param bizSalesSummaryInfo, Param reportInfo, int flag){
         bizSalesSummaryInfo.assign(reportInfo,StoreSalesSkuEntity.Info.UNION_PRI_ID, BizSalesSummaryEntity.Info.UNION_PRI_ID);
         bizSalesSummaryInfo.assign(reportInfo,StoreSalesSkuEntity.Info.RL_PD_ID, BizSalesSummaryEntity.Info.RL_PD_ID);
+        bizSalesSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.SOURCE_UNION_PRI_ID, BizSalesSummaryEntity.Info.SOURCE_UNION_PRI_ID);
         if(Misc.checkBit(flag, BizSalesReportValObj.Flag.REPORT_COUNT)){
             bizSalesSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.SUM_COUNT, BizSalesSummaryEntity.Info.COUNT);
             bizSalesSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.SUM_REMAIN_COUNT, BizSalesSummaryEntity.Info.REMAIN_COUNT);
@@ -1157,6 +1468,7 @@ public class StoreService{
      * 组装 商品销售总表 信息
      */
     private void assemblySalesSummaryInfo(Param salesSummaryInfo, Param reportInfo, int flag){
+        salesSummaryInfo.assign(reportInfo, BizSalesSummaryEntity.ReportInfo.SOURCE_UNION_PRI_ID, SalesSummaryEntity.Info.SOURCE_UNION_PRI_ID);
         if(Misc.checkBit(flag, BizSalesReportValObj.Flag.REPORT_COUNT)){
             salesSummaryInfo.assign(reportInfo, BizSalesSummaryEntity.ReportInfo.SUM_COUNT, SalesSummaryEntity.Info.COUNT);
             salesSummaryInfo.assign(reportInfo, BizSalesSummaryEntity.ReportInfo.SUM_REMAIN_COUNT, SalesSummaryEntity.Info.REMAIN_COUNT);
@@ -1172,12 +1484,14 @@ public class StoreService{
      * 组装 sku库存 信息
      */
     private void assemblyStoreSkuSummaryInfo(Param reportInfo, Param info) {
+        info.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.SOURCE_UNION_PRI_ID, StoreSkuSummaryEntity.Info.SOURCE_UNION_PRI_ID);
         info.assign(reportInfo, StoreSalesSkuEntity.Info.PD_ID, StoreSkuSummaryEntity.Info.PD_ID);
         info.assign(reportInfo, StoreSalesSkuEntity.Info.SKU_ID, StoreSkuSummaryEntity.Info.SKU_ID);
         info.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.SUM_COUNT, StoreSkuSummaryEntity.Info.COUNT);
         info.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.SUM_REMAIN_COUNT, StoreSkuSummaryEntity.Info.REMAIN_COUNT);
         info.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.SUM_HOLDING_COUNT, StoreSkuSummaryEntity.Info.HOLDING_COUNT);
     }
+
 
 
 }

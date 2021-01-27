@@ -7,8 +7,9 @@ public class MgProductStoreCmd {
 		public static final int NUM = 5000;
 		public static final int NUM1 = 5001;
 		public static final int NUM2 = 5002;
-		public static final int NUM3= 5003;
-		public static final int NUM4= 5004;
+		public static final int NUM3 = 5003;
+		public static final int NUM4 = 5004;
+		public static final int NUM5 = 5005;
 	}
 
 
@@ -25,6 +26,8 @@ public class MgProductStoreCmd {
 		public static final int NUM9 = 1009;
 		public static final int NUM10 = 1010;
 		public static final int NUM11 = 1011;
+		public static final int NUM12 = 1012;
+		public static final int NUM13 = 1013;
 	}
 
 	////////////////// cmd对外定义，实际做cmd读写分离 ////////////////////
@@ -48,6 +51,7 @@ public class MgProductStoreCmd {
 		public static final int BATCH_REDUCE_HOLDING_STORE = WriteCmdNum.NUM10;
 		public static final int BATCH_MAKE_UP_STORE = WriteCmdNum.NUM11;
 
+		public static final int BATCH_SYN_SPU_TO_SKU = WriteCmdNum.NUM12;
 	}
 
 	/**
@@ -55,6 +59,7 @@ public class MgProductStoreCmd {
 	 */
 	public static class InOutStoreRecordCmd {
 		public static final int ADD_LIST = WriteCmdNum.NUM5;
+		public static final int BATCH_SYN_RECORD = WriteCmdNum.NUM13;
 	}
 
 	/**
@@ -77,5 +82,6 @@ public class MgProductStoreCmd {
 	 */
 	public static class StoreSkuSummaryCmd {
 		public static final int GET_LIST = ReadCmdNum.NUM4;
+		public static final int BIZ_GET_LIST = ReadCmdNum.NUM5;
 	}
 }

@@ -3,6 +3,7 @@ package fai.MgProductStoreSvr.domain.serviceProc;
 import fai.MgProductStoreSvr.domain.comm.SkuStoreKey;
 import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordEntity;
 import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordValObj;
+import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuEntity;
 import fai.MgProductStoreSvr.domain.repository.InOutStoreRecordDaoCtrl;
 import fai.comm.util.*;
 
@@ -16,10 +17,20 @@ public class InOutStoreRecordProc {
         m_flow = flow;
     }
 
+    //同步批量增加
+    public int synBatchAdd(int aid, FaiList<Param> dataList) {
+        int rt = m_daoCtrl.batchInsert(dataList, null, true);
+        if(rt != Errno.OK){
+            Log.logErr("dao insert err;flow=%s;aid=%s;dataList=%s;", m_flow, aid, dataList);
+        }
+        m_daoCtrl.restoreMaxId();
+        return rt;
+    }
+
     /**
      * 批量添加出库记录
      */
-    public int batchAddOutStoreRecord(int aid, int unionPriId, Map<Long, Integer> skuIdChangeCountMap, Map<SkuStoreKey, Integer> changeCountAfterSkuStoreCountMap, Param info) {
+    public int batchAddOutStoreRecord(int aid, int unionPriId, Map<Long, Integer> skuIdChangeCountMap, Map<SkuStoreKey, Param> changeCountAfterSkuStoreCountAndTotalCostMap, Param info) {
         if(aid <= 0 || unionPriId <= 0 || skuIdChangeCountMap == null || info == null || info.isEmpty()){
             Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;skuIdChangeCountMap=%s;info=%s;", m_flow, aid, unionPriId, skuIdChangeCountMap, info);
             return Errno.ARGS_ERROR;
@@ -33,10 +44,11 @@ public class InOutStoreRecordProc {
             dataList.add(data);
         });
 
-        return batchAdd(aid, dataList, changeCountAfterSkuStoreCountMap);
+        return batchAdd(aid, dataList, changeCountAfterSkuStoreCountAndTotalCostMap);
     }
 
-    public int batchAdd(int aid, FaiList<Param> infoList, Map<SkuStoreKey, Integer> changeCountAfterSkuStoreCountMap) {
+
+    public int batchAdd(int aid, FaiList<Param> infoList, Map<SkuStoreKey, Param> changeCountAfterSkuStoreCountMap) {
         if(aid <= 0 || infoList == null || infoList.isEmpty() || changeCountAfterSkuStoreCountMap == null){
             Log.logStd("arg error;flow=%d;aid=%s;infoList=%s;changeCountAfterSkuStoreCountMap=%s;", m_flow, aid, infoList, changeCountAfterSkuStoreCountMap);
             return Errno.ARGS_ERROR;
@@ -50,7 +62,7 @@ public class InOutStoreRecordProc {
             Log.logErr("buildId err aid=%s", aid);
             return Errno.ERROR;
         }
-        String number = yyMMdd+String.format("%04d", ioStoreRecId);
+        String number = InOutStoreRecordValObj.Number.genNumber(yyMMdd, ioStoreRecId);
 
         for (Param info : infoList) {
             int unionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, 0);
@@ -64,13 +76,15 @@ public class InOutStoreRecordProc {
             int pdId = info.getInt(InOutStoreRecordEntity.Info.PD_ID, 0);
             int rlPdId = info.getInt(InOutStoreRecordEntity.Info.RL_PD_ID, 0);
             Integer remainCount = info.getInt(InOutStoreRecordEntity.Info.REMAIN_COUNT);
-            if(remainCount == null){ // 导入数据时不处理
-                remainCount = changeCountAfterSkuStoreCountMap.get(new SkuStoreKey(unionPriId, skuId));
+            if(remainCount == null){
+                Param storeSalesSkuInfo = changeCountAfterSkuStoreCountMap.get(new SkuStoreKey(unionPriId, skuId));
+                remainCount = storeSalesSkuInfo.getInt(StoreSalesSkuEntity.Info.REMAIN_COUNT)+storeSalesSkuInfo.getInt(StoreSalesSkuEntity.Info.HOLDING_COUNT);
             }
             if(pdId == 0 || rlPdId == 0){
                 Log.logStd("arg 3 error;flow=%d;aid=%s;info=%s;", m_flow, aid, info);
                 return rt = Errno.ARGS_ERROR;
             }
+            long price = info.getLong(InOutStoreRecordEntity.Info.PRICE, 0L);
 
             Param data = new Param();
             data.setInt(InOutStoreRecordEntity.Info.AID, aid);
@@ -87,8 +101,16 @@ public class InOutStoreRecordProc {
             data.setInt(InOutStoreRecordEntity.Info.REMAIN_COUNT, remainCount);
             if(optType == InOutStoreRecordValObj.OptType.IN){ // 入库操作记录可用库存
                 data.setInt(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, changeCount);
+                if(price > 0){
+                    long totalCost = changeCount*price;
+                    Param storeSalesSkuInfo = changeCountAfterSkuStoreCountMap.get(new SkuStoreKey(unionPriId, skuId));
+                    long fifoTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, 0L);
+                    long mwTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, 0L);
+                    storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, fifoTotalCost + totalCost);
+                    storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, mwTotalCost + totalCost);
+                }
             }
-            data.assign(info, InOutStoreRecordEntity.Info.PRICE);
+            data.setLong(InOutStoreRecordEntity.Info.PRICE, price);
             data.setString(InOutStoreRecordEntity.Info.NUMBER, number);
             data.assign(info, InOutStoreRecordEntity.Info.OPT_SID);
             data.assign(info, InOutStoreRecordEntity.Info.HEAD_SID);

@@ -10,10 +10,10 @@ import fai.MgProductSpecSvr.domain.serviceProc.SpecTempDetailProc;
 import fai.MgProductSpecSvr.domain.serviceProc.SpecTempProc;
 import fai.MgProductSpecSvr.interfaces.dto.SpecTempDetailDto;
 import fai.MgProductSpecSvr.interfaces.dto.SpecTempDto;
-import fai.MgProductSpecSvr.interfaces.entity.SpecTempDetailValObj;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.service.ServicePub;
 import fai.comm.util.*;
+import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
 import java.util.*;
@@ -64,13 +64,13 @@ public class SpecTempService extends ServicePub {
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
                 SpecTempDaoCtrl specTempDaoCtrl = SpecTempDaoCtrl.getInstance(flow, aid);
-                if(!transactionCtrl.registered(specTempDaoCtrl)){
-                    Log.logErr("registered SpecTempDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
+                if(!transactionCtrl.register(specTempDaoCtrl)){
+                    Log.logErr("register SpecTempDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
                     return rt=Errno.ERROR;
                 }
                 SpecTempBizRelDaoCtrl specTempBizRelDaoCtrl = SpecTempBizRelDaoCtrl.getInstance(flow, aid);
-                if(!transactionCtrl.registered(specTempBizRelDaoCtrl)){
-                    Log.logErr("registered SpecTempBizRelDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
+                if(!transactionCtrl.register(specTempBizRelDaoCtrl)){
+                    Log.logErr("register SpecTempBizRelDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
                     return rt=Errno.ERROR;
                 }
                 SpecTempProc specTempProc = new SpecTempProc(specTempDaoCtrl, flow);
@@ -191,12 +191,12 @@ public class SpecTempService extends ServicePub {
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
                 SpecTempDaoCtrl specTempDaoCtrl = SpecTempDaoCtrl.getInstance(flow, aid);
-                if(!transactionCtrl.registered(specTempDaoCtrl)){
+                if(!transactionCtrl.register(specTempDaoCtrl)){
                     Log.logErr("useSameDao SpecTempDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
                     return rt=Errno.ERROR;
                 }
                 SpecTempBizRelDaoCtrl specTempBizRelDaoCtrl = SpecTempBizRelDaoCtrl.getInstance(flow, aid);
-                if(!transactionCtrl.registered(specTempBizRelDaoCtrl)){
+                if(!transactionCtrl.register(specTempBizRelDaoCtrl)){
                     Log.logErr("useSameDao SpecTempBizRelDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
                     return rt=Errno.ERROR;
                 }
@@ -267,12 +267,12 @@ public class SpecTempService extends ServicePub {
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
                 SpecTempDaoCtrl specTempDaoCtrl = SpecTempDaoCtrl.getInstance(flow, aid);
-                if(!transactionCtrl.registered(specTempDaoCtrl)){
+                if(!transactionCtrl.register(specTempDaoCtrl)){
                     Log.logErr("useSameDao SpecTempDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
                     return rt=Errno.ERROR;
                 }
                 SpecTempBizRelDaoCtrl specTempBizRelDaoCtrl = SpecTempBizRelDaoCtrl.getInstance(flow, aid);
-                if(!transactionCtrl.registered(specTempBizRelDaoCtrl)){
+                if(!transactionCtrl.register(specTempBizRelDaoCtrl)){
                     Log.logErr("useSameDao SpecTempBizRelDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
                     return rt=Errno.ERROR;
                 }
@@ -435,7 +435,7 @@ public class SpecTempService extends ServicePub {
                     return rt = Errno.ARGS_ERROR;
                 }
                 for (Param inScVal : inScValList) {
-                    String inScValName = inScVal.getString(SpecTempDetailValObj.InScValList.Item.NAME);
+                    String inScValName = inScVal.getString(fai.MgProductSpecSvr.interfaces.entity.SpecTempDetailValObj.InScValList.Item.NAME);
                     if(!SpecStrArgCheck.isValidName(inScValName)){
                         Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;rlTpScId=%s;inScValName=%s", flow, aid, unionPriId, rlTpScId, inScValName);
                         return rt = Errno.ARGS_ERROR;
@@ -519,7 +519,7 @@ public class SpecTempService extends ServicePub {
             specTempDetailInfo.setInt(SpecTempDetailEntity.Info.SC_STR_ID, scStrId);
             FaiList<Param> inScValList = specTempDetailInfo.getListNullIsEmpty(SpecTempDetailEntity.Info.IN_SC_VAL_LIST);
             for (Param inScValInfo : inScValList) {
-                String name = (String)inScValInfo.remove(SpecTempDetailValObj.InScValList.Item.NAME);
+                String name = (String)inScValInfo.remove(fai.MgProductSpecSvr.interfaces.entity.SpecTempDetailValObj.InScValList.Item.NAME);
                 scStrId = nameIdMap.getInt(name);
                 if(scStrId == null){
                     Log.logErr("nameIdMap get err tmpName=%s", tmpName);
@@ -575,7 +575,7 @@ public class SpecTempService extends ServicePub {
                         return rt = Errno.ARGS_ERROR;
                     }
                     for (Param inScVal : inScValList) {
-                        String inScValName = inScVal.getString(SpecTempDetailValObj.InScValList.Item.NAME);
+                        String inScValName = inScVal.getString(fai.MgProductSpecSvr.interfaces.entity.SpecTempDetailValObj.InScValList.Item.NAME);
                         if(!SpecStrArgCheck.isValidName(inScValName)){
                             Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;rlTpScId=%s;inScValName=%s", flow, aid, unionPriId, rlTpScId, inScValName);
                             return rt = Errno.ARGS_ERROR;
@@ -759,7 +759,7 @@ public class SpecTempService extends ServicePub {
                         return rt = Errno.ERROR;
                     }
                     name = specStrInfo.getString(SpecStrEntity.Info.NAME);
-                    inScValInfo.setString(SpecTempDetailValObj.InScValList.Item.NAME, name);
+                    inScValInfo.setString(fai.MgProductSpecSvr.interfaces.entity.SpecTempDetailValObj.InScValList.Item.NAME, name);
                 }
             }
 

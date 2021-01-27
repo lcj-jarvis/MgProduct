@@ -7,6 +7,7 @@ import fai.comm.distributedkit.idBuilder.wrapper.IdBuilderWrapper;
 import fai.comm.util.DaoPool;
 import fai.comm.util.Errno;
 import fai.comm.util.Log;
+import fai.middleground.svrutil.repository.DaoCtrl;
 
 /**
  * dao ctrl中不再对传进来的数据做解析校验

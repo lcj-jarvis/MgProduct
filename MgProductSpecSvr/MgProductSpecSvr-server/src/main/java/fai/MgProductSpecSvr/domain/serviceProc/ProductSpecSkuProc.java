@@ -2,11 +2,14 @@ package fai.MgProductSpecSvr.domain.serviceProc;
 
 
 import fai.MgProductSpecSvr.domain.comm.Misc2;
+import fai.MgProductSpecSvr.domain.entity.ProductSpecEntity;
 import fai.MgProductSpecSvr.domain.entity.ProductSpecSkuEntity;
 import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuDaoCtrl;
 import fai.comm.util.*;
 
-import java.util.*;
+import java.util.Calendar;
+import java.util.Map;
+import java.util.Set;
 
 public class ProductSpecSkuProc {
     public ProductSpecSkuProc(ProductSpecSkuDaoCtrl daoCtrl, int flow) {
@@ -53,6 +56,80 @@ public class ProductSpecSkuProc {
         Log.logStd("batchAdd ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
         return rt;
     }
+
+    /**
+     * 批量同步，没有就添加，有就跳过
+     * @param aid
+     * @param pdId_pdScSkuInfoMap
+     * @param pdIdSkuIdMap
+     * @return
+     */
+    public int batchSynchronousSPU2SKU(int aid, Map<Integer, Param> pdId_pdScSkuInfoMap, Map<Integer, Long> pdIdSkuIdMap) {
+        if(aid <= 0 || pdId_pdScSkuInfoMap == null || pdIdSkuIdMap == null){
+            Log.logStd(" arg error;flow=%d;aid=%s;pdId_pdScSkuInfoMap=%s;pdIdSkuIdMap=%s;", m_flow, aid, pdId_pdScSkuInfoMap, pdIdSkuIdMap);
+            return Errno.ARGS_ERROR;
+        }
+        int rt = Errno.ERROR;
+        FaiList<Integer> pdIdList = new FaiList<>(pdId_pdScSkuInfoMap.keySet());
+        ParamMatcher matcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        rt = m_daoCtrl.select(searchArg, listRef, ProductSpecSkuEntity.Info.PD_ID, ProductSpecSkuEntity.Info.SKU_ID);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            Log.logErr(rt, "dao select error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+            return rt;
+        }
+        Calendar now = Calendar.getInstance();
+        FaiList<Param> oldInfoList = listRef.value;
+        for (Param oldInfo : oldInfoList) {
+            int pdId = oldInfo.getInt(ProductSpecSkuEntity.Info.PD_ID);
+            long skuId = oldInfo.getLong(ProductSpecSkuEntity.Info.SKU_ID);
+            Param info = pdId_pdScSkuInfoMap.remove(pdId);
+            if(info == null){
+                Log.logErr("data err;aid=%s;pdId=%s;skuId=%s;", aid, pdId, skuId);
+                return Errno.ERROR;
+            }
+            pdIdSkuIdMap.put(pdId, skuId);
+        }
+        if(!pdId_pdScSkuInfoMap.isEmpty()){
+            FaiList<Param> batchAddDataList = new FaiList<>();
+            for (Map.Entry<Integer, Param> pdId_pdScSkuInfoEntry : pdId_pdScSkuInfoMap.entrySet()) {
+                int pdId = pdId_pdScSkuInfoEntry.getKey();
+                Param pdScSkuInfo = pdId_pdScSkuInfoEntry.getValue();
+                Long skuId = m_daoCtrl.buildId();
+                if(skuId == null){
+                    Log.logStd("batchReplace4SpuToSku arg error;flow=%d;aid=%s;skuId=%s;pdScSkuInfo=%s;", m_flow, aid, skuId, pdScSkuInfo);
+                    return Errno.ERROR;
+                }
+                pdIdSkuIdMap.put(pdId, skuId);
+                Param data = new Param();
+                data.setInt(ProductSpecSkuEntity.Info.AID, aid);
+                data.setInt(ProductSpecSkuEntity.Info.PD_ID, pdId);
+                data.setLong(ProductSpecSkuEntity.Info.SKU_ID, skuId);
+                data.assign(pdScSkuInfo, ProductSpecSkuEntity.Info.SORT);
+                data.assign(pdScSkuInfo, ProductSpecSkuEntity.Info.SOURCE_TID);
+                data.assign(pdScSkuInfo, ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID);
+                data.assign(pdScSkuInfo, ProductSpecSkuEntity.Info.SKU_NUM);
+                data.assign(pdScSkuInfo, ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST);
+                data.assign(pdScSkuInfo, ProductSpecSkuEntity.Info.FLAG);
+                data.setCalendar(ProductSpecSkuEntity.Info.SYS_CREATE_TIME, now);
+                data.setCalendar(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME, now);
+
+                batchAddDataList.add(data);
+            }
+            rt = m_daoCtrl.batchInsert(batchAddDataList, null);
+            if(rt != Errno.OK) {
+                Log.logErr(rt, "dao batchInsert error;flow=%d;aid=%s;batchAddDataList=%s;", m_flow, aid, batchAddDataList);
+                return rt;
+            }
+        }
+
+        Log.logStd("ok;flow=%d;aid=%d;", m_flow, aid);
+        return rt;
+    }
+
     public int batchDel(int aid, FaiList<Integer> pdIdList) {
         if(aid <= 0 || pdIdList == null || pdIdList.isEmpty()){
             Log.logStd("batchDel arg error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
@@ -133,11 +210,7 @@ public class ProductSpecSkuProc {
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             return rt;
         }
-        if(skuIdList.size() != listRef.value.size()){
-            Log.logStd("batchDel arg err;flow=%d;aid=%s;pdId=%updaterList=%s;", m_flow, aid, pdId, updaterList);
-            return rt = Errno.NOT_FOUND;
-        }
-        rt = Errno.OK;
+
         Map<Integer, Param> oldDataMap = Misc2.getMap(listRef.value, ProductSpecSkuEntity.Info.SKU_ID);
         listRef.value = null; // help gc
 
@@ -157,6 +230,9 @@ public class ProductSpecSkuProc {
         updaterList.forEach(updater -> {
             long skuId = updater.getData().getLong(ProductSpecSkuEntity.Info.SKU_ID);
             Param oldData = oldDataMap.remove(skuId); // help gc
+            if(oldData == null){
+                return;
+            }
             Param updatedData = updater.update(oldData, true);
             Param data = new Param();
             maxUpdaterKeys.forEach(key->{
@@ -180,11 +256,25 @@ public class ProductSpecSkuProc {
         return rt;
     }
 
-    public int getListFromDao(int aid, int pdId, Ref<FaiList<Param>> pdScSkuInfoListRef, String ... onlyNeedFieds) {
-        return getListFromDao(aid, pdId, null, pdScSkuInfoListRef, onlyNeedFieds);
+    public int getListFromDaoByPdIdList(int aid, FaiList<Integer> pdIdList, Ref<FaiList<Param>> pdScSkuInfoListRef, String ... onlyNeedFields) {
+        SearchArg searchArg = new SearchArg();
+        ParamMatcher matcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        searchArg.matcher = matcher;
+        int rt = m_daoCtrl.select(searchArg, pdScSkuInfoListRef, onlyNeedFields);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            Log.logErr(rt, "getListFromDao error;flow=%d;aid=%s;", m_flow, aid);
+            return rt;
+        }
+        initDBInfoList(pdScSkuInfoListRef.value, onlyNeedFields);
+        Log.logDbg(rt,"getListFromDao ok;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
+        return Errno.OK;
+    }
+    public int getListFromDao(int aid, int pdId, Ref<FaiList<Param>> pdScSkuInfoListRef, String ... onlyNeedFields) {
+        return getListFromDao(aid, pdId, null, pdScSkuInfoListRef, onlyNeedFields);
     }
 
-    public int getListFromDao(int aid, int pdId, FaiList<Long> skuIdList, Ref<FaiList<Param>> pdScSkuInfoListRef, String ... onlyNeedFieds) {
+    public int getListFromDao(int aid, int pdId, FaiList<Long> skuIdList, Ref<FaiList<Param>> pdScSkuInfoListRef, String ... onlyNeedFields) {
         SearchArg searchArg = new SearchArg();
         ParamMatcher matcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
@@ -192,22 +282,22 @@ public class ProductSpecSkuProc {
             matcher.and(ProductSpecSkuEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
         }
         searchArg.matcher = matcher;
-        int rt = m_daoCtrl.select(searchArg, pdScSkuInfoListRef, onlyNeedFieds);
+        int rt = m_daoCtrl.select(searchArg, pdScSkuInfoListRef, onlyNeedFields);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             Log.logErr(rt, "getListFromDao error;flow=%d;aid=%s;", m_flow, aid);
             return rt;
         }
-        initDBInfoList(pdScSkuInfoListRef.value);
+        initDBInfoList(pdScSkuInfoListRef.value, onlyNeedFields);
         Log.logDbg(rt,"getListFromDao ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
         return Errno.OK;
     }
-    public int getListByScStrIdListFromDao(int aid, int pdId, FaiList<String> inPdScStrIdLists, Ref<FaiList<Param>> pdScSkuInfoListRef, String ... onlyNeedFieds) {
+    public int getListByScStrIdListFromDao(int aid, int pdId, FaiList<String> inPdScStrIdLists, Ref<FaiList<Param>> pdScSkuInfoListRef, String ... onlyNeedFields) {
         SearchArg searchArg = new SearchArg();
         ParamMatcher matcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
         matcher.and(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, ParamMatcher.IN, inPdScStrIdLists);
         searchArg.matcher = matcher;
-        int rt = m_daoCtrl.select(searchArg, pdScSkuInfoListRef, onlyNeedFieds);
+        int rt = m_daoCtrl.select(searchArg, pdScSkuInfoListRef, onlyNeedFields);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             Log.logErr(rt, "getListByScStrIdListFromDao error;flow=%d;aid=%s;", m_flow, aid);
             return rt;
@@ -215,9 +305,21 @@ public class ProductSpecSkuProc {
         Log.logDbg(rt,"getListByScStrIdListFromDao ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
         return Errno.OK;
     }
-    private void initDBInfoList(FaiList<Param> infoList){
+    private void initDBInfoList(FaiList<Param> infoList, String ... onlyNeedFields){
         if(infoList == null || infoList.isEmpty()){
             return;
+        }
+        if(onlyNeedFields != null && onlyNeedFields.length > 0){
+            boolean needInit = false;
+            for (String onlyNeedField : onlyNeedFields) {
+                if(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST.equals(onlyNeedField)){
+                    needInit = true;
+                    break;
+                }
+            }
+            if(!needInit){
+                return;
+            }
         }
         infoList.forEach(info->{
             String inPdScStrIdListStr = info.getString(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST);

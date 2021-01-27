@@ -15,6 +15,11 @@
             <artifactId>fai-comm-middleground</artifactId>
             <version>${fai-comm-middleground-ver}</version>
         </dependency>
+        <dependency>
+            <groupId>fai-middleground-svrutil</groupId>
+            <artifactId>fai-middleground-svrutil</artifactId>
+            <version>${fai-middleground-svrutil-ver}</version>
+        </dependency>
 
         <dependency>
             <groupId>MgCommon</groupId>

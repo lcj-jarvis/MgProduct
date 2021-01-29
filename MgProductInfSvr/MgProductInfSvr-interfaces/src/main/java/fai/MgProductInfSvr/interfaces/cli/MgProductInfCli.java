@@ -2257,6 +2257,82 @@ public class MgProductInfCli extends FaiClient {
     }
 
     /**
+     * 获取指定 skuId 下 其所关联的 商品规格库存销售信息
+     *  场景：
+     *      悦客查看某个规格的库存分布。
+     * @param skuId skuId
+     * @param bizInfoList 所关联的业务集 Param 中需要 tid，siteId, lgId, keepPriId1 {@link ProductStoreEntity.StoreSalesSkuInfo}
+     */
+    public int getPdScSkuSalesStoreListBySkuId(int aid, int tid, long skuId, FaiList<Param> bizInfoList, FaiList<Param> infoList) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(bizInfoList == null || bizInfoList.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "bizInfoList error");
+                return m_rt;
+            }
+            if (infoList == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "infoList error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductStoreDto.Key.TID, tid);
+            sendBody.putLong(ProductStoreDto.Key.SKU_ID, skuId);
+            bizInfoList.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.StoreSalesSku.getInfoDto());
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductInfCmd.StoreSalesSkuCmd.GET_LIST_BY_SKU_ID);
+
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductStoreDto.StoreSalesSku.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductStoreDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            return m_rt = Errno.OK;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    /**
      * 添加库存出入库记录
      * @param aid
      * @param tid
@@ -2264,7 +2340,6 @@ public class MgProductInfCli extends FaiClient {
      * @param lgId 业务商品所属权的 lgId (如:悦客总店的 lgId)
      * @param keepPriId1 业务商品所属权的 keepPriId1 (如:悦客总店的 keepPriId1)
      * @param infoList 出入库记录集合，需要包含 siteId, lgId, keepPriId1, skuId
-     * @return
      */
     public int addInOutStoreRecordInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
@@ -2320,6 +2395,103 @@ public class MgProductInfCli extends FaiClient {
         } finally {
             close();
             stat.end((m_rt != Errno.OK), m_rt);
+        }
+    }
+
+    /**
+     * 获取出入库记录
+     * @param tid 创建商品的tid | 相关联的tid
+     * @param siteId 创建商品siteId | 相关联的siteId
+     * @param lgId 创建商品的lgId | 相关联的lgId
+     * @param keepPriId1 创建商品的keepPriId1 | 相关联的keepPriId1
+     * @param isBiz 是否是 查询 业务（主键）+sku 维度 <br/>
+     *              例：<br/>
+     *              isBiz：false 悦客-查询所有门店的数据 <br/>
+     *              isBiz：true 悦客-查询指定门店的数据 <br/>
+     * @param searchArg
+     * 分页限制：100 <br/>
+     * {@link ProductStoreEntity.InOutStoreRecordInfo#OPT_TYPE}  可查询条件 <br/>
+     * {@link ProductStoreEntity.InOutStoreRecordInfo#C_TYPE}  可查询条件 <br/>
+     * {@link ProductStoreEntity.InOutStoreRecordInfo#S_TYPE}  可查询条件 <br/>
+     * {@link ProductStoreEntity.InOutStoreRecordInfo#SYS_CREATE_TIME}  可查询条件 <br/>
+     * 默认按创建时间降序
+     */
+    public int getInOutStoreRecordInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, boolean isBiz, SearchArg searchArg, FaiList<Param> list){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "aid error");
+                return m_rt;
+            }
+            if(searchArg == null || searchArg.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "searchArg error");
+                return m_rt;
+            }
+            if(list == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "list error");
+                return m_rt;
+            }
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductStoreDto.Key.TID, tid);
+            sendBody.putInt(ProductStoreDto.Key.SITE_ID, siteId);
+            sendBody.putInt(ProductStoreDto.Key.LGID, lgId);
+            sendBody.putInt(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1);
+            sendBody.putBoolean(ProductStoreDto.Key.IS_BIZ, isBiz);
+            searchArg.toBuffer(sendBody, ProductStoreDto.Key.SEARCH_ARG);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductInfCmd.InOutStoreRecordCmd.GET_LIST);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = list.fromBuffer(recvBody, keyRef, ProductStoreDto.InOutStoreRecord.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductStoreDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            if(searchArg.totalSize != null){
+                recvBody.getInt(keyRef, searchArg.totalSize);
+                if(keyRef.value != ProductStoreDto.Key.TOTAL_SIZE){
+                    m_rt = Errno.CODEC_ERROR;
+                    Log.logErr(m_rt, "recv total size null");
+                    return m_rt;
+                }
+            }
+
+            return m_rt = Errno.OK;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
         }
     }
 
@@ -2408,6 +2580,11 @@ public class MgProductInfCli extends FaiClient {
             if (aid == 0) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(rlPdIdList == null || rlPdIdList.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "rlPdIdList error");
                 return m_rt;
             }
             if (infoList == null) {
@@ -2638,7 +2815,7 @@ public class MgProductInfCli extends FaiClient {
             return m_rt = Errno.OK;
         } finally {
             close();
-            stat.end((m_rt != Errno.OK), m_rt);
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
         }
     }
 

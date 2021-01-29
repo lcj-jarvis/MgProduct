@@ -30,6 +30,7 @@ public class InOutStoreRecordDto {
         g_dtoDef.add(InOutStoreRecordEntity.Info.REMAIN_COUNT, 20, Var.Type.INT);
         g_dtoDef.add(InOutStoreRecordEntity.Info.RL_ORDER_CODE, 21, Var.Type.STRING);
         g_dtoDef.add(InOutStoreRecordEntity.Info.RL_REFUND_ID, 22, Var.Type.STRING);
+        g_dtoDef.add(InOutStoreRecordEntity.Info.MW_PRICE, 23, Var.Type.LONG);
     }
 
     public static ParamDef getInfoDto() {
@@ -37,5 +38,8 @@ public class InOutStoreRecordDto {
     }
 
     public static class Key extends CommDtoKey{
+        public static final int TOTAL_SIZE = 11;
+        public static final int IS_SOURCE = 12;
+        public static final int SEARCH_ARG = 13;
     }
 }

@@ -176,6 +176,25 @@ public class ProductStoreProc {
     }
 
     /**
+     * 根据 skuId 和 unionPriIdList 获取商品规格库存销售sku
+     */
+    public int getPdScSkuSalesStoreBySkuIdAndUIdList(int aid, int tid, long skuId, FaiList<Integer> unionPriIdList, FaiList infoList) {
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;skuId=%d;unionPriIdList=%s;", m_flow, aid, skuId, unionPriIdList);
+            return rt;
+        }
+        rt = m_cli.getPdScSkuSalesStoreBySkuIdAndUIdList(aid, tid, skuId, unionPriIdList, infoList);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "getPdScSkuSalesStore error;flow=%d;aid=%d;skuId=%d;unionPriIdList=%s;", m_flow, aid, skuId, unionPriIdList);
+            return rt;
+        }
+        return rt;
+    }
+
+
+    /**
      * 添加库存出入库记录
      */
     public int addInOutStoreRecordInfoList(int aid, int tid, int unionPriId, FaiList<Param> infoList) {
@@ -186,6 +205,24 @@ public class ProductStoreProc {
             return rt;
         }
         rt = m_cli.addInOutStoreRecordInfoList(aid, tid, unionPriId, infoList);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "addInOutStoreRecordInfoList error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        return rt;
+    }
+
+    /**
+     * 获取出入库存记录
+     */
+    public int getInOutStoreRecordInfoList(int aid, int tid, int unionPriId, boolean isSource, SearchArg searchArg, FaiList<Param> infoList) {
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        rt = m_cli.getInOutStoreRecordInfoList(aid, tid, unionPriId, isSource, searchArg, infoList);
         if (rt != Errno.OK) {
             Log.logErr(rt, "addInOutStoreRecordInfoList error;flow=%d;aid=%d;", m_flow, aid);
             return rt;

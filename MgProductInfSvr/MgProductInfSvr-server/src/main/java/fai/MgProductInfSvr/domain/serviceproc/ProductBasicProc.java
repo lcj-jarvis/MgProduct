@@ -233,7 +233,7 @@ public class ProductBasicProc {
         rt = m_cli.getRelListByRlIds(aid, unionPriId, rlPdIds, list);
         if(rt != Errno.OK) {
             if(rt != Errno.NOT_FOUND) {
-                Log.logErr(rt, "getRelListByRlIds error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+                Log.logErr(rt, "getRelListByRlIds error;flow=%d;aid=%d;unionPriId=%d;list=%s;", m_flow, aid, unionPriId, list);
             }
             return rt;
         }

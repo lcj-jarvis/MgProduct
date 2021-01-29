@@ -179,7 +179,7 @@ public class ProductSpecProc {
         }
         rt = m_cli.batchSynchronousSPU2SKU(aid, tid, unionPriId, spuInfoList, simplePdScSkuInfoList);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "importPdScInfo error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            Log.logErr(rt, "batchSynchronousSPU2SKU error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
         return rt;

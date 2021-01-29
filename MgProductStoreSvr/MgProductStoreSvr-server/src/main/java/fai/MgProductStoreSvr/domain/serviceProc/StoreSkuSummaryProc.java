@@ -241,6 +241,7 @@ public class StoreSkuSummaryProc {
         rt = m_daoCtrl.select(searchArg, listRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             Log.logStd("dao.select error;flow=%d;aid=%s;searchArg=%s;", m_flow, aid, searchArg);
+            return rt;
         }
         Log.logDbg(rt, "flow=%d;aid=%s;searchArg=%s;", m_flow, aid, searchArg);
         return rt;

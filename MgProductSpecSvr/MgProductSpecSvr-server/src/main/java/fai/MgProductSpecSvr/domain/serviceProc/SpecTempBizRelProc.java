@@ -138,7 +138,7 @@ public class SpecTempBizRelProc {
         }
         rt = m_daoCtrl.batchUpdate(doBatchUpdater, doBatchMatcher, dataList);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "batchSet error;flow=%d;aid=%s;", m_flow, aid);
+            Log.logErr(rt, "batchSet error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
             return rt;
         }
         Log.logStd("batchSet ok;flow=%d;aid=%d;", m_flow, aid);

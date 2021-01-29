@@ -44,6 +44,12 @@ public class MgProductInfCmd {
 
         /**@see ProductSpecSkuCmd#GET_SKU_ID_LIST */
         public static final int NUM18 = 5018;
+
+        /**@see InOutStoreRecordCmd#GET_LIST */
+        public static final int NUM19 = 5019;
+
+        /**@see StoreSalesSkuCmd#GET_LIST_BY_SKU_ID */
+        public static final int NUM20 = 5020;
     }
 
     // 1000 到 5000 的范围
@@ -196,6 +202,7 @@ public class MgProductInfCmd {
      */
     public static class StoreSalesSkuCmd {
         public static final int GET_LIST = ReadCmdNum.NUM13;
+        public static final int GET_LIST_BY_SKU_ID = ReadCmdNum.NUM20;
 
         public static final int SET_LIST = WriteCmdNum.NUM22;
         public static final int BATCH_REDUCE_STORE = WriteCmdNum.NUM23;
@@ -208,6 +215,7 @@ public class MgProductInfCmd {
      */
     public static class InOutStoreRecordCmd {
         public static final int ADD_LIST = WriteCmdNum.NUM26;
+        public static final int GET_LIST = ReadCmdNum.NUM19;
     }
 
     /**

@@ -17,7 +17,8 @@ public class InOutStoreRecordEntity {
         public static final String CHANGE_COUNT = "changeCount";                    // int 变动库存
         public static final String AVAILABLE_COUNT = "availableCount";              // int 当前入库记录剩余可用库存量
         public static final String REMAIN_COUNT = "remainCount";                    // int 变动后剩余库存
-        public static final String PRICE = "price";                                 // bigint 采购单价（成本价）
+        public static final String PRICE = "price";                                 // bigint 入库：采购单价（成本价） |  出库：先进先出方式计算的成本价
+        public static final String MW_PRICE = "mwPrice";                            // bigint 出库：移动加权计算的成本价
         public static final String NUMBER = "number";                               // varchar(15) 单号（天时间+4位以上顺序数字：如2010120001）
         public static final String OPT_SID = "optSid";                              // int 操作员工 id
         public static final String HEAD_SID = "headSid";                            // int 加减库存负责人 id

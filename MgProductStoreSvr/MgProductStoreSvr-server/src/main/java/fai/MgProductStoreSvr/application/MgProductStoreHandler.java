@@ -162,6 +162,15 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                      @ArgBodyInteger(StoreSalesSkuDto.Key.RL_PD_ID) final int rlPdId) throws IOException {
         return  m_storeService.getPdScSkuSalesStore(session, flow, aid, tid, unionPriId, pdId, rlPdId);
     }
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.GET_LIST_BY_SKU_ID_AND_UID_LIST)
+    private int getPdScSkuSalesStoreBySkuIdAndUnionPriIdList(final FaiSession session,
+                                     @ArgFlow final int flow,
+                                     @ArgAid final int aid,
+                                     @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
+                                     @ArgBodyLong(StoreSalesSkuDto.Key.SKU_ID) final long skuId,
+                                     @ArgList(keyMatch = StoreSalesSkuDto.Key.UID_LIST) FaiList<Integer> unionPriIdList) throws IOException {
+        return  m_storeService.getPdScSkuSalesStoreBySkuIdAndUnionPriIdList(session, flow, aid, skuId, unionPriIdList);
+    }
 
     @WrittenCmd
     @Cmd(MgProductStoreCmd.InOutStoreRecordCmd.ADD_LIST)
@@ -174,6 +183,18 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                                         FaiList<Param> infoList) throws IOException {
         return  m_storeService.addInOutStoreRecordInfoList(session, flow, aid, tid, unionPriId, infoList);
     }
+
+    @Cmd(MgProductStoreCmd.InOutStoreRecordCmd.GET_LIST)
+    private int getInOutStoreRecordInfoList(final FaiSession session,
+                                     @ArgFlow final int flow,
+                                     @ArgAid final int aid,
+                                     @ArgBodyInteger(InOutStoreRecordDto.Key.TID) final int tid,
+                                     @ArgBodyInteger(InOutStoreRecordDto.Key.UNION_PRI_ID) final int unionPriId,
+                                     @ArgBodyBoolean(InOutStoreRecordDto.Key.IS_SOURCE) final boolean isSource,
+                                     @ArgSearchArg(InOutStoreRecordDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
+        return  m_storeService.getInOutStoreRecordInfoList(session, flow, aid, tid, unionPriId, isSource, searchArg);
+    }
+
 
 
     @Cmd(MgProductStoreCmd.BizSalesSummaryCmd.GET_LIST_BY_PD_ID)

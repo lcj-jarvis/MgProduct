@@ -31,6 +31,29 @@ public class MgProductInfService extends ServicePub {
         return rt;
     }
 
+    /**
+     * 根据unionPriIdList 获取主键信息
+     * @param tid
+     * @param unionPriIds
+     * @param list
+     */
+    protected int getPrimaryKeyListByUnionPriIds(int flow, int aid, int tid, FaiList<Integer> unionPriIds, FaiList<Param> list) {
+        int rt = Errno.ERROR;
+        MgPrimaryKeyCli cli = new MgPrimaryKeyCli(flow);
+        if(!cli.init()) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "init MgPrimaryKeyCli error");
+            return rt;
+        }
+
+        rt = cli.getListByUnionPriIds(tid, unionPriIds, list);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "getListByUnionPriIds error;flow=%d;aid=%d;tid=%d;unionPriIds=%s;", flow, aid, tid, unionPriIds);
+            return rt;
+        }
+        return rt;
+    }
+
     protected int getPrimaryKeyList(int flow, int aid, FaiList<Param> searchArgList, FaiList<Param> list) {
         int rt = Errno.ERROR;
         MgPrimaryKeyCli cli = new MgPrimaryKeyCli(flow);

@@ -10,6 +10,8 @@ public class MgProductStoreCmd {
 		public static final int NUM3 = 5003;
 		public static final int NUM4 = 5004;
 		public static final int NUM5 = 5005;
+		public static final int NUM6 = 5006;
+		public static final int NUM7 = 5007;
 	}
 
 
@@ -37,6 +39,7 @@ public class MgProductStoreCmd {
 	 */
 	public static class StoreSalesSkuCmd {
 		public static final int GET_LIST = ReadCmdNum.NUM;
+		public static final int GET_LIST_BY_SKU_ID_AND_UID_LIST = ReadCmdNum.NUM7;
 
 		public static final int REFRESH = WriteCmdNum.NUM;
 		public static final int SET_LIST = WriteCmdNum.NUM2;
@@ -58,6 +61,8 @@ public class MgProductStoreCmd {
 	 * 出入库存记录 相关 cmd
 	 */
 	public static class InOutStoreRecordCmd {
+		public static final int GET_LIST = ReadCmdNum.NUM6;
+
 		public static final int ADD_LIST = WriteCmdNum.NUM5;
 		public static final int BATCH_SYN_RECORD = WriteCmdNum.NUM13;
 	}

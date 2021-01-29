@@ -279,15 +279,89 @@ public class ProductStoreService extends MgProductInfService {
         return rt;
     }
 
+
+    /**
+     * 获取指定 skuId 下 其所关联的 商品规格库存销售信息
+     *  场景：
+     *      悦客查看某个规格的库存分布。
+     * @param tid tid
+     * @param skuId skuId
+     * @param bizInfoList 所关联的业务集 Param 中需要 tid，siteId, lgId, keepPriId1 {@link ProductStoreEntity.StoreSalesSkuInfo}
+     */
+    public int getPdScSkuSalesStoreBySkuId(FaiSession session, int flow, int aid, int tid, long skuId, FaiList<Param> bizInfoList)  throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+            if(bizInfoList == null || bizInfoList.isEmpty()){
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, bizInfoList is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+            FaiList<Param> searchArgList = new FaiList<>();
+            for (Param info : bizInfoList) {
+                int tmpTid = info.getInt(ProductStoreEntity.StoreSalesSkuInfo.TID, tid);
+                if(!FaiValObj.TermId.isValidTid(tmpTid)) {
+                    rt = Errno.ARGS_ERROR;
+                    Log.logErr("args error, tmpTid is not valid;flow=%d;aid=%d;tmpTid=%d;", flow, aid, tmpTid);
+                    return rt;
+                }
+                int siteId = info.getInt(ProductStoreEntity.StoreSalesSkuInfo.SITE_ID, 0);
+                int lgId = info.getInt(ProductStoreEntity.StoreSalesSkuInfo.LGID, 0);
+                int keepPriId1 = info.getInt(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, 0);
+                searchArgList.add(
+                        new Param().setInt(MgPrimaryKeyEntity.Info.TID, tmpTid)
+                                .setInt(MgPrimaryKeyEntity.Info.SITE_ID, siteId)
+                                .setInt(MgPrimaryKeyEntity.Info.LGID, lgId)
+                                .setInt(MgPrimaryKeyEntity.Info.KEEP_PRI_ID1, keepPriId1)
+                );
+            }
+            FaiList<Param> list = new FaiList<>();
+            rt = getPrimaryKeyList(flow, aid, searchArgList, list);
+            if(rt != Errno.OK){
+                return rt;
+            }
+            Map<Integer, BizPriKey> unionPriIdBizPriKeyMap = new HashMap<>(list.size()*4/3+1);
+            toUnionPriIdBizPriKeyMap(list, unionPriIdBizPriKeyMap);
+
+            FaiList<Param> infoList = new FaiList<>();
+            ProductStoreProc storeProc = new ProductStoreProc(flow);
+            rt = storeProc.getPdScSkuSalesStoreBySkuIdAndUIdList(aid, tid, skuId, new FaiList<>(unionPriIdBizPriKeyMap.keySet()), infoList);
+            if(rt != Errno.OK){
+                return rt;
+            }
+            for (Param info : infoList) {
+                Integer unionPriId = info.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+                BizPriKey bizPriKey = unionPriIdBizPriKeyMap.get(unionPriId);
+                info.setInt(ProductStoreEntity.StoreSalesSkuInfo.TID, bizPriKey.tid);
+                info.setInt(ProductStoreEntity.StoreSalesSkuInfo.SITE_ID, bizPriKey.siteId);
+                info.setInt(ProductStoreEntity.StoreSalesSkuInfo.LGID, bizPriKey.lgId);
+                info.setInt(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, bizPriKey.keepPriId1);
+            }
+
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            infoList.toBuffer(sendBuf, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.StoreSalesSku.getInfoDto());
+            session.write(sendBuf);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
     /**
      * 添加库存出入库记录
      * @param aid
-     * @param ownerTid 业务商品所属权的tid
-     * @param ownerSiteId 业务商品所属权的 siteId (如:悦客总店的 siteId)
-     * @param ownerLgId 业务商品所属权的 ownerLgId (如:悦客总店的 ownerLgId)
-     * @param ownerKeepPriId1 业务商品所属权的 ownerKeepPriId1 (如:悦客总店的 ownerKeepPriId1)
+     * @param ownerTid 创建商品的tid
+     * @param ownerSiteId 创建商品的 siteId (如:悦客总店的 siteId)
+     * @param ownerLgId 创建商品的 ownerLgId (如:悦客总店的 ownerLgId)
+     * @param ownerKeepPriId1 创建商品的 ownerKeepPriId1 (如:悦客总店的 ownerKeepPriId1)
      * @param infoList 出入库记录集合，需要包含 tid, siteId, lgId, keepPriId1, rlPdId, ownerRlPdId, skuId|inPdScStrNameList
-     * @return
+     * @returnu
      */
     public int addInOutStoreRecordInfoList(FaiSession session, int flow, int aid, int ownerTid, int ownerSiteId, int ownerLgId, int ownerKeepPriId1, FaiList<Param> infoList) throws IOException {
         int rt = Errno.ERROR;
@@ -399,6 +473,11 @@ public class ProductStoreService extends MgProductInfService {
             for (Map.Entry<BizPriKey, Map<Integer, Integer>> bizPriKey_rlPdIdOwnerRlPdIdMapEntry : bizPriKey_rlPdIdOwnerRlPdIdMapMap.entrySet()) {
                 BizPriKey bizPriKey = bizPriKey_rlPdIdOwnerRlPdIdMapEntry.getKey();
                 Map<Integer, Integer> rlPdIdOwnerRlPdIdMap = bizPriKey_rlPdIdOwnerRlPdIdMapEntry.getValue();
+                if(rlPdIdOwnerRlPdIdMap == null){
+                    rt = Errno.ERROR;
+                    Log.logErr(rt, "get rlPdIdOwnerRlPdIdMap err;flow=%s;aid=%s;bizPriKey=%s;", flow, aid, bizPriKey);
+                    return rt;
+                }
                 Integer unionPriId = bizPriKeyUnionPriIdMap.get(bizPriKey);
                 Set<Integer> rlPdIdSet = rlPdIdOwnerRlPdIdMap.keySet();
                 FaiList<Param> list = new FaiList<>();
@@ -504,6 +583,82 @@ public class ProductStoreService extends MgProductInfService {
     }
 
     /**
+     * 获取出入库存记录
+     */
+    public int getInOutStoreRecordInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, boolean isSource, SearchArg searchArg)  throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if (rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            ProductStoreProc productStoreProc = new ProductStoreProc(flow);
+            FaiList<Param> infoList = new FaiList<Param>();
+            rt = productStoreProc.getInOutStoreRecordInfoList(aid, tid, unionPriId, isSource, searchArg, infoList);
+            if(rt != Errno.OK){
+                return rt;
+            }
+
+            Set<Integer> unionPriIdSet = new HashSet<>();
+            for (Param info : infoList) {
+                int tmpUnionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID);
+                unionPriIdSet.add(tmpUnionPriId);
+            }
+
+            if(!unionPriIdSet.isEmpty()){
+                FaiList<Param> primaryKeyList = new FaiList<>();
+                rt = getPrimaryKeyListByUnionPriIds(flow, aid, tid, new FaiList<>(unionPriIdSet), primaryKeyList);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+                Map<Integer, BizPriKey> unionPriIdBizPriKeyMap = new HashMap<>(primaryKeyList.size()*4/3+1);
+                toUnionPriIdBizPriKeyMap(primaryKeyList, unionPriIdBizPriKeyMap);
+                for (Param info : infoList) {
+                    int tmpUnionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID);
+                    BizPriKey bizPriKey = unionPriIdBizPriKeyMap.get(tmpUnionPriId);
+                    info.setInt(ProductStoreEntity.InOutStoreRecordInfo.TID, bizPriKey.tid);
+                    info.setInt(ProductStoreEntity.InOutStoreRecordInfo.SITE_ID, bizPriKey.siteId);
+                    info.setInt(ProductStoreEntity.InOutStoreRecordInfo.LGID, bizPriKey.lgId);
+                    info.setInt(ProductStoreEntity.InOutStoreRecordInfo.KEEP_PRI_ID1, bizPriKey.keepPriId1);
+                }
+            }
+
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            infoList.toBuffer(sendBuf, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.InOutStoreRecord.getInfoDto());
+            if(searchArg.totalSize != null){
+                sendBuf.putInt(ProductStoreDto.Key.TOTAL_SIZE, searchArg.totalSize.value);
+            }
+            session.write(sendBuf);
+        }finally {
+            stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
+        }
+        return rt;
+    }
+
+    private void toUnionPriIdBizPriKeyMap(FaiList<Param> primaryKeyList, Map<Integer, BizPriKey> unionPriIdBizPriKeyMap) {
+        for (Param primaryKeyInfo : primaryKeyList) {
+            Integer tmpUnionPriId = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.UNION_PRI_ID);
+            Integer tmpTid = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.TID);
+            Integer tmpSiteId = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.SITE_ID);
+            Integer tmpLgId = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.LGID);
+            Integer tmpKeepPriId1 = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.KEEP_PRI_ID1);
+            unionPriIdBizPriKeyMap.put(tmpUnionPriId, new BizPriKey(tmpTid, tmpSiteId, tmpLgId, tmpKeepPriId1));
+        }
+    }
+
+    /**
      * 获取指定商品所有的业务销售记录
      */
     public int getAllBizSalesSummaryInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId)  throws IOException {
@@ -552,7 +707,7 @@ public class ProductStoreService extends MgProductInfService {
     /**
      * 获取指定业务下指定商品id集的业务销售信息
      */
-    public int getBizSalesSummaryInfoListByPdIdList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList)  throws IOException {
+    public int getPdBizSalesSummaryInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList)  throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -660,7 +815,7 @@ public class ProductStoreService extends MgProductInfService {
      * @param keepPriId1 keepPriId1
      * @param searchArg 查询条件
      * @param isBiz 是否是 查业务。
-     *              false: 查询的结果是所有业务的信息汇总，这时 tid、siteId、lgId、keepPriId1，是业务商品所属权的主键信息（例如悦客的总店）；
+     *              false: 查询的结果是所有业务的信息汇总，这时 tid、siteId、lgId、keepPriId1，是创建商品的主键信息（例如悦客的总店）；
      *              true: 查询的结果是指定业务的信息，这时 tid、siteId、lgId、keepPriId1，是业务商品关联的主键信息（例如悦客的门店）。
      *
      */

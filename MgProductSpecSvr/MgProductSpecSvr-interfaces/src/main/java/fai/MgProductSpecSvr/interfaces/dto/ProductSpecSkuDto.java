@@ -1,6 +1,7 @@
 package fai.MgProductSpecSvr.interfaces.dto;
 
-import fai.MgProductSpecSvr.interfaces.entity.*;
+import fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity;
+import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
 import fai.comm.util.ParamDef;
 import fai.comm.util.Var;
 
@@ -36,5 +37,30 @@ public class ProductSpecSkuDto {
         public static final int ID = 8;
         public static final int ID_LIST = 9;
         public static final int PD_ID_LIST = 10;
+    }
+
+    /**
+     * 缓存DTO
+     */
+    public static final class CacheDto{
+
+        private static ParamDef g_cacheDtoDef = new ParamDef();
+        static {
+            g_cacheDtoDef.add(ProductSpecSkuEntity.Info.AID, 0, Var.Type.INT);
+            g_cacheDtoDef.add(ProductSpecSkuEntity.Info.PD_ID, 1, Var.Type.INT);
+            g_cacheDtoDef.add(ProductSpecSkuEntity.Info.SKU_ID, 2, Var.Type.LONG);
+            g_cacheDtoDef.add(ProductSpecSkuEntity.Info.SORT, 3, Var.Type.INT);
+            g_cacheDtoDef.add(ProductSpecSkuEntity.Info.SOURCE_TID, 4, Var.Type.INT);
+            g_cacheDtoDef.add(ProductSpecSkuEntity.Info.SKU_NUM, 5, Var.Type.STRING);
+            g_cacheDtoDef.add(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, 6, Var.Type.FAI_LIST);
+            g_cacheDtoDef.add(ProductSpecSkuEntity.Info.FLAG, 8, Var.Type.INT);
+            g_cacheDtoDef.add(ProductSpecSkuEntity.Info.SYS_CREATE_TIME, 9, Var.Type.CALENDAR);
+            g_cacheDtoDef.add(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME, 10, Var.Type.CALENDAR);
+            g_cacheDtoDef.add(ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID, 11, Var.Type.INT);
+        }
+
+        public static ParamDef getCacheDto() {
+            return g_cacheDtoDef;
+        }
     }
 }

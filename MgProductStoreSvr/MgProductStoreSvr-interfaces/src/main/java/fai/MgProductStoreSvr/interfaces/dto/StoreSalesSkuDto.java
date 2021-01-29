@@ -28,6 +28,8 @@ public class StoreSalesSkuDto {
         g_dtoDef.add(StoreSalesSkuEntity.Info.FLAG, 17, Var.Type.INT);
         g_dtoDef.add(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, 18, Var.Type.CALENDAR);
         g_dtoDef.add(StoreSalesSkuEntity.Info.SYS_CREATE_TIME, 19, Var.Type.CALENDAR);
+        g_dtoDef.add(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, 20, Var.Type.LONG);
+        g_dtoDef.add(StoreSalesSkuEntity.Info.MW_TOTAL_COST, 21, Var.Type.LONG);
     }
 
     public static ParamDef getInfoDto() {
@@ -41,6 +43,7 @@ public class StoreSalesSkuDto {
         public static final int EXPIRE_TIME_SECONDS = 14;
         public static final int IN_OUT_STORE_RECORD_INFO = 15;
         public static final int SKU_ID_COUNT_LIST = 16;
+        public static final int UID_LIST = 17;
     }
 
     public static class CacheDto{
@@ -62,6 +65,8 @@ public class StoreSalesSkuDto {
             g_manageInfoDef.add(StoreSalesSkuEntity.Info.FLAG, 17, Var.Type.INT);
             g_manageInfoDef.add(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, 18, Var.Type.CALENDAR);
             g_manageInfoDef.add(StoreSalesSkuEntity.Info.SYS_CREATE_TIME, 19, Var.Type.CALENDAR);
+            g_manageInfoDef.add(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, 20, Var.Type.LONG);
+            g_manageInfoDef.add(StoreSalesSkuEntity.Info.MW_TOTAL_COST, 21, Var.Type.LONG);
         }
 
         public static ParamDef getManageInfoDto() {

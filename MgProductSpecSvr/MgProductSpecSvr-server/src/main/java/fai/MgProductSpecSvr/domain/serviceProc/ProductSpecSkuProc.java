@@ -88,8 +88,9 @@ public class ProductSpecSkuProc {
             long skuId = oldInfo.getLong(ProductSpecSkuEntity.Info.SKU_ID);
             Param info = pdId_pdScSkuInfoMap.remove(pdId);
             if(info == null){
-                Log.logErr("data err;aid=%s;pdId=%s;skuId=%s;", aid, pdId, skuId);
-                return Errno.ERROR;
+                rt = Errno.ERROR;
+                Log.logErr(rt,"data err;aid=%s;pdId=%s;skuId=%s;", aid, pdId, skuId);
+                return rt;
             }
             pdIdSkuIdMap.put(pdId, skuId);
         }
@@ -100,8 +101,9 @@ public class ProductSpecSkuProc {
                 Param pdScSkuInfo = pdId_pdScSkuInfoEntry.getValue();
                 Long skuId = m_daoCtrl.buildId();
                 if(skuId == null){
-                    Log.logStd("batchReplace4SpuToSku arg error;flow=%d;aid=%s;skuId=%s;pdScSkuInfo=%s;", m_flow, aid, skuId, pdScSkuInfo);
-                    return Errno.ERROR;
+                    rt = Errno.ERROR;
+                    Log.logStd(rt,"batchReplace4SpuToSku arg error;flow=%d;aid=%s;skuId=%s;pdScSkuInfo=%s;", m_flow, aid, skuId, pdScSkuInfo);
+                    return rt;
                 }
                 pdIdSkuIdMap.put(pdId, skuId);
                 Param data = new Param();
@@ -249,7 +251,7 @@ public class ProductSpecSkuProc {
         });
         rt = m_daoCtrl.batchUpdate(doBatchUpdater, doBatchMatcher, dataList);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "batchSet error;flow=%d;aid=%s;", m_flow, aid);
+            Log.logErr(rt, "batchSet error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
             return rt;
         }
         Log.logStd("batchSet ok;flow=%d;aid=%d;", m_flow, aid);
@@ -333,6 +335,12 @@ public class ProductSpecSkuProc {
     public int getList(int aid, int pdId, FaiList<Long> skuIdList, Ref<FaiList<Param>> pdScSkuInfoListRef) {
         int rt = Errno.ERROR;
         rt = getListFromDao(aid, pdId, skuIdList, pdScSkuInfoListRef);
+        return rt;
+    }
+    public int getSkuIdList(int aid, FaiList<Integer> pdIdList, Ref<FaiList<Param>> pdScSkuIdListRef){
+        int rt = Errno.ERROR;
+
+
         return rt;
     }
 

@@ -101,8 +101,9 @@ public class ProductSpecProc {
             int pdScId = oldInfo.getInt(ProductSpecEntity.Info.PD_SC_ID);
             Integer absent = pdId_pdScIdMap.putIfAbsent(pdId, pdScId);
             if(absent != null){
-                Log.logErr("data err;aid=%s;pdId=%s;pdScId=%s;absent=%s;", aid, pdId, pdScId, absent);
-                return Errno.ERROR;
+                rt = Errno.ERROR;
+                Log.logErr(rt,"data err;aid=%s;pdId=%s;pdScId=%s;absent=%s;", aid, pdId, pdScId, absent);
+                return rt;
             }
             // 标记 修改 的数据需要删除缓存
             cacheManage.addNeedDelCachedPdId(aid, pdId);
@@ -361,7 +362,7 @@ public class ProductSpecProc {
         cacheManage.addNeedDelCachedPdId(aid, pdId);
         rt = m_daoCtrl.batchUpdate(doBatchUpdater, doBatchMatcher, dataList);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "batchSet error;flow=%d;aid=%s;", m_flow, aid);
+            Log.logErr(rt, "batchSet error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
             return rt;
         }
         Log.logStd("batchSet ok;flow=%d;aid=%d;", m_flow, aid);

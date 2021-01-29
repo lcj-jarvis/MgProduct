@@ -23,7 +23,7 @@
 
         <dependency>
             <groupId>MgCommon</groupId>
-            <artifactId>MgCommon-MgPrimaryKeySvr-interfaces</artifactId>
+            <artifactId>MgPrimaryKeySvr-interfaces</artifactId>
             <version>${MgCommon-MgPrimaryKeySvr-interfaces-ver}</version>
         </dependency>
 

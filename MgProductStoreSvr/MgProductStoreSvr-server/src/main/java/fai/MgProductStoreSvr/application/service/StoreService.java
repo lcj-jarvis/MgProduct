@@ -8,10 +8,7 @@ import fai.MgProductStoreSvr.domain.entity.*;
 import fai.MgProductStoreSvr.domain.repository.*;
 import fai.MgProductStoreSvr.domain.serviceProc.*;
 import fai.MgProductStoreSvr.interfaces.conf.MqConfig;
-import fai.MgProductStoreSvr.interfaces.dto.BizSalesSummaryDto;
-import fai.MgProductStoreSvr.interfaces.dto.SalesSummaryDto;
-import fai.MgProductStoreSvr.interfaces.dto.StoreSalesSkuDto;
-import fai.MgProductStoreSvr.interfaces.dto.StoreSkuSummaryDto;
+import fai.MgProductStoreSvr.interfaces.dto.*;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.mq.api.MqFactory;
 import fai.comm.mq.api.Producer;
@@ -334,6 +331,8 @@ public class StoreService{
                 return rt;
             }
             FaiList<Param> batchAddDataList = new FaiList<>(infoList.size());
+            Set<Integer> unionPriIdSet = new HashSet<>();
+            Set<Long> skuIdSet = new HashSet<>();
             for (Param info : infoList) {
                 int unionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, 0);
                 long skuId = info.getLong(InOutStoreRecordEntity.Info.SKU_ID, 0L);
@@ -347,6 +346,8 @@ public class StoreService{
                     Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;skuId=%s;ioStoreRecId=%s;pdId=%s;rlPdId=%s;optType=%s;", flow, aid, unionPriId, skuId, ioStoreRecId, pdId, rlPdId, optType);
                     return rt;
                 }
+                unionPriIdSet.add(unionPriId);
+                skuIdSet.add(skuId);
                 String number = InOutStoreRecordValObj.Number.genNumber(createTime, ioStoreRecId);
                 Param data = new Param();
                 data.setInt(InOutStoreRecordEntity.Info.AID, aid);
@@ -356,6 +357,7 @@ public class StoreService{
                 data.setInt(InOutStoreRecordEntity.Info.PD_ID, pdId);
                 data.setInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
                 data.setInt(InOutStoreRecordEntity.Info.OPT_TYPE, optType);
+                data.setInt(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
                 data.assign(info, InOutStoreRecordEntity.Info.C_TYPE);
                 data.assign(info, InOutStoreRecordEntity.Info.S_TYPE);
                 data.assign(info, InOutStoreRecordEntity.Info.CHANGE_COUNT);
@@ -385,7 +387,7 @@ public class StoreService{
                     LockUtil.lock(aid);
                     try {
                         transactionCtrl.setAutoCommit(false);
-                        rt = inOutStoreRecordProc.synBatchAdd(aid, batchAddDataList);
+                        rt = inOutStoreRecordProc.synBatchAdd(aid, unionPriIdSet, skuIdSet, batchAddDataList);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -686,6 +688,13 @@ public class StoreService{
                         if(rt != Errno.OK){
                             return rt;
                         }
+
+                        // 更新总成本
+                        rt = storeSalesSkuProc.batchUpdateTotalCost(aid, changeCountAfterSkuStoreCountAndTotalCostMap);
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
+
                     }finally {
                         if(rt != Errno.OK){
                             transactionCtrl.rollback();
@@ -837,6 +846,33 @@ public class StoreService{
         }
         return rt;
     }
+    public int getPdScSkuSalesStoreBySkuIdAndUnionPriIdList(FaiSession session, int flow, int aid, long skuId, FaiList<Integer> unionPriIdList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || skuId <= 0 || unionPriIdList== null || unionPriIdList.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;skuId=%s;unionPriIdList=%s;", flow, aid, skuId, unionPriIdList);
+                return rt;
+            }
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            StoreSalesSkuDaoCtrl storeSalesSkuDaoCtrl = StoreSalesSkuDaoCtrl.getInstance(flow, aid);
+            try {
+                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
+                rt = storeSalesSkuProc.getListBySkuIdAndUnionPriIdList(aid, skuId, unionPriIdList, listRef);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+            }finally {
+                storeSalesSkuDaoCtrl.closeDao();
+            }
+            sendPdScSkuSalesStore(session, listRef.value);
+            Log.logDbg("aid=%d;skuId=%s;unionPriIdList=%s;", aid, skuId, unionPriIdList);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
 
     private void sendPdScSkuSalesStore(FaiSession session, FaiList<Param> infoList) throws IOException {
         FaiBuffer sendBuf = new FaiBuffer(true);
@@ -898,6 +934,7 @@ public class StoreService{
                 if(unionPriId != ownerUnionPriId){
                     needCheckSkuStoreKeyPdKeyMap.put(skuStoreKey, new PdKey(unionPriId, pdId, rlPdId));
                 }
+                info.setInt(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, ownerUnionPriId);
                 Integer count = skuStoreChangeCountMap.get(skuStoreKey);
                 if(count == null){
                     count = 0;
@@ -948,18 +985,24 @@ public class StoreService{
                             return rt;
                         }
 
-                        Map<SkuStoreKey, Param> changeCountAfterSkuStoreCountAndTotalCostMap = new HashMap<>();
-                        rt = storeSalesSkuProc.getCountAndTotalCostFromDao(aid, needGetChangeCountAfterSkuStoreKeySet, changeCountAfterSkuStoreCountAndTotalCostMap);
+                        Map<SkuStoreKey, Param> changeCountAfterSkuStoreInfoMap = new HashMap<>();
+                        // 获取更新后的库存量
+                        rt = storeSalesSkuProc.getCountAndTotalCostFromDao(aid, needGetChangeCountAfterSkuStoreKeySet, changeCountAfterSkuStoreInfoMap);
                         if (rt != Errno.OK) {
                             return rt;
                         }
                         // 批量添加记录
-                        rt = inOutStoreRecordProc.batchAdd(aid, infoList, changeCountAfterSkuStoreCountAndTotalCostMap);
+                        rt = inOutStoreRecordProc.batchAdd(aid, infoList, changeCountAfterSkuStoreInfoMap);
                         if (rt != Errno.OK) {
                             return rt;
                         }
+
+                        // 更新总成本
+                        rt = storeSalesSkuProc.batchUpdateTotalCost(aid, changeCountAfterSkuStoreInfoMap);
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
                     }catch (Exception e){
-                        Log.logDbg(e, "whalelog");
                         throw e;
                     }finally {
                         if(rt != Errno.OK){
@@ -1032,7 +1075,62 @@ public class StoreService{
         return rt;
     }
 
+    /**
+     * 获取出入库记录
+     */
+    public int getInOutStoreRecordInfoList(FaiSession session, int flow, int aid, int tid, int unionPriId, boolean isSource, SearchArg searchArg) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || searchArg == null || searchArg.isEmpty() || unionPriId <= 0) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;searchArg=%s;", flow, aid, unionPriId, searchArg);
+                return rt;
+            }
 
+            if(searchArg.limit > 100){
+                Log.logErr("searchArg.limit err;flow=%d;aid=%d;searchArg.limit=%s;", flow, aid, searchArg.limit);
+                return rt = Errno.ARGS_ERROR;
+            }
+
+            ParamMatcher baseMatcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
+            if(isSource){
+                baseMatcher.and(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+            }else{
+                baseMatcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+            }
+
+            baseMatcher.and(searchArg.matcher);
+            searchArg.matcher = baseMatcher;
+
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            InOutStoreRecordDaoCtrl inOutStoreRecordDaoCtrl = InOutStoreRecordDaoCtrl.getInstance(flow, aid);
+            try {
+                InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(inOutStoreRecordDaoCtrl, flow);
+                rt = inOutStoreRecordProc.searchFromDao(aid, searchArg, listRef);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                    return rt;
+                }
+            }finally {
+                inOutStoreRecordDaoCtrl.closeDao();
+            }
+            sendInOutRecord(session, searchArg, listRef);
+            Log.logDbg("aid=%d;searchArg.matcher.toJson=%s", aid, searchArg.matcher.toJson());
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    private void sendInOutRecord(FaiSession session, SearchArg searchArg, Ref<FaiList<Param>> listRef) throws IOException {
+        FaiList<Param> infoList = listRef.value;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        infoList.toBuffer(sendBuf, InOutStoreRecordDto.Key.INFO_LIST, InOutStoreRecordDto.getInfoDto());
+        if(searchArg.totalSize != null){
+            sendBuf.putInt(InOutStoreRecordDto.Key.TOTAL_SIZE, searchArg.totalSize.value);
+        }
+        session.write(sendBuf);
+    }
 
     /**
      * 上报业务销售汇总
@@ -1275,26 +1373,26 @@ public class StoreService{
             // 事务
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
-                BizSalesReportDaoCtrl bizSalesReportDaoCtrl = BizSalesReportDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                BizSalesSummaryDaoCtrl bizSalesSummaryDaoCtrl = BizSalesSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                HoldingRecordDaoCtrl holdingRecordDaoCtrl = HoldingRecordDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+                //BizSalesReportDaoCtrl bizSalesReportDaoCtrl = BizSalesReportDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+                //HoldingRecordDaoCtrl holdingRecordDaoCtrl = HoldingRecordDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+                //SotreOrderRecordDaoCtrl sotreOrderRecordDaoCtrl = SotreOrderRecordDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+                StoreSalesSkuDaoCtrl storeSalesSkuDaoCtrl = StoreSalesSkuDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
                 InOutStoreRecordDaoCtrl inOutStoreRecordDaoCtrl = InOutStoreRecordDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
                 SalesSummaryDaoCtrl salesSummaryDaoCtrl = SalesSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                SotreOrderRecordDaoCtrl sotreOrderRecordDaoCtrl = SotreOrderRecordDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                StoreSalesSkuDaoCtrl storeSalesSkuDaoCtrl = StoreSalesSkuDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+                BizSalesSummaryDaoCtrl bizSalesSummaryDaoCtrl = BizSalesSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
                 StoreSkuSummaryDaoCtrl storeSkuSummaryDaoCtrl = StoreSkuSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                if(!transactionCtrl.checkRegistered(bizSalesReportDaoCtrl, bizSalesSummaryDaoCtrl, holdingRecordDaoCtrl, inOutStoreRecordDaoCtrl
-                        , salesSummaryDaoCtrl, sotreOrderRecordDaoCtrl, storeSalesSkuDaoCtrl, storeSkuSummaryDaoCtrl)){
+                if(!transactionCtrl.checkRegistered(bizSalesSummaryDaoCtrl, inOutStoreRecordDaoCtrl
+                        , salesSummaryDaoCtrl,  storeSalesSkuDaoCtrl, storeSkuSummaryDaoCtrl)){
                     return rt = Errno.ERROR;
                 }
 
                 //BizSalesReportProc bizSalesReportProc = new BizSalesReportProc(bizSalesReportDaoCtrl, flow);
-                BizSalesSummaryProc bizSalesSummaryProc = new BizSalesSummaryProc(bizSalesSummaryDaoCtrl, flow);
                 //HoldingRecordProc holdingRecordProc = new HoldingRecordProc(holdingRecordDaoCtrl, flow);
-                InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(inOutStoreRecordDaoCtrl, flow);
-                SalesSummaryProc salesSummaryProc = new SalesSummaryProc(salesSummaryDaoCtrl, flow);
                 //StoreOrderRecordProc storeOrderRecordProc = new StoreOrderRecordProc(sotreOrderRecordDaoCtrl, flow);
                 StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
+                InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(inOutStoreRecordDaoCtrl, flow);
+                SalesSummaryProc salesSummaryProc = new SalesSummaryProc(salesSummaryDaoCtrl, flow);
+                BizSalesSummaryProc bizSalesSummaryProc = new BizSalesSummaryProc(bizSalesSummaryDaoCtrl, flow);
                 StoreSkuSummaryProc storeSkuSummaryProc = new StoreSkuSummaryProc(storeSkuSummaryDaoCtrl, flow);
                 try {
                     LockUtil.lock(aid);
@@ -1326,6 +1424,7 @@ public class StoreService{
                             return rt;
                         }
                         transactionCtrl.commit();
+                        bizSalesSummaryProc.deleteDirtyCache(aid);
                     }
                 }finally {
                     LockUtil.unlock(aid);

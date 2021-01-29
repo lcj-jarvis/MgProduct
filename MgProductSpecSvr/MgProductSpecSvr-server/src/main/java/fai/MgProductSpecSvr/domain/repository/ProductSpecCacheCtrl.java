@@ -13,22 +13,6 @@ import java.util.Set;
 
 public class ProductSpecCacheCtrl extends CacheCtrl {
 
-	/**
-	 * 追加缓存
-	 */
-	public static boolean appendPdScList(int aid, int pdId, FaiList<Param> infoList){
-		if(!m_cache.exists(getCacheKey(aid, pdId))){
-			return true;
-		}
-		if(initPdScList(aid, pdId, infoList)){
-			return true;
-		}
-		if(delCache(aid, pdId)){
-			return true;
-		}
-		Log.logErr("delAllCache error;aid=%s;pdId=%s;", aid, pdId);
-		return false;
-	}
 
 	/**
 	 * 初始化缓存
@@ -40,29 +24,6 @@ public class ProductSpecCacheCtrl extends CacheCtrl {
 		return m_cache.hmsetFaiList(getCacheKey(aid, pdId), ProductSpecEntity.Info.PD_SC_ID, Var.Type.INT, infoList, ProductSpecDto.Key.INFO, ProductSpecDto.CacheDto.getCacheDto());
 	}
 
-	/**
-	 * 移除部分缓存
-	 */
-	public static boolean removeCache(int aid, int pdId, FaiList<Integer> pdScIdList){
-		if(pdScIdList == null || pdScIdList.isEmpty()){
-			return false;
-		}
-		if(!m_cache.exists(getCacheKey(aid, pdId))){
-			return true;
-		}
-		String[] keys = new String[pdScIdList.size()];
-		for (int i = 0; i < pdScIdList.size(); i++) {
-			keys[i] = String.valueOf(pdScIdList.get(i));
-		}
-		if(m_cache.hdel(getCacheKey(aid, pdId), keys)){
-			return true;
-		}
-		if(delCache(aid, pdId)){
-			return true;
-		}
-		Log.logErr("delAllCache error;aid=%s;pdId=%s;", aid, pdId);
-		return false;
-	}
 	public static boolean delCache(int aid, Set<Integer> pdIdSet) {
 		if(pdIdSet == null || pdIdSet.isEmpty()){
 			return true;
@@ -84,13 +45,6 @@ public class ProductSpecCacheCtrl extends CacheCtrl {
 			return true;
 		}
 		return m_cache.del(getCacheKey(aid, pdId));
-	}
-
-	/**
-	 * 替换缓存
-	 */
-	public static boolean replaceCache(int aid, int pdId, FaiList<Param> cacheDataList) {
-		return appendPdScList(aid, pdId, cacheDataList);
 	}
 
 	public static boolean hasCache(int aid, int pdId){

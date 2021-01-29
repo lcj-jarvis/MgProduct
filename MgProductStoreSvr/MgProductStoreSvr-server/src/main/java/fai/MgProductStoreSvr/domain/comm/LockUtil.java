@@ -19,7 +19,6 @@ public class LockUtil {
             Lock lock = lockGenerator.gen(LOCK_TYPE, String.valueOf(aid), lockLease, TimeUnit.MILLISECONDS, retryLockTime);
             lockWarp = new LockWarp(aid, lock);
             threadIdLockWarpCache.putIfAbsent(Thread.currentThread().getId(), lockWarp);
-            Log.logDbg("whalelog  threadId=%s;aid=%s", Thread.currentThread().getId(), aid);
         }
         if(lockWarp.holdingAid != aid){
             Log.logErr("holding err;threadId=%s;aid=%s;holdingAid=%s;", Thread.currentThread().getId(), aid, lockWarp.holdingAid);
@@ -35,7 +34,6 @@ public class LockUtil {
         }
         lockWarp.lock.unlock();
         if(lockWarp.count.decrementAndGet() == 0){
-            Log.logDbg("whalelog  threadId=%s;aid=%s", Thread.currentThread().getId(), aid);
             threadIdLockWarpCache.remove(Thread.currentThread().getId());
         }
     }

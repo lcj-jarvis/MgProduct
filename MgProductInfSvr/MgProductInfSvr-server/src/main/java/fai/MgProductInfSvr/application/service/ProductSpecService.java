@@ -408,6 +408,7 @@ public class ProductSpecService extends MgProductInfService {
                 }
             }
             FaiList<Param> spuToSkuInfoList = new FaiList<>();
+            HashSet<Integer> alreadyHavePdIdSet = new HashSet<>();
             for (Param info : spuInfoList) {
                 Integer ownerRlPdId = info.getInt(ProductTempEntity.ProductInfo.OWNER_RL_PD_ID);
                 Integer pdId = ownerRlPdId_pdIdMap.get(ownerRlPdId);
@@ -420,12 +421,15 @@ public class ProductSpecService extends MgProductInfService {
                                 .setString(ProductSpecValObj.InPdScValList.Item.NAME, specValName)
                                 .setBoolean(ProductSpecValObj.InPdScValList.Item.CHECK, true)
                 );
-                spuToSkuInfoList.add(
-                        new Param()
-                        .setInt(ProductSpecEntity.Info.PD_ID, pdId)
-                        .setString(ProductSpecEntity.Info.NAME, specName)
-                        .setList(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST, inPdScValList)
-                );
+                if(!alreadyHavePdIdSet.contains(pdId)){
+                    spuToSkuInfoList.add(
+                            new Param()
+                                    .setInt(ProductSpecEntity.Info.PD_ID, pdId)
+                                    .setString(ProductSpecEntity.Info.NAME, specName)
+                                    .setList(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST, inPdScValList)
+                    );
+                    alreadyHavePdIdSet.add(pdId);
+                }
             }
 
             FaiList<Param> simplePdScSkuInfoList = new FaiList<>();

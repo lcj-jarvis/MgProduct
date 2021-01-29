@@ -30,6 +30,12 @@ public class ProductStoreDto {
             g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.SYS_UPDATE_TIME, 18, Var.Type.CALENDAR);
             g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.SYS_CREATE_TIME, 19, Var.Type.CALENDAR);
             g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.IN_PD_SC_STR_NAME_LIST, 20, Var.Type.FAI_LIST);
+            g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.FIFO_TOTAL_COST, 21, Var.Type.LONG);
+            g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.MW_TOTAL_COST, 22, Var.Type.LONG);
+            g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.TID, 23, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.SITE_ID, 24, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.LGID, 25, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, 26, Var.Type.INT);
         }
         public static ParamDef getInfoDto() {
             return g_infoDtoDef;
@@ -65,6 +71,7 @@ public class ProductStoreDto {
             g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.IN_PD_SC_STR_NAME_LIST, 23, Var.Type.FAI_LIST);
             g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.RL_ORDER_CODE, 24, Var.Type.STRING);
             g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.RL_REFUND_ID, 25, Var.Type.STRING);
+            g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.MW_PRICE, 26, Var.Type.LONG);
 
         }
         public static ParamDef getInfoDto() {
@@ -122,8 +129,8 @@ public class ProductStoreDto {
             g_infoDtoDef.add(ProductStoreEntity.StoreSkuSummaryInfo.COUNT, 3, Var.Type.INT);
             g_infoDtoDef.add(ProductStoreEntity.StoreSkuSummaryInfo.REMAIN_COUNT, 4, Var.Type.INT);
             g_infoDtoDef.add(ProductStoreEntity.StoreSkuSummaryInfo.HOLDING_COUNT, 5, Var.Type.INT);
-
-
+            g_infoDtoDef.add(ProductStoreEntity.StoreSkuSummaryInfo.FIFO_TOTAL_COST, 6, Var.Type.LONG);
+            g_infoDtoDef.add(ProductStoreEntity.StoreSkuSummaryInfo.MW_TOTAL_COST, 7, Var.Type.LONG);
             g_infoDtoDef.add(ProductStoreEntity.StoreSkuSummaryInfo.SYS_CREATE_TIME, 8, Var.Type.CALENDAR);
             g_infoDtoDef.add(ProductStoreEntity.StoreSkuSummaryInfo.SYS_UPDATE_TIME, 9, Var.Type.CALENDAR);
         }

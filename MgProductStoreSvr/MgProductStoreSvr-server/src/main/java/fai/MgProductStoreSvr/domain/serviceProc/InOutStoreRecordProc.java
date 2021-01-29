@@ -6,7 +6,6 @@ import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordValObj;
 import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuEntity;
 import fai.MgProductStoreSvr.domain.repository.InOutStoreRecordDaoCtrl;
 import fai.comm.util.*;
-import org.apache.poi.ss.formula.functions.T;
 
 import java.math.BigDecimal;
 import java.util.*;

@@ -159,5 +159,6 @@ public class ProductStoreDto {
         public static final int TOTAL_SIZE = 16;
         public static final int IN_OUT_STORE_RECODR = 17;
         public static final int IS_BIZ = 18;
+        public static final int STR_LIST = 19;
     }
 }

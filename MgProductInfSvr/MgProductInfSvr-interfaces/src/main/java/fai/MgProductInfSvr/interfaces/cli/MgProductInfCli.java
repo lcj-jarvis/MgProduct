@@ -2187,10 +2187,21 @@ public class MgProductInfCli extends FaiClient {
         }
     }
 
+    @Deprecated // 命名不好
+    public int getPdScSkuSalesList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> infoList) {
+        return getPdScSkuSalesStoreList(aid, tid, siteId, lgId, keepPriId1, rlPdId, infoList);
+    }
+
+    public int getPdScSkuSalesStoreList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> infoList) {
+        return getPdScSkuSalesStoreList(aid, tid, siteId, lgId, keepPriId1, rlPdId, null, infoList);
+    }
+
     /**
      * 获取商品规格库存销售sku
+     * @param useOwnerFieldList 使用 创建商品的业务数据 覆盖 查询结果关联的业务数据
+     *   例如：悦客价格是由总店控制，门店只能使用总店的价格，这时查询门店的的信息时，可以选择使用总店的价格进行覆盖
      */
-    public int getPdScSkuSalesList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> infoList) {
+    public int getPdScSkuSalesStoreList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<String> useOwnerFieldList, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2212,6 +2223,9 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductStoreDto.Key.LGID, lgId);
             sendBody.putInt(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1);
             sendBody.putInt(ProductStoreDto.Key.RL_PD_ID, rlPdId);
+            if(useOwnerFieldList != null){
+                useOwnerFieldList.toBuffer(sendBody, ProductStoreDto.Key.STR_LIST);
+            }
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductInfCmd.StoreSalesSkuCmd.GET_LIST);

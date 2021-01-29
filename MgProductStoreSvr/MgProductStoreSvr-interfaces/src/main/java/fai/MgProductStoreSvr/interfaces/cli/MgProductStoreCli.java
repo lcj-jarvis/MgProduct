@@ -406,7 +406,7 @@ public class MgProductStoreCli extends FaiClient {
     /**
      * 获取商品规格库存销售sku
      */
-    public int getPdScSkuSalesStore(int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<Param> infoList){
+    public int getPdScSkuSalesStore(int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<Param> infoList, FaiList<String> useSourceFieldList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -427,6 +427,9 @@ public class MgProductStoreCli extends FaiClient {
             sendBody.putInt(StoreSalesSkuDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(StoreSalesSkuDto.Key.PD_ID, pdId);
             sendBody.putInt(StoreSalesSkuDto.Key.RL_PD_ID, rlPdId);
+            if(useSourceFieldList != null){
+                useSourceFieldList.toBuffer(sendBody, StoreSalesSkuDto.Key.STR_LIST);
+            }
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.GET_LIST);

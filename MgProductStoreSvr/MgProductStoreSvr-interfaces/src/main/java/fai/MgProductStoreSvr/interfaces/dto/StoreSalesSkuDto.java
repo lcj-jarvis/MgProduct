@@ -44,6 +44,7 @@ public class StoreSalesSkuDto {
         public static final int IN_OUT_STORE_RECORD_INFO = 15;
         public static final int SKU_ID_COUNT_LIST = 16;
         public static final int UID_LIST = 17;
+        public static final int STR_LIST = 18;
     }
 
     public static class CacheDto{

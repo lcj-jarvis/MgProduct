@@ -17,6 +17,7 @@ import fai.comm.mq.exception.MqClientException;
 import fai.comm.mq.message.FaiMqMessage;
 import fai.comm.util.*;
 import fai.middleground.svrutil.repository.TransactionCtrl;
+import org.apache.poi.ss.formula.functions.T;
 
 import java.io.IOException;
 import java.util.*;
@@ -130,7 +131,7 @@ public class StoreService{
                 LockUtil.unlock(aid);
                 transactionCtrl.closeDao();
             }
-            Log.logStd("ok!aid=%s;unionPriId=%s;pdId=%s;rlPdId=%s;",aid, unionPriId, pdId, rlPdId);
+            Log.logStd("ok;aid=%s;unionPriId=%s;pdId=%s;rlPdId=%s;",aid, unionPriId, pdId, rlPdId);
         }finally {
             if(rt == Errno.OK){
                 FaiBuffer sendBuf = new FaiBuffer(true);
@@ -310,7 +311,7 @@ public class StoreService{
             }
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
-            Log.logStd("ok!aid=%s;",aid);
+            Log.logStd("ok;aid=%s;",aid);
         }finally {
             stat.end(rt != Errno.OK, rt);
         }
@@ -407,7 +408,7 @@ public class StoreService{
             }
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
-            Log.logStd("ok!aid=%s;",aid);
+            Log.logStd("ok;aid=%s;",aid);
         }finally {
             stat.end(rt != Errno.OK, rt);
         }
@@ -489,7 +490,7 @@ public class StoreService{
             }
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
-            Log.logStd("ok!aid=%s;unionPriId=%s;pdId=%s;rlPdId=%s;",aid, unionPriId, pdId, rlPdId);
+            Log.logStd("ok;aid=%s;unionPriId=%s;pdId=%s;rlPdId=%s;",aid, unionPriId, pdId, rlPdId);
         }finally {
             stat.end(rt != Errno.OK, rt);
         }
@@ -819,7 +820,7 @@ public class StoreService{
     /**
      * 获取库存销售sku信息
      */
-    public int getPdScSkuSalesStore(FaiSession session, int flow, int aid, int tid, int unionPriId, int pdId, int rlPdId) throws IOException {
+    public int getPdScSkuSalesStore(FaiSession session, int flow, int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<String> useSourceFieldList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -828,19 +829,52 @@ public class StoreService{
                 Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;pdId=%s;rlPdId=%s;", flow, aid, unionPriId, pdId, rlPdId);
                 return rt;
             }
-            Ref<FaiList<Param>> listRef = new Ref<>();
+            FaiList<Param> list;
+
             StoreSalesSkuDaoCtrl storeSalesSkuDaoCtrl = StoreSalesSkuDaoCtrl.getInstance(flow, aid);
             try {
                 StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
+                Ref<FaiList<Param>> listRef = new Ref<>();
                 rt = storeSalesSkuProc.getList(aid, unionPriId, pdId, listRef);
                 if(rt != Errno.OK){
                     return rt;
                 }
+                list = listRef.value;
+                if(useSourceFieldList != null && !useSourceFieldList.isEmpty()){
+                    Set<String> useSourceFieldSet = new HashSet<>(useSourceFieldList);
+                    useSourceFieldSet.retainAll(Arrays.asList(StoreSalesSkuEntity.getValidKeys()));
+                    if(list.size() > 0 && useSourceFieldSet.size() > 0){
+                        useSourceFieldSet.add(StoreSalesSkuEntity.Info.SKU_ID);
+                        Param first = list.get(0);
+                        Integer tmpUnionPriId = first.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+                        Integer sourceUnionPriId = first.getInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID);
+                        if(tmpUnionPriId != sourceUnionPriId){
+                            FaiList<Long> skuIdList = Misc2.getValList(list, StoreSalesSkuEntity.Info.SKU_ID);
+                            listRef = new Ref<>();
+                            rt = storeSalesSkuProc.getListFromDao(aid, sourceUnionPriId, skuIdList, listRef, useSourceFieldSet);
+                            if(rt != Errno.OK){
+                                return rt;
+                            }
+                            Map<Long, Param> skuIdFiledMap = new HashMap<>(listRef.value.size()*4/3+1);
+                            for (Param sourceFieldInfo : listRef.value) {
+                                Long skuId = sourceFieldInfo.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                                skuIdFiledMap.put(skuId, sourceFieldInfo);
+                            }
+                            for (Param info : list) {
+                                Long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                                Param sourceFieldInfo = skuIdFiledMap.get(skuId);
+                                for (String sourceField : useSourceFieldSet) {
+                                    info.assign(sourceFieldInfo, sourceField);
+                                }
+                            }
+                        }
+                    }
+                }
             }finally {
                 storeSalesSkuDaoCtrl.closeDao();
             }
-            sendPdScSkuSalesStore(session, listRef.value);
-            Log.logDbg("aid=%d;unionPriId=%s;pdId=%s;rlPdId=%s;", aid, unionPriId, pdId, rlPdId);
+            sendPdScSkuSalesStore(session, list);
+            Log.logDbg("ok;aid=%d;unionPriId=%s;pdId=%s;rlPdId=%s;", aid, unionPriId, pdId, rlPdId);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }
@@ -867,7 +901,7 @@ public class StoreService{
                 storeSalesSkuDaoCtrl.closeDao();
             }
             sendPdScSkuSalesStore(session, listRef.value);
-            Log.logDbg("aid=%d;skuId=%s;unionPriIdList=%s;", aid, skuId, unionPriIdList);
+            Log.logDbg("ok;aid=%d;skuId=%s;unionPriIdList=%s;", aid, skuId, unionPriIdList);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }
@@ -1067,7 +1101,7 @@ public class StoreService{
             }
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
-            Log.logDbg("ok!;aid=%d;ownerUnionPriId=%s;", aid, ownerUnionPriId);
+            Log.logDbg("ok;;aid=%d;ownerUnionPriId=%s;", aid, ownerUnionPriId);
         }finally {
             stat.end(rt != Errno.OK, rt);
         }
@@ -1115,7 +1149,7 @@ public class StoreService{
                 inOutStoreRecordDaoCtrl.closeDao();
             }
             sendInOutRecord(session, searchArg, listRef);
-            Log.logDbg("aid=%d;searchArg.matcher.toJson=%s", aid, searchArg.matcher.toJson());
+            Log.logDbg("ok;aid=%d;searchArg.matcher.toJson=%s", aid, searchArg.matcher.toJson());
         }finally {
             stat.end(rt != Errno.OK, rt);
         }
@@ -1279,7 +1313,7 @@ public class StoreService{
                 bizSalesSummaryDaoCtrl.closeDao();
             }
             sendBizSalesSummary(session, listRef.value);
-            Log.logDbg("aid=%d;unionPriId=%s;pdIdList=%s;", aid, unionPriId, pdIdList);
+            Log.logDbg("ok;aid=%d;unionPriId=%s;pdIdList=%s;", aid, unionPriId, pdIdList);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }
@@ -1310,7 +1344,7 @@ public class StoreService{
                 bizSalesSummaryDaoCtrl.closeDao();
             }
             sendBizSalesSummary(session, listRef.value);
-            Log.logDbg("aid=%d;pdId=%s;", aid, pdId);
+            Log.logDbg("ok;aid=%d;pdId=%s;", aid, pdId);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }
@@ -1345,7 +1379,7 @@ public class StoreService{
                 salesSummaryDaoCtrl.closeDao();
             }
             sendSalesSummary(session, listRef.value);
-            Log.logDbg("aid=%d;unionPriId=%s;pdIdList=%s;", aid, unionPriId, pdIdList);
+            Log.logDbg("ok;aid=%d;unionPriId=%s;pdIdList=%s;", aid, unionPriId, pdIdList);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }
@@ -1472,7 +1506,7 @@ public class StoreService{
                 storeSalesSkuDaoCtrl.closeDao();
             }
             sendStoreSkuSummary(session, searchArg, listRef);
-            Log.logDbg("aid=%d;searchArg.matcher.toJson=%s", aid, searchArg.matcher.toJson());
+            Log.logDbg("ok;aid=%d;searchArg.matcher.toJson=%s", aid, searchArg.matcher.toJson());
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }
@@ -1513,7 +1547,7 @@ public class StoreService{
                 storeSkuSummaryDaoCtrl.closeDao();
             }
             sendStoreSkuSummary(session, searchArg, listRef);
-            Log.logDbg("aid=%d;searchArg.matcher.toJson=%s", aid, searchArg.matcher.toJson());
+            Log.logDbg("ok;aid=%d;searchArg.matcher.toJson=%s", aid, searchArg.matcher.toJson());
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }

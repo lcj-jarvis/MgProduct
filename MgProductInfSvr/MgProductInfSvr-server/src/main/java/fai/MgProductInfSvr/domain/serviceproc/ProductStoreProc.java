@@ -160,14 +160,14 @@ public class ProductStoreProc {
     /**
      * 获取商品规格库存销售sku
      */
-    public int getPdScSkuSalesStore(int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<Param> infoList) {
+    public int getPdScSkuSalesStore(int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<Param> infoList, FaiList<String> useOwnerFieldList) {
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.getPdScSkuSalesStore(aid, tid, unionPriId, pdId, rlPdId, infoList);
+        rt = m_cli.getPdScSkuSalesStore(aid, tid, unionPriId, pdId, rlPdId, infoList, useOwnerFieldList);
         if (rt != Errno.OK) {
             Log.logErr(rt, "getPdScSkuSalesStore error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;

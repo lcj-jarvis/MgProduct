@@ -236,7 +236,7 @@ public class ProductStoreService extends MgProductInfService {
     /**
      * 获取商品规格库存销售sku
      */
-    public int getPdScSkuSalesStore(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId)  throws IOException {
+    public int getPdScSkuSalesStore(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<String> useOwnerFieldList)  throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -264,7 +264,7 @@ public class ProductStoreService extends MgProductInfService {
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
             FaiList<Param> infoList = new FaiList<Param>();
-            rt = productStoreProc.getPdScSkuSalesStore(aid, tid, unionPriId, pdId, rlPdId, infoList);
+            rt = productStoreProc.getPdScSkuSalesStore(aid, tid, unionPriId, pdId, rlPdId, infoList, useOwnerFieldList);
             if(rt != Errno.OK) {
                 return rt;
             }

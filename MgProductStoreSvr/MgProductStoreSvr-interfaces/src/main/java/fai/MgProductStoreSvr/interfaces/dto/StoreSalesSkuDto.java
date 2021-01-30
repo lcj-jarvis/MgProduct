@@ -26,8 +26,8 @@ public class StoreSalesSkuDto {
         g_dtoDef.add(StoreSalesSkuEntity.Info.DURATION, 15, Var.Type.DOUBLE);
         g_dtoDef.add(StoreSalesSkuEntity.Info.VIRTUAL_COUNT, 16, Var.Type.INT);
         g_dtoDef.add(StoreSalesSkuEntity.Info.FLAG, 17, Var.Type.INT);
-        g_dtoDef.add(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, 18, Var.Type.CALENDAR);
-        g_dtoDef.add(StoreSalesSkuEntity.Info.SYS_CREATE_TIME, 19, Var.Type.CALENDAR);
+        g_dtoDef.add(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, 18);
+        g_dtoDef.add(StoreSalesSkuEntity.Info.SYS_CREATE_TIME, 19);
         g_dtoDef.add(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, 20, Var.Type.LONG);
         g_dtoDef.add(StoreSalesSkuEntity.Info.MW_TOTAL_COST, 21, Var.Type.LONG);
     }
@@ -64,8 +64,8 @@ public class StoreSalesSkuDto {
             g_manageInfoDef.add(StoreSalesSkuEntity.Info.MAX_AMOUNT, 14, Var.Type.INT);
             g_manageInfoDef.add(StoreSalesSkuEntity.Info.DURATION, 15, Var.Type.DOUBLE);
             g_manageInfoDef.add(StoreSalesSkuEntity.Info.FLAG, 17, Var.Type.INT);
-            g_manageInfoDef.add(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, 18, Var.Type.CALENDAR);
-            g_manageInfoDef.add(StoreSalesSkuEntity.Info.SYS_CREATE_TIME, 19, Var.Type.CALENDAR);
+            g_manageInfoDef.add(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, 18);
+            g_manageInfoDef.add(StoreSalesSkuEntity.Info.SYS_CREATE_TIME, 19);
             g_manageInfoDef.add(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, 20, Var.Type.LONG);
             g_manageInfoDef.add(StoreSalesSkuEntity.Info.MW_TOTAL_COST, 21, Var.Type.LONG);
         }

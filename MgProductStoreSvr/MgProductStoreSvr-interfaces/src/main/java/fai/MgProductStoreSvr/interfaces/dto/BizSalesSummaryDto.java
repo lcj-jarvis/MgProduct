@@ -23,8 +23,8 @@ public class BizSalesSummaryDto {
         g_dtoDef.add(BizSalesSummaryEntity.Info.REMAIN_COUNT, 12, Var.Type.INT);
         g_dtoDef.add(BizSalesSummaryEntity.Info.HOLDING_COUNT, 13, Var.Type.INT);
         g_dtoDef.add(BizSalesSummaryEntity.Info.FLAG, 14, Var.Type.INT);
-        g_dtoDef.add(BizSalesSummaryEntity.Info.SYS_CREATE_TIME, 15, Var.Type.CALENDAR);
-        g_dtoDef.add(BizSalesSummaryEntity.Info.SYS_UPDATE_TIME, 16, Var.Type.CALENDAR);
+        g_dtoDef.add(BizSalesSummaryEntity.Info.SYS_CREATE_TIME, 15);
+        g_dtoDef.add(BizSalesSummaryEntity.Info.SYS_UPDATE_TIME, 16);
         g_dtoDef.add(BizSalesSummaryEntity.Info.DISTRIBUTE_LIST, 17, Var.Type.STRING);
     }
 

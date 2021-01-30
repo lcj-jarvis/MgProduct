@@ -2093,9 +2093,15 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductStoreDto.Key.SITE_ID, siteId);
             sendBody.putInt(ProductStoreDto.Key.LGID, lgId);
             sendBody.putInt(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1);
-            skuIdCountList.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.StoreSalesSku.getInfoDto());
+            m_rt = skuIdCountList.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.StoreSalesSku.getInfoDto());
+            if(m_rt != Errno.OK){
+                return m_rt;
+            }
             sendBody.putString(ProductStoreDto.Key.RL_ORDER_CODE, rlOrderCode);
-            outStoreRecordInfo.toBuffer(sendBody, ProductStoreDto.Key.IN_OUT_STORE_RECODR, ProductStoreDto.InOutStoreRecord.getInfoDto());
+            m_rt = outStoreRecordInfo.toBuffer(sendBody, ProductStoreDto.Key.IN_OUT_STORE_RECODR, ProductStoreDto.InOutStoreRecord.getInfoDto());
+            if(m_rt != Errno.OK){
+                return m_rt;
+            }
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductInfCmd.StoreSalesSkuCmd.BATCH_REDUCE_HOLDING_STORE);
@@ -2154,7 +2160,10 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductStoreDto.Key.SITE_ID, siteId);
             sendBody.putInt(ProductStoreDto.Key.LGID, lgId);
             sendBody.putInt(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1);
-            skuIdCountList.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.StoreSalesSku.getInfoDto());
+            m_rt = skuIdCountList.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.StoreSalesSku.getInfoDto());
+            if(m_rt != Errno.OK){
+                return m_rt;
+            }
             sendBody.putString(ProductStoreDto.Key.RL_ORDER_CODE, rlOrderCode);
             sendBody.putInt(ProductStoreDto.Key.REDUCE_MODE, reduceMode);
 
@@ -2224,7 +2233,10 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1);
             sendBody.putInt(ProductStoreDto.Key.RL_PD_ID, rlPdId);
             if(useOwnerFieldList != null){
-                useOwnerFieldList.toBuffer(sendBody, ProductStoreDto.Key.STR_LIST);
+                m_rt = useOwnerFieldList.toBuffer(sendBody, ProductStoreDto.Key.STR_LIST);
+                if(m_rt != Errno.OK){
+                    return m_rt;
+                }
             }
 
             FaiProtocol sendProtocol = new FaiProtocol();
@@ -2613,7 +2625,10 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductStoreDto.Key.SITE_ID, siteId);
             sendBody.putInt(ProductStoreDto.Key.LGID, lgId);
             sendBody.putInt(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1);
-            rlPdIdList.toBuffer(sendBody, ProductStoreDto.Key.ID_LIST);
+            m_rt = rlPdIdList.toBuffer(sendBody, ProductStoreDto.Key.ID_LIST);
+            if(m_rt != Errno.OK){
+                return m_rt;
+            }
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductInfCmd.BizSalesSummaryCmd.GET_LIST_BY_PD_ID_LIST);
@@ -2779,7 +2794,10 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductStoreDto.Key.SITE_ID, siteId);
             sendBody.putInt(ProductStoreDto.Key.LGID, lgId);
             sendBody.putInt(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1);
-            searchArg.toBuffer(sendBody, ProductStoreDto.Key.SEARCH_ARG);
+            m_rt = searchArg.toBuffer(sendBody, ProductStoreDto.Key.SEARCH_ARG);
+            if(m_rt != Errno.OK){
+                return m_rt;
+            }
             sendBody.putBoolean(ProductStoreDto.Key.IS_BIZ, isBiz);
 
             FaiProtocol sendProtocol = new FaiProtocol();
@@ -2861,7 +2879,10 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductTempDto.Key.SITE_ID, ownerSiteId);
             sendBody.putInt(ProductTempDto.Key.LGID, ownerLgId);
             sendBody.putInt(ProductTempDto.Key.KEEP_PRIID1, ownerKeepPriId1);
-            spuInfoList.toBuffer(sendBody, ProductTempDto.Key.INFO_LIST, ProductTempDto.Info.getInfoDto());
+            m_rt = spuInfoList.toBuffer(sendBody, ProductTempDto.Key.INFO_LIST, ProductTempDto.Info.getInfoDto());
+            if(m_rt != Errno.OK){
+                return m_rt;
+            }
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductInfCmd.TempCmd.SYN_SPU_TO_SKU);
@@ -2920,7 +2941,10 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductTempDto.Key.SITE_ID, ownerSiteId);
             sendBody.putInt(ProductTempDto.Key.LGID, ownerLgId);
             sendBody.putInt(ProductTempDto.Key.KEEP_PRIID1, ownerKeepPriId1);
-            recordInfoList.toBuffer(sendBody, ProductTempDto.Key.INFO_LIST, ProductTempDto.StoreRecord.getInfoDto());
+            m_rt = recordInfoList.toBuffer(sendBody, ProductTempDto.Key.INFO_LIST, ProductTempDto.StoreRecord.getInfoDto());
+            if(m_rt != Errno.OK){
+                return m_rt;
+            }
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductInfCmd.TempCmd.SYN_IN_OUT_STORE_RECORD);

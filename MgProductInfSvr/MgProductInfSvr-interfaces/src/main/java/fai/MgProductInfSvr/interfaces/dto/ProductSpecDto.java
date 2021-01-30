@@ -34,8 +34,8 @@ public class ProductSpecDto {
             g_dtoDef.add(ProductSpecEntity.SpecInfo.SORT, 6, Var.Type.INT);
             g_dtoDef.add(ProductSpecEntity.SpecInfo.FLAG, 7, Var.Type.INT);
             g_dtoDef.add(ProductSpecEntity.SpecInfo.IN_PD_SC_VAL_LIST, 8, getInPdScValListDtoDef(), Var.Type.FAI_LIST);
-            g_dtoDef.add(ProductSpecEntity.SpecInfo.SYS_CREATE_TIME, 9, Var.Type.CALENDAR);
-            g_dtoDef.add(ProductSpecEntity.SpecInfo.SYS_UPDATE_TIME, 10, Var.Type.CALENDAR);
+            g_dtoDef.add(ProductSpecEntity.SpecInfo.SYS_CREATE_TIME, 9);
+            g_dtoDef.add(ProductSpecEntity.SpecInfo.SYS_UPDATE_TIME, 10);
         }
 
         public static ParamDef getInfoDto() {
@@ -57,8 +57,8 @@ public class ProductSpecDto {
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_ID_LIST, 6, Var.Type.FAI_LIST);
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_NAME_LIST, 7, Var.Type.FAI_LIST);
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.FLAG, 8, Var.Type.INT);
-            g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SYS_CREATE_TIME, 9, Var.Type.CALENDAR);
-            g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SYS_UPDATE_TIME, 10, Var.Type.CALENDAR);
+            g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SYS_CREATE_TIME, 9);
+            g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SYS_UPDATE_TIME, 10);
         }
         public static ParamDef getInfoDto() {
             return g_dtoDef;
@@ -78,8 +78,8 @@ public class ProductSpecDto {
             g_dtoDef.add(ProductSpecEntity.SpecTempInfo.SOURCE_TID, 4, Var.Type.INT);
             g_dtoDef.add(ProductSpecEntity.SpecTempInfo.FLAG, 5, Var.Type.INT);
             g_dtoDef.add(ProductSpecEntity.SpecTempInfo.SORT, 6, Var.Type.INT);
-            g_dtoDef.add(ProductSpecEntity.SpecTempInfo.SYS_CREATE_TIME, 7, Var.Type.CALENDAR);
-            g_dtoDef.add(ProductSpecEntity.SpecTempInfo.SYS_UPDATE_TIME, 8, Var.Type.CALENDAR);
+            g_dtoDef.add(ProductSpecEntity.SpecTempInfo.SYS_CREATE_TIME, 7);
+            g_dtoDef.add(ProductSpecEntity.SpecTempInfo.SYS_UPDATE_TIME, 8);
         }
 
         public static ParamDef getInfoDto() {
@@ -110,8 +110,8 @@ public class ProductSpecDto {
             g_dtoDef.add(ProductSpecEntity.SpecTempDetailInfo.SORT, 5, Var.Type.INT);
             g_dtoDef.add(ProductSpecEntity.SpecTempDetailInfo.FLAG, 6, Var.Type.INT);
             g_dtoDef.add(ProductSpecEntity.SpecTempDetailInfo.IN_SC_VAL_LIST, 7, getInScValListDtoDef(), Var.Type.FAI_LIST);
-            g_dtoDef.add(ProductSpecEntity.SpecTempDetailInfo.SYS_CREATE_TIME, 8, Var.Type.CALENDAR);
-            g_dtoDef.add(ProductSpecEntity.SpecTempDetailInfo.SYS_UPDATE_TIME, 9, Var.Type.CALENDAR);
+            g_dtoDef.add(ProductSpecEntity.SpecTempDetailInfo.SYS_CREATE_TIME, 8);
+            g_dtoDef.add(ProductSpecEntity.SpecTempDetailInfo.SYS_UPDATE_TIME, 9);
         }
 
         public static ParamDef getInfoDto() {

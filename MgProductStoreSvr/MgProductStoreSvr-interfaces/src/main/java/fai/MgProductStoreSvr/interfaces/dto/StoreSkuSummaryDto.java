@@ -16,8 +16,8 @@ public class StoreSkuSummaryDto {
         g_dtoDef.add(StoreSkuSummaryEntity.Info.HOLDING_COUNT, 6, Var.Type.INT);
         g_dtoDef.add(StoreSkuSummaryEntity.Info.FIFO_TOTAL_COST, 7, Var.Type.LONG);
         g_dtoDef.add(StoreSkuSummaryEntity.Info.MW_TOTAL_COST, 8, Var.Type.LONG);
-        g_dtoDef.add(StoreSkuSummaryEntity.Info.SYS_CREATE_TIME, 9, Var.Type.CALENDAR);
-        g_dtoDef.add(StoreSkuSummaryEntity.Info.SYS_UPDATE_TIME, 10, Var.Type.CALENDAR);
+        g_dtoDef.add(StoreSkuSummaryEntity.Info.SYS_CREATE_TIME, 9);
+        g_dtoDef.add(StoreSkuSummaryEntity.Info.SYS_UPDATE_TIME, 10);
     }
 
     public static ParamDef getInfoDto() {

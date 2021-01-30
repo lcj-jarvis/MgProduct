@@ -28,8 +28,8 @@ public class ProductSpecDto {
         g_dtoDef.add(ProductSpecEntity.Info.SORT, 6, Var.Type.INT);
         g_dtoDef.add(ProductSpecEntity.Info.FLAG, 7, Var.Type.INT);
         g_dtoDef.add(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST, 8, getInPdScValListDtoDef(), Var.Type.FAI_LIST);
-        g_dtoDef.add(ProductSpecEntity.Info.SYS_CREATE_TIME, 9, Var.Type.CALENDAR);
-        g_dtoDef.add(ProductSpecEntity.Info.SYS_UPDATE_TIME, 10, Var.Type.CALENDAR);
+        g_dtoDef.add(ProductSpecEntity.Info.SYS_CREATE_TIME, 9);
+        g_dtoDef.add(ProductSpecEntity.Info.SYS_UPDATE_TIME, 10);
         g_dtoDef.add(ProductSpecEntity.Info.SOURCE_UNION_PRI_ID, 11, Var.Type.INT);
     }
 
@@ -74,8 +74,8 @@ public class ProductSpecDto {
             g_cacheDtoDef.add(ProductSpecEntity.Info.SORT, 6, Var.Type.INT);
             g_cacheDtoDef.add(ProductSpecEntity.Info.FLAG, 7, Var.Type.INT);
             g_cacheDtoDef.add(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST, 8, getInPdScValListDtoDef(), Var.Type.FAI_LIST);
-            g_cacheDtoDef.add(ProductSpecEntity.Info.SYS_CREATE_TIME, 9, Var.Type.CALENDAR);
-            g_cacheDtoDef.add(ProductSpecEntity.Info.SYS_UPDATE_TIME, 10, Var.Type.CALENDAR);
+            g_cacheDtoDef.add(ProductSpecEntity.Info.SYS_CREATE_TIME, 9);
+            g_cacheDtoDef.add(ProductSpecEntity.Info.SYS_UPDATE_TIME, 10);
             g_cacheDtoDef.add(ProductSpecEntity.Info.SOURCE_UNION_PRI_ID, 11, Var.Type.INT);
         }
 

@@ -14,8 +14,8 @@ public class SpecTempDto {
         g_dtoDef.add(SpecTempEntity.Info.NAME, 3, Var.Type.STRING);
         g_dtoDef.add(SpecTempEntity.Info.FLAG, 4, Var.Type.INT);
         g_dtoDef.add(SpecTempEntity.Info.SORT, 5, Var.Type.INT);
-        g_dtoDef.add(SpecTempEntity.Info.SYS_CREATE_TIME, 6, Var.Type.CALENDAR);
-        g_dtoDef.add(SpecTempEntity.Info.SYS_UPDATE_TIME, 7, Var.Type.CALENDAR);
+        g_dtoDef.add(SpecTempEntity.Info.SYS_CREATE_TIME, 6);
+        g_dtoDef.add(SpecTempEntity.Info.SYS_UPDATE_TIME, 7);
         g_dtoDef.add(SpecTempEntity.Info.SOURCE_TID, 8, Var.Type.INT);
         g_dtoDef.add(SpecTempEntity.Info.SOURCE_UNION_PRI_ID, 9, Var.Type.INT);
     }

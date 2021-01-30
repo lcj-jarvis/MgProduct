@@ -11,7 +11,7 @@ public class SpecStrDto {
 		g_dtoDef.add(SpecStrEntity.Info.AID, 0, Var.Type.INT);
 		g_dtoDef.add(SpecStrEntity.Info.SC_STR_ID, 1, Var.Type.INT);
 		g_dtoDef.add(SpecStrEntity.Info.NAME, 2, Var.Type.STRING);
-		g_dtoDef.add(SpecStrEntity.Info.SYS_CREATE_TIME, 3, Var.Type.CALENDAR);
+		g_dtoDef.add(SpecStrEntity.Info.SYS_CREATE_TIME, 3);
 	}
 
 	public static ParamDef getDtoDef() {

@@ -15,8 +15,8 @@ public class SalesSummaryDto {
         g_dtoDef.add(SalesSummaryEntity.Info.COUNT, 4, Var.Type.INT);
         g_dtoDef.add(SalesSummaryEntity.Info.REMAIN_COUNT, 5, Var.Type.INT);
         g_dtoDef.add(SalesSummaryEntity.Info.HOLDING_COUNT, 6, Var.Type.INT);
-        g_dtoDef.add(SalesSummaryEntity.Info.SYS_CREATE_TIME, 7, Var.Type.CALENDAR);
-        g_dtoDef.add(SalesSummaryEntity.Info.SYS_UPDATE_TIME, 8, Var.Type.CALENDAR);
+        g_dtoDef.add(SalesSummaryEntity.Info.SYS_CREATE_TIME, 7);
+        g_dtoDef.add(SalesSummaryEntity.Info.SYS_UPDATE_TIME, 8);
     }
 
     public static ParamDef getInfoDto() {

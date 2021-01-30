@@ -21,10 +21,10 @@ public class InOutStoreRecordDto {
         g_dtoDef.add(InOutStoreRecordEntity.Info.NUMBER, 11, Var.Type.STRING);
         g_dtoDef.add(InOutStoreRecordEntity.Info.OPT_SID, 12, Var.Type.INT);
         g_dtoDef.add(InOutStoreRecordEntity.Info.HEAD_SID, 13, Var.Type.INT);
-        g_dtoDef.add(InOutStoreRecordEntity.Info.OPT_TIME, 14, Var.Type.CALENDAR);
+        g_dtoDef.add(InOutStoreRecordEntity.Info.OPT_TIME, 14);
         g_dtoDef.add(InOutStoreRecordEntity.Info.FLAG, 15, Var.Type.INT);
-        g_dtoDef.add(InOutStoreRecordEntity.Info.SYS_UPDATE_TIME, 16, Var.Type.CALENDAR);
-        g_dtoDef.add(InOutStoreRecordEntity.Info.SYS_CREATE_TIME, 17, Var.Type.CALENDAR);
+        g_dtoDef.add(InOutStoreRecordEntity.Info.SYS_UPDATE_TIME, 16);
+        g_dtoDef.add(InOutStoreRecordEntity.Info.SYS_CREATE_TIME, 17);
         g_dtoDef.add(InOutStoreRecordEntity.Info.REMARK, 18, Var.Type.STRING);
         g_dtoDef.add(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, 19, Var.Type.INT);
         g_dtoDef.add(InOutStoreRecordEntity.Info.REMAIN_COUNT, 20, Var.Type.INT);

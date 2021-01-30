@@ -21,8 +21,8 @@ public class ProductTempDto {
             g_infoDtoDef.add(ProductTempEntity.ProductInfo.KEEP_PRI_ID1, 4, Var.Type.INT);
             g_infoDtoDef.add(ProductTempEntity.ProductInfo.OWNER_RL_PD_ID, 5, Var.Type.INT);
             g_infoDtoDef.add(ProductTempEntity.ProductInfo.RL_PD_ID, 6, Var.Type.INT);
-            g_infoDtoDef.add(ProductTempEntity.ProductInfo.SYS_UPDATE_TIME, 7, Var.Type.CALENDAR);
-            g_infoDtoDef.add(ProductTempEntity.ProductInfo.SYS_CREATE_TIME, 8, Var.Type.CALENDAR);
+            g_infoDtoDef.add(ProductTempEntity.ProductInfo.SYS_UPDATE_TIME, 7);
+            g_infoDtoDef.add(ProductTempEntity.ProductInfo.SYS_CREATE_TIME, 8);
             g_infoDtoDef.add(ProductTempEntity.ProductInfo.PRICE, 9, Var.Type.LONG);
             g_infoDtoDef.add(ProductTempEntity.ProductInfo.SPEC_NAME, 10, Var.Type.STRING);
             g_infoDtoDef.add(ProductTempEntity.ProductInfo.COUNT, 11, Var.Type.INT);
@@ -57,8 +57,8 @@ public class ProductTempDto {
             g_infoDtoDef.add(ProductTempEntity.StoreRecordInfo.RL_REFUND_ID, 13, Var.Type.STRING);
             g_infoDtoDef.add(ProductTempEntity.StoreRecordInfo.OPT_SID, 14, Var.Type.INT);
             g_infoDtoDef.add(ProductTempEntity.StoreRecordInfo.HEAD_SID, 15, Var.Type.INT);
-            g_infoDtoDef.add(ProductTempEntity.StoreRecordInfo.SYS_UPDATE_TIME, 16, Var.Type.CALENDAR);
-            g_infoDtoDef.add(ProductTempEntity.StoreRecordInfo.SYS_CREATE_TIME, 17, Var.Type.CALENDAR);
+            g_infoDtoDef.add(ProductTempEntity.StoreRecordInfo.SYS_UPDATE_TIME, 16);
+            g_infoDtoDef.add(ProductTempEntity.StoreRecordInfo.SYS_CREATE_TIME, 17);
             g_infoDtoDef.add(ProductTempEntity.StoreRecordInfo.C_TYPE, 18, Var.Type.INT);
             g_infoDtoDef.add(ProductTempEntity.StoreRecordInfo.S_TYPE, 19, Var.Type.INT);
         }

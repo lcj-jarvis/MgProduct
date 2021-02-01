@@ -586,8 +586,9 @@ public class MgProductInfHandler extends FaiHandler {
                                              @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
                                              @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
                                              @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
-                                             @ArgList(keyMatch = ProductStoreDto.Key.ID_LIST) FaiList<Integer> rlPdIdList) throws IOException {
-        return storeService.getPdBizSalesSummaryInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIdList);
+                                             @ArgList(keyMatch = ProductStoreDto.Key.ID_LIST) FaiList<Integer> rlPdIdList,
+                                            @ArgList(keyMatch = ProductStoreDto.Key.STR_LIST, useDefault = true) FaiList<String> useOwnerFieldList) throws IOException {
+        return storeService.getPdBizSalesSummaryInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIdList, useOwnerFieldList);
     }
 
     @Cmd(MgProductInfCmd.SalesSummaryCmd.GET_LIST)

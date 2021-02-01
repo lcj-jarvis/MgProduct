@@ -214,8 +214,10 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                            @ArgAid final int aid,
                                            @ArgBodyInteger(BizSalesSummaryDto.Key.TID) final int tid,
                                            @ArgBodyInteger(BizSalesSummaryDto.Key.UNION_PRI_ID) final int unionPriId,
-                                           @ArgList(keyMatch = SalesSummaryDto.Key.ID_LIST) FaiList<Integer> pdIdList) throws IOException {
-        return  m_storeService.getBizSalesSummaryInfoList(session, flow, aid, tid, unionPriId, pdIdList);
+                                           @ArgList(keyMatch = SalesSummaryDto.Key.ID_LIST) FaiList<Integer> pdIdList,
+                                           @ArgList(keyMatch = StoreSalesSkuDto.Key.STR_LIST, useDefault = true)
+                                                       FaiList<String> useSourceFieldList) throws IOException {
+        return  m_storeService.getBizSalesSummaryInfoList(session, flow, aid, tid, unionPriId, pdIdList, useSourceFieldList);
     }
 
     @Cmd(MgProductStoreCmd.SalesSummaryCmd.GET_LIST)

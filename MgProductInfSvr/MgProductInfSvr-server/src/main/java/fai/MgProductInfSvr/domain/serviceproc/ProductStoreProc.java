@@ -269,14 +269,14 @@ public class ProductStoreProc {
     /**
      * 获取指定业务下指定商品id集的业务销售信息
      */
-    public int getBizSalesSummaryInfoListByPdIdList(int aid, int tid, int unionPriId, FaiList<Integer> pdIdList, FaiList<Param> infoList){
+    public int getBizSalesSummaryInfoListByPdIdList(int aid, int tid, int unionPriId, FaiList<Integer> pdIdList, FaiList<Param> infoList, FaiList<String> useOwnerFieldList){
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
-        rt = m_cli.getBizSalesSummaryInfoListByPdIdList(aid, tid, unionPriId, pdIdList, infoList);
+        rt = m_cli.getBizSalesSummaryInfoListByPdIdList(aid, tid, unionPriId, pdIdList, infoList, useOwnerFieldList);
         if (rt != Errno.OK) {
             Log.logErr(rt, "getBizSalesSummaryInfoListByPdIdList error;flow=%d;aid=%d;", m_flow, aid);
             return rt;

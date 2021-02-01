@@ -707,7 +707,7 @@ public class ProductStoreService extends MgProductInfService {
     /**
      * 获取指定业务下指定商品id集的业务销售信息
      */
-    public int getPdBizSalesSummaryInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList)  throws IOException {
+    public int getPdBizSalesSummaryInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, FaiList<String> useOwnerFieldList)  throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -735,7 +735,7 @@ public class ProductStoreService extends MgProductInfService {
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
             FaiList<Param> infoList = new FaiList<Param>();
-            rt = productStoreProc.getBizSalesSummaryInfoListByPdIdList(aid, tid, unionPriId, pdIdList, infoList);
+            rt = productStoreProc.getBizSalesSummaryInfoListByPdIdList(aid, tid, unionPriId, pdIdList, infoList, useOwnerFieldList);
             if(rt != Errno.OK) {
                 return rt;
             }

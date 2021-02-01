@@ -174,6 +174,7 @@ public class BizSalesSummaryProc {
             }
             addData.setInt(BizSalesSummaryEntity.Info.UNION_PRI_ID, unionPriId);
             addData.setInt(BizSalesSummaryEntity.Info.RL_PD_ID, rlPdId);
+            addData.setInt(BizSalesSummaryEntity.Info.SOURCE_UNION_PRI_ID, info.getInt(BizSalesSummaryEntity.Info.SOURCE_UNION_PRI_ID, 0));
             addData.setInt(BizSalesSummaryEntity.Info.PRICE_TYPE, info.getInt(BizSalesSummaryEntity.Info.PRICE_TYPE, 0));
             addData.setInt(BizSalesSummaryEntity.Info.MODE_TYPE, info.getInt(BizSalesSummaryEntity.Info.MODE_TYPE, 0));
             addData.setLong(BizSalesSummaryEntity.Info.MARKET_PRICE, info.getLong(BizSalesSummaryEntity.Info.MARKET_PRICE, 0L));
@@ -308,7 +309,7 @@ public class BizSalesSummaryProc {
 
     public int getInfoListByPdIdListFromDao(int aid, int unionPriId, FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef, String ... fields){
         if(aid <= 0 || unionPriId <= 0 || pdIdList == null || pdIdList.isEmpty() || listRef == null){
-            Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;pdIdList=%s;listRef=%s;", m_flow, aid, unionPriId, pdIdList, listRef);
+            Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;pdIdList=%s;", m_flow, aid, unionPriId, pdIdList);
             return Errno.ARGS_ERROR;
         }
         ParamMatcher matcher = new ParamMatcher(BizSalesSummaryEntity.Info.AID, ParamMatcher.EQ, aid);

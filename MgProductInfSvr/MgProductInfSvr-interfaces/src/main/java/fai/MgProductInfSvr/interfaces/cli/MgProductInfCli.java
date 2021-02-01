@@ -2207,7 +2207,7 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 获取商品规格库存销售sku
-     * @param useOwnerFieldList 使用 创建商品的业务数据 覆盖 查询结果关联的业务数据
+     * @param useOwnerFieldList 使用 创建商品的业务数据 覆盖 查询结果的业务数据
      *   例如：悦客价格是由总店控制，门店只能使用总店的价格，这时查询门店的的信息时，可以选择使用总店的价格进行覆盖
      */
     public int getPdScSkuSalesStoreList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<String> useOwnerFieldList, FaiList<Param> infoList) {
@@ -2594,12 +2594,17 @@ public class MgProductInfCli extends FaiClient {
         }
     }
 
+    public int getPdBizSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, FaiList<Param> infoList){
+        return getPdBizSalesSummaryInfoList(aid, tid, siteId, lgId, keepPriId1, rlPdIdList, null, infoList);
+    }
     /**
      * 获取指定业务下指定商品id集的业务销售信息 <br/>
      * 适用场景： <br/>
      *    例如：悦客门店查看商品 门店维度的信息汇总
+     * @param useOwnerFieldList 使用 创建商品的业务数据 覆盖 查询结果的业务数据
+     *   例如：悦客价格是由总店控制，门店只能使用总店的价格，这时查询门店的的信息时，可以选择使用总店的价格进行覆盖
      */
-    public int getPdBizSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, FaiList<Param> infoList){
+    public int getPdBizSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList,  FaiList<String> useOwnerFieldList, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2628,6 +2633,12 @@ public class MgProductInfCli extends FaiClient {
             m_rt = rlPdIdList.toBuffer(sendBody, ProductStoreDto.Key.ID_LIST);
             if(m_rt != Errno.OK){
                 return m_rt;
+            }
+            if(useOwnerFieldList != null){
+                m_rt = useOwnerFieldList.toBuffer(sendBody, ProductStoreDto.Key.STR_LIST);
+                if(m_rt != Errno.OK){
+                    return m_rt;
+                }
             }
 
             FaiProtocol sendProtocol = new FaiProtocol();

@@ -25,7 +25,7 @@ public class InOutStoreRecordProc {
         searchArg.matcher.and(InOutStoreRecordEntity.Info.SKU_ID, ParamMatcher.IN, new FaiList<>(skuIdSet));
         Ref<FaiList<Param>> primaryKeyListRef = new Ref<>();
         int rt = m_daoCtrl.select(searchArg, primaryKeyListRef, InOutStoreRecordEntity.Info.UNION_PRI_ID, InOutStoreRecordEntity.Info.SKU_ID, InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID);
-        if(rt != Errno.OK && rt != Errno.ERROR){
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             Log.logErr(rt,"dao insert err;flow=%s;aid=%s;dataList=%s;", m_flow, aid, dataList);
             return rt;
         }

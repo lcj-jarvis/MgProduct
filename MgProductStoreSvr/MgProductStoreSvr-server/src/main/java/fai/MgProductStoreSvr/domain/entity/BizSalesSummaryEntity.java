@@ -4,6 +4,7 @@ package fai.MgProductStoreSvr.domain.entity;
  * 商品业务销售总表
  */
 public class BizSalesSummaryEntity {
+
     public static final class Info {
         public static final String AID = "aid";                                     // int 企业aid    (Primary Key 1)
         public static final String UNION_PRI_ID = "unionPriId";                     // int 联合主键 id  (Primary Key 2)
@@ -26,6 +27,22 @@ public class BizSalesSummaryEntity {
         public static final String DISTRIBUTE_LIST = "distributeList";              // varchar(255) 配送方式（支持多个） TODO
         public static final String KEEP_PROP1 = "keepProp1";                        // varchar(255) 字符串 保留字段1 TODO
         public static final String KEEP_INT_PROP1 = "keepIntProp1";                 // int 整型 保留字段1 TODO
+    }
+
+    private static final String[] VALID_KEYS = new String[]{
+            Info.PRICE_TYPE
+            , Info.MODE_TYPE
+            , Info.MARKET_PRICE
+            , Info.MIN_PRICE
+            , Info.MAX_PRICE
+            , Info.VIRTUAL_SALES
+            , Info.SALES
+    };
+    /**
+     * 支持批量更新的字段
+     */
+    public static String[] getValidKeys(){
+        return VALID_KEYS;
     }
 
     public static final class ReportInfo{

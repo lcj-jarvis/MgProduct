@@ -730,7 +730,7 @@ public class MgProductStoreCli extends FaiClient {
     /**
      * 获取指定业务下 指定的商品集的业务销售信息
      */
-    public int getBizSalesSummaryInfoListByPdIdList(int aid, int tid, int unionPriId, FaiList<Integer> pdIdList, FaiList<Param> infoList){
+    public int getBizSalesSummaryInfoListByPdIdList(int aid, int tid, int unionPriId, FaiList<Integer> pdIdList, FaiList<Param> infoList, FaiList<String> useSourceFieldList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -750,6 +750,9 @@ public class MgProductStoreCli extends FaiClient {
             sendBody.putInt(BizSalesSummaryDto.Key.TID, tid);
             sendBody.putInt(BizSalesSummaryDto.Key.UNION_PRI_ID, unionPriId);
             pdIdList.toBuffer(sendBody, BizSalesSummaryDto.Key.ID_LIST);
+            if(useSourceFieldList != null){
+                useSourceFieldList.toBuffer(sendBody, StoreSalesSkuDto.Key.STR_LIST);
+            }
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductStoreCmd.BizSalesSummaryCmd.GET_LIST);

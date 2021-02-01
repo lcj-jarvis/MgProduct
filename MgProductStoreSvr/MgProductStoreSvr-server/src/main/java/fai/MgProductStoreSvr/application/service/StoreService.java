@@ -845,13 +845,16 @@ public class StoreService{
                     if(list.size() > 0 && useSourceFieldSet.size() > 0){
                         useSourceFieldSet.add(StoreSalesSkuEntity.Info.SKU_ID);
                         Param first = list.get(0);
-                        Integer tmpUnionPriId = first.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
-                        Integer sourceUnionPriId = first.getInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID);
+                        int tmpUnionPriId = first.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+                        int sourceUnionPriId = first.getInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID);
                         if(tmpUnionPriId != sourceUnionPriId){
                             FaiList<Long> skuIdList = Misc2.getValList(list, StoreSalesSkuEntity.Info.SKU_ID);
                             listRef = new Ref<>();
                             rt = storeSalesSkuProc.getListFromDao(aid, sourceUnionPriId, skuIdList, listRef, useSourceFieldSet);
                             if(rt != Errno.OK){
+                                if(rt == Errno.NOT_FOUND){
+                                    Log.logErr( rt,"source list not found;flow=%s;aid=%s;sourceUnionPriId=%s;skuIdList=%s;", flow, aid, sourceUnionPriId, skuIdList);
+                                }
                                 return rt;
                             }
                             Map<Long, Param> skuIdFiledMap = new HashMap<>(listRef.value.size()*4/3+1);
@@ -862,6 +865,11 @@ public class StoreService{
                             for (Param info : list) {
                                 Long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
                                 Param sourceFieldInfo = skuIdFiledMap.get(skuId);
+                                if(sourceFieldInfo == null){
+                                    rt = Errno.NOT_FOUND;
+                                    Log.logErr(rt, "source info not found;flow=%s;aid=%s;sourceUnionPriId=%s;skuId=%s;", flow, aid, sourceUnionPriId, skuId);
+                                    return rt;
+                                }
                                 for (String sourceField : useSourceFieldSet) {
                                     info.assign(sourceFieldInfo, sourceField);
                                 }
@@ -1291,7 +1299,7 @@ public class StoreService{
     /**
      * 获取某个业务下指定商品的业务销售信息
      */
-    public int getBizSalesSummaryInfoList(FaiSession session, int flow, int aid, int tid, int unionPriId, FaiList<Integer> pdIdList) throws IOException {
+    public int getBizSalesSummaryInfoList(FaiSession session, int flow, int aid, int tid, int unionPriId, FaiList<Integer> pdIdList, FaiList<String> useSourceFieldList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -1300,18 +1308,54 @@ public class StoreService{
                 Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;pdIdList=%s;", flow, aid, unionPriId, pdIdList);
                 return rt;
             }
-            Ref<FaiList<Param>> listRef = new Ref<>();
+            FaiList<Param> list;
             BizSalesSummaryDaoCtrl bizSalesSummaryDaoCtrl = BizSalesSummaryDaoCtrl.getInstance(flow, aid);
             try {
                 BizSalesSummaryProc bizSalesSummaryProc = new BizSalesSummaryProc(bizSalesSummaryDaoCtrl, flow);
+                Ref<FaiList<Param>> listRef = new Ref<>();
                 rt = bizSalesSummaryProc.getInfoListByPdIdListFromDao(aid, unionPriId, pdIdList, listRef);
                 if(rt != Errno.OK){
                     return rt;
                 }
+                list = listRef.value;
+                if(useSourceFieldList != null && !useSourceFieldList.isEmpty()) {
+                    Set<String> useSourceFieldSet = new HashSet<>(useSourceFieldList);
+                    useSourceFieldSet.retainAll(Arrays.asList(BizSalesSummaryEntity.getValidKeys()));
+                    if(list.size() > 0 && useSourceFieldSet.size() > 0){
+                        useSourceFieldSet.add(BizSalesSummaryEntity.Info.PD_ID);
+                        Param first = list.get(0);
+                        int tmpUnionPriId = first.getInt(BizSalesSummaryEntity.Info.UNION_PRI_ID);
+                        int sourceUnionPriId = first.getInt(BizSalesSummaryEntity.Info.SOURCE_UNION_PRI_ID);
+                        if(tmpUnionPriId != sourceUnionPriId){
+                            FaiList<Integer> sourcePdIdList = Misc2.getValList(list, BizSalesSummaryEntity.Info.PD_ID);
+                            listRef = new Ref<>();
+                            rt = bizSalesSummaryProc.getInfoListByPdIdListFromDao(aid, sourceUnionPriId, sourcePdIdList, listRef, useSourceFieldSet.toArray(new String[]{}));
+                            if(rt != Errno.OK){
+                                if(rt == Errno.NOT_FOUND){
+                                    Log.logErr( rt,"source list not found;flow=%s;aid=%s;sourcePriId=%s;sourcePdIdList=%s;", flow, aid, sourceUnionPriId, sourcePdIdList);
+                                }
+                                return rt;
+                            }
+                            Map<Integer, Param> map = Misc2.getMap(listRef.value, BizSalesSummaryEntity.Info.PD_ID);
+                            for (Param info : list) {
+                                Integer pdId = info.getInt(BizSalesSummaryEntity.Info.PD_ID);
+                                Param sourceInfo = map.get(pdId);
+                                if(sourceInfo == null){
+                                    rt = Errno.NOT_FOUND;
+                                    Log.logErr(rt,"source info not found;flow=%s;aid=%s;sourcePriId=%s;pdId=%s;", flow, aid, sourceUnionPriId, pdId);
+                                    return rt;
+                                }
+                                for (String key : useSourceFieldSet) {
+                                    info.assign(sourceInfo, key);
+                                }
+                            }
+                        }
+                    }
+                }
             }finally {
                 bizSalesSummaryDaoCtrl.closeDao();
             }
-            sendBizSalesSummary(session, listRef.value);
+            sendBizSalesSummary(session, list);
             Log.logDbg("ok;aid=%d;unionPriId=%s;pdIdList=%s;", aid, unionPriId, pdIdList);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);

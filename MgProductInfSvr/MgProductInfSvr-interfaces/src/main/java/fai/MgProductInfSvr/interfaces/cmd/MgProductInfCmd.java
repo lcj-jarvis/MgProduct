@@ -50,6 +50,8 @@ public class MgProductInfCmd {
 
         /**@see StoreSalesSkuCmd#GET_LIST_BY_SKU_ID */
         public static final int NUM20 = 5020;
+
+        public static final int NUM21= 5021;
     }
 
     // 1000 到 5000 的范围
@@ -247,5 +249,12 @@ public class MgProductInfCmd {
         public static final int SYN_SPU_TO_SKU = WriteCmdNum.NUM27;
         // 同步出入库记录
         public static final int SYN_IN_OUT_STORE_RECORD = WriteCmdNum.NUM28;
+    }
+
+    /**
+     * 组合数据的cmd
+     */
+    public static class Cmd{
+        public static final int GET_FULL_INFO = ReadCmdNum.NUM21;
     }
 }

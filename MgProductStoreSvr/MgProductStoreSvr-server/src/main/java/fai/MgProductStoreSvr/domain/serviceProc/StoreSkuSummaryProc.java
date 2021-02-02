@@ -115,6 +115,7 @@ public class StoreSkuSummaryProc {
                 data.setCalendar(StoreSkuSummaryEntity.Info.SYS_UPDATE_TIME, now);
                 data.setInt(StoreSkuSummaryEntity.Info.AID, aid);
                 data.setLong(StoreSkuSummaryEntity.Info.SKU_ID, skuId);
+                data.assign(info, StoreSkuSummaryEntity.Info.PD_ID);
                 data.assign(info, StoreSkuSummaryEntity.Info.SOURCE_UNION_PRI_ID);
                 data.assign(info, StoreSkuSummaryEntity.Info.COUNT);
                 data.assign(info, StoreSkuSummaryEntity.Info.REMAIN_COUNT);
@@ -210,7 +211,7 @@ public class StoreSkuSummaryProc {
     }
     public int batchDel(int aid, FaiList<Integer> pdIdList) {
         ParamMatcher matcher = new ParamMatcher(StoreSkuSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(StoreSkuSummaryEntity.Info.PD_ID, ParamMatcher.EQ, pdIdList);
+        matcher.and(StoreSkuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
         int rt = m_daoCtrl.delete(matcher);
         if(rt != Errno.OK){
             Log.logStd(rt, "delete err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);

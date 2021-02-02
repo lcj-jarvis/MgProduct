@@ -2985,4 +2985,79 @@ public class MgProductInfCli extends FaiClient {
             stat.end((m_rt != Errno.OK), m_rt);
         }
     }
+
+    /**
+     * 获取的商品全部组合信息
+     * @param tid 创建商品的tid
+     * @param siteId 创建商品的siteId
+     * @param lgId 创建商品的lgId
+     * @param keepPriId1 创建商品的keepPriId1
+     * @param rlPdId 业务商品id
+     * @param combinedInfo 返回商品中台各个服务组合的数据 {@link fai.MgProductInfSvr.interfaces.entity.MgProductEntity.Info}
+     */
+    public int getProductFullInfo(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, Param combinedInfo){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if (combinedInfo == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "combinedInfo error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(MgProductDto.Key.TID, tid);
+            sendBody.putInt(MgProductDto.Key.SITE_ID, siteId);
+            sendBody.putInt(MgProductDto.Key.LGID, lgId);
+            sendBody.putInt(MgProductDto.Key.KEEP_PRIID1, keepPriId1);
+            sendBody.putInt(MgProductDto.Key.ID, rlPdId);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductInfCmd.Cmd.GET_FULL_INFO);
+
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = combinedInfo.fromBuffer(recvBody, keyRef, MgProductDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != MgProductDto.Key.INFO) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            return m_rt = Errno.OK;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
 }

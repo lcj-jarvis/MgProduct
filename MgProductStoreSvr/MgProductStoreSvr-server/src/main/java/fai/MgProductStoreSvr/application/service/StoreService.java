@@ -817,7 +817,7 @@ public class StoreService{
     }
 
     /**
-     * 获取库存销售sku信息
+     * 根据uid和pdId获取库存销售sku信息
      */
     public int getPdScSkuSalesStore(FaiSession session, int flow, int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<String> useSourceFieldList) throws IOException {
         int rt = Errno.ERROR;
@@ -887,6 +887,10 @@ public class StoreService{
         }
         return rt;
     }
+
+    /**
+     * 根据 skuId 和 uid 获取相应的库存销售信息
+     */
     public int getPdScSkuSalesStoreBySkuIdAndUnionPriIdList(FaiSession session, int flow, int aid, long skuId, FaiList<Integer> unionPriIdList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
@@ -909,6 +913,37 @@ public class StoreService{
             }
             sendPdScSkuSalesStore(session, listRef.value);
             Log.logDbg("ok;aid=%d;skuId=%s;unionPriIdList=%s;", aid, skuId, unionPriIdList);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * 根据pdId获取库存销售sku信息
+     */
+    public int getPdScSkuSalesStoreByPdId(FaiSession session, int flow, int aid, int pdId) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || pdId <= 0) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;skuId=%s;", flow, aid, pdId);
+                return rt;
+            }
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            StoreSalesSkuDaoCtrl storeSalesSkuDaoCtrl = StoreSalesSkuDaoCtrl.getInstance(flow, aid);
+            try {
+                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
+                rt = storeSalesSkuProc.getListByPdId(aid, pdId, listRef);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+            }finally {
+                storeSalesSkuDaoCtrl.closeDao();
+            }
+            sendPdScSkuSalesStore(session, listRef.value);
+            Log.logDbg("ok;aid=%d;pdId=%s;", aid, pdId);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }
@@ -1509,6 +1544,8 @@ public class StoreService{
             }finally {
                 transactionCtrl.closeDao();
             }
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
             Log.logStd("ok;flow=%s;aid=%s;pdIdList=%s;", flow, aid, pdIdList);
         }finally {
             stat.end(rt != Errno.OK, rt);

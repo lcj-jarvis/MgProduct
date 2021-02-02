@@ -158,7 +158,7 @@ public class ProductStoreProc {
     }
 
     /**
-     * 获取商品规格库存销售sku
+     * 根据uid和pdId 获取商品规格库存销售sku
      */
     public int getPdScSkuSalesStore(int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<Param> infoList, FaiList<String> useOwnerFieldList) {
         int rt = Errno.ERROR;
@@ -188,6 +188,24 @@ public class ProductStoreProc {
         rt = m_cli.getPdScSkuSalesStoreBySkuIdAndUIdList(aid, tid, skuId, unionPriIdList, infoList);
         if (rt != Errno.OK) {
             Log.logErr(rt, "getPdScSkuSalesStore error;flow=%d;aid=%d;skuId=%d;unionPriIdList=%s;", m_flow, aid, skuId, unionPriIdList);
+            return rt;
+        }
+        return rt;
+    }
+
+    /**
+     * 根据 pdId 获取商品规格库存销售sku
+     */
+    public int getPdScSkuSalesStoreByPdId(int aid, int tid, int pdId, FaiList infoList) {
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;pdId=%d;", m_flow, aid, pdId);
+            return rt;
+        }
+        rt = m_cli.getPdScSkuSalesStoreByPdId(aid, tid, pdId, infoList);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "getPdScSkuSalesStore error;flow=%d;aid=%d;pdId=%d;", m_flow, aid, pdId);
             return rt;
         }
         return rt;

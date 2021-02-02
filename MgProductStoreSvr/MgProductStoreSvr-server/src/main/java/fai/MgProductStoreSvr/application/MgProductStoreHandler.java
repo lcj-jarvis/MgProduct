@@ -173,6 +173,14 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                      @ArgList(keyMatch = StoreSalesSkuDto.Key.UID_LIST) FaiList<Integer> unionPriIdList) throws IOException {
         return  m_storeService.getPdScSkuSalesStoreBySkuIdAndUnionPriIdList(session, flow, aid, skuId, unionPriIdList);
     }
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.GET_LIST_BY_PD_ID)
+    private int getPdScSkuSalesStoreByPdId(final FaiSession session,
+                                                             @ArgFlow final int flow,
+                                                             @ArgAid final int aid,
+                                                             @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
+                                                             @ArgBodyInteger(StoreSalesSkuDto.Key.PD_ID) final int pdId) throws IOException {
+        return  m_storeService.getPdScSkuSalesStoreByPdId(session, flow, aid, pdId);
+    }
 
     @WrittenCmd
     @Cmd(MgProductStoreCmd.InOutStoreRecordCmd.ADD_LIST)

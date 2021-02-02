@@ -648,6 +648,19 @@ public class MgProductInfHandler extends FaiHandler {
         return storeService.batchSynchronousInOutStoreRecord(session, flow, aid, tid, siteId, lgId, keepPriId1, recordInfoList);
     }
 
+    @Cmd(MgProductInfCmd.Cmd.GET_FULL_INFO)
+    public int getProductFullInfo(final FaiSession session,
+                                  @ArgFlow final int flow,
+                                  @ArgAid final int aid,
+                                  @ArgBodyInteger(MgProductDto.Key.TID) int tid,
+                                  @ArgBodyInteger(MgProductDto.Key.SITE_ID) int siteId,
+                                  @ArgBodyInteger(MgProductDto.Key.LGID) int lgId,
+                                  @ArgBodyInteger(MgProductDto.Key.KEEP_PRIID1) int keepPriId1,
+                                  @ArgBodyInteger(MgProductDto.Key.ID) int rlPdId) throws IOException {
+        return mgProductInfService.getProductFullInfo(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId);
+    }
+
+    MgProductInfService mgProductInfService = new MgProductInfService();
 
     ProductBasicService basicService = new ProductBasicService();
     ProductPropService propService = new ProductPropService();

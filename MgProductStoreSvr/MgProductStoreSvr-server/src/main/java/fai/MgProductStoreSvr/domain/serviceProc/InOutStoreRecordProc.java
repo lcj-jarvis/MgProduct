@@ -438,7 +438,7 @@ public class InOutStoreRecordProc {
     public int batchDel(int aid, FaiList<Integer> pdIdList) {
         ParamMatcher matcher = new ParamMatcher();
         matcher.and(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(InOutStoreRecordEntity.Info.PD_ID, ParamMatcher.EQ, pdIdList);
+        matcher.and(InOutStoreRecordEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
         int rt = m_daoCtrl.delete(matcher);
         if(rt != Errno.OK){
             Log.logStd(rt, "delete err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);

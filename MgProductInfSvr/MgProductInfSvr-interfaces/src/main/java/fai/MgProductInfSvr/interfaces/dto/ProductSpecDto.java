@@ -30,7 +30,7 @@ public class ProductSpecDto {
             g_dtoDef.add(ProductSpecEntity.SpecInfo.SC_STR_ID, 2, Var.Type.INT);
             g_dtoDef.add(ProductSpecEntity.SpecInfo.NAME, 3, Var.Type.STRING);
             g_dtoDef.add(ProductSpecEntity.SpecInfo.PD_SC_ID, 4, Var.Type.INT);
-            g_dtoDef.add(ProductSpecEntity.SpecInfo.SOURCE_TID, 5, Var.Type.INT);
+            //g_dtoDef.add(ProductSpecEntity.SpecInfo.SOURCE_TID, 5, Var.Type.INT);
             g_dtoDef.add(ProductSpecEntity.SpecInfo.SORT, 6, Var.Type.INT);
             g_dtoDef.add(ProductSpecEntity.SpecInfo.FLAG, 7, Var.Type.INT);
             g_dtoDef.add(ProductSpecEntity.SpecInfo.IN_PD_SC_VAL_LIST, 8, getInPdScValListDtoDef(), Var.Type.FAI_LIST);
@@ -52,7 +52,7 @@ public class ProductSpecDto {
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.RL_PD_ID, 1, Var.Type.INT);
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SKU_ID, 2, Var.Type.LONG);
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SORT, 3, Var.Type.INT);
-            g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SOURCE_TID, 4, Var.Type.INT);
+            //g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SOURCE_TID, 4, Var.Type.INT);
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SKU_NUM, 5, Var.Type.STRING);
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_ID_LIST, 6, Var.Type.FAI_LIST);
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_NAME_LIST, 7, Var.Type.FAI_LIST);
@@ -75,7 +75,7 @@ public class ProductSpecDto {
             g_dtoDef.add(ProductSpecEntity.SpecTempInfo.RL_TP_SC_ID, 1, Var.Type.INT);
             g_dtoDef.add(ProductSpecEntity.SpecTempInfo.RL_LIB_ID, 2, Var.Type.INT);
             g_dtoDef.add(ProductSpecEntity.SpecTempInfo.NAME, 3, Var.Type.STRING);
-            g_dtoDef.add(ProductSpecEntity.SpecTempInfo.SOURCE_TID, 4, Var.Type.INT);
+            //g_dtoDef.add(ProductSpecEntity.SpecTempInfo.SOURCE_TID, 4, Var.Type.INT);
             g_dtoDef.add(ProductSpecEntity.SpecTempInfo.FLAG, 5, Var.Type.INT);
             g_dtoDef.add(ProductSpecEntity.SpecTempInfo.SORT, 6, Var.Type.INT);
             g_dtoDef.add(ProductSpecEntity.SpecTempInfo.SYS_CREATE_TIME, 7);

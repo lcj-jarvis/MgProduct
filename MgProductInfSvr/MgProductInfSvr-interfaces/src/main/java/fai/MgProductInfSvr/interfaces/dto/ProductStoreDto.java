@@ -96,6 +96,10 @@ public class ProductStoreDto {
             g_infoDtoDef.add(ProductStoreEntity.BizSalesSummaryInfo.FLAG, 14, Var.Type.INT);
             g_infoDtoDef.add(ProductStoreEntity.BizSalesSummaryInfo.SYS_CREATE_TIME, 15);
             g_infoDtoDef.add(ProductStoreEntity.BizSalesSummaryInfo.SYS_UPDATE_TIME, 16);
+            g_infoDtoDef.add(ProductStoreEntity.BizSalesSummaryInfo.TID, 17, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.BizSalesSummaryInfo.SITE_ID, 18, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.BizSalesSummaryInfo.LGID, 19, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.BizSalesSummaryInfo.KEEP_PRI_ID1, 20, Var.Type.INT);
         }
         public static ParamDef getInfoDto() {
             return g_infoDtoDef;

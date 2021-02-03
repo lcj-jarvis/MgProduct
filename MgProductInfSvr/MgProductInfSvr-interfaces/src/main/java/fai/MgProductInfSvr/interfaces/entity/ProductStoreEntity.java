@@ -73,6 +73,10 @@ public class ProductStoreEntity {
      */
     public static final class BizSalesSummaryInfo {
         public static final String AID = "aid";                                     // int 企业aid
+        public static final String TID = "tid";                                     // int 项目id
+        public static final String SITE_ID = "siteId";                              // int 站点id
+        public static final String LGID = "lgId";                                   // int 多语言id
+        public static final String KEEP_PRI_ID1 = "keepPriId1";                     // int 保留主键id1
         public static final String RL_PD_ID = "rlPdId";                             // int 商品业务 id
         public static final String PRICE_TYPE = "priceType";                        // int 价格类型（定价、面议）
         public static final String MODE_TYPE = "modeType";                          // int 服务预约模式

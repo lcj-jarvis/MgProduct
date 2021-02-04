@@ -1,9 +1,9 @@
 package fai.MgProductStoreSvr.domain.entity;
 
 /**
- * 业务销售上报
+ * spu业务库存销售上报任务
  */
-public class BizSalesReportEntity {
+public class SpuBizStoreSalesReportEntity {
     public static final class Info {
         public static final String AID = "aid";                                     // int 企业aid    (Primary Key 1)
         public static final String UNION_PRI_ID = "unionPriId";                     // int 联合主键 id  (Primary Key 2)

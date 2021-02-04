@@ -486,13 +486,14 @@ public class ProductSpecService extends MgProductInfService {
 
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
             FaiList<Param> pdScSkuInfoList = new FaiList<>();
+            Log.logDbg("whalelog updaterList=%s", updaterList);
             rt = productSpecProc.unionSetPdScInfoList(aid, tid, unionPriId, pdId, addList, delList, updaterList, pdScSkuInfoList);
             if(rt != Errno.OK) {
                 return rt;
             }
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-            rt = productStoreProc.refreshPdScSkuSalesStore(aid, tid, unionPriId, pdId, rlPdId, pdScSkuInfoList);
+            rt = productStoreProc.refreshSkuStoreSales(aid, tid, unionPriId, pdId, rlPdId, pdScSkuInfoList);
             if(rt != Errno.OK) {
                 return rt;
             }

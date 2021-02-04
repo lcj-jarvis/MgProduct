@@ -1,16 +1,15 @@
 package fai.MgProductStoreSvr.application.mq;
 
 import fai.MgProductStoreSvr.application.service.StoreService;
-import fai.MgProductStoreSvr.domain.entity.BizSalesReportEntity;
-import fai.MgProductStoreSvr.domain.entity.StoreSkuSummaryEntity;
+import fai.MgProductStoreSvr.domain.entity.SkuSummaryEntity;
 import fai.comm.mq.api.ConsumeContext;
 import fai.comm.mq.api.ConsumerStatus;
 import fai.comm.mq.api.MessageListener;
 import fai.comm.mq.message.FaiMqMessage;
 import fai.comm.util.*;
 
-public class StoreSkuReportConsumeListener implements MessageListener {
-    public StoreSkuReportConsumeListener(StoreService storeService) {
+public class SkuSummaryReportConsumeListener implements MessageListener {
+    public SkuSummaryReportConsumeListener(StoreService storeService) {
         this.m_storeService = storeService;
     }
 
@@ -25,13 +24,13 @@ public class StoreSkuReportConsumeListener implements MessageListener {
             Oss.logAlarm(String.format("recv info is empty key=%s;flow=%s;", key, flow));
             return ConsumerStatus.CommitMessage;
         }
-        int aid = recvInfo.getInt(StoreSkuSummaryEntity.Info.AID, 0);
-        long skuId = recvInfo.getLong(StoreSkuSummaryEntity.Info.SKU_ID, 0L);
+        int aid = recvInfo.getInt(SkuSummaryEntity.Info.AID, 0);
+        long skuId = recvInfo.getLong(SkuSummaryEntity.Info.SKU_ID, 0L);
 
         if(aid == 0 || skuId == 0 ){
             return ConsumerStatus.CommitMessage;
         }
-        int rt = m_storeService.reportStoreSku(flow, aid, skuId);
+        int rt = m_storeService.reportSkuSummary(flow, aid, skuId);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             Log.logErr("reportBizSales err key=%s;flow=%s;aid=%s;skuId=%s;", key, flow, aid, skuId);
             return ConsumerStatus.ReconsumeLater;

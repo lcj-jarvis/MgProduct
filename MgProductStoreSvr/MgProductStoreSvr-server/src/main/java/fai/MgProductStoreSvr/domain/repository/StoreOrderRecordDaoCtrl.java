@@ -9,30 +9,30 @@ import fai.middleground.svrutil.repository.TransactionCtrl;
  * dao ctrl中不再对传进来的数据做解析校验
  * 主要是处理dao相关逻辑
  */
-public class SotreOrderRecordDaoCtrl extends DaoCtrl {
+public class StoreOrderRecordDaoCtrl extends DaoCtrl {
 
-	private SotreOrderRecordDaoCtrl(int flow, int aid) {
+	private StoreOrderRecordDaoCtrl(int flow, int aid) {
 		super(flow, aid);
 		this.group = TABLE_ENUM.getGroup();
 	}
 
-	public static SotreOrderRecordDaoCtrl getInstanceWithRegistered(int flow, int aid, TransactionCtrl transactionCtrl) {
+	public static StoreOrderRecordDaoCtrl getInstanceWithRegistered(int flow, int aid, TransactionCtrl transactionCtrl) {
 		if(transactionCtrl == null){
 			return null;
 		}
-		SotreOrderRecordDaoCtrl daoCtrl = getInstance(flow, aid);
+		StoreOrderRecordDaoCtrl daoCtrl = getInstance(flow, aid);
 		if(!transactionCtrl.register(daoCtrl)){
 			Log.logErr("registered SotreOrderRecordDaoCtrl err;flow=%d;aid=%d;", flow, aid);
 			return null;
 		}
 		return daoCtrl;
 	}
-	public static SotreOrderRecordDaoCtrl getInstance(int flow, int aid) {
+	public static StoreOrderRecordDaoCtrl getInstance(int flow, int aid) {
 		if(m_daoProxy == null) {
 			Log.logErr("m_daoProxy is not init;");
 			return null;
 		}
-		return new SotreOrderRecordDaoCtrl(flow, aid);
+		return new StoreOrderRecordDaoCtrl(flow, aid);
 	}
 
 

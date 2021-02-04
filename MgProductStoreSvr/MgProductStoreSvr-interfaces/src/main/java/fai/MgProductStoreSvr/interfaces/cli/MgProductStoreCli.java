@@ -21,7 +21,7 @@ public class MgProductStoreCli extends FaiClient {
     /**
      * 刷新商品规格库存销售sku
      */
-    public int refreshPdScSkuSalesStore(int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<Param> pdScSkuInfoList){
+    public int refreshSkuStoreSales(int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<Param> pdScSkuInfoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -186,7 +186,7 @@ public class MgProductStoreCli extends FaiClient {
     /**
      * 修改商品规格库存销售sku
      */
-    public int setPdScSkuSalesStore(int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList){
+    public int setSkuStoreSales(int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -406,7 +406,7 @@ public class MgProductStoreCli extends FaiClient {
     /**
      * 根据uid和pdId 获取商品规格库存销售sku
      */
-    public int getPdScSkuSalesStore(int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<Param> infoList, FaiList<String> useSourceFieldList){
+    public int getSkuStoreSales(int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<Param> infoList, FaiList<String> useSourceFieldList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -474,7 +474,7 @@ public class MgProductStoreCli extends FaiClient {
     /**
      * 根据 skuId 和 unionPriIdList 获取商品规格库存销售sku
      */
-    public int getPdScSkuSalesStoreBySkuIdAndUIdList(int aid, int tid, long skuId, FaiList<Integer> unionPriIdList, FaiList<Param> infoList){
+    public int getStoreSalesBySkuIdAndUIdList(int aid, int tid, long skuId, FaiList<Integer> unionPriIdList, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -544,7 +544,7 @@ public class MgProductStoreCli extends FaiClient {
     /**
      * 根据 pdId 获取商品规格库存销售sku
      */
-    public int getPdScSkuSalesStoreByPdId(int aid, int tid, int pdId, FaiList<Param> infoList){
+    public int getSkuStoreSalesByPdId(int aid, int tid, int pdId, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -728,9 +728,9 @@ public class MgProductStoreCli extends FaiClient {
     }
 
     /**
-     * 获取指定商品所有业务销售信息
+     * 根据pdId 获取所关联的 spu 业务库存销售汇总信息
      */
-    public int getAllBizSalesSummaryInfoList(int aid, int tid, int pdId, FaiList<Param> infoList){
+    public int getSpuBizSummaryInfoListByPdId(int aid, int tid, int pdId, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -747,11 +747,11 @@ public class MgProductStoreCli extends FaiClient {
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
-            sendBody.putInt(BizSalesSummaryDto.Key.TID, tid);
-            sendBody.putInt(BizSalesSummaryDto.Key.PD_ID, pdId);
+            sendBody.putInt(SpuBizSummaryDto.Key.TID, tid);
+            sendBody.putInt(SpuBizSummaryDto.Key.PD_ID, pdId);
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductStoreCmd.BizSalesSummaryCmd.GET_LIST_BY_PD_ID);
+            sendProtocol.setCmd(MgProductStoreCmd.SpuBizSummaryCmd.GET_LIST_BY_PD_ID);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);
@@ -779,8 +779,8 @@ public class MgProductStoreCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            m_rt = infoList.fromBuffer(recvBody, keyRef, BizSalesSummaryDto.getInfoDto());
-            if (m_rt != Errno.OK || keyRef.value != BizSalesSummaryDto.Key.INFO_LIST) {
+            m_rt = infoList.fromBuffer(recvBody, keyRef, SpuBizSummaryDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != SpuBizSummaryDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
             }
@@ -792,9 +792,9 @@ public class MgProductStoreCli extends FaiClient {
     }
 
     /**
-     * 获取指定业务下 指定的商品集的业务销售信息
+     * 根据 pdIdList 获取指定业务下 spu业务库存销售汇总信息
      */
-    public int getBizSalesSummaryInfoListByPdIdList(int aid, int tid, int unionPriId, FaiList<Integer> pdIdList, FaiList<Param> infoList, FaiList<String> useSourceFieldList){
+    public int getSpuBizSummaryInfoListByPdIdList(int aid, int tid, int unionPriId, FaiList<Integer> pdIdList, FaiList<Param> infoList, FaiList<String> useSourceFieldList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -811,15 +811,15 @@ public class MgProductStoreCli extends FaiClient {
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
-            sendBody.putInt(BizSalesSummaryDto.Key.TID, tid);
-            sendBody.putInt(BizSalesSummaryDto.Key.UNION_PRI_ID, unionPriId);
-            pdIdList.toBuffer(sendBody, BizSalesSummaryDto.Key.ID_LIST);
+            sendBody.putInt(SpuBizSummaryDto.Key.TID, tid);
+            sendBody.putInt(SpuBizSummaryDto.Key.UNION_PRI_ID, unionPriId);
+            pdIdList.toBuffer(sendBody, SpuBizSummaryDto.Key.ID_LIST);
             if(useSourceFieldList != null){
                 useSourceFieldList.toBuffer(sendBody, StoreSalesSkuDto.Key.STR_LIST);
             }
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductStoreCmd.BizSalesSummaryCmd.GET_LIST);
+            sendProtocol.setCmd(MgProductStoreCmd.SpuBizSummaryCmd.GET_LIST);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);
@@ -847,8 +847,8 @@ public class MgProductStoreCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            m_rt = infoList.fromBuffer(recvBody, keyRef, BizSalesSummaryDto.getInfoDto());
-            if (m_rt != Errno.OK || keyRef.value != BizSalesSummaryDto.Key.INFO_LIST) {
+            m_rt = infoList.fromBuffer(recvBody, keyRef, SpuBizSummaryDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != SpuBizSummaryDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
             }
@@ -859,9 +859,9 @@ public class MgProductStoreCli extends FaiClient {
         }
     }
     /**
-     * 获取商品销售信息
+     * 获取spu库存销售汇总信息
      */
-    public int getSalesSummaryInfoList(int aid, int tid, int unionPriId, FaiList<Integer> pdIdList, FaiList<Param> infoList){
+    public int getSpuSummaryInfoList(int aid, int tid, int unionPriId, FaiList<Integer> pdIdList, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -878,12 +878,12 @@ public class MgProductStoreCli extends FaiClient {
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
-            sendBody.putInt(SalesSummaryDto.Key.TID, tid);
-            sendBody.putInt(SalesSummaryDto.Key.UNION_PRI_ID, unionPriId);
-            pdIdList.toBuffer(sendBody, SalesSummaryDto.Key.ID_LIST);
+            sendBody.putInt(SpuSummaryDto.Key.TID, tid);
+            sendBody.putInt(SpuSummaryDto.Key.UNION_PRI_ID, unionPriId);
+            pdIdList.toBuffer(sendBody, SpuSummaryDto.Key.ID_LIST);
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductStoreCmd.SalesSummaryCmd.GET_LIST);
+            sendProtocol.setCmd(MgProductStoreCmd.SpuSummaryCmd.GET_LIST);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);
@@ -911,8 +911,8 @@ public class MgProductStoreCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            m_rt = infoList.fromBuffer(recvBody, keyRef, SalesSummaryDto.getInfoDto());
-            if (m_rt != Errno.OK || keyRef.value != SalesSummaryDto.Key.INFO_LIST) {
+            m_rt = infoList.fromBuffer(recvBody, keyRef, SpuSummaryDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != SpuSummaryDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
             }
@@ -976,9 +976,9 @@ public class MgProductStoreCli extends FaiClient {
         }
     }
     /**
-     * 获取 业务 库存SKU信息
+     * 获取 SKU业务库存销售汇总信息
      */
-    public int getBizStoreSkuSummaryInfoList(int aid, int tid, int unionPriId, SearchArg searchArg, FaiList<Param> list){
+    public int getSkuBizSummaryInfoList(int aid, int tid, int unionPriId, SearchArg searchArg, FaiList<Param> list){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -999,12 +999,12 @@ public class MgProductStoreCli extends FaiClient {
             }
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
-            sendBody.putInt(StoreSkuSummaryDto.Key.TID, tid);
-            sendBody.putInt(StoreSkuSummaryDto.Key.UNION_PRI_ID, unionPriId);
-            searchArg.toBuffer(sendBody, StoreSkuSummaryDto.Key.SEARCH_ARG);
+            sendBody.putInt(SkuSummaryDto.Key.TID, tid);
+            sendBody.putInt(SkuSummaryDto.Key.UNION_PRI_ID, unionPriId);
+            searchArg.toBuffer(sendBody, SkuSummaryDto.Key.SEARCH_ARG);
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductStoreCmd.StoreSkuSummaryCmd.BIZ_GET_LIST);
+            sendProtocol.setCmd(MgProductStoreCmd.SkuSummaryCmd.BIZ_GET_LIST);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);
@@ -1033,14 +1033,14 @@ public class MgProductStoreCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            m_rt = list.fromBuffer(recvBody, keyRef, StoreSkuSummaryDto.getInfoDto());
-            if (m_rt != Errno.OK || keyRef.value != StoreSkuSummaryDto.Key.INFO_LIST) {
+            m_rt = list.fromBuffer(recvBody, keyRef, SkuSummaryDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != SkuSummaryDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
             }
             if(searchArg.totalSize != null){
                 recvBody.getInt(keyRef, searchArg.totalSize);
-                if(keyRef.value != StoreSkuSummaryDto.Key.TOTAL_SIZE){
+                if(keyRef.value != SkuSummaryDto.Key.TOTAL_SIZE){
                     m_rt = Errno.CODEC_ERROR;
                     Log.logErr(m_rt, "recv total size null");
                     return m_rt;
@@ -1055,9 +1055,9 @@ public class MgProductStoreCli extends FaiClient {
     }
 
     /**
-     * 获取库存SKU汇总信息
+     * 获取SKU库存销售汇总信息
      */
-    public int getStoreSkuSummaryInfoList(int aid, int tid, int sourceUnionPriId, SearchArg searchArg, FaiList<Param> list){
+    public int getSkuSummaryInfoList(int aid, int tid, int sourceUnionPriId, SearchArg searchArg, FaiList<Param> list){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1078,12 +1078,12 @@ public class MgProductStoreCli extends FaiClient {
             }
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
-            sendBody.putInt(StoreSkuSummaryDto.Key.TID, tid);
-            sendBody.putInt(StoreSkuSummaryDto.Key.UNION_PRI_ID, sourceUnionPriId);
-            searchArg.toBuffer(sendBody, StoreSkuSummaryDto.Key.SEARCH_ARG);
+            sendBody.putInt(SkuSummaryDto.Key.TID, tid);
+            sendBody.putInt(SkuSummaryDto.Key.UNION_PRI_ID, sourceUnionPriId);
+            searchArg.toBuffer(sendBody, SkuSummaryDto.Key.SEARCH_ARG);
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductStoreCmd.StoreSkuSummaryCmd.GET_LIST);
+            sendProtocol.setCmd(MgProductStoreCmd.SkuSummaryCmd.GET_LIST);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);
@@ -1112,14 +1112,14 @@ public class MgProductStoreCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            m_rt = list.fromBuffer(recvBody, keyRef, StoreSkuSummaryDto.getInfoDto());
-            if (m_rt != Errno.OK || keyRef.value != StoreSkuSummaryDto.Key.INFO_LIST) {
+            m_rt = list.fromBuffer(recvBody, keyRef, SkuSummaryDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != SkuSummaryDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
             }
             if(searchArg.totalSize != null){
                 recvBody.getInt(keyRef, searchArg.totalSize);
-                if(keyRef.value != StoreSkuSummaryDto.Key.TOTAL_SIZE){
+                if(keyRef.value != SkuSummaryDto.Key.TOTAL_SIZE){
                     m_rt = Errno.CODEC_ERROR;
                     Log.logErr(m_rt, "recv total size null");
                     return m_rt;

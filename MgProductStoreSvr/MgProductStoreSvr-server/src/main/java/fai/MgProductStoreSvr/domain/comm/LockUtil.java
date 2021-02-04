@@ -5,7 +5,6 @@ import fai.comm.util.Log;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 
 public class LockUtil {
@@ -18,12 +17,15 @@ public class LockUtil {
         if(lockWarp == null){
             Lock lock = lockGenerator.gen(LOCK_TYPE, String.valueOf(aid), lockLease, TimeUnit.MILLISECONDS, retryLockTime);
             lockWarp = new LockWarp(aid, lock);
-            threadIdLockWarpCache.putIfAbsent(Thread.currentThread().getId(), lockWarp);
+            LockWarp exists = threadIdLockWarpCache.put(Thread.currentThread().getId(), lockWarp);
+            if(exists != null){
+                Log.logErr("already exists;threadId=%s;aid=%s;exists=%s;", Thread.currentThread().getId(), aid, exists);
+            }
         }
         if(lockWarp.holdingAid != aid){
             Log.logErr("holding err;threadId=%s;aid=%s;holdingAid=%s;", Thread.currentThread().getId(), aid, lockWarp.holdingAid);
         }
-        lockWarp.count.incrementAndGet();
+        lockWarp.count++;
         lockWarp.lock.lock();
     }
 
@@ -33,7 +35,7 @@ public class LockUtil {
             throw new RuntimeException("unlock err aid="+aid);
         }
         lockWarp.lock.unlock();
-        if(lockWarp.count.decrementAndGet() == 0){
+        if(--lockWarp.count == 0){
             threadIdLockWarpCache.remove(Thread.currentThread().getId());
         }
     }
@@ -49,12 +51,21 @@ public class LockUtil {
     private static long retryLockTime;
     private static class LockWarp{
         private int holdingAid;
-        private AtomicInteger count;
+        private int count;
         private Lock lock;
         public LockWarp(int holdingAid, Lock lock) {
             this.holdingAid = holdingAid;
             this.lock = lock;
-            count = new AtomicInteger();
+            count = 0;
+        }
+
+        @Override
+        public String toString() {
+            return "LockWarp{" +
+                    "holdingAid=" + holdingAid +
+                    ", count=" + count +
+                    ", lock=" + lock +
+                    '}';
         }
     }
 

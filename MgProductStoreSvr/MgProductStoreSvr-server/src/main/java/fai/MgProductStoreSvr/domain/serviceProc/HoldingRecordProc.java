@@ -1,6 +1,6 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
-import fai.MgProductStoreSvr.domain.comm.Misc2;
+import fai.MgProductStoreSvr.domain.comm.Utils;
 import fai.MgProductStoreSvr.domain.entity.HoldingRecordEntity;
 import fai.MgProductStoreSvr.domain.repository.HoldingRecordDaoCtrl;
 import fai.comm.util.*;
@@ -20,7 +20,7 @@ public class HoldingRecordProc {
             return Errno.ARGS_ERROR;
         }
         Calendar now = Calendar.getInstance();
-        Calendar expireTime = Misc2.addSecond(now, expireTimeSeconds);
+        Calendar expireTime = Utils.addSecond(now, expireTimeSeconds);
         if(expireTimeSeconds == 0){
             expireTime.set(Calendar.YEAR, 9999); // 不过期
         }

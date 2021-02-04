@@ -1,5 +1,7 @@
 package fai.MgProductStoreSvr.domain.entity;
 
+import fai.comm.util.Str;
+
 /**
  * 商品规格库存销售sku
  */
@@ -62,10 +64,20 @@ public class StoreSalesSkuEntity {
     }
 
     /**
-     * @see StoreSkuSummaryEntity.Info
+     * @see SkuSummaryEntity.Info
      */
-    private static final String storeSkuSummaryFields = Info.AID + ", "+Info.SKU_ID+", "+Info.PD_ID+","+Info.COUNT+","+Info.REMAIN_COUNT+","+Info.HOLDING_COUNT;
-    public static String getStoreSkuSummaryFields(){
-        return storeSkuSummaryFields;
+    private static final String skuBizSummaryFields = Str.join(",",
+            new String[]{
+                    Info.AID
+                    , Info.SKU_ID
+                    , Info.PD_ID
+                    , Info.PRICE
+                    , Info.COUNT
+                    , Info.REMAIN_COUNT
+                    , Info.HOLDING_COUNT
+            }
+    );
+    public static String getSkuBizSummaryFields(){
+        return skuBizSummaryFields;
     }
 }

@@ -450,17 +450,17 @@ public class MgProductInfHandler extends FaiHandler {
 
     @WrittenCmd
     @Cmd(MgProductInfCmd.StoreSalesSkuCmd.SET_LIST)
-    public int setPdScSkuSalesStore(final FaiSession session,
-                                    @ArgFlow final int flow,
-                                    @ArgAid final int aid,
-                                    @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
-                                    @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
-                                    @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
-                                    @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
-                                    @ArgBodyInteger(ProductStoreDto.Key.RL_PD_ID) int rlPdId,
-                                    @ArgList(classDef = ProductStoreDto.StoreSalesSku.class, methodDef = "getInfoDto",
+    public int setSkuStoreSales(final FaiSession session,
+                                @ArgFlow final int flow,
+                                @ArgAid final int aid,
+                                @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
+                                @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
+                                @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
+                                @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
+                                @ArgBodyInteger(ProductStoreDto.Key.RL_PD_ID) int rlPdId,
+                                @ArgList(classDef = ProductStoreDto.StoreSalesSku.class, methodDef = "getInfoDto",
                                             keyMatch = ProductStoreDto.Key.UPDATER_LIST) FaiList<ParamUpdater> updaterList) throws IOException {
-        return storeService.setPdScSkuSalesStore(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, updaterList);
+        return storeService.setSkuStoreSales(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, updaterList);
     }
     @WrittenCmd
     @Cmd(MgProductInfCmd.StoreSalesSkuCmd.BATCH_REDUCE_STORE)
@@ -500,43 +500,43 @@ public class MgProductInfHandler extends FaiHandler {
 
     @WrittenCmd
     @Cmd(MgProductInfCmd.StoreSalesSkuCmd.BATCH_MAKE_UP_STORE)
-    public int batchMakeUpPdSkuStore(final FaiSession session,
-                           @ArgFlow final int flow,
-                           @ArgAid final int aid,
-                           @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
-                           @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
-                           @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
-                           @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
-                           @ArgList(classDef = ProductStoreDto.StoreSalesSku.class, methodDef = "getInfoDto",
+    public int batchMakeUpStore(final FaiSession session,
+                                @ArgFlow final int flow,
+                                @ArgAid final int aid,
+                                @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
+                                @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
+                                @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
+                                @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
+                                @ArgList(classDef = ProductStoreDto.StoreSalesSku.class, methodDef = "getInfoDto",
                                              keyMatch = ProductStoreDto.Key.INFO_LIST) FaiList<Param> skuIdCountList,
-                           @ArgBodyString(ProductStoreDto.Key.RL_ORDER_CODE) String rlOrderCode,
-                           @ArgBodyInteger(ProductStoreDto.Key.REDUCE_MODE) int reduceMode) throws IOException {
+                                @ArgBodyString(ProductStoreDto.Key.RL_ORDER_CODE) String rlOrderCode,
+                                @ArgBodyInteger(ProductStoreDto.Key.REDUCE_MODE) int reduceMode) throws IOException {
         return storeService.batchMakeUpStore(session, flow, aid, tid, siteId, lgId, keepPriId1, skuIdCountList, rlOrderCode, reduceMode);
     }
 
 
     @Cmd(MgProductInfCmd.StoreSalesSkuCmd.GET_LIST)
-    public int getPdScSkuSalesStore(final FaiSession session,
-                                  @ArgFlow final int flow,
-                                  @ArgAid final int aid,
-                                  @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
-                                  @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
-                                  @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
-                                  @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
-                                  @ArgBodyInteger(ProductStoreDto.Key.RL_PD_ID) int rlPdId,
-                                  @ArgList(keyMatch = ProductStoreDto.Key.STR_LIST, useDefault = true) FaiList<String> useOwnerFieldList) throws IOException {
-        return storeService.getPdScSkuSalesStore(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, useOwnerFieldList);
-    }
-
-    @Cmd(MgProductInfCmd.StoreSalesSkuCmd.GET_LIST_BY_SKU_ID)
-    public int getPdScSkuSalesStoreBySkuId(final FaiSession session,
+    public int getSkuStoreSalesList(final FaiSession session,
                                     @ArgFlow final int flow,
                                     @ArgAid final int aid,
                                     @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
-                                    @ArgBodyLong(ProductStoreDto.Key.SKU_ID) long skuId,
-                                    @ArgList(keyMatch = ProductStoreDto.Key.INFO_LIST,
+                                    @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
+                                    @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
+                                    @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
+                                    @ArgBodyInteger(ProductStoreDto.Key.RL_PD_ID) int rlPdId,
+                                    @ArgList(keyMatch = ProductStoreDto.Key.STR_LIST, useDefault = true) FaiList<String> useOwnerFieldList) throws IOException {
+        return storeService.getSkuStoreSalesList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, useOwnerFieldList);
+    }
+
+    @Cmd(MgProductInfCmd.StoreSalesSkuCmd.GET_LIST_BY_SKU_ID)
+    public int getSkuStoreSalesBySkuId(final FaiSession session,
+                                       @ArgFlow final int flow,
+                                       @ArgAid final int aid,
+                                       @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
+                                       @ArgBodyLong(ProductStoreDto.Key.SKU_ID) long skuId,
+                                       @ArgList(keyMatch = ProductStoreDto.Key.INFO_LIST,
                                             classDef = ProductStoreDto.StoreSalesSku.class, methodDef = "getInfoDto") FaiList<Param> bizInfoList) throws IOException {
-        return storeService.getPdScSkuSalesStoreBySkuId(session, flow, aid, tid, skuId, bizInfoList);
+        return storeService.getSkuStoreSalesBySkuId(session, flow, aid, tid, skuId, bizInfoList);
     }
 
 
@@ -554,45 +554,45 @@ public class MgProductInfHandler extends FaiHandler {
         return storeService.addInOutStoreRecordInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, infoList);
     }
     @Cmd(MgProductInfCmd.InOutStoreRecordCmd.GET_LIST)
-    public int getInOutStoreRecordInfoList(final FaiSession session,
+    public int searchInOutStoreRecordInfoList(final FaiSession session,
+                                              @ArgFlow final int flow,
+                                              @ArgAid final int aid,
+                                              @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
+                                              @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
+                                              @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
+                                              @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
+                                              @ArgBodyBoolean(value = ProductStoreDto.Key.IS_BIZ, useDefault = true) boolean isBiz,
+                                              @ArgSearchArg(ProductStoreDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
+        return storeService.searchInOutStoreRecordInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, isBiz, searchArg);
+    }
+
+    @Cmd(MgProductInfCmd.SpuBizSummaryCmd.GET_ALL_BIZ_LIST_BY_PD_ID)
+    public int getAllBizSpuSummaryInfoList(final FaiSession session,
                                            @ArgFlow final int flow,
                                            @ArgAid final int aid,
                                            @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
                                            @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
                                            @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
                                            @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
-                                           @ArgBodyBoolean(value = ProductStoreDto.Key.IS_BIZ, useDefault = true) boolean isBiz,
-                                           @ArgSearchArg(ProductStoreDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
-        return storeService.getInOutStoreRecordInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, isBiz, searchArg);
+                                           @ArgBodyInteger(ProductStoreDto.Key.RL_PD_ID) int rlPdId) throws IOException {
+        return storeService.getAllBizSpuSummaryInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId);
     }
 
-    @Cmd(MgProductInfCmd.BizSalesSummaryCmd.GET_ALL_BIZ_LIST_BY_PD_ID)
-    public int getAllBizSalesSummaryInfoList(final FaiSession session,
-                                             @ArgFlow final int flow,
-                                             @ArgAid final int aid,
-                                             @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
-                                             @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
-                                             @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
-                                             @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
-                                             @ArgBodyInteger(ProductStoreDto.Key.RL_PD_ID) int rlPdId) throws IOException {
-        return storeService.getAllBizSalesSummaryInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId);
+    @Cmd(MgProductInfCmd.SpuBizSummaryCmd.GET_LIST_BY_PD_ID_LIST)
+    public int getSpuBizStoreSalesSummaryInfoList(final FaiSession session,
+                                        @ArgFlow final int flow,
+                                        @ArgAid final int aid,
+                                        @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
+                                        @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
+                                        @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
+                                        @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
+                                        @ArgList(keyMatch = ProductStoreDto.Key.ID_LIST) FaiList<Integer> rlPdIdList,
+                                        @ArgList(keyMatch = ProductStoreDto.Key.STR_LIST, useDefault = true) FaiList<String> useOwnerFieldList) throws IOException {
+        return storeService.getSpuBizStoreSalesSummaryInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIdList, useOwnerFieldList);
     }
 
-    @Cmd(MgProductInfCmd.BizSalesSummaryCmd.GET_LIST_BY_PD_ID_LIST)
-    public int getPdBizSalesSummaryInfoList(final FaiSession session,
-                                             @ArgFlow final int flow,
-                                             @ArgAid final int aid,
-                                             @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
-                                             @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
-                                             @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
-                                             @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
-                                             @ArgList(keyMatch = ProductStoreDto.Key.ID_LIST) FaiList<Integer> rlPdIdList,
-                                            @ArgList(keyMatch = ProductStoreDto.Key.STR_LIST, useDefault = true) FaiList<String> useOwnerFieldList) throws IOException {
-        return storeService.getPdBizSalesSummaryInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIdList, useOwnerFieldList);
-    }
-
-    @Cmd(MgProductInfCmd.SalesSummaryCmd.GET_LIST)
-    public int getSalesSummaryInfoList(final FaiSession session,
+    @Cmd(MgProductInfCmd.SpuSummaryCmd.GET_LIST)
+    public int getSpuStoreSalesSummaryInfoList(final FaiSession session,
                                           @ArgFlow final int flow,
                                           @ArgAid final int aid,
                                           @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
@@ -600,19 +600,19 @@ public class MgProductInfHandler extends FaiHandler {
                                           @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
                                           @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
                                           @ArgList(keyMatch = ProductStoreDto.Key.ID_LIST) FaiList<Integer> rlPdIdList) throws IOException {
-        return storeService.getSalesSummaryInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIdList);
+        return storeService.getSpuStoreSalesSummaryInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIdList);
     }
-    @Cmd(MgProductInfCmd.StoreSkuSummaryCmd.GET_LIST)
-    public int getStoreSkuSummaryInfoList(final FaiSession session,
-                                       @ArgFlow final int flow,
-                                       @ArgAid final int aid,
-                                       @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
-                                       @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
-                                       @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
-                                       @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
-                                       @ArgSearchArg(ProductStoreDto.Key.SEARCH_ARG) SearchArg searchArg,
-                                       @ArgBodyBoolean(value = ProductStoreDto.Key.IS_BIZ, useDefault = true) boolean isBiz) throws IOException {
-        return storeService.getStoreSkuSummaryInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, searchArg, isBiz);
+    @Cmd(MgProductInfCmd.SkuSummaryCmd.GET_LIST)
+    public int searchSkuStoreSalesSummaryInfoList(final FaiSession session,
+                                                  @ArgFlow final int flow,
+                                                  @ArgAid final int aid,
+                                                  @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
+                                                  @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
+                                                  @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
+                                                  @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
+                                                  @ArgSearchArg(ProductStoreDto.Key.SEARCH_ARG) SearchArg searchArg,
+                                                  @ArgBodyBoolean(value = ProductStoreDto.Key.IS_BIZ, useDefault = true) boolean isBiz) throws IOException {
+        return storeService.searchSkuStoreSalesSummaryInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, searchArg, isBiz);
     }
 
     @WrittenCmd

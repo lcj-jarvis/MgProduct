@@ -5,7 +5,7 @@ import fai.comm.util.*;
 import java.util.*;
 import java.util.function.Consumer;
 
-public class Misc2 {
+public class Utils {
     public static <K> Map<K, Param> getMap(FaiList<Param> list, String key){
         if(list == null){
             return null;

@@ -30,16 +30,16 @@ public class MgProductInfCmd {
         /**@see StoreSalesSkuCmd#GET_LIST */
         public static final int NUM13 = 5013;
 
-        /**@see BizSalesSummaryCmd#GET_ALL_BIZ_LIST_BY_PD_ID */
+        /**@see SpuBizSummaryCmd#GET_ALL_BIZ_LIST_BY_PD_ID */
         public static final int NUM14 = 5014;
 
-        /**@see SalesSummaryCmd#GET_LIST */
+        /**@see SpuSummaryCmd#GET_LIST */
         public static final int NUM15 = 5015;
 
-        /**@see BizSalesSummaryCmd#GET_LIST_BY_PD_ID_LIST */
+        /**@see SpuBizSummaryCmd#GET_LIST_BY_PD_ID_LIST */
         public static final int NUM16 = 5016;
 
-        /**@see StoreSkuSummaryCmd#GET_LIST */
+        /**@see SkuSummaryCmd#GET_LIST */
         public static final int NUM17 = 5017;
 
         /**@see ProductSpecSkuCmd#GET_SKU_ID_LIST */
@@ -221,23 +221,23 @@ public class MgProductInfCmd {
     }
 
     /**
-     * 商品业务销售汇总
+     * spu 业务汇总
      */
-    public static class BizSalesSummaryCmd {
+    public static class SpuBizSummaryCmd {
         public static final int GET_ALL_BIZ_LIST_BY_PD_ID = ReadCmdNum.NUM14;
         public static final int GET_LIST_BY_PD_ID_LIST = ReadCmdNum.NUM16;
     }
 
     /**
-     * 商品销售汇总
+     * spu 汇总
      */
-    public static class SalesSummaryCmd {
+    public static class SpuSummaryCmd {
         public static final int GET_LIST = ReadCmdNum.NUM15;
     }
     /**
-     * 库存sku 汇总
+     * sku 汇总
      */
-    public static class StoreSkuSummaryCmd {
+    public static class SkuSummaryCmd {
         public static final int GET_LIST = ReadCmdNum.NUM17;
     }
 

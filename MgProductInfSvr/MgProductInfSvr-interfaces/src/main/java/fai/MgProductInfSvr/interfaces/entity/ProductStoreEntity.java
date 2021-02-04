@@ -69,9 +69,9 @@ public class ProductStoreEntity {
     }
 
     /**
-     * 商品业务销售总表
+     * spu 业务库存销售汇总信息
      */
-    public static final class BizSalesSummaryInfo {
+    public static final class SkuBizSummaryInfo {
         public static final String AID = "aid";                                     // int 企业aid
         public static final String TID = "tid";                                     // int 项目id
         public static final String SITE_ID = "siteId";                              // int 站点id
@@ -93,9 +93,9 @@ public class ProductStoreEntity {
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
     }
     /**
-     * 商品销售总表
+     * spu 库存销售汇总信息
      */
-    public static final class SalesSummaryInfo {
+    public static final class SpuSummaryInfo {
         public static final String AID = "aid";                                     // int 企业aid
         public static final String RL_PD_ID = "rlPdId";                             // int 商品业务id
         public static final String MIN_PRICE = "minPrice";                          // long 商品交易最小价格(做搜索，从 sku 冗余)
@@ -108,17 +108,17 @@ public class ProductStoreEntity {
     }
 
     /**
-     * 库存sku 汇总
+     * sku 库存销售汇总信息
      */
-    public static final class StoreSkuSummaryInfo{
+    public static final class SkuSummaryInfo {
         public static final String AID = "aid";                                     // int 企业aid
         public static final String SKU_ID = "skuId";                                // long skuId
         public static final String RL_PD_ID = "rlPdId";                             // int 商品业务 id    冗余 做查询  可异步更新
         public static final String COUNT = "count";                                 // int 商品总库存（数据不完全实时，做搜索，从 sku 冗余） 可异步更新
         public static final String REMAIN_COUNT = "remainCount";                    // int 商品总剩余库存（数据不完全实时，做搜索，从 sku 冗余） 可异步更新
         public static final String HOLDING_COUNT = "holdingCount";                  // int 商品总预扣库存（数据不完全实时，做搜索，从 sku 冗余） 可异步更新
-        public static final String FIFO_TOTAL_COST = "fifoTotalCost";               // long 先进先出方式计算的总成本
-        public static final String MW_TOTAL_COST = "mwTotalCost";                   // long 移动加权方式计算的总成本
+        public static final String FIFO_TOTAL_COST = "fifoTotalCost";               // long 先进先出方式计算的总成本（数据不完全实时，做搜索，从 sku 冗余）
+        public static final String MW_TOTAL_COST = "mwTotalCost";                   // long 移动加权方式计算的总成本（数据不完全实时，做搜索，从 sku 冗余）
 
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间

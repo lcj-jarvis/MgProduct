@@ -1,14 +1,14 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
 import fai.MgProductStoreSvr.domain.entity.StoreOrderRecordEntity;
-import fai.MgProductStoreSvr.domain.repository.SotreOrderRecordDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.StoreOrderRecordDaoCtrl;
 import fai.comm.util.*;
 
 import java.util.Calendar;
 import java.util.Map;
 
 public class StoreOrderRecordProc {
-    public StoreOrderRecordProc(SotreOrderRecordDaoCtrl daoCtrl, int flow) {
+    public StoreOrderRecordProc(StoreOrderRecordDaoCtrl daoCtrl, int flow) {
         m_daoCtrl = daoCtrl;
         m_flow = flow;
     }
@@ -92,7 +92,7 @@ public class StoreOrderRecordProc {
 
 
     private int m_flow;
-    private SotreOrderRecordDaoCtrl m_daoCtrl;
+    private StoreOrderRecordDaoCtrl m_daoCtrl;
 
 
 }

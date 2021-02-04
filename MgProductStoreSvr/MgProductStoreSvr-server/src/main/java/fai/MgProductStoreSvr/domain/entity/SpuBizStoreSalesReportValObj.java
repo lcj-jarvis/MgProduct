@@ -1,6 +1,6 @@
 package fai.MgProductStoreSvr.domain.entity;
 
-public class BizSalesReportValObj {
+public class SpuBizStoreSalesReportValObj {
 
     public static final class Flag{
         public static final int REPORT_COUNT = 0x1; // 上报库存

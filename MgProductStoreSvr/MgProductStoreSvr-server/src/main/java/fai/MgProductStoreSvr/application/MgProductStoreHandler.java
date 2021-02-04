@@ -1,7 +1,7 @@
 package fai.MgProductStoreSvr.application;
 
-import fai.MgProductStoreSvr.application.mq.BizSalesReportConsumeListener;
-import fai.MgProductStoreSvr.application.mq.StoreSkuReportConsumeListener;
+import fai.MgProductStoreSvr.application.mq.SpuBizReportConsumeListener;
+import fai.MgProductStoreSvr.application.mq.SkuSummaryReportConsumeListener;
 import fai.MgProductStoreSvr.application.service.StoreService;
 import fai.MgProductStoreSvr.interfaces.cmd.MgProductStoreCmd;
 import fai.MgProductStoreSvr.interfaces.conf.MqConfig;
@@ -28,16 +28,16 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
     }
 
     private void initMq() {
-        Producer producer = MqFactory.createProducer(MqConfig.BizSalesReport.PRODUCER);
+        Producer producer = MqFactory.createProducer(MqConfig.SpuBizReport.PRODUCER);
         int rt = producer.start();
         if (rt != Errno.OK) {
             Log.logErr(rt, "producer start err;");
             throw new RuntimeException("producer start err");
         }
 
-        Consumer consumer = MqFactory.createConsumer(MqConfig.BizSalesReport.CONSUMER);
-        consumer.subscribe(MqConfig.BizSalesReport.TOPIC, MqConfig.BizSalesReport.TAG, new BizSalesReportConsumeListener(m_storeService));
-        consumer.subscribe(MqConfig.StoreSkuReport.TOPIC, MqConfig.StoreSkuReport.TAG, new StoreSkuReportConsumeListener(m_storeService));
+        Consumer consumer = MqFactory.createConsumer(MqConfig.SpuBizReport.CONSUMER);
+        consumer.subscribe(MqConfig.SpuBizReport.TOPIC, MqConfig.SpuBizReport.TAG, new SpuBizReportConsumeListener(m_storeService));
+        consumer.subscribe(MqConfig.SkuReport.TOPIC, MqConfig.SkuReport.TAG, new SkuSummaryReportConsumeListener(m_storeService));
         rt = consumer.start();
         if (rt != Errno.OK) {
             Log.logErr(rt, "consumer start err;");
@@ -46,8 +46,8 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
 
     }
     private void shutDownMq(){
-        MqFactory.getProducer(MqConfig.BizSalesReport.PRODUCER).shutdown();
-        MqFactory.getConsumer(MqConfig.BizSalesReport.CONSUMER).shutdown();
+        MqFactory.getProducer(MqConfig.SpuBizReport.PRODUCER).shutdown();
+        MqFactory.getConsumer(MqConfig.SpuBizReport.CONSUMER).shutdown();
     }
 
 
@@ -59,16 +59,16 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.REFRESH)
-    private int refreshPdScSkuSalesStore(final FaiSession session,
-                                   @ArgFlow final int flow,
-                                   @ArgAid final int aid,
-                                   @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
-                                   @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
-                                   @ArgBodyInteger(StoreSalesSkuDto.Key.PD_ID) final int pdId,
-                                   @ArgBodyInteger(StoreSalesSkuDto.Key.RL_PD_ID) final int rlPdId,
-                                   @ArgList(classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto", keyMatch = StoreSalesSkuDto.Key.INFO_LIST)
+    private int refreshSkuStoreSales(final FaiSession session,
+                                     @ArgFlow final int flow,
+                                     @ArgAid final int aid,
+                                     @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
+                                     @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
+                                     @ArgBodyInteger(StoreSalesSkuDto.Key.PD_ID) final int pdId,
+                                     @ArgBodyInteger(StoreSalesSkuDto.Key.RL_PD_ID) final int rlPdId,
+                                     @ArgList(classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto", keyMatch = StoreSalesSkuDto.Key.INFO_LIST)
                                            FaiList<Param> pdScSkuInfoList) throws IOException {
-        return  m_storeService.refreshPdScSkuSalesStore(session, flow, aid, tid, unionPriId, pdId, rlPdId, pdScSkuInfoList);
+        return  m_storeService.refreshSkuStoreSales(session, flow, aid, tid, unionPriId, pdId, rlPdId, pdScSkuInfoList);
     }
 
     @WrittenCmd
@@ -97,16 +97,16 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.SET_LIST)
-    private int setPdScSkuSalesStore(final FaiSession session,
-                                         @ArgFlow final int flow,
-                                         @ArgAid final int aid,
-                                         @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
-                                         @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
-                                         @ArgBodyInteger(StoreSalesSkuDto.Key.PD_ID) final int pdId,
-                                         @ArgBodyInteger(StoreSalesSkuDto.Key.RL_PD_ID) final int rlPdId,
-                                         @ArgList(classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto", keyMatch = StoreSalesSkuDto.Key.UPDATER_LIST)
+    private int setSkuStoreSales(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid final int aid,
+                                 @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
+                                 @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
+                                 @ArgBodyInteger(StoreSalesSkuDto.Key.PD_ID) final int pdId,
+                                 @ArgBodyInteger(StoreSalesSkuDto.Key.RL_PD_ID) final int rlPdId,
+                                 @ArgList(classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto", keyMatch = StoreSalesSkuDto.Key.UPDATER_LIST)
                                                  FaiList<ParamUpdater> updaterList) throws IOException {
-        return  m_storeService.setPdScSkuSalesStore(session, flow, aid, tid, unionPriId, pdId, rlPdId, updaterList);
+        return  m_storeService.setSkuStoreSales(session, flow, aid, tid, unionPriId, pdId, rlPdId, updaterList);
     }
 
     @WrittenCmd
@@ -153,33 +153,33 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
     }
 
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.GET_LIST)
-    private int getPdScSkuSalesStore(final FaiSession session,
-                                     @ArgFlow final int flow,
-                                     @ArgAid final int aid,
-                                     @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
-                                     @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
-                                     @ArgBodyInteger(StoreSalesSkuDto.Key.PD_ID) final int pdId,
-                                     @ArgBodyInteger(StoreSalesSkuDto.Key.RL_PD_ID) final int rlPdId,
-                                     @ArgList(keyMatch = StoreSalesSkuDto.Key.STR_LIST, useDefault = true)
+    private int getSkuStoreSales(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid final int aid,
+                                 @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
+                                 @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
+                                 @ArgBodyInteger(StoreSalesSkuDto.Key.PD_ID) final int pdId,
+                                 @ArgBodyInteger(StoreSalesSkuDto.Key.RL_PD_ID) final int rlPdId,
+                                 @ArgList(keyMatch = StoreSalesSkuDto.Key.STR_LIST, useDefault = true)
                                                  FaiList<String> useSourceFieldList) throws IOException {
-        return  m_storeService.getPdScSkuSalesStore(session, flow, aid, tid, unionPriId, pdId, rlPdId, useSourceFieldList);
+        return  m_storeService.getSkuStoreSales(session, flow, aid, tid, unionPriId, pdId, rlPdId, useSourceFieldList);
     }
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.GET_LIST_BY_SKU_ID_AND_UID_LIST)
-    private int getPdScSkuSalesStoreBySkuIdAndUnionPriIdList(final FaiSession session,
-                                     @ArgFlow final int flow,
-                                     @ArgAid final int aid,
-                                     @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
-                                     @ArgBodyLong(StoreSalesSkuDto.Key.SKU_ID) final long skuId,
-                                     @ArgList(keyMatch = StoreSalesSkuDto.Key.UID_LIST) FaiList<Integer> unionPriIdList) throws IOException {
-        return  m_storeService.getPdScSkuSalesStoreBySkuIdAndUnionPriIdList(session, flow, aid, skuId, unionPriIdList);
+    private int getStoreSalesBySkuIdAndUIdList(final FaiSession session,
+                                               @ArgFlow final int flow,
+                                               @ArgAid final int aid,
+                                               @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
+                                               @ArgBodyLong(StoreSalesSkuDto.Key.SKU_ID) final long skuId,
+                                               @ArgList(keyMatch = StoreSalesSkuDto.Key.UID_LIST) FaiList<Integer> unionPriIdList) throws IOException {
+        return  m_storeService.getStoreSalesBySkuIdAndUIdList(session, flow, aid, skuId, unionPriIdList);
     }
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.GET_LIST_BY_PD_ID)
-    private int getPdScSkuSalesStoreByPdId(final FaiSession session,
-                                                             @ArgFlow final int flow,
-                                                             @ArgAid final int aid,
-                                                             @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
-                                                             @ArgBodyInteger(StoreSalesSkuDto.Key.PD_ID) final int pdId) throws IOException {
-        return  m_storeService.getPdScSkuSalesStoreByPdId(session, flow, aid, pdId);
+    private int getSkuStoreSalesByPdId(final FaiSession session,
+                                       @ArgFlow final int flow,
+                                       @ArgAid final int aid,
+                                       @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
+                                       @ArgBodyInteger(StoreSalesSkuDto.Key.PD_ID) final int pdId) throws IOException {
+        return  m_storeService.getSkuStoreSalesByPdId(session, flow, aid, pdId);
     }
 
     @WrittenCmd
@@ -207,35 +207,35 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
 
 
 
-    @Cmd(MgProductStoreCmd.BizSalesSummaryCmd.GET_LIST_BY_PD_ID)
-    private int getBizSalesSummaryInfoListByPdId(final FaiSession session,
-                                     @ArgFlow final int flow,
-                                     @ArgAid final int aid,
-                                     @ArgBodyInteger(BizSalesSummaryDto.Key.TID) final int tid,
-                                     @ArgBodyInteger(BizSalesSummaryDto.Key.PD_ID) final int pdId) throws IOException {
-        return  m_storeService.getBizSalesSummaryInfoListByPdId(session, flow, aid, tid, pdId);
+    @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.GET_LIST_BY_PD_ID)
+    private int getSpuBizSummaryInfoListByPdId(final FaiSession session,
+                                               @ArgFlow final int flow,
+                                               @ArgAid final int aid,
+                                               @ArgBodyInteger(SpuBizSummaryDto.Key.TID) final int tid,
+                                               @ArgBodyInteger(SpuBizSummaryDto.Key.PD_ID) final int pdId) throws IOException {
+        return  m_storeService.getSpuBizSummaryInfoListByPdId(session, flow, aid, tid, pdId);
     }
 
-    @Cmd(MgProductStoreCmd.BizSalesSummaryCmd.GET_LIST)
-    private int getBizSalesSummaryInfoList(final FaiSession session,
-                                           @ArgFlow final int flow,
-                                           @ArgAid final int aid,
-                                           @ArgBodyInteger(BizSalesSummaryDto.Key.TID) final int tid,
-                                           @ArgBodyInteger(BizSalesSummaryDto.Key.UNION_PRI_ID) final int unionPriId,
-                                           @ArgList(keyMatch = SalesSummaryDto.Key.ID_LIST) FaiList<Integer> pdIdList,
-                                           @ArgList(keyMatch = StoreSalesSkuDto.Key.STR_LIST, useDefault = true)
+    @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.GET_LIST)
+    private int getSpuBizSummaryInfoList(final FaiSession session,
+                                         @ArgFlow final int flow,
+                                         @ArgAid final int aid,
+                                         @ArgBodyInteger(SpuBizSummaryDto.Key.TID) final int tid,
+                                         @ArgBodyInteger(SpuBizSummaryDto.Key.UNION_PRI_ID) final int unionPriId,
+                                         @ArgList(keyMatch = SpuSummaryDto.Key.ID_LIST) FaiList<Integer> pdIdList,
+                                         @ArgList(keyMatch = StoreSalesSkuDto.Key.STR_LIST, useDefault = true)
                                                        FaiList<String> useSourceFieldList) throws IOException {
-        return  m_storeService.getBizSalesSummaryInfoList(session, flow, aid, tid, unionPriId, pdIdList, useSourceFieldList);
+        return  m_storeService.getSpuBizSummaryInfoList(session, flow, aid, tid, unionPriId, pdIdList, useSourceFieldList);
     }
 
-    @Cmd(MgProductStoreCmd.SalesSummaryCmd.GET_LIST)
-    private int getSalesSummaryInfoList(final FaiSession session,
-                                           @ArgFlow final int flow,
-                                           @ArgAid final int aid,
-                                           @ArgBodyInteger(SalesSummaryDto.Key.TID) final int tid,
-                                           @ArgBodyInteger(SalesSummaryDto.Key.UNION_PRI_ID) final int unionPriId,
-                                           @ArgList(keyMatch = SalesSummaryDto.Key.ID_LIST) FaiList<Integer> pdIdList) throws IOException {
-        return  m_storeService.getSalesSummaryInfoList(session, flow, aid, tid, unionPriId, pdIdList);
+    @Cmd(MgProductStoreCmd.SpuSummaryCmd.GET_LIST)
+    private int getSpuSummaryInfoList(final FaiSession session,
+                                      @ArgFlow final int flow,
+                                      @ArgAid final int aid,
+                                      @ArgBodyInteger(SpuSummaryDto.Key.TID) final int tid,
+                                      @ArgBodyInteger(SpuSummaryDto.Key.UNION_PRI_ID) final int unionPriId,
+                                      @ArgList(keyMatch = SpuSummaryDto.Key.ID_LIST) FaiList<Integer> pdIdList) throws IOException {
+        return  m_storeService.getSpuSummaryInfoList(session, flow, aid, tid, unionPriId, pdIdList);
     }
 
 
@@ -250,24 +250,24 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
         return  m_storeService.batchDelPdAllStoreSales(session, flow, aid, tid, pdIdList);
     }
 
-    @Cmd(MgProductStoreCmd.StoreSkuSummaryCmd.BIZ_GET_LIST)
-    private int getBizStoreSkuSummaryInfoList(final FaiSession session,
-                                           @ArgFlow final int flow,
-                                           @ArgAid final int aid,
-                                           @ArgBodyInteger(StoreSkuSummaryDto.Key.TID) final int tid,
-                                           @ArgBodyInteger(StoreSkuSummaryDto.Key.UNION_PRI_ID) final int unionPriId,
-                                           @ArgSearchArg(StoreSkuSummaryDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
-        return  m_storeService.getBizStoreSkuSummaryInfoList(session, flow, aid, tid, unionPriId, searchArg);
+    @Cmd(MgProductStoreCmd.SkuSummaryCmd.BIZ_GET_LIST)
+    private int getSkuBizSummaryInfoList(final FaiSession session,
+                                         @ArgFlow final int flow,
+                                         @ArgAid final int aid,
+                                         @ArgBodyInteger(SkuSummaryDto.Key.TID) final int tid,
+                                         @ArgBodyInteger(SkuSummaryDto.Key.UNION_PRI_ID) final int unionPriId,
+                                         @ArgSearchArg(SkuSummaryDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
+        return  m_storeService.getSkuBizSummaryInfoList(session, flow, aid, tid, unionPriId, searchArg);
     }
 
-    @Cmd(MgProductStoreCmd.StoreSkuSummaryCmd.GET_LIST)
-    private int getStoreSkuSummaryInfoList(final FaiSession session,
-                                        @ArgFlow final int flow,
-                                        @ArgAid final int aid,
-                                        @ArgBodyInteger(StoreSkuSummaryDto.Key.TID) final int tid,
-                                        @ArgBodyInteger(StoreSkuSummaryDto.Key.UNION_PRI_ID) final int sourceUnionPriId,
-                                        @ArgSearchArg(StoreSkuSummaryDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
-        return  m_storeService.getStoreSkuSummaryInfoList(session, flow, aid, tid, sourceUnionPriId, searchArg);
+    @Cmd(MgProductStoreCmd.SkuSummaryCmd.GET_LIST)
+    private int getSkuSummaryInfoList(final FaiSession session,
+                                      @ArgFlow final int flow,
+                                      @ArgAid final int aid,
+                                      @ArgBodyInteger(SkuSummaryDto.Key.TID) final int tid,
+                                      @ArgBodyInteger(SkuSummaryDto.Key.UNION_PRI_ID) final int sourceUnionPriId,
+                                      @ArgSearchArg(SkuSummaryDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
+        return  m_storeService.getSkuSummaryInfoList(session, flow, aid, tid, sourceUnionPriId, searchArg);
     }
 
     private StoreService m_storeService = new StoreService();

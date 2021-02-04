@@ -1,7 +1,7 @@
 package fai.MgProductStoreSvr.domain.repository;
 
-import fai.MgProductStoreSvr.domain.entity.BizSalesSummaryEntity;
-import fai.MgProductStoreSvr.interfaces.dto.BizSalesSummaryDto;
+import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryEntity;
+import fai.MgProductStoreSvr.interfaces.dto.SpuBizSummaryDto;
 import fai.comm.util.FaiList;
 import fai.comm.util.Log;
 import fai.comm.util.Param;
@@ -12,13 +12,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class BizSalesSummaryCacheCtrl extends CacheCtrl{
+public class SpuBizSummaryCacheCtrl extends CacheCtrl{
 
     public static FaiList<Param> getCacheList(int aid, int unionPriId, FaiList<Integer> pdIdList) {
         String cacheKey = getCacheKey(aid, unionPriId);
         List<String> pdIdStrList = pdIdList.stream().map(String::valueOf).collect(Collectors.toList());
         try {
-            return m_cache.hmget(cacheKey, BizSalesSummaryDto.Key.INFO, BizSalesSummaryDto.getInfoDto(), pdIdStrList);
+            return m_cache.hmget(cacheKey, SpuBizSummaryDto.Key.INFO, SpuBizSummaryDto.getInfoDto(), pdIdStrList);
         } catch (Exception e) {
             Log.logErr(e, "getCacheList err;aid=%s;unionPriId=%s;pdIdList=%s;", aid, unionPriId, pdIdList);
         }
@@ -49,7 +49,7 @@ public class BizSalesSummaryCacheCtrl extends CacheCtrl{
             return;
         }
         String cacheKey = getCacheKey(aid, unionPriId);
-        boolean boo = m_cache.hmsetFaiList(cacheKey, BizSalesSummaryEntity.Info.PD_ID, Var.Type.INT, list, BizSalesSummaryDto.Key.INFO, BizSalesSummaryDto.getInfoDto());
+        boolean boo = m_cache.hmsetFaiList(cacheKey, SpuBizSummaryEntity.Info.PD_ID, Var.Type.INT, list, SpuBizSummaryDto.Key.INFO, SpuBizSummaryDto.getInfoDto());
         if(!boo){
             Log.logErr("hmsetFaiList err key:"+cacheKey);
         }

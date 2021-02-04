@@ -1,19 +1,21 @@
-package fai.MgProductStoreSvr.interfaces.entity;
+package fai.MgProductStoreSvr.domain.entity;
 
 /**
- * 商品业务销售总表
+ * spu 业务库存销售汇总表
  */
-public class BizSalesSummaryEntity {
+public class SpuBizSummaryEntity {
+
     public static final class Info {
         public static final String AID = "aid";                                     // int 企业aid    (Primary Key 1)
         public static final String UNION_PRI_ID = "unionPriId";                     // int 联合主键 id  (Primary Key 2)
         public static final String PD_ID = "pdId";                                  // int 商品 id    (Primary Key 3)
+        public static final String SOURCE_UNION_PRI_ID = "sourceUnionPriId";        // int 创建商品的联合主键 id
         public static final String RL_PD_ID = "rlPdId";                             // int 商品业务 id
         public static final String PRICE_TYPE = "priceType";                        // int 价格类型（定价、面议）
         public static final String MODE_TYPE = "modeType";                          // int 服务预约模式
         public static final String MARKET_PRICE = "marketPrice";                    // bigint 市场价格
         public static final String MIN_PRICE = "minPrice";                          // bigint 商品交易最小价格(做搜索，从 sku 冗余)
-        public static final String MAX_PRICE = "maxPrice";                          // bigint 商品交易最小价格(做搜索，从 sku 冗余)
+        public static final String MAX_PRICE = "maxPrice";                          // bigint 商品交易最大价格(做搜索，从 sku 冗余)
         public static final String VIRTUAL_SALES = "virtualSales";                  // int 虚拟销售量
         public static final String SALES = "sales";                                 // int 实际销售量（数据不完全实时，做展示，实时数据看订单）
         public static final String COUNT = "count";                                 // int 商品总库存（数据不完全实时，做搜索，从 sku 冗余）
@@ -27,4 +29,28 @@ public class BizSalesSummaryEntity {
         public static final String KEEP_INT_PROP1 = "keepIntProp1";                 // int 整型 保留字段1 TODO
     }
 
+    private static final String[] VALID_KEYS = new String[]{
+            Info.PRICE_TYPE
+            , Info.MODE_TYPE
+            , Info.MARKET_PRICE
+            , Info.MIN_PRICE
+            , Info.MAX_PRICE
+            , Info.VIRTUAL_SALES
+            , Info.SALES
+    };
+    /**
+     * 支持批量更新的字段
+     */
+    public static String[] getValidKeys(){
+        return VALID_KEYS;
+    }
+
+    public static final class ReportInfo{
+        public static final String SOURCE_UNION_PRI_ID = "sourceUnionPriId";        // int 创建商品的联合主键 id
+        public static final String SUM_COUNT = "sumCount";
+        public static final String SUM_REMAIN_COUNT = "sumRemainCount";
+        public static final String SUM_HOLDING_COUNT = "sumHoldingCount";
+        public static final String MIN_PRICE = "minPrice";
+        public static final String MAX_PRICE = "maxPrice";
+    }
 }

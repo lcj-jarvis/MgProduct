@@ -70,24 +70,24 @@ public class MgProductStoreCmd {
 	}
 
 	/**
-	 * 商品业务销售汇总
+	 * spu业务库存销售汇总
 	 */
-	public static class BizSalesSummaryCmd {
+	public static class SpuBizSummaryCmd {
 		public static final int GET_LIST_BY_PD_ID = ReadCmdNum.NUM1;
 		public static final int GET_LIST = ReadCmdNum.NUM3;
 	}
 
 	/**
-	 * 商品销售汇总
+	 * spu库存销售汇总
 	 */
-	public static class SalesSummaryCmd {
+	public static class SpuSummaryCmd {
 		public static final int GET_LIST = ReadCmdNum.NUM2;
 	}
 
 	/**
-	 * 库存sku汇总
+	 * sku库存销售汇总
 	 */
-	public static class StoreSkuSummaryCmd {
+	public static class SkuSummaryCmd {
 		public static final int GET_LIST = ReadCmdNum.NUM4;
 		public static final int BIZ_GET_LIST = ReadCmdNum.NUM5;
 	}

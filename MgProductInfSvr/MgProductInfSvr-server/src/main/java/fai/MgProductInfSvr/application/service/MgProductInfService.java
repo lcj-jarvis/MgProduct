@@ -178,7 +178,7 @@ public class MgProductInfService extends ServicePub {
             // 3.2 获取销售库存相关
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
             FaiList<Param> pdScSkuSalesStoreInfoList = new FaiList<>();
-            rt = productStoreProc.getPdScSkuSalesStoreByPdId(aid, tid, pdId, pdScSkuSalesStoreInfoList);
+            rt = productStoreProc.getSkuStoreSalesByPdId(aid, tid, pdId, pdScSkuSalesStoreInfoList);
             if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                 return rt;
             }
@@ -194,7 +194,7 @@ public class MgProductInfService extends ServicePub {
                     return rt;
                 }
                 Map<Integer, BizPriKey> unionPriIdBizPriKeyMap = toUnionPriIdBizPriKeyMap(primaryKeyList);
-                ProductStoreService.initStoreSalesSkuPrimaryInfo(unionPriIdBizPriKeyMap, pdScSkuSalesStoreInfoList);
+                ProductStoreService.initSkuStoreSalesPrimaryInfo(unionPriIdBizPriKeyMap, pdScSkuSalesStoreInfoList);
             }
             Param productInfo = new Param();
             productInfo.setList(MgProductEntity.Info.SPEC, pdScInfoList);

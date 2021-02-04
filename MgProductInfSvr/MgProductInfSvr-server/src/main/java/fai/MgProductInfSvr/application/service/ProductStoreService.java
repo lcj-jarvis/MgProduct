@@ -9,10 +9,7 @@ import fai.MgProductInfSvr.domain.serviceproc.ProductSpecProc;
 import fai.MgProductInfSvr.interfaces.dto.ProductStoreDto;
 import fai.MgProductInfSvr.interfaces.entity.*;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
-import fai.MgProductStoreSvr.interfaces.entity.InOutStoreRecordEntity;
-import fai.MgProductStoreSvr.interfaces.entity.SalesSummaryEntity;
-import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity;
-import fai.MgProductStoreSvr.interfaces.entity.StoreSkuSummaryEntity;
+import fai.MgProductStoreSvr.interfaces.entity.*;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
@@ -26,9 +23,9 @@ import java.util.*;
 public class ProductStoreService extends MgProductInfService {
 
     /**
-     * 修改商品规格库存销售sku
+     * 修改sku 库存销售信息
      */
-    public int setPdScSkuSalesStore(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<ParamUpdater> updaterList) throws IOException {
+    public int setSkuStoreSales(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<ParamUpdater> updaterList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -98,7 +95,7 @@ public class ProductStoreService extends MgProductInfService {
             }
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-            rt = productStoreProc.setPdScSkuSalesStore(aid, tid, unionPriId, pdId, rlPdId, updaterList);
+            rt = productStoreProc.setSkuStoreSales(aid, tid, unionPriId, pdId, rlPdId, updaterList);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -234,9 +231,10 @@ public class ProductStoreService extends MgProductInfService {
     }
 
     /**
-     * 获取商品规格库存销售sku
+     * 获取sku库存销售信息
+     * @param useOwnerFieldList 使用 创建商品的业务数据
      */
-    public int getPdScSkuSalesStore(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<String> useOwnerFieldList)  throws IOException {
+    public int getSkuStoreSalesList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<String> useOwnerFieldList)  throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -264,7 +262,7 @@ public class ProductStoreService extends MgProductInfService {
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
             FaiList<Param> infoList = new FaiList<Param>();
-            rt = productStoreProc.getPdScSkuSalesStore(aid, tid, unionPriId, pdId, rlPdId, infoList, useOwnerFieldList);
+            rt = productStoreProc.getSkuStoreSales(aid, tid, unionPriId, pdId, rlPdId, infoList, useOwnerFieldList);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -281,14 +279,14 @@ public class ProductStoreService extends MgProductInfService {
 
 
     /**
-     * 获取指定 skuId 下 其所关联的 商品规格库存销售信息
+     * 获取指定 skuId 下 其所关联的 sku库存销售信息
      *  场景：
      *      悦客查看某个规格的库存分布。
      * @param tid tid
      * @param skuId skuId
      * @param bizInfoList 所关联的业务集 Param 中需要 tid，siteId, lgId, keepPriId1 {@link ProductStoreEntity.StoreSalesSkuInfo}
      */
-    public int getPdScSkuSalesStoreBySkuId(FaiSession session, int flow, int aid, int tid, long skuId, FaiList<Param> bizInfoList)  throws IOException {
+    public int getSkuStoreSalesBySkuId(FaiSession session, int flow, int aid, int tid, long skuId, FaiList<Param> bizInfoList)  throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -329,11 +327,11 @@ public class ProductStoreService extends MgProductInfService {
 
             FaiList<Param> infoList = new FaiList<>();
             ProductStoreProc storeProc = new ProductStoreProc(flow);
-            rt = storeProc.getPdScSkuSalesStoreBySkuIdAndUIdList(aid, tid, skuId, new FaiList<>(unionPriIdBizPriKeyMap.keySet()), infoList);
+            rt = storeProc.getStoreSalesBySkuIdAndUIdList(aid, tid, skuId, new FaiList<>(unionPriIdBizPriKeyMap.keySet()), infoList);
             if(rt != Errno.OK){
                 return rt;
             }
-            initStoreSalesSkuPrimaryInfo(unionPriIdBizPriKeyMap, infoList);
+            initSkuStoreSalesPrimaryInfo(unionPriIdBizPriKeyMap, infoList);
 
             rt = Errno.OK;
             FaiBuffer sendBuf = new FaiBuffer(true);
@@ -345,7 +343,7 @@ public class ProductStoreService extends MgProductInfService {
         return rt;
     }
 
-    protected static void initStoreSalesSkuPrimaryInfo(Map<Integer, BizPriKey> unionPriIdBizPriKeyMap, FaiList<Param> infoList) {
+    protected static void initSkuStoreSalesPrimaryInfo(Map<Integer, BizPriKey> unionPriIdBizPriKeyMap, FaiList<Param> infoList) {
         for (Param info : infoList) {
             Integer unionPriId = info.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
             BizPriKey bizPriKey = unionPriIdBizPriKeyMap.get(unionPriId);
@@ -586,9 +584,9 @@ public class ProductStoreService extends MgProductInfService {
     }
 
     /**
-     * 获取出入库存记录
+     * 查询出入库存记录
      */
-    public int getInOutStoreRecordInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, boolean isSource, SearchArg searchArg)  throws IOException {
+    public int searchInOutStoreRecordInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, boolean isSource, SearchArg searchArg)  throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -651,9 +649,9 @@ public class ProductStoreService extends MgProductInfService {
 
 
     /**
-     * 获取指定商品所有的业务销售记录
+     * 获取指定商品所有的业务spu库存销售汇总信息
      */
-    public int getAllBizSalesSummaryInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId)  throws IOException {
+    public int getAllBizSpuSummaryInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId)  throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -681,14 +679,34 @@ public class ProductStoreService extends MgProductInfService {
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
             FaiList<Param> infoList = new FaiList<Param>();
-            rt = productStoreProc.getAllBizSalesSummaryInfoList(aid, tid, pdId, infoList);
+            rt = productStoreProc.getAllSpuBizSummaryInfoList(aid, tid, pdId, infoList);
             if(rt != Errno.OK) {
                 return rt;
+            }
+            Set<Integer> unionPriIdSet = new HashSet<>();
+            for (Param info : infoList) {
+                unionPriIdSet.add(info.getInt(SpuBizSummaryEntity.Info.UNION_PRI_ID));
+            }
+            if(!unionPriIdSet.isEmpty()){
+                FaiList<Param> primaryKeyList = new FaiList<>();
+                rt = getPrimaryKeyListByUnionPriIds(flow, aid, tid, new FaiList<>(unionPriIdSet), primaryKeyList);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+                Map<Integer, BizPriKey> unionPriIdBizPriKeyMap = toUnionPriIdBizPriKeyMap(primaryKeyList);
+                for (Param info : infoList) {
+                    int tmpUnionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID);
+                    BizPriKey bizPriKey = unionPriIdBizPriKeyMap.get(tmpUnionPriId);
+                    info.setInt(ProductStoreEntity.SkuBizSummaryInfo.TID, bizPriKey.tid);
+                    info.setInt(ProductStoreEntity.SkuBizSummaryInfo.SITE_ID, bizPriKey.siteId);
+                    info.setInt(ProductStoreEntity.SkuBizSummaryInfo.LGID, bizPriKey.lgId);
+                    info.setInt(ProductStoreEntity.SkuBizSummaryInfo.KEEP_PRI_ID1, bizPriKey.keepPriId1);
+                }
             }
 
             rt = Errno.OK;
             FaiBuffer sendBuf = new FaiBuffer(true);
-            infoList.toBuffer(sendBuf, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.BizSalesSummary.getInfoDto());
+            infoList.toBuffer(sendBuf, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.SpuBizSummary.getInfoDto());
             session.write(sendBuf);
         }finally {
             stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
@@ -697,9 +715,10 @@ public class ProductStoreService extends MgProductInfService {
     }
 
     /**
-     * 获取指定业务下指定商品id集的业务销售信息
+     * 根据rlPdIdList 获取指定业务下 spu业务库存销售汇总
+     * @param useOwnerFieldList 使用 创建商品的业务数据
      */
-    public int getPdBizSalesSummaryInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, FaiList<String> useOwnerFieldList)  throws IOException {
+    public int getSpuBizStoreSalesSummaryInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, FaiList<String> useOwnerFieldList)  throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -727,14 +746,14 @@ public class ProductStoreService extends MgProductInfService {
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
             FaiList<Param> infoList = new FaiList<Param>();
-            rt = productStoreProc.getBizSalesSummaryInfoListByPdIdList(aid, tid, unionPriId, pdIdList, infoList, useOwnerFieldList);
+            rt = productStoreProc.getSpuBizSummaryInfoListByPdIdList(aid, tid, unionPriId, pdIdList, infoList, useOwnerFieldList);
             if(rt != Errno.OK) {
                 return rt;
             }
 
             rt = Errno.OK;
             FaiBuffer sendBuf = new FaiBuffer(true);
-            infoList.toBuffer(sendBuf, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.BizSalesSummary.getInfoDto());
+            infoList.toBuffer(sendBuf, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.SpuBizSummary.getInfoDto());
             session.write(sendBuf);
         }finally {
             stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
@@ -742,9 +761,9 @@ public class ProductStoreService extends MgProductInfService {
         return rt;
     }
     /**
-     * 获取商品销售信息
+     * 根据 rlPpdIdList spu库存销售汇总信息
      */
-    public int getSalesSummaryInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList)  throws IOException {
+    public int getSpuStoreSalesSummaryInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList)  throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -779,19 +798,19 @@ public class ProductStoreService extends MgProductInfService {
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
             FaiList<Param> infoList = new FaiList<Param>();
-            rt = productStoreProc.getSalesSummaryInfoList(aid, tid, unionPriId, pdIdList, infoList);
+            rt = productStoreProc.getSpuSummaryInfoList(aid, tid, unionPriId, pdIdList, infoList);
             if(rt != Errno.OK) {
                 return rt;
             }
             for (Param info : infoList) {
-                Integer pdId = info.getInt(SalesSummaryEntity.Info.PD_ID);
+                Integer pdId = info.getInt(SpuSummaryEntity.Info.PD_ID);
                 Integer rlPdId = pdIdRlPdIdMap.get(pdId);
-                info.setInt(ProductStoreEntity.SalesSummaryInfo.RL_PD_ID, rlPdId);
+                info.setInt(ProductStoreEntity.SpuSummaryInfo.RL_PD_ID, rlPdId);
             }
 
             rt = Errno.OK;
             FaiBuffer sendBuf = new FaiBuffer(true);
-            infoList.toBuffer(sendBuf, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.SalesSummary.getInfoDto());
+            infoList.toBuffer(sendBuf, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.SpuSummary.getInfoDto());
             session.write(sendBuf);
         }finally {
             stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
@@ -800,7 +819,7 @@ public class ProductStoreService extends MgProductInfService {
     }
 
     /**
-     * 获取库存SKU信息
+     * 查询 sku库存销售汇总信息
      * @param tid tid
      * @param siteId siteId
      * @param lgId lgId
@@ -811,7 +830,7 @@ public class ProductStoreService extends MgProductInfService {
      *              true: 查询的结果是指定业务的信息，这时 tid、siteId、lgId、keepPriId1，是业务商品关联的主键信息（例如悦客的门店）。
      *
      */
-    public int getStoreSkuSummaryInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, SearchArg searchArg, boolean isBiz)  throws IOException {
+    public int searchSkuStoreSalesSummaryInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, SearchArg searchArg, boolean isBiz)  throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -834,7 +853,7 @@ public class ProductStoreService extends MgProductInfService {
             if(searchArg.matcher != null){
                 FaiList<Integer> rlPdIdList = new FaiList<>();
                 for (ParamMatcher.Cond cond : searchArg.matcher.getRawCondList()) {
-                    if(ProductStoreEntity.StoreSkuSummaryInfo.RL_PD_ID.equals(cond.key)){
+                    if(ProductStoreEntity.SkuSummaryInfo.RL_PD_ID.equals(cond.key)){
                         Object value = cond.value;
                         if(value instanceof Integer){
                             rlPdIdList.add((Integer)cond.value);
@@ -859,7 +878,7 @@ public class ProductStoreService extends MgProductInfService {
                         rlPdIdPdIdMap.put(rlPdId, pdId);
                     }
                     for (ParamMatcher.Cond cond : searchArg.matcher.getRawCondList()) {
-                        if(ProductStoreEntity.StoreSkuSummaryInfo.RL_PD_ID.equals(cond.key)){
+                        if(ProductStoreEntity.SkuSummaryInfo.RL_PD_ID.equals(cond.key)){
                             Object value = cond.value;
                             if(value instanceof Integer){
                                 cond.value = rlPdIdPdIdMap.get(value);
@@ -871,7 +890,7 @@ public class ProductStoreService extends MgProductInfService {
                                 }
                                 cond.value = pdIdList;
                             }
-                            cond.key = StoreSkuSummaryEntity.Info.PD_ID;
+                            cond.key = SkuSummaryEntity.Info.PD_ID;
                         }
                     }
                     Log.logDbg("whalelog aid=%s;unionPriId=%s;searchArg.matcher=%s", aid, unionPriId, searchArg.matcher.toJson());
@@ -881,7 +900,7 @@ public class ProductStoreService extends MgProductInfService {
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
             FaiList<Param> infoList = new FaiList<Param>();
-            rt = productStoreProc.getStoreSkuSummaryInfoList(aid, tid, unionPriId, searchArg, infoList, isBiz);
+            rt = productStoreProc.getSkuSummaryInfoList(aid, tid, unionPriId, searchArg, infoList, isBiz);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -889,7 +908,7 @@ public class ProductStoreService extends MgProductInfService {
                 if(pdIdRlPdIdMap == null){
                     Set<Integer> pdIdSet = new HashSet<>();
                     for (Param info : infoList) {
-                        Integer pdId = info.getInt(StoreSkuSummaryEntity.Info.PD_ID); //转化为PdId
+                        Integer pdId = info.getInt(SkuSummaryEntity.Info.PD_ID); //转化为PdId
                         pdIdSet.add(pdId);
                     }
                     Log.logDbg("whalelog aid=%s;unionPriId=%s;pdIdSet=%s", aid, unionPriId, pdIdSet);
@@ -906,15 +925,15 @@ public class ProductStoreService extends MgProductInfService {
                     }
                 }
                 for (Param info : infoList) { //转化为rlPdId
-                    Integer pdId = info.getInt(StoreSkuSummaryEntity.Info.PD_ID);
+                    Integer pdId = info.getInt(SkuSummaryEntity.Info.PD_ID);
                     Integer rlPdId = pdIdRlPdIdMap.get(pdId);
-                    info.setInt(ProductStoreEntity.StoreSkuSummaryInfo.RL_PD_ID, rlPdId);
+                    info.setInt(ProductStoreEntity.SkuSummaryInfo.RL_PD_ID, rlPdId);
                 }
             }
 
             rt = Errno.OK;
             FaiBuffer sendBuf = new FaiBuffer(true);
-            infoList.toBuffer(sendBuf, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.StoreSkuSummary.getInfoDto());
+            infoList.toBuffer(sendBuf, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.SkuSummary.getInfoDto());
             if(searchArg.totalSize != null){
                 sendBuf.putInt(ProductStoreDto.Key.TOTAL_SIZE, searchArg.totalSize.value);
             }

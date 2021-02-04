@@ -1932,9 +1932,9 @@ public class MgProductInfCli extends FaiClient {
     }
 
     /**
-     * 修改商品规格库存销售sku
+     * 修改 sku 库存销售信息
      */
-    public int setPdScSkuSalesStore(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<ParamUpdater> updaterList) {
+    public int setSkuStoreSales(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<ParamUpdater> updaterList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2196,21 +2196,12 @@ public class MgProductInfCli extends FaiClient {
         }
     }
 
-    @Deprecated // 命名不好
-    public int getPdScSkuSalesList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> infoList) {
-        return getPdScSkuSalesStoreList(aid, tid, siteId, lgId, keepPriId1, rlPdId, infoList);
-    }
-
-    public int getPdScSkuSalesStoreList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> infoList) {
-        return getPdScSkuSalesStoreList(aid, tid, siteId, lgId, keepPriId1, rlPdId, null, infoList);
-    }
-
     /**
-     * 获取商品规格库存销售sku
-     * @param useOwnerFieldList 使用 创建商品的业务数据 覆盖 查询结果的业务数据
-     *   例如：悦客价格是由总店控制，门店只能使用总店的价格，这时查询门店的的信息时，可以选择使用总店的价格进行覆盖
+     * 获取 sku 库存销售信息
+     * @param useOwnerFieldList 使用 创建商品的业务数据
+     *   例如：悦客价格是由总店控制，门店只能使用总店的价格，这时查询门店的的信息时，选择使用总店的价格进行覆盖
      */
-    public int getPdScSkuSalesStoreList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<String> useOwnerFieldList, FaiList<Param> infoList) {
+    public int getSkuStoreSalesList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<String> useOwnerFieldList, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2283,13 +2274,13 @@ public class MgProductInfCli extends FaiClient {
     }
 
     /**
-     * 获取指定 skuId 下 其所关联的 商品规格库存销售信息
+     * 获取 sku 关联业务的库存销售信息
      *  场景：
      *      悦客查看某个规格的库存分布。
      * @param skuId skuId
-     * @param bizInfoList 所关联的业务集 Param 中需要 tid，siteId, lgId, keepPriId1 {@link ProductStoreEntity.StoreSalesSkuInfo}
+     * @param bizInfoList 所关联的业务集 Param 只需要 tid，siteId, lgId, keepPriId1 {@link ProductStoreEntity.StoreSalesSkuInfo}
      */
-    public int getPdScSkuSalesStoreListBySkuId(int aid, int tid, long skuId, FaiList<Param> bizInfoList, FaiList<Param> infoList) {
+    public int getSkuStoreSalesBySkuId(int aid, int tid, long skuId, FaiList<Param> bizInfoList, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2425,7 +2416,7 @@ public class MgProductInfCli extends FaiClient {
     }
 
     /**
-     * 获取出入库记录
+     * 查询出入库记录
      * @param tid 创建商品的tid | 相关联的tid
      * @param siteId 创建商品siteId | 相关联的siteId
      * @param lgId 创建商品的lgId | 相关联的lgId
@@ -2442,7 +2433,7 @@ public class MgProductInfCli extends FaiClient {
      * {@link ProductStoreEntity.InOutStoreRecordInfo#SYS_CREATE_TIME}  可查询条件 <br/>
      * 默认按创建时间降序
      */
-    public int getInOutStoreRecordInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, boolean isBiz, SearchArg searchArg, FaiList<Param> list){
+    public int searchInOutStoreRecordInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, boolean isBiz, SearchArg searchArg, FaiList<Param> list){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2524,11 +2515,11 @@ public class MgProductInfCli extends FaiClient {
 
 
     /**
-     * 获取指定商品所有的业务销售记录 <br/>
+     * 获取 spu 所有关联的业务的库存销售信息汇总 <br/>
      * 适用场景： <br/>
      *    例如：悦客总店查看某个商品时，想进一步查看这个商品在门店的维度下的数据
      */
-    public int getPdAllBizSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> infoList){
+    public int getAllSpuBizStoreSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2552,7 +2543,7 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductStoreDto.Key.RL_PD_ID, rlPdId);
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductInfCmd.BizSalesSummaryCmd.GET_ALL_BIZ_LIST_BY_PD_ID);
+            sendProtocol.setCmd(MgProductInfCmd.SpuBizSummaryCmd.GET_ALL_BIZ_LIST_BY_PD_ID);
 
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
@@ -2582,7 +2573,7 @@ public class MgProductInfCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductStoreDto.BizSalesSummary.getInfoDto());
+            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductStoreDto.SpuBizSummary.getInfoDto());
             if (m_rt != Errno.OK || keyRef.value != ProductStoreDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
@@ -2594,17 +2585,14 @@ public class MgProductInfCli extends FaiClient {
         }
     }
 
-    public int getPdBizSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, FaiList<Param> infoList){
-        return getPdBizSalesSummaryInfoList(aid, tid, siteId, lgId, keepPriId1, rlPdIdList, null, infoList);
-    }
     /**
-     * 获取指定业务下指定商品id集的业务销售信息 <br/>
+     * 获取 spu 指定业务的库存销售信息汇总 <br/>
      * 适用场景： <br/>
      *    例如：悦客门店查看商品 门店维度的信息汇总
-     * @param useOwnerFieldList 使用 创建商品的业务数据 覆盖 查询结果的业务数据
-     *   例如：悦客价格是由总店控制，门店只能使用总店的价格，这时查询门店的的信息时，可以选择使用总店的价格进行覆盖
+     * @param useOwnerFieldList 使用 创建商品的业务数据
+     *   例如：悦客价格是由总店控制，门店只能使用总店的价格，这时查询门店的的信息时，选择使用总店的价格进行覆盖
      */
-    public int getPdBizSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList,  FaiList<String> useOwnerFieldList, FaiList<Param> infoList){
+    public int getSpuBizStoreSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, FaiList<String> useOwnerFieldList, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2642,7 +2630,7 @@ public class MgProductInfCli extends FaiClient {
             }
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductInfCmd.BizSalesSummaryCmd.GET_LIST_BY_PD_ID_LIST);
+            sendProtocol.setCmd(MgProductInfCmd.SpuBizSummaryCmd.GET_LIST_BY_PD_ID_LIST);
 
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
@@ -2672,7 +2660,7 @@ public class MgProductInfCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductStoreDto.BizSalesSummary.getInfoDto());
+            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductStoreDto.SpuBizSummary.getInfoDto());
             if (m_rt != Errno.OK || keyRef.value != ProductStoreDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
@@ -2684,11 +2672,11 @@ public class MgProductInfCli extends FaiClient {
         }
     }
     /**
-     * 获取商品销售记录 <br/>
+     * 获取 spu 库存销售信息汇总 <br/>
      * 适用场景： <br/>
      *    例如：悦客总店查看商品信息汇总
      */
-    public int getPdSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, FaiList<Param> infoList){
+    public int getSpuStoreSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2712,7 +2700,7 @@ public class MgProductInfCli extends FaiClient {
             rlPdIdList.toBuffer(sendBody, ProductStoreDto.Key.ID_LIST);
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductInfCmd.SalesSummaryCmd.GET_LIST);
+            sendProtocol.setCmd(MgProductInfCmd.SpuSummaryCmd.GET_LIST);
 
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
@@ -2742,7 +2730,7 @@ public class MgProductInfCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductStoreDto.SalesSummary.getInfoDto());
+            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductStoreDto.SpuSummary.getInfoDto());
             if (m_rt != Errno.OK || keyRef.value != ProductStoreDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
@@ -2755,20 +2743,20 @@ public class MgProductInfCli extends FaiClient {
     }
 
     /**
-     * 获取库存SKU汇总信息，
+     * 查询 sku 库存汇总
      * 例如：悦客 所有门店 sku维度 的汇总信息
      * @param tid 创建商品的tid
      * @param siteId 创建商品siteId
      * @param lgId 创建商品的lgId
      * @param keepPriId1 创建商品的keepPriId1
      */
-    public int getStoreSkuSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, SearchArg searchArg, FaiList<Param> list){
-        return getStoreSkuSummaryInfoList(aid, tid, siteId, lgId, keepPriId1, false, searchArg, list);
+    public int searchSkuStoreSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, SearchArg searchArg, FaiList<Param> list){
+        return searchSkuStoreSalesSummaryInfoList(aid, tid, siteId, lgId, keepPriId1, false, searchArg, list);
     }
 
 
     /**
-     * 获取库存SKU汇总信息
+     * 查询 sku 库存汇总
      * @param tid 创建商品的tid | 相关联的tid
      * @param siteId 创建商品siteId | 相关联的siteId
      * @param lgId 创建商品的lgId | 相关联的lgId
@@ -2776,11 +2764,11 @@ public class MgProductInfCli extends FaiClient {
      * @param isBiz 是否是 查询 业务（主键）+sku 维度
      * @param searchArg
      * 分页限制：100
-     * {@link ProductStoreEntity.StoreSkuSummaryInfo#COUNT}  可查询、排序
-     * {@link ProductStoreEntity.StoreSkuSummaryInfo#REMAIN_COUNT}  可查询、排序
-     * {@link ProductStoreEntity.StoreSkuSummaryInfo#HOLDING_COUNT}  可查询、排序
+     * {@link ProductStoreEntity.SkuSummaryInfo#COUNT}  可查询、排序
+     * {@link ProductStoreEntity.SkuSummaryInfo#REMAIN_COUNT}  可查询、排序
+     * {@link ProductStoreEntity.SkuSummaryInfo#HOLDING_COUNT}  可查询、排序
      */
-    public int getStoreSkuSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, boolean isBiz, SearchArg searchArg, FaiList<Param> list){
+    public int searchSkuStoreSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, boolean isBiz, SearchArg searchArg, FaiList<Param> list){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2812,7 +2800,7 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putBoolean(ProductStoreDto.Key.IS_BIZ, isBiz);
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductInfCmd.StoreSkuSummaryCmd.GET_LIST);
+            sendProtocol.setCmd(MgProductInfCmd.SkuSummaryCmd.GET_LIST);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);
@@ -2841,7 +2829,7 @@ public class MgProductInfCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            m_rt = list.fromBuffer(recvBody, keyRef, ProductStoreDto.StoreSkuSummary.getInfoDto());
+            m_rt = list.fromBuffer(recvBody, keyRef, ProductStoreDto.SkuSummary.getInfoDto());
             if (m_rt != Errno.OK || keyRef.value != ProductStoreDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;

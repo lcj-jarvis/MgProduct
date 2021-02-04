@@ -1,15 +1,15 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
-import fai.MgProductStoreSvr.domain.comm.Misc2;
-import fai.MgProductStoreSvr.domain.entity.BizSalesSummaryEntity;
-import fai.MgProductStoreSvr.domain.repository.BizSalesSummaryCacheCtrl;
-import fai.MgProductStoreSvr.domain.repository.BizSalesSummaryDaoCtrl;
+import fai.MgProductStoreSvr.domain.comm.Utils;
+import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryEntity;
+import fai.MgProductStoreSvr.domain.repository.SpuBizSummaryCacheCtrl;
+import fai.MgProductStoreSvr.domain.repository.SpuBizSummaryDaoCtrl;
 import fai.comm.util.*;
 
 import java.util.*;
 
-public class BizSalesSummaryProc {
-    public BizSalesSummaryProc(BizSalesSummaryDaoCtrl daoCtrl, int flow) {
+public class SpuBizSummaryProc {
+    public SpuBizSummaryProc(SpuBizSummaryDaoCtrl daoCtrl, int flow) {
         m_daoCtrl = daoCtrl;
         m_flow = flow;
     }
@@ -26,41 +26,41 @@ public class BizSalesSummaryProc {
             Map<Integer, Param> pdId_bizSalesSummaryInfoMap = unionPriId_pdId_bizSalesSummaryInfoMapEntry.getValue();
             FaiList<Integer> pdIdList = new FaiList<>(pdId_bizSalesSummaryInfoMap.keySet());
             Ref<FaiList<Param>> listRef = new Ref<>();
-            rt = getInfoListByPdIdListFromDao(aid, unionPriId, pdIdList, listRef, BizSalesSummaryEntity.Info.PD_ID);
+            rt = getInfoListByPdIdListFromDao(aid, unionPriId, pdIdList, listRef, SpuBizSummaryEntity.Info.PD_ID);
             if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                 return rt;
             }
             FaiList<Param> batchUpdateDataList = new FaiList<>();
             FaiList<Param> oldInfoList = listRef.value;
             for (Param oldInfo : oldInfoList) {
-                Integer pdId = oldInfo.getInt(BizSalesSummaryEntity.Info.PD_ID);
+                Integer pdId = oldInfo.getInt(SpuBizSummaryEntity.Info.PD_ID);
                 Param newInfo = pdId_bizSalesSummaryInfoMap.remove(pdId);
                 Param data = new Param();
-                data.assign(newInfo, BizSalesSummaryEntity.Info.MAX_PRICE);
-                data.assign(newInfo, BizSalesSummaryEntity.Info.MIN_PRICE);
-                data.assign(newInfo, BizSalesSummaryEntity.Info.COUNT);
-                data.assign(newInfo, BizSalesSummaryEntity.Info.REMAIN_COUNT);
-                data.assign(newInfo, BizSalesSummaryEntity.Info.HOLDING_COUNT);
-                data.setCalendar(BizSalesSummaryEntity.Info.SYS_UPDATE_TIME, now);
+                data.assign(newInfo, SpuBizSummaryEntity.Info.MAX_PRICE);
+                data.assign(newInfo, SpuBizSummaryEntity.Info.MIN_PRICE);
+                data.assign(newInfo, SpuBizSummaryEntity.Info.COUNT);
+                data.assign(newInfo, SpuBizSummaryEntity.Info.REMAIN_COUNT);
+                data.assign(newInfo, SpuBizSummaryEntity.Info.HOLDING_COUNT);
+                data.setCalendar(SpuBizSummaryEntity.Info.SYS_UPDATE_TIME, now);
 
-                data.setInt(BizSalesSummaryEntity.Info.AID, aid);
-                data.setInt(BizSalesSummaryEntity.Info.UNION_PRI_ID, unionPriId);
-                data.setInt(BizSalesSummaryEntity.Info.PD_ID, pdId);
+                data.setInt(SpuBizSummaryEntity.Info.AID, aid);
+                data.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, unionPriId);
+                data.setInt(SpuBizSummaryEntity.Info.PD_ID, pdId);
                 batchUpdateDataList.add(data);
             }
             if(!batchUpdateDataList.isEmpty()){
                 ParamUpdater batchUpdater = new ParamUpdater();
-                batchUpdater.getData().setString(BizSalesSummaryEntity.Info.MAX_PRICE, "?");
-                batchUpdater.getData().setString(BizSalesSummaryEntity.Info.MIN_PRICE, "?");
-                batchUpdater.getData().setString(BizSalesSummaryEntity.Info.COUNT, "?");
-                batchUpdater.getData().setString(BizSalesSummaryEntity.Info.REMAIN_COUNT, "?");
-                batchUpdater.getData().setString(BizSalesSummaryEntity.Info.HOLDING_COUNT, "?");
-                batchUpdater.getData().setString(BizSalesSummaryEntity.Info.SYS_UPDATE_TIME, "?");
+                batchUpdater.getData().setString(SpuBizSummaryEntity.Info.MAX_PRICE, "?");
+                batchUpdater.getData().setString(SpuBizSummaryEntity.Info.MIN_PRICE, "?");
+                batchUpdater.getData().setString(SpuBizSummaryEntity.Info.COUNT, "?");
+                batchUpdater.getData().setString(SpuBizSummaryEntity.Info.REMAIN_COUNT, "?");
+                batchUpdater.getData().setString(SpuBizSummaryEntity.Info.HOLDING_COUNT, "?");
+                batchUpdater.getData().setString(SpuBizSummaryEntity.Info.SYS_UPDATE_TIME, "?");
 
                 ParamMatcher batchMatcher = new ParamMatcher();
-                batchMatcher.and(BizSalesSummaryEntity.Info.AID,ParamMatcher.EQ, "?");
-                batchMatcher.and(BizSalesSummaryEntity.Info.UNION_PRI_ID,ParamMatcher.EQ, "?");
-                batchMatcher.and(BizSalesSummaryEntity.Info.PD_ID,ParamMatcher.EQ, "?");
+                batchMatcher.and(SpuBizSummaryEntity.Info.AID,ParamMatcher.EQ, "?");
+                batchMatcher.and(SpuBizSummaryEntity.Info.UNION_PRI_ID,ParamMatcher.EQ, "?");
+                batchMatcher.and(SpuBizSummaryEntity.Info.PD_ID,ParamMatcher.EQ, "?");
                 rt = m_daoCtrl.batchUpdate(batchUpdater, batchMatcher, batchUpdateDataList);
                 if(rt != Errno.OK){
                     Log.logErr(rt,"m_daoCtrl.batchUpdate err;flow=%s;aid=%s;batchUpdateDataList=%s;", m_flow, aid, batchUpdateDataList);
@@ -73,18 +73,18 @@ public class BizSalesSummaryProc {
                     Integer pdId = pdId_bizSalesSummaryInfoEntry.getKey();
                     Param bizSalesSummaryInfo = pdId_bizSalesSummaryInfoEntry.getValue();
                     Param data = new Param();
-                    data.setInt(BizSalesSummaryEntity.Info.AID, aid);
-                    data.setInt(BizSalesSummaryEntity.Info.UNION_PRI_ID, unionPriId);
-                    data.setInt(BizSalesSummaryEntity.Info.PD_ID, pdId);
-                    data.setCalendar(BizSalesSummaryEntity.Info.SYS_UPDATE_TIME, now);
-                    data.setCalendar(BizSalesSummaryEntity.Info.SYS_CREATE_TIME, now);
-                    data.assign(bizSalesSummaryInfo, BizSalesSummaryEntity.Info.SOURCE_UNION_PRI_ID);
-                    data.assign(bizSalesSummaryInfo, BizSalesSummaryEntity.Info.RL_PD_ID);
-                    data.assign(bizSalesSummaryInfo, BizSalesSummaryEntity.Info.MAX_PRICE);
-                    data.assign(bizSalesSummaryInfo, BizSalesSummaryEntity.Info.MIN_PRICE);
-                    data.assign(bizSalesSummaryInfo, BizSalesSummaryEntity.Info.COUNT);
-                    data.assign(bizSalesSummaryInfo, BizSalesSummaryEntity.Info.REMAIN_COUNT);
-                    data.assign(bizSalesSummaryInfo, BizSalesSummaryEntity.Info.HOLDING_COUNT);
+                    data.setInt(SpuBizSummaryEntity.Info.AID, aid);
+                    data.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, unionPriId);
+                    data.setInt(SpuBizSummaryEntity.Info.PD_ID, pdId);
+                    data.setCalendar(SpuBizSummaryEntity.Info.SYS_UPDATE_TIME, now);
+                    data.setCalendar(SpuBizSummaryEntity.Info.SYS_CREATE_TIME, now);
+                    data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID);
+                    data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.RL_PD_ID);
+                    data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.MAX_PRICE);
+                    data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.MIN_PRICE);
+                    data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.COUNT);
+                    data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.REMAIN_COUNT);
+                    data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.HOLDING_COUNT);
                     addDataList.add(data);
                 }
                 rt = m_daoCtrl.batchInsert(addDataList, null, true);
@@ -108,8 +108,8 @@ public class BizSalesSummaryProc {
         Map<Integer, Param> unionPriIdInfoMap = new HashMap<>(infoList.size()*4/3+1);
         FaiList<Integer> unionPriIdList = new FaiList<>();
         for (Param info : infoList) {
-            int unionPriId = info.getInt(BizSalesSummaryEntity.Info.UNION_PRI_ID, 0);
-            int rlPdId = info.getInt(BizSalesSummaryEntity.Info.RL_PD_ID, 0);
+            int unionPriId = info.getInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, 0);
+            int rlPdId = info.getInt(SpuBizSummaryEntity.Info.RL_PD_ID, 0);
             if(unionPriId <= 0 || rlPdId <= 0){
                 Log.logStd("arg error;flow=%d;aid=%s;pdId=%s;unionPriId=%s;rlPdId=%s", m_flow, aid, pdId, unionPriId, rlPdId);
                 return Errno.ARGS_ERROR;
@@ -119,8 +119,8 @@ public class BizSalesSummaryProc {
             unionPriIdList.add(unionPriId);
         }
         { // 移除字段
-            needMaxFields.remove(BizSalesSummaryEntity.Info.AID);
-            needMaxFields.remove(BizSalesSummaryEntity.Info.PD_ID);
+            needMaxFields.remove(SpuBizSummaryEntity.Info.AID);
+            needMaxFields.remove(SpuBizSummaryEntity.Info.PD_ID);
         }
 
         Ref<FaiList<Param>> listRef = new Ref<>();
@@ -129,13 +129,13 @@ public class BizSalesSummaryProc {
             return rt;
         }
         // 移除unionPriId
-        needMaxFields.remove(BizSalesSummaryEntity.Info.UNION_PRI_ID);
+        needMaxFields.remove(SpuBizSummaryEntity.Info.UNION_PRI_ID);
 
         Calendar now = Calendar.getInstance();
         FaiList<Param> addDataList = new FaiList<>();
         FaiList<Param> batchUpdateDataList = new FaiList<>();
         for (Param oldFields : listRef.value) {
-            int oldUnionPriId = oldFields.getInt(BizSalesSummaryEntity.Info.UNION_PRI_ID, 0);
+            int oldUnionPriId = oldFields.getInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, 0);
             Param newFields = unionPriIdInfoMap.remove(oldUnionPriId); // 移除
             if(newFields == null){
                 Log.logErr("db data err;flow=%s;aid=%s;pdId=%s;oldFields=%s", m_flow, aid, pdId, oldFields);
@@ -148,49 +148,49 @@ public class BizSalesSummaryProc {
                 for (String field : needMaxFields) {
                     updateData.assign(oldFields, field);
                 }
-                updateData.setCalendar(BizSalesSummaryEntity.Info.SYS_UPDATE_TIME, now);
+                updateData.setCalendar(SpuBizSummaryEntity.Info.SYS_UPDATE_TIME, now);
             }
             { // matcher
-                updateData.setInt(BizSalesSummaryEntity.Info.AID, aid);
-                updateData.setInt(BizSalesSummaryEntity.Info.PD_ID, pdId);
-                updateData.setInt(BizSalesSummaryEntity.Info.UNION_PRI_ID, oldUnionPriId);
+                updateData.setInt(SpuBizSummaryEntity.Info.AID, aid);
+                updateData.setInt(SpuBizSummaryEntity.Info.PD_ID, pdId);
+                updateData.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, oldUnionPriId);
             }
             batchUpdateDataList.add(updateData);
         }
         Map<Integer, FaiList<Integer>> unionPirIdPdIdListMap = new HashMap<>();
         for (Param info : unionPriIdInfoMap.values()) {
             Param addData = new Param();
-            addData.setInt(BizSalesSummaryEntity.Info.AID, aid);
-            addData.setInt(BizSalesSummaryEntity.Info.PD_ID, pdId);
-            int unionPriId = info.getInt(BizSalesSummaryEntity.Info.UNION_PRI_ID, 0);
+            addData.setInt(SpuBizSummaryEntity.Info.AID, aid);
+            addData.setInt(SpuBizSummaryEntity.Info.PD_ID, pdId);
+            int unionPriId = info.getInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, 0);
             if(unionPriId <= 0){
                 Log.logErr("add info unionPriId err;flow=%s;aid=%s;pdId=%s;info=%s", m_flow, aid, pdId, info);
                 return Errno.ERROR;
             }
-            int rlPdId = info.getInt(BizSalesSummaryEntity.Info.RL_PD_ID, 0);
+            int rlPdId = info.getInt(SpuBizSummaryEntity.Info.RL_PD_ID, 0);
             if(rlPdId <= 0){
                 Log.logErr("add info rlPdId err;flow=%s;aid=%s;pdId=%s;info=%s", m_flow, aid, pdId, info);
                 return Errno.ERROR;
             }
-            addData.setInt(BizSalesSummaryEntity.Info.UNION_PRI_ID, unionPriId);
-            addData.setInt(BizSalesSummaryEntity.Info.RL_PD_ID, rlPdId);
-            addData.setInt(BizSalesSummaryEntity.Info.SOURCE_UNION_PRI_ID, info.getInt(BizSalesSummaryEntity.Info.SOURCE_UNION_PRI_ID, 0));
-            addData.setInt(BizSalesSummaryEntity.Info.PRICE_TYPE, info.getInt(BizSalesSummaryEntity.Info.PRICE_TYPE, 0));
-            addData.setInt(BizSalesSummaryEntity.Info.MODE_TYPE, info.getInt(BizSalesSummaryEntity.Info.MODE_TYPE, 0));
-            addData.setLong(BizSalesSummaryEntity.Info.MARKET_PRICE, info.getLong(BizSalesSummaryEntity.Info.MARKET_PRICE, 0L));
-            addData.setLong(BizSalesSummaryEntity.Info.MIN_PRICE, info.getLong(BizSalesSummaryEntity.Info.MIN_PRICE, 0L));
-            addData.setLong(BizSalesSummaryEntity.Info.MAX_PRICE, info.getLong(BizSalesSummaryEntity.Info.MAX_PRICE, 0L));
-            addData.setInt(BizSalesSummaryEntity.Info.VIRTUAL_SALES, info.getInt(BizSalesSummaryEntity.Info.VIRTUAL_SALES, 0));
-            addData.setInt(BizSalesSummaryEntity.Info.SALES, info.getInt(BizSalesSummaryEntity.Info.SALES, 0));
-            addData.setInt(BizSalesSummaryEntity.Info.COUNT, info.getInt(BizSalesSummaryEntity.Info.COUNT, 0));
-            addData.setInt(BizSalesSummaryEntity.Info.REMAIN_COUNT, info.getInt(BizSalesSummaryEntity.Info.REMAIN_COUNT, 0));
-            addData.setInt(BizSalesSummaryEntity.Info.HOLDING_COUNT, info.getInt(BizSalesSummaryEntity.Info.HOLDING_COUNT, 0));
-            addData.setInt(BizSalesSummaryEntity.Info.FLAG, info.getInt(BizSalesSummaryEntity.Info.FLAG, 0));
-            addData.setString(BizSalesSummaryEntity.Info.DISTRIBUTE_LIST, info.getString(BizSalesSummaryEntity.Info.DISTRIBUTE_LIST, ""));
-            addData.setString(BizSalesSummaryEntity.Info.KEEP_PROP1, info.getString(BizSalesSummaryEntity.Info.KEEP_PROP1, ""));
-            addData.setInt(BizSalesSummaryEntity.Info.KEEP_INT_PROP1, info.getInt(BizSalesSummaryEntity.Info.KEEP_INT_PROP1, 0));
-            addData.setCalendar(BizSalesSummaryEntity.Info.SYS_UPDATE_TIME, now);
-            addData.setCalendar(BizSalesSummaryEntity.Info.SYS_CREATE_TIME, now);
+            addData.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, unionPriId);
+            addData.setInt(SpuBizSummaryEntity.Info.RL_PD_ID, rlPdId);
+            addData.setInt(SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID, info.getInt(SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID, 0));
+            addData.setInt(SpuBizSummaryEntity.Info.PRICE_TYPE, info.getInt(SpuBizSummaryEntity.Info.PRICE_TYPE, 0));
+            addData.setInt(SpuBizSummaryEntity.Info.MODE_TYPE, info.getInt(SpuBizSummaryEntity.Info.MODE_TYPE, 0));
+            addData.setLong(SpuBizSummaryEntity.Info.MARKET_PRICE, info.getLong(SpuBizSummaryEntity.Info.MARKET_PRICE, 0L));
+            addData.setLong(SpuBizSummaryEntity.Info.MIN_PRICE, info.getLong(SpuBizSummaryEntity.Info.MIN_PRICE, 0L));
+            addData.setLong(SpuBizSummaryEntity.Info.MAX_PRICE, info.getLong(SpuBizSummaryEntity.Info.MAX_PRICE, 0L));
+            addData.setInt(SpuBizSummaryEntity.Info.VIRTUAL_SALES, info.getInt(SpuBizSummaryEntity.Info.VIRTUAL_SALES, 0));
+            addData.setInt(SpuBizSummaryEntity.Info.SALES, info.getInt(SpuBizSummaryEntity.Info.SALES, 0));
+            addData.setInt(SpuBizSummaryEntity.Info.COUNT, info.getInt(SpuBizSummaryEntity.Info.COUNT, 0));
+            addData.setInt(SpuBizSummaryEntity.Info.REMAIN_COUNT, info.getInt(SpuBizSummaryEntity.Info.REMAIN_COUNT, 0));
+            addData.setInt(SpuBizSummaryEntity.Info.HOLDING_COUNT, info.getInt(SpuBizSummaryEntity.Info.HOLDING_COUNT, 0));
+            addData.setInt(SpuBizSummaryEntity.Info.FLAG, info.getInt(SpuBizSummaryEntity.Info.FLAG, 0));
+            addData.setString(SpuBizSummaryEntity.Info.DISTRIBUTE_LIST, info.getString(SpuBizSummaryEntity.Info.DISTRIBUTE_LIST, ""));
+            addData.setString(SpuBizSummaryEntity.Info.KEEP_PROP1, info.getString(SpuBizSummaryEntity.Info.KEEP_PROP1, ""));
+            addData.setInt(SpuBizSummaryEntity.Info.KEEP_INT_PROP1, info.getInt(SpuBizSummaryEntity.Info.KEEP_INT_PROP1, 0));
+            addData.setCalendar(SpuBizSummaryEntity.Info.SYS_UPDATE_TIME, now);
+            addData.setCalendar(SpuBizSummaryEntity.Info.SYS_CREATE_TIME, now);
             addDataList.add(addData);
 
             FaiList<Integer> pdIdList = unionPirIdPdIdListMap.get(unionPriId);
@@ -212,11 +212,11 @@ public class BizSalesSummaryProc {
             for (String field : needMaxFields) {
                 doBatchUpdater.getData().setString(field, "?");
             }
-            doBatchUpdater.getData().setString(BizSalesSummaryEntity.Info.SYS_UPDATE_TIME, "?");
+            doBatchUpdater.getData().setString(SpuBizSummaryEntity.Info.SYS_UPDATE_TIME, "?");
             ParamMatcher doBatchMatcher = new ParamMatcher();
-            doBatchMatcher.and(BizSalesSummaryEntity.Info.AID, ParamMatcher.EQ, "?");
-            doBatchMatcher.and(BizSalesSummaryEntity.Info.PD_ID, ParamMatcher.EQ, "?");
-            doBatchMatcher.and(BizSalesSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
+            doBatchMatcher.and(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, "?");
+            doBatchMatcher.and(SpuBizSummaryEntity.Info.PD_ID, ParamMatcher.EQ, "?");
+            doBatchMatcher.and(SpuBizSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
             cacheManage.addNeedDelCacheKeyMap(aid, unionPirIdPdIdListMap);
             rt = m_daoCtrl.batchUpdate(doBatchUpdater, doBatchMatcher, batchUpdateDataList);
             if(rt != Errno.OK){
@@ -225,6 +225,27 @@ public class BizSalesSummaryProc {
             }
         }
         Log.logStd("ok!;flow=%s;aid=%s;pdId=%s;", m_flow, aid, pdId);
+        return rt;
+    }
+    public int getReportList(int aid, FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef){
+        if(aid <= 0 || pdIdList == null || pdIdList.isEmpty() || listRef == null){
+            Log.logStd("arg error;flow=%d;aid=%s;pdIdList=%s;listRef=%s;", m_flow, aid, pdIdList, listRef);
+            return Errno.ARGS_ERROR;
+        }
+        int rt = Errno.ERROR;
+
+        Dao.SelectArg selectArg = new Dao.SelectArg();
+        selectArg.field = SpuBizSummaryEntity.Info.PD_ID + ", "
+                +COMM_REPORT_FIELDS;
+        selectArg.group = SpuBizSummaryEntity.Info.PD_ID;
+        selectArg.searchArg.matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        selectArg.searchArg.matcher.and(SpuBizSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        rt = m_daoCtrl.select(selectArg, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            Log.logStd("dao.select error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+            return rt;
+        }
+        Log.logDbg(rt,"getReportList ok;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
         return rt;
     }
 
@@ -237,8 +258,8 @@ public class BizSalesSummaryProc {
 
         Dao.SelectArg selectArg = new Dao.SelectArg();
         selectArg.field = COMM_REPORT_FIELDS;
-        selectArg.searchArg.matcher = new ParamMatcher(BizSalesSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
-        selectArg.searchArg.matcher.and(BizSalesSummaryEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
+        selectArg.searchArg.matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        selectArg.searchArg.matcher.and(SpuBizSummaryEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
         Ref<FaiList<Param>> listRef = new Ref<>();
         rt = m_daoCtrl.select(selectArg, listRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
@@ -253,28 +274,28 @@ public class BizSalesSummaryProc {
         Log.logDbg(rt,"getReportList ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
         return rt;
     }
-    private static final String COMM_REPORT_FIELDS = BizSalesSummaryEntity.ReportInfo.SOURCE_UNION_PRI_ID+", "+
-            "sum(" + BizSalesSummaryEntity.Info.COUNT + ") as " + BizSalesSummaryEntity.ReportInfo.SUM_COUNT + ", " +
-                    "sum(" + BizSalesSummaryEntity.Info.REMAIN_COUNT + ") as " + BizSalesSummaryEntity.ReportInfo.SUM_REMAIN_COUNT + ", " +
-                    "sum(" + BizSalesSummaryEntity.Info.HOLDING_COUNT + ") as "+BizSalesSummaryEntity.ReportInfo.SUM_HOLDING_COUNT+", " +
-                    "min(" + BizSalesSummaryEntity.Info.MIN_PRICE + ") as "+BizSalesSummaryEntity.ReportInfo.MIN_PRICE+", " +
-                    "max(" + BizSalesSummaryEntity.Info.MAX_PRICE + ") as "+BizSalesSummaryEntity.ReportInfo.MAX_PRICE+" ";
+    private static final String COMM_REPORT_FIELDS = SpuBizSummaryEntity.ReportInfo.SOURCE_UNION_PRI_ID+", "+
+            "sum(" + SpuBizSummaryEntity.Info.COUNT + ") as " + SpuBizSummaryEntity.ReportInfo.SUM_COUNT + ", " +
+                    "sum(" + SpuBizSummaryEntity.Info.REMAIN_COUNT + ") as " + SpuBizSummaryEntity.ReportInfo.SUM_REMAIN_COUNT + ", " +
+                    "sum(" + SpuBizSummaryEntity.Info.HOLDING_COUNT + ") as "+ SpuBizSummaryEntity.ReportInfo.SUM_HOLDING_COUNT+", " +
+                    "min(" + SpuBizSummaryEntity.Info.MIN_PRICE + ") as "+ SpuBizSummaryEntity.ReportInfo.MIN_PRICE+", " +
+                    "max(" + SpuBizSummaryEntity.Info.MAX_PRICE + ") as "+ SpuBizSummaryEntity.ReportInfo.MAX_PRICE+" ";
 
 
     public int batchDel(int aid, FaiList<Integer> pdIdList) {
-        ParamMatcher matcher = new ParamMatcher(BizSalesSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(BizSalesSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SpuBizSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
         Ref<FaiList<Param>> listRef = new Ref<>();
-        int rt = m_daoCtrl.select(searchArg, listRef, BizSalesSummaryEntity.Info.UNION_PRI_ID);
+        int rt = m_daoCtrl.select(searchArg, listRef, SpuBizSummaryEntity.Info.UNION_PRI_ID);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             Log.logStd(rt, "select err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
             return rt;
         }
         Map<Integer, FaiList<Integer>> unionPirIdPdIdListMap = new HashMap<>(listRef.value.size()*4/3+1);
         for (Param info : listRef.value) {
-            unionPirIdPdIdListMap.put(info.getInt(BizSalesSummaryEntity.Info.UNION_PRI_ID), pdIdList);
+            unionPirIdPdIdListMap.put(info.getInt(SpuBizSummaryEntity.Info.UNION_PRI_ID), pdIdList);
         }
         cacheManage.addNeedDelCacheKeyMap(aid, unionPirIdPdIdListMap);
         rt = m_daoCtrl.delete(matcher);
@@ -291,10 +312,10 @@ public class BizSalesSummaryProc {
             Log.logStd("arg error;flow=%d;aid=%s;unionPriIdList=%s;pdId=%s;listRef=%s;", m_flow, aid, unionPriIdList, pdId, listRef);
             return Errno.ARGS_ERROR;
         }
-        ParamMatcher matcher = new ParamMatcher(BizSalesSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(BizSalesSummaryEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
+        ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SpuBizSummaryEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
         if(unionPriIdList != null){
-            matcher.and(BizSalesSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIdList);
+            matcher.and(SpuBizSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIdList);
         }
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
@@ -312,9 +333,9 @@ public class BizSalesSummaryProc {
             Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;pdIdList=%s;", m_flow, aid, unionPriId, pdIdList);
             return Errno.ARGS_ERROR;
         }
-        ParamMatcher matcher = new ParamMatcher(BizSalesSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(BizSalesSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        matcher.and(BizSalesSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SpuBizSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(SpuBizSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
         int rt = m_daoCtrl.select(searchArg, listRef, fields);
@@ -332,11 +353,11 @@ public class BizSalesSummaryProc {
             return Errno.ARGS_ERROR;
         }
         HashSet<Integer> pdIdSet = new HashSet<>(pdIdList);
-        FaiList<Param> cacheList = BizSalesSummaryCacheCtrl.getCacheList(aid, unionPriId, new FaiList<>(pdIdSet));
+        FaiList<Param> cacheList = SpuBizSummaryCacheCtrl.getCacheList(aid, unionPriId, new FaiList<>(pdIdSet));
         if(cacheList == null){
             cacheList = new FaiList<>();
         }
-        Map<Integer, Param> map = Misc2.getMap(cacheList, BizSalesSummaryEntity.Info.PD_ID);
+        Map<Integer, Param> map = Utils.getMap(cacheList, SpuBizSummaryEntity.Info.PD_ID);
         if(cacheList.size() == pdIdSet.size()){
             getResult(pdIdList, listRef, map);
             return Errno.OK;
@@ -352,10 +373,10 @@ public class BizSalesSummaryProc {
 
         FaiList<Param> fromDaoInfoList = listRef.value;
         listRef.value = null;
-        map.putAll(Misc2.getMap(fromDaoInfoList, BizSalesSummaryEntity.Info.PD_ID));
+        map.putAll(Utils.getMap(fromDaoInfoList, SpuBizSummaryEntity.Info.PD_ID));
         getResult(pdIdList, listRef, map);
 
-        BizSalesSummaryCacheCtrl.appendCacheList(aid, unionPriId, fromDaoInfoList);
+        SpuBizSummaryCacheCtrl.appendCacheList(aid, unionPriId, fromDaoInfoList);
         return Errno.OK;
     }
 
@@ -372,7 +393,7 @@ public class BizSalesSummaryProc {
     }
 
     private int m_flow;
-    private BizSalesSummaryDaoCtrl m_daoCtrl;
+    private SpuBizSummaryDaoCtrl m_daoCtrl;
 
     private CacheManage cacheManage = new CacheManage();
 
@@ -389,7 +410,7 @@ public class BizSalesSummaryProc {
         }
         public void deleteDirtyCache(int aid){
             try {
-                BizSalesSummaryCacheCtrl.delCache(aid, needDelCacheKeyMap);
+                SpuBizSummaryCacheCtrl.delCache(aid, needDelCacheKeyMap);
             }finally {
                 init();
             }
@@ -398,7 +419,7 @@ public class BizSalesSummaryProc {
             if(unionPirIdPdIdListMap == null){
                 return;
             }
-            BizSalesSummaryCacheCtrl.setCacheDirty(aid, unionPirIdPdIdListMap.keySet());
+            SpuBizSummaryCacheCtrl.setCacheDirty(aid, unionPirIdPdIdListMap.keySet());
             needDelCacheKeyMap.putAll(unionPirIdPdIdListMap);
         }
     }

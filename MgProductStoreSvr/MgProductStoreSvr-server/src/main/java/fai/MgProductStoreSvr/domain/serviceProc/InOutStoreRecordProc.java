@@ -61,7 +61,7 @@ public class InOutStoreRecordProc {
     /**
      * 批量添加出库记录
      */
-    public int batchAddOutStoreRecord(int aid, int unionPriId, Map<Long, Integer> skuIdChangeCountMap, Map<SkuStoreKey, Param> changeCountAfterSkuStoreCountAndTotalCostMap, Param info) {
+    public int batchAddOutStoreRecord(int aid, int unionPriId, Map<Long, Integer> skuIdChangeCountMap, Map<SkuStoreKey, Param> changeCountAfterSkuStoreSalesInfoMap, Param info) {
         if(aid <= 0 || unionPriId <= 0 || skuIdChangeCountMap == null || info == null || info.isEmpty()){
             Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;skuIdChangeCountMap=%s;info=%s;", m_flow, aid, unionPriId, skuIdChangeCountMap, info);
             return Errno.ARGS_ERROR;
@@ -75,13 +75,13 @@ public class InOutStoreRecordProc {
             dataList.add(data);
         });
 
-        return batchAdd(aid, dataList, changeCountAfterSkuStoreCountAndTotalCostMap);
+        return batchAdd(aid, dataList, changeCountAfterSkuStoreSalesInfoMap);
     }
 
 
-    public int batchAdd(int aid, FaiList<Param> infoList, Map<SkuStoreKey, Param> changeCountAfterSkuStoreInfoMap) {
-        if(aid <= 0 || infoList == null || infoList.isEmpty() || changeCountAfterSkuStoreInfoMap == null){
-            Log.logStd("arg error;flow=%d;aid=%s;infoList=%s;changeCountAfterSkuStoreInfoMap=%s;", m_flow, aid, infoList, changeCountAfterSkuStoreInfoMap);
+    public int batchAdd(int aid, FaiList<Param> infoList, Map<SkuStoreKey, Param> changeCountAfterSkuStoreSalesInfoMap) {
+        if(aid <= 0 || infoList == null || infoList.isEmpty() || changeCountAfterSkuStoreSalesInfoMap == null){
+            Log.logStd("arg error;flow=%d;aid=%s;infoList=%s;changeCountAfterSkuStoreSalesInfoMap=%s;", m_flow, aid, infoList, changeCountAfterSkuStoreSalesInfoMap);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -106,10 +106,16 @@ public class InOutStoreRecordProc {
             }
             int pdId = info.getInt(InOutStoreRecordEntity.Info.PD_ID, 0);
             int rlPdId = info.getInt(InOutStoreRecordEntity.Info.RL_PD_ID, 0);
+            int sourceUnionPriId = info.getInt(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, 0);
             Integer remainCount = info.getInt(InOutStoreRecordEntity.Info.REMAIN_COUNT);
             if(remainCount == null){
-                Param storeSalesSkuInfo = changeCountAfterSkuStoreInfoMap.get(new SkuStoreKey(unionPriId, skuId));
+                Param storeSalesSkuInfo = changeCountAfterSkuStoreSalesInfoMap.get(new SkuStoreKey(unionPriId, skuId));
                 remainCount = storeSalesSkuInfo.getInt(StoreSalesSkuEntity.Info.REMAIN_COUNT)+storeSalesSkuInfo.getInt(StoreSalesSkuEntity.Info.HOLDING_COUNT);
+                pdId = storeSalesSkuInfo.getInt(InOutStoreRecordEntity.Info.PD_ID, pdId);
+                rlPdId = storeSalesSkuInfo.getInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
+                if(sourceUnionPriId == 0){
+                    sourceUnionPriId = storeSalesSkuInfo.getInt(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
+                }
             }
             if(remainCount < 0){
                 Log.logStd("remainCount error;flow=%d;aid=%s;remainCount=%s;info=%s;", m_flow, aid, remainCount, info);
@@ -129,8 +135,8 @@ public class InOutStoreRecordProc {
             data.setInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
             data.setInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, ioStoreRecId);
             data.setInt(InOutStoreRecordEntity.Info.OPT_TYPE, optType);
+            data.setInt(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
 
-            data.assign(info, InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID);
             data.assign(info, InOutStoreRecordEntity.Info.C_TYPE);
             data.assign(info, InOutStoreRecordEntity.Info.S_TYPE);
             data.setInt(InOutStoreRecordEntity.Info.CHANGE_COUNT, changeCount);
@@ -139,7 +145,7 @@ public class InOutStoreRecordProc {
                 data.setInt(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, changeCount);
                 if(price > 0){
                     long totalCost = changeCount*price;
-                    Param storeSalesSkuInfo = changeCountAfterSkuStoreInfoMap.get(new SkuStoreKey(unionPriId, skuId));
+                    Param storeSalesSkuInfo = changeCountAfterSkuStoreSalesInfoMap.get(new SkuStoreKey(unionPriId, skuId));
                     long fifoTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, 0L);
                     long mwTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, 0L);
                     storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, fifoTotalCost + totalCost);
@@ -172,7 +178,7 @@ public class InOutStoreRecordProc {
                 if(rt != Errno.OK){
                     return rt;
                 }
-                Param storeSalesSkuInfo = changeCountAfterSkuStoreInfoMap.get(new SkuStoreKey(unionPriId, skuId));
+                Param storeSalesSkuInfo = changeCountAfterSkuStoreSalesInfoMap.get(new SkuStoreKey(unionPriId, skuId));
                 // 计算先进先出方式相关的价格
                 {
                     // 计算平均价
@@ -280,8 +286,10 @@ public class InOutStoreRecordProc {
                     Log.logErr("dao select err;flow=%s;aid=%s;unionPriId=%s;skuId=%s;remainCount=%s", m_flow, aid,unionPriId, skuId, remainCount);
                     return rt;
                 }
+
                 FaiList<Param> list = listRef.value;
                 for (Param info : list) {
+                    Log.logDbg("whalelog   info=%s remainCount=%s;", info, remainCount);
                     int availableCount = info.getInt(InOutStoreRecordEntity.Info.AVAILABLE_COUNT);
                     int ioStoreRecId = info.getInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID);
                     notFillZeroIdList.add(ioStoreRecId);
@@ -314,7 +322,7 @@ public class InOutStoreRecordProc {
                     fillZeroSearchArg.matcher = fillZeroMatcher;
                     Ref<FaiList<Param>> listRef = new Ref<>();
                     rt = m_daoCtrl.select(fillZeroSearchArg, listRef, InOutStoreRecordEntity.Info.AVAILABLE_COUNT, InOutStoreRecordEntity.Info.PRICE);
-                    if(rt != Errno.OK){
+                    if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                         Log.logErr(rt, "select err;flow=%s;aid=%s;unionPriId=%s;skuId=%s;", m_flow, aid,unionPriId, skuId);
                         return rt;
                     }
@@ -324,6 +332,7 @@ public class InOutStoreRecordProc {
                         totalCost += availableCount*price;
                     }
                 }
+
                 {
                     SearchArg lastAvailableSearchArg = new SearchArg();
                     lastAvailableSearchArg.matcher = lastAvailableMatcher;
@@ -367,11 +376,14 @@ public class InOutStoreRecordProc {
         }else{ // 从最后一条有效库存的出库记录开始计算
             batchSize = totalChangeCount > batchSize ? batchSize:totalChangeCount;
             SearchArg searchArg = new SearchArg();
+
             ParamMatcher matcher = commMatcher.clone();
             matcher.and(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, ParamMatcher.GT, 0); // 有效库存大于0
+            searchArg.matcher = matcher;
 
             ParamComparator cmpor = new ParamComparator();
             cmpor.addKey(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID);// 根据id 升序
+            searchArg.cmpor = cmpor;
 
             searchArg.limit = batchSize;
             int start = 0;
@@ -381,14 +393,15 @@ public class InOutStoreRecordProc {
             while (totalChangeCount > 0){
                 searchArg.start = start;
                 Ref<FaiList<Param>> listRef = new Ref<>();
+
                 rt = m_daoCtrl.select(searchArg, listRef, InOutStoreRecordEntity.Info.AVAILABLE_COUNT, InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, InOutStoreRecordEntity.Info.PRICE);
                 if(rt != Errno.OK){
                     Log.logErr("dao select err;flow=%s;aid=%s;unionPriId=%s;skuId=%s;totalChangeCount=%s", m_flow, aid,unionPriId, skuId, totalChangeCount);
                     return rt;
                 }
                 FaiList<Param> list = listRef.value;
-
                 for (Param info : list) {
+                    Log.logDbg("whalelog totalChangeCount=%s; info=%s", totalChangeCount, info);
                     int availableCount = info.getInt(InOutStoreRecordEntity.Info.AVAILABLE_COUNT);
                     int ioStoreRecId = info.getInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID);
                     long price = info.getLong(InOutStoreRecordEntity.Info.PRICE);
@@ -416,6 +429,7 @@ public class InOutStoreRecordProc {
                 }
                 start += batchSize;
             }
+            Log.logDbg("whalelog  dataList=%s", dataList);
             fifoOutTotalCostRef.value = totalCost;
             ParamUpdater batchUpdater = new ParamUpdater();
             batchUpdater.getData().setString(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, "?");

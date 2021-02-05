@@ -102,6 +102,8 @@ public class StoreService{
                         }
                     }
                     if(notModify){
+                        FaiBuffer sendBuf = new FaiBuffer(true);
+                        session.write(sendBuf);
                         Log.logDbg("not modify;flow=%d;aid=%d;unionPriId=%s;pdId=%s;rlPdId=%s;", flow, aid, unionPriId, pdId, rlPdId);
                         return rt = Errno.OK;
                     }
@@ -122,12 +124,10 @@ public class StoreService{
                 LockUtil.unlock(aid);
                 transactionCtrl.closeDao();
             }
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
             Log.logStd("ok;aid=%s;unionPriId=%s;pdId=%s;rlPdId=%s;",aid, unionPriId, pdId, rlPdId);
         }finally {
-            if(rt == Errno.OK){
-                FaiBuffer sendBuf = new FaiBuffer(true);
-                session.write(sendBuf);
-            }
             stat.end(rt != Errno.OK, rt);
         }
         return rt;
@@ -593,6 +593,8 @@ public class StoreService{
                         }
                         if(skuIdCountMap.isEmpty()){ // 重复扣减了
                             Log.logStd("find repeat reduce；aid=%d;unionPriId=%s;rlOrderCode=%s;skuIdCountList=%s", aid, unionPriId, rlOrderCode, skuIdCountList);
+                            FaiBuffer sendBuf = new FaiBuffer(true);
+                            session.write(sendBuf);
                             return rt = Errno.OK;
                         }
                         rt = holdingRecordProc.batchAdd(aid, unionPriId, skuIdCountMap, rlOrderCode, expireTimeSeconds);
@@ -619,13 +621,10 @@ public class StoreService{
 
             // 异步上报数据
             asynchronousReport(flow, aid, unionPriId, skuIdList, pdIdList);
-
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
             Log.logStd("aid=%d;unionPriId=%s;rlOrderCode=%s;reduceMode=%s;expireTimeSeconds=%s;;skuIdCountMap=%s", aid, unionPriId, rlOrderCode, reduceMode, expireTimeSeconds, skuIdCountMap);
         } finally {
-            if(rt == Errno.OK){
-                FaiBuffer sendBuf = new FaiBuffer(true);
-                session.write(sendBuf);
-            }
             stat.end(rt != Errno.OK, rt);
         }
         return rt;
@@ -656,7 +655,6 @@ public class StoreService{
                     Log.logErr(rt, "count not equals record count;count=%s;dbInfo=%s;notJudgeDel=%s;", count, info, notJudgeDel);
                     return rt;
                 }
-                skuIdCountMap.remove(new SkuStoreKey(unionPriId, skuId));
             }
         }
         return rt = Errno.OK;
@@ -709,6 +707,8 @@ public class StoreService{
                             return rt;
                         }
                         if(skuIdChangeCountMap.isEmpty()){ // 重复扣减了
+                            FaiBuffer sendBuf = new FaiBuffer(true);
+                            session.write(sendBuf);
                             Log.logStd("find repeat reduceHolding;aid=%d;unionPriId=%s;rlOrderCode=%s;skuIdCountList=%s", aid, unionPriId, rlOrderCode, skuIdCountList);
                             return rt = Errno.OK;
                         }
@@ -765,13 +765,10 @@ public class StoreService{
 
             // 异步上报数据
             asynchronousReport(flow, aid, unionPriId, skuIdList, pdIdList);
-
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
             Log.logStd("aid=%d;unionPriId=%s;rlOrderCode=%s;skuIdChangeCountMap=%s;", aid, unionPriId, rlOrderCode, skuIdChangeCountMap);
         }finally {
-            if(rt == Errno.OK){
-                FaiBuffer sendBuf = new FaiBuffer(true);
-                session.write(sendBuf);
-            }
             stat.end(rt != Errno.OK, rt);
         }
         return rt;
@@ -828,6 +825,8 @@ public class StoreService{
                             return rt;
                         }
                         if(skuIdCountMap.isEmpty()){ // 重复补偿了
+                            FaiBuffer sendBuf = new FaiBuffer(true);
+                            session.write(sendBuf);
                             Log.logStd("find repeat makeup;aid=%d;unionPriId=%s;rlOrderCode=%s;skuIdCountList=%s", aid, unionPriId, rlOrderCode, skuIdCountList);
                             return rt = Errno.OK;
                         }
@@ -854,13 +853,10 @@ public class StoreService{
 
             // 异步上报数据
             asynchronousReport(flow, aid, unionPriId, skuIdList, pdIdList);
-
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
             Log.logStd("ok;flow=%s;aid=%s;unionPriId=%s;rlOrderCode=%s;skuIdCountMap=%s;", flow, aid, unionPriId, rlOrderCode, skuIdCountMap);
         }finally {
-            if(rt == Errno.OK){
-                FaiBuffer sendBuf = new FaiBuffer(true);
-                session.write(sendBuf);
-            }
             stat.end(rt != Errno.OK, rt);
         }
         return rt;

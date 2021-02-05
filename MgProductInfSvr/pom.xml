@@ -11,8 +11,8 @@
 
     <!--版本控制-->
     <parent>
-        <groupId>fai-pom-ver-site</groupId>
-        <artifactId>fai-pom-ver-site</artifactId>
+        <groupId>MgProduct</groupId>
+        <artifactId>MgProductParent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
@@ -20,17 +20,4 @@
         <module>MgProductInfSvr-server</module>
         <module>MgProductInfSvr-interfaces</module>
     </modules>
-    <distributionManagement>
-        <repository>
-            <id>${repository_id}</id>
-            <name>${repository_name}</name>
-            <url>${repository_url}</url>
-        </repository>
-
-        <snapshotRepository>
-            <id>${repository_id}</id>
-            <name>${repository_name}</name>
-            <url>${repository_url}</url>
-        </snapshotRepository>
-    </distributionManagement>
 </project>

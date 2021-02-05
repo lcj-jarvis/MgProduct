@@ -11,47 +11,10 @@
 
     <!--版本控制-->
     <parent>
-        <groupId>fai-pom-ver-site</groupId>
-        <artifactId>fai-pom-ver-site</artifactId>
+        <groupId>MgProduct</groupId>
+        <artifactId>MgProductParent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
-
-    <profiles>
-        <profile>
-            <id>dev</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <properties>
-                <repository_id>nexus-id</repository_id>
-                <repository_name>snapshots repository</repository_name>
-                <repository_url>http://maven.faidev.cc/repository/maven-snapshots/</repository_url>
-            </properties>
-        </profile>
-
-        <profile>
-            <id>pro</id>
-            <properties>
-                <repository_id>nexus-id</repository_id>
-                <repository_name>release repository</repository_name>
-                <repository_url>http://maven.faidev.cc/repository/maven-releases/</repository_url>
-            </properties>
-        </profile>
-    </profiles>
-
-    <distributionManagement>
-        <repository>
-            <id>${repository_id}</id>
-            <name>${repository_name}</name>
-            <url>${repository_url}</url>
-        </repository>
-
-        <snapshotRepository>
-            <id>${repository_id}</id>
-            <name>${repository_name}</name>
-            <url>${repository_url}</url>
-        </snapshotRepository>
-    </distributionManagement>
 
     <build>
         <finalName>${artifactId}</finalName>

@@ -11,10 +11,11 @@
 
     <!--版本控制-->
     <parent>
-        <groupId>fai-pom-ver-site</groupId>
-        <artifactId>fai-pom-ver-site</artifactId>
+        <groupId>MgProduct</groupId>
+        <artifactId>MgProductParent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
+
     <modules>
         <module>MgProductBasicSvr-server</module>
         <module>MgProductBasicSvr-interfaces</module>

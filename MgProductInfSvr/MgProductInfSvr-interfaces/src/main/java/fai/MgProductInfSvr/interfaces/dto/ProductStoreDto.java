@@ -137,6 +137,8 @@ public class ProductStoreDto {
             g_infoDtoDef.add(ProductStoreEntity.SkuSummaryInfo.MW_TOTAL_COST, 7, Var.Type.LONG);
             g_infoDtoDef.add(ProductStoreEntity.SkuSummaryInfo.SYS_CREATE_TIME, 8);
             g_infoDtoDef.add(ProductStoreEntity.SkuSummaryInfo.SYS_UPDATE_TIME, 9);
+            g_infoDtoDef.add(ProductStoreEntity.SkuSummaryInfo.MIN_PRICE, 10, Var.Type.LONG);
+            g_infoDtoDef.add(ProductStoreEntity.SkuSummaryInfo.MAX_PRICE, 11, Var.Type.LONG);
         }
         public static ParamDef getInfoDto() {
             return g_infoDtoDef;

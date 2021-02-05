@@ -1860,7 +1860,7 @@ public class MgProductInfCli extends FaiClient {
     /**
      * 根据 skuIdList 获取产品规格SKU列表
      */
-    public int getPdSkuIdInfoListBySkuIdList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Long> skuIdlist, FaiList<Param> infoList) {
+    public int getPdSkuIdInfoListBySkuIdList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Long> skuIdList, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1869,9 +1869,9 @@ public class MgProductInfCli extends FaiClient {
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
-            if(skuIdlist == null){
+            if(skuIdList == null){
                 m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "skuIdlist error");
+                Log.logErr(m_rt, "skuIdList error");
                 return m_rt;
             }
             if (infoList == null) {
@@ -1886,7 +1886,7 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductSpecDto.Key.SITE_ID, siteId);
             sendBody.putInt(ProductSpecDto.Key.LGID, lgId);
             sendBody.putInt(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1);
-            skuIdlist.toBuffer(sendBody, ProductSpecDto.Key.ID_LIST);
+            skuIdList.toBuffer(sendBody, ProductSpecDto.Key.ID_LIST);
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductInfCmd.ProductSpecSkuCmd.GET_LIST_BY_SKU_ID_LIST);

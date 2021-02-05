@@ -114,9 +114,11 @@ public class ProductStoreEntity {
         public static final String AID = "aid";                                     // int 企业aid
         public static final String SKU_ID = "skuId";                                // long skuId
         public static final String RL_PD_ID = "rlPdId";                             // int 商品业务 id    冗余 做查询  可异步更新
-        public static final String COUNT = "count";                                 // int 商品总库存（数据不完全实时，做搜索，从 sku 冗余） 可异步更新
-        public static final String REMAIN_COUNT = "remainCount";                    // int 商品总剩余库存（数据不完全实时，做搜索，从 sku 冗余） 可异步更新
-        public static final String HOLDING_COUNT = "holdingCount";                  // int 商品总预扣库存（数据不完全实时，做搜索，从 sku 冗余） 可异步更新
+        public static final String MIN_PRICE = "minPrice";                          // long 商品交易最小价格(做搜索，从 sku 冗余)
+        public static final String MAX_PRICE = "maxPrice";                          // long 商品交易最小价格(做搜索，从 sku 冗余)
+        public static final String COUNT = "count";                                 // int 商品总库存（数据不完全实时，做搜索，从 sku 冗余）
+        public static final String REMAIN_COUNT = "remainCount";                    // int 商品总剩余库存（数据不完全实时，做搜索，从 sku 冗余）
+        public static final String HOLDING_COUNT = "holdingCount";                  // int 商品总预扣库存（数据不完全实时，做搜索，从 sku 冗余）
         public static final String FIFO_TOTAL_COST = "fifoTotalCost";               // long 先进先出方式计算的总成本（数据不完全实时，做搜索，从 sku 冗余）
         public static final String MW_TOTAL_COST = "mwTotalCost";                   // long 移动加权方式计算的总成本（数据不完全实时，做搜索，从 sku 冗余）
 

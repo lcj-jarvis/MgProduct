@@ -3,16 +3,21 @@ package fai.MgProductSpecSvr.application;
 import fai.MgProductSpecSvr.application.service.ProductSpecService;
 import fai.MgProductSpecSvr.application.service.SpecTempService;
 import fai.MgProductSpecSvr.interfaces.cmd.MgProductSpecCmd;
-import fai.MgProductSpecSvr.interfaces.dto.*;
-import fai.comm.jnetkit.server.ServerHandlerContext;
-import fai.comm.jnetkit.server.fai.FaiHandler;
+import fai.MgProductSpecSvr.interfaces.dto.ProductSpecDto;
+import fai.MgProductSpecSvr.interfaces.dto.ProductSpecSkuDto;
+import fai.MgProductSpecSvr.interfaces.dto.SpecTempDetailDto;
+import fai.MgProductSpecSvr.interfaces.dto.SpecTempDto;
+import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
 import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
-import fai.comm.jnetkit.server.fai.annotation.args.*;
-import fai.comm.jnetkit.server.fai.FaiServer;
-import fai.comm.util.*;
-import fai.middleground.svrutil.repository.DaoCtrl;
+import fai.comm.jnetkit.server.fai.annotation.args.ArgAid;
+import fai.comm.jnetkit.server.fai.annotation.args.ArgBodyInteger;
+import fai.comm.jnetkit.server.fai.annotation.args.ArgFlow;
+import fai.comm.jnetkit.server.fai.annotation.args.ArgList;
+import fai.comm.util.FaiList;
+import fai.comm.util.Param;
+import fai.comm.util.ParamUpdater;
 import fai.middleground.svrutil.service.MiddleGroundHandler;
 
 import java.io.IOException;
@@ -20,6 +25,7 @@ import java.io.IOException;
 public class MgProductSpecHandler extends MiddleGroundHandler {
     public MgProductSpecHandler(FaiServer server) {
         super(server);
+        System.out.println(m_specTempService);
     }
 
 
@@ -161,13 +167,12 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
     @WrittenCmd
     @Cmd(MgProductSpecCmd.ProductSpecCmd.BATCH_DEL_PD_ALL_SC)
     private int batchDelPdAllSc(final FaiSession session,
-                                     @ArgFlow final int flow,
-                                     @ArgAid final int aid,
-                                     @ArgBodyInteger(ProductSpecDto.Key.UNION_PRI_ID) final int unionPriId,
-                                     @ArgBodyInteger(ProductSpecDto.Key.TID) final int tid,
-                                     @ArgList(keyMatch = ProductSpecDto.Key.PD_ID_LIST)
-                                             FaiList<Integer> pdIdList) throws IOException {
-        return  m_productSpecService.batchDelPdAllSc(session, flow, aid, tid, unionPriId, pdIdList);
+                                @ArgFlow final int flow,
+                                @ArgAid final int aid,
+                                @ArgBodyInteger(ProductSpecDto.Key.TID) final int tid,
+                                @ArgList(keyMatch = ProductSpecDto.Key.PD_ID_LIST)
+                                FaiList<Integer> pdIdList) throws IOException {
+        return  m_productSpecService.batchDelPdAllSc(session, flow, aid, tid, pdIdList);
     }
 
     @Cmd(MgProductSpecCmd.ProductSpecCmd.GET_LIST)
@@ -209,6 +214,15 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
                                    @ArgBodyInteger(ProductSpecSkuDto.Key.TID) final int tid,
                                    @ArgBodyInteger(ProductSpecSkuDto.Key.PD_ID) final int pdId) throws IOException {
         return  m_productSpecService.getPdSkuScInfoList(session, flow, aid, unionPriId, pdId);
+    }
+
+    @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_LIST_BY_SKU_ID_LIST)
+    private int getPdSkuScInfoListBySkuIdList(final FaiSession session,
+                                              @ArgFlow final int flow,
+                                              @ArgAid final int aid,
+                                              @ArgBodyInteger(ProductSpecSkuDto.Key.TID) final int tid,
+                                              @ArgList(keyMatch = ProductSpecSkuDto.Key.ID_LIST) final FaiList<Long> skuIdList) throws IOException {
+        return  m_productSpecService.getPdSkuScInfoListBySkuIdList(session, flow, aid, skuIdList);
     }
 
     @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_SKU_ID_INFO_LIST_BY_PD_ID_LIST)

@@ -1,6 +1,6 @@
 package fai.MgProductSpecSvr.domain.serviceProc;
 
-import fai.MgProductSpecSvr.domain.comm.Misc2;
+import fai.MgProductSpecSvr.domain.comm.Utils;
 import fai.MgProductSpecSvr.domain.entity.SpecTempBizRelEntity;
 import fai.MgProductSpecSvr.domain.repository.SpecTempBizRelCacheCtrl;
 import fai.MgProductSpecSvr.domain.repository.SpecTempBizRelDaoCtrl;
@@ -88,7 +88,7 @@ public class SpecTempBizRelProc {
         int rt = Errno.ERROR;
 
         FaiList<Integer> rlTpScIdList = new FaiList<>(specTempBizRelUpdaterList.size());
-        Set<String> maxUpdaterKeys = Misc2.validUpdaterList(specTempBizRelUpdaterList, SpecTempBizRelEntity.getValidKeys(), data->{
+        Set<String> maxUpdaterKeys = Utils.validUpdaterList(specTempBizRelUpdaterList, SpecTempBizRelEntity.getValidKeys(), data->{
             rlTpScIdList.add(data.getInt(SpecTempBizRelEntity.Info.RL_TP_SC_ID));
         });
         maxUpdaterKeys.remove(SpecTempBizRelEntity.Info.RL_TP_SC_ID);
@@ -102,7 +102,7 @@ public class SpecTempBizRelProc {
             Log.logStd("batchDel arg err;flow=%d;aid=%s;unionPriId=%s;updaterList=%s;", m_flow, aid, unionPriId, specTempBizRelUpdaterList);
             return rt = Errno.NOT_FOUND;
         }
-        Map<Integer, Param> oldDataMap = Misc2.getMap(listRef.value, SpecTempBizRelEntity.Info.RL_TP_SC_ID);
+        Map<Integer, Param> oldDataMap = Utils.getMap(listRef.value, SpecTempBizRelEntity.Info.RL_TP_SC_ID);
         listRef.value = null; // help gc
 
         ParamUpdater doBatchUpdater = new ParamUpdater();
@@ -145,7 +145,7 @@ public class SpecTempBizRelProc {
         return rt;
     }
     public int getTpScIdByRlTpScId(int aid, int unionPriId, int rlTpScId, Ref<Integer> tpScIdRef) {
-        int tpScId = SpecTempBizRelCacheCtrl.getTpScId(aid, unionPriId, rlTpScId);
+        int tpScId = SpecTempBizRelCacheCtrl.getRlTpScId(aid, unionPriId, rlTpScId);
         if(tpScId != -1){
             tpScIdRef.value = tpScId;
             return Errno.OK;
@@ -163,7 +163,7 @@ public class SpecTempBizRelProc {
         }
         tpScId = infoRef.value.getInt(SpecTempBizRelEntity.Info.TP_SC_ID);
         tpScIdRef.value = tpScId;
-        SpecTempBizRelCacheCtrl.setTpScId(aid, unionPriId, rlTpScId, tpScId);
+        SpecTempBizRelCacheCtrl.setRlTpScId(aid, unionPriId, rlTpScId, tpScId);
         Log.logDbg(rt,"getTpScIdByRlTpScId ok;flow=%d;aid=%s;unionPriId=%s;rlTpScId=%s;tpScId=%s;", m_flow, aid, unionPriId, rlTpScId, tpScId);
         return rt;
     }
@@ -235,7 +235,7 @@ public class SpecTempBizRelProc {
 
         private boolean delNeedDelCache(int aid, int unionPriId){
             try {
-                boolean boo = SpecTempBizRelCacheCtrl.delTpScId(aid, unionPriId, needDelCachedRlTpScIdSet);
+                boolean boo = SpecTempBizRelCacheCtrl.delRlTpScId(aid, unionPriId, needDelCachedRlTpScIdSet);
                 return boo;
             }finally {
                 init();

@@ -51,7 +51,11 @@ public class MgProductInfCmd {
         /**@see StoreSalesSkuCmd#GET_LIST_BY_SKU_ID */
         public static final int NUM20 = 5020;
 
+        /**@see Cmd#GET_FULL_INFO */
         public static final int NUM21= 5021;
+
+        /**@see ProductSpecSkuCmd#GET_LIST_BY_SKU_ID_LIST */
+        public static final int NUM22= 5022;
     }
 
     // 1000 到 5000 的范围
@@ -194,6 +198,7 @@ public class MgProductInfCmd {
         //读命令
         public static final int GET_LIST = ReadCmdNum.NUM11;
         public static final int GET_SKU_ID_LIST = ReadCmdNum.NUM18;
+        public static final int GET_LIST_BY_SKU_ID_LIST = ReadCmdNum.NUM22;
 
         //写命令
         public static final int SET_LIST = WriteCmdNum.NUM16;

@@ -1,6 +1,6 @@
 package fai.MgProductSpecSvr.domain.serviceProc;
 
-import fai.MgProductSpecSvr.domain.comm.Misc2;
+import fai.MgProductSpecSvr.domain.comm.Utils;
 import fai.MgProductSpecSvr.domain.entity.SpecTempEntity;
 import fai.MgProductSpecSvr.domain.repository.SpecTempDaoCtrl;
 import fai.comm.util.*;
@@ -74,7 +74,7 @@ public class SpecTempProc {
         int rt = Errno.ERROR;
 
         FaiList<Integer> specTempIdList = new FaiList<>(specTempUpdaterList.size());
-        Set<String> maxUpdaterKeys = Misc2.validUpdaterList(specTempUpdaterList, SpecTempEntity.getValidKeys(), data->{
+        Set<String> maxUpdaterKeys = Utils.validUpdaterList(specTempUpdaterList, SpecTempEntity.getValidKeys(), data->{
             specTempIdList.add(data.getInt(SpecTempEntity.Info.TP_SC_ID));
         });
         maxUpdaterKeys.remove(SpecTempEntity.Info.TP_SC_ID);
@@ -84,7 +84,7 @@ public class SpecTempProc {
         if(rt != Errno.OK){
             return rt;
         }
-        Map<Integer, Param> oldDataMap = Misc2.getMap(listRef.value, SpecTempEntity.Info.TP_SC_ID);
+        Map<Integer, Param> oldDataMap = Utils.getMap(listRef.value, SpecTempEntity.Info.TP_SC_ID);
         listRef.value = null; // help gc
 
         ParamUpdater doBatchUpdater = new ParamUpdater();

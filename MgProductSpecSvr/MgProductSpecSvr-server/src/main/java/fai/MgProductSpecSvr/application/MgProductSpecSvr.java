@@ -6,11 +6,10 @@ import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.cache.redis.config.RedisClientConfig;
 import fai.comm.cache.redis.pool.JedisPool;
 import fai.comm.cache.redis.pool.JedisPoolFactory;
-import fai.comm.distributedkit.lock.PosDistributedLock;
+import fai.comm.distributedkit.lock.support.FaiLockGenerator;
 import fai.comm.jnetkit.config.ParamKeyMapping;
 import fai.comm.jnetkit.server.ServerConfig;
 import fai.comm.jnetkit.server.fai.FaiServer;
-import fai.comm.mq.api.MqFactory;
 import fai.comm.util.Log;
 import fai.comm.util.Param;
 import fai.middleground.svrutil.repository.DaoCtrl;
@@ -56,13 +55,15 @@ public class MgProductSpecSvr {
             }
             // 分布式分段锁
             {
-                long lockLease = SVR_OPTION.getLockLease();
+                int lockLease = SVR_OPTION.getLockLease();
                 int lockLength = SVR_OPTION.getLockLength();
                 long retryLockTime = SVR_OPTION.getRetryLockTime();
                 Log.logStd("lockLength=%d;", lockLength);
                 Log.logStd("lockLease=%d;", lockLease);
                 Log.logStd("retryLockTime=%d;", retryLockTime);
-                LockUtil.initLock(new PosDistributedLock(m_cache, lockLength , LOCK_TYPE, lockLease, retryLockTime));
+
+                FaiLockGenerator lockGenerator = new FaiLockGenerator(m_cache);
+                LockUtil.initLock(lockGenerator, lockLease, retryLockTime);
 
             }
             // 初始化idbuilder
@@ -113,5 +114,4 @@ public class MgProductSpecSvr {
         }
     }
     private static SvrOption SVR_OPTION;
-    private static final String LOCK_TYPE = "MG_PRODUCT_SPEC_SVR_LOCK";
 }

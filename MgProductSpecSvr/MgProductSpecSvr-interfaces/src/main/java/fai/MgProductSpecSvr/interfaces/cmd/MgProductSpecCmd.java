@@ -13,6 +13,7 @@ public class MgProductSpecCmd {
 		public static final int NUM7 = 5006;
 		public static final int NUM8 = 5007;
 		public static final int NUM9 = 5009;
+		public static final int NUM10 = 5010;
 	}
 
 
@@ -77,7 +78,9 @@ public class MgProductSpecCmd {
 	public static class ProductSpecSkuCmd {
 		public static final int GET_LIST = ReadCmdNum.NUM8;
 		public static final int GET_SKU_ID_INFO_LIST_BY_PD_ID_LIST = ReadCmdNum.NUM9;
+		public static final int GET_LIST_BY_SKU_ID_LIST = ReadCmdNum.NUM10;
 
 		public static final int SET_LIST = WriteCmdNum.NUM9;
-	}
+
+    }
 }

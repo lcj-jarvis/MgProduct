@@ -106,6 +106,7 @@ public class ProductSpecService extends ServicePub {
                 Log.logErr("arg err;flow=%d;aid=%d;tid=%s;unionPriId=%s;", flow, aid, tid, unionPriId);
                 return rt;
             }
+            long startTime = System.currentTimeMillis();
             Set<String> specStrNameSet = new HashSet<>();
             // 添加默认规格值的name
             specStrNameSet.add(ProductSpecValObj.Default.InPdScValList.NAME);
@@ -241,7 +242,8 @@ public class ProductSpecService extends ServicePub {
                 );
             });
             sendPdSkuScInfoList(session, simplePdScSkuInfoList);
-            Log.logStd("ok;flow=%d;aid=%d;pdIdSkuIdMap=%s;", flow, aid, pdIdSkuIdMap);
+            long endTime = System.currentTimeMillis();
+            Log.logStd("ok;flow=%d;aid=%d;consume=%s;pdIdSkuIdMap=%s;", flow, aid, (endTime-startTime), pdIdSkuIdMap);
         }finally {
             stat.end(rt != Errno.OK, rt);
         }
@@ -465,13 +467,13 @@ public class ProductSpecService extends ServicePub {
         return rt;
     }
 
-    public int batchDelPdAllSc(FaiSession session, int flow, int aid, int tid, int unionPriId, FaiList<Integer> pdIdList) throws IOException {
+    public int batchDelPdAllSc(FaiSession session, int flow, int aid, int tid, FaiList<Integer> pdIdList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
-            if (aid <= 0 || tid <= 0 || unionPriId<=0 || pdIdList == null || pdIdList.isEmpty()) {
+            if (aid <= 0 || tid <= 0 || pdIdList == null || pdIdList.isEmpty()) {
                 rt = Errno.ARGS_ERROR;
-                Log.logErr("arg err;flow=%d;aid=%d;tid=%s;unionPriId=%s;pdIdList=%s;", flow, aid, tid, unionPriId, pdIdList);
+                Log.logErr("arg err;flow=%d;aid=%d;tid=%s;pdIdList=%s;", flow, aid, tid, pdIdList);
                 return rt;
             }
 
@@ -480,11 +482,11 @@ public class ProductSpecService extends ServicePub {
                 ProductSpecDaoCtrl productSpecDaoCtrl = ProductSpecDaoCtrl.getInstance(flow, aid);
                 ProductSpecSkuDaoCtrl productSpecSkuDaoCtrl = ProductSpecSkuDaoCtrl.getInstance(flow, aid);
                 if(!transactionCtrl.register(productSpecDaoCtrl)){
-                    Log.logErr("register ProductSpecDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
+                    Log.logErr("register ProductSpecDaoCtrl err;flow=%d;aid=%d;", flow, aid);
                     return rt=Errno.ERROR;
                 }
                 if(!transactionCtrl.register(productSpecSkuDaoCtrl)){
-                    Log.logErr("register ProductSpecSkuDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
+                    Log.logErr("register ProductSpecSkuDaoCtrl err;flow=%d;aid=%d;", flow, aid);
                     return rt=Errno.ERROR;
                 }
                 ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(productSpecSkuDaoCtrl, flow);
@@ -766,6 +768,39 @@ public class ProductSpecService extends ServicePub {
         return rt;
     }
 
+    public int getPdSkuScInfoListBySkuIdList(FaiSession session, int flow, int aid, FaiList<Long> skuIdList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || skuIdList == null || skuIdList.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;skuIdList=%s;", flow, aid, skuIdList);
+                return rt;
+            }
+            Ref<FaiList<Param>> pdScSkuInfoListRef = new Ref<>();
+            ProductSpecSkuDaoCtrl productSpecSkuDaoCtrl = ProductSpecSkuDaoCtrl.getInstance(flow, aid);
+            try {
+                ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(productSpecSkuDaoCtrl, flow);
+                rt = productSpecSkuProc.getList(aid, skuIdList, pdScSkuInfoListRef);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+            }finally {
+                productSpecSkuDaoCtrl.closeDao();
+            }
+            FaiList<Param> psScSkuInfoList = pdScSkuInfoListRef.value;
+            rt = initPdScSkuSpecStr(flow, aid, psScSkuInfoList);
+            if(rt != Errno.OK){
+                Log.logErr(rt,"initPdScSkuSpecStr err;aid=%d;skuIdList=%d;", aid, skuIdList);
+                return rt;
+            }
+            sendPdSkuScInfoList(session, psScSkuInfoList);
+            Log.logDbg("flow=%s;aid=%s;skuIdList=%s;", flow, aid, skuIdList);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
     /**
      * 获取skuId
      */
@@ -814,7 +849,7 @@ public class ProductSpecService extends ServicePub {
         }finally {
             specStrDaoCtrl.closeDao();
         }
-        Map<Integer, Param> idNameMap = Misc2.getMap(listRef.value, SpecStrEntity.Info.SC_STR_ID);
+        Map<Integer, Param> idNameMap = Utils.getMap(listRef.value, SpecStrEntity.Info.SC_STR_ID);
         psScSkuInfoList.forEach(psScSkuInfo->{
             FaiList<Integer> inPdScStrIdList = psScSkuInfo.getList(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST);
             FaiList<String> inPdScStrNameList = new FaiList<>(inPdScStrIdList.size());
@@ -854,7 +889,7 @@ public class ProductSpecService extends ServicePub {
             specStrDaoCtrl.closeDao();
         }
 
-        Map<Integer, Param> idNameMap = Misc2.getMap(listRef.value, SpecStrEntity.Info.SC_STR_ID);
+        Map<Integer, Param> idNameMap = Utils.getMap(listRef.value, SpecStrEntity.Info.SC_STR_ID);
         pdScInfoList.forEach(pdSpInfo->{
             Param specStrInfo = idNameMap.get(pdSpInfo.getInt(ProductSpecEntity.Info.SC_STR_ID));
             pdSpInfo.setString(fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity.Info.NAME, specStrInfo.getString(SpecStrEntity.Info.NAME));
@@ -880,6 +915,7 @@ public class ProductSpecService extends ServicePub {
         Set<String> specStrNameSet = new HashSet<>();
         for (ParamUpdater updater : updaterList) {
             Param data = updater.getData();
+            Log.logDbg("whalelog   data=%s", data);
             Integer pdScId = data.getInt(ProductSpecEntity.Info.PD_SC_ID);
             if(pdScId == null){
                 Log.logErr("arg pdScId err;flow=%d;aid=%d;pdId=%s;pdScId=%s", flow, aid, pdId, pdScId);
@@ -946,6 +982,7 @@ public class ProductSpecService extends ServicePub {
                     inPdScValInfo.setInt(ProductSpecValObj.InPdScValList.Item.SC_STR_ID, scStrId);
                 }
             }
+            Log.logDbg("whalelog   data=%s", data);
         }
         return Errno.OK;
     }

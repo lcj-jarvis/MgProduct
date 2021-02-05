@@ -1,6 +1,6 @@
 package fai.MgProductSpecSvr.domain.serviceProc;
 
-import fai.MgProductSpecSvr.domain.comm.Misc2;
+import fai.MgProductSpecSvr.domain.comm.Utils;
 import fai.MgProductSpecSvr.domain.entity.SpecTempDetailEntity;
 import fai.MgProductSpecSvr.domain.repository.SpecTempDetailDaoCtrl;
 import fai.comm.util.*;
@@ -78,7 +78,7 @@ public class SpecTempDetailProc {
 
         FaiList<Integer> specTempDtIdList = new FaiList<>(specTempDetailUpdaterList.size());
         Set<Integer> scStrIdSet = new HashSet<>();
-        Set<String> maxUpdaterKeys = Misc2.validUpdaterList(specTempDetailUpdaterList, SpecTempDetailEntity.getValidKeys(), data->{
+        Set<String> maxUpdaterKeys = Utils.validUpdaterList(specTempDetailUpdaterList, SpecTempDetailEntity.getValidKeys(), data->{
             specTempDtIdList.add(data.getInt(SpecTempDetailEntity.Info.TP_SC_DT_ID));
             Integer scStrId = data.getInt(SpecTempDetailEntity.Info.SC_STR_ID);
             if(scStrId != null){

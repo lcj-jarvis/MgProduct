@@ -287,7 +287,7 @@ public class SpecTempService extends ServicePub {
                         Log.logErr(rt,"specTempBizRelProc getList err;flow=%d;aid=%d;unionPriId=%s;rlTpScIdList=%s;", flow, aid, unionPriId, rlTpScIdList);
                         return rt;
                     }
-                    FaiList<Integer> tpScIdList = Misc2.getValList(listRef.value, SpecTempBizRelEntity.Info.TP_SC_ID);
+                    FaiList<Integer> tpScIdList = Utils.getValList(listRef.value, SpecTempBizRelEntity.Info.TP_SC_ID);
                     try {
                         transactionCtrl.setAutoCommit(false);
                         rt = specTempProc.batchDel(aid, tpScIdList);
@@ -740,7 +740,7 @@ public class SpecTempService extends ServicePub {
             }finally {
                 specStrDaoCtrl.closeDao();
             }
-            Map<Object, Param> specStrMap = Misc2.getMap(listRef.value, SpecStrEntity.Info.SC_STR_ID);
+            Map<Object, Param> specStrMap = Utils.getMap(listRef.value, SpecStrEntity.Info.SC_STR_ID);
             for (Param specTempDetailInfo : specTempDetailList) {
                 Integer scStrId = specTempDetailInfo.getInt(SpecTempDetailEntity.Info.SC_STR_ID);
                 Param specStrInfo = specStrMap.get(scStrId);
@@ -786,7 +786,6 @@ public class SpecTempService extends ServicePub {
      *      "detailList":[{@link fai.MgProductSpecSvr.domain.entity.SpecTempDetailEntity}...]
      *  }
      */
-
     public Param getTpScWithDetail(int flow, int aid, int unionPriId, int rlTpScId, FaiList<Integer> tpScDtIdList){
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);

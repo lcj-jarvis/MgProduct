@@ -2,7 +2,7 @@ package fai.MgProductSpecSvr.domain.serviceProc;
 
 
 import fai.MgProductSpecSvr.domain.comm.LockUtil;
-import fai.MgProductSpecSvr.domain.comm.Misc2;
+import fai.MgProductSpecSvr.domain.comm.Utils;
 import fai.MgProductSpecSvr.domain.entity.ProductSpecEntity;
 import fai.MgProductSpecSvr.domain.entity.ProductSpecValObj;
 import fai.MgProductSpecSvr.domain.repository.ProductSpecCacheCtrl;
@@ -41,6 +41,8 @@ public class ProductSpecProc {
                 rtIdList.add(pdScId);
             }
             data.setInt(ProductSpecEntity.Info.PD_SC_ID, pdScId);
+            data.assign( info, ProductSpecEntity.Info.SOURCE_TID);
+            data.assign( info, ProductSpecEntity.Info.SOURCE_UNION_PRI_ID);
             data.assign( info, ProductSpecEntity.Info.SORT);
             data.assign( info, ProductSpecEntity.Info.FLAG);
             FaiList<Param> inPdScValList = info.getList(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST);
@@ -245,7 +247,7 @@ public class ProductSpecProc {
         int rt = Errno.ERROR;
         FaiList<Integer> pdScIdList = new FaiList<>(updaterList.size());
         Set<Integer> scStrIdSet = new HashSet<>();
-        Set<String> maxUpdaterKeys = Misc2.validUpdaterList(updaterList, ProductSpecEntity.getValidKeys(), data->{
+        Set<String> maxUpdaterKeys = Utils.validUpdaterList(updaterList, ProductSpecEntity.getValidKeys(), data->{
             pdScIdList.add(data.getInt(ProductSpecEntity.Info.PD_SC_ID));
             Integer scStrId = data.getInt(ProductSpecEntity.Info.SC_STR_ID);
             if(scStrId != null){

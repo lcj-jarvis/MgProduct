@@ -254,6 +254,24 @@ public class ProductSpecProc {
         }
         return rt;
     }
+
+    /**
+     * 根据 skuIdList 获取产品规格SKU列表
+     */
+    public int getPdSkuScInfoListBySkuIdList(int aid, int tid, FaiList<Long> skuIdList, FaiList<Param> infoList) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
+            return rt;
+        }
+        rt = m_cli.getPdSkuScInfoListBySkuIdList(aid, tid, skuIdList, infoList);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "getPdSkuScInfoList error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
+            return rt;
+        }
+        return rt;
+    }
     /**
      * 根据 pdId 获取 pdId-skuId 集
      * @param pdIdList

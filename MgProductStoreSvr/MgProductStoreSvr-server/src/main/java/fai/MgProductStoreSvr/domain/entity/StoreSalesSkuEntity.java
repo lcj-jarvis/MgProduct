@@ -61,6 +61,8 @@ public class StoreSalesSkuEntity {
         public static final String SUM_HOLDING_COUNT = "sumHoldingCount";
         public static final String MIN_PRICE = "minPrice";
         public static final String MAX_PRICE = "maxPrice";
+        public static final String SUM_FIFO_TOTAL_COST = "sumFifoTotalCost";
+        public static final String SUM_MW_TOTAL_COST = "sumMwTotalCost";
     }
 
     /**

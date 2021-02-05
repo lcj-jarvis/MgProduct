@@ -14,8 +14,6 @@ public class SkuSummaryProc {
         m_flow = flow;
     }
 
-
-
     public int report(int aid, long skuId, Param info) {
         if(aid <= 0 || info == null || info.isEmpty()){
             Log.logStd("arg error;flow=%d;aid=%s;info=%s;", m_flow, aid, info);

@@ -27,6 +27,12 @@
         </dependency>
 
         <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>comm</artifactId>
+            <version>${MgProduct-comm-ver}</version>
+        </dependency>
+
+        <dependency>
             <groupId>fai-comm-jnetkit</groupId>
             <artifactId>fai-comm-jnetkit</artifactId>
             <version>${fai-comm-jnetkit-ver}</version>

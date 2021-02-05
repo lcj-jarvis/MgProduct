@@ -16,6 +16,7 @@ import fai.comm.mq.api.SendResult;
 import fai.comm.mq.exception.MqClientException;
 import fai.comm.mq.message.FaiMqMessage;
 import fai.comm.util.*;
+import fai.mgproduct.comm.MgProductErrno;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
@@ -586,6 +587,14 @@ public class StoreService{
                 try {
                     transactionCtrl.setAutoCommit(false);
                     if(holdingMode){ // 生成预扣记录
+                        rt = checkHoldingRecordExists(holdingRecordProc, aid, unionPriId, skuIdList, rlOrderCode, skuIdCountMap, true, false);
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
+                        if(skuIdCountMap.isEmpty()){ // 重复扣减了
+                            Log.logStd("find repeat reduce；aid=%d;unionPriId=%s;rlOrderCode=%s;skuIdCountList=%s", aid, unionPriId, rlOrderCode, skuIdCountList);
+                            return rt = Errno.OK;
+                        }
                         rt = holdingRecordProc.batchAdd(aid, unionPriId, skuIdCountMap, rlOrderCode, expireTimeSeconds);
                     }else { // 生成库存订单关联记录
                         rt = storeOrderRecordProc.batchAdd(aid, unionPriId, skuIdCountMap, rlOrderCode);
@@ -604,20 +613,53 @@ public class StoreService{
                     }
                     transactionCtrl.commit();
                 }
-
             }finally {
                 transactionCtrl.closeDao();
             }
+
             // 异步上报数据
             asynchronousReport(flow, aid, unionPriId, skuIdList, pdIdList);
 
-            FaiBuffer sendBuf = new FaiBuffer(true);
-            session.write(sendBuf);
-            Log.logStd("aid=%d;unionPriId=%s;skuIdCountMap=%s;rlOrderCode=%s;reduceMode=%s;expireTimeSeconds=%s;", aid, unionPriId, skuIdCountMap, rlOrderCode, reduceMode, expireTimeSeconds);
+            Log.logStd("aid=%d;unionPriId=%s;rlOrderCode=%s;reduceMode=%s;expireTimeSeconds=%s;;skuIdCountMap=%s", aid, unionPriId, rlOrderCode, reduceMode, expireTimeSeconds, skuIdCountMap);
         } finally {
+            if(rt == Errno.OK){
+                FaiBuffer sendBuf = new FaiBuffer(true);
+                session.write(sendBuf);
+            }
             stat.end(rt != Errno.OK, rt);
         }
         return rt;
+    }
+
+    /**
+     * 检测是否存在预扣记录
+     */
+    private int checkHoldingRecordExists(HoldingRecordProc holdingRecordProc, int aid, int unionPriId, FaiList<Long> skuIdList, String rlOrderCode, Map<Long, Integer> skuIdCountMap, boolean notJudgeDel, boolean isMakeup){
+        int rt = Errno.ERROR;
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        rt = holdingRecordProc.getFromDao(aid, unionPriId, skuIdList, rlOrderCode, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            return rt;
+        }
+        for (Param info : listRef.value) {
+            boolean alreadyDel = info.getBoolean(HoldingRecordEntity.Info.ALREADY_DEL);
+            if(notJudgeDel || alreadyDel){ // 不判断删除 或者 已经删除
+                Long skuId = info.getLong(HoldingRecordEntity.Info.SKU_ID);
+                Integer recordCount = info.getInt(HoldingRecordEntity.Info.COUNT);
+                Integer count = skuIdCountMap.remove(skuId);
+                if(!recordCount.equals(count)){
+                    if(!isMakeup){
+                        rt = MgProductErrno.Store.REPEAT_REDUCE_COUNT_DIF;
+                    }else{
+                        rt = MgProductErrno.Store.REPEAT_MAKEUP_COUNT_DIF;
+                    }
+                    Log.logErr(rt, "count not equals record count;count=%s;dbInfo=%s;notJudgeDel=%s;", count, info, notJudgeDel);
+                    return rt;
+                }
+                skuIdCountMap.remove(new SkuStoreKey(unionPriId, skuId));
+            }
+        }
+        return rt = Errno.OK;
     }
 
     /**
@@ -662,6 +704,15 @@ public class StoreService{
                     LockUtil.lock(aid);
                     try {
                         transactionCtrl.setAutoCommit(false);
+                        rt = checkHoldingRecordExists(holdingRecordProc, aid, unionPriId, skuIdList, rlOrderCode, skuIdChangeCountMap, false, false);
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
+                        if(skuIdChangeCountMap.isEmpty()){ // 重复扣减了
+                            Log.logStd("find repeat reduceHolding;aid=%d;unionPriId=%s;rlOrderCode=%s;skuIdCountList=%s", aid, unionPriId, rlOrderCode, skuIdCountList);
+                            return rt = Errno.OK;
+                        }
+
                         // 删掉预扣记录
                         rt = holdingRecordProc.batchLogicDel(aid, unionPriId, skuIdList, rlOrderCode);
                         if(rt != Errno.OK){
@@ -676,12 +727,12 @@ public class StoreService{
 
 
                         Map<SkuStoreKey, Param> changeCountAfterSkuStoreSalesInfoMap = new HashMap<>();
-                        for (Param skuStoreSalesInfo : changeCountAfterSkuStoreSalesInfoMap.values()) {
-                            pdIdList.add(skuStoreSalesInfo.getInt(StoreSalesSkuEntity.Info.PD_ID));
-                        }
                         rt = storeSalesSkuProc.getInfoMap4OutRecordFromDao(aid, skuStoreKeySet, changeCountAfterSkuStoreSalesInfoMap);
                         if (rt != Errno.OK) {
                             return rt;
+                        }
+                        for (Param skuStoreSalesInfo : changeCountAfterSkuStoreSalesInfoMap.values()) {
+                            pdIdList.add(skuStoreSalesInfo.getInt(StoreSalesSkuEntity.Info.PD_ID));
                         }
 
                         // 添加出库记录
@@ -708,15 +759,19 @@ public class StoreService{
                 }finally {
                     LockUtil.unlock(aid);
                 }
-                // 异步上报数据
-                asynchronousReport(flow, aid, unionPriId, skuIdList, pdIdList);
             }finally {
                 transactionCtrl.closeDao();
             }
-            FaiBuffer sendBuf = new FaiBuffer(true);
-            session.write(sendBuf);
-            Log.logStd("aid=%d;unionPriId=%s;skuIdChangeCountMap=%s;rlOrderCode=%s;", aid, unionPriId, skuIdChangeCountMap, rlOrderCode);
+
+            // 异步上报数据
+            asynchronousReport(flow, aid, unionPriId, skuIdList, pdIdList);
+
+            Log.logStd("aid=%d;unionPriId=%s;rlOrderCode=%s;skuIdChangeCountMap=%s;", aid, unionPriId, rlOrderCode, skuIdChangeCountMap);
         }finally {
+            if(rt == Errno.OK){
+                FaiBuffer sendBuf = new FaiBuffer(true);
+                session.write(sendBuf);
+            }
             stat.end(rt != Errno.OK, rt);
         }
         return rt;
@@ -767,15 +822,24 @@ public class StoreService{
 
                 try {
                     transactionCtrl.setAutoCommit(false);
-                    rt = storeSalesSkuProc.batchMakeUpStore(aid, unionPriId, skuIdCountMap, holdingMode);
-                    if(rt != Errno.OK){
-                        return rt;
-                    }
                     if(holdingMode){
+                        rt = checkHoldingRecordExists(holdingRecordProc, aid, unionPriId, skuIdList, rlOrderCode, skuIdCountMap, true, true);
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
+                        if(skuIdCountMap.isEmpty()){ // 重复补偿了
+                            Log.logStd("find repeat makeup;aid=%d;unionPriId=%s;rlOrderCode=%s;skuIdCountList=%s", aid, unionPriId, rlOrderCode, skuIdCountList);
+                            return rt = Errno.OK;
+                        }
                         rt = holdingRecordProc.batchLogicDel(aid, unionPriId, skuIdList, rlOrderCode);
                         if(rt != Errno.OK){
                             return rt;
                         }
+                    }
+
+                    rt = storeSalesSkuProc.batchMakeUpStore(aid, unionPriId, skuIdCountMap, holdingMode);
+                    if(rt != Errno.OK){
+                        return rt;
                     }
                 }finally {
                     if(rt != Errno.OK){
@@ -787,13 +851,16 @@ public class StoreService{
             }finally {
                 transactionCtrl.closeDao();
             }
+
             // 异步上报数据
             asynchronousReport(flow, aid, unionPriId, skuIdList, pdIdList);
 
-            FaiBuffer sendBuf = new FaiBuffer(true);
-            session.write(sendBuf);
-            Log.logStd("ok;flow=%s;aid=%s;unionPriId=%s;skuIdCountMap=%s;rlOrderCode=%s;", flow, aid, unionPriId, skuIdCountMap, rlOrderCode);
+            Log.logStd("ok;flow=%s;aid=%s;unionPriId=%s;rlOrderCode=%s;skuIdCountMap=%s;", flow, aid, unionPriId, rlOrderCode, skuIdCountMap);
         }finally {
+            if(rt == Errno.OK){
+                FaiBuffer sendBuf = new FaiBuffer(true);
+                session.write(sendBuf);
+            }
             stat.end(rt != Errno.OK, rt);
         }
         return rt;
@@ -807,8 +874,8 @@ public class StoreService{
         if (pdIdList.size() > 0) {
             transactionCtrl = new TransactionCtrl();
             try {
-                SpuBizStoreSalesReportDaoCtrl spuBizStoreSalesReportDaoCtrl = SpuBizStoreSalesReportDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
                 transactionCtrl.setAutoCommit(false);
+                SpuBizStoreSalesReportDaoCtrl spuBizStoreSalesReportDaoCtrl = SpuBizStoreSalesReportDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
                 SpuBizStoreSalesReportProc spuBizStoreSalesReportProc = new SpuBizStoreSalesReportProc(spuBizStoreSalesReportDaoCtrl, flow);
                 // 提交库存上报任务，提交失败暂不处理
                 if (spuBizStoreSalesReportProc.addReportCountTask(aid, unionPriId, pdIdList) != Errno.OK) {
@@ -1744,6 +1811,8 @@ public class StoreService{
         skuSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.SUM_HOLDING_COUNT, SkuSummaryEntity.Info.HOLDING_COUNT);
         skuSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.MIN_PRICE, SkuSummaryEntity.Info.MIN_PRICE);
         skuSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.MAX_PRICE, SkuSummaryEntity.Info.MAX_PRICE);
+        skuSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.SUM_FIFO_TOTAL_COST, SkuSummaryEntity.Info.FIFO_TOTAL_COST);
+        skuSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.SUM_MW_TOTAL_COST, SkuSummaryEntity.Info.MW_TOTAL_COST);
     }
 
 

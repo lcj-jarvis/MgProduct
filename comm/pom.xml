@@ -1,50 +1,43 @@
-<?xml version="1.0" ?><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
+    <groupId>MgProduct</groupId>
+    <artifactId>comm</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <!--版本控制-->
     <parent>
-        <groupId>MgProduct</groupId>
-        <artifactId>MgProductInfSvr</artifactId>
+        <groupId>fai-pom-ver-site</groupId>
+        <artifactId>fai-pom-ver-site</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
-    <artifactId>MgProductInfSvr-interfaces</artifactId>
-    <packaging>jar</packaging>
-    <version>1.0.0-SNAPSHOT</version>
-    <dependencies>
-        <dependency>
-            <groupId>fai-comm-middleground</groupId>
-            <artifactId>fai-comm-middleground</artifactId>
-            <version>${fai-comm-middleground-ver}</version>
-        </dependency>
 
-        <dependency>
-            <groupId>MgProduct</groupId>
-            <artifactId>comm</artifactId>
-            <version>${MgProduct-comm-ver}</version>
-        </dependency>
+    <profiles>
+        <profile>
+            <id>dev</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <repository_id>nexus-id</repository_id>
+                <repository_name>snapshots repository</repository_name>
+                <repository_url>http://maven.faidev.cc/repository/maven-snapshots/</repository_url>
+            </properties>
+        </profile>
 
-        <dependency>
-            <groupId>fai-comm-util-arch</groupId>
-            <artifactId>fai-comm-util-arch</artifactId>
-            <version>${fai-comm-util-arch-ver}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>fai-comm-netkit</groupId>
-            <artifactId>fai-comm-netkit</artifactId>
-            <version>${fai-comm-netkit-ver}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>fai-comm-util-opt</groupId>
-            <artifactId>fai-comm-util-opt</artifactId>
-            <version>${fai-comm-util-opt-ver}</version>
-        </dependency>
-
-         <dependency>
-            <groupId>fai-comm-distributedkit</groupId>
-            <artifactId>fai-comm-distributedkit</artifactId>
-            <version>${fai-comm-distributedkit-ver}</version>
-        </dependency>
-    </dependencies>
+        <profile>
+            <id>pro</id>
+            <properties>
+                <repository_id>nexus-id</repository_id>
+                <repository_name>release repository</repository_name>
+                <repository_url>http://maven.faidev.cc/repository/maven-releases/</repository_url>
+            </properties>
+        </profile>
+    </profiles>
 
     <distributionManagement>
         <repository>
@@ -62,8 +55,8 @@
 
     <build>
         <finalName>${artifactId}</finalName>
-	<sourceDirectory>src/main/java</sourceDirectory>
         <plugins>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -98,9 +91,6 @@
                 <configuration>
                     <source>1.6</source>
                     <target>1.6</target>
-                    <!--<includes>
-                        <include>**/interfaces/**</include>
-                    </includes>-->
                 </configuration>
             </plugin>
             <plugin>
@@ -118,3 +108,4 @@
     </build>
 
 </project>
+

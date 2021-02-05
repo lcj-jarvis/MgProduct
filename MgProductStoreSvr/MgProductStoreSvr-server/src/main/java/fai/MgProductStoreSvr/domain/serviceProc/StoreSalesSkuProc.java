@@ -8,6 +8,7 @@ import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuEntity;
 import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuValObj;
 import fai.MgProductStoreSvr.domain.repository.StoreSalesSkuDaoCtrl;
 import fai.comm.util.*;
+import fai.mgproduct.comm.MgProductErrno;
 
 import java.util.*;
 
@@ -310,9 +311,9 @@ public class StoreSalesSkuProc {
         }
         if(refRowCount.value <= 0){ // 库存不足
             Log.logStd("store shortage;matcher=%s", matcher.toJson());
-            return Errno.ERROR;
+            return MgProductErrno.Store.SHORTAGE;
         }
-        Log.logStd("reduceStore ok;flow=%d;aid=%s;unionPriId=%s;skuId=%s;count=%s;", m_flow, aid, unionPriId, skuId, count);
+        Log.logStd("reduceStore ok;flow=%d;aid=%s;unionPriId=%s;skuId=%s;count=%s;holdingMode=%s;reduceHoldingCount=%s;", m_flow, aid, unionPriId, skuId, count, holdingMode, reduceHoldingCount);
         return rt;
     }
 
@@ -905,12 +906,15 @@ public class StoreSalesSkuProc {
     /**
      * min(if(flag&0x1=0x1, price, 0x7fffffffffffffffL)) 设置过价格的才参与计算最小值。
      */
-    private static final String COMM_REPORT_FIELDS = StoreSalesSkuEntity.ReportInfo.SOURCE_UNION_PRI_ID+", "+
-            "sum(" + StoreSalesSkuEntity.Info.COUNT + ") as " + StoreSalesSkuEntity.ReportInfo.SUM_COUNT + ", " +
-            "sum(" + StoreSalesSkuEntity.Info.REMAIN_COUNT + ") as " + StoreSalesSkuEntity.ReportInfo.SUM_REMAIN_COUNT + ", " +
-            "sum(" + StoreSalesSkuEntity.Info.HOLDING_COUNT + ") as "+StoreSalesSkuEntity.ReportInfo.SUM_HOLDING_COUNT+", " +
-            "min( if(" + StoreSalesSkuEntity.Info.FLAG+"&" +StoreSalesSkuValObj.FLag.SETED_PRICE +"=" +StoreSalesSkuValObj.FLag.SETED_PRICE+"," + StoreSalesSkuEntity.Info.PRICE +"," + Long.MAX_VALUE + ") ) as "+StoreSalesSkuEntity.ReportInfo.MIN_PRICE+", " +
-            "max(" + StoreSalesSkuEntity.Info.PRICE + ") as "+StoreSalesSkuEntity.ReportInfo.MAX_PRICE+" ";
+    private static final String COMM_REPORT_FIELDS = StoreSalesSkuEntity.ReportInfo.SOURCE_UNION_PRI_ID
+            + ", sum(" + StoreSalesSkuEntity.Info.COUNT + ") as " + StoreSalesSkuEntity.ReportInfo.SUM_COUNT
+            + ", sum(" + StoreSalesSkuEntity.Info.REMAIN_COUNT + ") as " + StoreSalesSkuEntity.ReportInfo.SUM_REMAIN_COUNT
+            + ", sum(" + StoreSalesSkuEntity.Info.HOLDING_COUNT + ") as "+StoreSalesSkuEntity.ReportInfo.SUM_HOLDING_COUNT
+            + ", min( if(" + StoreSalesSkuEntity.Info.FLAG+"&" +StoreSalesSkuValObj.FLag.SETED_PRICE +"=" +StoreSalesSkuValObj.FLag.SETED_PRICE+"," + StoreSalesSkuEntity.Info.PRICE +"," + Long.MAX_VALUE + ") ) as "+StoreSalesSkuEntity.ReportInfo.MIN_PRICE
+            + ", max(" + StoreSalesSkuEntity.Info.PRICE + ") as "+StoreSalesSkuEntity.ReportInfo.MAX_PRICE
+            + ", sum(" + StoreSalesSkuEntity.Info.FIFO_TOTAL_COST + ") as " + StoreSalesSkuEntity.ReportInfo.SUM_FIFO_TOTAL_COST
+            + ", sum(" + StoreSalesSkuEntity.Info.MW_TOTAL_COST + ") as " + StoreSalesSkuEntity.ReportInfo.SUM_MW_TOTAL_COST
+            ;
 
     public int getList(int aid, int unionPriId, int pdId, Ref<FaiList<Param>> listRef){
         if(aid <= 0 || unionPriId <=0 || pdId <= 0 || listRef == null){

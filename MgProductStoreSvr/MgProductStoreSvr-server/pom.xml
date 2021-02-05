@@ -28,7 +28,7 @@
 
         <dependency>
             <groupId>MgProduct</groupId>
-            <artifactId>comm</artifactId>
+            <artifactId>MgProductComm</artifactId>
             <version>${MgProduct-comm-ver}</version>
         </dependency>
 

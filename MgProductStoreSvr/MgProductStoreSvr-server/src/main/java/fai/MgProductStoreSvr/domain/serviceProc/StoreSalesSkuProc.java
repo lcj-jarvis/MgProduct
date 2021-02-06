@@ -977,6 +977,4 @@ public class StoreSalesSkuProc {
     private int m_flow;
     private StoreSalesSkuDaoCtrl m_daoCtrl;
 
-
-
 }

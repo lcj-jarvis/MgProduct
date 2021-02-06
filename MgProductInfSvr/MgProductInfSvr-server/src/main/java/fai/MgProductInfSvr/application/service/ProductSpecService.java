@@ -626,6 +626,9 @@ public class ProductSpecService extends MgProductInfService {
             if(rt != Errno.OK) {
                 return rt;
             }
+            for (Param info : infoList) {
+                info.setInt(fai.MgProductInfSvr.interfaces.entity.ProductSpecEntity.SpecSkuInfo.RL_PD_ID, rlPdId);
+            }
 
             FaiBuffer sendBuf = new FaiBuffer(true);
             infoList.toBuffer(sendBuf, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecSku.getInfoDto());

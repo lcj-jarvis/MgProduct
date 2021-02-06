@@ -4,7 +4,7 @@ import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
 import fai.comm.util.*;
 
 
-public class ProductSpecProc {
+public class ProductSpecProc extends AbstractProductProc {
     public ProductSpecProc(int flow) {
         this.m_flow = flow;
         m_cli = new MgProductSpecCli(flow);
@@ -25,7 +25,7 @@ public class ProductSpecProc {
         }
         rt = m_cli.addTpScInfoList(aid, tid, unionPriId, list);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "addTpScInfoList error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
         return rt;
@@ -42,7 +42,7 @@ public class ProductSpecProc {
         }
         rt = m_cli.delTpScInfoList(aid, tid, unionPriId, rlTpScIdList);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "delTpScInfoList error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
         return rt;
@@ -59,7 +59,7 @@ public class ProductSpecProc {
         }
         rt = m_cli.setTpScInfoList(aid, tid, unionPriId, updaterList);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "setTpScInfoList error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
         return rt;
@@ -76,7 +76,7 @@ public class ProductSpecProc {
         }
         rt = m_cli.getTpScInfoList(aid, tid, unionPriId, infoList);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "getTpScInfoList error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
         return rt;
@@ -94,7 +94,7 @@ public class ProductSpecProc {
         }
         rt = m_cli.addTpScDetailInfoList(aid, tid, unionPriId, rlTpScId, list);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "addTpScDetailInfoList error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
         return rt;
@@ -111,7 +111,7 @@ public class ProductSpecProc {
         }
         rt = m_cli.delTpScDetailInfoList(aid, tid, unionPriId, rlTpScId, tpScDtIdList);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "delTpScDetailInfoList error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
         return rt;
@@ -128,7 +128,7 @@ public class ProductSpecProc {
         }
         rt = m_cli.setTpScDetailInfoList(aid, tid, unionPriId, rlTpScId, updaterList);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "setTpScDetailInfoList error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
         return rt;
@@ -144,8 +144,8 @@ public class ProductSpecProc {
             return rt;
         }
         rt = m_cli.getTpScDetailInfoList(aid, tid, unionPriId, rlTpScId, infoList);
-        if(rt != Errno.OK) {
-            Log.logErr(rt, "getTpScDetailInfoList error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
         return rt;
@@ -162,7 +162,7 @@ public class ProductSpecProc {
         }
         rt = m_cli.importPdScInfo(aid, tid, unionPriId, pdId, rlTpScId, tpScDtIdList);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "importPdScInfo error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
         return rt;
@@ -179,7 +179,7 @@ public class ProductSpecProc {
         }
         rt = m_cli.batchSynchronousSPU2SKU(aid, tid, unionPriId, spuInfoList, simplePdScSkuInfoList);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "batchSynchronousSPU2SKU error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
         return rt;
@@ -197,7 +197,7 @@ public class ProductSpecProc {
         }
         rt = m_cli.unionSetPdScInfoList(aid, tid, unionPriId, pdId, addList, delList, updaterList, pdScSkuInfoList);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "unionSetPdScInfoList error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
         return rt;
@@ -213,8 +213,8 @@ public class ProductSpecProc {
             return rt;
         }
         rt = m_cli.getPdScInfoList(aid, tid, unionPriId, pdId, infoList, onlyGetChecked);
-        if(rt != Errno.OK) {
-            Log.logErr(rt, "getPdScInfoList error;flow=%d;aid=%d;unionPriId=%d;pdId=%s", m_flow, aid, unionPriId, pdId);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;pdId=%s", m_flow, aid, unionPriId, pdId);
             return rt;
         }
         return rt;
@@ -232,7 +232,7 @@ public class ProductSpecProc {
         }
         rt = m_cli.setPdSkuScInfoList(aid, tid, unionPriId, pdId, updaterList);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "setPdSkuScInfoList error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
         return rt;
@@ -248,8 +248,8 @@ public class ProductSpecProc {
             return rt;
         }
         rt = m_cli.getPdSkuScInfoList(aid, tid, unionPriId, pdId, infoList);
-        if(rt != Errno.OK) {
-            Log.logErr(rt, "getPdSkuScInfoList error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
         return rt;
@@ -266,8 +266,8 @@ public class ProductSpecProc {
             return rt;
         }
         rt = m_cli.getPdSkuScInfoListBySkuIdList(aid, tid, skuIdList, infoList);
-        if(rt != Errno.OK) {
-            Log.logErr(rt, "getPdSkuScInfoList error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
             return rt;
         }
         return rt;
@@ -284,8 +284,8 @@ public class ProductSpecProc {
             return rt;
         }
         rt = m_cli.getPdSkuIdInfoList(aid, tid, pdIdList, list);
-        if(rt != Errno.OK) {
-            Log.logErr(rt, "getPdSkuIdInfoList error;flow=%d;aid=%d;", m_flow, aid);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
         return rt;
@@ -302,18 +302,14 @@ public class ProductSpecProc {
         }
         rt = m_cli.batchDelPdAllSc(aid, tid, pdIdList);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "getPdSkuScInfoList error;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
             return rt;
         }
         return rt;
     }
 
 
-
-
     private int m_flow;
     private MgProductSpecCli m_cli;
-
-
 }
 

@@ -60,7 +60,7 @@ public class SpecTempDetailDaoCtrl extends DaoCtrl {
 		return TABLE_NAME;
 	}
 
-	private static final String TABLE_NAME = "specTempDetail";
+	private static final String TABLE_NAME = "mgSpecTempDetail";
 
 	public static void initIdBuilder(RedisCacheManager codisCache){
 		if(m_idBuilder == null){

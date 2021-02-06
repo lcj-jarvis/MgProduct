@@ -180,7 +180,7 @@ public class SpecTempBizRelProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
         int rt =  m_daoCtrl.select(searchArg, listRef);
-        if(rt != Errno.OK) {
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             Log.logErr(rt, "getList error;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
             return rt;
         }

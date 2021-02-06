@@ -73,7 +73,6 @@ public class ProductSpecService extends ServicePub {
                         }
                         productSpecDaoCtrl.commit();
                     }
-
                     productSpecProc.deleteDirtyCache(aid);
                 }finally {
                     LockUtil.unlock(aid);
@@ -444,10 +443,11 @@ public class ProductSpecService extends ServicePub {
                         }
                         transactionCtrl.commit();
                     }
+                    productSpecProc.deleteDirtyCache(aid);
+                    productSpecSkuProc.deleteDirtyCache(aid);
                 }finally {
                     LockUtil.unlock(aid);
                 }
-                productSpecProc.deleteDirtyCache(aid);
                 rt = productSpecSkuProc.getListFromDao(aid, pdId, productSpecSkuListRef, ProductSpecSkuEntity.Info.SKU_ID);
                 if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                     return rt;
@@ -713,15 +713,18 @@ public class ProductSpecService extends ServicePub {
                     }finally {
                         if(rt != Errno.OK){
                             productSpecSkuDaoCtrl.rollback();
+                            return rt;
                         }
                         productSpecSkuDaoCtrl.commit();
                     }
+                    productSpecSkuProc.deleteDirtyCache(aid);
                 }finally {
                     LockUtil.unlock(aid);
                 }
             }finally {
                 productSpecSkuDaoCtrl.closeDao();
             }
+
             rt = Errno.OK;
             FaiBuffer sendBuf = new FaiBuffer(true);
             FaiList<Object> pdScSkuList = new FaiList<>();
@@ -747,7 +750,7 @@ public class ProductSpecService extends ServicePub {
             ProductSpecSkuDaoCtrl productSpecSkuDaoCtrl = ProductSpecSkuDaoCtrl.getInstance(flow, aid);
             try {
                 ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(productSpecSkuDaoCtrl, flow);
-                rt = productSpecSkuProc.getListFromDao(aid, pdId, pdScSkuInfoListRef);
+                rt = productSpecSkuProc.getList(aid, pdId, pdScSkuInfoListRef);
                 if(rt != Errno.OK){
                     return rt;
                 }

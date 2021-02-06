@@ -342,18 +342,9 @@ public class SpecTempService extends ServicePub {
             SpecTempBizRelDaoCtrl specTempBizRelDaoCtrl = SpecTempBizRelDaoCtrl.getInstance(flow, aid);
             try {
                 SpecTempBizRelProc specTempBizRelProc = new SpecTempBizRelProc(specTempBizRelDaoCtrl, flow);
-                ParamMatcher matcher = new ParamMatcher(SpecTempBizRelEntity.Info.AID, ParamMatcher.EQ, aid);
-                matcher.and(SpecTempBizRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-                SearchArg searchArg = new SearchArg();
-                searchArg.matcher = matcher;
-
                 rt = specTempBizRelProc.getList(aid, unionPriId, specTempBizRelListRef);
-                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                if(rt != Errno.OK){
                     return rt;
-                }
-                if(rt == Errno.NOT_FOUND){
-                    sendInfoList(session, new FaiList<>());
-                    return rt=Errno.OK;
                 }
             }finally {
                 specTempBizRelDaoCtrl.closeDao();
@@ -389,6 +380,7 @@ public class SpecTempService extends ServicePub {
             ParamComparator comparator = new ParamComparator(SpecTempBizRelEntity.Info.SORT);
             Collections.sort(specTempList, comparator);
             sendInfoList(session, specTempList);
+            Log.logDbg("ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }

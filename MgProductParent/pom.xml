@@ -65,7 +65,7 @@
             <MgProduct-MgProductSpecSvr-interfaces-ver>1.0.0-SNAPSHOT</MgProduct-MgProductSpecSvr-interfaces-ver>
             <MgProduct-MgProductStoreSvr-interfaces-ver>1.0.0-SNAPSHOT</MgProduct-MgProductStoreSvr-interfaces-ver>
             <MgProduct-MgProductGroupSvr-interfaces-ver>1.0.0-SNAPSHOT</MgProduct-MgProductGroupSvr-interfaces-ver>
-            <MgProduct-comm-ver>1.0.0-SNAPSHOT</MgProduct-comm-ver>
+            <MgProduct-MgProductComm-ver>1.0.0-SNAPSHOT</MgProduct-MgProductComm-ver>
         </properties>
     </profile>
 
@@ -85,7 +85,7 @@
                 <MgProduct-MgProductSpecSvr-interfaces-ver>1.0.0</MgProduct-MgProductSpecSvr-interfaces-ver>
                 <MgProduct-MgProductStoreSvr-interfaces-ver>1.0.0</MgProduct-MgProductStoreSvr-interfaces-ver>
                 <MgProduct-MgProductGroupSvr-interfaces-ver>1.0.0</MgProduct-MgProductGroupSvr-interfaces-ver>
-                <MgProduct-comm-ver>1.0.0</MgProduct-comm-ver>
+                <MgProduct-MgProductComm-ver>1.0.0</MgProduct-MgProductComm-ver>
             </properties>
         </profile>
     </profiles>

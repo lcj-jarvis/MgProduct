@@ -71,7 +71,7 @@ public class SpecTempBizRelDaoCtrl extends DaoCtrl {
 	protected String getTableName(){
 		return TABLE_NAME;
 	}
-	private static final String TABLE_NAME = "specTempBizRel";
+	private static final String TABLE_NAME = "mgSpecTempBizRel";
 
 	public static void initIdBuilder(RedisCacheManager codisCache){
 		if(m_idBuilder == null){

@@ -4,7 +4,7 @@ import fai.MgProductStoreSvr.interfaces.cli.MgProductStoreCli;
 import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuValObj;
 import fai.comm.util.*;
 
-public class ProductStoreProc {
+public class ProductStoreProc extends AbstractProductProc{
     public ProductStoreProc(int flow) {
         this.m_flow = flow;
         m_cli = new MgProductStoreCli(flow);
@@ -25,7 +25,7 @@ public class ProductStoreProc {
         }
         rt = m_cli.refreshSkuStoreSales(aid, tid, unionPriId, pdId, rlPdId, pdScSkuInfoList);
         if (rt != Errno.OK) {
-            Log.logErr(rt, "error;flow=%d;aid=%d;unionPriId=%d;pdId=%s;rlPdId=%s;", m_flow, aid, unionPriId, pdId, rlPdId);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;pdId=%s;rlPdId=%s;", m_flow, aid, unionPriId, pdId, rlPdId);
             return rt;
         }
         return rt;
@@ -43,7 +43,7 @@ public class ProductStoreProc {
         }
         rt = m_cli.batchSynchronousStoreSalesSPU2SKU(aid, sourceTid, sourceUnionPriId, spuStoreSalesInfoList);
         if (rt != Errno.OK) {
-            Log.logErr(rt, "error;flow=%d;aid=%d;", m_flow, aid);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
         return rt;
@@ -61,7 +61,7 @@ public class ProductStoreProc {
         }
         rt = m_cli.batchSynchronousInOutStoreRecord(aid, sourceTid, sourceUnionPriId, spuStoreSalesInfoList);
         if (rt != Errno.OK) {
-            Log.logErr(rt, "error;flow=%d;aid=%d;", m_flow, aid);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
         return rt;
@@ -79,7 +79,7 @@ public class ProductStoreProc {
         }
         rt = m_cli.setSkuStoreSales(aid, tid, unionPriId, pdId, rlPdId, updaterList);
         if (rt != Errno.OK) {
-            Log.logErr(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
         return rt;
@@ -102,7 +102,7 @@ public class ProductStoreProc {
         }
         rt = m_cli.batchReducePdSkuStore(aid, tid, unionPriId, skuIdCountList, rlOrderCode, reduceMode, expireTimeSeconds);
         if (rt != Errno.OK) {
-            Log.logErr(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
         return rt;
@@ -125,7 +125,7 @@ public class ProductStoreProc {
         }
         rt = m_cli.batchReducePdSkuHoldingStore(aid, tid, unionPriId, skuIdCountList, rlOrderCode, outStoreRecordInfo);
         if (rt != Errno.OK) {
-            Log.logErr(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
         return rt;
@@ -150,7 +150,7 @@ public class ProductStoreProc {
         }
         rt = m_cli.batchMakeUpStore(aid, unionPriId, skuIdCountList, rlOrderCode, reduceMode);
         if (rt != Errno.OK) {
-            Log.logErr(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
         return rt;
@@ -167,8 +167,8 @@ public class ProductStoreProc {
             return rt;
         }
         rt = m_cli.getSkuStoreSales(aid, tid, unionPriId, pdId, rlPdId, infoList, useOwnerFieldList);
-        if (rt != Errno.OK) {
-            Log.logErr(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
         return rt;
@@ -185,8 +185,8 @@ public class ProductStoreProc {
             return rt;
         }
         rt = m_cli.getStoreSalesBySkuIdAndUIdList(aid, tid, skuId, unionPriIdList, infoList);
-        if (rt != Errno.OK) {
-            Log.logErr(rt, "error;flow=%d;aid=%d;skuId=%d;unionPriIdList=%s;", m_flow, aid, skuId, unionPriIdList);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;skuId=%d;unionPriIdList=%s;", m_flow, aid, skuId, unionPriIdList);
             return rt;
         }
         return rt;
@@ -203,8 +203,8 @@ public class ProductStoreProc {
             return rt;
         }
         rt = m_cli.getSkuStoreSalesByPdId(aid, tid, pdId, infoList);
-        if (rt != Errno.OK) {
-            Log.logErr(rt, "error;flow=%d;aid=%d;pdId=%d;", m_flow, aid, pdId);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;pdId=%d;", m_flow, aid, pdId);
             return rt;
         }
         return rt;
@@ -223,7 +223,7 @@ public class ProductStoreProc {
         }
         rt = m_cli.addInOutStoreRecordInfoList(aid, tid, unionPriId, infoList);
         if (rt != Errno.OK) {
-            Log.logErr(rt, "error;flow=%d;aid=%d;", m_flow, aid);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
         return rt;
@@ -240,8 +240,8 @@ public class ProductStoreProc {
             return rt;
         }
         rt = m_cli.getInOutStoreRecordInfoList(aid, tid, unionPriId, isSource, searchArg, infoList);
-        if (rt != Errno.OK) {
-            Log.logErr(rt, "error;flow=%d;aid=%d;", m_flow, aid);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
         return rt;
@@ -259,7 +259,7 @@ public class ProductStoreProc {
         }
         rt = m_cli.batchDelPdAllStoreSales(aid, tid, pdIdList);
         if (rt != Errno.OK) {
-            Log.logErr(rt, "error;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
             return rt;
         }
         return rt;
@@ -276,8 +276,8 @@ public class ProductStoreProc {
             return rt;
         }
         rt = m_cli.getSpuBizSummaryInfoListByPdId(aid, tid, pdId, infoList);
-        if (rt != Errno.OK) {
-            Log.logErr(rt, "error;flow=%d;aid=%d;", m_flow, aid);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
         return rt;
@@ -294,8 +294,8 @@ public class ProductStoreProc {
             return rt;
         }
         rt = m_cli.getSpuBizSummaryInfoListByPdIdList(aid, tid, unionPriId, pdIdList, infoList, useOwnerFieldList);
-        if (rt != Errno.OK) {
-            Log.logErr(rt, "error;flow=%d;aid=%d;", m_flow, aid);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
         return rt;
@@ -312,8 +312,8 @@ public class ProductStoreProc {
             return rt;
         }
         rt = m_cli.getSpuSummaryInfoList(aid, tid, unionPriId, pdIdList, infoList);
-        if (rt != Errno.OK) {
-            Log.logErr(rt, "error;flow=%d;aid=%d;", m_flow, aid);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
         return rt;
@@ -333,8 +333,8 @@ public class ProductStoreProc {
         }else{
             rt = m_cli.getSkuSummaryInfoList(aid, tid, unionPriId, searchArg, list);
         }
-        if (rt != Errno.OK) {
-            Log.logErr(rt, "error;flow=%d;aid=%d;", m_flow, aid);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
         return rt;

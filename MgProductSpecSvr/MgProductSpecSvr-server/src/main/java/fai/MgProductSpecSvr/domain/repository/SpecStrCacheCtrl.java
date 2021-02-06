@@ -104,12 +104,12 @@ public class SpecStrCacheCtrl extends CacheCtrl {
     }
 
     public static String getNameIdCacheKey(int aid) {
-        return CACHE_KEY + "-" + aid + "-name-id";
+        return CACHE_KEY_PREFIX + ":" + aid + "-name-id";
     }
     public static String getCacheKey(int aid) {
-        return CACHE_KEY + "-" + aid;
+        return CACHE_KEY_PREFIX + ":" + aid;
     }
-    private static final String CACHE_KEY = "MG_specStr";
+    private static final String CACHE_KEY_PREFIX = "MG_specStr";
 
 
 }

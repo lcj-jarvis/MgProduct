@@ -3,12 +3,11 @@ package fai.MgProductSpecSvr.domain.serviceProc;
 
 import fai.MgProductSpecSvr.domain.comm.Utils;
 import fai.MgProductSpecSvr.domain.entity.ProductSpecSkuEntity;
+import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuCacheCtrl;
 import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuDaoCtrl;
 import fai.comm.util.*;
 
-import java.util.Calendar;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class ProductSpecSkuProc {
     public ProductSpecSkuProc(ProductSpecSkuDaoCtrl daoCtrl, int flow) {
@@ -47,7 +46,8 @@ public class ProductSpecSkuProc {
             data.setCalendar(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME, now);
             dataList.add(data);
         }
-
+        cacheManage.addNeedDelCachedSkuIdList(aid, rtIdList);
+        cacheManage.addNeedCachedPdId(aid, pdId);
         int rt = m_daoCtrl.batchInsert(dataList, null);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batchAdd error;flow=%d;aid=%s;pdId=%s;", m_flow, aid, pdId);
@@ -139,6 +139,16 @@ public class ProductSpecSkuProc {
         }
         ParamMatcher delMatcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
         delMatcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        { // 获取skuIdList
+            Ref<FaiList<Param>> skuIdInfoListRef = new Ref<>();
+            int rt = getListFromDaoByPdIdList(aid, pdIdList, skuIdInfoListRef, ProductSpecSkuEntity.Info.SKU_ID);
+            if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                return rt;
+            }
+            FaiList<Long> skuIdList = Utils.getValList(skuIdInfoListRef.value, ProductSpecSkuEntity.Info.SKU_ID);
+            cacheManage.addNeedDelCachedSkuIdList(aid, skuIdList);
+            cacheManage.addNeedCachedPdIdList(aid, pdIdList);
+        }
         int rt = m_daoCtrl.delete(delMatcher);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batchDel error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
@@ -158,7 +168,19 @@ public class ProductSpecSkuProc {
                 return Errno.OK;
             }
             delMatcher.and(ProductSpecSkuEntity.Info.SKU_ID, ParamMatcher.IN, delSkuIdList);
+        }else{
+            { // 获取skuIdList
+                Ref<FaiList<Param>> skuIdInfoListRef = new Ref<>();
+                int rt = getListFromDao(aid, pdId, skuIdInfoListRef, ProductSpecSkuEntity.Info.SKU_ID);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                    return rt;
+                }
+                FaiList<Long> skuIdList = Utils.getValList(skuIdInfoListRef.value, ProductSpecSkuEntity.Info.SKU_ID);
+                cacheManage.addNeedDelCachedSkuIdList(aid, skuIdList);
+            }
         }
+        cacheManage.addNeedDelCachedSkuIdList(aid, delSkuIdList);
+        cacheManage.addNeedCachedPdId(aid, pdId);
         Log.logDbg("delMatcher.sql=%s;delMatcher.json=%s;", delMatcher.getSql(), delMatcher.toJson());
         int rt = m_daoCtrl.delete(delMatcher);
         if(rt != Errno.OK) {
@@ -249,6 +271,8 @@ public class ProductSpecSkuProc {
 
             dataList.add(data);
         });
+        cacheManage.addNeedDelCachedSkuIdList(aid, skuIdList);
+        cacheManage.addNeedCachedPdId(aid, pdId);
         rt = m_daoCtrl.batchUpdate(doBatchUpdater, doBatchMatcher, dataList);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batchSet error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
@@ -343,33 +367,136 @@ public class ProductSpecSkuProc {
         });
     }
 
-    public int getList(int aid, int pdId, Ref<FaiList<Param>> pdScSkuInfoListRef) {
+    public int getList(int aid, int pdId, Ref<FaiList<Param>> listRef){
+        if(pdId <= 0 || listRef == null){
+            Log.logErr("getList arg error;flow=%d;aid=%s;pdId=%s;", m_flow, aid, pdId);
+            return Errno.ARGS_ERROR;
+        }
+        FaiList<Param> cacheList = ProductSpecSkuCacheCtrl.getListByPdId(aid, pdId);
+        if(cacheList != null){
+            listRef.value = cacheList;
+            return Errno.OK;
+        }
         int rt = Errno.ERROR;
-        rt = getListFromDao(aid, pdId, null, pdScSkuInfoListRef);
+        rt = getListFromDao(aid, pdId, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            return rt;
+        }
+        ProductSpecSkuCacheCtrl.initInfoWithRelCache(aid, pdId, listRef.value);
         return rt;
     }
-
     public int getList(int aid, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef){
         if(skuIdList == null || skuIdList.isEmpty() || listRef == null){
             Log.logErr("getList arg error;flow=%d;aid=%s;skuIdList=%s;", m_flow, aid, skuIdList);
             return Errno.ARGS_ERROR;
         }
+        Set<Long> skuIdSet = new HashSet<>(skuIdList);
+        FaiList<Param> cacheList = ProductSpecSkuCacheCtrl.getList(aid, skuIdList);
+        FaiList<Param> resultList = new FaiList<>();
+        if(cacheList != null){
+            for (Param cacheInfo : cacheList) {
+                if(!isEmptyCacheInfo(cacheInfo)){
+                    resultList.add(cacheInfo);
+                }
+                skuIdSet.remove(cacheInfo.getLong(ProductSpecSkuEntity.Info.SKU_ID));
+            }
+        }
         int rt = Errno.ERROR;
-        rt = getListFromDao(aid, skuIdList, listRef);
-
+        if(skuIdSet.isEmpty()){
+            listRef.value = resultList;
+            return rt = Errno.OK;
+        }
+        rt = getListFromDao(aid, new FaiList<>(skuIdSet), listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            return rt;
+        }
+        FaiList<Param> infoList = listRef.value;
+        for (Param info : infoList) {
+            resultList.add(info);
+            skuIdSet.remove(info.getLong(ProductSpecSkuEntity.Info.SKU_ID));
+        }
+        for (Long skuId : skuIdSet) {
+            infoList.add(genEmptyCacheInfo(skuId));
+        }
+        ProductSpecSkuCacheCtrl.initInfoCache(aid, infoList);
+        listRef.value = resultList;
         return rt;
     }
 
-    public boolean clearCache(int aid, int pdId) {
-        return true;
+    private Param genEmptyCacheInfo(long skuId){
+        return new Param()
+                .setLong(ProductSpecSkuEntity.Info.SKU_ID, skuId)
+                .setCalendar(ProductSpecSkuEntity.Info.SYS_CREATE_TIME, Calendar.getInstance());
     }
+    private boolean isEmptyCacheInfo(Param cacheInfo){
+        Set<String> keySet = cacheInfo.keySet();
+        return keySet.size() <= 2;
+    }
+
     public void clearIdBuilderCache(int aid) {
         m_daoCtrl.clearIdBuilderCache(aid);
     }
+    public boolean deleteDirtyCache(int aid) {
+        return cacheManage.deleteDirtyCache(aid);
+    }
 
     private int m_flow;
+    private CacheManage cacheManage = new CacheManage();
     private ProductSpecSkuDaoCtrl m_daoCtrl;
 
+    private static class CacheManage{
 
+        public CacheManage() {
+            init();
+        }
+
+        private Set<Long> needDelCachedSkuIdSet;
+        private Set<Integer> needDelPdIdSet;
+        private void addNeedDelCachedSkuIdSet(int aid, Set<Long> skuIdSet){
+            if(skuIdSet == null || skuIdSet.isEmpty()){
+                return;
+            }
+            ProductSpecSkuCacheCtrl.setInfoCacheDirty(aid);
+            needDelCachedSkuIdSet.addAll(skuIdSet);
+        }
+        private void addNeedDelCachedSkuIdList(int aid, FaiList<Long> skuIdList){
+            if(skuIdList == null || skuIdList.isEmpty()){
+                return;
+            }
+            HashSet<Long> skuIdSet = new HashSet<>(skuIdList);
+            addNeedDelCachedSkuIdSet(aid, skuIdSet);
+        }
+        private void addNeedCachedPdId(int aid, int pdId){
+            addNeedCachedPdIdSet(aid, new HashSet<>(Arrays.asList(pdId)));
+        }
+        private void addNeedCachedPdIdList(int aid, FaiList<Integer> pdIdList){
+            if(pdIdList == null || pdIdList.isEmpty()){
+                return;
+            }
+            addNeedCachedPdIdSet(aid, new HashSet<>(pdIdList));
+        }
+        private void addNeedCachedPdIdSet(int aid, Set<Integer> pdIdSet){
+            if(pdIdSet == null || pdIdSet.isEmpty()){
+                return;
+            }
+            ProductSpecSkuCacheCtrl.setRelCacheDirty(aid);
+            needDelPdIdSet.addAll(pdIdSet);
+        }
+
+        private boolean deleteDirtyCache(int aid){
+            try {
+                boolean boo = ProductSpecSkuCacheCtrl.delRelCache(aid, needDelPdIdSet);
+                boo &= ProductSpecSkuCacheCtrl.delInfoCache(aid, needDelCachedSkuIdSet);
+                return boo;
+            }finally {
+                init();
+            }
+        }
+
+        private void init() {
+            needDelCachedSkuIdSet = new HashSet<>();
+            needDelPdIdSet = new HashSet<>();
+        }
+    }
 
 }

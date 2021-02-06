@@ -63,7 +63,7 @@ public class ProductSpecSkuDaoCtrl extends DaoCtrl {
 	protected String getTableName(){
 		return TABLE_NAME + "_"+ String.format("%04d", aid%1000);
 	}
-	private static final String TABLE_NAME = "productSpecSKU";
+	private static final String TABLE_NAME = "mgProductSpecSku";
 
 	public static void initIdBuilder(RedisCacheManager codisCache){
 		if(m_idBuilder == null){

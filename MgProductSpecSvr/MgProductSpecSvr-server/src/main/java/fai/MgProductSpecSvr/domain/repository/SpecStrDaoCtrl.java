@@ -58,7 +58,7 @@ public class SpecStrDaoCtrl extends DaoCtrl {
 		return TABLE_NAME + "_"+ String.format("%04d", aid%1000);
 	}
 
-	private static final String TABLE_NAME = "specStr";
+	private static final String TABLE_NAME = "mgSpecStr";
 
 	public static void initIdBuilder(RedisCacheManager codisCache){
 		if(m_idBuilder == null){

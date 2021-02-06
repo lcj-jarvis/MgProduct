@@ -168,10 +168,6 @@
 
     </dependencies>
 
-    <properties>
-        <svr-tmp-dir>${basedir}/svr-tmp/</svr-tmp-dir>
-    </properties>
-
     <build>
         <finalName>MgProductInfSvr</finalName>
         <plugins>
@@ -196,7 +192,7 @@
                     <filesets>
                         <!-- 删除文件夹lib -->
                         <fileset>
-                            <directory>${svr-tmp-dir}</directory>
+                            <directory>${user.home}/sbin/${project.parent.artifactId}</directory>
                         </fileset>
                     </filesets>
                 </configuration>
@@ -214,7 +210,7 @@
                             <mainClass>fai.MgProductInfSvr.application.MgProductInfSvr</mainClass>
                         </manifest>
                     </archive>
-                    <outputDirectory>${svr-tmp-dir}</outputDirectory>
+                    <outputDirectory>${user.home}/sbin/${project.parent.artifactId}</outputDirectory>
                 </configuration>
             </plugin>
 
@@ -231,7 +227,7 @@
                             <goal>copy-dependencies</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${svr-tmp-dir}</outputDirectory>
+                            <outputDirectory>${user.home}/sbin/${project.parent.artifactId}</outputDirectory>
                             <overWriteReleases>false</overWriteReleases>
                             <overWriteSnapshots>false</overWriteSnapshots>
                             <overWriteIfNewer>true</overWriteIfNewer>
@@ -240,27 +236,7 @@
                 </executions>
             </plugin>
 
-            <plugin>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>copy-lib-sbin</id>
-                        <phase>package</phase>
-                        <configuration>
-                            <tasks>
-                                <copy todir="${user.home}/sbin/${project.parent.artifactId}">
-                                    <fileset dir="${svr-tmp-dir}">
-                                        <include name="*" />
-                                    </fileset>
-                                </copy>
-                            </tasks>
-                        </configuration>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+
         </plugins>
     </build>
 </project>

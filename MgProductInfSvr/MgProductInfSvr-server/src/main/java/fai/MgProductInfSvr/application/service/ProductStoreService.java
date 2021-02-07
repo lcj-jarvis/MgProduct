@@ -697,10 +697,10 @@ public class ProductStoreService extends MgProductInfService {
                 for (Param info : infoList) {
                     int tmpUnionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID);
                     BizPriKey bizPriKey = unionPriIdBizPriKeyMap.get(tmpUnionPriId);
-                    info.setInt(ProductStoreEntity.SkuBizSummaryInfo.TID, bizPriKey.tid);
-                    info.setInt(ProductStoreEntity.SkuBizSummaryInfo.SITE_ID, bizPriKey.siteId);
-                    info.setInt(ProductStoreEntity.SkuBizSummaryInfo.LGID, bizPriKey.lgId);
-                    info.setInt(ProductStoreEntity.SkuBizSummaryInfo.KEEP_PRI_ID1, bizPriKey.keepPriId1);
+                    info.setInt(ProductStoreEntity.SpuBizSummaryInfo.TID, bizPriKey.tid);
+                    info.setInt(ProductStoreEntity.SpuBizSummaryInfo.SITE_ID, bizPriKey.siteId);
+                    info.setInt(ProductStoreEntity.SpuBizSummaryInfo.LGID, bizPriKey.lgId);
+                    info.setInt(ProductStoreEntity.SpuBizSummaryInfo.KEEP_PRI_ID1, bizPriKey.keepPriId1);
                 }
             }
 

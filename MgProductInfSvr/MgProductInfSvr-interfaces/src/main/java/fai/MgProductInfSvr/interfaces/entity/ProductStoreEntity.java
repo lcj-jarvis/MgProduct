@@ -71,7 +71,7 @@ public class ProductStoreEntity {
     /**
      * spu 业务库存销售汇总信息
      */
-    public static final class SkuBizSummaryInfo {
+    public static final class SpuBizSummaryInfo {
         public static final String AID = "aid";                                     // int 企业aid
         public static final String TID = "tid";                                     // int 项目id
         public static final String SITE_ID = "siteId";                              // int 站点id

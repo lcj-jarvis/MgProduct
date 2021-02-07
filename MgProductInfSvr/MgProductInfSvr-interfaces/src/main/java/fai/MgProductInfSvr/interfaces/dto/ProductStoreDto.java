@@ -81,25 +81,25 @@ public class ProductStoreDto {
     public static final class SpuBizSummary {
         private static ParamDef g_infoDtoDef = new ParamDef();
         static {
-            g_infoDtoDef.add(ProductStoreEntity.SkuBizSummaryInfo.AID, 0, Var.Type.INT);
-            g_infoDtoDef.add(ProductStoreEntity.SkuBizSummaryInfo.RL_PD_ID, 3, Var.Type.INT);
-            g_infoDtoDef.add(ProductStoreEntity.SkuBizSummaryInfo.PRICE_TYPE, 4, Var.Type.INT);
-            g_infoDtoDef.add(ProductStoreEntity.SkuBizSummaryInfo.MODE_TYPE, 5, Var.Type.INT);
-            g_infoDtoDef.add(ProductStoreEntity.SkuBizSummaryInfo.MARKET_PRICE, 6, Var.Type.LONG);
-            g_infoDtoDef.add(ProductStoreEntity.SkuBizSummaryInfo.MIN_PRICE, 7, Var.Type.LONG);
-            g_infoDtoDef.add(ProductStoreEntity.SkuBizSummaryInfo.MAX_PRICE, 8, Var.Type.LONG);
-            g_infoDtoDef.add(ProductStoreEntity.SkuBizSummaryInfo.VIRTUAL_SALES, 9, Var.Type.INT);
-            g_infoDtoDef.add(ProductStoreEntity.SkuBizSummaryInfo.SALES, 10, Var.Type.INT);
-            g_infoDtoDef.add(ProductStoreEntity.SkuBizSummaryInfo.COUNT, 11, Var.Type.INT);
-            g_infoDtoDef.add(ProductStoreEntity.SkuBizSummaryInfo.REMAIN_COUNT, 12, Var.Type.INT);
-            g_infoDtoDef.add(ProductStoreEntity.SkuBizSummaryInfo.HOLDING_COUNT, 13, Var.Type.INT);
-            g_infoDtoDef.add(ProductStoreEntity.SkuBizSummaryInfo.FLAG, 14, Var.Type.INT);
-            g_infoDtoDef.add(ProductStoreEntity.SkuBizSummaryInfo.SYS_CREATE_TIME, 15);
-            g_infoDtoDef.add(ProductStoreEntity.SkuBizSummaryInfo.SYS_UPDATE_TIME, 16);
-            g_infoDtoDef.add(ProductStoreEntity.SkuBizSummaryInfo.TID, 17, Var.Type.INT);
-            g_infoDtoDef.add(ProductStoreEntity.SkuBizSummaryInfo.SITE_ID, 18, Var.Type.INT);
-            g_infoDtoDef.add(ProductStoreEntity.SkuBizSummaryInfo.LGID, 19, Var.Type.INT);
-            g_infoDtoDef.add(ProductStoreEntity.SkuBizSummaryInfo.KEEP_PRI_ID1, 20, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.AID, 0, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.RL_PD_ID, 3, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.PRICE_TYPE, 4, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.MODE_TYPE, 5, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.MARKET_PRICE, 6, Var.Type.LONG);
+            g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.MIN_PRICE, 7, Var.Type.LONG);
+            g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.MAX_PRICE, 8, Var.Type.LONG);
+            g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.VIRTUAL_SALES, 9, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.SALES, 10, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.COUNT, 11, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.REMAIN_COUNT, 12, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.HOLDING_COUNT, 13, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.FLAG, 14, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.SYS_CREATE_TIME, 15);
+            g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.SYS_UPDATE_TIME, 16);
+            g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.TID, 17, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.SITE_ID, 18, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.LGID, 19, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.KEEP_PRI_ID1, 20, Var.Type.INT);
         }
         public static ParamDef getInfoDto() {
             return g_infoDtoDef;

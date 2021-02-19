@@ -31,6 +31,7 @@ public class InOutStoreRecordDto {
         g_dtoDef.add(InOutStoreRecordEntity.Info.RL_ORDER_CODE, 21, Var.Type.STRING);
         g_dtoDef.add(InOutStoreRecordEntity.Info.RL_REFUND_ID, 22, Var.Type.STRING);
         g_dtoDef.add(InOutStoreRecordEntity.Info.MW_PRICE, 23, Var.Type.LONG);
+        g_dtoDef.add(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST, 24, Var.Type.FAI_LIST);
     }
 
     public static ParamDef getInfoDto() {

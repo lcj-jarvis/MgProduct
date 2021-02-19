@@ -25,7 +25,7 @@ public class SpecStrCacheCtrl extends CacheCtrl {
             }
             nameIdMap.put(name, String.valueOf(id));
         });
-        boolean boo =  m_cache.hmsetFaiList(getCacheKey(aid), SpecStrEntity.Info.SC_STR_ID, Var.Type.INT, infoList, SpecStrDto.Key.INFO, SpecStrDto.getDtoDef());
+        boolean boo =  m_cache.hmsetFaiList(getCacheKey(aid), SpecStrEntity.Info.SC_STR_ID, Var.Type.INT, infoList, SpecStrDto.Key.INFO, SpecStrDto.getInfoDto());
         if(boo){
             boo = m_cache.hmset(getNameIdCacheKey(aid), nameIdMap);
         }
@@ -59,7 +59,7 @@ public class SpecStrCacheCtrl extends CacheCtrl {
             return null;
         }
         try {
-            FaiList<Param> list = m_cache.hmget(getCacheKey(aid), SpecStrDto.Key.INFO, SpecStrDto.getDtoDef(), idStrList);
+            FaiList<Param> list = m_cache.hmget(getCacheKey(aid), SpecStrDto.Key.INFO, SpecStrDto.getInfoDto(), idStrList);
             if(list == null){
                 return null;
             }

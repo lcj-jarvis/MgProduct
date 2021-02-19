@@ -1,12 +1,10 @@
 package fai.MgProductSpecSvr.application;
 
 import fai.MgProductSpecSvr.application.service.ProductSpecService;
+import fai.MgProductSpecSvr.application.service.SpecStrService;
 import fai.MgProductSpecSvr.application.service.SpecTempService;
 import fai.MgProductSpecSvr.interfaces.cmd.MgProductSpecCmd;
-import fai.MgProductSpecSvr.interfaces.dto.ProductSpecDto;
-import fai.MgProductSpecSvr.interfaces.dto.ProductSpecSkuDto;
-import fai.MgProductSpecSvr.interfaces.dto.SpecTempDetailDto;
-import fai.MgProductSpecSvr.interfaces.dto.SpecTempDto;
+import fai.MgProductSpecSvr.interfaces.dto.*;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
@@ -234,7 +232,19 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
         return  m_productSpecService.getPdSkuIdInfoList(session, flow, aid, pdIdList);
     }
 
+    @Cmd(MgProductSpecCmd.SpecStrCmd.GET_LIST)
+    private int getScStrInfoList(final FaiSession session,
+                                   @ArgFlow final int flow,
+                                   @ArgAid final int aid,
+                                   @ArgBodyInteger(SpecStrDto.Key.TID) final int tid,
+                                   @ArgList(keyMatch = SpecStrDto.Key.ID_LIST) final FaiList<Integer> strIdList) throws IOException {
+        return  m_specStrService.getScStrInfoList(session, flow, aid, tid, strIdList);
+    }
+
+
     private SpecTempService m_specTempService = new SpecTempService();
 
     private ProductSpecService m_productSpecService = new ProductSpecService();
+
+    private SpecStrService m_specStrService = new SpecStrService();
 }

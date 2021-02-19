@@ -61,19 +61,28 @@ public class InOutStoreRecordProc {
     /**
      * 批量添加出库记录
      */
-    public int batchAddOutStoreRecord(int aid, int unionPriId, Map<Long, Integer> skuIdChangeCountMap, Map<SkuStoreKey, Param> changeCountAfterSkuStoreSalesInfoMap, Param info) {
-        if(aid <= 0 || unionPriId <= 0 || skuIdChangeCountMap == null || info == null || info.isEmpty()){
-            Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;skuIdChangeCountMap=%s;info=%s;", m_flow, aid, unionPriId, skuIdChangeCountMap, info);
+    public int batchAddOutStoreRecord(int aid, int unionPriId, Map<Long, Integer> skuIdChangeCountMap, Map<SkuStoreKey, Param> changeCountAfterSkuStoreSalesInfoMap, Param info, Map<Long, FaiList<Integer>> skuIdInPdScStrIdListMap) {
+        if(aid <= 0 || unionPriId <= 0 || skuIdChangeCountMap == null || info == null || info.isEmpty() || skuIdInPdScStrIdListMap == null){
+            Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;skuIdChangeCountMap=%s;info=%s;skuIdInPdScStrIdListMap=%s;", m_flow, aid, unionPriId, skuIdChangeCountMap, info, skuIdInPdScStrIdListMap);
             return Errno.ARGS_ERROR;
         }
         FaiList<Param> dataList = new FaiList<>(skuIdChangeCountMap.size());
-        skuIdChangeCountMap.forEach((skuId, count)->{
+        for (Map.Entry<Long, Integer> entry : skuIdChangeCountMap.entrySet()) {
+            long skuId = entry.getKey();
+            int count = entry.getValue();
             Param data = info.clone();
+            FaiList<Integer> inPdScStrIdList = skuIdInPdScStrIdListMap.get(skuId);
+            if(inPdScStrIdList == null){
+                int rt = Errno.NOT_FOUND;
+                Log.logErr(rt, "not found;flow=%s;aid=%s;unionPriId=%s;skuId=%s;", m_flow, aid, unionPriId, skuId);
+                return rt;
+            }
             data.setInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, unionPriId);
             data.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
             data.setInt(InOutStoreRecordEntity.Info.CHANGE_COUNT, count);
+            data.setList(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList);
             dataList.add(data);
-        });
+        }
 
         return batchAdd(aid, dataList, changeCountAfterSkuStoreSalesInfoMap);
     }
@@ -152,6 +161,12 @@ public class InOutStoreRecordProc {
                     storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, mwTotalCost + totalCost);
                 }
             }
+            // 转化为字符串
+            FaiList<Integer> inPdScStrIdList = info.getList(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST);
+            if(inPdScStrIdList != null){
+                data.setString(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList.toJson());
+            }
+
             data.setLong(InOutStoreRecordEntity.Info.PRICE, price);
             data.setString(InOutStoreRecordEntity.Info.NUMBER, number);
             data.assign(info, InOutStoreRecordEntity.Info.OPT_SID);
@@ -469,8 +484,21 @@ public class InOutStoreRecordProc {
             Log.logStd("dao.select error;flow=%d;aid=%s;searchArg=%s;", m_flow, aid, searchArg);
             return rt;
         }
+        initDbInfoList(listRef.value);
         Log.logDbg(rt, "flow=%d;aid=%s;searchArg=%s;", m_flow, aid, searchArg);
         return rt;
+    }
+
+    /**
+     *  初始化db中的数据
+     */
+    private void initDbInfoList(FaiList<Param> dbInfoList){
+        if(dbInfoList == null || dbInfoList.isEmpty()){
+            return;
+        }
+        for (Param info : dbInfoList) {
+            info.setList(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST, FaiList.parseIntList(info.getString(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST), new FaiList<>()));
+        }
     }
 
 

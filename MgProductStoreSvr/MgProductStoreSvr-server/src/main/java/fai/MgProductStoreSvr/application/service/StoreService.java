@@ -1,5 +1,7 @@
 package fai.MgProductStoreSvr.application.service;
 
+import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
+import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
 import fai.MgProductStoreSvr.domain.comm.PdKey;
 import fai.MgProductStoreSvr.domain.comm.SkuStoreKey;
@@ -18,6 +20,7 @@ import fai.comm.mq.message.FaiMqMessage;
 import fai.comm.util.*;
 import fai.mgproduct.comm.MgProductErrno;
 import fai.middleground.svrutil.repository.TransactionCtrl;
+import io.netty.util.internal.IntegerHolder;
 
 import java.io.IOException;
 import java.util.*;
@@ -372,6 +375,7 @@ public class StoreService{
                 data.assign(info, InOutStoreRecordEntity.Info.REMARK);
                 data.assign(info, InOutStoreRecordEntity.Info.RL_ORDER_CODE);
                 data.assign(info, InOutStoreRecordEntity.Info.RL_REFUND_ID);
+                data.assign(info, InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST);
                 batchAddDataList.add(data);
             }
             TransactionCtrl transactionCtrl = new TransactionCtrl();
@@ -685,6 +689,15 @@ public class StoreService{
                 skuStoreKeySet.add(new SkuStoreKey(unionPriId, skuId));
             }
 
+            MgProductSpecCli mgProductSpecCli = createMgProductSpecCli(flow);
+            FaiList<Param> skuInfoList = new FaiList<>();
+            rt = mgProductSpecCli.getPdSkuScInfoListBySkuIdList(aid, tid, skuIdList, skuInfoList);
+            if(rt != Errno.OK){
+                Log.logErr(rt, "MgProductSpecCli getPdSkuScInfoListBySkuIdList err;flow=%s;aid=%s;skuIdList=%s", flow, aid, skuIdList);
+                return rt;
+            }
+            Map<Long, FaiList<Integer>> skuIdInPdScStrIdListMap = Utils.getMap(skuInfoList, ProductSpecSkuEntity.Info.SKU_ID, ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST);
+
             // 事务
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
@@ -737,7 +750,7 @@ public class StoreService{
 
                         // 添加出库记录
                         outStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.OPT_TYPE, InOutStoreRecordValObj.OptType.OUT);
-                        rt = inOutStoreRecordProc.batchAddOutStoreRecord(aid, unionPriId, skuIdChangeCountMap, changeCountAfterSkuStoreSalesInfoMap, outStoreRecordInfo);
+                        rt = inOutStoreRecordProc.batchAddOutStoreRecord(aid, unionPriId, skuIdChangeCountMap, changeCountAfterSkuStoreSalesInfoMap, outStoreRecordInfo, skuIdInPdScStrIdListMap);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -772,6 +785,15 @@ public class StoreService{
             stat.end(rt != Errno.OK, rt);
         }
         return rt;
+    }
+
+    private MgProductSpecCli createMgProductSpecCli(int flow){
+        MgProductSpecCli mgProductSpecCli = new MgProductSpecCli(flow);
+        if(!mgProductSpecCli.init()){
+            Log.logErr(Errno.ERROR, "createMgProductSpecCli error;flow=%d;", flow);
+            return null;
+        }
+        return mgProductSpecCli;
     }
 
     /**

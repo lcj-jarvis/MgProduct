@@ -14,6 +14,7 @@ public class MgProductSpecCmd {
 		public static final int NUM8 = 5007;
 		public static final int NUM9 = 5009;
 		public static final int NUM10 = 5010;
+		public static final int NUM11 = 5011;
 	}
 
 
@@ -83,4 +84,11 @@ public class MgProductSpecCmd {
 		public static final int SET_LIST = WriteCmdNum.NUM9;
 
     }
+
+	/**
+	 * 规格字符串
+	 */
+	public static class SpecStrCmd{
+		public static final int GET_LIST = ReadCmdNum.NUM11;
+	}
 }

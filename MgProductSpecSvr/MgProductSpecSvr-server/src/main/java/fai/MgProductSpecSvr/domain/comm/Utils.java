@@ -1,49 +1,62 @@
 package fai.MgProductSpecSvr.domain.comm;
 
 import fai.comm.util.*;
+import org.apache.poi.ss.formula.functions.T;
 
 import java.util.*;
 import java.util.function.Consumer;
 
 public class Utils {
 
-
+    /**
+     * 从 list 中获取指定的key的值 和 info 组成的map
+     *
+     * 适用场景：list中各个元素key对应的value(即map的key值) 基本是唯一的
+     * 不然推荐使用OptMisc.getMap
+     * @param list
+     * @param key
+     * @param <K>
+     */
     public static <K> Map<K, Param> getMap(FaiList<Param> list, String key){
+        return getMap(list, key, null);
+    }
+
+    /**
+     * 从list 中获取指定的keyKey 和 valueKey 组成的map
+     *
+     * 适用场景：list中各个元素key对应的value(即map的key值) 基本是唯一的
+     * 不然推荐使用OptMisc.getMap
+     * @param list
+     * @param keyKey
+     * @param valueKey
+     * @param <K>
+     * @param <V>
+     */
+    public static <K, V> Map<K, V> getMap(FaiList<Param> list, String keyKey, String valueKey){
         if(list == null){
             return null;
         }
-        Map<K, Param> result = new HashMap(list.size() * 4 / 3 +1); // 直接计算所需最大容量，避免resize
-        list.forEach(e -> {
-            result.put((K) e.getObject(key), e);
-        });
-        return result;
-    }
-
-    public static Set<String> getMaxUpdaterKeys(FaiList<ParamUpdater> updaterList){
-        return getMaxUpdaterKeys(updaterList, null);
-    }
-    public static Set<String> getMaxUpdaterKeys(FaiList<ParamUpdater> updaterList, Consumer<Param> consumer){
-        if(updaterList == null){
-            return null;
-        }
-        Set<String> maxUpdaterKeys = new HashSet<>();
-        updaterList.forEach(updater -> {
-            Param data = updater.getData();
-            for (int i = 0; i < data.size(); i++) {
-                Pair<String, Object> dataPair = data.get(i);
-                maxUpdaterKeys.add(dataPair.first);
-            }
-            FaiList<ParamUpdater.DataOp> opList = updater.getOpList();
-            for (ParamUpdater.DataOp dataOp : opList) {
-                maxUpdaterKeys.add(dataOp.key);
-            }
-            if(consumer != null){
-                consumer.accept(data);
+        Map<K, V> resultMap = new HashMap<>(list.size()*4/3+1); // 直接计算所需最大容量，避免resize 配合 parallelStream
+        list.parallelStream().forEach( info -> {
+            Object keyObj = info.getObject(keyKey);
+            if(valueKey == null){
+                resultMap.put((K)keyObj, (V)info);
+            }else{
+                Object valObj = info.getObject(valueKey);
+                resultMap.put((K)keyObj, (V)valObj);
             }
         });
-        return maxUpdaterKeys;
+        return resultMap;
     }
 
+
+    /**
+     * 保留 updaterList 中有效的 validKeys ，附加 consumer 消费
+     * @param updaterList
+     * @param validKeys
+     * @param consumer
+     * @return
+     */
     public static Set<String> validUpdaterList(FaiList<ParamUpdater> updaterList, String[] validKeys, Consumer<Param> consumer){
         if(updaterList == null){
             return null;
@@ -82,6 +95,12 @@ public class Utils {
         return maxUpdaterKeys;
     }
 
+    /**
+     * 获取某个key的值集
+     * @param list
+     * @param key
+     * @param <T>
+     */
     public static <T> FaiList<T> getValList(FaiList<Param> list, String key) {
         if(list == null){
             return null;

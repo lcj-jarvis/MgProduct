@@ -9,6 +9,7 @@ import fai.MgProductInfSvr.domain.serviceproc.ProductSpecProc;
 import fai.MgProductInfSvr.interfaces.dto.ProductStoreDto;
 import fai.MgProductInfSvr.interfaces.entity.*;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
+import fai.MgProductSpecSvr.interfaces.entity.SpecStrEntity;
 import fai.MgProductStoreSvr.interfaces.entity.*;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
@@ -386,6 +387,7 @@ public class ProductStoreService extends MgProductInfService {
             }
             // 添加产品同时初始化库存时，还没生成skuId，只能通过规格值的字符串集间接获取skuId
             Map<Integer, Map<FaiList<String>, Long>> ownerRlPdId_inPdScStrNameSkuIdMapMap = new HashMap<>();
+            Set<Long> skuIdSet = new HashSet<>();
             int ownerUnionPriId = idRef.value;
             Map<Integer, Integer> ownerRlPdIdPdIdMap = new HashMap<>();
             Map<BizPriKey, Integer> bizPriKeyUnionPriIdMap = new HashMap<>();
@@ -398,11 +400,11 @@ public class ProductStoreService extends MgProductInfService {
                 int siteId = info.getInt(ProductStoreEntity.InOutStoreRecordInfo.SITE_ID, -1);
                 int lgId = info.getInt(ProductStoreEntity.InOutStoreRecordInfo.LGID, -1);
                 int keepPriId1 = info.getInt(ProductStoreEntity.InOutStoreRecordInfo.KEEP_PRI_ID1, -1);
-                Long skuId = info.getLong(ProductStoreEntity.InOutStoreRecordInfo.SKU_ID);
                 if(ownerRlPdId == 0 || rlPdId == 0 || !FaiValObj.TermId.isValidTid(tid) || siteId < 0 || lgId < 0 || keepPriId1 < 0){
                     Log.logErr("arg ownerRlPdId|rlPdId|siteId|lgId|keepPriId1 err;flow=%d;aid=%d;ownerTid=%d;info=%s;", flow, aid, ownerTid, info);
                     return Errno.ARGS_ERROR;
                 }
+                Long skuId = info.getLong(ProductStoreEntity.InOutStoreRecordInfo.SKU_ID);
                 if(skuId == null){
                     FaiList<String> inPdScStrNameList = info.getList(ProductStoreEntity.StoreSalesSkuInfo.IN_PD_SC_STR_NAME_LIST);
                     if(inPdScStrNameList == null){
@@ -415,6 +417,8 @@ public class ProductStoreService extends MgProductInfService {
                     }
                     Collections.sort(inPdScStrNameList);
                     inPdScStrNameInfoMap.put(inPdScStrNameList, null);
+                }else{
+                    skuIdSet.add(skuId);
                 }
                 ownerRlPdIdPdIdMap.put(ownerRlPdId, null);
                 {
@@ -523,9 +527,22 @@ public class ProductStoreService extends MgProductInfService {
                     }
                 }
             }
-
+            Map<Long, FaiList<Integer>> skuIdInPdScStrIdListMap = new HashMap<>();
+            ProductSpecProc productSpecProc = new ProductSpecProc(flow);
+            if(!skuIdSet.isEmpty()){
+                FaiList<Param> list = new FaiList<>();
+                rt = productSpecProc.getPdSkuScInfoListBySkuIdList(aid, ownerTid, new FaiList<>(skuIdSet), list);
+                if(rt != Errno.OK){
+                    if(rt == Errno.NOT_FOUND){
+                        Log.logDbg(rt,"not found;flow=%s;aid=%s;skuIdSet=%s;", flow, aid, skuIdSet);
+                    }
+                    return rt;
+                }
+                for (Param info : list) {
+                    skuIdInPdScStrIdListMap.put(info.getLong(ProductSpecEntity.SpecSkuInfo.SKU_ID), info.getList(ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_ID_LIST));
+                }
+            }
             if(ownerRlPdId_inPdScStrNameSkuIdMapMap.size() > 0){
-                ProductSpecProc productSpecProc = new ProductSpecProc(flow);
                 for (Map.Entry<Integer, Map<FaiList<String>, Long>> ownerRlPdId_inPdScStrNameSkuIdMapEntry : ownerRlPdId_inPdScStrNameSkuIdMapMap.entrySet()) {
                     Integer ownerRlPdId = ownerRlPdId_inPdScStrNameSkuIdMapEntry.getKey();
                     Integer ownerPdId = ownerRlPdIdPdIdMap.get(ownerRlPdId);
@@ -541,7 +558,10 @@ public class ProductStoreService extends MgProductInfService {
                         if(!inPdScStrNameSkuIdMap.containsKey(inPdScStrNameList)){
                             continue;
                         }
-                        inPdScStrNameSkuIdMap.put(inPdScStrNameList, pdSkuScInfo.getLong(ProductSpecEntity.SpecSkuInfo.SKU_ID));
+                        Long skuId = pdSkuScInfo.getLong(ProductSpecEntity.SpecSkuInfo.SKU_ID);
+                        FaiList<Integer> inPdScStrIdList = pdSkuScInfo.getList(ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_ID_LIST);
+                        skuIdInPdScStrIdListMap.put(skuId, inPdScStrIdList);
+                        inPdScStrNameSkuIdMap.put(inPdScStrNameList, skuId);
                     }
                     for (Long skuId : inPdScStrNameSkuIdMap.values()) {
                         if(skuId == null){
@@ -565,9 +585,11 @@ public class ProductStoreService extends MgProductInfService {
                     FaiList<String> inPdScStrNameList = info.getList(ProductStoreEntity.InOutStoreRecordInfo.IN_PD_SC_STR_NAME_LIST);
                     skuId = ownerRlPdId_inPdScStrNameSkuIdMapMap.get(ownerRlPdId).get(inPdScStrNameList);
                 }
+                FaiList<Integer> inPdScStrIdList = skuIdInPdScStrIdListMap.get(skuId);
                 info.setInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, unionPriId);
                 info.setInt(InOutStoreRecordEntity.Info.PD_ID, pdId);
                 info.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
+                info.setList(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList);
             }
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
@@ -610,11 +632,35 @@ public class ProductStoreService extends MgProductInfService {
             if(rt != Errno.OK){
                 return rt;
             }
-
+            Set<Integer> scStrIdSet = new HashSet<>();
             Set<Integer> unionPriIdSet = new HashSet<>();
             for (Param info : infoList) {
                 int tmpUnionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID);
                 unionPriIdSet.add(tmpUnionPriId);
+                FaiList<Integer> inPdScSteIdList = info.getList(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST);
+                if(inPdScSteIdList != null && !inPdScSteIdList.isEmpty()){
+                    scStrIdSet.addAll(inPdScSteIdList);
+                }
+            }
+            if(!scStrIdSet.isEmpty()){
+                ProductSpecProc productSpecProc = new ProductSpecProc(flow);
+                FaiList<Param> list = new FaiList<>();
+                rt = productSpecProc.getScStrInfoList(aid, tid, new FaiList<>(scStrIdSet), list);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+                Map<Integer, String> scStrIdNameMap = OptMisc.getMap(list, SpecStrEntity.Info.SC_STR_ID, SpecStrEntity.Info.NAME);
+                for (Param info : infoList) {
+                    FaiList<Integer> inPdScSteIdList = info.getList(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST);
+                    if(inPdScSteIdList != null && !inPdScSteIdList.isEmpty()){
+                        FaiList<String> inPdScStrNameList = new FaiList<>(inPdScSteIdList.size());
+                        for (Integer scStrId : inPdScSteIdList) {
+                            String name = scStrIdNameMap.get(scStrId);
+                            inPdScStrNameList.add(name);
+                        }
+                        info.setList(ProductStoreEntity.InOutStoreRecordInfo.IN_PD_SC_STR_NAME_LIST, inPdScStrNameList);
+                    }
+                }
             }
 
             if(!unionPriIdSet.isEmpty()){
@@ -1187,11 +1233,10 @@ public class ProductStoreService extends MgProductInfService {
                 Log.logErr(rt, "size err;flow=%s;aid=%s;pdIdList.size=%s;list.size=%s;pdIdList=%s;list=%s;", flow, aid, pdIdList.size(), list.size(), pdIdList, list);
                 return rt;
             }
-            Map<Integer, Long> pdIdSkuIdMap = new HashMap<>(pdIdList.size()*4/3+1);
+            Map<Integer, Param> pdIdSkuInfoMap = new HashMap<>(pdIdList.size()*4/3+1);
             for (Param info : list) {
                 Integer pdId = info.getInt(ProductSpecSkuEntity.Info.PD_ID);
-                long skuId = info.getLong(ProductSpecSkuEntity.Info.SKU_ID);
-                pdIdSkuIdMap.put(pdId, skuId);
+                pdIdSkuInfoMap.put(pdId, info);
             }
             FaiList<Param> synRecordInfoList = new FaiList<>(recordInfoList.size());
             for (Param recordInfo : recordInfoList) {
@@ -1205,10 +1250,13 @@ public class ProductStoreService extends MgProductInfService {
                 Param synRecordInfo = new Param();
                 int unionPriId = bizPriKeyUnionPriIdMap.get(new BizPriKey(tid, siteId, lgId, keepPriId1));
                 int pdId = ownerRlPdIdPdIdMap.get(ownerRlPdId);
-                long skuId = pdIdSkuIdMap.get(pdId);
+                Param skuInfo = pdIdSkuInfoMap.get(pdId);
+                Long skuId = skuInfo.getLong(ProductSpecSkuEntity.Info.SKU_ID);
+                FaiList<Integer> inPdScStrIdList = skuInfo.getList(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST);
                 synRecordInfo.setInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, unionPriId);
                 synRecordInfo.setInt(InOutStoreRecordEntity.Info.PD_ID, pdId);
                 synRecordInfo.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
+                synRecordInfo.setList(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList);
                 synRecordInfo.setInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, ioStoreRecId);
                 synRecordInfo.setInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
 

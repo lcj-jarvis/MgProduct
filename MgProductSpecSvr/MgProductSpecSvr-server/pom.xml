@@ -157,6 +157,10 @@
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
+                    <!-- 编译时，是否保留参数名称 -->
+                    <!--<compilerArgs>
+                        <arg>-parameters</arg>
+                    </compilerArgs>-->
                 </configuration>
             </plugin>
 

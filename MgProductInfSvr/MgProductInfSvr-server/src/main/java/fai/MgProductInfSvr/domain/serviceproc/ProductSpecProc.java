@@ -307,6 +307,23 @@ public class ProductSpecProc extends AbstractProductProc {
         }
         return rt;
     }
+    /**
+     * 获取 规格字符串
+     */
+    public int getScStrInfoList(int aid, int tid, FaiList<Integer> strIdList, FaiList<Param> list){
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;strIdList=%s;", m_flow, aid, strIdList);
+            return rt;
+        }
+        rt = m_cli.getScStrInfoList(aid, tid, strIdList, list);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;strIdList=%s;", m_flow, aid, strIdList);
+            return rt;
+        }
+        return rt;
+    }
 
 
     private int m_flow;

@@ -14,7 +14,7 @@ public class SpecStrDto {
 		g_dtoDef.add(SpecStrEntity.Info.SYS_CREATE_TIME, 3);
 	}
 
-	public static ParamDef getDtoDef() {
+	public static ParamDef getInfoDto() {
 		return g_dtoDef;
 	}
 
@@ -23,5 +23,6 @@ public class SpecStrDto {
 		public static final int INFO_LIST = 2;
 		public static final int ID = 3;
 		public static final int ID_LIST = 4;
+		public static final int TID = 5;
 	}
 }

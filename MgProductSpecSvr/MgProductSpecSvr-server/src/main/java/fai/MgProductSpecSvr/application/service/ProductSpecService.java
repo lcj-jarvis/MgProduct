@@ -820,7 +820,7 @@ public class ProductSpecService extends ServicePub {
             ProductSpecSkuDaoCtrl productSpecSkuDaoCtrl = ProductSpecSkuDaoCtrl.getInstance(flow, aid);
             try {
                 ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(productSpecSkuDaoCtrl, flow);
-                rt = productSpecSkuProc.getListFromDaoByPdIdList(aid, pdIdList, pdScSkuInfoListRef, ProductSpecSkuEntity.Info.PD_ID, ProductSpecSkuEntity.Info.SKU_ID);
+                rt = productSpecSkuProc.getListFromDaoByPdIdList(aid, pdIdList, pdScSkuInfoListRef, ProductSpecSkuEntity.Info.PD_ID, ProductSpecSkuEntity.Info.SKU_ID, ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST);
                 if(rt != Errno.OK){
                     return rt;
                 }

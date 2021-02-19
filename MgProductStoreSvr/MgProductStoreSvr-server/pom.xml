@@ -25,6 +25,11 @@
             <artifactId>MgProductStoreSvr-interfaces</artifactId>
             <version>${MgProduct-MgProductStoreSvr-interfaces-ver}</version>
         </dependency>
+        <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProductSpecSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductSpecSvr-interfaces-ver}</version>
+        </dependency>
 
         <dependency>
             <groupId>MgProduct</groupId>

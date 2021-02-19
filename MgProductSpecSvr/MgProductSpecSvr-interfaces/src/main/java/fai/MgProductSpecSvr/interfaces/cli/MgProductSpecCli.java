@@ -1,10 +1,7 @@
 package fai.MgProductSpecSvr.interfaces.cli;
 
 import fai.MgProductSpecSvr.interfaces.cmd.MgProductSpecCmd;
-import fai.MgProductSpecSvr.interfaces.dto.ProductSpecDto;
-import fai.MgProductSpecSvr.interfaces.dto.ProductSpecSkuDto;
-import fai.MgProductSpecSvr.interfaces.dto.SpecTempDetailDto;
-import fai.MgProductSpecSvr.interfaces.dto.SpecTempDto;
+import fai.MgProductSpecSvr.interfaces.dto.*;
 import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
@@ -967,6 +964,11 @@ public class MgProductSpecCli extends FaiClient {
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
+            if(skuIdList == null || skuIdList.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "skuIdList error");
+                return m_rt;
+            }
             if(infoList == null){
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "infoList error");
@@ -1033,6 +1035,11 @@ public class MgProductSpecCli extends FaiClient {
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
+            if(pdIdList == null || pdIdList.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "pdIdList error");
+                return m_rt;
+            }
             if(infoList == null){
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "infoList error");
@@ -1077,6 +1084,77 @@ public class MgProductSpecCli extends FaiClient {
             Ref<Integer> keyRef = new Ref<Integer>();
             m_rt = infoList.fromBuffer(recvBody, keyRef, ProductSpecSkuDto.getInfoDto());
             if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            return m_rt = Errno.OK;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    /**
+     * 获取 规格字符串
+     */
+    public int getScStrInfoList(int aid, int tid, FaiList<Integer> strIdList, FaiList<Param> infoList) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(strIdList == null || strIdList.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "strIdList error");
+                return m_rt;
+            }
+            if(infoList == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "infoList error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(SpecStrDto.Key.TID, tid);
+            strIdList.toBuffer(sendBody, SpecStrDto.Key.ID_LIST);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductSpecCmd.SpecStrCmd.GET_LIST);
+
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = infoList.fromBuffer(recvBody, keyRef, SpecStrDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != SpecStrDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
             }

@@ -13,7 +13,7 @@ public class HoldingRecordEntity {
 
         public static final String ALREADY_DEL = "alreadyDel";                      // bit 是否已经删除
         public static final String COUNT = "count";                                 // int 预扣数量
-        public static final String EXPIRE_TIME  = "expireTime";                     // datatime 失效时间
+        public static final String EXPIRE_TIME  = "expireTime";                     // datetime 失效时间
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
     }
 }

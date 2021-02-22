@@ -590,6 +590,7 @@ public class ProductStoreService extends MgProductInfService {
                 info.setInt(InOutStoreRecordEntity.Info.PD_ID, pdId);
                 info.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
                 info.setList(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList);
+                info.setCalendar(InOutStoreRecordEntity.Info.OPT_TIME, info.getCalendar(InOutStoreRecordEntity.Info.OPT_TIME));
             }
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
@@ -608,7 +609,7 @@ public class ProductStoreService extends MgProductInfService {
     /**
      * 查询出入库存记录
      */
-    public int searchInOutStoreRecordInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, boolean isSource, SearchArg searchArg)  throws IOException {
+    public int searchInOutStoreRecordInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, boolean isBiz, SearchArg searchArg)  throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -617,6 +618,7 @@ public class ProductStoreService extends MgProductInfService {
                 Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
                 return rt;
             }
+            boolean isSource = !isBiz;
 
             // 获取unionPriId
             Ref<Integer> idRef = new Ref<Integer>();
@@ -1210,7 +1212,7 @@ public class ProductStoreService extends MgProductInfService {
             }
             if(ownerRlPdIdList.size() != list.size()){
                 rt = Errno.ERROR;
-                Log.logErr(rt, "size err;flow=%s;aid=%s;ownerUnionPriId=%s;ownerRlPdIdList.size=%s;list.size=%s;ownerRlPdIdList=%s;list=%s;", flow, aid, ownerUnionPriId, ownerRlPdIdList.size(), list.size(), ownerRlPdIdList, list);
+                Log.logErr(rt, "size err;flow=%s;aid=%s;ownerUnionPriId=%s;ownerRlPdIdList.size=%s;list.size=%s;ownerRlPdIdList=%s;list=%s;", flow, aid, ownerUnionPriId, ownerRlPdIdList.size(), list.size(), ownerRlPdIdList, OptMisc.getValList(list, ProductRelEntity.Info.RL_PD_ID));
                 return rt;
             }
             FaiList<Integer> pdIdList = new FaiList<>();
@@ -1230,7 +1232,7 @@ public class ProductStoreService extends MgProductInfService {
             }
             if(pdIdList.size() != list.size()){
                 rt = Errno.ERROR;
-                Log.logErr(rt, "size err;flow=%s;aid=%s;pdIdList.size=%s;list.size=%s;pdIdList=%s;list=%s;", flow, aid, pdIdList.size(), list.size(), pdIdList, list);
+                Log.logErr(rt, "size err;flow=%s;aid=%s;pdIdList.size=%s;list.size=%s;pdIdList=%s;list=%s;", flow, aid, pdIdList.size(), list.size(), pdIdList, OptMisc.getValList(list, ProductSpecSkuEntity.Info.PD_ID));
                 return rt;
             }
             Map<Integer, Param> pdIdSkuInfoMap = new HashMap<>(pdIdList.size()*4/3+1);
@@ -1270,7 +1272,14 @@ public class ProductStoreService extends MgProductInfService {
                 synRecordInfo.assign(recordInfo, ProductTempEntity.StoreRecordInfo.RL_REFUND_ID, InOutStoreRecordEntity.Info.RL_REFUND_ID);
                 synRecordInfo.assign(recordInfo, ProductTempEntity.StoreRecordInfo.OPT_SID, InOutStoreRecordEntity.Info.OPT_SID);
                 synRecordInfo.assign(recordInfo, ProductTempEntity.StoreRecordInfo.HEAD_SID, InOutStoreRecordEntity.Info.HEAD_SID);
-
+                synRecordInfo.getCalendar(ProductTempEntity.StoreRecordInfo.OPT_TIME, recordInfo.getCalendar(ProductTempEntity.StoreRecordInfo.OPT_TIME));
+                synRecordInfo.getCalendar(ProductTempEntity.StoreRecordInfo.SYS_CREATE_TIME, recordInfo.getCalendar(ProductTempEntity.StoreRecordInfo.SYS_CREATE_TIME));
+                synRecordInfo.getCalendar(ProductTempEntity.StoreRecordInfo.SYS_UPDATE_TIME, recordInfo.getCalendar(ProductTempEntity.StoreRecordInfo.SYS_UPDATE_TIME));
+                Calendar sysCreateTime = synRecordInfo.getCalendar(ProductTempEntity.StoreRecordInfo.SYS_CREATE_TIME);
+                if(sysCreateTime == null || sysCreateTime.getTimeInMillis() == 0L){
+                    sysCreateTime = recordInfo.getCalendar(ProductTempEntity.StoreRecordInfo.OPT_TIME);
+                    synRecordInfo.setCalendar(InOutStoreRecordEntity.Info.SYS_CREATE_TIME, sysCreateTime);
+                }
                 synRecordInfoList.add(synRecordInfo);
             }
 

@@ -1272,9 +1272,9 @@ public class ProductStoreService extends MgProductInfService {
                 synRecordInfo.assign(recordInfo, ProductTempEntity.StoreRecordInfo.RL_REFUND_ID, InOutStoreRecordEntity.Info.RL_REFUND_ID);
                 synRecordInfo.assign(recordInfo, ProductTempEntity.StoreRecordInfo.OPT_SID, InOutStoreRecordEntity.Info.OPT_SID);
                 synRecordInfo.assign(recordInfo, ProductTempEntity.StoreRecordInfo.HEAD_SID, InOutStoreRecordEntity.Info.HEAD_SID);
-                synRecordInfo.getCalendar(ProductTempEntity.StoreRecordInfo.OPT_TIME, recordInfo.getCalendar(ProductTempEntity.StoreRecordInfo.OPT_TIME));
-                synRecordInfo.getCalendar(ProductTempEntity.StoreRecordInfo.SYS_CREATE_TIME, recordInfo.getCalendar(ProductTempEntity.StoreRecordInfo.SYS_CREATE_TIME));
-                synRecordInfo.getCalendar(ProductTempEntity.StoreRecordInfo.SYS_UPDATE_TIME, recordInfo.getCalendar(ProductTempEntity.StoreRecordInfo.SYS_UPDATE_TIME));
+                synRecordInfo.setCalendar(InOutStoreRecordEntity.Info.OPT_TIME, recordInfo.getCalendar(ProductTempEntity.StoreRecordInfo.OPT_TIME));
+                synRecordInfo.setCalendar(InOutStoreRecordEntity.Info.SYS_CREATE_TIME, recordInfo.getCalendar(ProductTempEntity.StoreRecordInfo.SYS_CREATE_TIME));
+                synRecordInfo.setCalendar(InOutStoreRecordEntity.Info.SYS_UPDATE_TIME, recordInfo.getCalendar(ProductTempEntity.StoreRecordInfo.SYS_UPDATE_TIME));
                 Calendar sysCreateTime = synRecordInfo.getCalendar(ProductTempEntity.StoreRecordInfo.SYS_CREATE_TIME);
                 if(sysCreateTime == null || sysCreateTime.getTimeInMillis() == 0L){
                     sysCreateTime = recordInfo.getCalendar(ProductTempEntity.StoreRecordInfo.OPT_TIME);

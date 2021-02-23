@@ -388,7 +388,7 @@ public class ProductRelProc {
         }
         if(listRef.value == null || listRef.value.isEmpty()) {
             rt = Errno.NOT_FOUND;
-            Log.logDbg(rt, "not found;flow=%d;aid=%d;", m_flow, aid);
+            Log.logDbg(rt, "not found;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
             return rt;
         }
 

@@ -7,6 +7,8 @@ import fai.MgProductPropSvr.domain.repository.ProductPropCacheCtrl;
 import fai.MgProductPropSvr.domain.repository.ProductPropDaoCtrl;
 import fai.comm.util.*;
 
+import java.util.Calendar;
+
 public class ProductPropProc {
 
 	public ProductPropProc(int flow, ProductPropDaoCtrl dao) {
@@ -116,6 +118,7 @@ public class ProductPropProc {
 		}
 		FaiList<Param> oldInfoList = oldListRef.value;
 		FaiList<Param> dataList = new FaiList<Param>();
+		Calendar now = Calendar.getInstance();
 		for(ParamUpdater updater : updaterList){
 			Param updateInfo = updater.getData();
 			int propId = updateInfo.getInt(ProductPropEntity.Info.PROP_ID, 0);
@@ -127,6 +130,7 @@ public class ProductPropProc {
 			Param data = new Param();
 			data.assign(oldInfo, ProductPropEntity.Info.NAME);
 			data.assign(oldInfo, ProductPropEntity.Info.FLAG);
+			data.setCalendar(ProductPropEntity.Info.UPDATE_TIME, now);
 			data.assign(oldInfo, ProductPropEntity.Info.AID);
 			data.assign(oldInfo, ProductPropEntity.Info.PROP_ID);
 			dataList.add(data);
@@ -139,7 +143,8 @@ public class ProductPropProc {
 		ParamUpdater doBatchUpdater = new ParamUpdater(item);
 		item.setString(ProductPropEntity.Info.NAME, "?");
 		item.setString(ProductPropEntity.Info.FLAG, "?");
-		rt = m_propDao.doBatchUpdate(doBatchUpdater, doBatchMatcher, dataList, false);
+		item.setString(ProductPropEntity.Info.UPDATE_TIME, "?");
+		rt = m_propDao.doBatchUpdate(doBatchUpdater, doBatchMatcher, dataList, true);
 		if(rt != Errno.OK){
 			Log.logErr(rt, "doBatchUpdate product prop error;flow=%d;aid=%d;updateList=%s", m_flow, aid, dataList);
 			return rt;

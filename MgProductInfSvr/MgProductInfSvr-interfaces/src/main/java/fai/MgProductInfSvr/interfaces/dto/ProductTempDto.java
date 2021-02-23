@@ -61,6 +61,7 @@ public class ProductTempDto {
             g_infoDtoDef.add(ProductTempEntity.StoreRecordInfo.SYS_CREATE_TIME, 17);
             g_infoDtoDef.add(ProductTempEntity.StoreRecordInfo.C_TYPE, 18, Var.Type.INT);
             g_infoDtoDef.add(ProductTempEntity.StoreRecordInfo.S_TYPE, 19, Var.Type.INT);
+            g_infoDtoDef.add(ProductTempEntity.StoreRecordInfo.OPT_TIME, 20);
         }
         public static ParamDef getInfoDto() {
             return g_infoDtoDef;

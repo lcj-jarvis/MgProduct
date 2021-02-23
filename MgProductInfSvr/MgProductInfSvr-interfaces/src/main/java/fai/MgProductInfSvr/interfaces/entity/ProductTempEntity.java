@@ -52,6 +52,7 @@ public class ProductTempEntity {
         public static final String RL_REFUND_ID = "rlRefundId";                     // String 业务退款编号
         public static final String OPT_SID = "optSid";                              // int 操作员工 id
         public static final String HEAD_SID = "headSid";                            // int 加减库存负责人 id
+        public static final String OPT_TIME = "optTime";                            // datetime 出/入库时间
     }
 
 }

@@ -617,6 +617,7 @@ public class StoreService{
                 }finally {
                     if(rt != Errno.OK){
                         transactionCtrl.rollback();
+                        storeSalesSkuProc.deleteRemainCountDirtyCache(aid);
                         return rt;
                     }
                     transactionCtrl.commit();
@@ -867,6 +868,7 @@ public class StoreService{
                 }finally {
                     if(rt != Errno.OK){
                         transactionCtrl.rollback();
+                        storeSalesSkuProc.deleteRemainCountDirtyCache(aid);
                         return rt;
                     }
                     transactionCtrl.commit();
@@ -894,9 +896,10 @@ public class StoreService{
         if (pdIdList.size() > 0) {
             transactionCtrl = new TransactionCtrl();
             try {
-                transactionCtrl.setAutoCommit(false);
                 SpuBizStoreSalesReportDaoCtrl spuBizStoreSalesReportDaoCtrl = SpuBizStoreSalesReportDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
                 SpuBizStoreSalesReportProc spuBizStoreSalesReportProc = new SpuBizStoreSalesReportProc(spuBizStoreSalesReportDaoCtrl, flow);
+
+                transactionCtrl.setAutoCommit(false);
                 // 提交库存上报任务，提交失败暂不处理
                 if (spuBizStoreSalesReportProc.addReportCountTask(aid, unionPriId, pdIdList) != Errno.OK) {
                     transactionCtrl.rollback();
@@ -1214,6 +1217,7 @@ public class StoreService{
                             return rt;
                         }
                         transactionCtrl.commit();
+                        storeSalesSkuProc.deleteDirtyCache(aid);
                     }
                     try {
                         transactionCtrl.setAutoCommit(false);

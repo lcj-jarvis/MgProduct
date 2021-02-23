@@ -1,6 +1,6 @@
 package fai.MgProductStoreSvr.application.mq;
 
-import fai.MgProductStoreSvr.application.service.StoreService;
+import fai.MgProductStoreSvr.application.service.SummaryService;
 import fai.MgProductStoreSvr.domain.entity.SpuBizStoreSalesReportEntity;
 import fai.comm.mq.api.ConsumeContext;
 import fai.comm.mq.api.ConsumerStatus;
@@ -9,8 +9,8 @@ import fai.comm.mq.message.FaiMqMessage;
 import fai.comm.util.*;
 
 public class SpuBizReportConsumeListener implements MessageListener {
-    public SpuBizReportConsumeListener(StoreService storeService) {
-        this.m_storeService = storeService;
+    public SpuBizReportConsumeListener(SummaryService summaryService) {
+        this.summaryService = summaryService;
     }
 
 
@@ -30,7 +30,7 @@ public class SpuBizReportConsumeListener implements MessageListener {
         if(aid == 0 || unionPriId == 0 || pdId == 0){
             return ConsumerStatus.CommitMessage;
         }
-        int rt = m_storeService.reportSpuBizSummary(flow, aid, unionPriId, pdId);
+        int rt = summaryService.reportSpuBizSummary(flow, aid, unionPriId, pdId);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             Log.logErr("reportBizSales err key=%s;flow=%s;aid=%s;unionPriId=%s;pdId=%s;", key, flow, aid, unionPriId, pdId);
             return ConsumerStatus.ReconsumeLater;
@@ -38,5 +38,5 @@ public class SpuBizReportConsumeListener implements MessageListener {
         return ConsumerStatus.CommitMessage;
     }
 
-    private StoreService m_storeService;
+    private SummaryService summaryService;
 }

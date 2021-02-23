@@ -1,6 +1,6 @@
 package fai.MgProductStoreSvr.application.mq;
 
-import fai.MgProductStoreSvr.application.service.StoreService;
+import fai.MgProductStoreSvr.application.service.SummaryService;
 import fai.MgProductStoreSvr.domain.entity.SkuSummaryEntity;
 import fai.comm.mq.api.ConsumeContext;
 import fai.comm.mq.api.ConsumerStatus;
@@ -9,8 +9,8 @@ import fai.comm.mq.message.FaiMqMessage;
 import fai.comm.util.*;
 
 public class SkuSummaryReportConsumeListener implements MessageListener {
-    public SkuSummaryReportConsumeListener(StoreService storeService) {
-        this.m_storeService = storeService;
+    public SkuSummaryReportConsumeListener(SummaryService summaryService) {
+        this.summaryService = summaryService;
     }
 
 
@@ -30,7 +30,7 @@ public class SkuSummaryReportConsumeListener implements MessageListener {
         if(aid == 0 || skuId == 0 ){
             return ConsumerStatus.CommitMessage;
         }
-        int rt = m_storeService.reportSkuSummary(flow, aid, skuId);
+        int rt = summaryService.reportSkuSummary(flow, aid, skuId);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             Log.logErr("reportBizSales err key=%s;flow=%s;aid=%s;skuId=%s;", key, flow, aid, skuId);
             return ConsumerStatus.ReconsumeLater;
@@ -38,5 +38,5 @@ public class SkuSummaryReportConsumeListener implements MessageListener {
         return ConsumerStatus.CommitMessage;
     }
 
-    private StoreService m_storeService;
+    private SummaryService summaryService;
 }

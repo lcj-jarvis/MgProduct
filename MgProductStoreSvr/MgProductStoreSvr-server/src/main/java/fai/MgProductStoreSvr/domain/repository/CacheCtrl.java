@@ -1,8 +1,24 @@
 package fai.MgProductStoreSvr.domain.repository;
 
 import fai.comm.cache.redis.RedisCacheManager;
+import fai.comm.cache.redis.client.RedisClient;
 
 public class CacheCtrl {
+
+	public static boolean set(String key, String value){
+		RedisClient redisClient = m_cache.getRedisClient();
+		String res = redisClient.set(key, value);
+		return RedisCacheManager.REDIS_RSP_OK.equals(res);
+	}
+
+	public static Long incby(String key, long value){
+		RedisClient redisClient = m_cache.getRedisClient();
+		Long result = redisClient.incrBy(key, value);
+		return result;
+	}
+
+
+
 	/**
 	 * svr启动时调用
 	 * @param cache

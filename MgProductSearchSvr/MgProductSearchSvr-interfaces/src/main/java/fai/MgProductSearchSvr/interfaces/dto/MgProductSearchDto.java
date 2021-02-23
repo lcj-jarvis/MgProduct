@@ -6,21 +6,6 @@ import fai.comm.util.ParamDef;
 
 public class MgProductSearchDto {
 
-    private static ParamDef g_searchParameterDtoDef = new ParamDef();
-    static{
-        g_searchParameterDtoDef.add(MgProductSearch.Info.START, 0);
-        g_searchParameterDtoDef.add(MgProductSearch.Info.LIMIT, 1);
-        g_searchParameterDtoDef.add(MgProductSearch.Info.FIRST_COMPARATOR_KEY, 2);
-        g_searchParameterDtoDef.add(MgProductSearch.Info.FIRST_COMPARATOR_KEY_ORDER, 3);
-        g_searchParameterDtoDef.add(MgProductSearch.Info.SECOND_COMPARATOR_KEY, 4);
-        g_searchParameterDtoDef.add(MgProductSearch.Info.SECOND_COMPARATOR_KEY_ORDER, 5);
-        g_searchParameterDtoDef.add(MgProductSearch.Info.UP_SALES_STATUS, 6);
-    }
-
-    public static ParamDef getSearchDtoDto() {
-        return g_searchParameterDtoDef;
-    }
-
     private static ParamDef g_productDetailDtoDef = new ParamDef();
     static{
         g_productDetailDtoDef.add(ProductEntity.Info.AID, 0);

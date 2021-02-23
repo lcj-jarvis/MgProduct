@@ -167,8 +167,7 @@ public class ProductPropService extends ServicePub {
 				ProductPropRelDaoCtrl relDao = ProductPropRelDaoCtrl.getInstance(flow, aid);
 				// 统一控制事务
 				TransactionCtrl transactionCtrl = new TransactionCtrl();
-				transactionCtrl.register(propDao);
-				transactionCtrl.register(relDao);
+				transactionCtrl.register(propDao, relDao);
 				transactionCtrl.setAutoCommit(false);
 
 				int maxSort = 0;
@@ -184,7 +183,11 @@ public class ProductPropService extends ServicePub {
 					for(Param info : recvInfoList) {
 						Param propInfo = new Param();
 						Param relInfo = new Param();
-						info.setInt(ProductPropRelEntity.Info.SORT, ++maxSort);
+						// 未设置排序则默认排序值+1
+						Integer sort = info.getInt(ProductPropRelEntity.Info.SORT);
+						if(sort == null) {
+							info.setInt(ProductPropRelEntity.Info.SORT, ++maxSort);
+						}
 						rt = assemblyPropInfo(flow, aid, unionPriId, tid, libId, propDao, relDao, info, propInfo, relInfo);
 						if(rt != Errno.OK) {
 							Log.logErr(rt, "assembly prop info error;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
@@ -367,6 +370,8 @@ public class ProductPropService extends ServicePub {
 				try {
 					// 删除参数业务关系数据
 					ProductPropRelProc propRelProc = new ProductPropRelProc(flow, relDao);
+					delPropIdList = propRelProc.getIdsByRlIds(aid, unionPriId, libId, rlPropIdList);
+
 					rt = propRelProc.delPropList(aid, unionPriId, libId, rlPropIdList);
 					if(rt != Errno.OK) {
 						Log.logErr(rt, "del prop rel list error;flow=%d;aid=%d;", flow, aid);
@@ -374,7 +379,6 @@ public class ProductPropService extends ServicePub {
 					}
 
 					// 删除参数数据
-					delPropIdList = propRelProc.getIdsByRlIds(aid, unionPriId, libId, rlPropIdList);
 					ProductPropProc propProc = new ProductPropProc(flow, propDao);
 					rt = propProc.delPropList(aid, delPropIdList);
 					if(rt != Errno.OK) {

@@ -23,6 +23,7 @@ public class ProductPropDto {
         g_productPropDtoDef.add(ProductPropEntity.PropInfo.UPDATE_TIME, 9);
         g_productPropDtoDef.add(ProductPropEntity.PropInfo.SOURCE_TID, 10);
         g_productPropDtoDef.add(ProductPropEntity.PropInfo.SOURCE_UNIONPRIID, 11);
+        g_productPropDtoDef.add(ProductPropEntity.PropInfo.PROP_ID, 12);
     }
 
     static {

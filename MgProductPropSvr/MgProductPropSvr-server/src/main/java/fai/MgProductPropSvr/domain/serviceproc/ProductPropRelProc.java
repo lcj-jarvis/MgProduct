@@ -8,6 +8,7 @@ import fai.MgProductPropSvr.domain.repository.ProductPropRelDaoCtrl;
 import fai.MgProductPropSvr.interfaces.entity.ProductPropValObj;
 import fai.comm.util.*;
 
+import java.util.Calendar;
 import java.util.HashMap;
 
 public class ProductPropRelProc {
@@ -150,6 +151,7 @@ public class ProductPropRelProc {
 		}
 		FaiList<Param> oldInfoList = oldListRef.value;
 		FaiList<Param> dataList = new FaiList<Param>();
+		Calendar now = Calendar.getInstance();
 		for(ParamUpdater updater : updaterList){
 			Param updateInfo = updater.getData();
 			int rlPropId = updateInfo.getInt(ProductPropRelEntity.Info.RL_PROP_ID, 0);
@@ -165,6 +167,7 @@ public class ProductPropRelProc {
 			int rlFlag = oldInfo.getInt(ProductPropRelEntity.Info.RL_FLAG, 0);
 			data.setInt(ProductPropRelEntity.Info.SORT, sort);
 			data.setInt(ProductPropRelEntity.Info.RL_FLAG, rlFlag);
+			data.setCalendar(ProductPropRelEntity.Info.UPDATE_TIME, now);
 
 			data.assign(oldInfo, ProductPropRelEntity.Info.AID);
 			data.assign(oldInfo, ProductPropRelEntity.Info.UNION_PRI_ID);
@@ -186,7 +189,8 @@ public class ProductPropRelProc {
 		ParamUpdater doBatchUpdater = new ParamUpdater(item);
 		item.setString(ProductPropRelEntity.Info.SORT, "?");
 		item.setString(ProductPropRelEntity.Info.RL_FLAG, "?");
-		rt = m_relDao.doBatchUpdate(doBatchUpdater, doBatchMatcher, dataList, false);
+		item.setString(ProductPropRelEntity.Info.UPDATE_TIME, "?");
+		rt = m_relDao.doBatchUpdate(doBatchUpdater, doBatchMatcher, dataList, true);
 		if(rt != Errno.OK){
 			Log.logErr(rt, "doBatchUpdate product prop error;flow=%d;aid=%d;updateList=%s", m_flow, aid, dataList);
 			return rt;

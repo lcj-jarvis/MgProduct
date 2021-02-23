@@ -17,6 +17,7 @@ public class ProductPropEntity {
         public static final String UPDATE_TIME = "sysUpdateTime"; // datetime 更新时间
         public static final String SOURCE_TID = "sourceTid"; // int 创建商品参数的项目id
         public static final String SOURCE_UNIONPRIID = "sourceUnionPriId"; // int 创建商品参数的联合主键 id
+        public static final String PROP_ID = "propId"; // int 参数id
     }
 
     public static class PropValInfo {

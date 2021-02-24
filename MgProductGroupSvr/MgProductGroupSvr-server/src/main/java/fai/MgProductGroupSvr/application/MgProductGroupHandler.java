@@ -64,5 +64,5 @@ public class MgProductGroupHandler extends MiddleGroundHandler {
 		return groupService.delGroupList(session, flow, aid, unionPriId, rlGroupIds);
 	}
 	
-	ProductGroupService groupService = (ProductGroupService) (new ServiceProxy(new ProductGroupService()).create());
+	ProductGroupService groupService = ServiceProxy.create(new ProductGroupService());
 }

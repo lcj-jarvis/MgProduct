@@ -69,10 +69,6 @@ public class MgProductStoreSvr {
                 FaiLockGenerator lockGenerator = new FaiLockGenerator(m_cache);
                 LockUtil.initLock(lockGenerator, lockLease, retryLockTime);
             }
-            // 初始化idbuilder
-            {
-                InOutStoreRecordDaoCtrl.initIdBuilder(m_cache);
-            }
         }
         // 异步任务
         {

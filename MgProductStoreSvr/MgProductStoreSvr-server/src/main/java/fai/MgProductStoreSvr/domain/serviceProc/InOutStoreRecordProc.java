@@ -180,6 +180,9 @@ public class InOutStoreRecordProc {
             data.assign(info, InOutStoreRecordEntity.Info.KEEP_PROP1);
             data.assign(info, InOutStoreRecordEntity.Info.SYS_UPDATE_TIME);
             data.assign(info, InOutStoreRecordEntity.Info.SYS_CREATE_TIME);
+            if(!data.containsKey(InOutStoreRecordEntity.Info.OPT_TIME)){
+                data.setCalendar(InOutStoreRecordEntity.Info.OPT_TIME, now);
+            }
             if(!data.containsKey(InOutStoreRecordEntity.Info.SYS_CREATE_TIME)){
                 data.setCalendar(InOutStoreRecordEntity.Info.SYS_CREATE_TIME, now);
             }

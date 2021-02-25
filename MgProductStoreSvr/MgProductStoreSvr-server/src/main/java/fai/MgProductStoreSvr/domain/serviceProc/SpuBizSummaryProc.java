@@ -41,6 +41,7 @@ public class SpuBizSummaryProc {
                 data.assign(newInfo, SpuBizSummaryEntity.Info.COUNT);
                 data.assign(newInfo, SpuBizSummaryEntity.Info.REMAIN_COUNT);
                 data.assign(newInfo, SpuBizSummaryEntity.Info.HOLDING_COUNT);
+                data.assign(newInfo, SpuBizSummaryEntity.Info.SALES);
                 data.setCalendar(SpuBizSummaryEntity.Info.SYS_UPDATE_TIME, now);
 
                 data.setInt(SpuBizSummaryEntity.Info.AID, aid);
@@ -55,6 +56,7 @@ public class SpuBizSummaryProc {
                 batchUpdater.getData().setString(SpuBizSummaryEntity.Info.COUNT, "?");
                 batchUpdater.getData().setString(SpuBizSummaryEntity.Info.REMAIN_COUNT, "?");
                 batchUpdater.getData().setString(SpuBizSummaryEntity.Info.HOLDING_COUNT, "?");
+                batchUpdater.getData().setString(SpuBizSummaryEntity.Info.SALES, "?");
                 batchUpdater.getData().setString(SpuBizSummaryEntity.Info.SYS_UPDATE_TIME, "?");
 
                 ParamMatcher batchMatcher = new ParamMatcher();

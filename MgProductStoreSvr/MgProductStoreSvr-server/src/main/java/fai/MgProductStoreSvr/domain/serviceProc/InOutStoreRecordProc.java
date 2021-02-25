@@ -275,7 +275,7 @@ public class InOutStoreRecordProc {
             }
         }
 
-        if(needInit){ // 第一次需要初始化, 从最新的记录开始计算
+        if(needInit){ // 第一次需要初始化，从最新的入库记录开始计算  兼容是同步过来的历史入库记录的可用库存
             batchSize = 10;
 
             SearchArg searchArg = new SearchArg();
@@ -289,9 +289,9 @@ public class InOutStoreRecordProc {
             searchArg.cmpor = cmpor;
             searchArg.limit = batchSize;
 
-            // 最后一条有效库存的入口记录id
+            // 最后一条有效库存的入库记录id
             int lastAvailableIoStoreRecId = 0;
-            // 最后一条有效库存的入口记录的有效库存
+            // 最后一条有效库存的入库记录的有效库存
             int lastAvailableCount = 0;
             FaiList<Integer> notFillZeroIdList = new FaiList<>();
             int start = 0;
@@ -327,7 +327,9 @@ public class InOutStoreRecordProc {
             }
 
             ParamMatcher fillZeroMatcher = initCommMatcher.clone();
-            fillZeroMatcher.and(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, ParamMatcher.NOT_IN, notFillZeroIdList);
+            if(!notFillZeroIdList.isEmpty()){
+                fillZeroMatcher.and(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, ParamMatcher.NOT_IN, notFillZeroIdList);
+            }
 
             ParamMatcher lastAvailableMatcher = initCommMatcher.clone();
             lastAvailableMatcher.and(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, ParamMatcher.EQ, lastAvailableIoStoreRecId);
@@ -335,7 +337,7 @@ public class InOutStoreRecordProc {
             // 计算fifo出库的总成本价
             {
                 long totalCost = 0;
-                if(notFillZeroIdList.size() > 0){
+                {
                     SearchArg fillZeroSearchArg = new SearchArg();
                     fillZeroSearchArg.matcher = fillZeroMatcher;
                     Ref<FaiList<Param>> listRef = new Ref<>();
@@ -350,8 +352,9 @@ public class InOutStoreRecordProc {
                         totalCost += availableCount*price;
                     }
                 }
+                Log.logDbg("whalelog  0 totalCost=%s", totalCost);
 
-                {
+                if(lastAvailableIoStoreRecId > 0){
                     SearchArg lastAvailableSearchArg = new SearchArg();
                     lastAvailableSearchArg.matcher = lastAvailableMatcher;
                     Ref<Param> infoRef = new Ref<>();
@@ -365,12 +368,13 @@ public class InOutStoreRecordProc {
                     long price = info.getLong(InOutStoreRecordEntity.Info.PRICE);
                     totalCost += (availableCount-lastAvailableCount)*price;
                 }
+                Log.logDbg("whalelog  1 totalCost=%s", totalCost);
 
                 fifoOutTotalCostRef.value = totalCost;
             }
             // 修改入库记录的可用库存
             {
-                if(notFillZeroIdList.size() > 0){
+                {
                     // 其他入库记录的可用库存设置为0
                     ParamUpdater fillZeroUpdater = new ParamUpdater();
                     fillZeroUpdater.getData().setInt(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, 0);
@@ -380,7 +384,7 @@ public class InOutStoreRecordProc {
                         return rt;
                     }
                 }
-                {
+                if(lastAvailableIoStoreRecId > 0){
                     // 修改入库记录的可用库存
                     ParamUpdater lastAvailableUpdater = new ParamUpdater();
                     lastAvailableUpdater.getData().setInt(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, lastAvailableCount);

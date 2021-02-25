@@ -215,9 +215,14 @@ public class StoreService {
         spuBizSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.Info.RL_PD_ID, SpuBizSummaryEntity.Info.RL_PD_ID);
         spuBizSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.SOURCE_UNION_PRI_ID, SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID);
         if(Misc.checkBit(flag, SpuBizStoreSalesReportValObj.Flag.REPORT_COUNT)){
-            spuBizSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.SUM_COUNT, SpuBizSummaryEntity.Info.COUNT);
-            spuBizSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.SUM_REMAIN_COUNT, SpuBizSummaryEntity.Info.REMAIN_COUNT);
-            spuBizSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.SUM_HOLDING_COUNT, SpuBizSummaryEntity.Info.HOLDING_COUNT);
+            int count = reportInfo.getInt(StoreSalesSkuEntity.ReportInfo.SUM_COUNT);
+            int remainCount = reportInfo.getInt(StoreSalesSkuEntity.ReportInfo.SUM_REMAIN_COUNT);
+            int holdingCount = reportInfo.getInt(StoreSalesSkuEntity.ReportInfo.SUM_HOLDING_COUNT);
+            int sales = count - holdingCount - remainCount;
+            spuBizSummaryInfo.setInt(SpuBizSummaryEntity.Info.COUNT, count);
+            spuBizSummaryInfo.setInt(SpuBizSummaryEntity.Info.REMAIN_COUNT, remainCount);
+            spuBizSummaryInfo.setInt(SpuBizSummaryEntity.Info.HOLDING_COUNT, holdingCount);
+            spuBizSummaryInfo.setInt(SpuBizSummaryEntity.Info.SALES, sales);
         }
         if(Misc.checkBit(flag, SpuBizStoreSalesReportValObj.Flag.REPORT_PRICE)){
             spuBizSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.MIN_PRICE, SpuBizSummaryEntity.Info.MIN_PRICE);

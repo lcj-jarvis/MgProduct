@@ -259,7 +259,7 @@ public class StoreSalesSkuProc {
      * 扣减库存
      * @return
      */
-    public int batchReduceStore(int aid, int unionPriId, Map<Long, Integer> skuIdCountMap, boolean holdingMode, boolean reduceHoldingCount) {
+    public int batchReduceStore(int aid, int unionPriId, TreeMap<Long, Integer> skuIdCountMap, boolean holdingMode, boolean reduceHoldingCount) {
         if(skuIdCountMap == null || skuIdCountMap.isEmpty()){
             Log.logStd("batchReduceStore arg;flow=%d;aid=%s;unionPriId=%s;skuIdCountMap=%s;", m_flow, aid, unionPriId, skuIdCountMap);
             return Errno.ARGS_ERROR;
@@ -382,18 +382,15 @@ public class StoreSalesSkuProc {
         matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.EQ, skuId);
         ParamUpdater updater = new ParamUpdater();
-        if(!reduceHoldingCount){ // 扣减 真实库存
+        if(!reduceHoldingCount){ // 扣减 剩余库存
             matcher.and(StoreSalesSkuEntity.Info.REMAIN_COUNT, ParamMatcher.GE, count);
             updater.add(StoreSalesSkuEntity.Info.REMAIN_COUNT, ParamUpdater.DEC, count);
             if(holdingMode){ // 预扣模式
                 updater.add(StoreSalesSkuEntity.Info.HOLDING_COUNT, ParamUpdater.INC, count);
-            }else{
-                updater.add(StoreSalesSkuEntity.Info.COUNT, ParamUpdater.DEC, count);
             }
         }else{ // 扣减 预扣库存
             matcher.and(StoreSalesSkuEntity.Info.HOLDING_COUNT, ParamMatcher.GE, count);
             updater.add(StoreSalesSkuEntity.Info.HOLDING_COUNT, ParamUpdater.DEC, count);
-            updater.add(StoreSalesSkuEntity.Info.COUNT, ParamUpdater.DEC, count);
         }
         rt = m_daoCtrl.update(updater, matcher, refRowCount);
         if(rt != Errno.OK){
@@ -411,7 +408,7 @@ public class StoreSalesSkuProc {
     /**
      * 补偿库存
      */
-    public int batchMakeUpStore(int aid, int unionPriId, Map<Long, Integer> skuIdCountMap, boolean holdingMode) {
+    public int batchMakeUpStore(int aid, int unionPriId, TreeMap<Long, Integer> skuIdCountMap, boolean holdingMode) {
         if(skuIdCountMap == null || skuIdCountMap.isEmpty()){
             Log.logStd("batchMakeUpStore arg;flow=%d;aid=%s;unionPriId=%s;skuIdCountMap=%s;", m_flow, aid, unionPriId, skuIdCountMap);
             return Errno.ARGS_ERROR;
@@ -573,7 +570,7 @@ public class StoreSalesSkuProc {
     /**
      * 只会改到count 和 remainCount
      */
-    public int batchChangeStore(int aid, Map<SkuStoreKey, Integer> skuStoreChangeCountMap) {
+    public int batchChangeStore(int aid, TreeMap<SkuStoreKey, Integer> skuStoreChangeCountMap) {
         if(aid <= 0 || skuStoreChangeCountMap == null || skuStoreChangeCountMap.isEmpty()){
             Log.logStd("batchChangeStore arg error;flow=%s;aid=%s;skuStoreChangeCountMap=%s;", m_flow, aid, skuStoreChangeCountMap);
             return Errno.ARGS_ERROR;
@@ -687,6 +684,10 @@ public class StoreSalesSkuProc {
         matcher.and(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, "?");
         matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
         matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.EQ, "?");
+        ParamComparator comparator = new ParamComparator();
+        comparator.addKey(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+        comparator.addKey(StoreSalesSkuEntity.Info.SKU_ID);
+        Collections.sort(dataList, comparator);
         rt = m_daoCtrl.batchUpdate(updater, matcher, dataList);
         if(rt != Errno.OK){
             Log.logErr(rt, "batchSet error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);

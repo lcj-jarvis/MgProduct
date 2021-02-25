@@ -3,6 +3,7 @@ package fai.MgProductSearchSvr.interfaces.cli;
 import fai.MgProductSearchSvr.interfaces.cmd.MgProductSearchCmd;
 import fai.MgProductSearchSvr.interfaces.dto.MgProductSearchDto;
 import fai.MgProductSearchSvr.interfaces.entity.MgProductSearch;
+import fai.MgProductSearchSvr.interfaces.entity.MgProductSearchResultEntity;
 import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
@@ -22,11 +23,11 @@ public class MgProductSearchCli extends FaiClient {
     }
 
 
-    public int searchList(int aid, int tid, int unionPriId, int productCount, MgProductSearch mgProductSearch, FaiList<Param> list, Ref<Integer> totalSize){
+    public int searchList(int aid, int tid, int unionPriId, int productCount, MgProductSearch mgProductSearch, Param searchReult, Ref<Integer> totalSize){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
-            list.clear();
+            searchReult.clear();
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(MgProductSearchDto.Key.UNION_PRI_ID, unionPriId);
@@ -67,19 +68,14 @@ public class MgProductSearchCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            list.fromBuffer(recvBody, keyRef, MgProductSearchDto.getDetailDto());
-            if (m_rt != Errno.OK || keyRef.value != MgProductSearchDto.Key.SEARCH_LIST) {
+            searchReult.fromBuffer(recvBody, keyRef, MgProductSearchDto.getProductSearchDto());
+            if (m_rt != Errno.OK || keyRef.value != MgProductSearchDto.Key.RESULT_INFO) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
             }
             // recv total size
             if (totalSize != null) {
-                recvBody.getInt(keyRef, totalSize);
-                if (keyRef.value != MgProductSearchDto.Key.TOTAL_SIZE) {
-                    m_rt = Errno.CODEC_ERROR;
-                    Log.logErr(m_rt, "recv total size null");
-                    return m_rt;
-                }
+                totalSize.value = searchReult.getInt(MgProductSearchResultEntity.Info.TOTAL);
             }
             m_rt = Errno.OK;
             return m_rt;

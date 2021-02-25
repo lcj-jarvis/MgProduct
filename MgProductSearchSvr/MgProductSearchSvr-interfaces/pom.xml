@@ -47,6 +47,12 @@
 
         <dependency>
             <groupId>MgProduct</groupId>
+            <artifactId>MgProductPropSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductPropSvr-interfaces-ver}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>MgProduct</groupId>
             <artifactId>MgProductStoreSvr-interfaces</artifactId>
             <version>${MgProduct-MgProductStoreSvr-interfaces-ver}</version>
         </dependency>

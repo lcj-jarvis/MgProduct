@@ -87,6 +87,7 @@ public class SpuBizSummaryProc {
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.COUNT);
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.REMAIN_COUNT);
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.HOLDING_COUNT);
+                    data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.SALES);
                     addDataList.add(data);
                 }
                 rt = m_daoCtrl.batchInsert(addDataList, null, true);

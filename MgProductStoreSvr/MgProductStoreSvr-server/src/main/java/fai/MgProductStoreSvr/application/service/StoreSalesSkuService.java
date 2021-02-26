@@ -675,7 +675,7 @@ public class StoreSalesSkuService extends StoreService {
                 try {
                     transactionCtrl.setAutoCommit(false);
                     if(holdingMode){
-                        rt = checkHoldingRecordExists(holdingRecordProc, aid, unionPriId, skuIdList, rlOrderCode, skuIdCountMap, true, true);
+                        rt = checkHoldingRecordExists(holdingRecordProc, aid, unionPriId, skuIdList, rlOrderCode, skuIdCountMap, false, true);
                         if(rt != Errno.OK){
                             return rt;
                         }

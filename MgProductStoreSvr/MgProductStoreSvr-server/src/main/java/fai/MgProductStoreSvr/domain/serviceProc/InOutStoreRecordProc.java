@@ -254,6 +254,7 @@ public class InOutStoreRecordProc {
             rt = m_daoCtrl.selectFirst(searchArg, infoRef);
             if(rt != Errno.OK){
                 Log.logErr(rt, "selectFirst err;flow=%s;aid=%s;matcher.json=%s;", m_flow, aid, searchArg.matcher.toJson());
+                return rt;
             }
             Param firstRecord = infoRef.value;
             int optType = firstRecord.getInt(InOutStoreRecordEntity.Info.OPT_TYPE);

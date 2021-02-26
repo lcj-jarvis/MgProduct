@@ -13,6 +13,9 @@ public class MgProductStoreCmd {
 		public static final int NUM6 = 5006;
 		public static final int NUM7 = 5007;
 		public static final int NUM8 = 5008;
+		public static final int NUM9 = 5009;
+		public static final int NUM10 = 5010;
+		public static final int NUM11 = 5011;
 	}
 
 
@@ -75,6 +78,18 @@ public class MgProductStoreCmd {
 	public static class SpuBizSummaryCmd {
 		public static final int GET_LIST_BY_PD_ID = ReadCmdNum.NUM1;
 		public static final int GET_LIST = ReadCmdNum.NUM3;
+		/**
+		 * 获取数据状态
+		 */
+		public static final int GET_DATA_STATUS = ReadCmdNum.NUM9;
+		/**
+		 * 获取全部数据的部分字段
+		 */
+		public static final int GET_ALL_DATA_PART_FIELD = ReadCmdNum.NUM10;
+		/**
+		 * 直接从db搜索，返回部分字段
+		 */
+		public static final int SEARCH_PART_FIELD = ReadCmdNum.NUM11;
 	}
 
 	/**

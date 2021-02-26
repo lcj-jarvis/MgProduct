@@ -231,6 +231,34 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
         return  m_summaryService.getSpuBizSummaryInfoList(session, flow, aid, tid, unionPriId, pdIdList, useSourceFieldList);
     }
 
+    @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.GET_DATA_STATUS)
+    private int getSpuBizSummaryDataStatus(final FaiSession session,
+                                          @ArgFlow final int flow,
+                                          @ArgAid final int aid,
+                                          @ArgBodyInteger(SpuBizSummaryDto.Key.TID) final int tid,
+                                          @ArgBodyInteger(SpuBizSummaryDto.Key.UNION_PRI_ID) final int unionPriId) throws IOException {
+        return  m_summaryService.getSpuBizSummaryDataStatus(session, flow, aid, unionPriId);
+    }
+
+    @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.GET_ALL_DATA_PART_FIELD)
+    private int getSpuBizSummaryAllDataPartFiled(final FaiSession session,
+                                                 @ArgFlow final int flow,
+                                                 @ArgAid final int aid,
+                                                 @ArgBodyInteger(SpuBizSummaryDto.Key.TID) final int tid,
+                                                 @ArgBodyInteger(SpuBizSummaryDto.Key.UNION_PRI_ID) final int unionPriId) throws IOException {
+        return  m_summaryService.getSpuBizSummaryAllDataPartFiled(session, flow, aid, unionPriId);
+    }
+
+    @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.SEARCH_PART_FIELD)
+    private int searchSpuBizSummaryPartFiled(final FaiSession session,
+                                      @ArgFlow final int flow,
+                                      @ArgAid final int aid,
+                                      @ArgBodyInteger(SpuBizSummaryDto.Key.TID) final int tid,
+                                      @ArgBodyInteger(SpuBizSummaryDto.Key.UNION_PRI_ID) final int unionPriId,
+                                      @ArgSearchArg(value = SpuBizSummaryDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
+        return  m_summaryService.searchSpuBizSummaryPartFiled(session, flow, aid, unionPriId, searchArg);
+    }
+
     @Cmd(MgProductStoreCmd.SpuSummaryCmd.GET_LIST)
     private int getSpuSummaryInfoList(final FaiSession session,
                                       @ArgFlow final int flow,

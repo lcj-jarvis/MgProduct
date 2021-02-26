@@ -1,7 +1,8 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
-import fai.MgProductStoreSvr.domain.comm.Utils;
+import fai.MgProductStoreSvr.domain.comm.LockUtil;
 import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryEntity;
+import fai.MgProductStoreSvr.domain.repository.DataType;
 import fai.MgProductStoreSvr.domain.repository.SpuBizSummaryCacheCtrl;
 import fai.MgProductStoreSvr.domain.repository.SpuBizSummaryDaoCtrl;
 import fai.comm.util.*;
@@ -84,12 +85,13 @@ public class SpuBizSummaryProc {
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.RL_PD_ID);
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.MAX_PRICE);
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.MIN_PRICE);
-                    data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.COUNT);
-                    data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.REMAIN_COUNT);
-                    data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.HOLDING_COUNT);
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.SALES);
                     addDataList.add(data);
                 }
+                // 标记访客数据为脏
+                cacheManage.addDataTypeDirtyCacheKey(DataType.Visitor, unionPriId);
+                // 标记管理数据为脏
+                cacheManage.addDataTypeDirtyCacheKey(DataType.Manage, unionPriId);
                 rt = m_daoCtrl.batchInsert(addDataList, null, true);
                 if(rt != Errno.OK){
                     Log.logErr(rt,"m_daoCtrl.batchInsert err;flow=%s;aid=%s;batchUpdateDataList=%s;", m_flow, aid, batchUpdateDataList);
@@ -126,6 +128,9 @@ public class SpuBizSummaryProc {
             needMaxFields.remove(SpuBizSummaryEntity.Info.PD_ID);
         }
 
+        // 标记访客数据为脏
+        cacheManage.addDataTypeDirtyCacheKey(DataType.Visitor, unionPriIdInfoMap.keySet());
+
         Ref<FaiList<Param>> listRef = new Ref<>();
         int rt = getInfoListByUnionPriIdListFromDao(aid, unionPriIdList, pdId, listRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
@@ -137,6 +142,7 @@ public class SpuBizSummaryProc {
         Calendar now = Calendar.getInstance();
         FaiList<Param> addDataList = new FaiList<>();
         FaiList<Param> batchUpdateDataList = new FaiList<>();
+        Map<Integer, FaiList<Integer>> unionPirIdPdIdListMap = new HashMap<>();
         for (Param oldFields : listRef.value) {
             int oldUnionPriId = oldFields.getInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, 0);
             Param newFields = unionPriIdInfoMap.remove(oldUnionPriId); // 移除
@@ -159,13 +165,22 @@ public class SpuBizSummaryProc {
                 updateData.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, oldUnionPriId);
             }
             batchUpdateDataList.add(updateData);
+            FaiList<Integer> pdIdList = unionPirIdPdIdListMap.get(oldUnionPriId);
+            if(pdIdList == null){
+                pdIdList = new FaiList<>();
+                unionPirIdPdIdListMap.put(oldUnionPriId, pdIdList);
+            }
+            pdIdList.add(pdId);
         }
-        Map<Integer, FaiList<Integer>> unionPirIdPdIdListMap = new HashMap<>();
+
         for (Param info : unionPriIdInfoMap.values()) {
             Param addData = new Param();
             addData.setInt(SpuBizSummaryEntity.Info.AID, aid);
             addData.setInt(SpuBizSummaryEntity.Info.PD_ID, pdId);
             int unionPriId = info.getInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, 0);
+            // 标记管理数据为脏
+            cacheManage.addDataTypeDirtyCacheKey(DataType.Manage, unionPriId);
+
             if(unionPriId <= 0){
                 Log.logErr("add info unionPriId err;flow=%s;aid=%s;pdId=%s;info=%s", m_flow, aid, pdId, info);
                 return Errno.ERROR;
@@ -195,14 +210,8 @@ public class SpuBizSummaryProc {
             addData.setCalendar(SpuBizSummaryEntity.Info.SYS_UPDATE_TIME, now);
             addData.setCalendar(SpuBizSummaryEntity.Info.SYS_CREATE_TIME, now);
             addDataList.add(addData);
-
-            FaiList<Integer> pdIdList = unionPirIdPdIdListMap.get(unionPriId);
-            if(pdIdList == null){
-                pdIdList = new FaiList<>();
-                unionPirIdPdIdListMap.put(unionPriId, pdIdList);
-            }
-            pdIdList.add(pdId);
         }
+
         if(!addDataList.isEmpty()){
             rt = m_daoCtrl.batchInsert(addDataList, null, true);
             if(rt != Errno.OK){
@@ -220,7 +229,7 @@ public class SpuBizSummaryProc {
             doBatchMatcher.and(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, "?");
             doBatchMatcher.and(SpuBizSummaryEntity.Info.PD_ID, ParamMatcher.EQ, "?");
             doBatchMatcher.and(SpuBizSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
-            cacheManage.addNeedDelCacheKeyMap(aid, unionPirIdPdIdListMap);
+            cacheManage.addDirtyCacheKey(aid, unionPirIdPdIdListMap);
             rt = m_daoCtrl.batchUpdate(doBatchUpdater, doBatchMatcher, batchUpdateDataList);
             if(rt != Errno.OK){
                 Log.logErr("batchUpdate err;flow=%s;aid=%s;pdId=%s;doBatchUpdater.json=%s;batchUpdateDataList=%s;", m_flow, aid, pdId, doBatchUpdater.toJson(), batchUpdateDataList);
@@ -300,7 +309,11 @@ public class SpuBizSummaryProc {
         for (Param info : listRef.value) {
             unionPirIdPdIdListMap.put(info.getInt(SpuBizSummaryEntity.Info.UNION_PRI_ID), pdIdList);
         }
-        cacheManage.addNeedDelCacheKeyMap(aid, unionPirIdPdIdListMap);
+        // 标记访客数据为脏
+        cacheManage.addDataTypeDirtyCacheKey(DataType.Visitor, unionPirIdPdIdListMap.keySet());
+        // 标记管理数据为脏
+        cacheManage.addDataTypeDirtyCacheKey(DataType.Manage, unionPirIdPdIdListMap.keySet());
+        cacheManage.addDirtyCacheKey(aid, unionPirIdPdIdListMap);
         rt = m_daoCtrl.delete(matcher);
         if(rt != Errno.OK){
             Log.logStd(rt, "delete err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
@@ -350,47 +363,84 @@ public class SpuBizSummaryProc {
         return rt;
     }
 
-    public int getInfoListByPdIdList(int aid, int unionPriId, FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef){
-        if(aid <= 0 || unionPriId <= 0 || pdIdList == null || pdIdList.isEmpty() || listRef == null){
-            Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;pdIdList=%s;listRef=%s;", m_flow, aid, unionPriId, pdIdList, listRef);
-            return Errno.ARGS_ERROR;
-        }
-        HashSet<Integer> pdIdSet = new HashSet<>(pdIdList);
-        FaiList<Param> cacheList = SpuBizSummaryCacheCtrl.getCacheList(aid, unionPriId, new FaiList<>(pdIdSet));
-        if(cacheList == null){
-            cacheList = new FaiList<>();
-        }
-        Map<Integer, Param> map = Utils.getMap(cacheList, SpuBizSummaryEntity.Info.PD_ID);
-        if(cacheList.size() == pdIdSet.size()){
-            getResult(pdIdList, listRef, map);
-            return Errno.OK;
-        }
-
-        Set<Integer> cachePdIdSet = map.keySet();
-        pdIdSet.removeAll(cachePdIdSet);
-
-        int rt = getInfoListByPdIdListFromDao(aid, unionPriId, new FaiList<>(pdIdSet), listRef);
+    public int getAllDataFromDao(int aid, int unionPriId, Ref<FaiList<Param>> listRef, String ... fields){
+        ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SpuBizSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        int rt = m_daoCtrl.select(searchArg, listRef, fields);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            Log.logErr(rt, "select err;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
             return rt;
         }
-
-        FaiList<Param> fromDaoInfoList = listRef.value;
-        listRef.value = null;
-        map.putAll(Utils.getMap(fromDaoInfoList, SpuBizSummaryEntity.Info.PD_ID));
-        getResult(pdIdList, listRef, map);
-
-        SpuBizSummaryCacheCtrl.appendCacheList(aid, unionPriId, fromDaoInfoList);
-        return Errno.OK;
+        Log.logDbg("ok!;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+        return rt;
     }
 
-    private void getResult(FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef, Map<Integer, Param> map) {
-        FaiList<Param> resultList = new FaiList<>(pdIdList.size());
-        for (Integer pdId : pdIdList) {
-            resultList.add(map.get(pdId));
-
+    public int searchAllDataFromDao(int aid, int unionPriId, SearchArg searchArg, Ref<FaiList<Param>> listRef, String ... fields){
+        ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SpuBizSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(searchArg.matcher);
+        searchArg.matcher = matcher;
+        int rt = m_daoCtrl.select(searchArg, listRef, fields);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            Log.logErr(rt, "select err;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+            return rt;
         }
-        listRef.value = resultList;
+        Log.logDbg("ok!;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+        return rt;
     }
+
+    public long getLastUpdateTime(DataType dataType, int aid, int unionPriId){
+        Long lastUpdateTime = SpuBizSummaryCacheCtrl.LastUpdateCache.getLastUpdateTime(dataType, aid, unionPriId);
+        if(lastUpdateTime != null){
+            return lastUpdateTime;
+        }
+        LockUtil.lock(aid);
+        try {
+            lastUpdateTime = SpuBizSummaryCacheCtrl.LastUpdateCache.getLastUpdateTime(dataType, aid, unionPriId);
+            if(lastUpdateTime != null){
+                return lastUpdateTime;
+            }
+            lastUpdateTime = System.currentTimeMillis();
+            SpuBizSummaryCacheCtrl.LastUpdateCache.setLastUpdateTime(dataType, aid, unionPriId, lastUpdateTime);
+            return lastUpdateTime;
+        }finally {
+            LockUtil.unlock(aid);
+        }
+    }
+
+    public int getTotal(int aid, int unionPriId, Ref<Integer> totalRef) {
+        int rt = Errno.ERROR;
+        int total = SpuBizSummaryCacheCtrl.getTotal(aid, unionPriId);
+        if(total > 0){
+            totalRef.value = total;
+            return Errno.OK;
+        }
+        LockUtil.lock(aid);
+        try {
+            total = SpuBizSummaryCacheCtrl.getTotal(aid, unionPriId);
+            if(total > 0){
+                totalRef.value = total;
+                return Errno.OK;
+            }
+            ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+            matcher.and(SpuBizSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = matcher;
+            rt = m_daoCtrl.selectCount(searchArg, totalRef);
+            if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                Log.logErr(rt, "selectCount err;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+                return rt;
+            }
+            SpuBizSummaryCacheCtrl.setTotal(aid, unionPriId, totalRef.value);
+        }finally {
+            LockUtil.unlock(aid);
+        }
+        Log.logDbg("ok!;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+        return rt;
+    }
+
     public void deleteDirtyCache(int aid){
         cacheManage.deleteDirtyCache(aid);
     }
@@ -401,29 +451,59 @@ public class SpuBizSummaryProc {
     private CacheManage cacheManage = new CacheManage();
 
 
-
-
     private static class CacheManage{
-        private Map<Integer, FaiList<Integer>> needDelCacheKeyMap;
+        private Map<DataType, Set<Integer>> dirtyDataTypeMap;
+        private Map<Integer, FaiList<Integer>> dirtyCacheKeyMap;
         public CacheManage() {
             init();
         }
         private void init() {
-            needDelCacheKeyMap = new HashMap<>();
+            dirtyCacheKeyMap = new HashMap<>();
+            dirtyDataTypeMap = new HashMap<>();
         }
-        public void deleteDirtyCache(int aid){
+        private void deleteDirtyCache(int aid){
             try {
-                SpuBizSummaryCacheCtrl.delCache(aid, needDelCacheKeyMap);
+                SpuBizSummaryCacheCtrl.delCache(aid, dirtyCacheKeyMap);
+                if(!dirtyDataTypeMap.isEmpty()){
+                    for (Map.Entry<DataType, Set<Integer>> unionPriIdDataTypeEntry : dirtyDataTypeMap.entrySet()) {
+                        DataType dataType = unionPriIdDataTypeEntry.getKey();
+                        Set<Integer> unionPriIdSet = unionPriIdDataTypeEntry.getValue();
+                        for (Integer unionPriId : unionPriIdSet) {
+                            SpuBizSummaryCacheCtrl.LastUpdateCache.setLastUpdateTime(dataType, aid, unionPriId, System.currentTimeMillis());
+                        }
+                    }
+                }
             }finally {
                 init();
             }
         }
-        private void addNeedDelCacheKeyMap(int aid, Map<Integer, FaiList<Integer>> unionPirIdPdIdListMap){
+        private void addDirtyCacheKey(int aid, Map<Integer, FaiList<Integer>> unionPirIdPdIdListMap){
             if(unionPirIdPdIdListMap == null){
                 return;
             }
             SpuBizSummaryCacheCtrl.setCacheDirty(aid, unionPirIdPdIdListMap.keySet());
-            needDelCacheKeyMap.putAll(unionPirIdPdIdListMap);
+            dirtyCacheKeyMap.putAll(unionPirIdPdIdListMap);
+        }
+        private void addDataTypeDirtyCacheKey(DataType dataType, Set<Integer> unionPriIdSet){
+            if(unionPriIdSet.isEmpty()){
+                return;
+            }
+            Set<Integer> set = getSet(dataType);
+            set.addAll(unionPriIdSet);
+        }
+
+        private Set<Integer> getSet(DataType dataType) {
+            Set<Integer> set = dirtyDataTypeMap.get(dataType);
+            if(set == null){
+                set = new HashSet<>();
+                dirtyDataTypeMap.put(dataType, set);
+            }
+            return set;
+        }
+
+        private void addDataTypeDirtyCacheKey(DataType dataType, int unionPriId){
+            Set<Integer> set = getSet(dataType);
+            set.add(unionPriId);
         }
     }
 }

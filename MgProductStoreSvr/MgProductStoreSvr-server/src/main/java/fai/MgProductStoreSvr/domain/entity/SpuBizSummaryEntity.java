@@ -1,5 +1,7 @@
 package fai.MgProductStoreSvr.domain.entity;
 
+import java.util.Arrays;
+
 /**
  * spu 业务库存销售汇总表
  */
@@ -43,6 +45,43 @@ public class SpuBizSummaryEntity {
      */
     public static String[] getValidKeys(){
         return VALID_KEYS;
+    }
+
+    private static final String[] VISITOR_KEYS = new String[]{
+            Info.SALES
+            , Info.COUNT
+            , Info.REMAIN_COUNT
+            , Info.HOLDING_COUNT
+    };
+    /**
+     * 获得访客字段
+     */
+    public static String[] getVisitorKeys(){
+        return VISITOR_KEYS;
+    }
+
+    private static final String[] MANAGE_KEYS = new String[]{
+            Info.MARKET_PRICE
+            , Info.MIN_PRICE
+            , Info.MAX_PRICE
+    };
+    /**
+     * 获取管理字段
+     */
+    public static String[] getManageKeys(){
+        return MANAGE_KEYS;
+    }
+
+    private static String[] MANAGE_VISITOR_KEYS;
+    static {
+        MANAGE_VISITOR_KEYS = Arrays.copyOf(VISITOR_KEYS, VISITOR_KEYS.length + MANAGE_KEYS.length);
+        System.arraycopy(MANAGE_KEYS, 0, MANAGE_VISITOR_KEYS, VISITOR_KEYS.length, MANAGE_KEYS.length);
+    }
+    /**
+     * 获取管理和访客字段
+     */
+    public static String[] getManageVisitorKeys(){
+        return MANAGE_VISITOR_KEYS;
     }
 
     public static final class ReportInfo{

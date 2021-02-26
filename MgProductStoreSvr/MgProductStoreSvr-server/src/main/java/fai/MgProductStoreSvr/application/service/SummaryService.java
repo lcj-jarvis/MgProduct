@@ -8,9 +8,11 @@ import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryEntity;
 import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuEntity;
 import fai.MgProductStoreSvr.domain.repository.*;
 import fai.MgProductStoreSvr.domain.serviceProc.*;
+import fai.MgProductStoreSvr.interfaces.dto.DataStatusDto;
 import fai.MgProductStoreSvr.interfaces.dto.SkuSummaryDto;
 import fai.MgProductStoreSvr.interfaces.dto.SpuBizSummaryDto;
 import fai.MgProductStoreSvr.interfaces.dto.SpuSummaryDto;
+import fai.MgProductStoreSvr.interfaces.entity.DataStatus;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
 import fai.middleground.svrutil.repository.TransactionCtrl;
@@ -240,11 +242,130 @@ public class SummaryService extends StoreService {
         }
         return rt;
     }
-    private void sendSpuBizSummary(FaiSession session, FaiList<Param> infoList) throws IOException {
-        FaiBuffer sendBuf = new FaiBuffer(true);
-        infoList.toBuffer(sendBuf, SpuBizSummaryDto.Key.INFO_LIST, SpuBizSummaryDto.getInfoDto());
-        session.write(sendBuf);
+
+    /**
+     * 获取 spu 业务库存销售汇总信息 数据状态
+     */
+    public int getSpuBizSummaryDataStatus(FaiSession session, int flow, int aid, int unionPriId)throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            Ref<Integer> totalRef = new Ref<>();
+            Long visitorDataLastUpdateTime;
+            Long manageDataLastUpdateTime;
+            SpuBizSummaryDaoCtrl spuBizSummaryDaoCtrl = SpuBizSummaryDaoCtrl.getInstance(flow, aid);
+            try {
+                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(spuBizSummaryDaoCtrl, flow);
+                visitorDataLastUpdateTime = spuBizSummaryProc.getLastUpdateTime(DataType.Visitor, aid, unionPriId);
+                manageDataLastUpdateTime = spuBizSummaryProc.getLastUpdateTime(DataType.Manage, aid, unionPriId);
+                rt = spuBizSummaryProc.getTotal(aid, unionPriId, totalRef);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+            }finally {
+                spuBizSummaryDaoCtrl.closeDao();
+            }
+            Param dataStatus = new Param()
+                    .setInt(DataStatus.Info.TOTAL_SIZE, totalRef.value)
+                    .setLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME, visitorDataLastUpdateTime)
+                    .setLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME, manageDataLastUpdateTime)
+                    ;
+            FaiBuffer sendBody = new FaiBuffer();
+            dataStatus.toBuffer(sendBody, SpuBizSummaryDto.Key.INFO, DataStatusDto.getInfoDto());
+            session.write(sendBody);
+            Log.logDbg("ok;aid=%d;unionPriId=%s;", aid, unionPriId);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
     }
+
+    /**
+     * 获取全部数据的部分字段
+     */
+    public int getSpuBizSummaryAllDataPartFiled(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            SpuBizSummaryDaoCtrl spuBizSummaryDaoCtrl = SpuBizSummaryDaoCtrl.getInstance(flow, aid);
+            try {
+                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(spuBizSummaryDaoCtrl, flow);
+                rt = spuBizSummaryProc.getAllDataFromDao(aid, unionPriId, listRef, SpuBizSummaryEntity.getManageVisitorKeys());
+                if(rt != Errno.OK){
+                    return rt;
+                }
+            }finally {
+                spuBizSummaryDaoCtrl.closeDao();
+            }
+            sendSpuBizSummary(session, listRef.value);
+            Log.logDbg("ok;aid=%d;unionPriId=%s;", aid, unionPriId);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+    /**
+     * 搜索全部数据的部分字段
+     */
+    public int searchSpuBizSummaryPartFiled(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            /*Set<String> validKey = new HashSet<>(Arrays.asList(SpuBizSummaryEntity.getManageVisitorKeys()));
+            ParamMatcher matcher = searchArg.matcher;
+            if(matcher != null && !matcher.isEmpty()){
+                if(!retainValidKey(validKey, matcher)){
+                    rt = Errno.NOT_FOUND;
+                    Log.logErr(rt, "not exists valid key;flow=%s;aid=%s;unionPriId=%s;matcher=%s;", flow, aid, unionPriId, matcher.toJson());
+                }
+            }*/
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            SpuBizSummaryDaoCtrl spuBizSummaryDaoCtrl = SpuBizSummaryDaoCtrl.getInstance(flow, aid);
+            try {
+                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(spuBizSummaryDaoCtrl, flow);
+                rt = spuBizSummaryProc.searchAllDataFromDao(aid, unionPriId, searchArg, listRef, SpuBizSummaryEntity.getManageVisitorKeys());
+                if(rt != Errno.OK){
+                    return rt;
+                }
+            }finally {
+                spuBizSummaryDaoCtrl.closeDao();
+            }
+            sendSpuBizSummary(session, listRef.value, searchArg);
+            Log.logDbg("ok;aid=%d;unionPriId=%s;", aid, unionPriId);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * 保留有效的key,存在有效的就返回true, 否则返回false
+     * @param validKey
+     * @param matcher
+     */
+    private boolean retainValidKey(Set<String> validKey, ParamMatcher matcher) {
+        FaiList<ParamMatcher.Cond> rawCondList = matcher.getRawCondList();
+        for (int i = rawCondList.size()-1; i >= 0 ; i--) {
+            ParamMatcher.Cond cond = rawCondList.get(i);
+            if(cond.key != null){
+                if(!validKey.contains(cond.key)){
+                    rawCondList.remove(i);
+                }
+            }else{
+                if(cond.matcher != null){
+                    if(retainValidKey(validKey, cond.matcher)){
+                        rawCondList.remove(i);
+                    }
+                }
+            }
+        }
+        if(rawCondList.isEmpty()){
+            return true;
+        }
+        return false;
+    }
+
     /**
      * 获取spu库存销售汇总信息
      */
@@ -275,11 +396,7 @@ public class SummaryService extends StoreService {
         }
         return rt;
     }
-    private void sendSpuSummary(FaiSession session, FaiList<Param> infoList) throws IOException {
-        FaiBuffer sendBuf = new FaiBuffer(true);
-        infoList.toBuffer(sendBuf, SpuSummaryDto.Key.INFO_LIST, SpuSummaryDto.getInfoDto());
-        session.write(sendBuf);
-    }
+
     /**
      * 获取 SKU业务库存销售汇总信息  -  不用汇总已经是最新粒度
      */
@@ -367,6 +484,24 @@ public class SummaryService extends StoreService {
         return rt;
     }
 
+    private void sendSpuBizSummary(FaiSession session, FaiList<Param> infoList) throws IOException {
+        sendSpuBizSummary(session, infoList, null);
+    }
+    private void sendSpuBizSummary(FaiSession session, FaiList<Param> infoList, SearchArg searchArg)throws IOException  {
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        infoList.toBuffer(sendBuf, SpuBizSummaryDto.Key.INFO_LIST, SpuBizSummaryDto.getInfoDto());
+        if(searchArg != null && searchArg.totalSize != null){
+            sendBuf.putInt(SpuBizSummaryDto.Key.TOTAL_SIZE, searchArg.totalSize.value);
+        }
+        session.write(sendBuf);
+    }
+
+    private void sendSpuSummary(FaiSession session, FaiList<Param> infoList) throws IOException {
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        infoList.toBuffer(sendBuf, SpuSummaryDto.Key.INFO_LIST, SpuSummaryDto.getInfoDto());
+        session.write(sendBuf);
+    }
+
     private void sendSkuSummary(FaiSession session, SearchArg searchArg, Ref<FaiList<Param>> listRef) throws IOException {
         FaiList<Param> infoList = listRef.value;
         FaiBuffer sendBuf = new FaiBuffer(true);
@@ -376,6 +511,4 @@ public class SummaryService extends StoreService {
         }
         session.write(sendBuf);
     }
-
-
 }

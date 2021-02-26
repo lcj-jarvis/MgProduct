@@ -33,5 +33,7 @@ public class SpuBizSummaryDto {
     }
 
     public static class Key extends CommDtoKey{
+        public static final int SEARCH_ARG = 11;
+        public static final int TOTAL_SIZE = 12;
     }
 }

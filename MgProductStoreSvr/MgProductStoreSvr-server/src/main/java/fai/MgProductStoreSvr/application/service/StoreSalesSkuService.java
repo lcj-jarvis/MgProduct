@@ -483,8 +483,13 @@ public class StoreSalesSkuService extends StoreService {
         int rt = Errno.ERROR;
         Ref<FaiList<Param>> listRef = new Ref<>();
         rt = holdingRecordProc.getFromDao(aid, unionPriId, skuIdList, rlOrderCode, listRef);
-        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
-            return rt;
+        if(rt != Errno.OK){
+            if(isMakeup){
+               return rt;
+            }
+            if(rt != Errno.NOT_FOUND){
+                return rt;
+            }
         }
         for (Param info : listRef.value) {
             boolean alreadyDel = info.getBoolean(HoldingRecordEntity.Info.ALREADY_DEL);

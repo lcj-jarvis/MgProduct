@@ -3,7 +3,6 @@ package fai.MgProductStoreSvr.application;
 import fai.MgProductStoreSvr.application.task.HoldingStoreMakeUpTask;
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
 import fai.MgProductStoreSvr.domain.repository.CacheCtrl;
-import fai.MgProductStoreSvr.domain.repository.InOutStoreRecordDaoCtrl;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.cache.redis.config.RedisClientConfig;
 import fai.comm.cache.redis.pool.JedisPool;
@@ -90,6 +89,7 @@ public class MgProductStoreSvr {
         private int lockLease = 1000;
         private int lockLength = 1000;
         private long retryLockTime = 200L;
+        private int zeroCountExpireTime = 10;
 
         public long getRetryLockTime() {
             return retryLockTime;
@@ -115,12 +115,21 @@ public class MgProductStoreSvr {
             this.lockLength = lockLength;
         }
 
+        public int getZeroCountExpireTime() {
+            return zeroCountExpireTime;
+        }
+
+        public void setZeroCountExpireTime(int zeroCountExpireTime) {
+            this.zeroCountExpireTime = zeroCountExpireTime;
+        }
+
         @Override
         public String toString() {
             return "SvrOption{" +
                     "lockLease=" + lockLease +
                     ", lockLength=" + lockLength +
                     ", retryLockTime=" + retryLockTime +
+                    ", zeroCountExpireTime=" + zeroCountExpireTime +
                     '}';
         }
     }
@@ -164,6 +173,5 @@ public class MgProductStoreSvr {
                     '}';
         }
     }
-    private static SvrOption SVR_OPTION;
-    private static final String LOCK_TYPE = "MG_PRODUCT_STORE_SVR_LOCK";
+    public static SvrOption SVR_OPTION;
 }

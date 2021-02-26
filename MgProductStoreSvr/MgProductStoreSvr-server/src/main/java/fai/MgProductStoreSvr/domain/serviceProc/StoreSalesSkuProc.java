@@ -1,6 +1,7 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
 
+import fai.MgProductStoreSvr.application.MgProductStoreSvr;
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
 import fai.MgProductStoreSvr.domain.comm.Utils;
 import fai.MgProductStoreSvr.domain.comm.PdKey;
@@ -255,6 +256,7 @@ public class StoreSalesSkuProc {
         return rt;
     }
 
+    int random = Sys.random();
     /**
      * 扣减库存
      * @return
@@ -282,9 +284,6 @@ public class StoreSalesSkuProc {
                 break;
             }
         }
-        if(rt != Errno.OK && !reduceHoldingCount){
-            batchRollbackReduceStoreCache(aid, unionPriId, alreadyChangeSkuIdCountMap);
-        }
         if(rt !=Errno.OK){
             return rt;
         }
@@ -297,9 +296,12 @@ public class StoreSalesSkuProc {
     private void batchRollbackReduceStoreCache(int aid, int unionPriId, Map<Long, Integer> alreadyChangeSkuIdCountMap) {
         for (Map.Entry<Long, Integer> skuIdCountEntry : alreadyChangeSkuIdCountMap.entrySet()) {
             long skuId = skuIdCountEntry.getKey();
-            cacheManage.removeRemainCountDirtyCacheKey(aid, unionPriId, skuId);
             int count = skuIdCountEntry.getValue();
             int result = StoreSalesSkuCacheCtrl.makeupRemainCount(aid, unionPriId, skuId, count);
+            if(result>=0){
+                cacheManage.removeRemainCountDirtyCacheKey(aid, unionPriId, skuId);
+            }
+            Log.logDbg("whalelog xxx aid=%s;unionPriId=%s;skuId=%s;result=%s;", aid, unionPriId, skuId, result);
             if(result < 0 && result != StoreSalesSkuCacheCtrl.CacheErrno.NO_CACHE){
                 boolean boo = StoreSalesSkuCacheCtrl.delRemainCount(aid, unionPriId, skuId);
                 Log.logErr("makeupRemainCount err;flow=%s;aid=%s;unionPriId=%s;skuId=%s;count=%s;boo=%s;result=%s;", m_flow, aid, unionPriId, skuId, count, boo, result);
@@ -311,12 +313,13 @@ public class StoreSalesSkuProc {
      * 批量 扣减缓存中的剩余库存数量
      */
     private int batchReduceStoreCache(int aid, int unionPriId, Map<Long, Integer> skuIdCountMap, Map<Long, Integer> alreadyChangeSkuIdCountMap) {
-        int rt = Errno.ERROR;
+        int rt = Errno.OK;
         for (Map.Entry<Long, Integer> skuIdCountEntry : skuIdCountMap.entrySet()) {
             long skuId = skuIdCountEntry.getKey();
             cacheManage.collectionRemainCountDirtyCacheKey(aid, unionPriId, skuId);
             int count = skuIdCountEntry.getValue();
             int result = StoreSalesSkuCacheCtrl.reduceRemainCount(aid, unionPriId, skuId, count, zeroCountExpireTime);
+            Log.logDbg("whalelog aid=%s;unionPriId=%s;skuId=%s;result=%s;random=%s;", aid, unionPriId, skuId, result, random);
             if(result < 0){
                 if(result == StoreSalesSkuCacheCtrl.CacheErrno.NO_CACHE){
                     rt = initRemainCountCache(aid, unionPriId, skuId);
@@ -324,8 +327,10 @@ public class StoreSalesSkuProc {
                         break;
                     }
                     result = StoreSalesSkuCacheCtrl.reduceRemainCount(aid, unionPriId, skuId, count, zeroCountExpireTime);
+                    Log.logDbg("whalelog 111 aid=%s;unionPriId=%s;skuId=%s;result=%s;random=%s;", aid, unionPriId, skuId, result, random);
                 }
                 if(result == StoreSalesSkuCacheCtrl.CacheErrno.SHORTAGE){
+                    cacheManage.removeRemainCountDirtyCacheKey(aid, unionPriId, skuId);
                     rt = MgProductErrno.Store.SHORTAGE;
                     break;
                 }
@@ -343,6 +348,9 @@ public class StoreSalesSkuProc {
         int rt = Errno.ERROR;
         LockUtil.lock(aid);
         try {
+            if(StoreSalesSkuCacheCtrl.existsRemainCount(aid, unionPriId, skuId)){
+                return Errno.OK;
+            }
             SearchArg searchArg = new SearchArg();
             searchArg.matcher = new ParamMatcher();
             searchArg.matcher.and(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
@@ -361,6 +369,7 @@ public class StoreSalesSkuProc {
                 Log.logErr(rt, "initRemainCount err;flow=%s;aid=%s;unionPriId=%s;skuId=%s;remainCount=%s;", m_flow, aid, unionPriId, skuId, remainCount);
                 return rt;
             }
+            Log.logDbg("whalelog  init aid=%s;unionPriId=%s;skuId=%s;random=%s;", aid, unionPriId, skuId, random);
         }finally {
             LockUtil.unlock(aid);
         }
@@ -426,29 +435,10 @@ public class StoreSalesSkuProc {
             }
         }
         if(rt != Errno.OK){
-            batchRollbackMakeUpStoreCache(aid, unionPriId, alreadyChangeSkuIdCountMap);
-        }
-        if(rt != Errno.OK){
             return rt;
         }
         Log.logStd("batchMakeUpStore ok;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
         return rt;
-    }
-
-    /**
-     * 批量回滚 补偿的缓存
-     */
-    private void batchRollbackMakeUpStoreCache(int aid, int unionPriId, Map<Long, Integer> alreadyChangeSkuIdCountMap) {
-        for (Map.Entry<Long, Integer> skuIdCountEntry : alreadyChangeSkuIdCountMap.entrySet()) {
-            long skuId = skuIdCountEntry.getKey();
-            cacheManage.removeRemainCountDirtyCacheKey(aid, unionPriId, skuId);
-            int count = skuIdCountEntry.getValue();
-            int result = StoreSalesSkuCacheCtrl.reduceRemainCount(aid, unionPriId, skuId, count, zeroCountExpireTime);
-            if(result < 0 && result != StoreSalesSkuCacheCtrl.CacheErrno.NO_CACHE){
-                boolean boo = StoreSalesSkuCacheCtrl.delRemainCount(aid, unionPriId, skuId);
-                Log.logErr("reduceRemainCount err;flow=%s;aid=%s;unionPriId=%s;skuId=%s;count=%s;boo=%s;result=%s;", m_flow, aid, unionPriId, skuId, count, boo, result);
-            }
-        }
     }
 
     /**
@@ -1060,7 +1050,8 @@ public class StoreSalesSkuProc {
         return cacheManage.deleteRemainCountDirtyCache(aid);
     }
 
-    private int zeroCountExpireTime = 2; // 扣减后库存为0时缓存的过期时间
+    private int zeroCountExpireTime = MgProductStoreSvr.SVR_OPTION.getZeroCountExpireTime(); // 扣减后库存为0时缓存的过期时间
+
     private int m_flow;
     private StoreSalesSkuDaoCtrl m_daoCtrl;
     private CacheManage cacheManage = new CacheManage();

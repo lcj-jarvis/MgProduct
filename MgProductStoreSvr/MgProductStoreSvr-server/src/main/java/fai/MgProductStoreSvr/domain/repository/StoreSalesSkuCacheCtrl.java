@@ -3,9 +3,7 @@ package fai.MgProductStoreSvr.domain.repository;
 import fai.MgProductStoreSvr.domain.comm.SkuStoreKey;
 import fai.MgProductStoreSvr.interfaces.dto.StoreSalesSkuDto;
 import fai.comm.cache.redis.client.RedisClient;
-import fai.comm.util.Errno;
-import fai.comm.util.FaiList;
-import fai.comm.util.Param;
+import fai.comm.util.*;
 
 import java.util.Arrays;
 import java.util.Set;
@@ -31,11 +29,14 @@ public class StoreSalesSkuCacheCtrl extends CacheCtrl{
         m_cache.setFaiList(cacheKey, list, StoreSalesSkuDto.Key.INFO, StoreSalesSkuDto.getInfoDto());
     }
 
+    public static boolean existsRemainCount(int aid, int unionPriId, long skuId){
+        String remainCountCacheKey = getRemainCountCacheKey(aid, unionPriId, skuId);
+        return m_cache.exists(remainCountCacheKey);
+    }
+
     public static int initRemainCount(int aid, int unionPriId, long skuId, int count){
         String remainCountCacheKey = getRemainCountCacheKey(aid, unionPriId, skuId);
-        boolean set = set(remainCountCacheKey, String.valueOf(count));
-        if(set){
-            m_cache.expire(remainCountCacheKey, m_cache.getExpireSecond());
+        if(m_cache.set(remainCountCacheKey, String.valueOf(count))){
             return Errno.OK;
         }
         return Errno.ERROR;
@@ -50,28 +51,22 @@ public class StoreSalesSkuCacheCtrl extends CacheCtrl{
         String remainCountCacheKey = getRemainCountCacheKey(aid, unionPriId, skuId);
         RedisClient redisClient = m_cache.getRedisClient();
         Object result = redisClient.eval(LuaScript.REDUCE_REMAIN_COUNT, Arrays.asList(remainCountCacheKey, remainCountCacheKey), Arrays.asList(String.valueOf(count), String.valueOf(zeroCountExpireTime)));
-        if(result instanceof Integer){
-            int res = (int)result;
-            if(res > 0){
-                m_cache.expire(remainCountCacheKey, m_cache.getExpireSecond());
-            }
-            return res;
+        int res = Parser.parseInt(result.toString(), CacheErrno.NO_CACHE);
+        if(res > 0){
+            m_cache.expire(remainCountCacheKey, m_cache.getExpireSecond());
         }
-        return -1;
+        return res;
     }
     public static int makeupRemainCount(int aid, int unionPriId, long skuId, int count){
         count = -count;
         String remainCountCacheKey = getRemainCountCacheKey(aid, unionPriId, skuId);
         RedisClient redisClient = m_cache.getRedisClient();
         Object result = redisClient.eval(LuaScript.REDUCE_REMAIN_COUNT, Arrays.asList(remainCountCacheKey, remainCountCacheKey), Arrays.asList(String.valueOf(count), String.valueOf(0)));
-        if(result instanceof Integer){
-            int res = (int)result;
-            if(res > 0){
-                m_cache.expire(remainCountCacheKey, m_cache.getExpireSecond());
-            }
-            return res;
+        int res = Parser.parseInt(result.toString(), CacheErrno.NO_CACHE);
+        if(res > 0){
+            m_cache.expire(remainCountCacheKey, m_cache.getExpireSecond());
         }
-        return -1;
+        return res;
     }
 
     public static boolean delRemainCount(int aid, int unionPriId, long skuId) {

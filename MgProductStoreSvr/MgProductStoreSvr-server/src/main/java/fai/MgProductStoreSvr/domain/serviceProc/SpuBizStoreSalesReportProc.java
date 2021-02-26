@@ -79,6 +79,7 @@ public class SpuBizStoreSalesReportProc {
         try {
             // 发送成功返回SendResult对象
             SendResult send = producer.send(message);
+            Log.logDbg("send=%s", send);
             return Errno.OK;
         } catch (MqClientException e) {
             // 发送失败会抛出异常,业务方自己处理,入库或者告警

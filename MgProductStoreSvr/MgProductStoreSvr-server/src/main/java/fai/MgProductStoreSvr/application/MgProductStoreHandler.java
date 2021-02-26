@@ -1,7 +1,6 @@
 package fai.MgProductStoreSvr.application;
 
-import fai.MgProductStoreSvr.application.mq.SpuBizReportConsumeListener;
-import fai.MgProductStoreSvr.application.mq.SkuSummaryReportConsumeListener;
+import fai.MgProductStoreSvr.application.mq.ReportConsumeListener;
 import fai.MgProductStoreSvr.application.service.RecordService;
 import fai.MgProductStoreSvr.application.service.StoreSalesSkuService;
 import fai.MgProductStoreSvr.application.service.StoreService;
@@ -39,8 +38,7 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
         }
 
         Consumer consumer = MqFactory.createConsumer(MqConfig.SpuBizReport.CONSUMER);
-        consumer.subscribe(MqConfig.SpuBizReport.TOPIC, MqConfig.SpuBizReport.TAG, new SpuBizReportConsumeListener(m_summaryService));
-        consumer.subscribe(MqConfig.SkuReport.TOPIC, MqConfig.SkuReport.TAG, new SkuSummaryReportConsumeListener(m_summaryService));
+        consumer.subscribe(MqConfig.Report.TOPIC, "*", new ReportConsumeListener(m_summaryService));
         rt = consumer.start();
         if (rt != Errno.OK) {
             Log.logErr(rt, "consumer start err;");

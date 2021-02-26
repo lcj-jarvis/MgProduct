@@ -11,13 +11,13 @@ public class MqConfig {
         public static final String PRODUCER = "mgProductStoreProducer";
         public static final String CONSUMER = "mgProductStoreConsumer";
     }
-    public class SpuBizReport extends Comm {
-        public static final String TOPIC = "mg_productStore_spuBizReport_topic";
+    public class Report extends Comm{
+        public static final String TOPIC = "mg_productStore_report_topic";
+    }
+    public class SpuBizReport extends Report {
         public static final String TAG = "mg_productStore_spuBizReport_tag";
     }
-
-    public class SkuReport extends Comm {
-        public static final String TOPIC = "mg_productStore_skuReport_topic";
+    public class SkuReport extends Report {
         public static final String TAG = "mg_productStore_skuReport_tag";
     }
 

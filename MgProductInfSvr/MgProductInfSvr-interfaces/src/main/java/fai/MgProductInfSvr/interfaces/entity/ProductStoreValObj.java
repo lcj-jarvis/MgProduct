@@ -50,6 +50,7 @@ public class ProductStoreValObj {
          * 标志位
          */
         public static final class FLag{
+            public static final int NOT_CHANGE_COUNT = 0x1;   // 不改变总库存
         }
 
         /**

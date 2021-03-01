@@ -60,7 +60,7 @@ public class MgProductInfService extends ServicePub {
             return rt;
         }
 
-        rt = cli.getListByUnionPriIds(tid, unionPriIds, list);
+        rt = cli.getListByUnionPriIds(unionPriIds, list);
         if(rt != Errno.OK) {
             Log.logErr(rt, "getListByUnionPriIds error;flow=%d;aid=%d;tid=%d;unionPriIds=%s;", flow, aid, tid, unionPriIds);
             return rt;

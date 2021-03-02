@@ -16,6 +16,7 @@ public class MgProductStoreCmd {
 		public static final int NUM9 = 5009;
 		public static final int NUM10 = 5010;
 		public static final int NUM11 = 5011;
+		public static final int NUM12 = 5012;
 	}
 
 
@@ -105,5 +106,12 @@ public class MgProductStoreCmd {
 	public static class SkuSummaryCmd {
 		public static final int GET_LIST = ReadCmdNum.NUM4;
 		public static final int BIZ_GET_LIST = ReadCmdNum.NUM5;
+	}
+
+	/**
+	 * 预扣记录相关
+	 */
+	public static class HoldingRecordCmd{
+		public static final int GET_LIST = ReadCmdNum.NUM12;
 	}
 }

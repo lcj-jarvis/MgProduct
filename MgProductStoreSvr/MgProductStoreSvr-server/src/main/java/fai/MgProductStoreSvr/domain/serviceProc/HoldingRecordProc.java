@@ -70,7 +70,7 @@ public class HoldingRecordProc {
         return rt;
     }
 
-    public int getFromDao(int aid, int unionPriId, FaiList<Long> skuIdList, String rlOrderCode, Ref<FaiList<Param>> listRef){
+    public int getListFromDao(int aid, int unionPriId, FaiList<Long> skuIdList, String rlOrderCode, Ref<FaiList<Param>> listRef){
         if(aid <= 0 || unionPriId <= 0 || skuIdList == null || Str.isEmpty(rlOrderCode)){
             Log.logStd("get error;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;rlOrderCode=%s;", m_flow, aid, unionPriId, skuIdList, rlOrderCode);
             return Errno.ARGS_ERROR;
@@ -85,7 +85,26 @@ public class HoldingRecordProc {
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             Log.logErr(rt,"dao selectFirst error;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;rlOrderCode=%s;", m_flow, aid, unionPriId, skuIdList, rlOrderCode);
         }
-        Log.logStd(rt,"ok;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;rlOrderCode=%s;", m_flow, aid, unionPriId, skuIdList, rlOrderCode);
+        Log.logDbg(rt,"ok;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;rlOrderCode=%s;", m_flow, aid, unionPriId, skuIdList, rlOrderCode);
+        return rt;
+    }
+
+    public int getNotDelListFromDao(int aid, int unionPriId, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef){
+        if(aid <= 0 || unionPriId <= 0 || skuIdList == null){
+            Log.logStd("get error;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;rlOrderCode=%s;", m_flow, aid, unionPriId, skuIdList);
+            return Errno.ARGS_ERROR;
+        }
+        ParamMatcher matcher = new ParamMatcher(HoldingRecordEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(HoldingRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(HoldingRecordEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
+        matcher.and(HoldingRecordEntity.Info.ALREADY_DEL, ParamMatcher.EQ, false);
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        int rt = m_daoCtrl.select(searchArg, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            Log.logErr(rt,"dao selectFirst error;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s", m_flow, aid, unionPriId, skuIdList);
+        }
+        Log.logDbg(rt,"ok;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;", m_flow, aid, unionPriId, skuIdList);
         return rt;
     }
 

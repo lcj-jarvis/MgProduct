@@ -61,7 +61,7 @@ public class InOutStoreRecordProc {
     /**
      * 批量添加出库记录
      */
-    public int batchAddOutStoreRecord(int aid, int unionPriId, Map<Long, Integer> skuIdChangeCountMap, Map<SkuStoreKey, Param> changeCountAfterSkuStoreSalesInfoMap, Param info, Map<Long, FaiList<Integer>> skuIdInPdScStrIdListMap) {
+    public int batchAddOutStoreRecord(int aid, int unionPriId, Map<Long, Integer> skuIdChangeCountMap, Map<SkuStoreKey, Param> changeCountAfterSkuStoreSalesInfoMap, Param info, Map<Long, FaiList<Integer>> skuIdInPdScStrIdListMap, Ref<Integer> idRef) {
         if(aid <= 0 || unionPriId <= 0 || skuIdChangeCountMap == null || info == null || info.isEmpty() || skuIdInPdScStrIdListMap == null){
             Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;skuIdChangeCountMap=%s;info=%s;skuIdInPdScStrIdListMap=%s;", m_flow, aid, unionPriId, skuIdChangeCountMap, info, skuIdInPdScStrIdListMap);
             return Errno.ARGS_ERROR;
@@ -84,11 +84,14 @@ public class InOutStoreRecordProc {
             dataList.add(data);
         }
 
-        return batchAdd(aid, dataList, changeCountAfterSkuStoreSalesInfoMap);
+        return batchAdd(aid, dataList, changeCountAfterSkuStoreSalesInfoMap, idRef);
     }
 
-
     public int batchAdd(int aid, FaiList<Param> infoList, Map<SkuStoreKey, Param> changeCountAfterSkuStoreSalesInfoMap) {
+        return  batchAdd(aid, infoList, changeCountAfterSkuStoreSalesInfoMap, null);
+    }
+
+    public int batchAdd(int aid, FaiList<Param> infoList, Map<SkuStoreKey, Param> changeCountAfterSkuStoreSalesInfoMap, Ref<Integer> idRef) {
         if(aid <= 0 || infoList == null || infoList.isEmpty() || changeCountAfterSkuStoreSalesInfoMap == null){
             Log.logStd("arg error;flow=%d;aid=%s;infoList=%s;changeCountAfterSkuStoreSalesInfoMap=%s;", m_flow, aid, infoList, changeCountAfterSkuStoreSalesInfoMap);
             return Errno.ARGS_ERROR;
@@ -101,6 +104,9 @@ public class InOutStoreRecordProc {
         if(ioStoreRecId == null){
             Log.logErr("buildId err aid=%s", aid);
             return Errno.ERROR;
+        }
+        if(idRef != null){
+            idRef.value = ioStoreRecId;
         }
         String number = InOutStoreRecordValObj.Number.genNumber(yyMMdd, ioStoreRecId);
 

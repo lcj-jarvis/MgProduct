@@ -4,8 +4,8 @@ import fai.MgPrimaryKeySvr.interfaces.entity.MgPrimaryKeyEntity;
 import fai.MgProductBasicSvr.interfaces.entity.ProductRelEntity;
 import fai.MgProductInfSvr.domain.comm.BizPriKey;
 import fai.MgProductInfSvr.domain.serviceproc.ProductBasicProc;
-import fai.MgProductInfSvr.domain.serviceproc.ProductStoreProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductSpecProc;
+import fai.MgProductInfSvr.domain.serviceproc.ProductStoreProc;
 import fai.MgProductInfSvr.interfaces.dto.ProductStoreDto;
 import fai.MgProductInfSvr.interfaces.entity.*;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
@@ -175,14 +175,15 @@ public class ProductStoreService extends MgProductInfService {
                 return rt;
             }
             int unionPriId = idRef.value;
-
+            Ref<Integer> ioStoreRecordIdRef = new Ref<>();
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-            rt = productStoreProc.batchReducePdSkuHoldingStore(aid, tid, unionPriId, skuIdCountList, rlOrderCode, outStoreRecordInfo);
+            rt = productStoreProc.batchReducePdSkuHoldingStore(aid, tid, unionPriId, skuIdCountList, rlOrderCode, outStoreRecordInfo, ioStoreRecordIdRef);
             if(rt != Errno.OK) {
                 return rt;
             }
 
             FaiBuffer sendBuf = new FaiBuffer(true);
+            sendBuf.putInt(ProductStoreDto.Key.IN_OUT_STORE_RECORD_ID, ioStoreRecordIdRef.value);
             session.write(sendBuf);
         }finally {
             stat.end(rt != Errno.OK, rt);
@@ -337,6 +338,43 @@ public class ProductStoreService extends MgProductInfService {
             rt = Errno.OK;
             FaiBuffer sendBuf = new FaiBuffer(true);
             infoList.toBuffer(sendBuf, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.StoreSalesSku.getInfoDto());
+            session.write(sendBuf);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * 获取预扣记录
+     */
+    public int getHoldingRecordList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Long> skuIdList)  throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+            FaiList<Param> infoList = new FaiList<>();
+            ProductStoreProc storeProc = new ProductStoreProc(flow);
+            rt = storeProc.getHoldingRecordList(aid, tid, unionPriId, skuIdList, infoList);
+            if(rt != Errno.OK){
+                return rt;
+            }
+
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            infoList.toBuffer(sendBuf, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.HoldingRecord.getInfoDto());
             session.write(sendBuf);
         }finally {
             stat.end(rt != Errno.OK, rt);

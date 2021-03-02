@@ -298,6 +298,9 @@ public class MgProductStoreCli extends FaiClient {
         }
     }
 
+    public int batchReducePdSkuHoldingStore(int aid, int tid, int unionPriId, FaiList<Param> skuIdCountList, String rlOrderCode, Param outStoreRecordInfo){
+        return batchReducePdSkuHoldingStore(aid, tid, unionPriId, skuIdCountList, rlOrderCode, outStoreRecordInfo, null);
+    }
     /**
      * 批量扣减预扣库存
      * 预扣模式 {@link StoreSalesSkuValObj.ReduceMode#HOLDING} 步骤2
@@ -306,7 +309,7 @@ public class MgProductStoreCli extends FaiClient {
      * @param outStoreRecordInfo 出库记录
      * @return
      */
-    public int batchReducePdSkuHoldingStore(int aid, int tid, int unionPriId, FaiList<Param> skuIdCountList, String rlOrderCode, Param outStoreRecordInfo){
+    public int batchReducePdSkuHoldingStore(int aid, int tid, int unionPriId, FaiList<Param> skuIdCountList, String rlOrderCode, Param outStoreRecordInfo, Ref<Integer> ioStoreRecordIdRef){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -343,6 +346,21 @@ public class MgProductStoreCli extends FaiClient {
             m_rt = recvProtocol.getResult();
             if (m_rt != Errno.OK) {
                 return m_rt;
+            }
+            if(ioStoreRecordIdRef != null){
+                FaiBuffer recvBody = recvProtocol.getDecodeBody();
+                if (recvBody == null) {
+                    m_rt = Errno.CODEC_ERROR;
+                    Log.logErr(m_rt, "recv body null");
+                    return m_rt;
+                }
+                // recv info
+                Ref<Integer> keyRef = new Ref<Integer>();
+                m_rt = recvBody.getInt(keyRef, ioStoreRecordIdRef);
+                if(m_rt != Errno.OK || keyRef.value != StoreSalesSkuDto.Key.IN_OUT_STORE_REC_ID){
+                    Log.logErr(m_rt, "recv codec err");
+                    return m_rt;
+                }
             }
             return m_rt;
         } finally {
@@ -595,6 +613,75 @@ public class MgProductStoreCli extends FaiClient {
             Ref<Integer> keyRef = new Ref<Integer>();
             m_rt = infoList.fromBuffer(recvBody, keyRef, StoreSalesSkuDto.getInfoDto());
             if (m_rt != Errno.OK || keyRef.value != StoreSalesSkuDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            return m_rt = Errno.OK;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    /**
+     * 获取预扣记录
+     */
+    public int getHoldingRecordList(int aid, int tid, int unionPriId, FaiList<Long> skuIdList, FaiList<Param> infoList){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(skuIdList == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "skuIdList error");
+            }
+            if(infoList == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "infoList error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(HoldingRecordDto.Key.TID, tid);
+            sendBody.putInt(HoldingRecordDto.Key.UNION_PRI_ID, unionPriId);
+            skuIdList.toBuffer(sendBody, HoldingRecordDto.Key.ID_LIST);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.HoldingRecordCmd.GET_LIST);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = infoList.fromBuffer(recvBody, keyRef, HoldingRecordDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != HoldingRecordDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
             }

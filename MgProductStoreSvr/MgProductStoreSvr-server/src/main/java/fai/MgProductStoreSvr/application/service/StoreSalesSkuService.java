@@ -9,6 +9,7 @@ import fai.MgProductStoreSvr.domain.entity.*;
 import fai.MgProductStoreSvr.domain.repository.*;
 import fai.MgProductStoreSvr.domain.serviceProc.*;
 import fai.MgProductStoreSvr.interfaces.conf.MqConfig;
+import fai.MgProductStoreSvr.interfaces.dto.HoldingRecordDto;
 import fai.MgProductStoreSvr.interfaces.dto.StoreSalesSkuDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.mq.api.MqFactory;
@@ -485,7 +486,7 @@ public class StoreSalesSkuService extends StoreService {
     private int checkHoldingRecordExists(HoldingRecordProc holdingRecordProc, int aid, int unionPriId, FaiList<Long> skuIdList, String rlOrderCode, Map<Long, Integer> skuIdCountMap, boolean notJudgeDel, boolean isMakeup){
         int rt = Errno.ERROR;
         Ref<FaiList<Param>> listRef = new Ref<>();
-        rt = holdingRecordProc.getFromDao(aid, unionPriId, skuIdList, rlOrderCode, listRef);
+        rt = holdingRecordProc.getListFromDao(aid, unionPriId, skuIdList, rlOrderCode, listRef);
         if(rt != Errno.OK){
             if(isMakeup){
                return rt;
@@ -547,7 +548,7 @@ public class StoreSalesSkuService extends StoreService {
                 return rt;
             }
             Map<Long, FaiList<Integer>> skuIdInPdScStrIdListMap = Utils.getMap(skuInfoList, ProductSpecSkuEntity.Info.SKU_ID, ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST);
-
+            Ref<Integer> ioStoreRecordIdRef = new Ref<>();
             // 事务
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
@@ -600,7 +601,7 @@ public class StoreSalesSkuService extends StoreService {
 
                         // 添加出库记录
                         outStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.OPT_TYPE, InOutStoreRecordValObj.OptType.OUT);
-                        rt = inOutStoreRecordProc.batchAddOutStoreRecord(aid, unionPriId, skuIdChangeCountMap, changeCountAfterSkuStoreSalesInfoMap, outStoreRecordInfo, skuIdInPdScStrIdListMap);
+                        rt = inOutStoreRecordProc.batchAddOutStoreRecord(aid, unionPriId, skuIdChangeCountMap, changeCountAfterSkuStoreSalesInfoMap, outStoreRecordInfo, skuIdInPdScStrIdListMap, ioStoreRecordIdRef);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -629,6 +630,7 @@ public class StoreSalesSkuService extends StoreService {
             // 异步上报数据
             asynchronousReport(flow, aid, unionPriId, skuIdList, pdIdList);
             FaiBuffer sendBuf = new FaiBuffer(true);
+            sendBuf.putInt(StoreSalesSkuDto.Key.IN_OUT_STORE_REC_ID, ioStoreRecordIdRef.value);
             session.write(sendBuf);
             Log.logStd("aid=%d;unionPriId=%s;rlOrderCode=%s;skuIdChangeCountMap=%s;", aid, unionPriId, rlOrderCode, skuIdChangeCountMap);
         }finally {
@@ -838,7 +840,7 @@ public class StoreSalesSkuService extends StoreService {
         try {
             if (aid <= 0 || pdId <= 0) {
                 rt = Errno.ARGS_ERROR;
-                Log.logErr("arg err;flow=%d;aid=%d;skuId=%s;", flow, aid, pdId);
+                Log.logErr("arg err;flow=%d;aid=%d;pdId=%s;", flow, aid, pdId);
                 return rt;
             }
             Ref<FaiList<Param>> listRef = new Ref<>();
@@ -859,11 +861,43 @@ public class StoreSalesSkuService extends StoreService {
         }
         return rt;
     }
-
     private void sendPdScSkuSalesStore(FaiSession session, FaiList<Param> infoList) throws IOException {
         FaiBuffer sendBuf = new FaiBuffer(true);
         infoList.toBuffer(sendBuf, StoreSalesSkuDto.Key.INFO_LIST, StoreSalesSkuDto.getInfoDto());
         session.write(sendBuf);
+    }
+
+    /**
+     * 获取预扣情况
+     */
+    public int getHoldingRecordList(FaiSession session, int flow, int aid, int tid, int unionPriId, FaiList<Long> skuIdList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || unionPriId <= 0 || skuIdList == null || skuIdList.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;", flow, aid, unionPriId, skuIdList);
+                return rt;
+            }
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            HoldingRecordDaoCtrl holdingRecordDaoCtrl = HoldingRecordDaoCtrl.getInstance(flow, aid);
+            try {
+                HoldingRecordProc holdingRecordProc = new HoldingRecordProc(holdingRecordDaoCtrl, flow);
+                rt = holdingRecordProc.getNotDelListFromDao(aid, unionPriId, skuIdList, listRef);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+            }finally {
+                holdingRecordDaoCtrl.closeDao();
+            }
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            listRef.value.toBuffer(sendBuf, HoldingRecordDto.Key.INFO_LIST, HoldingRecordDto.getInfoDto());
+            session.write(sendBuf);
+            Log.logDbg("ok;aid=%d;unionPriId=%s;skuIdList=%s;", aid, unionPriId, skuIdList);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
     }
 
     /**

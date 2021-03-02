@@ -126,4 +126,17 @@ public class ProductStoreEntity {
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
     }
 
+    public static final class HoldingRecordInfo{
+        public static final String AID = "aid";                                     // int 企业aid
+        public static final String TID = "tid";                                     // int 项目id
+        public static final String SITE_ID = "siteId";                              // int 站点id
+        public static final String LGID = "lgId";                                   // int 多语言id
+        public static final String KEEP_PRI_ID1 = "keepPriId1";                     // int 保留主键id1
+        public static final String SKU_ID = "skuId";                                // long skuId
+        public static final String RL_ORDER_CODE = "rlOrderCode";                   // String 业务订单code/id
+        public static final String ITEM_ID = "itemId";                              // int 订单项id
+        public static final String COUNT = "count";                                 // int 预扣数量
+        public static final String EXPIRE_TIME  = "expireTime";                     // datetime 失效时间
+        public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
+    }
 }

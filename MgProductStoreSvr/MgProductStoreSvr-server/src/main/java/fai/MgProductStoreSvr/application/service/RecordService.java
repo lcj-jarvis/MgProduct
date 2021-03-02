@@ -121,7 +121,7 @@ public class RecordService extends StoreService {
     /**
      * 添加出入库记录
      */
-    public int addInOutStoreRecordInfoList(FaiSession session, int flow, int aid, int tid, int ownerUnionPriId, FaiList<Param> infoList) throws IOException {
+    public int addInOutStoreRecordInfoList(FaiSession session, int flow, int aid, int tid, int ownerUnionPriId, FaiList<Param> infoList) throws IOException     {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -305,6 +305,7 @@ public class RecordService extends StoreService {
 
         return rt;
     }
+
 
     /**
      * 获取出入库记录

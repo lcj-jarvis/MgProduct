@@ -416,11 +416,14 @@ public class ProductSpecService extends MgProductInfService {
                 String specName = info.getString(ProductTempEntity.ProductInfo.SPEC_NAME);
                 String specValName = info.getString(ProductTempEntity.ProductInfo.SPEC_VAL_NAME);
                 FaiList<Param> inPdScValList = new FaiList<>();
-                inPdScValList.add(
-                        new Param()
-                                .setString(ProductSpecValObj.InPdScValList.Item.NAME, specValName)
-                                .setBoolean(ProductSpecValObj.InPdScValList.Item.CHECK, true)
-                );
+                if(!Str.isEmpty(specValName)){
+                    inPdScValList.add(
+                            new Param()
+                                    .setString(ProductSpecValObj.InPdScValList.Item.NAME, specValName)
+                                    .setBoolean(ProductSpecValObj.InPdScValList.Item.CHECK, true)
+                    );
+                }
+
                 if(!alreadyHavePdIdSet.contains(pdId)){
                     spuToSkuInfoList.add(
                             new Param()

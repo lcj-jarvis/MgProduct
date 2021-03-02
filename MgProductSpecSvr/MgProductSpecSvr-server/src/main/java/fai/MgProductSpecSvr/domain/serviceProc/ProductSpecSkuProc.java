@@ -3,6 +3,7 @@ package fai.MgProductSpecSvr.domain.serviceProc;
 
 import fai.MgProductSpecSvr.domain.comm.Utils;
 import fai.MgProductSpecSvr.domain.entity.ProductSpecSkuEntity;
+import fai.MgProductSpecSvr.domain.entity.ProductSpecSkuValObj;
 import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuCacheCtrl;
 import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuDaoCtrl;
 import fai.comm.util.*;
@@ -41,7 +42,11 @@ public class ProductSpecSkuProc {
             data.assign(info, ProductSpecSkuEntity.Info.SKU_NUM); // TODO
             FaiList<Integer> inPdScStrIdList = info.getListNullIsEmpty(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST);
             data.setString(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList.toJson());
-            data.assign(info, ProductSpecSkuEntity.Info.FLAG);
+            int flag = info.getInt(ProductSpecSkuEntity.Info.FLAG, 0);
+            if(inPdScStrIdList.isEmpty()){
+                flag |= ProductSpecSkuValObj.FLag.EMPTY;
+            }
+            info.setInt(ProductSpecSkuEntity.Info.FLAG, flag);
             data.setCalendar(ProductSpecSkuEntity.Info.SYS_CREATE_TIME, now);
             data.setCalendar(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME, now);
             dataList.add(data);

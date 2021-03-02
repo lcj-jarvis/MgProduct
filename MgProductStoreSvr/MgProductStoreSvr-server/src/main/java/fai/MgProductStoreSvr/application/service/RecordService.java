@@ -1,11 +1,12 @@
 package fai.MgProductStoreSvr.application.service;
 
+import fai.MgProductStoreSvr.domain.comm.InOutStoreRecordArgCheck;
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
 import fai.MgProductStoreSvr.domain.comm.PdKey;
 import fai.MgProductStoreSvr.domain.comm.SkuStoreKey;
 import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordEntity;
 import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordValObj;
-import fai.MgProductStoreSvr.domain.entity.SpuBizStoreSalesReportValObj;
+import fai.MgProductStoreSvr.domain.entity.ReportValObj;
 import fai.MgProductStoreSvr.domain.repository.*;
 import fai.MgProductStoreSvr.domain.serviceProc.*;
 import fai.MgProductStoreSvr.interfaces.dto.InOutStoreRecordDto;
@@ -110,7 +111,7 @@ public class RecordService extends StoreService {
             }
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
-            Log.logStd("ok;aid=%s;",aid);
+            Log.logStd("ok;flow=%s;aid=%s;", flow, aid);
         }finally {
             stat.end(rt != Errno.OK, rt);
         }
@@ -129,7 +130,11 @@ public class RecordService extends StoreService {
                 Log.logErr("arg err;flow=%d;aid=%d;infoList=%s;ownerUnionPriId=%s;", flow, aid, ownerUnionPriId, infoList);
                 return rt;
             }
-            TreeMap<SkuStoreKey, Integer> skuStoreChangeCountMap = new TreeMap<>(); // 使用 有序map, 避免事务中 批量修改时如果无序 相互锁住 导致死锁
+            /* 使用 有序map, 避免事务中 批量修改时如果无序 相互锁住 导致死锁
+             *  Pair.first <===> remainCount
+             *  Pair.second <===> count
+             */
+            TreeMap<SkuStoreKey, Pair<Integer, Integer>> skuStoreChangeCountMap = new TreeMap<>();
             Set<Integer> pdIdSet = new HashSet<>();
             Map<SkuStoreKey, PdKey> needCheckSkuStoreKeyPdKeyMap = new HashMap<>();
             Set<Long> skuIdSet = new HashSet<>();
@@ -156,15 +161,30 @@ public class RecordService extends StoreService {
                     return Errno.ARGS_ERROR;
                 }
                 int optType = info.getInt(InOutStoreRecordEntity.Info.OPT_TYPE, 0);
-                if (optType <= 0) {
+                if (!InOutStoreRecordArgCheck.isValidOptType(optType)) {
                     Log.logErr("optType err;aid=%s;info=%s;", aid, info);
                     return Errno.ARGS_ERROR;
                 }
-                int changeCount = info.getInt(InOutStoreRecordEntity.Info.CHANGE_COUNT, 0);
-                if (changeCount <= 0) {
+                int changeCount = info.getInt(InOutStoreRecordEntity.Info.CHANGE_COUNT, -1);
+                if (!InOutStoreRecordArgCheck.isValidChangeCount(changeCount)) {
                     Log.logErr("changeCount err;aid=%s;info=%s;", aid, info);
                     return Errno.ARGS_ERROR;
                 }
+                if(!InOutStoreRecordArgCheck.isValidRemark(info)){
+                    Log.logErr("remark err;aid=%s;info=%s;", aid, info);
+                    return Errno.ARGS_ERROR;
+                }
+                if(!InOutStoreRecordArgCheck.isValidRlOrderCode(info)){
+                    Log.logErr("rlOrderCode err;aid=%s;info=%s;", aid, info);
+                    return Errno.ARGS_ERROR;
+                }
+                if(!InOutStoreRecordArgCheck.isValidRlRefundId(info)){
+                    Log.logErr("rlRefundId err;aid=%s;info=%s;", aid, info);
+                    return Errno.ARGS_ERROR;
+                }
+
+                int flag = info.getInt(InOutStoreRecordEntity.Info.FLAG, 0);
+
                 pdIdSet.add(pdId);
                 skuIdSet.add(skuId);
                 SkuStoreKey skuStoreKey = new SkuStoreKey(unionPriId, skuId);
@@ -172,10 +192,11 @@ public class RecordService extends StoreService {
                     needCheckSkuStoreKeyPdKeyMap.put(skuStoreKey, new PdKey(unionPriId, pdId, rlPdId));
                 }
                 info.setInt(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, ownerUnionPriId);
-                Integer count = skuStoreChangeCountMap.get(skuStoreKey);
-                if(count == null){
-                    count = 0;
+                Pair<Integer, Integer> pair = skuStoreChangeCountMap.get(skuStoreKey);
+                if(pair == null){
+                    pair = new Pair<>(0, 0);
                 }
+                Integer count = pair.first;
                 try {
                     count = InOutStoreRecordValObj.OptType.computeCount(optType, count, changeCount);
                 }catch (RuntimeException e){
@@ -183,7 +204,12 @@ public class RecordService extends StoreService {
                     Log.logErr(rt, e, "arg err;flow=%d;aid=%d;info=%s;", flow, aid, info);
                     return rt;
                 }
-                skuStoreChangeCountMap.put(skuStoreKey, count);
+                pair.first = count;
+                pair.second = count;
+                if(Misc.checkBit(flag, InOutStoreRecordValObj.FLag.NOT_CHANGE_COUNT)){
+                    pair.second = 0;
+                }
+                skuStoreChangeCountMap.put(skuStoreKey, pair);
                 if(!info.containsKey(InOutStoreRecordEntity.Info.REMAIN_COUNT)){ // 兼容数据迁移
                     needGetChangeCountAfterSkuStoreKeySet.add(skuStoreKey);
                 }
@@ -250,7 +276,7 @@ public class RecordService extends StoreService {
                     }
                     try {
                         transactionCtrl.setAutoCommit(false);
-                        rt = reportSummary(aid, new FaiList<>(pdIdSet), SpuBizStoreSalesReportValObj.Flag.REPORT_COUNT,
+                        rt = reportSummary(aid, new FaiList<>(pdIdSet), ReportValObj.Flag.REPORT_COUNT,
                                 new FaiList<>(skuIdSet), storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
                         if(rt != Errno.OK){
                             return rt;
@@ -262,6 +288,7 @@ public class RecordService extends StoreService {
                         }
                         transactionCtrl.commit();
                         spuBizSummaryProc.deleteDirtyCache(aid);
+                        spuSummaryProc.deleteDirtyCache(aid);
                     }
                 }finally {
                     LockUtil.unlock(aid);
@@ -292,7 +319,7 @@ public class RecordService extends StoreService {
                 return rt;
             }
 
-            if(searchArg.limit > 100){
+            if(searchArg.limit > InOutStoreRecordValObj.SearchArg.Limit.MAX){
                 Log.logErr("searchArg.limit err;flow=%d;aid=%d;searchArg.limit=%s;", flow, aid, searchArg.limit);
                 return rt = Errno.ARGS_ERROR;
             }

@@ -106,7 +106,7 @@ public class StoreSalesSkuService extends StoreService {
                         Log.logDbg("not modify;flow=%d;aid=%d;unionPriId=%s;pdId=%s;rlPdId=%s;", flow, aid, unionPriId, pdId, rlPdId);
                         return rt = Errno.OK;
                     }
-                    rt = reportSummary(aid, new FaiList<>(Arrays.asList(pdId)), SpuBizStoreSalesReportValObj.Flag.REPORT_COUNT|SpuBizStoreSalesReportValObj.Flag.REPORT_PRICE
+                    rt = reportSummary(aid, new FaiList<>(Arrays.asList(pdId)), ReportValObj.Flag.REPORT_COUNT| ReportValObj.Flag.REPORT_PRICE
                             , null, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
                     if(rt != Errno.OK){
                         return rt;
@@ -118,6 +118,7 @@ public class StoreSalesSkuService extends StoreService {
                     }
                     transactionCtrl.commit();
                     spuBizSummaryProc.deleteDirtyCache(aid);
+                    spuSummaryProc.deleteDirtyCache(aid);
                 }
             }finally {
                 LockUtil.unlock(aid);
@@ -226,7 +227,7 @@ public class StoreSalesSkuService extends StoreService {
                         long skuId = reportInfo.getLong(StoreSalesSkuEntity.Info.SKU_ID);
                         {
                             Param spuBizSalesSummaryInfo = new Param();
-                            assemblySpuBizSummaryInfo(spuBizSalesSummaryInfo, reportInfo, SpuBizStoreSalesReportValObj.Flag.REPORT_PRICE| SpuBizStoreSalesReportValObj.Flag.REPORT_COUNT);
+                            assemblySpuBizSummaryInfo(spuBizSalesSummaryInfo, reportInfo, ReportValObj.Flag.REPORT_PRICE| ReportValObj.Flag.REPORT_COUNT);
                             Map<Integer, Param> pdId_bizSalesSummaryInfoMap = unionPriId_pdId_bizSalesSummaryInfoMapMap.get(unionPriId);
                             if(pdId_bizSalesSummaryInfoMap == null){
                                 pdId_bizSalesSummaryInfoMap = new HashMap<>();
@@ -300,6 +301,7 @@ public class StoreSalesSkuService extends StoreService {
                     }
                     transactionCtrl.commit();
                     spuBizSummaryProc.deleteDirtyCache(aid);
+                    spuSummaryProc.deleteDirtyCache(aid);
                 }
             }finally {
                 LockUtil.unlock(aid);
@@ -308,7 +310,7 @@ public class StoreSalesSkuService extends StoreService {
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
             long endTime = System.currentTimeMillis();
-            Log.logStd("ok;aid=%s;consume=%s;",aid, (endTime-startTime));
+            Log.logStd("ok;flow=%s;aid=%s;consume=%s;",flow, aid, (endTime-startTime));
         }finally {
             stat.end(rt != Errno.OK, rt);
         }
@@ -358,7 +360,7 @@ public class StoreSalesSkuService extends StoreService {
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = reportSummary(aid, new FaiList<>(Arrays.asList(pdId)), SpuBizStoreSalesReportValObj.Flag.REPORT_PRICE,
+                        rt = reportSummary(aid, new FaiList<>(Arrays.asList(pdId)), ReportValObj.Flag.REPORT_PRICE,
                                 skuIdList, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
                         if(rt != Errno.OK){
                             return rt;
@@ -371,6 +373,7 @@ public class StoreSalesSkuService extends StoreService {
                         transactionCtrl.commit();
                         transactionCtrl.closeDao();
                         spuBizSummaryProc.deleteDirtyCache(aid);
+                        spuSummaryProc.deleteDirtyCache(aid);
                     }
                 }finally {
                     LockUtil.unlock(aid);
@@ -867,29 +870,46 @@ public class StoreSalesSkuService extends StoreService {
      * MQ 异步上报
      */
     private void asynchronousReport(int flow, int aid, int unionPriId, FaiList<Long> skuIdList, FaiList<Integer> pdIdList) {
-        TransactionCtrl transactionCtrl;
+        pdIdList = new FaiList<>(new HashSet<>(pdIdList)); //去重
         if (pdIdList.size() > 0) {
-            transactionCtrl = new TransactionCtrl();
-            try {
-                SpuBizStoreSalesReportDaoCtrl spuBizStoreSalesReportDaoCtrl = SpuBizStoreSalesReportDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                SpuBizStoreSalesReportProc spuBizStoreSalesReportProc = new SpuBizStoreSalesReportProc(spuBizStoreSalesReportDaoCtrl, flow);
-
-                transactionCtrl.setAutoCommit(false);
-                // 提交库存上报任务，提交失败暂不处理
-                if (spuBizStoreSalesReportProc.addReportCountTask(aid, unionPriId, pdIdList) != Errno.OK) {
-                    transactionCtrl.rollback();
-                } else {
-                    transactionCtrl.commit();
-                }
-            } finally {
-                transactionCtrl.closeDao();
+            for (Integer pdId : pdIdList) {
+                addSpuBizSummaryMq(flow, aid, unionPriId, pdId);
             }
         }
+        skuIdList = new FaiList<>(new HashSet<>(skuIdList)); // 去重
         if (skuIdList.size() > 0) {
             for (Long skuId : skuIdList) {
                 addSkuSummaryReportMq(flow, aid, skuId);
             }
         }
+    }
+    private int addSpuBizSummaryMq(int flow, int aid, int unionPriId, int pdId){
+        Param sendInfo = new Param();
+        sendInfo.setInt(SpuBizSummaryEntity.Info.AID, aid);
+        sendInfo.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, unionPriId);
+        sendInfo.setInt(SpuBizSummaryEntity.Info.PD_ID, pdId);
+        FaiMqMessage message = new FaiMqMessage();
+        // 指定topic
+        message.setTopic(MqConfig.SpuBizReport.TOPIC);
+        // 指定tag
+        message.setTag(MqConfig.SpuBizReport.TAG);
+        // 添加流水号
+        message.setFlow(flow);
+        // aid-unionPriId-pdId 做幂等
+        message.setKey(aid+"-"+unionPriId+"-"+pdId);
+        // 消息体
+        message.setBody(sendInfo);
+        Producer producer = MqFactory.getProducer(MqConfig.SpuBizReport.PRODUCER);
+        try {
+            // 发送成功返回SendResult对象
+            SendResult send = producer.send(message);
+            Log.logDbg("send=%s", send);
+            return Errno.OK;
+        } catch (MqClientException e) {
+            // 发送失败会抛出异常,业务方自己处理,入库或者告警
+            Log.logErr(e, MqConfig.SpuBizReport.PRODUCER+" send message err; messageFlow=%d, msgId=%s;sendInfo=%s;", message.getFlow(), message.getMsgId(), sendInfo);
+        }
+        return Errno.ERROR;
     }
     /**
      * 投递数据到 mq
@@ -905,7 +925,7 @@ public class StoreSalesSkuService extends StoreService {
         message.setTag(MqConfig.SkuReport.TAG);
         // 添加流水号
         message.setFlow(flow);
-        // 使用flow
+        // aid-skuId 做幂等
         message.setKey(aid+"-"+skuId);
         // 消息体
         message.setBody(sendInfo);
@@ -917,7 +937,7 @@ public class StoreSalesSkuService extends StoreService {
             return Errno.OK;
         } catch (MqClientException e) {
             // 发送失败会抛出异常,业务方自己处理,入库或者告警
-            Log.logErr(e, MqConfig.SpuBizReport.PRODUCER+" send message err; messageFlow=%d, msgId=%s", message.getFlow(), message.getMsgId());
+            Log.logErr(e, MqConfig.SpuBizReport.PRODUCER+" send message err; messageFlow=%d, msgId=%s;sendInfo=%s;", message.getFlow(), message.getMsgId(), sendInfo);
         }
         return Errno.ERROR;
     }

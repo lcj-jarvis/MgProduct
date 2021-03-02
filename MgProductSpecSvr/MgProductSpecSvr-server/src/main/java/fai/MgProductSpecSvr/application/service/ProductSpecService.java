@@ -332,8 +332,8 @@ public class ProductSpecService extends ServicePub {
                             HashMap<String, FaiList<Integer>> newSkuMap = new HashMap<>( skuList.size() * 4 / 3 +1);
                             skuList.forEach(sku -> {
                                 FaiList<Integer> tmpSku = new FaiList<>(sku);
-                                Collections.sort(tmpSku);
-                                newSkuMap.put(tmpSku.toJson(), sku);
+                                Collections.sort(tmpSku); // 排序
+                                newSkuMap.put(tmpSku.toJson(), sku); // toJson
                             });
 
 
@@ -377,7 +377,7 @@ public class ProductSpecService extends ServicePub {
                                 }
                                 // 排序
                                 Collections.sort(tmpInPdScSrtIdList);
-                                // 转化为Str
+                                // toJson
                                 String oldSkuKey = tmpInPdScSrtIdList.toJson();
                                 if (newSkuMap.remove(oldSkuKey) == null) { // 移除 已有的sku，如果不存在,则当前的sku需要删除
                                     Log.logDbg("whalelog oldSkuKey=%s", oldSkuKey);

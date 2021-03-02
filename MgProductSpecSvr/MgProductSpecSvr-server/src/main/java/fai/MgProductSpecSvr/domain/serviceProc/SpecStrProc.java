@@ -5,7 +5,9 @@ import fai.MgProductSpecSvr.domain.repository.SpecStrCacheCtrl;
 import fai.MgProductSpecSvr.domain.repository.SpecStrDaoCtrl;
 import fai.comm.util.*;
 
-import java.util.*;
+import java.util.Calendar;
+import java.util.HashSet;
+import java.util.Iterator;
 
 public class SpecStrProc {
     public SpecStrProc(SpecStrDaoCtrl daoCtrl, int flow) {
@@ -138,7 +140,7 @@ public class SpecStrProc {
             return rt;
         }
         Param nameIdMap  = new Param(true); // mapMode
-        listRef.value.parallelStream().forEach(info -> {
+        listRef.value.stream().forEach(info -> {
             nameIdMap.setInt(info.getString(SpecStrEntity.Info.NAME), info.getInt(SpecStrEntity.Info.SC_STR_ID));
         });
         nameIdMapRef.value = nameIdMap;
@@ -146,8 +148,10 @@ public class SpecStrProc {
     }
 
     public int getList(int aid, FaiList<Integer> scStrIdList, Ref<FaiList<Param>> listRef) {
+        //去重
         HashSet<Integer> scStrIdSet = new HashSet<>(scStrIdList);
-        scStrIdList = new FaiList<>(scStrIdSet); //去重
+        scStrIdList = new FaiList<>(scStrIdSet);
+
         FaiList<Param> list = SpecStrCacheCtrl.getCacheList(aid, scStrIdList);
         if(list != null){
             Iterator<Param> iterator = list.iterator();
@@ -185,6 +189,7 @@ public class SpecStrProc {
         for (Integer scStrId : scStrIdSet) { // 缓存上空数据
             newCacheList.add(new Param().setInt(SpecStrEntity.Info.SC_STR_ID, scStrId));
         }
+        SpecStrCacheCtrl.setCacheList(aid, newCacheList);
         Log.logDbg(rt,"getList ok;flow=%d;aid=%d;scStrIdList=%s;", m_flow, aid, scStrIdList);
         return rt = Errno.OK;
     }

@@ -86,6 +86,9 @@ public class SpuBizSummaryProc {
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.MAX_PRICE);
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.MIN_PRICE);
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.SALES);
+                    data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.COUNT);
+                    data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.REMAIN_COUNT);
+                    data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.HOLDING_COUNT);
                     addDataList.add(data);
                 }
                 // 标记访客数据为脏
@@ -388,6 +391,36 @@ public class SpuBizSummaryProc {
             return rt;
         }
         Log.logDbg("ok!;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+        return rt;
+    }
+
+    public int getInfoListByPdIdList(int aid, int unionPriId, FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef){
+        if(aid <= 0 || unionPriId <= 0 || pdIdList == null || pdIdList.isEmpty() || listRef == null){
+            Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;pdIdList=%s;", m_flow, aid, unionPriId, pdIdList);
+            return Errno.ARGS_ERROR;
+        }
+        FaiList<Param> resultList = new FaiList<>();
+        listRef.value = resultList;
+        Set<Integer> pdIdSet = new HashSet<>(pdIdList);
+        FaiList<Param> cacheList = SpuBizSummaryCacheCtrl.getCacheList(aid, unionPriId, pdIdList);
+        int rt = Errno.ERROR;
+        if(cacheList != null){
+            for (Param info : cacheList) {
+                if(pdIdSet.remove(info.getInt(SpuBizSummaryEntity.Info.PD_ID))){
+                    resultList.add(info);
+                }
+            }
+        }
+        if(pdIdSet.isEmpty()){
+            return rt = Errno.OK;
+        }
+        rt = getInfoListByPdIdListFromDao(aid, unionPriId, pdIdList, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            return rt;
+        }
+        FaiList<Param> list = listRef.value;
+        SpuBizSummaryCacheCtrl.setCacheList(aid, unionPriId, list);
+        resultList.addAll(list);
         return rt;
     }
 

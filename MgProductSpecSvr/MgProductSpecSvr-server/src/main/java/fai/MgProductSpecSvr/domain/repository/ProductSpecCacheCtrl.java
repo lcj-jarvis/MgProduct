@@ -66,16 +66,7 @@ public class ProductSpecCacheCtrl extends CacheCtrl {
 			psScIdStrList.add(String.valueOf(pdScId));
 		});
 		try {
-			FaiList<Param> list = m_cache.hmget(getCacheKey(aid, pdId), ProductSpecDto.Key.INFO, ProductSpecDto.CacheDto.getCacheDto(), psScIdStrList);
-			if(list == null){
-				return null;
-			}
-			for (int i = list.size() - 1; i >= 0; i--) {
-				if(list.get(i) == null){
-					list.remove(i);
-				}
-			}
-			return list;
+			return m_cache.hmget(getCacheKey(aid, pdId), ProductSpecDto.Key.INFO, ProductSpecDto.CacheDto.getCacheDto(), psScIdStrList);
 		} catch (Exception e) {
 			Log.logErr(e);
 		}

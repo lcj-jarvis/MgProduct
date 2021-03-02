@@ -3,9 +3,9 @@ package fai.MgProductStoreSvr.domain.serviceProc;
 
 import fai.MgProductStoreSvr.application.MgProductStoreSvr;
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
-import fai.MgProductStoreSvr.domain.comm.Utils;
 import fai.MgProductStoreSvr.domain.comm.PdKey;
 import fai.MgProductStoreSvr.domain.comm.SkuStoreKey;
+import fai.MgProductStoreSvr.domain.comm.Utils;
 import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuEntity;
 import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuValObj;
 import fai.MgProductStoreSvr.domain.repository.StoreSalesSkuCacheCtrl;
@@ -560,25 +560,32 @@ public class StoreSalesSkuProc {
     /**
      * 只会改到count 和 remainCount
      */
-    public int batchChangeStore(int aid, TreeMap<SkuStoreKey, Integer> skuStoreChangeCountMap) {
+    public int batchChangeStore(int aid, TreeMap<SkuStoreKey, Pair<Integer, Integer>>  skuStoreChangeCountMap) {
         if(aid <= 0 || skuStoreChangeCountMap == null || skuStoreChangeCountMap.isEmpty()){
             Log.logStd("batchChangeStore arg error;flow=%s;aid=%s;skuStoreChangeCountMap=%s;", m_flow, aid, skuStoreChangeCountMap);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.OK;
         Calendar now = Calendar.getInstance();
-        for (Map.Entry<SkuStoreKey, Integer> skuStoreKeyChangeCountEntry : skuStoreChangeCountMap.entrySet()) {
+        for (Map.Entry<SkuStoreKey, Pair<Integer, Integer>> skuStoreKeyChangeCountEntry : skuStoreChangeCountMap.entrySet()) {
             /*
-              changeCount 取相反数，便于更新
+              changeCount 和 changeRemainCount 取相反数，便于更新
                ... set `remainCount` = `remainCount` - changeCount, `changeCount` = `changeCount` - changeCount  where ... and `remainCount` >= changeCount and `changeCount` >= changeCount
                乐观锁 不考虑aba问题
              */
-            Integer changeCount = -skuStoreKeyChangeCountEntry.getValue(); // 取相反数
+            Pair<Integer, Integer> changePair = skuStoreKeyChangeCountEntry.getValue();
+            Integer changeRemainCount = -changePair.first; // 取相反数
+            if(changeRemainCount == 0){
+                continue;
+            }
+            Integer changeCount = -changePair.second; // 取相反数
 
 
             ParamUpdater updater = new ParamUpdater();
-            updater.add(StoreSalesSkuEntity.Info.COUNT, ParamUpdater.DEC, changeCount);
-            updater.add(StoreSalesSkuEntity.Info.REMAIN_COUNT, ParamUpdater.DEC, changeCount);
+            if(changeCount != 0){
+                updater.add(StoreSalesSkuEntity.Info.COUNT, ParamUpdater.DEC, changeCount);
+            }
+            updater.add(StoreSalesSkuEntity.Info.REMAIN_COUNT, ParamUpdater.DEC, changeRemainCount);
             updater.getData().setCalendar(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, now);
 
             SkuStoreKey skuStoreKey = skuStoreKeyChangeCountEntry.getKey();
@@ -586,8 +593,10 @@ public class StoreSalesSkuProc {
             ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
             matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, skuStoreKey.unionPriId);
             matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.EQ, skuStoreKey.skuId);
-            matcher.and(StoreSalesSkuEntity.Info.COUNT, ParamMatcher.GE, changeCount);
-            matcher.and(StoreSalesSkuEntity.Info.REMAIN_COUNT, ParamMatcher.GE, changeCount);
+            if(changeCount != 0){
+                matcher.and(StoreSalesSkuEntity.Info.COUNT, ParamMatcher.GE, changeCount);
+            }
+            matcher.and(StoreSalesSkuEntity.Info.REMAIN_COUNT, ParamMatcher.GE, changeRemainCount);
 
             Ref<Integer> refRowCount = new Ref<>(0);
             rt = m_daoCtrl.update(updater, matcher, refRowCount);

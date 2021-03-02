@@ -1,28 +1,18 @@
 package fai.MgProductStoreSvr.application.service;
 
 import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
-import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
-import fai.MgProductStoreSvr.domain.comm.PdKey;
-import fai.MgProductStoreSvr.domain.comm.SkuStoreKey;
-import fai.MgProductStoreSvr.domain.comm.Utils;
 import fai.MgProductStoreSvr.domain.entity.*;
 import fai.MgProductStoreSvr.domain.repository.*;
 import fai.MgProductStoreSvr.domain.serviceProc.*;
-import fai.MgProductStoreSvr.interfaces.conf.MqConfig;
-import fai.MgProductStoreSvr.interfaces.dto.*;
 import fai.comm.jnetkit.server.fai.FaiSession;
-import fai.comm.mq.api.MqFactory;
-import fai.comm.mq.api.Producer;
-import fai.comm.mq.api.SendResult;
-import fai.comm.mq.exception.MqClientException;
-import fai.comm.mq.message.FaiMqMessage;
 import fai.comm.util.*;
-import fai.mgproduct.comm.MgProductErrno;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class StoreService {
@@ -190,6 +180,7 @@ public class StoreService {
                         }
                         transactionCtrl.commit();
                         spuBizSummaryProc.deleteDirtyCache(aid);
+                        spuSummaryProc.deleteDirtyCache(aid);
                     }
                 }finally {
                     LockUtil.unlock(aid);
@@ -214,7 +205,7 @@ public class StoreService {
         spuBizSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.Info.UNION_PRI_ID, SpuBizSummaryEntity.Info.UNION_PRI_ID);
         spuBizSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.Info.RL_PD_ID, SpuBizSummaryEntity.Info.RL_PD_ID);
         spuBizSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.SOURCE_UNION_PRI_ID, SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID);
-        if(Misc.checkBit(flag, SpuBizStoreSalesReportValObj.Flag.REPORT_COUNT)){
+        if(Misc.checkBit(flag, ReportValObj.Flag.REPORT_COUNT)){
             int count = reportInfo.getInt(StoreSalesSkuEntity.ReportInfo.SUM_COUNT);
             int remainCount = reportInfo.getInt(StoreSalesSkuEntity.ReportInfo.SUM_REMAIN_COUNT);
             int holdingCount = reportInfo.getInt(StoreSalesSkuEntity.ReportInfo.SUM_HOLDING_COUNT);
@@ -224,7 +215,7 @@ public class StoreService {
             spuBizSummaryInfo.setInt(SpuBizSummaryEntity.Info.HOLDING_COUNT, holdingCount);
             spuBizSummaryInfo.setInt(SpuBizSummaryEntity.Info.SALES, sales);
         }
-        if(Misc.checkBit(flag, SpuBizStoreSalesReportValObj.Flag.REPORT_PRICE)){
+        if(Misc.checkBit(flag, ReportValObj.Flag.REPORT_PRICE)){
             spuBizSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.MIN_PRICE, SpuBizSummaryEntity.Info.MIN_PRICE);
             spuBizSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.MAX_PRICE, SpuBizSummaryEntity.Info.MAX_PRICE);
         }
@@ -236,12 +227,12 @@ public class StoreService {
     protected void assemblySpuSummaryInfo(Param spuSummaryInfo, Param reportInfo, int flag){
         spuSummaryInfo.assign(reportInfo, SpuBizSummaryEntity.Info.PD_ID, SpuSummaryEntity.Info.PD_ID);
         spuSummaryInfo.assign(reportInfo, SpuBizSummaryEntity.ReportInfo.SOURCE_UNION_PRI_ID, SpuSummaryEntity.Info.SOURCE_UNION_PRI_ID);
-        if(Misc.checkBit(flag, SpuBizStoreSalesReportValObj.Flag.REPORT_COUNT)){
+        if(Misc.checkBit(flag, ReportValObj.Flag.REPORT_COUNT)){
             spuSummaryInfo.assign(reportInfo, SpuBizSummaryEntity.ReportInfo.SUM_COUNT, SpuSummaryEntity.Info.COUNT);
             spuSummaryInfo.assign(reportInfo, SpuBizSummaryEntity.ReportInfo.SUM_REMAIN_COUNT, SpuSummaryEntity.Info.REMAIN_COUNT);
             spuSummaryInfo.assign(reportInfo, SpuBizSummaryEntity.ReportInfo.SUM_HOLDING_COUNT, SpuSummaryEntity.Info.HOLDING_COUNT);
         }
-        if(Misc.checkBit(flag, SpuBizStoreSalesReportValObj.Flag.REPORT_PRICE)){
+        if(Misc.checkBit(flag, ReportValObj.Flag.REPORT_PRICE)){
             spuSummaryInfo.assign(reportInfo, SpuBizSummaryEntity.ReportInfo.MIN_PRICE, SpuSummaryEntity.Info.MIN_PRICE);
             spuSummaryInfo.assign(reportInfo, SpuBizSummaryEntity.ReportInfo.MAX_PRICE, SpuSummaryEntity.Info.MAX_PRICE);
         }

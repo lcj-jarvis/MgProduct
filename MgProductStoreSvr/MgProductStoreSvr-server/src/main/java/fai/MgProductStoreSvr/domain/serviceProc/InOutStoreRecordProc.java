@@ -108,8 +108,8 @@ public class InOutStoreRecordProc {
             int unionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, 0);
             long skuId = info.getLong(InOutStoreRecordEntity.Info.SKU_ID, 0L);
             int optType = info.getInt(InOutStoreRecordEntity.Info.OPT_TYPE, 0);
-            int changeCount = info.getInt(InOutStoreRecordEntity.Info.CHANGE_COUNT, 0);
-            if(unionPriId == 0 || skuId == 0 || optType == 0 || changeCount == 0){
+            int changeCount = info.getInt(InOutStoreRecordEntity.Info.CHANGE_COUNT, -1);
+            if(unionPriId == 0 || skuId == 0 || optType == 0 || changeCount < 0){
                 Log.logStd("arg error;flow=%d;aid=%s;info=%s;", m_flow, aid, info);
                 return rt = Errno.ARGS_ERROR;
             }
@@ -152,7 +152,7 @@ public class InOutStoreRecordProc {
             data.setInt(InOutStoreRecordEntity.Info.REMAIN_COUNT, remainCount);
             if(optType == InOutStoreRecordValObj.OptType.IN){ // 入库操作记录可用库存
                 data.setInt(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, changeCount);
-                if(price > 0){
+                if(price > 0 && changeCount > 0){
                     long totalCost = changeCount*price;
                     Param storeSalesSkuInfo = changeCountAfterSkuStoreSalesInfoMap.get(new SkuStoreKey(unionPriId, skuId));
                     long fifoTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, 0L);
@@ -190,7 +190,7 @@ public class InOutStoreRecordProc {
                 data.setCalendar(InOutStoreRecordEntity.Info.SYS_UPDATE_TIME, now);
             }
 
-            if(optType == InOutStoreRecordValObj.OptType.OUT){ // 如果是出库操作 需要消耗入库记录的库存
+            if(optType == InOutStoreRecordValObj.OptType.OUT && changeCount > 0){ // 如果是出库操作 需要消耗入库记录的库存
                 Ref<Long> fifoOutTotalCostRef = new Ref<>(0L);
                 rt = reduceStoreInRecord(aid, unionPriId, skuId, changeCount, remainCount, fifoOutTotalCostRef);
                 if(rt != Errno.OK){
@@ -261,7 +261,7 @@ public class InOutStoreRecordProc {
             if(optType != InOutStoreRecordValObj.OptType.IN){ // 如果第一条记录不是入库操作说明数据有点问题
                 Log.logStd("record maybe err;flow=%s;aid=%s;firstRecord=%s;", m_flow, aid, firstRecord);
                 // 再查一次第一条入库记录
-                searchArg.matcher.and(InOutStoreRecordEntity.Info.OPT_TYPE, ParamMatcher.EQ, InOutStoreRecordEntity.Info.OPT_TYPE);
+                searchArg.matcher.and(InOutStoreRecordEntity.Info.OPT_TYPE, ParamMatcher.EQ, InOutStoreRecordValObj.OptType.IN);
                 rt = m_daoCtrl.selectFirst(searchArg, infoRef);
                 if(rt != Errno.OK){
                     Log.logErr(rt, "selectFirst 2 err;flow=%s;aid=%s;matcher.json=%s;", m_flow, aid, searchArg.matcher.toJson());

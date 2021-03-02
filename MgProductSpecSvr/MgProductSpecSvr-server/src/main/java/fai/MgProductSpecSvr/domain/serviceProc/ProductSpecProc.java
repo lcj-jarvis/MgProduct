@@ -462,9 +462,6 @@ public class ProductSpecProc {
     private ProductSpecDaoCtrl m_daoCtrl;
 
     private CacheManage cacheManage = new CacheManage();
-
-
-
     private static class CacheManage{
 
         public CacheManage() {

@@ -2,12 +2,15 @@ package fai.MgProductStoreSvr.application.service;
 
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
 import fai.MgProductStoreSvr.domain.comm.Utils;
+import fai.MgProductStoreSvr.domain.entity.ReportValObj;
 import fai.MgProductStoreSvr.domain.entity.SkuSummaryEntity;
-import fai.MgProductStoreSvr.domain.entity.SpuBizStoreSalesReportEntity;
 import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryEntity;
 import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuEntity;
 import fai.MgProductStoreSvr.domain.repository.*;
-import fai.MgProductStoreSvr.domain.serviceProc.*;
+import fai.MgProductStoreSvr.domain.serviceProc.SkuSummaryProc;
+import fai.MgProductStoreSvr.domain.serviceProc.SpuBizSummaryProc;
+import fai.MgProductStoreSvr.domain.serviceProc.SpuSummaryProc;
+import fai.MgProductStoreSvr.domain.serviceProc.StoreSalesSkuProc;
 import fai.MgProductStoreSvr.interfaces.dto.DataStatusDto;
 import fai.MgProductStoreSvr.interfaces.dto.SkuSummaryDto;
 import fai.MgProductStoreSvr.interfaces.dto.SpuBizSummaryDto;
@@ -18,7 +21,10 @@ import fai.comm.util.*;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class SummaryService extends StoreService {
 
@@ -39,34 +45,24 @@ public class SummaryService extends StoreService {
 
             try {
                 StoreSalesSkuDaoCtrl storeSalesSkuDaoCtrl = StoreSalesSkuDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                SpuBizStoreSalesReportDaoCtrl spuBizStoreSalesReportDaoCtrl = SpuBizStoreSalesReportDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
                 SpuBizSummaryDaoCtrl spuBizSummaryDaoCtrl = SpuBizSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
                 SpuSummaryDaoCtrl spuSummaryDaoCtrl = SpuSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                if(!transactionCtrl.checkRegistered(spuBizStoreSalesReportDaoCtrl, spuBizSummaryDaoCtrl, spuSummaryDaoCtrl, storeSalesSkuDaoCtrl)){
+                if(!transactionCtrl.checkRegistered(spuBizSummaryDaoCtrl, spuSummaryDaoCtrl, storeSalesSkuDaoCtrl)){
                     return rt = Errno.ERROR;
                 }
                 StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
-                SpuBizStoreSalesReportProc spuBizStoreSalesReportProc = new SpuBizStoreSalesReportProc(spuBizStoreSalesReportDaoCtrl, flow);
                 SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(spuBizSummaryDaoCtrl, flow);
                 SpuSummaryProc spuSummaryProc = new SpuSummaryProc(spuSummaryDaoCtrl, flow);
 
+                int flag = ReportValObj.Flag.REPORT_COUNT;
+
+
                 Ref<Param> infoRef = new Ref<>();
-                rt = spuBizStoreSalesReportProc.getInfo(aid, unionPriId, pdId, infoRef);
-                if(rt != Errno.OK){
-                    return rt;
-                }
-                Param bizSalesReportInfo = infoRef.value;
-                int flag = bizSalesReportInfo.getInt(SpuBizStoreSalesReportEntity.Info.FLAG, 0);
-
-                Param reportInfo = null;
-
-
-                infoRef.value = null;
                 rt = storeSalesSkuProc.getReportInfo(aid, pdId, unionPriId, infoRef);
                 if(rt != Errno.OK){
                     return rt;
                 }
-                reportInfo = infoRef.value;
+                Param reportInfo = infoRef.value;
 
                 Param bizSalesSummaryInfo = new Param();
                 bizSalesSummaryInfo.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, unionPriId);
@@ -81,10 +77,6 @@ public class SummaryService extends StoreService {
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = spuBizStoreSalesReportProc.del(aid, unionPriId, pdId, flag);
-                        if(rt != Errno.OK){
-                            return rt;
-                        }
                         rt = spuSummaryReport(spuBizSummaryProc, spuSummaryProc, aid, pdId, flag);
                     }finally {
                         if(rt != Errno.OK){
@@ -94,6 +86,7 @@ public class SummaryService extends StoreService {
                         transactionCtrl.commit();
                         transactionCtrl.closeDao();
                         spuBizSummaryProc.deleteDirtyCache(aid);
+                        spuSummaryProc.deleteDirtyCache(aid);
                     }
                 }finally {
                     LockUtil.unlock(aid);
@@ -162,7 +155,7 @@ public class SummaryService extends StoreService {
             try {
                 SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(spuBizSummaryDaoCtrl, flow);
                 Ref<FaiList<Param>> listRef = new Ref<>();
-                rt = spuBizSummaryProc.getInfoListByPdIdListFromDao(aid, unionPriId, pdIdList, listRef);
+                rt = spuBizSummaryProc.getInfoListByPdIdList(aid, unionPriId, pdIdList, listRef);
                 if(rt != Errno.OK){
                     return rt;
                 }
@@ -178,7 +171,7 @@ public class SummaryService extends StoreService {
                         if(tmpUnionPriId != sourceUnionPriId){
                             FaiList<Integer> sourcePdIdList = Utils.getValList(list, SpuBizSummaryEntity.Info.PD_ID);
                             listRef = new Ref<>();
-                            rt = spuBizSummaryProc.getInfoListByPdIdListFromDao(aid, sourceUnionPriId, sourcePdIdList, listRef, useSourceFieldSet.toArray(new String[]{}));
+                            rt = spuBizSummaryProc.getInfoListByPdIdList(aid, sourceUnionPriId, sourcePdIdList, listRef);
                             if(rt != Errno.OK){
                                 if(rt == Errno.NOT_FOUND){
                                     Log.logErr( rt,"source list not found;flow=%s;aid=%s;sourcePriId=%s;sourcePdIdList=%s;", flow, aid, sourceUnionPriId, sourcePdIdList);
@@ -382,7 +375,7 @@ public class SummaryService extends StoreService {
             SpuSummaryDaoCtrl spuSummaryDaoCtrl = SpuSummaryDaoCtrl.getInstance(flow, aid);
             try {
                 SpuSummaryProc spuSummaryProc = new SpuSummaryProc(spuSummaryDaoCtrl, flow);
-                rt = spuSummaryProc.getInfoListFromDao(aid, pdIdList, listRef);
+                rt = spuSummaryProc.getList(aid, pdIdList, listRef);
                 if(rt != Errno.OK){
                     return rt;
                 }

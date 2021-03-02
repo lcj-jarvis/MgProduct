@@ -487,6 +487,7 @@ public class ProductSpecService extends MgProductInfService {
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
             FaiList<Param> pdScSkuInfoList = new FaiList<>();
             Log.logDbg("whalelog updaterList=%s", updaterList);
+            // TODO 分布式事务
             rt = productSpecProc.unionSetPdScInfoList(aid, tid, unionPriId, pdId, addList, delList, updaterList, pdScSkuInfoList);
             if(rt != Errno.OK) {
                 return rt;

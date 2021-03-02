@@ -3,9 +3,14 @@ package fai.MgProductSpecSvr.domain.repository;
 import fai.MgProductSpecSvr.interfaces.dto.SpecStrDto;
 import fai.MgProductSpecSvr.interfaces.entity.SpecStrEntity;
 import fai.comm.cache.redis.client.RedisClient;
-import fai.comm.util.*;
+import fai.comm.util.FaiList;
+import fai.comm.util.Log;
+import fai.comm.util.Param;
+import fai.comm.util.Var;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 缓存
@@ -16,7 +21,7 @@ public class SpecStrCacheCtrl extends CacheCtrl {
         if(infoList == null || infoList.isEmpty()){
             return false;
         }
-        Map<String, String> nameIdMap = new HashMap<>(infoList.size()*4/3);
+        Map<String, String> nameIdMap = new HashMap<>(infoList.size()*4/3+1);
         infoList.forEach(info->{
             Integer id = info.getInt(SpecStrEntity.Info.SC_STR_ID);
             String name = info.getString(SpecStrEntity.Info.NAME);
@@ -30,18 +35,6 @@ public class SpecStrCacheCtrl extends CacheCtrl {
             boo = m_cache.hmset(getNameIdCacheKey(aid), nameIdMap);
         }
         return boo;
-    }
-
-    public static boolean setCacheInfo(int aid, Param info) {
-        return setCacheList(aid, new FaiList<>(Arrays.asList(info)));
-    }
-
-    public static Param getCacheInfo(int aid, int id) {
-        FaiList<Param> cacheList = getCacheList(aid, new FaiList<>(Arrays.asList(id)));
-        if(cacheList == null || cacheList.isEmpty()){
-            return null;
-        }
-        return cacheList.get(0);
     }
     public static FaiList<Param> getCacheList(int aid, FaiList<Integer> idList) {
         if(idList == null || idList.isEmpty()){
@@ -59,16 +52,7 @@ public class SpecStrCacheCtrl extends CacheCtrl {
             return null;
         }
         try {
-            FaiList<Param> list = m_cache.hmget(getCacheKey(aid), SpecStrDto.Key.INFO, SpecStrDto.getInfoDto(), idStrList);
-            if(list == null){
-                return null;
-            }
-            for (int i = list.size() - 1; i >= 0; i--) {
-                if(list.get(i) == null){
-                    list.remove(i);
-                }
-            }
-            return list;
+            return m_cache.hmget(getCacheKey(aid), SpecStrDto.Key.INFO, SpecStrDto.getInfoDto(), idStrList);
         } catch (Exception e) {
             Log.logErr(e);
         }
@@ -83,21 +67,9 @@ public class SpecStrCacheCtrl extends CacheCtrl {
         if(ids == null){
             return null;
         }
-        for (int i = ids.size() - 1; i >= 0; i--) {
-            if(ids.get(i) == null){
-                ids.remove(i);
-            }
-        }
         return getCacheListByIdStrList(aid, new FaiList<>(ids));
     }
 
-    public static Param getCacheInfo(int aid, String name) {
-        FaiList<Param> cacheListByNames = getCacheListByNames(aid, new FaiList<>(Arrays.asList(name)));
-        if(cacheListByNames == null || cacheListByNames.isEmpty()){
-            return null;
-        }
-        return cacheListByNames.get(0);
-    }
 
     public static boolean delAllCache(int aid) {
         return m_cache.del(getCacheKey(aid), getNameIdCacheKey(aid));

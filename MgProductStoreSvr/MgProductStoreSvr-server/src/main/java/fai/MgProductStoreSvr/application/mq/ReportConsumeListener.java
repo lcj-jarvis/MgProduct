@@ -17,14 +17,16 @@ public class ReportConsumeListener implements MessageListener {
 
     @Override
     public ConsumerStatus consume(FaiMqMessage message, ConsumeContext context) {
+        String key = message.getKey();
+        int flow = message.getFlow();
+        Log.logStd("key=%s;flow=%s;tag=%s;", key, flow, message.getTag());
         switch (message.getTag()){
             case MqConfig.SpuBizReport.TAG:
                 return spuBizReportConsumeListener.consume(message, context);
             case MqConfig.SkuReport.TAG:
                 return skuSummaryReportConsumeListener.consume(message, context);
         }
-        String key = message.getKey();
-        int flow = message.getFlow();
+
         Log.logStd("not found tag;key=%s;flow=%s;tag=%s;", key, flow, message.getTag());
         return ConsumerStatus.ReconsumeLater;
     }

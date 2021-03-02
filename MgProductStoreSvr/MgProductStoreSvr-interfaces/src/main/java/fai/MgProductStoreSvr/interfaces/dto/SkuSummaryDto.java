@@ -20,6 +20,7 @@ public class SkuSummaryDto {
         g_dtoDef.add(SkuSummaryEntity.Info.SYS_UPDATE_TIME, 10);
         g_dtoDef.add(SkuSummaryEntity.Info.MIN_PRICE, 11, Var.Type.LONG);
         g_dtoDef.add(SkuSummaryEntity.Info.MAX_PRICE, 12, Var.Type.LONG);
+        g_dtoDef.add(SkuSummaryEntity.Info.SOURCE_UNION_PRI_ID, 13, Var.Type.INT);
     }
 
     public static ParamDef getInfoDto() {

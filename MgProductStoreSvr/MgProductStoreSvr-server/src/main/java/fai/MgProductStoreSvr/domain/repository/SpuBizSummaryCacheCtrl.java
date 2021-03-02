@@ -41,7 +41,7 @@ public class SpuBizSummaryCacheCtrl extends CacheCtrl{
             }
         }
     }
-    public static void appendCacheList(int aid, int unionPriId, FaiList<Param> list) {
+    public static void setCacheList(int aid, int unionPriId, FaiList<Param> list) {
         if(list == null || list.isEmpty()) {
             return;
         }
@@ -120,5 +120,5 @@ public class SpuBizSummaryCacheCtrl extends CacheCtrl{
 
     }
 
-    private static final String CACHE_KEY_PREFIX = "MG_bizSalesSummary";
+    private static final String CACHE_KEY_PREFIX = "MG_spuBizSummary";
 }

@@ -271,15 +271,19 @@ public class SpuSummaryProc {
         return rt = Errno.OK;
     }
 
-
-    private int m_flow;
-    private SpuSummaryDaoCtrl m_daoCtrl;
-    private CacheManage cacheManage = new CacheManage();
-
+    /**
+     * 设置缓存过期
+     */
+    public boolean setDirtyCacheEx(int aid){
+        return cacheManage.setDirtyCacheEx(aid);
+    }
     public void deleteDirtyCache(int aid) {
         cacheManage.deleteDirtyCache(aid);
     }
 
+    private int m_flow;
+    private SpuSummaryDaoCtrl m_daoCtrl;
+    private CacheManage cacheManage = new CacheManage();
     private static class CacheManage{
         private Set<Integer> pdIdSet;
         public CacheManage() {
@@ -305,6 +309,10 @@ public class SpuSummaryProc {
             }finally {
                 init();
             }
+        }
+
+        public boolean setDirtyCacheEx(int aid) {
+            return SpuSummaryCacheCtrl.setCacheDirty(aid);
         }
     }
 

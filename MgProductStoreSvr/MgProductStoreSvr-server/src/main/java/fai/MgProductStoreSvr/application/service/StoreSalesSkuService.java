@@ -117,6 +117,8 @@ public class StoreSalesSkuService extends StoreService {
                         transactionCtrl.rollback();
                         return rt;
                     }
+                    spuBizSummaryProc.setDirtyCacheEx(aid);
+                    spuSummaryProc.setDirtyCacheEx(aid);
                     transactionCtrl.commit();
                     spuBizSummaryProc.deleteDirtyCache(aid);
                     spuSummaryProc.deleteDirtyCache(aid);
@@ -300,6 +302,8 @@ public class StoreSalesSkuService extends StoreService {
                         transactionCtrl.rollback();
                         return rt;
                     }
+                    spuBizSummaryProc.setDirtyCacheEx(aid);
+                    spuSummaryProc.setDirtyCacheEx(aid);
                     transactionCtrl.commit();
                     spuBizSummaryProc.deleteDirtyCache(aid);
                     spuSummaryProc.deleteDirtyCache(aid);
@@ -371,8 +375,9 @@ public class StoreSalesSkuService extends StoreService {
                             transactionCtrl.rollback();
                             return rt;
                         }
+                        spuBizSummaryProc.setDirtyCacheEx(aid);
+                        spuSummaryProc.setDirtyCacheEx(aid);
                         transactionCtrl.commit();
-                        transactionCtrl.closeDao();
                         spuBizSummaryProc.deleteDirtyCache(aid);
                         spuSummaryProc.deleteDirtyCache(aid);
                     }

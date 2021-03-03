@@ -83,8 +83,9 @@ public class SummaryService extends StoreService {
                             transactionCtrl.rollback();
                             return rt;
                         }
+                        spuBizSummaryProc.setDirtyCacheEx(aid);
+                        spuSummaryProc.setDirtyCacheEx(aid);
                         transactionCtrl.commit();
-                        transactionCtrl.closeDao();
                         spuBizSummaryProc.deleteDirtyCache(aid);
                         spuSummaryProc.deleteDirtyCache(aid);
                     }

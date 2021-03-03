@@ -35,10 +35,16 @@ public class SpuSummaryCacheCtrl  extends CacheCtrl{
         return m_cache.hdel(cacheKey, pdIdStrList.toArray(new String[]{}));
     }
 
+    public static boolean setCacheDirty(int aid) {
+        String cacheKey = getCacheKey(aid);
+        return m_cache.expire(cacheKey, DIRTY_EXPIRE_SECOND, DIRTY_EXPIRE_SECOND_RANDOM);
+    }
 
     protected static String getCacheKey(int aid) {
         return CACHE_KEY_PREFIX + ":" + aid;
     }
 
     private static final String CACHE_KEY_PREFIX = "MG_spuSummary";
+
+
 }

@@ -474,6 +474,12 @@ public class SpuBizSummaryProc {
         return rt;
     }
 
+    /**
+     * 设置缓存过期
+     */
+    public boolean setDirtyCacheEx(int aid){
+        return cacheManage.setDirtyCacheEx(aid);
+    }
     public void deleteDirtyCache(int aid){
         cacheManage.deleteDirtyCache(aid);
     }
@@ -494,7 +500,12 @@ public class SpuBizSummaryProc {
             dirtyCacheKeyMap = new HashMap<>();
             dirtyDataTypeMap = new HashMap<>();
         }
-        private void deleteDirtyCache(int aid){
+        public boolean setDirtyCacheEx(int aid) {
+            boolean boo = SpuBizSummaryCacheCtrl.setCacheDirty(aid, dirtyCacheKeyMap.keySet());
+            boo &= SpuBizSummaryCacheCtrl.setTotalCacheDirty(aid, dirtyCacheKeyMap.keySet());
+            return boo;
+        }
+        public void deleteDirtyCache(int aid){
             try {
                 SpuBizSummaryCacheCtrl.delCache(aid, dirtyCacheKeyMap);
                 if(!dirtyDataTypeMap.isEmpty()){
@@ -510,11 +521,11 @@ public class SpuBizSummaryProc {
                 init();
             }
         }
+        
         private void addDirtyCacheKey(int aid, Map<Integer, FaiList<Integer>> unionPirIdPdIdListMap){
             if(unionPirIdPdIdListMap == null){
                 return;
             }
-            SpuBizSummaryCacheCtrl.setCacheDirty(aid, unionPirIdPdIdListMap.keySet());
             dirtyCacheKeyMap.putAll(unionPirIdPdIdListMap);
         }
         private void addDataTypeDirtyCacheKey(DataType dataType, Set<Integer> unionPriIdSet){

@@ -286,6 +286,8 @@ public class RecordService extends StoreService {
                             transactionCtrl.rollback();
                             return rt;
                         }
+                        spuBizSummaryProc.setDirtyCacheEx(aid);
+                        spuSummaryProc.setDirtyCacheEx(aid);
                         transactionCtrl.commit();
                         spuBizSummaryProc.deleteDirtyCache(aid);
                         spuSummaryProc.deleteDirtyCache(aid);

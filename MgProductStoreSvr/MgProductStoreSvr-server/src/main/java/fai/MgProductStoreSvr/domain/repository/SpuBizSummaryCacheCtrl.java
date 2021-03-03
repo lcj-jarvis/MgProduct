@@ -63,20 +63,37 @@ public class SpuBizSummaryCacheCtrl extends CacheCtrl{
         return m_cache.set(totalCacheKey, String.valueOf(count));
     }
 
-    public static void setCacheDirty(int aid, Set<Integer> unionPriIdSet){
+    public static boolean setCacheDirty(int aid, Set<Integer> unionPriIdSet){
         if(unionPriIdSet == null){
-            return;
+            return true;
         }
+        boolean boo = true;
         for (Integer unionPriId : unionPriIdSet) {
-            setCacheDirty(aid, unionPriId);
+            boo &= setCacheDirty(aid, unionPriId);
         }
+        return boo;
     }
 
     public static boolean setCacheDirty(int aid, int unionPriId){
         String cacheKey = getCacheKey(aid, unionPriId);
-        return m_cache.expire(cacheKey, DIRTY_EXPIRE_SECOND);
+        return m_cache.expire(cacheKey, DIRTY_EXPIRE_SECOND, DIRTY_EXPIRE_SECOND_RANDOM);
     }
 
+    public static boolean setTotalCacheDirty(int aid, Set<Integer> unionPriIdSet){
+        if(unionPriIdSet == null){
+            return true;
+        }
+        boolean boo = true;
+        for (Integer unionPriId : unionPriIdSet) {
+            boo &= setTotalCacheDirty(aid, unionPriId);
+        }
+        return boo;
+    }
+
+    public static boolean setTotalCacheDirty(int aid, int unionPriId){
+        String cacheKey = getTotalCacheKey(aid, unionPriId);
+        return m_cache.expire(cacheKey, DIRTY_EXPIRE_SECOND, DIRTY_EXPIRE_SECOND_RANDOM);
+    }
     protected static String getTotalCacheKey(int aid, int unionPriId){
         return CACHE_KEY_PREFIX + "-count:" + aid + "-" + unionPriId;
     }

@@ -539,6 +539,18 @@ public class MgProductInfHandler extends FaiHandler {
                                     @ArgList(keyMatch = ProductStoreDto.Key.STR_LIST, useDefault = true) FaiList<String> useOwnerFieldList) throws IOException {
         return storeService.getSkuStoreSalesList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, useOwnerFieldList);
     }
+    @Cmd(MgProductInfCmd.StoreSalesSkuCmd.GET_LIST_BY_SKU_ID_LIST)
+    public int getSkuStoreSalesBySkuIdList(final FaiSession session,
+                                    @ArgFlow final int flow,
+                                    @ArgAid final int aid,
+                                    @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
+                                    @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
+                                    @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
+                                    @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
+                                    @ArgList(keyMatch = ProductStoreDto.Key.ID_LIST) FaiList<Long> skuIdList,
+                                    @ArgList(keyMatch = ProductStoreDto.Key.STR_LIST, useDefault = true) FaiList<String> useOwnerFieldList) throws IOException {
+        return storeService.getSkuStoreSalesBySkuIdList(session, flow, aid, tid, siteId, lgId, keepPriId1, skuIdList, useOwnerFieldList);
+    }
 
     @Cmd(MgProductInfCmd.StoreSalesSkuCmd.GET_LIST_BY_SKU_ID)
     public int getSkuStoreSalesBySkuId(final FaiSession session,

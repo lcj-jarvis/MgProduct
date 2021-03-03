@@ -165,6 +165,20 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                                  FaiList<String> useSourceFieldList) throws IOException {
         return  m_storeSalesSkuService.getSkuStoreSales(session, flow, aid, tid, unionPriId, pdId, rlPdId, useSourceFieldList);
     }
+
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.GET_LIST_BY_SKU_ID_LIST)
+    private int getSkuStoreSalesBySkuIdList(final FaiSession session,
+                                            @ArgFlow final int flow,
+                                            @ArgAid final int aid,
+                                            @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
+                                            @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
+                                            @ArgList(keyMatch = StoreSalesSkuDto.Key.ID_LIST)
+                                                        FaiList<Long> skuIdList,
+                                            @ArgList(keyMatch = StoreSalesSkuDto.Key.STR_LIST, useDefault = true)
+                                         FaiList<String> useSourceFieldList) throws IOException {
+        return  m_storeSalesSkuService.getSkuStoreSalesBySkuIdList(session, flow, aid, tid, unionPriId, skuIdList, useSourceFieldList);
+    }
+
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.GET_LIST_BY_SKU_ID_AND_UID_LIST)
     private int getStoreSalesBySkuIdAndUIdList(final FaiSession session,
                                                @ArgFlow final int flow,

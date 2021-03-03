@@ -117,7 +117,8 @@ public class SpuBizSummaryCacheCtrl extends CacheCtrl{
             }
             // 有访问就更新过期时间
             m_cache.expire(lastUpdateTimeCacheKey, m_cache.getExpireSecond(), m_cache.getExpireRandomSecond());
-            return Long.parseLong(lastUpdateTimeStr);
+            long lastUpdateTime = Parser.parseLong(lastUpdateTimeStr, -1);
+            return lastUpdateTime > 0 ? lastUpdateTime : null;
         }
 
         /**

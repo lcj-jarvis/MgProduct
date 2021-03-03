@@ -17,6 +17,7 @@ public class MgProductStoreCmd {
 		public static final int NUM10 = 5010;
 		public static final int NUM11 = 5011;
 		public static final int NUM12 = 5012;
+		public static final int NUM13 = 5013;
 	}
 
 
@@ -46,6 +47,7 @@ public class MgProductStoreCmd {
 		public static final int GET_LIST = ReadCmdNum.NUM;
 		public static final int GET_LIST_BY_SKU_ID_AND_UID_LIST = ReadCmdNum.NUM7;
 		public static final int GET_LIST_BY_PD_ID = ReadCmdNum.NUM8;
+		public static final int GET_LIST_BY_SKU_ID_LIST = ReadCmdNum.NUM13;
 
 		public static final int REFRESH = WriteCmdNum.NUM;
 		public static final int SET_LIST = WriteCmdNum.NUM2;

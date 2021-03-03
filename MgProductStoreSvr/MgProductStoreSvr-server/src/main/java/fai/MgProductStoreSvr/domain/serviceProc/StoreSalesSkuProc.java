@@ -816,21 +816,6 @@ public class StoreSalesSkuProc {
         return rt;
     }
 
-    public int getListFromDao(int aid, Integer unionPriId, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef, Set<String> useSourceFieldSet) {
-        SearchArg searchArg = new SearchArg();
-        searchArg.matcher = new ParamMatcher();
-        searchArg.matcher.and(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
-        searchArg.matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        searchArg.matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
-        int rt = m_daoCtrl.select(searchArg, listRef, useSourceFieldSet.toArray(new String[]{}));
-        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
-            Log.logStd("dao.select error;flow=%d;aid=%s;unionPriId=%s;skuIdList=%s;", m_flow, aid, unionPriId, skuIdList);
-            return rt;
-        }
-        Log.logDbg(rt,"getListFromDao ok;flow=%d;aid=%d;searchArg.matcher.toJson=%s;", m_flow, aid, searchArg.matcher.toJson());
-        return rt;
-    }
-
     /**
      * 查询skuBiz汇总数据
      */

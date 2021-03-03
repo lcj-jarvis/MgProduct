@@ -279,6 +279,57 @@ public class ProductStoreService extends MgProductInfService {
         return rt;
     }
 
+    /**
+     * 根据skuIdList 获取sku库存销售信息
+     * @param useOwnerFieldList 使用 创建商品的业务数据
+     */
+    public int getSkuStoreSalesBySkuIdList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Long> skuIdList, FaiList<String> useOwnerFieldList)  throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            ProductStoreProc productStoreProc = new ProductStoreProc(flow);
+            FaiList<Param> infoList = new FaiList<Param>();
+            rt = productStoreProc.getStoreSalesBySkuIdList(aid, tid, unionPriId, skuIdList, infoList, useOwnerFieldList);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            FaiList<Param> skuInfoList = new FaiList<>();
+            ProductSpecProc productSpecProc = new ProductSpecProc(flow);
+            rt = productSpecProc.getPdSkuScInfoListBySkuIdList(aid, tid, skuIdList, skuInfoList);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            Map<Long, Param> map = OptMisc.getMap(skuInfoList, ProductSpecSkuEntity.Info.SKU_ID);
+            for (int i = infoList.size()-1; i >= 0; i--) {
+                Param info = infoList.get(i);
+                Param skuInfo = map.get(info.getLong(StoreSalesSkuEntity.Info.SKU_ID));
+                info.setList(ProductStoreEntity.StoreSalesSkuInfo.IN_PD_SC_STR_NAME_LIST, skuInfo.getList(ProductSpecSkuEntity.Info.IN_PD_SC_STR_NAME_LIST));
+            }
+
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            infoList.toBuffer(sendBuf, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.StoreSalesSku.getInfoDto());
+            session.write(sendBuf);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
 
     /**
      * 获取指定 skuId 下 其所关联的 sku库存销售信息

@@ -767,7 +767,7 @@ public class StoreSalesSkuService extends StoreService {
                         if(tmpUnionPriId != sourceUnionPriId){
                             FaiList<Long> skuIdList = Utils.getValList(list, StoreSalesSkuEntity.Info.SKU_ID);
                             listRef = new Ref<>();
-                            rt = storeSalesSkuProc.getListFromDao(aid, sourceUnionPriId, skuIdList, listRef, useSourceFieldSet);
+                            rt = storeSalesSkuProc.getListFromDaoBySkuIdList(aid, sourceUnionPriId, skuIdList, listRef, useSourceFieldSet.toArray(new String[]{}));
                             if(rt != Errno.OK){
                                 if(rt == Errno.NOT_FOUND){
                                     Log.logErr( rt,"source list not found;flow=%s;aid=%s;sourceUnionPriId=%s;skuIdList=%s;", flow, aid, sourceUnionPriId, skuIdList);
@@ -806,7 +806,78 @@ public class StoreSalesSkuService extends StoreService {
     }
 
     /**
-     * 根据 skuId 和 uid 获取相应的库存销售信息
+     * 根据 skuIdList 获取相应的库存销售信息
+     */
+    public int getSkuStoreSalesBySkuIdList(FaiSession session, int flow, int aid, int tid, int unionPriId, FaiList<Long> skuIdList, FaiList<String> useSourceFieldList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || unionPriId <= 0 || skuIdList == null || skuIdList.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;", flow, aid, unionPriId, skuIdList);
+                return rt;
+            }
+            FaiList<Param> list;
+
+            StoreSalesSkuDaoCtrl storeSalesSkuDaoCtrl = StoreSalesSkuDaoCtrl.getInstance(flow, aid);
+            try {
+                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
+                Ref<FaiList<Param>> listRef = new Ref<>();
+                rt = storeSalesSkuProc.getListFromDaoBySkuIdList(aid, unionPriId, skuIdList, listRef);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+                list = listRef.value;
+                if(useSourceFieldList != null && !useSourceFieldList.isEmpty()){
+                    Set<String> useSourceFieldSet = new HashSet<>(useSourceFieldList);
+                    useSourceFieldSet.retainAll(Arrays.asList(StoreSalesSkuEntity.getValidKeys()));
+                    if(list.size() > 0 && useSourceFieldSet.size() > 0){
+                        useSourceFieldSet.add(StoreSalesSkuEntity.Info.SKU_ID);
+                        Param first = list.get(0);
+                        int tmpUnionPriId = first.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+                        int sourceUnionPriId = first.getInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID);
+                        if(tmpUnionPriId != sourceUnionPriId){
+                            listRef = new Ref<>();
+                            rt = storeSalesSkuProc.getListFromDaoBySkuIdList(aid, sourceUnionPriId, skuIdList, listRef, useSourceFieldSet.toArray(new String[]{}));
+                            if(rt != Errno.OK){
+                                if(rt == Errno.NOT_FOUND){
+                                    Log.logErr( rt,"source list not found;flow=%s;aid=%s;sourceUnionPriId=%s;skuIdList=%s;", flow, aid, sourceUnionPriId, skuIdList);
+                                }
+                                return rt;
+                            }
+                            Map<Long, Param> skuIdFiledMap = new HashMap<>(listRef.value.size()*4/3+1);
+                            for (Param sourceFieldInfo : listRef.value) {
+                                Long skuId = sourceFieldInfo.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                                skuIdFiledMap.put(skuId, sourceFieldInfo);
+                            }
+                            for (Param info : list) {
+                                Long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                                Param sourceFieldInfo = skuIdFiledMap.get(skuId);
+                                if(sourceFieldInfo == null){
+                                    rt = Errno.NOT_FOUND;
+                                    Log.logErr(rt, "source info not found;flow=%s;aid=%s;sourceUnionPriId=%s;skuId=%s;", flow, aid, sourceUnionPriId, skuId);
+                                    return rt;
+                                }
+                                for (String sourceField : useSourceFieldSet) {
+                                    info.assign(sourceFieldInfo, sourceField);
+                                }
+                            }
+                        }
+                    }
+                }
+            }finally {
+                storeSalesSkuDaoCtrl.closeDao();
+            }
+            sendPdScSkuSalesStore(session, list);
+            Log.logDbg("ok;aid=%d;unionPriId=%s;skuIdList=%s;", aid, unionPriId, skuIdList);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * 根据 skuId 和 uidList 获取相应的库存销售信息
      */
     public int getStoreSalesBySkuIdAndUIdList(FaiSession session, int flow, int aid, long skuId, FaiList<Integer> unionPriIdList) throws IOException {
         int rt = Errno.ERROR;

@@ -262,7 +262,7 @@ public class SpuSummaryProc {
         }
         Ref<FaiList<Param>> tmpListRef = new Ref<>();
         rt = getListFromDao(aid, new FaiList<>(pdIdSet), tmpListRef);
-        if(rt != Errno.OK && rt != Errno.ERROR){
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             return rt;
         }
         FaiList<Param> list = tmpListRef.value;

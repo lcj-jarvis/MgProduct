@@ -4,6 +4,7 @@ import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.cache.redis.config.RedisClientConfig;
 import fai.comm.cache.redis.pool.JedisPool;
 import fai.comm.cache.redis.pool.JedisPoolFactory;
+import fai.comm.config.FaiConfig;
 import fai.comm.jnetkit.config.*;
 import fai.comm.jnetkit.server.ServerConfig;
 import fai.comm.jnetkit.server.fai.FaiServer;
@@ -36,9 +37,19 @@ public class MgProductSearchSvr {
         JedisPool jedisPool = JedisPoolFactory.createJedisPool(redisConfig);
         RedisCacheManager m_cache = new RedisCacheManager(jedisPool, redisConfig.getExpire(), redisConfig.getExpireRandom());
 
+        // 公共配置文件在svr main 的方法做一次初始化
+        ConfPool.setFaiConfigGlobalConf(MgProductSearchSvr.SvrConfigGlobalConf.svrConfigGlobalConfKey, FaiConfig.EtcType.ENV);
+
         server.setHandler(new MgProductSearchHandler(server, m_cache));
         server.start();
     }
+
+    public static class SvrConfigGlobalConf{
+        public static String svrConfigGlobalConfKey = "mgProductSearchSvr";
+        public static String loadFromDbThresholdKey = "loadFromDbThreshold";
+    }
+
+
 
     @ParamKeyMapping(path = ".svr")
     public static class SvrOption {

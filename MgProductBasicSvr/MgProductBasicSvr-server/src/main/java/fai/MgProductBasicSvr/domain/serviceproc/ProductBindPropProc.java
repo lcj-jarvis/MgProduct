@@ -1,33 +1,32 @@
 package fai.MgProductBasicSvr.domain.serviceproc;
 
 import fai.MgProductBasicSvr.domain.entity.ProductBindPropEntity;
-import fai.MgProductBasicSvr.domain.repository.ProductBindPropCache;
-import fai.MgProductBasicSvr.domain.repository.ProductBindPropDaoCtrl;
+import fai.MgProductBasicSvr.domain.repository.cache.ProductBindPropCache;
+import fai.MgProductBasicSvr.domain.repository.dao.ProductBindPropDaoCtrl;
+import fai.MgProductBasicSvr.domain.repository.dao.ProductGroupAssocDaoCtrl;
 import fai.comm.util.*;
+import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.Calendar;
 
 public class ProductBindPropProc {
-    public ProductBindPropProc(int flow, ProductBindPropDaoCtrl dao) {
+
+    public ProductBindPropProc(int flow, int aid, TransactionCtrl tc) {
         this.m_flow = flow;
-        this.m_bindPropDao = dao;
+        this.m_bindPropDao = ProductBindPropDaoCtrl.getInstance(flow, aid);
+        init(tc);
     }
 
-    public int getPdBindPropList(int aid, int unionPriId, int rlPdId, Ref<FaiList<Param>> listRef) {
-        int rt = getList(aid, unionPriId, rlPdId, listRef);
-        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            Log.logErr(rt, "get error;flow=%d;aid=%d;unionPriId=%d;rlPdId=%d;", m_flow, aid, unionPriId, rlPdId);
-            return rt;
-        }
-        return rt;
+    public FaiList<Param> getPdBindPropList(int aid, int unionPriId, int rlPdId) {
+        return getList(aid, unionPriId, rlPdId);
     }
 
-    public int addPdBindPropList(int aid, int unionPriId, int rlPdId, int pdId, FaiList<Param> infoList) {
-        int rt = Errno.ERROR;
+    public void addPdBindPropList(int aid, int unionPriId, int rlPdId, int pdId, FaiList<Param> infoList) {
+        int rt;
         if(infoList == null || infoList.isEmpty()) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr(rt, "args error;flow=%d;aid=%d;");
-            return rt;
+            throw new MgException(rt, "args error;flow=%d;aid=%d;");
         }
         FaiList<Param> addList = new FaiList<Param>();
         Calendar now = Calendar.getInstance();
@@ -37,8 +36,7 @@ public class ProductBindPropProc {
             int propValId = tmpinfo.getInt(ProductBindPropEntity.Info.PROP_VAL_ID, 0);
             if(rlPropId == 0 || propValId == 0) {
                 rt = Errno.ARGS_ERROR;
-                Log.logErr(rt, "args error;flow=%d;aid=%d;unionPriId=%d;rlPdId=%d;rlPropId=%d;propValId=%d;", m_flow, aid, unionPriId, rlPdId, rlPropId, propValId);
-                return rt;
+                throw new MgException(rt, "args error;flow=%d;aid=%d;unionPriId=%d;rlPdId=%d;rlPropId=%d;propValId=%d;", m_flow, aid, unionPriId, rlPdId, rlPropId, propValId);
             }
 
 
@@ -53,42 +51,37 @@ public class ProductBindPropProc {
         }
         rt = m_bindPropDao.batchInsert(addList, null, true);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "batch insert product prop assoc error;flow=%d;aid=%d;", m_flow, aid);
-            return rt;
+            throw new MgException(rt, "batch insert product prop assoc error;flow=%d;aid=%d;", m_flow, aid);
         }
-        return rt;
     }
 
-    public int delPdBindPropList(int aid, int rlPdId, FaiList<Param> delList) {
-        int rt = Errno.ERROR;
+    public void delPdBindPropList(int aid, int unionPriId, int rlPdId, FaiList<Param> delList) {
+        int rt;
         if(delList == null || delList.isEmpty()) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr(rt, "args error;flow=%d;aid=%d;");
-            return rt;
+            throw new MgException(rt, "args error;flow=%d;aid=%d;", m_flow, aid);
         }
         for(Param info : delList) {
             int rlPropId = info.getInt(ProductBindPropEntity.Info.RL_PROP_ID);
             int propValId = info.getInt(ProductBindPropEntity.Info.PROP_VAL_ID);
             ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
+            matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
             matcher.and(ProductBindPropEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
             matcher.and(ProductBindPropEntity.Info.RL_PROP_ID, ParamMatcher.EQ, rlPropId);
             matcher.and(ProductBindPropEntity.Info.PROP_VAL_ID, ParamMatcher.EQ, propValId);
             rt = m_bindPropDao.delete(matcher);
             if(rt != Errno.OK) {
-                Log.logErr(rt, "del info error;flow=%d;aid=%d;rlPdId=%d;rlPropId=%d;propValId=%d;", m_flow, aid, rlPdId, rlPropId, propValId);
-                return rt;
+                throw new MgException(rt, "del info error;flow=%d;aid=%d;rlPdId=%d;rlPropId=%d;propValId=%d;", m_flow, aid, rlPdId, rlPropId, propValId);
             }
         }
         Log.logStd("delPropAssocList ok;flow=%d;aid=%d;rlPdId=%d;", m_flow, aid, rlPdId);
-        rt = Errno.OK;
-        return rt;
     }
 
     /**
      * 根据参数id+参数值id的列表，筛选出商品业务id
      * 目前是直接查db
      */
-    public int getRlPdByPropVal(int aid, int unionPriId, FaiList<Param> proIdsAndValIds, FaiList<Integer> rlPdIds) {
+    public FaiList<Integer> getRlPdByPropVal(int aid, int unionPriId, FaiList<Param> proIdsAndValIds) {
         int rt;
         FaiList<Integer> rlPropIds = new FaiList<Integer>();
         FaiList<Integer> propValIds = new FaiList<Integer>();
@@ -104,8 +97,7 @@ public class ProductBindPropProc {
         }
         if(rlPropIds.isEmpty() || propValIds.isEmpty()) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr(rt, "args error;rlPropIds or propValIds is empty;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
-            return rt;
+            throw new MgException(rt, "args error;rlPropIds or propValIds is empty;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
         }
         // 先将可能符合条件的数据查出来，再做筛选, 避免循环查db
         ParamMatcher sqlMatcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
@@ -117,13 +109,14 @@ public class ProductBindPropProc {
         searchArg.matcher = sqlMatcher;
         rt = m_bindPropDao.select(searchArg, listRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            return rt;
+            throw new MgException(rt, "select error bind prop;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
         }
+        FaiList<Integer> rlPdIds = new FaiList<>();
         FaiList<Param> list = listRef.value;
         if (list == null || list.isEmpty()) {
             rt = Errno.NOT_FOUND;
             Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
-            return rt;
+            return rlPdIds;
         }
 
         for(Param info : proIdsAndValIds) {
@@ -135,8 +128,7 @@ public class ProductBindPropProc {
             }
         }
 
-        rt = Errno.OK;
-        return rt;
+        return rlPdIds;
     }
 
     private void searchRlPdByPropVal(int aid, int unionPriId, int rlPropId, int propValId, FaiList<Integer> rlPdIds, FaiList<Param> searchList) {
@@ -162,12 +154,11 @@ public class ProductBindPropProc {
     }
 
 
-    private int getList(int aid, int unionPriId, int rlPdId, Ref<FaiList<Param>> listRef) {
+    private FaiList<Param> getList(int aid, int unionPriId, int rlPdId) {
         // 缓存中获取
         FaiList<Param> list = ProductBindPropCache.getCacheList(aid, unionPriId, rlPdId);
         if(list != null && !list.isEmpty()) {
-            listRef.value = list;
-            return Errno.OK;
+            return list;
         }
 
         // db中获取
@@ -175,18 +166,33 @@ public class ProductBindPropProc {
         searchArg.matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         searchArg.matcher.and(ProductBindPropEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
+        Ref<FaiList<Param>> listRef = new Ref<>();
         int rt = m_bindPropDao.select(searchArg, listRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            return rt;
+            throw new MgException(rt, "get error;flow=%d;aid=%d;unionPriId=%d;rlPdId=%d;", m_flow, aid, unionPriId, rlPdId);
         }
-        if (listRef.value == null || listRef.value.isEmpty()) {
+        list = listRef.value;
+
+        if (list == null){
+            list = new FaiList<Param>();
+        }
+        if (list.isEmpty()) {
             rt = Errno.NOT_FOUND;
             Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;rlPdId=%d;", m_flow, aid, unionPriId, rlPdId);
-            return rt;
+            return list;
         }
         // 添加到缓存
         ProductBindPropCache.setCacheList(aid, unionPriId, rlPdId, list);
-        return Errno.OK;
+        return list;
+    }
+
+    private void init(TransactionCtrl tc) {
+        if(tc == null) {
+            return;
+        }
+        if(!tc.register(m_bindPropDao)) {
+            throw new MgException("registered ProductBindPropDaoCtrl err;");
+        }
     }
 
     private int m_flow;

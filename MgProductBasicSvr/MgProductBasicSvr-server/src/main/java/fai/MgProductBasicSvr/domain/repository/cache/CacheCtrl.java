@@ -1,4 +1,4 @@
-package fai.MgProductBasicSvr.domain.repository;
+package fai.MgProductBasicSvr.domain.repository.cache;
 
 import fai.comm.cache.redis.RedisCacheManager;
 

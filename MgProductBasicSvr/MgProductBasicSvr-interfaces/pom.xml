@@ -33,11 +33,6 @@
             <version>${fai-comm-util-opt-ver}</version>
         </dependency>
 
-         <dependency>
-            <groupId>fai-comm-distributedkit</groupId>
-            <artifactId>fai-comm-distributedkit</artifactId>
-            <version>${fai-comm-distributedkit-ver}</version>
-        </dependency>
     </dependencies>
 
     <distributionManagement>

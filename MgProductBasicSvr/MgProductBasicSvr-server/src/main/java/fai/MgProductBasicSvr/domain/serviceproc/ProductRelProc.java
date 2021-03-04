@@ -1,12 +1,13 @@
 package fai.MgProductBasicSvr.domain.serviceproc;
 
-import fai.MgProductBasicSvr.domain.entity.ProductEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductRelEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductRelValObj;
 import fai.MgProductBasicSvr.domain.entity.ProductValObj;
-import fai.MgProductBasicSvr.domain.repository.ProductRelCacheCtrl;
-import fai.MgProductBasicSvr.domain.repository.ProductRelDaoCtrl;
+import fai.MgProductBasicSvr.domain.repository.cache.ProductRelCacheCtrl;
+import fai.MgProductBasicSvr.domain.repository.dao.ProductRelDaoCtrl;
 import fai.comm.util.*;
+import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.HashSet;
 import java.util.List;
@@ -14,62 +15,50 @@ import java.util.stream.Collectors;
 
 public class ProductRelProc {
 
-    public ProductRelProc(int flow, ProductRelDaoCtrl dao) {
+    public ProductRelProc(int flow, int aid, TransactionCtrl tc) {
         this.m_flow = flow;
-        this.m_dao = dao;
+        this.m_dao = ProductRelDaoCtrl.getInstance(flow, aid);
+        init(tc);
     }
 
-    public int addProductRel(int aid, int unionPriId, Param relData, Ref<Integer> rlPdIdRef) {
+    public int addProductRel(int aid, int unionPriId, Param relData) {
         int rt;
         if(Str.isEmpty(relData)) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr(rt, "args err, infoList is empty;flow=%d;aid=%d;uid=%d;relData=%s;", m_flow, aid, unionPriId, relData);
-            return rt;
+            throw new MgException(rt, "args err, infoList is empty;flow=%d;aid=%d;uid=%d;relData=%s;", m_flow, aid, unionPriId, relData);
         }
-        Ref<Integer> countRef = new Ref<>();
-        rt = getPdRelCount(aid, unionPriId, countRef);
-        if(rt != Errno.OK) {
-            Log.logErr(rt, "get pd rel count error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
-            return rt;
-        }
-        int count = countRef.value;
+        int count = getPdRelCount(aid, unionPriId);
         if(count >= ProductRelValObj.Limit.COUNT_MAX) {
             rt = Errno.COUNT_LIMIT;
-            Log.logErr(rt, "over limit;flow=%d;aid=%d;uid=%d;count=%d;limit=%d;", m_flow, aid, unionPriId, count, ProductValObj.Limit.COUNT_MAX);
-            return rt;
+            throw new MgException(rt, "over limit;flow=%d;aid=%d;uid=%d;count=%d;limit=%d;", m_flow, aid, unionPriId, count, ProductValObj.Limit.COUNT_MAX);
         }
         Integer rlPdId = relData.getInt(ProductRelEntity.Info.RL_PD_ID);
         if(rlPdId == null) {
             rlPdId = m_dao.buildId(aid, unionPriId, false);
             if (rlPdId == null) {
                 rt = Errno.ERROR;
-                Log.logErr(rt, "rlPdId build error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
-                return rt;
+                throw new MgException(rt, "rlPdId build error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
             }else {
                 rlPdId = m_dao.updateId(aid, unionPriId, rlPdId, false);
                 if (rlPdId == null) {
                     rt = Errno.ERROR;
-                    Log.logErr(rt, "rlPdId update error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
-                    return rt;
+                    throw new MgException(rt, "rlPdId update error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
                 }
             }
             relData.setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId);
         }
-        rlPdIdRef.value = rlPdId;
         rt = m_dao.insert(relData);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "insert product rel error;flow=%d;aid=%d;uid=%d;relData=%s;", m_flow, aid, unionPriId, relData);
-            return rt;
+            throw new MgException(rt, "insert product rel error;flow=%d;aid=%d;uid=%d;relData=%s;", m_flow, aid, unionPriId, relData);
         }
-        return rt;
+        return rlPdId;
     }
 
-    public int batchAddProductRel(int aid, Integer pdId, FaiList<Param> relDataList, Ref<FaiList<Integer>> rlPdIdsRef) {
+    public FaiList<Integer> batchAddProductRel(int aid, Integer pdId, FaiList<Param> relDataList) {
         int rt;
         if(relDataList == null || relDataList.isEmpty()) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr(rt, "args err, infoList is empty;flow=%d;aid=%d;relDataList=%s;", m_flow, aid, relDataList);
-            return rt;
+            throw new MgException(rt, "args err, infoList is empty;flow=%d;aid=%d;relDataList=%s;", m_flow, aid, relDataList);
         }
 
         FaiList<Integer> rlPdIds = new FaiList<Integer>();
@@ -80,22 +69,14 @@ public class ProductRelProc {
             Integer curPdId = relData.getInt(ProductRelEntity.Info.PD_ID);
             if(curPdId == null) {
                 rt = Errno.ARGS_ERROR;
-                Log.logErr(rt, "args error, pdId is null;flow=%d;aid=%d;uid=%d;", m_flow, aid);
-                return rt;
+                throw new MgException(rt, "args error, pdId is null;flow=%d;aid=%d;uid=%d;", m_flow, aid);
             }
 
             int unionPriId = relData.getInt(ProductRelEntity.Info.UNION_PRI_ID);
-            Ref<Integer> countRef = new Ref<>();
-            rt = getPdRelCount(aid, unionPriId, countRef);
-            if(rt != Errno.OK) {
-                Log.logErr(rt, "get pd rel count error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
-                return rt;
-            }
-            int count = countRef.value + relDataList.size();
+            int count = getPdRelCount(aid, unionPriId);
             if(count >= ProductRelValObj.Limit.COUNT_MAX) {
                 rt = Errno.COUNT_LIMIT;
-                Log.logErr(rt, "over limit;flow=%d;aid=%d;uid=%d;count=%d;limit=%d;", m_flow, aid, unionPriId, count, ProductValObj.Limit.COUNT_MAX);
-                return rt;
+                throw new MgException(rt, "over limit;flow=%d;aid=%d;uid=%d;count=%d;limit=%d;", m_flow, aid, unionPriId, count, ProductValObj.Limit.COUNT_MAX);
             }
 
             Integer rlPdId = relData.getInt(ProductRelEntity.Info.RL_PD_ID);
@@ -103,36 +84,31 @@ public class ProductRelProc {
                 rlPdId = m_dao.buildId(aid, unionPriId, false);
                 if (rlPdId == null) {
                     rt = Errno.ERROR;
-                    Log.logErr(rt, "rlPdId build error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
-                    return rt;
+                    throw new MgException(rt, "rlPdId build error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
                 }else {
                     rlPdId = m_dao.updateId(aid, unionPriId, rlPdId, false);
                     if (rlPdId == null) {
                         rt = Errno.ERROR;
-                        Log.logErr(rt, "rlPdId update error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
-                        return rt;
+                        throw new MgException(rt, "rlPdId update error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
                     }
                 }
                 relData.setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId);
             }
             rlPdIds.add(rlPdId);
         }
-        rlPdIdsRef.value = rlPdIds;
 
         rt = m_dao.batchInsert(relDataList, null, false);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "batch insert product rel error;flow=%d;aid=%d;", m_flow, aid);
-            return rt;
+            throw new MgException(rt, "batch insert product rel error;flow=%d;aid=%d;", m_flow, aid);
         }
-        return rt;
+        return rlPdIds;
     }
 
-    public int getPdRelCount(int aid, int unionPriId, Ref<Integer> countRef) {
+    public int getPdRelCount(int aid, int unionPriId) {
         // 从缓存中获取
         Integer count = ProductRelCacheCtrl.getRelCountCache(aid, unionPriId);
         if(count != null) {
-            countRef.value = count;
-            return Errno.OK;
+            return count;
         }
 
         // 从db获取
@@ -142,50 +118,41 @@ public class ProductRelProc {
         String fields = "count(*) as cnt";
         Ref<FaiList<Param>> listRef = new Ref<>();
         int rt = m_dao.select(searchArg, listRef, fields);
-        if(rt != Errno.OK) {
-            return rt;
+        if(rt != Errno.OK || listRef.value == null || listRef.value.isEmpty()) {
+            throw new MgException(rt, "get pd rel count error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
         }
-        if (listRef.value == null || listRef.value.isEmpty()) {
-            rt = Errno.NOT_FOUND;
-            Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
-            return rt;
-        }
+
         Param res = listRef.value.get(0);
         count = res.getInt("cnt", 0);
-        countRef.value = count;
 
         // 添加到缓存
         ProductRelCacheCtrl.setRelCountCache(aid, unionPriId, count);
-        return rt;
+        return count;
     }
 
-    public int delProductRel(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
+    public void delProductRel(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
         int rt;
         if(rlPdIds == null || rlPdIds.isEmpty()) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr(rt, "args err;flow=%d;aid=%d;uid=%d;rlPdIds=%s", m_flow, aid, unionPriId, rlPdIds);
-            return rt;
+            throw new MgException(rt, "args err;flow=%d;aid=%d;uid=%d;rlPdIds=%s", m_flow, aid, unionPriId, rlPdIds);
         }
         ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         matcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
         rt = m_dao.delete(matcher);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "del product rel error;flow=%d;aid=%d;unionPridId=%d;rlPdIds=%d;", m_flow, aid, unionPriId, rlPdIds);
-            return rt;
+            throw new MgException(rt, "del product rel error;flow=%d;aid=%d;unionPridId=%d;rlPdIds=%d;", m_flow, aid, unionPriId, rlPdIds);
         }
-        return rt;
     }
 
     /**
      * 根据pdId, 删除所有关联数据
      */
-    public int delProductRelByPdId(int aid, FaiList<Integer> pdIds, FaiList<Integer> returnUids) {
+    public void delProductRelByPdId(int aid, FaiList<Integer> pdIds, FaiList<Integer> returnUids) {
         int rt;
         if(pdIds == null || pdIds.isEmpty()) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr(rt, "args err;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
-            return rt;
+            throw new MgException(rt, "args err;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
         }
         ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
@@ -195,11 +162,10 @@ public class ProductRelProc {
         Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
         rt = m_dao.select(searchArg, listRef, ProductRelEntity.Info.UNION_PRI_ID);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            Log.logErr(rt, "get unionPriId error;flow=%d;aid=%d;pdIds=%d;", m_flow, aid, pdIds);
-            return rt;
+            throw new MgException(rt, "get unionPriId error;flow=%d;aid=%d;pdIds=%d;", m_flow, aid, pdIds);
         }
         if(listRef.value == null || listRef.value.isEmpty()) {
-            return Errno.OK;
+            return;
         }
         for(Param info : listRef.value) {
             int unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
@@ -207,71 +173,46 @@ public class ProductRelProc {
         }
         rt = m_dao.delete(matcher);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "del product rel error;flow=%d;aid=%d;pdIds=%d;", m_flow, aid, pdIds);
-            return rt;
+            throw new MgException(rt, "del product rel error;flow=%d;aid=%d;pdIds=%d;", m_flow, aid, pdIds);
         }
-        return rt;
     }
 
-    public int getProductRel(int aid, int unionPriId, int rlPdId, Ref<Param> infoRef) {
+    public Param getProductRel(int aid, int unionPriId, int rlPdId) {
         int rt;
         if(rlPdId <= 0) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr(rt, "args err;flow=%d;aid=%d;uid=%d;rlPdId=%s", m_flow, aid, unionPriId, rlPdId);
-            return rt;
+            throw new MgException(rt, "args err;flow=%d;aid=%d;uid=%d;rlPdId=%s", m_flow, aid, unionPriId, rlPdId);
         }
         Param info = ProductRelCacheCtrl.getCacheInfo(aid, unionPriId, rlPdId);
         if (!Str.isEmpty(info)) {
-            infoRef.value = info;
-            return Errno.OK;
+            return info;
         }
         HashSet<Integer> rlPdIds = new HashSet<>();
         rlPdIds.add(rlPdId);
-        Ref<FaiList<Param>> tmpRef = new Ref<>();
-        rt = getList(aid, unionPriId, rlPdIds, tmpRef);
-        if (rt != Errno.OK) {
-            if (rt != Errno.NOT_FOUND) {
-                Log.logErr(rt, "get error;aid=%d;uid=%d;rlPdId=%d;", aid, unionPriId, rlPdId);
-            }
-            return rt;
-        }
-
-        FaiList<Param> relList = tmpRef.value;
+        FaiList<Param> relList = getList(aid, unionPriId, rlPdIds);
         if(relList == null || relList.isEmpty()) {
-            rt = Errno.NOT_FOUND;
-            Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
-            return rt;
+            return new Param();
         }
 
-        infoRef.value = relList.get(0);
-
-        rt = Errno.OK;
-        return rt;
+        return relList.get(0);
     }
 
-    public int getProductRelList(int aid, int unionPriId, FaiList<Integer> rlPdIdList, Ref<FaiList<Param>> listRef) {
+    public FaiList<Param> getProductRelList(int aid, int unionPriId, FaiList<Integer> rlPdIdList) {
         int rt;
         if(rlPdIdList == null || rlPdIdList.isEmpty()) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr("get rlPdIdList is empty;aid=%d;rlPdIdList=%s;", aid, rlPdIdList);
-            return rt;
+            throw new MgException(rt, "get rlPdIdList is empty;aid=%d;rlPdIdList=%s;", aid, rlPdIdList);
         }
         HashSet<Integer> rlPdIds = new HashSet<Integer>(rlPdIdList);
-        rt = getList(aid, unionPriId, rlPdIds, listRef);
-        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            Log.logErr(rt, "get list error;flow=%d;aid=%d;rlPdIdList=%s;", m_flow, aid, rlPdIdList);
-            return rt;
-        }
 
-        return rt;
+        return getList(aid, unionPriId, rlPdIds);
     }
 
-    private int getList(int aid, int unionPriId, HashSet<Integer> rlPdIds, Ref<FaiList<Param>> listRef) {
+    private FaiList<Param> getList(int aid, int unionPriId, HashSet<Integer> rlPdIds) {
         int rt;
         if(rlPdIds == null || rlPdIds.isEmpty()) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr("get pdIds is empty;aid=%d;rlPdIds=%s;", aid, rlPdIds);
-            return rt;
+            throw new MgException(rt, "get pdIds is empty;aid=%d;rlPdIds=%s;", aid, rlPdIds);
         }
         List<String> rlPdIdStrs = rlPdIds.stream().map(String::valueOf).collect(Collectors.toList());
         // 从缓存获取数据
@@ -282,8 +223,7 @@ public class ProductRelProc {
         list.remove(null);
         // 查到的数据量和pdIds的数据量一致，则说明都有缓存
         if(list.size() == rlPdIds.size()) {
-            listRef.value = list;
-            return Errno.OK;
+            return list;
         }
 
         // 拿到未缓存的pdId list
@@ -302,7 +242,7 @@ public class ProductRelProc {
         searchArg.matcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.IN, noCacheIds);
         rt = m_dao.select(searchArg, tmpRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            return rt;
+            throw new MgException(rt, "get list error;aid=%d;uid=%d;rlPdId=%d;", aid, unionPriId, rlPdIds);
         }
         if(tmpRef.value != null && !tmpRef.value.isEmpty()) {
             list.addAll(tmpRef.value);
@@ -310,23 +250,21 @@ public class ProductRelProc {
         if (list.isEmpty()) {
             rt = Errno.NOT_FOUND;
             Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
-            return rt;
+            return list;
         }
 
         // 添加到缓存
         ProductRelCacheCtrl.addCacheList(aid, unionPriId, tmpRef.value);
 
-        listRef.value = list;
-        return Errno.OK;
+        return list;
     }
 
     /** pdId+unionPriId 和 rlPdId的映射 **/
-    public int getRlPdIdList(int aid, int unionPriId, FaiList<Integer> pdIds, Ref<FaiList<Param>> listRef) {
+    public FaiList<Param> getRlPdIdList(int aid, int unionPriId, FaiList<Integer> pdIds) {
         int rt;
         if(pdIds == null || pdIds.isEmpty()) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr("get error, pdIds is empty;aid=%d;pdIds=%s;", aid, pdIds);
-            return rt;
+            throw new MgException(rt, "get error, pdIds is empty;aid=%d;pdIds=%s;", aid, pdIds);
         }
         // 从缓存获取数据
         FaiList<Param> list = ProductRelCacheCtrl.getRlIdRelCacheList(aid, unionPriId, pdIds);
@@ -336,8 +274,7 @@ public class ProductRelProc {
         list.remove(null);
         // 查到的数据量和pdIds的数据量一致，则说明都有缓存
         if(list.size() == pdIds.size()) {
-            listRef.value = list;
-            return Errno.OK;
+            return list;
         }
 
         // 拿到未缓存的pdId list
@@ -357,42 +294,53 @@ public class ProductRelProc {
         //只查aid+pdId+unionPriId+rlPdId
         rt = m_dao.select(searchArg, tmpRef, ProductRelEntity.Info.AID, ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            return rt;
+            throw new MgException(rt, "get product rel info error;aid=%d;uid=%d;pdIds=%s;", aid, unionPriId, pdIds);
         }
         if(tmpRef.value != null && !tmpRef.value.isEmpty()) {
             list.addAll(tmpRef.value);
+            // 添加到缓存
+            ProductRelCacheCtrl.addRlIdRelCacheList(aid, unionPriId, tmpRef.value);
         }
 
         if (list.isEmpty()) {
             rt = Errno.NOT_FOUND;
             Log.logDbg(rt, "not found;flow=%d;aid=%d;", m_flow, aid);
-            return rt;
+            return list;
         }
 
-        // 添加到缓存
-        ProductRelCacheCtrl.addRlIdRelCacheList(aid, unionPriId, tmpRef.value);
-
-        listRef.value = list;
-        return Errno.OK;
+        return list;
     }
 
-    public int getBoundUniPriIds(int aid, FaiList<Integer> pdIds, Ref<FaiList<Param>> listRef) {
+    public FaiList<Param> getBoundUniPriIds(int aid, FaiList<Integer> pdIds) {
         // db中获取
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
         //只查aid+pdId+unionPriId+rlPdId
         int rt = m_dao.select(searchArg, listRef, ProductRelEntity.Info.AID, ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            return rt;
+            throw new MgException(rt, "getRlPdInfoByPdIds fail;flow=%d;aid=%d;pdIds=%d;", m_flow, aid, pdIds);
+        }
+        if(listRef.value == null) {
+            listRef.value = new FaiList<Param>();
         }
         if(listRef.value == null || listRef.value.isEmpty()) {
             rt = Errno.NOT_FOUND;
             Log.logDbg(rt, "not found;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
-            return rt;
+
         }
 
-        return Errno.OK;
+        return listRef.value;
+    }
+
+    private void init(TransactionCtrl tc) {
+        if(tc == null) {
+            return;
+        }
+        if(!tc.register(m_dao)) {
+            throw new MgException("registered ProductGroupRelDaoCtrl err;");
+        }
     }
 
     private int m_flow;

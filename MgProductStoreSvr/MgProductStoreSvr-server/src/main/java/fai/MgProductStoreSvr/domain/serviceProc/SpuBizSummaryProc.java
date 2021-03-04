@@ -2,6 +2,7 @@ package fai.MgProductStoreSvr.domain.serviceProc;
 
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
 import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryEntity;
+import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryValObj;
 import fai.MgProductStoreSvr.domain.repository.DataType;
 import fai.MgProductStoreSvr.domain.repository.SpuBizSummaryCacheCtrl;
 import fai.MgProductStoreSvr.domain.repository.SpuBizSummaryDaoCtrl;
@@ -141,6 +142,7 @@ public class SpuBizSummaryProc {
         }
         // 移除unionPriId
         needMaxFields.remove(SpuBizSummaryEntity.Info.UNION_PRI_ID);
+        boolean containFlag = needMaxFields.contains(SpuBizSummaryEntity.Info.FLAG);
 
         Calendar now = Calendar.getInstance();
         FaiList<Param> addDataList = new FaiList<>();
@@ -154,7 +156,14 @@ public class SpuBizSummaryProc {
                 return Errno.ERROR;
             }
 
+            int newFlagOrBit = newFields.getInt(SpuBizSummaryEntity.Info.FLAG, 0);
+            int oldFlag = oldFields.getInt(SpuBizSummaryEntity.Info.FLAG, 0);
+
             new ParamUpdater(newFields).update(oldFields, false);// 更新旧数据
+            if(containFlag){
+                oldFields.setInt(SpuBizSummaryEntity.Info.FLAG, oldFlag|newFlagOrBit);
+            }
+
             Param updateData = new Param();
             { // updater
                 for (String field : needMaxFields) {
@@ -260,6 +269,9 @@ public class SpuBizSummaryProc {
             Log.logStd("dao.select error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
             return rt;
         }
+        for (Param reportInfo : listRef.value) {
+            initReportInfo(reportInfo);
+        }
         Log.logDbg(rt,"getReportList ok;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
         return rt;
     }
@@ -286,14 +298,23 @@ public class SpuBizSummaryProc {
         }else{
             infoRef.value = listRef.value.get(0);
         }
+        initReportInfo(infoRef.value);
         Log.logDbg(rt,"getReportList ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
         return rt;
     }
+    private void initReportInfo(Param info){
+        if(info.getLong(SpuBizSummaryEntity.ReportInfo.MIN_PRICE, Long.MAX_VALUE) == Long.MAX_VALUE){
+            info.setLong(SpuBizSummaryEntity.ReportInfo.MIN_PRICE, 0L);
+        }
+    }
+    /**
+     * min(if(flag&0x1=0x1, minPrice, 0x7fffffffffffffffL)) 设置过价格的才参与计算最小值。
+     */
     private static final String COMM_REPORT_FIELDS = SpuBizSummaryEntity.ReportInfo.SOURCE_UNION_PRI_ID+", "+
             "sum(" + SpuBizSummaryEntity.Info.COUNT + ") as " + SpuBizSummaryEntity.ReportInfo.SUM_COUNT + ", " +
                     "sum(" + SpuBizSummaryEntity.Info.REMAIN_COUNT + ") as " + SpuBizSummaryEntity.ReportInfo.SUM_REMAIN_COUNT + ", " +
                     "sum(" + SpuBizSummaryEntity.Info.HOLDING_COUNT + ") as "+ SpuBizSummaryEntity.ReportInfo.SUM_HOLDING_COUNT+", " +
-                    "min(" + SpuBizSummaryEntity.Info.MIN_PRICE + ") as "+ SpuBizSummaryEntity.ReportInfo.MIN_PRICE+", " +
+                    "min( if("+SpuBizSummaryEntity.Info.FLAG+"&"+ SpuBizSummaryValObj.FLag.SETED_PRICE+"="+ SpuBizSummaryValObj.FLag.SETED_PRICE+","+ SpuBizSummaryEntity.Info.MIN_PRICE+"," + Long.MAX_VALUE + ") ) as "+ SpuBizSummaryEntity.ReportInfo.MIN_PRICE+", " +
                     "max(" + SpuBizSummaryEntity.Info.MAX_PRICE + ") as "+ SpuBizSummaryEntity.ReportInfo.MAX_PRICE+" ";
 
 

@@ -10,6 +10,7 @@ import fai.comm.util.*;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -207,6 +208,10 @@ public class StoreService {
         spuBizSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.Info.UNION_PRI_ID, SpuBizSummaryEntity.Info.UNION_PRI_ID);
         spuBizSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.Info.RL_PD_ID, SpuBizSummaryEntity.Info.RL_PD_ID);
         spuBizSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.SOURCE_UNION_PRI_ID, SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID);
+        Object obj = reportInfo.getObject(StoreSalesSkuEntity.ReportInfo.BIT_OR_FLAG);
+        if(obj instanceof BigInteger){
+            spuBizSummaryInfo.setInt(SpuBizSummaryEntity.Info.FLAG, ((BigInteger)obj).intValue());
+        }
         if(Misc.checkBit(flag, ReportValObj.Flag.REPORT_COUNT)){
             int count = reportInfo.getInt(StoreSalesSkuEntity.ReportInfo.SUM_COUNT);
             int remainCount = reportInfo.getInt(StoreSalesSkuEntity.ReportInfo.SUM_REMAIN_COUNT);

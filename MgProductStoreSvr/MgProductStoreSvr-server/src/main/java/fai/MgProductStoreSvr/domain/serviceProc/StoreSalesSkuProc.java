@@ -977,6 +977,7 @@ public class StoreSalesSkuProc {
             + ", max(" + StoreSalesSkuEntity.Info.PRICE + ") as "+StoreSalesSkuEntity.ReportInfo.MAX_PRICE
             + ", sum(" + StoreSalesSkuEntity.Info.FIFO_TOTAL_COST + ") as " + StoreSalesSkuEntity.ReportInfo.SUM_FIFO_TOTAL_COST
             + ", sum(" + StoreSalesSkuEntity.Info.MW_TOTAL_COST + ") as " + StoreSalesSkuEntity.ReportInfo.SUM_MW_TOTAL_COST
+            + ", bit_or(" + StoreSalesSkuEntity.Info.FLAG + ") as " + StoreSalesSkuEntity.ReportInfo.BIT_OR_FLAG
             ;
 
     public int getList(int aid, int unionPriId, int pdId, Ref<FaiList<Param>> listRef){

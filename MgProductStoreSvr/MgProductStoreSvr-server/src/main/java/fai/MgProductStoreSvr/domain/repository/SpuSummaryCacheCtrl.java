@@ -14,6 +14,9 @@ import java.util.stream.Collectors;
 public class SpuSummaryCacheCtrl  extends CacheCtrl{
 
     public static FaiList<Param> getCacheList(int aid, Set<Integer> pdIdSet) {
+        if(pdIdSet.isEmpty()){
+            return new FaiList<>();
+        }
         String cacheKey = getCacheKey(aid);
         List<String> pdIdStrList = pdIdSet.stream().map(String::valueOf).collect(Collectors.toList());
         try {
@@ -25,11 +28,17 @@ public class SpuSummaryCacheCtrl  extends CacheCtrl{
     }
 
     public static boolean setCacheList(int aid, FaiList<Param> infoList) {
+        if(infoList.isEmpty()){
+            return true;
+        }
         String cacheKey = getCacheKey(aid);
         return m_cache.hmsetFaiList(cacheKey, SpuSummaryEntity.Info.PD_ID, Var.Type.INT, infoList, SpuSummaryDto.Key.INFO, SpuSummaryDto.getInfoDto());
     }
 
     public static boolean delCacheList(int aid, Set<Integer> pdIdSet) {
+        if(pdIdSet.isEmpty()){
+            return true;
+        }
         String cacheKey = getCacheKey(aid);
         List<String> pdIdStrList = pdIdSet.stream().map(String::valueOf).collect(Collectors.toList());
         return m_cache.hdel(cacheKey, pdIdStrList.toArray(new String[]{}));

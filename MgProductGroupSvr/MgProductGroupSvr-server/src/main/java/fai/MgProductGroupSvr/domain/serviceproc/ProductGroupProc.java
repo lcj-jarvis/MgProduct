@@ -2,9 +2,8 @@ package fai.MgProductGroupSvr.domain.serviceproc;
 
 import fai.MgProductGroupSvr.domain.common.ProductGroupCheck;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupEntity;
-import fai.MgProductGroupSvr.domain.entity.ProductGroupRelEntity;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupValObj;
-import fai.MgProductGroupSvr.domain.repository.ProductGroupCacheCtrl;
+import fai.MgProductGroupSvr.domain.repository.ProductGroupCache;
 import fai.MgProductGroupSvr.domain.repository.ProductGroupDaoCtrl;
 import fai.comm.util.*;
 import fai.middleground.svrutil.exception.MgException;
@@ -185,7 +184,7 @@ public class ProductGroupProc {
 
     private FaiList<Param> getList(int aid) {
         // 从缓存获取数据
-        FaiList<Param> list = ProductGroupCacheCtrl.getCacheList(aid);
+        FaiList<Param> list = ProductGroupCache.getCacheList(aid);
         if(list != null && !list.isEmpty()) {
             return list;
         }
@@ -207,7 +206,7 @@ public class ProductGroupProc {
             return listRef.value;
         }
         // 添加到缓存
-        ProductGroupCacheCtrl.addCacheList(aid, listRef.value);
+        ProductGroupCache.addCacheList(aid, listRef.value);
         return listRef.value;
     }
 

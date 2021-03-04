@@ -132,7 +132,7 @@ public class ProductGroupRelCache extends CacheCtrl {
 
         public static void update(int aid, int unionPriId, int count, boolean add) {
             Param info = new Param();
-            info.setCalendar(DataStatus.Info.MANAGE_LAST_UPDATE_TIME, Calendar.getInstance());
+            info.setLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME, System.currentTimeMillis());
             ParamUpdater updater = new ParamUpdater(info);
             if(count != 0) {
                 String op = add ? ParamUpdater.INC : ParamUpdater.DEC;

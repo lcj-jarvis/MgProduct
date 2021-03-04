@@ -37,6 +37,11 @@ public class CacheCtrl {
 	/**
 	 * 设置脏数据过期时间
 	 */
-	protected static final int DIRTY_EXPIRE_SECOND = 10;
+	protected static final int DIRTY_EXPIRE_SECOND = 2;
+	/**
+	 * 缓存过期随机数，避免同一时间大量key失效
+	 */
+	protected static final int DIRTY_EXPIRE_SECOND_RANDOM = 4;
+
 	protected static RedisCacheManager m_cache;
 }

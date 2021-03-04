@@ -37,8 +37,8 @@ public class Utils {
         if(list == null){
             return null;
         }
-        Map<K, V> resultMap = new HashMap<>(list.size()*4/3+1); // 直接计算所需最大容量，避免resize 配合 parallelStream
-        list.parallelStream().forEach( info -> {
+        Map<K, V> resultMap = new HashMap<>(list.size()*4/3+1); // 直接计算所需最大容量，避免resize
+        list.stream().forEach( info -> {
             Object keyObj = info.getObject(keyKey);
             if(valueKey == null){
                 resultMap.put((K)keyObj, (V)info);

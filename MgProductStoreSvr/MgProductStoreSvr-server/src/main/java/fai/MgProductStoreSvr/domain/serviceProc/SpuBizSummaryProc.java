@@ -2,6 +2,7 @@ package fai.MgProductStoreSvr.domain.serviceProc;
 
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
 import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryEntity;
+import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryValObj;
 import fai.MgProductStoreSvr.domain.repository.DataType;
 import fai.MgProductStoreSvr.domain.repository.SpuBizSummaryCacheCtrl;
 import fai.MgProductStoreSvr.domain.repository.SpuBizSummaryDaoCtrl;
@@ -86,6 +87,9 @@ public class SpuBizSummaryProc {
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.MAX_PRICE);
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.MIN_PRICE);
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.SALES);
+                    data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.COUNT);
+                    data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.REMAIN_COUNT);
+                    data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.HOLDING_COUNT);
                     addDataList.add(data);
                 }
                 // 标记访客数据为脏
@@ -138,6 +142,7 @@ public class SpuBizSummaryProc {
         }
         // 移除unionPriId
         needMaxFields.remove(SpuBizSummaryEntity.Info.UNION_PRI_ID);
+        boolean containFlag = needMaxFields.contains(SpuBizSummaryEntity.Info.FLAG);
 
         Calendar now = Calendar.getInstance();
         FaiList<Param> addDataList = new FaiList<>();
@@ -151,7 +156,14 @@ public class SpuBizSummaryProc {
                 return Errno.ERROR;
             }
 
+            int newFlagOrBit = newFields.getInt(SpuBizSummaryEntity.Info.FLAG, 0);
+            int oldFlag = oldFields.getInt(SpuBizSummaryEntity.Info.FLAG, 0);
+
             new ParamUpdater(newFields).update(oldFields, false);// 更新旧数据
+            if(containFlag){
+                oldFields.setInt(SpuBizSummaryEntity.Info.FLAG, oldFlag|newFlagOrBit);
+            }
+
             Param updateData = new Param();
             { // updater
                 for (String field : needMaxFields) {
@@ -257,6 +269,9 @@ public class SpuBizSummaryProc {
             Log.logStd("dao.select error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
             return rt;
         }
+        for (Param reportInfo : listRef.value) {
+            initReportInfo(reportInfo);
+        }
         Log.logDbg(rt,"getReportList ok;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
         return rt;
     }
@@ -283,14 +298,23 @@ public class SpuBizSummaryProc {
         }else{
             infoRef.value = listRef.value.get(0);
         }
+        initReportInfo(infoRef.value);
         Log.logDbg(rt,"getReportList ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
         return rt;
     }
+    private void initReportInfo(Param info){
+        if(info.getLong(SpuBizSummaryEntity.ReportInfo.MIN_PRICE, Long.MAX_VALUE) == Long.MAX_VALUE){
+            info.setLong(SpuBizSummaryEntity.ReportInfo.MIN_PRICE, 0L);
+        }
+    }
+    /**
+     * min(if(flag&0x1=0x1, minPrice, 0x7fffffffffffffffL)) 设置过价格的才参与计算最小值。
+     */
     private static final String COMM_REPORT_FIELDS = SpuBizSummaryEntity.ReportInfo.SOURCE_UNION_PRI_ID+", "+
             "sum(" + SpuBizSummaryEntity.Info.COUNT + ") as " + SpuBizSummaryEntity.ReportInfo.SUM_COUNT + ", " +
                     "sum(" + SpuBizSummaryEntity.Info.REMAIN_COUNT + ") as " + SpuBizSummaryEntity.ReportInfo.SUM_REMAIN_COUNT + ", " +
                     "sum(" + SpuBizSummaryEntity.Info.HOLDING_COUNT + ") as "+ SpuBizSummaryEntity.ReportInfo.SUM_HOLDING_COUNT+", " +
-                    "min(" + SpuBizSummaryEntity.Info.MIN_PRICE + ") as "+ SpuBizSummaryEntity.ReportInfo.MIN_PRICE+", " +
+                    "min( if("+SpuBizSummaryEntity.Info.FLAG+"&"+ SpuBizSummaryValObj.FLag.SETED_PRICE+"="+ SpuBizSummaryValObj.FLag.SETED_PRICE+","+ SpuBizSummaryEntity.Info.MIN_PRICE+"," + Long.MAX_VALUE + ") ) as "+ SpuBizSummaryEntity.ReportInfo.MIN_PRICE+", " +
                     "max(" + SpuBizSummaryEntity.Info.MAX_PRICE + ") as "+ SpuBizSummaryEntity.ReportInfo.MAX_PRICE+" ";
 
 
@@ -391,6 +415,36 @@ public class SpuBizSummaryProc {
         return rt;
     }
 
+    public int getInfoListByPdIdList(int aid, int unionPriId, FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef){
+        if(aid <= 0 || unionPriId <= 0 || pdIdList == null || pdIdList.isEmpty() || listRef == null){
+            Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;pdIdList=%s;", m_flow, aid, unionPriId, pdIdList);
+            return Errno.ARGS_ERROR;
+        }
+        FaiList<Param> resultList = new FaiList<>();
+        listRef.value = resultList;
+        Set<Integer> pdIdSet = new HashSet<>(pdIdList);
+        FaiList<Param> cacheList = SpuBizSummaryCacheCtrl.getCacheList(aid, unionPriId, pdIdList);
+        int rt = Errno.ERROR;
+        if(cacheList != null){
+            for (Param info : cacheList) {
+                if(pdIdSet.remove(info.getInt(SpuBizSummaryEntity.Info.PD_ID))){
+                    resultList.add(info);
+                }
+            }
+        }
+        if(pdIdSet.isEmpty()){
+            return rt = Errno.OK;
+        }
+        rt = getInfoListByPdIdListFromDao(aid, unionPriId, pdIdList, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            return rt;
+        }
+        FaiList<Param> list = listRef.value;
+        SpuBizSummaryCacheCtrl.setCacheList(aid, unionPriId, list);
+        resultList.addAll(list);
+        return rt;
+    }
+
     public long getLastUpdateTime(DataType dataType, int aid, int unionPriId){
         Long lastUpdateTime = SpuBizSummaryCacheCtrl.LastUpdateCache.getLastUpdateTime(dataType, aid, unionPriId);
         if(lastUpdateTime != null){
@@ -441,6 +495,12 @@ public class SpuBizSummaryProc {
         return rt;
     }
 
+    /**
+     * 设置缓存过期
+     */
+    public boolean setDirtyCacheEx(int aid){
+        return cacheManage.setDirtyCacheEx(aid);
+    }
     public void deleteDirtyCache(int aid){
         cacheManage.deleteDirtyCache(aid);
     }
@@ -461,7 +521,12 @@ public class SpuBizSummaryProc {
             dirtyCacheKeyMap = new HashMap<>();
             dirtyDataTypeMap = new HashMap<>();
         }
-        private void deleteDirtyCache(int aid){
+        public boolean setDirtyCacheEx(int aid) {
+            boolean boo = SpuBizSummaryCacheCtrl.setCacheDirty(aid, dirtyCacheKeyMap.keySet());
+            boo &= SpuBizSummaryCacheCtrl.setTotalCacheDirty(aid, dirtyCacheKeyMap.keySet());
+            return boo;
+        }
+        public void deleteDirtyCache(int aid){
             try {
                 SpuBizSummaryCacheCtrl.delCache(aid, dirtyCacheKeyMap);
                 if(!dirtyDataTypeMap.isEmpty()){
@@ -477,11 +542,11 @@ public class SpuBizSummaryProc {
                 init();
             }
         }
+        
         private void addDirtyCacheKey(int aid, Map<Integer, FaiList<Integer>> unionPirIdPdIdListMap){
             if(unionPirIdPdIdListMap == null){
                 return;
             }
-            SpuBizSummaryCacheCtrl.setCacheDirty(aid, unionPirIdPdIdListMap.keySet());
             dirtyCacheKeyMap.putAll(unionPirIdPdIdListMap);
         }
         private void addDataTypeDirtyCacheKey(DataType dataType, Set<Integer> unionPriIdSet){

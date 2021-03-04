@@ -7,8 +7,7 @@ public class TableDBMapping {
     /**
      * 表
      */
-    public static final class Table{ //
-        public static final String MG_SPU_BIZ_STORE_SALES_REPORT = "spuBizStoreSalesReport";
+    public static final class Table{
         public static final String MG_SPU_BIZ_SUMMARY = "mgSpuBizSummary";
         public static final String MG_HOLDING_RECORD = "mgHoldingRecord";
         public static final String MG_IN_OUT_STORE_RECORD = "mgInOutStoreRecord";
@@ -31,7 +30,6 @@ public class TableDBMapping {
         MG_STORE_SALE_SKU(Table.MG_STORE_SALE_SKU, DB.MG_PRODUCT_STORE)
         , MG_HOLDING_RECORD(Table.MG_HOLDING_RECORD, DB.MG_PRODUCT_STORE)
         , MG_STORE_ORDER_RECORD(Table.MG_STORE_ORDER_RECORD, DB.MG_PRODUCT_STORE)
-        , MG_SPU_BIZ_STORE_SALES_REPORT(Table.MG_SPU_BIZ_STORE_SALES_REPORT, DB.MG_PRODUCT_STORE)
 
 
         , MG_SPU_BIZ_SUMMARY(Table.MG_SPU_BIZ_SUMMARY, DB.MG_PRODUCT_STORE_SUMMARY)

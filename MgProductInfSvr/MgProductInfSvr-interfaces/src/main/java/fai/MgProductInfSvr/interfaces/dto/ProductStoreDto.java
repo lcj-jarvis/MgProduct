@@ -145,6 +145,26 @@ public class ProductStoreDto {
         }
     }
 
+    public static final class HoldingRecord{
+        private static ParamDef g_infoDtoDef = new ParamDef();
+        static {
+            g_infoDtoDef.add(ProductStoreEntity.HoldingRecordInfo.AID, 0, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.HoldingRecordInfo.TID, 1, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.HoldingRecordInfo.SITE_ID, 2, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.HoldingRecordInfo.LGID, 3, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.HoldingRecordInfo.KEEP_PRI_ID1, 4, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.HoldingRecordInfo.SKU_ID, 5, Var.Type.LONG);
+            g_infoDtoDef.add(ProductStoreEntity.HoldingRecordInfo.RL_ORDER_CODE, 6, Var.Type.STRING);
+            g_infoDtoDef.add(ProductStoreEntity.HoldingRecordInfo.ITEM_ID, 7, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.HoldingRecordInfo.COUNT, 8, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.HoldingRecordInfo.EXPIRE_TIME, 9, Var.Type.CALENDAR);
+            g_infoDtoDef.add(ProductStoreEntity.HoldingRecordInfo.SYS_CREATE_TIME, 10, Var.Type.CALENDAR);
+        }
+        public static ParamDef getInfoDto() {
+            return g_infoDtoDef;
+        }
+    }
+
     public static class Key {
         public static final int TID = 1;
         public static final int SITE_ID = 2;
@@ -163,8 +183,9 @@ public class ProductStoreDto {
 
         public static final int SEARCH_ARG = 15;
         public static final int TOTAL_SIZE = 16;
-        public static final int IN_OUT_STORE_RECODR = 17;
+        public static final int IN_OUT_STORE_RECORD = 17;
         public static final int IS_BIZ = 18;
         public static final int STR_LIST = 19;
+        public static final int IN_OUT_STORE_RECORD_ID = 20;
     }
 }

@@ -86,7 +86,8 @@ public class SpecTempDetailProc {
             }
         });
         maxUpdaterKeys.remove(SpecTempDetailEntity.Info.TP_SC_DT_ID);
-        // 已经存在的规格id集
+
+        // 已经存在的规格字符串id集
         Set<Integer> alreadyExistedScStrIdSet = new HashSet<>();
         if(!scStrIdSet.isEmpty()){
             Ref<FaiList<Param>> listRef = new Ref<>();
@@ -114,7 +115,7 @@ public class SpecTempDetailProc {
                 needConvertScStrIdList.add(oldScStrId);
             }
         }
-        listRef.value = null; // help gc
+
         if(!alreadyExistedScStrIdSet.isEmpty()){ // 要改的规格名称已经存在
             rt = Errno.ALREADY_EXISTED;
             Log.logErr(rt, "already existed;flow=%s;aid=%s;tpScId=%s;alreadyExistedScStrIdSet=%s", m_flow, aid, tpScId, alreadyExistedScStrIdSet);
@@ -159,7 +160,7 @@ public class SpecTempDetailProc {
             dataList.add(data);
         }
 
-        if(!needConvertScStrIdList.isEmpty()){
+        if(!needConvertScStrIdList.isEmpty()){ // 同一个规格模板存在多个规格名称对调的情况，需要把这些规格名称（scStrId） 变化为负数，避免更新时主键冲突
             ParamMatcher convertMatcher = new ParamMatcher();
             convertMatcher.and(SpecTempDetailEntity.Info.AID, ParamMatcher.EQ, aid);
             convertMatcher.and(SpecTempDetailEntity.Info.TP_SC_ID, ParamMatcher.EQ, tpScId);

@@ -17,6 +17,7 @@ public class SpuSummaryDto {
         g_dtoDef.add(SpuSummaryEntity.Info.HOLDING_COUNT, 6, Var.Type.INT);
         g_dtoDef.add(SpuSummaryEntity.Info.SYS_CREATE_TIME, 7);
         g_dtoDef.add(SpuSummaryEntity.Info.SYS_UPDATE_TIME, 8);
+        g_dtoDef.add(SpuSummaryEntity.Info.SOURCE_UNION_PRI_ID, 9, Var.Type.INT);
     }
 
     public static ParamDef getInfoDto() {

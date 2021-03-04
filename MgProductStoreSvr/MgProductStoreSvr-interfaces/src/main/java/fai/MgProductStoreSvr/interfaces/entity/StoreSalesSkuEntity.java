@@ -7,8 +7,9 @@ public class StoreSalesSkuEntity {
     public static final class Info {
         public static final String AID = "aid";                                     // int 企业aid    (Primary Key 1)
         public static final String UNION_PRI_ID = "unionPriId";                     // int 联合主键 id  (Primary Key 2)
-        public static final String PD_ID = "pdId";                                  // int 商品 id    (Primary Key 3)
-        public static final String SKU_ID = "skuId";                                // long SKU id    (Primary Key 4)
+        public static final String SKU_ID = "skuId";                                // bigint SKU id    (Primary Key 3)
+        public static final String PD_ID = "pdId";                                  // int 商品 id
+        public static final String SOURCE_UNION_PRI_ID = "sourceUnionPriId";        // int 创建商品的联合主键 id
         public static final String RL_PD_ID = "rlPdId";                             // int 商品业务 id
         public static final String SKU_TYPE = "skuType";                            // int sku 类型(比如一个站点下想把部分库存搞活动)
         public static final String SORT = "sort";                                   // int 排序

@@ -41,7 +41,7 @@ public class SpuBizSummaryCacheCtrl extends CacheCtrl{
             }
         }
     }
-    public static void appendCacheList(int aid, int unionPriId, FaiList<Param> list) {
+    public static void setCacheList(int aid, int unionPriId, FaiList<Param> list) {
         if(list == null || list.isEmpty()) {
             return;
         }
@@ -63,20 +63,37 @@ public class SpuBizSummaryCacheCtrl extends CacheCtrl{
         return m_cache.set(totalCacheKey, String.valueOf(count));
     }
 
-    public static void setCacheDirty(int aid, Set<Integer> unionPriIdSet){
+    public static boolean setCacheDirty(int aid, Set<Integer> unionPriIdSet){
         if(unionPriIdSet == null){
-            return;
+            return true;
         }
+        boolean boo = true;
         for (Integer unionPriId : unionPriIdSet) {
-            setCacheDirty(aid, unionPriId);
+            boo &= setCacheDirty(aid, unionPriId);
         }
+        return boo;
     }
 
     public static boolean setCacheDirty(int aid, int unionPriId){
         String cacheKey = getCacheKey(aid, unionPriId);
-        return m_cache.expire(cacheKey, DIRTY_EXPIRE_SECOND);
+        return m_cache.expire(cacheKey, DIRTY_EXPIRE_SECOND, DIRTY_EXPIRE_SECOND_RANDOM);
     }
 
+    public static boolean setTotalCacheDirty(int aid, Set<Integer> unionPriIdSet){
+        if(unionPriIdSet == null){
+            return true;
+        }
+        boolean boo = true;
+        for (Integer unionPriId : unionPriIdSet) {
+            boo &= setTotalCacheDirty(aid, unionPriId);
+        }
+        return boo;
+    }
+
+    public static boolean setTotalCacheDirty(int aid, int unionPriId){
+        String cacheKey = getTotalCacheKey(aid, unionPriId);
+        return m_cache.expire(cacheKey, DIRTY_EXPIRE_SECOND, DIRTY_EXPIRE_SECOND_RANDOM);
+    }
     protected static String getTotalCacheKey(int aid, int unionPriId){
         return CACHE_KEY_PREFIX + "-count:" + aid + "-" + unionPriId;
     }
@@ -100,7 +117,8 @@ public class SpuBizSummaryCacheCtrl extends CacheCtrl{
             }
             // 有访问就更新过期时间
             m_cache.expire(lastUpdateTimeCacheKey, m_cache.getExpireSecond(), m_cache.getExpireRandomSecond());
-            return Long.parseLong(lastUpdateTimeStr);
+            long lastUpdateTime = Parser.parseLong(lastUpdateTimeStr, -1);
+            return lastUpdateTime > 0 ? lastUpdateTime : null;
         }
 
         /**
@@ -120,5 +138,5 @@ public class SpuBizSummaryCacheCtrl extends CacheCtrl{
 
     }
 
-    private static final String CACHE_KEY_PREFIX = "MG_bizSalesSummary";
+    private static final String CACHE_KEY_PREFIX = "MG_spuBizSummary";
 }

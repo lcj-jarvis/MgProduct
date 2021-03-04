@@ -30,6 +30,7 @@ public class StoreSalesSkuDto {
         g_dtoDef.add(StoreSalesSkuEntity.Info.SYS_CREATE_TIME, 19);
         g_dtoDef.add(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, 20, Var.Type.LONG);
         g_dtoDef.add(StoreSalesSkuEntity.Info.MW_TOTAL_COST, 21, Var.Type.LONG);
+        g_dtoDef.add(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, 22, Var.Type.INT);
     }
 
     public static ParamDef getInfoDto() {
@@ -46,6 +47,7 @@ public class StoreSalesSkuDto {
         public static final int UID_LIST = 17;
         public static final int STR_LIST = 18;
         public static final int SKU_INFO_LIST = 19;
+        public static final int IN_OUT_STORE_REC_ID = 20;
     }
 
     public static class CacheDto{
@@ -69,6 +71,7 @@ public class StoreSalesSkuDto {
             g_manageInfoDef.add(StoreSalesSkuEntity.Info.SYS_CREATE_TIME, 19);
             g_manageInfoDef.add(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, 20, Var.Type.LONG);
             g_manageInfoDef.add(StoreSalesSkuEntity.Info.MW_TOTAL_COST, 21, Var.Type.LONG);
+            g_manageInfoDef.add(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, 22, Var.Type.INT);
         }
 
         public static ParamDef getManageInfoDto() {

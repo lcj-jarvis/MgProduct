@@ -9,6 +9,7 @@ import fai.MgProductStoreSvr.domain.entity.*;
 import fai.MgProductStoreSvr.domain.repository.*;
 import fai.MgProductStoreSvr.domain.serviceProc.*;
 import fai.MgProductStoreSvr.interfaces.conf.MqConfig;
+import fai.MgProductStoreSvr.interfaces.dto.HoldingRecordDto;
 import fai.MgProductStoreSvr.interfaces.dto.StoreSalesSkuDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.mq.api.MqFactory;
@@ -106,7 +107,7 @@ public class StoreSalesSkuService extends StoreService {
                         Log.logDbg("not modify;flow=%d;aid=%d;unionPriId=%s;pdId=%s;rlPdId=%s;", flow, aid, unionPriId, pdId, rlPdId);
                         return rt = Errno.OK;
                     }
-                    rt = reportSummary(aid, new FaiList<>(Arrays.asList(pdId)), SpuBizStoreSalesReportValObj.Flag.REPORT_COUNT|SpuBizStoreSalesReportValObj.Flag.REPORT_PRICE
+                    rt = reportSummary(aid, new FaiList<>(Arrays.asList(pdId)), ReportValObj.Flag.REPORT_COUNT| ReportValObj.Flag.REPORT_PRICE
                             , null, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
                     if(rt != Errno.OK){
                         return rt;
@@ -116,8 +117,11 @@ public class StoreSalesSkuService extends StoreService {
                         transactionCtrl.rollback();
                         return rt;
                     }
+                    spuBizSummaryProc.setDirtyCacheEx(aid);
+                    spuSummaryProc.setDirtyCacheEx(aid);
                     transactionCtrl.commit();
                     spuBizSummaryProc.deleteDirtyCache(aid);
+                    spuSummaryProc.deleteDirtyCache(aid);
                 }
             }finally {
                 LockUtil.unlock(aid);
@@ -226,7 +230,7 @@ public class StoreSalesSkuService extends StoreService {
                         long skuId = reportInfo.getLong(StoreSalesSkuEntity.Info.SKU_ID);
                         {
                             Param spuBizSalesSummaryInfo = new Param();
-                            assemblySpuBizSummaryInfo(spuBizSalesSummaryInfo, reportInfo, SpuBizStoreSalesReportValObj.Flag.REPORT_PRICE| SpuBizStoreSalesReportValObj.Flag.REPORT_COUNT);
+                            assemblySpuBizSummaryInfo(spuBizSalesSummaryInfo, reportInfo, ReportValObj.Flag.REPORT_PRICE| ReportValObj.Flag.REPORT_COUNT);
                             Map<Integer, Param> pdId_bizSalesSummaryInfoMap = unionPriId_pdId_bizSalesSummaryInfoMapMap.get(unionPriId);
                             if(pdId_bizSalesSummaryInfoMap == null){
                                 pdId_bizSalesSummaryInfoMap = new HashMap<>();
@@ -298,8 +302,11 @@ public class StoreSalesSkuService extends StoreService {
                         transactionCtrl.rollback();
                         return rt;
                     }
+                    spuBizSummaryProc.setDirtyCacheEx(aid);
+                    spuSummaryProc.setDirtyCacheEx(aid);
                     transactionCtrl.commit();
                     spuBizSummaryProc.deleteDirtyCache(aid);
+                    spuSummaryProc.deleteDirtyCache(aid);
                 }
             }finally {
                 LockUtil.unlock(aid);
@@ -308,7 +315,7 @@ public class StoreSalesSkuService extends StoreService {
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
             long endTime = System.currentTimeMillis();
-            Log.logStd("ok;aid=%s;consume=%s;",aid, (endTime-startTime));
+            Log.logStd("ok;flow=%s;aid=%s;consume=%s;",flow, aid, (endTime-startTime));
         }finally {
             stat.end(rt != Errno.OK, rt);
         }
@@ -358,7 +365,7 @@ public class StoreSalesSkuService extends StoreService {
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = reportSummary(aid, new FaiList<>(Arrays.asList(pdId)), SpuBizStoreSalesReportValObj.Flag.REPORT_PRICE,
+                        rt = reportSummary(aid, new FaiList<>(Arrays.asList(pdId)), ReportValObj.Flag.REPORT_PRICE,
                                 skuIdList, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
                         if(rt != Errno.OK){
                             return rt;
@@ -368,9 +375,11 @@ public class StoreSalesSkuService extends StoreService {
                             transactionCtrl.rollback();
                             return rt;
                         }
+                        spuBizSummaryProc.setDirtyCacheEx(aid);
+                        spuSummaryProc.setDirtyCacheEx(aid);
                         transactionCtrl.commit();
-                        transactionCtrl.closeDao();
                         spuBizSummaryProc.deleteDirtyCache(aid);
+                        spuSummaryProc.deleteDirtyCache(aid);
                     }
                 }finally {
                     LockUtil.unlock(aid);
@@ -482,7 +491,7 @@ public class StoreSalesSkuService extends StoreService {
     private int checkHoldingRecordExists(HoldingRecordProc holdingRecordProc, int aid, int unionPriId, FaiList<Long> skuIdList, String rlOrderCode, Map<Long, Integer> skuIdCountMap, boolean notJudgeDel, boolean isMakeup){
         int rt = Errno.ERROR;
         Ref<FaiList<Param>> listRef = new Ref<>();
-        rt = holdingRecordProc.getFromDao(aid, unionPriId, skuIdList, rlOrderCode, listRef);
+        rt = holdingRecordProc.getListFromDao(aid, unionPriId, skuIdList, rlOrderCode, listRef);
         if(rt != Errno.OK){
             if(isMakeup){
                return rt;
@@ -544,7 +553,7 @@ public class StoreSalesSkuService extends StoreService {
                 return rt;
             }
             Map<Long, FaiList<Integer>> skuIdInPdScStrIdListMap = Utils.getMap(skuInfoList, ProductSpecSkuEntity.Info.SKU_ID, ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST);
-
+            Ref<Integer> ioStoreRecordIdRef = new Ref<>();
             // 事务
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
@@ -597,7 +606,7 @@ public class StoreSalesSkuService extends StoreService {
 
                         // 添加出库记录
                         outStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.OPT_TYPE, InOutStoreRecordValObj.OptType.OUT);
-                        rt = inOutStoreRecordProc.batchAddOutStoreRecord(aid, unionPriId, skuIdChangeCountMap, changeCountAfterSkuStoreSalesInfoMap, outStoreRecordInfo, skuIdInPdScStrIdListMap);
+                        rt = inOutStoreRecordProc.batchAddOutStoreRecord(aid, unionPriId, skuIdChangeCountMap, changeCountAfterSkuStoreSalesInfoMap, outStoreRecordInfo, skuIdInPdScStrIdListMap, ioStoreRecordIdRef);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -626,6 +635,7 @@ public class StoreSalesSkuService extends StoreService {
             // 异步上报数据
             asynchronousReport(flow, aid, unionPriId, skuIdList, pdIdList);
             FaiBuffer sendBuf = new FaiBuffer(true);
+            sendBuf.putInt(StoreSalesSkuDto.Key.IN_OUT_STORE_REC_ID, ioStoreRecordIdRef.value);
             session.write(sendBuf);
             Log.logStd("aid=%d;unionPriId=%s;rlOrderCode=%s;skuIdChangeCountMap=%s;", aid, unionPriId, rlOrderCode, skuIdChangeCountMap);
         }finally {
@@ -757,7 +767,7 @@ public class StoreSalesSkuService extends StoreService {
                         if(tmpUnionPriId != sourceUnionPriId){
                             FaiList<Long> skuIdList = Utils.getValList(list, StoreSalesSkuEntity.Info.SKU_ID);
                             listRef = new Ref<>();
-                            rt = storeSalesSkuProc.getListFromDao(aid, sourceUnionPriId, skuIdList, listRef, useSourceFieldSet);
+                            rt = storeSalesSkuProc.getListFromDaoBySkuIdList(aid, sourceUnionPriId, skuIdList, listRef, useSourceFieldSet.toArray(new String[]{}));
                             if(rt != Errno.OK){
                                 if(rt == Errno.NOT_FOUND){
                                     Log.logErr( rt,"source list not found;flow=%s;aid=%s;sourceUnionPriId=%s;skuIdList=%s;", flow, aid, sourceUnionPriId, skuIdList);
@@ -796,7 +806,78 @@ public class StoreSalesSkuService extends StoreService {
     }
 
     /**
-     * 根据 skuId 和 uid 获取相应的库存销售信息
+     * 根据 skuIdList 获取相应的库存销售信息
+     */
+    public int getSkuStoreSalesBySkuIdList(FaiSession session, int flow, int aid, int tid, int unionPriId, FaiList<Long> skuIdList, FaiList<String> useSourceFieldList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || unionPriId <= 0 || skuIdList == null || skuIdList.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;", flow, aid, unionPriId, skuIdList);
+                return rt;
+            }
+            FaiList<Param> list;
+
+            StoreSalesSkuDaoCtrl storeSalesSkuDaoCtrl = StoreSalesSkuDaoCtrl.getInstance(flow, aid);
+            try {
+                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
+                Ref<FaiList<Param>> listRef = new Ref<>();
+                rt = storeSalesSkuProc.getListFromDaoBySkuIdList(aid, unionPriId, skuIdList, listRef);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+                list = listRef.value;
+                if(useSourceFieldList != null && !useSourceFieldList.isEmpty()){
+                    Set<String> useSourceFieldSet = new HashSet<>(useSourceFieldList);
+                    useSourceFieldSet.retainAll(Arrays.asList(StoreSalesSkuEntity.getValidKeys()));
+                    if(list.size() > 0 && useSourceFieldSet.size() > 0){
+                        useSourceFieldSet.add(StoreSalesSkuEntity.Info.SKU_ID);
+                        Param first = list.get(0);
+                        int tmpUnionPriId = first.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+                        int sourceUnionPriId = first.getInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID);
+                        if(tmpUnionPriId != sourceUnionPriId){
+                            listRef = new Ref<>();
+                            rt = storeSalesSkuProc.getListFromDaoBySkuIdList(aid, sourceUnionPriId, skuIdList, listRef, useSourceFieldSet.toArray(new String[]{}));
+                            if(rt != Errno.OK){
+                                if(rt == Errno.NOT_FOUND){
+                                    Log.logErr( rt,"source list not found;flow=%s;aid=%s;sourceUnionPriId=%s;skuIdList=%s;", flow, aid, sourceUnionPriId, skuIdList);
+                                }
+                                return rt;
+                            }
+                            Map<Long, Param> skuIdFiledMap = new HashMap<>(listRef.value.size()*4/3+1);
+                            for (Param sourceFieldInfo : listRef.value) {
+                                Long skuId = sourceFieldInfo.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                                skuIdFiledMap.put(skuId, sourceFieldInfo);
+                            }
+                            for (Param info : list) {
+                                Long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                                Param sourceFieldInfo = skuIdFiledMap.get(skuId);
+                                if(sourceFieldInfo == null){
+                                    rt = Errno.NOT_FOUND;
+                                    Log.logErr(rt, "source info not found;flow=%s;aid=%s;sourceUnionPriId=%s;skuId=%s;", flow, aid, sourceUnionPriId, skuId);
+                                    return rt;
+                                }
+                                for (String sourceField : useSourceFieldSet) {
+                                    info.assign(sourceFieldInfo, sourceField);
+                                }
+                            }
+                        }
+                    }
+                }
+            }finally {
+                storeSalesSkuDaoCtrl.closeDao();
+            }
+            sendPdScSkuSalesStore(session, list);
+            Log.logDbg("ok;aid=%d;unionPriId=%s;skuIdList=%s;", aid, unionPriId, skuIdList);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * 根据 skuId 和 uidList 获取相应的库存销售信息
      */
     public int getStoreSalesBySkuIdAndUIdList(FaiSession session, int flow, int aid, long skuId, FaiList<Integer> unionPriIdList) throws IOException {
         int rt = Errno.ERROR;
@@ -835,7 +916,7 @@ public class StoreSalesSkuService extends StoreService {
         try {
             if (aid <= 0 || pdId <= 0) {
                 rt = Errno.ARGS_ERROR;
-                Log.logErr("arg err;flow=%d;aid=%d;skuId=%s;", flow, aid, pdId);
+                Log.logErr("arg err;flow=%d;aid=%d;pdId=%s;", flow, aid, pdId);
                 return rt;
             }
             Ref<FaiList<Param>> listRef = new Ref<>();
@@ -856,7 +937,6 @@ public class StoreSalesSkuService extends StoreService {
         }
         return rt;
     }
-
     private void sendPdScSkuSalesStore(FaiSession session, FaiList<Param> infoList) throws IOException {
         FaiBuffer sendBuf = new FaiBuffer(true);
         infoList.toBuffer(sendBuf, StoreSalesSkuDto.Key.INFO_LIST, StoreSalesSkuDto.getInfoDto());
@@ -864,32 +944,82 @@ public class StoreSalesSkuService extends StoreService {
     }
 
     /**
+     * 获取预扣情况
+     */
+    public int getHoldingRecordList(FaiSession session, int flow, int aid, int tid, int unionPriId, FaiList<Long> skuIdList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || unionPriId <= 0 || skuIdList == null || skuIdList.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;", flow, aid, unionPriId, skuIdList);
+                return rt;
+            }
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            HoldingRecordDaoCtrl holdingRecordDaoCtrl = HoldingRecordDaoCtrl.getInstance(flow, aid);
+            try {
+                HoldingRecordProc holdingRecordProc = new HoldingRecordProc(holdingRecordDaoCtrl, flow);
+                rt = holdingRecordProc.getNotDelListFromDao(aid, unionPriId, skuIdList, listRef);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+            }finally {
+                holdingRecordDaoCtrl.closeDao();
+            }
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            listRef.value.toBuffer(sendBuf, HoldingRecordDto.Key.INFO_LIST, HoldingRecordDto.getInfoDto());
+            session.write(sendBuf);
+            Log.logDbg("ok;aid=%d;unionPriId=%s;skuIdList=%s;", aid, unionPriId, skuIdList);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+
+    /**
      * MQ 异步上报
      */
     private void asynchronousReport(int flow, int aid, int unionPriId, FaiList<Long> skuIdList, FaiList<Integer> pdIdList) {
-        TransactionCtrl transactionCtrl;
+        pdIdList = new FaiList<>(new HashSet<>(pdIdList)); //去重
         if (pdIdList.size() > 0) {
-            transactionCtrl = new TransactionCtrl();
-            try {
-                SpuBizStoreSalesReportDaoCtrl spuBizStoreSalesReportDaoCtrl = SpuBizStoreSalesReportDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                SpuBizStoreSalesReportProc spuBizStoreSalesReportProc = new SpuBizStoreSalesReportProc(spuBizStoreSalesReportDaoCtrl, flow);
-
-                transactionCtrl.setAutoCommit(false);
-                // 提交库存上报任务，提交失败暂不处理
-                if (spuBizStoreSalesReportProc.addReportCountTask(aid, unionPriId, pdIdList) != Errno.OK) {
-                    transactionCtrl.rollback();
-                } else {
-                    transactionCtrl.commit();
-                }
-            } finally {
-                transactionCtrl.closeDao();
+            for (Integer pdId : pdIdList) {
+                addSpuBizSummaryMq(flow, aid, unionPriId, pdId);
             }
         }
+        skuIdList = new FaiList<>(new HashSet<>(skuIdList)); // 去重
         if (skuIdList.size() > 0) {
             for (Long skuId : skuIdList) {
                 addSkuSummaryReportMq(flow, aid, skuId);
             }
         }
+    }
+    private int addSpuBizSummaryMq(int flow, int aid, int unionPriId, int pdId){
+        Param sendInfo = new Param();
+        sendInfo.setInt(SpuBizSummaryEntity.Info.AID, aid);
+        sendInfo.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, unionPriId);
+        sendInfo.setInt(SpuBizSummaryEntity.Info.PD_ID, pdId);
+        FaiMqMessage message = new FaiMqMessage();
+        // 指定topic
+        message.setTopic(MqConfig.SpuBizReport.TOPIC);
+        // 指定tag
+        message.setTag(MqConfig.SpuBizReport.TAG);
+        // 添加流水号
+        message.setFlow(flow);
+        // aid-unionPriId-pdId 做幂等
+        message.setKey(aid+"-"+unionPriId+"-"+pdId);
+        // 消息体
+        message.setBody(sendInfo);
+        Producer producer = MqFactory.getProducer(MqConfig.SpuBizReport.PRODUCER);
+        try {
+            // 发送成功返回SendResult对象
+            SendResult send = producer.send(message);
+            Log.logDbg("send=%s", send);
+            return Errno.OK;
+        } catch (MqClientException e) {
+            // 发送失败会抛出异常,业务方自己处理,入库或者告警
+            Log.logErr(e, MqConfig.SpuBizReport.PRODUCER+" send message err; messageFlow=%d, msgId=%s;sendInfo=%s;", message.getFlow(), message.getMsgId(), sendInfo);
+        }
+        return Errno.ERROR;
     }
     /**
      * 投递数据到 mq
@@ -905,7 +1035,7 @@ public class StoreSalesSkuService extends StoreService {
         message.setTag(MqConfig.SkuReport.TAG);
         // 添加流水号
         message.setFlow(flow);
-        // 使用flow
+        // aid-skuId 做幂等
         message.setKey(aid+"-"+skuId);
         // 消息体
         message.setBody(sendInfo);
@@ -917,7 +1047,7 @@ public class StoreSalesSkuService extends StoreService {
             return Errno.OK;
         } catch (MqClientException e) {
             // 发送失败会抛出异常,业务方自己处理,入库或者告警
-            Log.logErr(e, MqConfig.SpuBizReport.PRODUCER+" send message err; messageFlow=%d, msgId=%s", message.getFlow(), message.getMsgId());
+            Log.logErr(e, MqConfig.SpuBizReport.PRODUCER+" send message err; messageFlow=%d, msgId=%s;sendInfo=%s;", message.getFlow(), message.getMsgId(), sendInfo);
         }
         return Errno.ERROR;
     }

@@ -18,4 +18,11 @@ public class ProductSpecSkuValObj {
             public static final int MAX_SIZE = 15; // 最多15个元素
         }
     }
+
+    /**
+     * 标志位
+     */
+    public static final class FLag{
+        public static final int EMPTY = 0x1; // 是否是空规格组合的sku
+    }
 }

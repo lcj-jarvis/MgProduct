@@ -1,8 +1,6 @@
 package fai.MgProductStoreSvr.domain.entity;
 
 
-import fai.comm.util.Errno;
-import fai.comm.util.Log;
 import fai.comm.util.Parser;
 
 import java.util.Calendar;
@@ -15,7 +13,18 @@ public class InOutStoreRecordValObj {
      * 限制
      */
     public static final class Limit{
-
+        public static final class Remark {
+            public static final int MIN_LEN = 0; // 最小长度
+            public static final int MAX_LEN = 100; // 最大长度
+        }
+        public static final class RlOrderCode {
+            public static final int MIN_LEN = 0; // 最小长度
+            public static final int MAX_LEN = 32; // 最大长度
+        }
+        public static final class RlRefundId {
+            public static final int MIN_LEN = 0; // 最小长度
+            public static final int MAX_LEN = 32; // 最大长度
+        }
     }
     /**
      * 默认值
@@ -28,7 +37,7 @@ public class InOutStoreRecordValObj {
      * 标志位
      */
     public static final class FLag{
-
+        public static final int NOT_CHANGE_COUNT = 0x1;   // 不改变总库存 - 退货入库等，有入库记录只更新remainCount不更新count
     }
 
     /**
@@ -71,6 +80,16 @@ public class InOutStoreRecordValObj {
         public static String genNumber(Calendar calendar, int ioStoreRecId){
             String yyMMdd = Parser.parseString(calendar, "yyMMdd");
             return genNumber(yyMMdd, ioStoreRecId);
+        }
+    }
+
+    /**
+     * {@link fai.comm.util.SearchArg}
+     * 相关限制
+     */
+    public static final class SearchArg{
+        public static final class Limit{
+            public static final int MAX = 100;
         }
     }
 }

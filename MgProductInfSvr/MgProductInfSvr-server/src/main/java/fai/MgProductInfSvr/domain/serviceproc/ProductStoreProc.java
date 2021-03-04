@@ -108,6 +108,9 @@ public class ProductStoreProc extends AbstractProductProc{
         return rt;
     }
 
+    public int batchReducePdSkuHoldingStore(int aid, int tid, int unionPriId, FaiList<Param> skuIdCountList, String rlOrderCode, Param outStoreRecordInfo){
+        return batchReducePdSkuHoldingStore(aid, tid, unionPriId, skuIdCountList, rlOrderCode, outStoreRecordInfo, null);
+    }
     /**
      * 批量扣减预扣库存
      * 预扣模式 {@link StoreSalesSkuValObj.ReduceMode#HOLDING} 步骤2
@@ -116,14 +119,14 @@ public class ProductStoreProc extends AbstractProductProc{
      * @param outStoreRecordInfo 出库记录
      * @return
      */
-    public int batchReducePdSkuHoldingStore(int aid, int tid, int unionPriId, FaiList<Param> skuIdCountList, String rlOrderCode, Param outStoreRecordInfo){
+    public int batchReducePdSkuHoldingStore(int aid, int tid, int unionPriId, FaiList<Param> skuIdCountList, String rlOrderCode, Param outStoreRecordInfo, Ref<Integer> ioStoreRecordIdRef){
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.batchReducePdSkuHoldingStore(aid, tid, unionPriId, skuIdCountList, rlOrderCode, outStoreRecordInfo);
+        rt = m_cli.batchReducePdSkuHoldingStore(aid, tid, unionPriId, skuIdCountList, rlOrderCode, outStoreRecordInfo, ioStoreRecordIdRef);
         if (rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
@@ -175,18 +178,36 @@ public class ProductStoreProc extends AbstractProductProc{
     }
 
     /**
+     * 根据 skuId 和 unionPriIdList 获取商品规格库存销售sku
+     */
+    public int getStoreSalesBySkuIdList(int aid, int tid, int unionPirId, FaiList<Long> skuIdList, FaiList<Param> infoList, FaiList<String> useSourceFieldList){
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;unionPirId=%d;skuIdList=%s;", m_flow, aid, unionPirId, skuIdList);
+            return rt;
+        }
+        rt = m_cli.getStoreSalesBySkuIdList(aid, tid, unionPirId, skuIdList, infoList, useSourceFieldList);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPirId=%d;skuIdList=%s;", m_flow, aid, unionPirId, skuIdList);
+            return rt;
+        }
+        return rt;
+    }
+
+    /**
      * 根据 skuId 和 unionPriIdList 获取sku库存销售信息
      */
     public int getStoreSalesBySkuIdAndUIdList(int aid, int tid, long skuId, FaiList<Integer> unionPriIdList, FaiList infoList) {
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
-            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;skuId=%d;unionPriIdList=%s;", m_flow, aid, skuId, unionPriIdList);
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;skuId=%s;unionPriIdList=%s;", m_flow, aid, skuId, unionPriIdList);
             return rt;
         }
         rt = m_cli.getStoreSalesBySkuIdAndUIdList(aid, tid, skuId, unionPriIdList, infoList);
         if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;skuId=%d;unionPriIdList=%s;", m_flow, aid, skuId, unionPriIdList);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;skuId=%s;unionPriIdList=%s;", m_flow, aid, skuId, unionPriIdList);
             return rt;
         }
         return rt;
@@ -205,6 +226,24 @@ public class ProductStoreProc extends AbstractProductProc{
         rt = m_cli.getSkuStoreSalesByPdId(aid, tid, pdId, infoList);
         if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;pdId=%d;", m_flow, aid, pdId);
+            return rt;
+        }
+        return rt;
+    }
+
+    /**
+     * 获取预扣记录
+     */
+    public int getHoldingRecordList(int aid, int tid, int unionPriId, FaiList<Long> skuIdList, FaiList infoList) {
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.getHoldingRecordList(aid, tid, unionPriId, skuIdList, infoList);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
         return rt;

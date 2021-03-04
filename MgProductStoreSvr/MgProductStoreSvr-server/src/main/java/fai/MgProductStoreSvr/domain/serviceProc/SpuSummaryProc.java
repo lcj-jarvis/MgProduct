@@ -1,11 +1,14 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
 import fai.MgProductStoreSvr.domain.entity.SpuSummaryEntity;
+import fai.MgProductStoreSvr.domain.repository.SpuSummaryCacheCtrl;
 import fai.MgProductStoreSvr.domain.repository.SpuSummaryDaoCtrl;
 import fai.comm.util.*;
 
 import java.util.Calendar;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class SpuSummaryProc {
     public SpuSummaryProc(SpuSummaryDaoCtrl daoCtrl, int flow) {
@@ -20,7 +23,7 @@ public class SpuSummaryProc {
         int rt = Errno.ERROR;
         FaiList<Integer> pdIdList = new FaiList<>(pdIdSalesSummaryInfoMap.keySet());
         Ref<FaiList<Param>> listRef = new Ref<>();
-        rt = getInfoListFromDao(aid, pdIdList, listRef, SpuSummaryEntity.Info.PD_ID);
+        rt = getListFromDao(aid, pdIdList, listRef, SpuSummaryEntity.Info.PD_ID);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             return rt;
         }
@@ -44,6 +47,7 @@ public class SpuSummaryProc {
             }
             batchUpdateDataList.add(data);
         }
+        cacheManage.addDirtyCacheKey(pdIdList);
         if(!batchUpdateDataList.isEmpty()){
             ParamUpdater batchUpdater = new ParamUpdater();
             batchUpdater.getData().setString(SpuSummaryEntity.Info.MAX_PRICE, "?");
@@ -110,6 +114,7 @@ public class SpuSummaryProc {
             Log.logErr(rt,"select err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
             return rt;
         }
+
         FaiList<Param> batchUpdateDataList = new FaiList<>();
         for (Param oldInfo : listRef.value) {
             Integer pdId = oldInfo.getInt(SpuSummaryEntity.Info.PD_ID);
@@ -129,6 +134,7 @@ public class SpuSummaryProc {
             data.setInt(SpuSummaryEntity.Info.PD_ID, pdId);
             batchUpdateDataList.add(data);
         }
+        cacheManage.addDirtyCacheKey(pdIdList);
         if(!batchUpdateDataList.isEmpty()){
             ParamUpdater batchUpdater = new ParamUpdater();
             batchUpdater.getData().setString(SpuSummaryEntity.Info.MIN_PRICE, "?");
@@ -184,7 +190,7 @@ public class SpuSummaryProc {
             return rt;
         }
         Param oldInfo = infoRef.value;
-
+        cacheManage.addDirtyCacheKey(pdId);
         Calendar now = Calendar.getInstance();
         info.setCalendar(SpuSummaryEntity.Info.SYS_UPDATE_TIME, now);
         if(oldInfo.isEmpty()){
@@ -211,6 +217,7 @@ public class SpuSummaryProc {
     public int batchDel(int aid, FaiList<Integer> pdIdList) {
         ParamMatcher matcher = new ParamMatcher(SpuSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(SpuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        cacheManage.addDirtyCacheKey(pdIdList);
         int rt = m_daoCtrl.delete(matcher);
         if(rt != Errno.OK){
             Log.logStd(rt, "delete err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
@@ -219,11 +226,7 @@ public class SpuSummaryProc {
         Log.logStd("ok;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
         return rt;
     }
-    public int getInfoListFromDao(int aid, FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef, String ... fields) {
-        if(aid <= 0 || pdIdList == null || pdIdList.isEmpty() || listRef == null){
-            Log.logStd("arg error;flow=%d;aid=%s;pdIdList=%s;listRef=%s;", m_flow, aid, pdIdList, listRef);
-            return Errno.ARGS_ERROR;
-        }
+    public int getListFromDao(int aid, FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef, String ... fields) {
         ParamMatcher matcher = new ParamMatcher(SpuSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(SpuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
         SearchArg searchArg = new SearchArg();
@@ -237,9 +240,80 @@ public class SpuSummaryProc {
         return rt;
     }
 
+    public int getList(int aid, FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef){
+        if(aid <= 0 || pdIdList == null || pdIdList.isEmpty() || listRef == null){
+            Log.logStd("arg error;flow=%d;aid=%s;pdIdList=%s;listRef=%s;", m_flow, aid, pdIdList, listRef);
+            return Errno.ARGS_ERROR;
+        }
+        FaiList<Param> resultList = new FaiList<>();
+        listRef.value = resultList;
+        Set<Integer> pdIdSet = new HashSet<>(pdIdList);
+        FaiList<Param> cacheList = SpuSummaryCacheCtrl.getCacheList(aid, pdIdSet);
+        if(cacheList != null){
+            for (Param info : cacheList) {
+                if(pdIdSet.remove(info.getInt(SpuSummaryEntity.Info.PD_ID))){
+                    resultList.add(info);
+                }
+            }
+        }
+        int rt = Errno.ERROR;
+        if(pdIdSet.isEmpty()){
+            return rt = Errno.OK;
+        }
+        Ref<FaiList<Param>> tmpListRef = new Ref<>();
+        rt = getListFromDao(aid, new FaiList<>(pdIdSet), tmpListRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            return rt;
+        }
+        FaiList<Param> list = tmpListRef.value;
+        SpuSummaryCacheCtrl.setCacheList(aid, list);
+        resultList.addAll(list);
+        return rt = Errno.OK;
+    }
+
+    /**
+     * 设置缓存过期
+     */
+    public boolean setDirtyCacheEx(int aid){
+        return cacheManage.setDirtyCacheEx(aid);
+    }
+    public void deleteDirtyCache(int aid) {
+        cacheManage.deleteDirtyCache(aid);
+    }
+
     private int m_flow;
     private SpuSummaryDaoCtrl m_daoCtrl;
+    private CacheManage cacheManage = new CacheManage();
+    private static class CacheManage{
+        private Set<Integer> pdIdSet;
+        public CacheManage() {
+            init();
+        }
+        private void init() {
+            pdIdSet = new HashSet<>();
+        }
 
+        public void addDirtyCacheKey(FaiList<Integer> pdIdList){
+            if(pdIdList == null){
+                return;
+            }
+            pdIdSet.addAll(pdIdList);
+        }
+        public void addDirtyCacheKey(int pdId){
+            pdIdSet.add(pdId);
+        }
 
+        private void deleteDirtyCache(int aid){
+            try {
+                SpuSummaryCacheCtrl.delCacheList(aid, pdIdSet);
+            }finally {
+                init();
+            }
+        }
+
+        public boolean setDirtyCacheEx(int aid) {
+            return SpuSummaryCacheCtrl.setCacheDirty(aid);
+        }
+    }
 
 }

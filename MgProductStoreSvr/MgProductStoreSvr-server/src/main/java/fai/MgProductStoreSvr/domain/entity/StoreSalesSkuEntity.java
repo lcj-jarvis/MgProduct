@@ -63,6 +63,7 @@ public class StoreSalesSkuEntity {
         public static final String MAX_PRICE = "maxPrice";
         public static final String SUM_FIFO_TOTAL_COST = "sumFifoTotalCost";
         public static final String SUM_MW_TOTAL_COST = "sumMwTotalCost";
+        public static final String BIT_OR_FLAG = "bitOrFlag";
     }
 
     /**

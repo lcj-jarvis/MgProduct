@@ -852,6 +852,79 @@ public class ProductStoreService extends MgProductInfService {
     }
 
     /**
+     * 根据 rlPdList 获取指定商品所有的业务spu库存销售汇总信息
+     * @param tid 创建商品的tid
+     * @param siteId 创建商品的siteId
+     * @param lgId 创建商品的lgId
+     * @param keepPriId1 创建商品的keepPriId1
+     * @param rlPdList 创建商品的 rlPdIdList
+     */
+    public int getAllBizSpuSummaryInfoListByPdIdList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdList)  throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            // 获取pdIdList
+            idRef.value = null;
+            ProductBasicProc productBasicProc = new ProductBasicProc(flow);
+            FaiList<Param> pdInfoList = new FaiList<>();
+            rt = productBasicProc.getRelListByRlIds(aid, unionPriId, rlPdList, pdInfoList);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            FaiList<Integer> pdIdList = OptMisc.getValList(pdInfoList, ProductBasicEntity.ProductRelInfo.PD_ID);
+
+            ProductStoreProc productStoreProc = new ProductStoreProc(flow);
+            FaiList<Param> infoList = new FaiList<Param>();
+            rt = productStoreProc.getAllSpuBizSummaryInfoListByPdIdList(aid, tid, pdIdList, infoList);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            Set<Integer> unionPriIdSet = new HashSet<>();
+            for (Param info : infoList) {
+                unionPriIdSet.add(info.getInt(SpuBizSummaryEntity.Info.UNION_PRI_ID));
+            }
+            if(!unionPriIdSet.isEmpty()){
+                FaiList<Param> primaryKeyList = new FaiList<>();
+                rt = getPrimaryKeyListByUnionPriIds(flow, aid, tid, new FaiList<>(unionPriIdSet), primaryKeyList);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+                Map<Integer, BizPriKey> unionPriIdBizPriKeyMap = toUnionPriIdBizPriKeyMap(primaryKeyList);
+                for (Param info : infoList) {
+                    int tmpUnionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID);
+                    BizPriKey bizPriKey = unionPriIdBizPriKeyMap.get(tmpUnionPriId);
+                    info.setInt(ProductStoreEntity.SpuBizSummaryInfo.TID, bizPriKey.tid);
+                    info.setInt(ProductStoreEntity.SpuBizSummaryInfo.SITE_ID, bizPriKey.siteId);
+                    info.setInt(ProductStoreEntity.SpuBizSummaryInfo.LGID, bizPriKey.lgId);
+                    info.setInt(ProductStoreEntity.SpuBizSummaryInfo.KEEP_PRI_ID1, bizPriKey.keepPriId1);
+                }
+            }
+
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            infoList.toBuffer(sendBuf, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.SpuBizSummary.getInfoDto());
+            session.write(sendBuf);
+        }finally {
+            stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
+        }
+        return rt;
+    }
+
+    /**
      * 根据rlPdIdList 获取指定业务下 spu业务库存销售汇总
      * @param useOwnerFieldList 使用 创建商品的业务数据
      */

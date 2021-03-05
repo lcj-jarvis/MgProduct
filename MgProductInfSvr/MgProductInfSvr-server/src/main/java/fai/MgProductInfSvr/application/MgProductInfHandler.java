@@ -613,6 +613,18 @@ public class MgProductInfHandler extends FaiHandler {
         return storeService.getAllBizSpuSummaryInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId);
     }
 
+    @Cmd(MgProductInfCmd.SpuBizSummaryCmd.GET_ALL_BIZ_LIST_BY_PD_ID_LIST)
+    public int getAllBizSpuSummaryInfoListByPdIdList(final FaiSession session,
+                                           @ArgFlow final int flow,
+                                           @ArgAid final int aid,
+                                           @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
+                                           @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
+                                           @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
+                                           @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
+                                           @ArgList(keyMatch = ProductStoreDto.Key.ID_LIST) FaiList<Integer> rlPdIdList) throws IOException {
+        return storeService.getAllBizSpuSummaryInfoListByPdIdList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIdList);
+    }
+
     @Cmd(MgProductInfCmd.SpuBizSummaryCmd.GET_LIST_BY_PD_ID_LIST)
     public int getSpuBizStoreSalesSummaryInfoList(final FaiSession session,
                                         @ArgFlow final int flow,

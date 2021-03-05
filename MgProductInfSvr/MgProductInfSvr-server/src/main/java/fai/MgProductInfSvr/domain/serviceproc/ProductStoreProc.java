@@ -43,7 +43,7 @@ public class ProductStoreProc extends AbstractProductProc{
         }
         rt = m_cli.batchSynchronousStoreSalesSPU2SKU(aid, sourceTid, sourceUnionPriId, spuStoreSalesInfoList);
         if (rt != Errno.OK) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;", m_flow, aid);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;sourceUnionPriId=%s;", m_flow, aid, sourceUnionPriId);
             return rt;
         }
         return rt;
@@ -61,7 +61,7 @@ public class ProductStoreProc extends AbstractProductProc{
         }
         rt = m_cli.batchSynchronousInOutStoreRecord(aid, sourceTid, sourceUnionPriId, spuStoreSalesInfoList);
         if (rt != Errno.OK) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;", m_flow, aid);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;sourceUnionPriId=%s;", m_flow, aid, sourceUnionPriId);
             return rt;
         }
         return rt;
@@ -79,7 +79,7 @@ public class ProductStoreProc extends AbstractProductProc{
         }
         rt = m_cli.setSkuStoreSales(aid, tid, unionPriId, pdId, rlPdId, updaterList);
         if (rt != Errno.OK) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;rlPdId=%s;", m_flow, aid, unionPriId, rlPdId);
             return rt;
         }
         return rt;
@@ -102,15 +102,12 @@ public class ProductStoreProc extends AbstractProductProc{
         }
         rt = m_cli.batchReducePdSkuStore(aid, tid, unionPriId, skuIdCountList, rlOrderCode, reduceMode, expireTimeSeconds);
         if (rt != Errno.OK) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;skuIdCountList=%s;rlOrderCode=%s;reduceMode=%s;expireTimeSeconds=%s;", m_flow, aid, unionPriId, skuIdCountList, rlOrderCode, reduceMode, expireTimeSeconds);
             return rt;
         }
         return rt;
     }
 
-    public int batchReducePdSkuHoldingStore(int aid, int tid, int unionPriId, FaiList<Param> skuIdCountList, String rlOrderCode, Param outStoreRecordInfo){
-        return batchReducePdSkuHoldingStore(aid, tid, unionPriId, skuIdCountList, rlOrderCode, outStoreRecordInfo, null);
-    }
     /**
      * 批量扣减预扣库存
      * 预扣模式 {@link StoreSalesSkuValObj.ReduceMode#HOLDING} 步骤2
@@ -128,7 +125,7 @@ public class ProductStoreProc extends AbstractProductProc{
         }
         rt = m_cli.batchReducePdSkuHoldingStore(aid, tid, unionPriId, skuIdCountList, rlOrderCode, outStoreRecordInfo, ioStoreRecordIdRef);
         if (rt != Errno.OK) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;skuIdCountList=%s;rlOrderCode=%s;outStoreRecordInfo=%s;", m_flow, aid, unionPriId, skuIdCountList, skuIdCountList, outStoreRecordInfo);
             return rt;
         }
         return rt;
@@ -153,7 +150,7 @@ public class ProductStoreProc extends AbstractProductProc{
         }
         rt = m_cli.batchMakeUpStore(aid, unionPriId, skuIdCountList, rlOrderCode, reduceMode);
         if (rt != Errno.OK) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;skuIdCountList=%s;rlOrderCode=%s;reduceMode=%s;", m_flow, aid, unionPriId, skuIdCountList, rlOrderCode, reduceMode);
             return rt;
         }
         return rt;
@@ -171,7 +168,7 @@ public class ProductStoreProc extends AbstractProductProc{
         }
         rt = m_cli.getSkuStoreSales(aid, tid, unionPriId, pdId, rlPdId, infoList, useOwnerFieldList);
         if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;pdId=%s;rlPdId=%s;useOwnerFieldList=%s;", m_flow, aid, unionPriId, pdId, rlPdId, useOwnerFieldList);
             return rt;
         }
         return rt;
@@ -189,7 +186,7 @@ public class ProductStoreProc extends AbstractProductProc{
         }
         rt = m_cli.getStoreSalesBySkuIdList(aid, tid, unionPirId, skuIdList, infoList, useSourceFieldList);
         if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPirId=%d;skuIdList=%s;", m_flow, aid, unionPirId, skuIdList);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPirId=%d;skuIdList=%s;useSourceFieldList=%s;", m_flow, aid, unionPirId, skuIdList, useSourceFieldList);
             return rt;
         }
         return rt;
@@ -243,7 +240,7 @@ public class ProductStoreProc extends AbstractProductProc{
         }
         rt = m_cli.getHoldingRecordList(aid, tid, unionPriId, skuIdList, infoList);
         if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;skuIdList=%s;", m_flow, aid, unionPriId, skuIdList);
             return rt;
         }
         return rt;
@@ -262,7 +259,7 @@ public class ProductStoreProc extends AbstractProductProc{
         }
         rt = m_cli.addInOutStoreRecordInfoList(aid, tid, unionPriId, infoList);
         if (rt != Errno.OK) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;", m_flow, aid);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%s;", m_flow, aid, unionPriId);
             return rt;
         }
         return rt;
@@ -280,11 +277,12 @@ public class ProductStoreProc extends AbstractProductProc{
         }
         rt = m_cli.getInOutStoreRecordInfoList(aid, tid, unionPriId, isSource, searchArg, infoList);
         if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;", m_flow, aid);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%s;isSource=%s;searchArg=%s;", m_flow, aid, unionPriId, isSource, getSearchArgInfo(searchArg));
             return rt;
         }
         return rt;
     }
+
 
     /**
      * 批量删除商品所有库存销售相关信息
@@ -314,9 +312,27 @@ public class ProductStoreProc extends AbstractProductProc{
             Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
-        rt = m_cli.getSpuBizSummaryInfoListByPdId(aid, tid, pdId, infoList);
+        rt = m_cli.getAllSpuBizSummaryInfoListByPdId(aid, tid, pdId, infoList);
         if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;", m_flow, aid);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
+            return rt;
+        }
+        return rt;
+    }
+    /**
+     *
+     * 获取spu 所以关联的业务库存销售汇总信息
+     */
+    public int getAllSpuBizSummaryInfoListByPdIdList(int aid, int tid, FaiList<Integer> pdIdList, FaiList<Param> infoList) {
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        rt = m_cli.getAllSpuBizSummaryInfoListByPdIdList(aid, tid, pdIdList, infoList);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
             return rt;
         }
         return rt;
@@ -334,7 +350,7 @@ public class ProductStoreProc extends AbstractProductProc{
         }
         rt = m_cli.getSpuBizSummaryInfoListByPdIdList(aid, tid, unionPriId, pdIdList, infoList, useOwnerFieldList);
         if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;", m_flow, aid);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%s;pdIdList=%s;useOwnerFieldList=%s;", m_flow, aid, unionPriId, pdIdList, useOwnerFieldList);
             return rt;
         }
         return rt;
@@ -352,7 +368,7 @@ public class ProductStoreProc extends AbstractProductProc{
         }
         rt = m_cli.getSpuSummaryInfoList(aid, tid, unionPriId, pdIdList, infoList);
         if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;", m_flow, aid);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%s;pdIdList=%s;", m_flow, aid, unionPriId, pdIdList);
             return rt;
         }
         return rt;
@@ -373,7 +389,7 @@ public class ProductStoreProc extends AbstractProductProc{
             rt = m_cli.getSkuSummaryInfoList(aid, tid, unionPriId, searchArg, list);
         }
         if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;", m_flow, aid);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%s;searchArg=%s;isBiz=%s;", m_flow, aid, unionPriId, getSearchArgInfo(searchArg), isBiz);
             return rt;
         }
         return rt;

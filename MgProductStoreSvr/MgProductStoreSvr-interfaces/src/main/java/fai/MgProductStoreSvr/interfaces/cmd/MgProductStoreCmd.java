@@ -18,6 +18,7 @@ public class MgProductStoreCmd {
 		public static final int NUM11 = 5011;
 		public static final int NUM12 = 5012;
 		public static final int NUM13 = 5013;
+		public static final int NUM14 = 5014;
 	}
 
 
@@ -81,6 +82,7 @@ public class MgProductStoreCmd {
 	public static class SpuBizSummaryCmd {
 		public static final int GET_LIST_BY_PD_ID = ReadCmdNum.NUM1;
 		public static final int GET_LIST = ReadCmdNum.NUM3;
+		public static final int GET_LIST_BY_PD_ID_LIST = ReadCmdNum.NUM14;
 		/**
 		 * 获取数据状态
 		 */

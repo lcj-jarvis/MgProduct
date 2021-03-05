@@ -241,6 +241,15 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
         return  m_summaryService.getSpuBizSummaryInfoListByPdId(session, flow, aid, tid, pdId);
     }
 
+    @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.GET_LIST_BY_PD_ID_LIST)
+    private int getSpuBizSummaryInfoListByPdIdList(final FaiSession session,
+                                               @ArgFlow final int flow,
+                                               @ArgAid final int aid,
+                                               @ArgBodyInteger(SpuBizSummaryDto.Key.TID) final int tid,
+                                               @ArgList(keyMatch = SpuBizSummaryDto.Key.ID_LIST) final FaiList<Integer> pdIdList) throws IOException {
+        return  m_summaryService.getSpuBizSummaryInfoListByPdIdList(session, flow, aid, tid, pdIdList);
+    }
+
     @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.GET_LIST)
     private int getSpuBizSummaryInfoList(final FaiSession session,
                                          @ArgFlow final int flow,

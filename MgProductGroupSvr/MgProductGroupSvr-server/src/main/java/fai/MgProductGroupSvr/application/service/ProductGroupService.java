@@ -4,15 +4,16 @@ import fai.MgProductGroupSvr.domain.common.LockUtil;
 import fai.MgProductGroupSvr.domain.common.ProductGroupCheck;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupEntity;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupRelEntity;
-import fai.MgProductGroupSvr.domain.repository.ProductGroupCacheCtrl;
-import fai.MgProductGroupSvr.domain.repository.ProductGroupRelCacheCtrl;
+import fai.MgProductGroupSvr.domain.repository.ProductGroupCache;
+import fai.MgProductGroupSvr.domain.repository.ProductGroupRelCache;
 import fai.MgProductGroupSvr.domain.serviceproc.ProductGroupProc;
 import fai.MgProductGroupSvr.domain.serviceproc.ProductGroupRelProc;
 import fai.MgProductGroupSvr.interfaces.dto.ProductGroupRelDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
-import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
+import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.annotation.SuccessRt;
+import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 import fai.middleground.svrutil.service.ServicePub;
 
@@ -69,9 +70,10 @@ public class ProductGroupService extends ServicePub {
                 if(commit) {
                     transactionCtrl.commit();
                     // 新增缓存
-                    ProductGroupCacheCtrl.addCache(aid, groupInfo);
-                    ProductGroupRelCacheCtrl.addCache(aid, unionPriId, relInfo);
-                    ProductGroupRelCacheCtrl.setSortCache(aid, unionPriId, maxSort);
+                    ProductGroupCache.addCache(aid, groupInfo);
+                    ProductGroupRelCache.addCache(aid, unionPriId, relInfo);
+                    ProductGroupRelCache.SortCache.set(aid, unionPriId, maxSort);
+                    ProductGroupRelCache.DataStatusCache.update(aid, unionPriId, 1);
                 }else {
                     transactionCtrl.rollback();
                     groupProc.clearIdBuilderCache(aid);
@@ -92,7 +94,7 @@ public class ProductGroupService extends ServicePub {
 
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getGroupList(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg) throws IOException {
-        int rt = Errno.OK;
+        int rt;
         if(aid <= 0) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
@@ -155,8 +157,87 @@ public class ProductGroupService extends ServicePub {
     }
 
     @SuccessRt(value = Errno.OK)
+    public int getGroupRelDataStatus(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
+        int rt;
+        if(aid <= 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
+            return rt;
+        }
+
+        Param info;
+        TransactionCtrl transactionCtrl = new TransactionCtrl();
+        try {
+            ProductGroupRelProc relProc = new ProductGroupRelProc(flow, aid, transactionCtrl);
+            info = relProc.getDataStatus(aid, unionPriId);
+        }finally {
+            transactionCtrl.closeDao();
+        }
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        info.toBuffer(sendBuf, ProductGroupRelDto.Key.DATA_STATUS, ProductGroupRelDto.getDataStatusDto());
+        session.write(sendBuf);
+        rt = Errno.OK;
+        Log.logDbg("getGroupRelDataStatus ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+        return rt;
+    }
+
+    @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
+    public int getAllGroupRel(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
+        int rt;
+        if(aid <= 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
+            return rt;
+        }
+        FaiList<Param> list;
+        TransactionCtrl transactionCtrl = new TransactionCtrl();
+        try {
+            ProductGroupRelProc relProc = new ProductGroupRelProc(flow, aid, transactionCtrl);
+            list = relProc.getGroupRelList(aid, unionPriId);
+        }finally {
+            transactionCtrl.closeDao();
+        }
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        list.toBuffer(sendBuf, ProductGroupRelDto.Key.INFO_LIST, ProductGroupRelDto.getInfoDto());
+        session.write(sendBuf);
+        rt = Errno.OK;
+        Log.logDbg("get list ok;flow=%d;aid=%d;unionPriId=%d;size=%d;", flow, aid, unionPriId, list.size());
+
+        return rt;
+    }
+
+    @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
+    public int searchGroupRelFromDb(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg) throws IOException {
+        int rt;
+        if(aid <= 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
+            return rt;
+        }
+        FaiList<Param> list;
+        TransactionCtrl transactionCtrl = new TransactionCtrl();
+        try {
+            ProductGroupRelProc relProc = new ProductGroupRelProc(flow, aid, transactionCtrl);
+            list = relProc.searchFromDb(aid, unionPriId, searchArg);
+
+        }finally {
+            transactionCtrl.closeDao();
+        }
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        list.toBuffer(sendBuf, ProductGroupRelDto.Key.INFO_LIST, ProductGroupRelDto.getInfoDto());
+        if (searchArg != null && searchArg.totalSize != null && searchArg.totalSize.value != null) {
+            sendBuf.putInt(ProductGroupRelDto.Key.TOTAL_SIZE, searchArg.totalSize.value);
+        }
+        session.write(sendBuf);
+        rt = Errno.OK;
+        Log.logDbg("get list ok;flow=%d;aid=%d;unionPriId=%d;size=%d;", flow, aid, unionPriId, list.size());
+
+        return rt;
+    }
+
+    @SuccessRt(value = Errno.OK)
     public int setGroupList(FaiSession session, int flow, int aid, int unionPriId, FaiList<ParamUpdater> updaterList) throws IOException {
-        int rt = Errno.ERROR;
+        int rt;
         if(aid <= 0) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
@@ -183,16 +264,20 @@ public class ProductGroupService extends ServicePub {
                 commit = true;
                 // commit之前设置10s过期时间，避免脏数据
                 if(updaterList != null && !updaterList.isEmpty()) {
-                    ProductGroupRelCacheCtrl.setExpire(aid, unionPriId);
+                    ProductGroupRelCache.setExpire(aid, unionPriId);
                 }
                 if(!groupUpdaterList.isEmpty()) {
-                    ProductGroupCacheCtrl.setExpire(aid);
+                    ProductGroupCache.setExpire(aid);
                 }
             }finally {
                 if(commit) {
                     transactionCtrl.commit();
-                    ProductGroupCacheCtrl.updateCacheList(aid, groupUpdaterList);
-                    ProductGroupRelCacheCtrl.updateCacheList(aid, unionPriId, updaterList);
+                    ProductGroupCache.updateCacheList(aid, groupUpdaterList);
+                    if(!Util.isEmptyList(updaterList)) {
+                        ProductGroupRelCache.updateCacheList(aid, unionPriId, updaterList);
+                        // 修改数据，更新dataStatus 的管理态字段更新时间
+                        ProductGroupRelCache.DataStatusCache.update(aid, unionPriId);
+                    }
                 }else {
                     transactionCtrl.rollback();
                 }
@@ -211,7 +296,7 @@ public class ProductGroupService extends ServicePub {
 
     @SuccessRt(value = Errno.OK)
     public int delGroupList(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlGroupIdList) throws IOException {
-        int rt = Errno.ERROR;
+        int rt;
         if(rlGroupIdList == null || rlGroupIdList.isEmpty()) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error, rlGroupIdList is not valid;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
@@ -239,13 +324,14 @@ public class ProductGroupService extends ServicePub {
 
                 commit = true;
                 // commit之前设置10s过期时间，避免脏数据
-                ProductGroupRelCacheCtrl.setExpire(aid, unionPriId);
-                ProductGroupCacheCtrl.setExpire(aid);
+                ProductGroupRelCache.setExpire(aid, unionPriId);
+                ProductGroupCache.setExpire(aid);
             }finally {
                 if(commit) {
                     transactionCtrl.commit();
-                    ProductGroupCacheCtrl.delCacheList(aid, delGroupIdList);
-                    ProductGroupRelCacheCtrl.delCacheList(aid, unionPriId, rlGroupIdList);
+                    ProductGroupCache.delCacheList(aid, delGroupIdList);
+                    ProductGroupRelCache.delCacheList(aid, unionPriId, rlGroupIdList);
+                    ProductGroupRelCache.DataStatusCache.update(aid, unionPriId, rlGroupIdList.size(), false);
                 }else {
                     transactionCtrl.rollback();
                 }
@@ -261,13 +347,10 @@ public class ProductGroupService extends ServicePub {
         return rt;
     }
 
-    private int assemblyGroupInfo(int flow, int aid, int unionPriId, int tid, Param recvInfo, Param groupInfo, Param relInfo) {
-        int rt = Errno.OK;
+    private void assemblyGroupInfo(int flow, int aid, int unionPriId, int tid, Param recvInfo, Param groupInfo, Param relInfo) {
         String groupName = recvInfo.getString(ProductGroupEntity.Info.GROUP_NAME, "");
         if(!ProductGroupCheck.isNameValid(groupName)) {
-            rt = Errno.ARGS_ERROR;
-            Log.logErr(rt, "groupName is not valid;flow=%d;aid=%d;groupName=%d;", flow, aid, groupName);
-            return rt;
+            throw new MgException(Errno.ARGS_ERROR, "groupName is not valid;flow=%d;aid=%d;groupName=%d;", flow, aid, groupName);
         }
 
         Calendar now = Calendar.getInstance();
@@ -292,8 +375,6 @@ public class ProductGroupService extends ServicePub {
         groupInfo.setCalendar(ProductGroupRelEntity.Info.UPDATE_TIME, updateTime);
         relInfo.assign(recvInfo, ProductGroupRelEntity.Info.SORT);
         relInfo.assign(recvInfo, ProductGroupRelEntity.Info.RL_FLAG);
-
-        return rt;
     }
 
 }

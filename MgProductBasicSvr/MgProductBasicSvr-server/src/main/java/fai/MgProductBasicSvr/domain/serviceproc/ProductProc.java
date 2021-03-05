@@ -2,117 +2,93 @@ package fai.MgProductBasicSvr.domain.serviceproc;
 
 import fai.MgProductBasicSvr.domain.entity.ProductEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductValObj;
-import fai.MgProductBasicSvr.domain.repository.ProductCacheCtrl;
-import fai.MgProductBasicSvr.domain.repository.ProductDaoCtrl;
+import fai.MgProductBasicSvr.domain.repository.cache.ProductCacheCtrl;
+import fai.MgProductBasicSvr.domain.repository.dao.ProductBindPropDaoCtrl;
+import fai.MgProductBasicSvr.domain.repository.dao.ProductDaoCtrl;
 import fai.comm.util.*;
+import fai.mgproduct.comm.Util;
+import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class ProductProc {
-    public ProductProc(int flow, ProductDaoCtrl dao) {
+    public ProductProc(int flow, int aid, TransactionCtrl tc) {
         this.m_flow = flow;
-        this.m_dao = dao;
+        this.m_dao = ProductDaoCtrl.getInstance(flow, aid);
+        init(tc);
     }
 
-    public int addProduct(int aid, Param pdData, Ref<Integer> pdIdRef) {
+    public int addProduct(int aid, Param pdData) {
         int rt;
         if(Str.isEmpty(pdData)) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr(rt, "args err, infoList is empty;flow=%d;aid=%d;pdData=%s", m_flow, aid, pdData);
-            return rt;
+            throw new MgException(rt, "args err, infoList is empty;flow=%d;aid=%d;pdData=%s", m_flow, aid, pdData);
         }
-        Ref<Integer> countRef = new Ref<>();
-        rt = getPdCount(aid, countRef);
-        if(rt != Errno.OK) {
-            Log.logErr(rt, "get pd rel count error;flow=%d;aid=%d;", m_flow, aid);
-            return rt;
-        }
-        int count = countRef.value;
+        int count = getPdCount(aid);
         if(count >= ProductValObj.Limit.COUNT_MAX) {
             rt = Errno.COUNT_LIMIT;
-            Log.logErr(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductValObj.Limit.COUNT_MAX);
-            return rt;
+            throw new MgException(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductValObj.Limit.COUNT_MAX);
         }
-        rt = creatAndSetId(aid, pdData);
-        if(rt != Errno.OK) {
-            return rt;
-        }
-        Integer pdId = pdData.getInt(ProductEntity.Info.PD_ID);
-        pdIdRef.value = pdId;
+        int pdId = creatAndSetId(aid, pdData);
         rt = m_dao.insert(pdData);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "insert product error;flow=%d;aid=%d;", m_flow, aid);
-            return rt;
+            throw new MgException(rt, "insert product error;flow=%d;aid=%d;", m_flow, aid);
         }
-        return rt;
+        return pdId;
     }
 
-    public int batchAddProduct(int aid, FaiList<Param> pdDataList, FaiList<Integer> pdIdList) {
+    public FaiList<Integer> batchAddProduct(int aid, FaiList<Param> pdDataList) {
         int rt;
         if(pdDataList == null || pdDataList.isEmpty()) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr(rt, "args err, pdDataList is empty;flow=%d;aid=%d;pdData=%s", m_flow, aid, pdDataList);
-            return rt;
+            throw new MgException(rt, "args err, pdDataList is empty;flow=%d;aid=%d;pdData=%s", m_flow, aid, pdDataList);
         }
-        Ref<Integer> countRef = new Ref<>();
-        rt = getPdCount(aid, countRef);
-        if(rt != Errno.OK) {
-            Log.logErr(rt, "get pd rel count error;flow=%d;aid=%d;", m_flow, aid);
-            return rt;
-        }
-        int count = countRef.value + pdDataList.size();
+        int count = getPdCount(aid);
         if(count > ProductValObj.Limit.COUNT_MAX) {
             rt = Errno.COUNT_LIMIT;
-            Log.logErr(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductValObj.Limit.COUNT_MAX);
-            return rt;
+            throw new MgException(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductValObj.Limit.COUNT_MAX);
         }
+        FaiList<Integer> pdIdList = new FaiList<>();
         for(Param pdData : pdDataList) {
-            rt = creatAndSetId(aid, pdData);
-            if(rt != Errno.OK) {
-                return rt;
-            }
-            Integer pdId = pdData.getInt(ProductEntity.Info.PD_ID);
+            int pdId = creatAndSetId(aid, pdData);
             pdIdList.add(pdId);
         }
 
         rt = m_dao.batchInsert(pdDataList, null, false);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "insert product error;flow=%d;aid=%d;", m_flow, aid);
-            return rt;
+            throw new MgException(rt, "insert product error;flow=%d;aid=%d;", m_flow, aid);
         }
-        return rt;
+        return pdIdList;
     }
 
     private int creatAndSetId(int aid, Param info) {
-        int rt = Errno.OK;
+        int rt;
         Integer pdId = info.getInt(ProductEntity.Info.PD_ID);
         if(pdId == null) {
             pdId = m_dao.buildId(aid, false);
             if (pdId == null) {
                 rt = Errno.ERROR;
-                Log.logErr(rt, "pdId build error;flow=%d;aid=%d;", m_flow, aid);
-                return rt;
+                throw new MgException(rt, "pdId build error;flow=%d;aid=%d;", m_flow, aid);
             }
         }else {
             pdId = m_dao.updateId(aid, pdId, false);
             if (pdId == null) {
                 rt = Errno.ERROR;
-                Log.logErr(rt, "pdId update error;flow=%d;aid=%d;", m_flow, aid);
-                return rt;
+                throw new MgException(rt, "pdId update error;flow=%d;aid=%d;", m_flow, aid);
             }
         }
         info.setInt(ProductEntity.Info.PD_ID, pdId);
-        return rt;
+        return pdId;
     }
 
-    public int deleteProductList(int aid, int tid, FaiList<Integer> pdIds) {
+    public void deleteProductList(int aid, int tid, FaiList<Integer> pdIds) {
         int rt;
         if(pdIds == null || pdIds.isEmpty()) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr(rt, "args err;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
-            return rt;
+            throw new MgException(rt, "args err;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
         }
 
         ParamMatcher matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
@@ -120,18 +96,15 @@ public class ProductProc {
         matcher.and(ProductEntity.Info.SOURCE_TID, ParamMatcher.EQ, tid);
         rt = m_dao.delete(matcher);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "del product list error;flow=%d;aid=%d;pdIds=%d;", m_flow, aid, pdIds);
-            return rt;
+            throw new MgException(rt, "del product list error;flow=%d;aid=%d;pdIds=%d;", m_flow, aid, pdIds);
         }
-        return rt;
     }
 
-    public int getPdCount(int aid, Ref<Integer> countRef) {
+    public int getPdCount(int aid) {
         // 从缓存中获取
         Integer count = ProductCacheCtrl.getCountCache(aid);
         if(count != null) {
-            countRef.value = count;
-            return Errno.OK;
+            return count;
         }
 
         // 从db获取
@@ -141,55 +114,44 @@ public class ProductProc {
         Ref<FaiList<Param>> listRef = new Ref<>();
         int rt = m_dao.select(searchArg, listRef, fields);
         if(rt != Errno.OK) {
-            return rt;
+            throw new MgException(rt, "get pd rel count error;flow=%d;aid=%d;", m_flow, aid);
         }
         if (listRef.value == null || listRef.value.isEmpty()) {
             rt = Errno.NOT_FOUND;
-            Log.logDbg(rt, "not found;flow=%d;aid=%d;", m_flow, aid);
-            return rt;
+            throw new MgException(rt, "not found;flow=%d;aid=%d;", m_flow, aid);
         }
         Param res = listRef.value.get(0);
         count = res.getInt("cnt", 0);
-        countRef.value = count;
 
         // 添加到缓存
         ProductCacheCtrl.setCountCache(aid, count);
-        return rt;
+        return count;
     }
 
-    public int getProductInfo(int aid, int pdId, Ref<Param> infoRef) {
+    public Param getProductInfo(int aid, int pdId) {
         Param info = ProductCacheCtrl.getCacheInfo(aid, pdId);
         if (!Str.isEmpty(info)) {
-            infoRef.value = info;
-            return Errno.OK;
+            return info;
         }
         HashSet<Integer> pdIds = new HashSet<>();
         pdIds.add(pdId);
-        Ref<FaiList<Param>> tmpRef = new Ref<>();
-        int rt = getList(aid, pdIds, tmpRef);
-        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            return rt;
+        FaiList<Param> list = getList(aid, pdIds);
+        if(Util.isEmptyList(list)) {
+            return new Param();
         }
-        infoRef.value = tmpRef.value.get(0);
-        return Errno.OK;
+        info = list.get(0);
+        return info;
     }
 
-    public int getProductList(int aid, HashSet<Integer> pdIdList, Ref<FaiList<Param>> listRef) {
-        int rt = getList(aid, pdIdList, listRef);
-        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            Log.logErr(rt, "get list error;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
-            return rt;
-        }
-
-        return rt;
+    public FaiList<Param> getProductList(int aid, HashSet<Integer> pdIdList, Ref<FaiList<Param>> listRef) {
+        return getList(aid, pdIdList);
     }
 
-    private int getList(int aid, HashSet<Integer> pdIds, Ref<FaiList<Param>> listRef) {
+    private FaiList<Param> getList(int aid, HashSet<Integer> pdIds) {
         int rt;
         if(pdIds == null || pdIds.isEmpty()) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr("get pdIds is empty;aid=%d;pdIds=%s;", aid, pdIds);
-            return rt;
+            throw new MgException(rt, "get pdIds is empty;aid=%d;pdIds=%s;", aid, pdIds);
         }
         List<String> pdIdStrs = pdIds.stream().map(String::valueOf).collect(Collectors.toList());
         // 从缓存获取数据
@@ -200,8 +162,7 @@ public class ProductProc {
         list.remove(null);
         // 查到的数据量和pdIds的数据量一致，则说明都有缓存
         if(list.size() == pdIds.size()) {
-            listRef.value = list;
-            return Errno.OK;
+            return list;
         }
 
         // 拿到未缓存的pdId list
@@ -219,7 +180,7 @@ public class ProductProc {
         searchArg.matcher.and(ProductEntity.Info.PD_ID, ParamMatcher.IN, noCacheIds);
         rt = m_dao.select(searchArg, tmpRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            return rt;
+            throw new MgException(rt, "get list error;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
         }
         if(tmpRef.value != null && !tmpRef.value.isEmpty()) {
             list.addAll(tmpRef.value);
@@ -228,14 +189,22 @@ public class ProductProc {
         if (list.isEmpty()) {
             rt = Errno.NOT_FOUND;
             Log.logDbg(rt, "not found;flow=%d;aid=%d;", m_flow, aid);
-            return rt;
+            return list;
         }
 
         // 添加到缓存
         ProductCacheCtrl.addCacheList(aid, tmpRef.value);
 
-        listRef.value = list;
-        return Errno.OK;
+        return list;
+    }
+
+    private void init(TransactionCtrl tc) {
+        if(tc == null) {
+            return;
+        }
+        if(!tc.register(m_dao)) {
+            throw new MgException("registered ProductDaoCtrl err;");
+        }
     }
 
     private int m_flow;

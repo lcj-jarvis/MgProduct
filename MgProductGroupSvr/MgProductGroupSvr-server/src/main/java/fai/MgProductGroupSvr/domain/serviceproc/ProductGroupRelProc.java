@@ -4,15 +4,14 @@ import fai.MgProductGroupSvr.domain.entity.ProductGroupEntity;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupRelEntity;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupRelValObj;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupValObj;
-import fai.MgProductGroupSvr.domain.repository.ProductGroupDaoCtrl;
-import fai.MgProductGroupSvr.domain.repository.ProductGroupRelCacheCtrl;
+import fai.MgProductGroupSvr.domain.repository.ProductGroupRelCache;
 import fai.MgProductGroupSvr.domain.repository.ProductGroupRelDaoCtrl;
 import fai.comm.util.*;
+import fai.mgproduct.comm.DataStatus;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.Calendar;
-import java.util.HashMap;
 
 public class ProductGroupRelProc {
 
@@ -139,6 +138,31 @@ public class ProductGroupRelProc {
         return getList(aid, unionPriId);
     }
 
+    public FaiList<Param> searchFromDb(int aid, int unionPriId, SearchArg searchArg, String ... selectFields) {
+        if(searchArg == null) {
+            searchArg = new SearchArg();
+        }
+        if(searchArg.matcher == null) {
+            searchArg.matcher = new ParamMatcher();
+        }
+        searchArg.matcher.and(ProductGroupRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductGroupRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        int rt = m_relDao.select(searchArg, listRef, ProductGroupRelEntity.MANAGE_FIELDS);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "get error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+        }
+        if(listRef.value == null) {
+            listRef.value = new FaiList<Param>();
+        }
+        if (listRef.value.isEmpty()) {
+            rt = Errno.NOT_FOUND;
+            Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+        }
+        return listRef.value;
+    }
+
     private int creatAndSetId(int aid, int unionPriId, Param info) {
         int rt = Errno.OK;
         Integer rlGroupId = info.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID);
@@ -162,7 +186,7 @@ public class ProductGroupRelProc {
 
     private FaiList<Param> getList(int aid, int unionPriId) {
         // 从缓存获取数据
-        FaiList<Param> list = ProductGroupRelCacheCtrl.getCacheList(aid, unionPriId);
+        FaiList<Param> list = ProductGroupRelCache.getCacheList(aid, unionPriId);
         if(list != null && !list.isEmpty()) {
             return list;
         }
@@ -185,7 +209,7 @@ public class ProductGroupRelProc {
             return listRef.value;
         }
         // 添加到缓存
-        ProductGroupRelCacheCtrl.addCacheList(aid, unionPriId, listRef.value);
+        ProductGroupRelCache.addCacheList(aid, unionPriId, listRef.value);
         return listRef.value;
     }
 
@@ -198,8 +222,26 @@ public class ProductGroupRelProc {
         return list.size();
     }
 
+    public Param getDataStatus(int aid, int unionPriId) {
+        Param statusInfo = ProductGroupRelCache.DataStatusCache.get(aid, unionPriId);
+        if(!Str.isEmpty(statusInfo)) {
+            // 获取数据，则更新数据过期时间
+            ProductGroupRelCache.DataStatusCache.expire(aid, unionPriId, 6*3600);
+            return statusInfo;
+        }
+        long now = System.currentTimeMillis();
+        statusInfo = new Param();
+        int count = getCount(aid, unionPriId);
+        statusInfo.setInt(DataStatus.Info.TOTAL_SIZE, count);
+        statusInfo.setLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME, now);
+        statusInfo.setLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME, 0L);
+
+        ProductGroupRelCache.DataStatusCache.add(aid, unionPriId, statusInfo);
+        return statusInfo;
+    }
+
     public int getMaxSort(int aid, int unionPriId) {
-        String sortCache = ProductGroupRelCacheCtrl.getSortCache(aid, unionPriId);
+        String sortCache = ProductGroupRelCache.SortCache.get(aid, unionPriId);
         if(!Str.isEmpty(sortCache)) {
             return Parser.parseInt(sortCache, ProductGroupValObj.Default.SORT);
         }
@@ -222,7 +264,7 @@ public class ProductGroupRelProc {
         Param info = listRef.value.get(0);
         int sort = info.getInt(ProductGroupRelEntity.Info.SORT, ProductGroupValObj.Default.SORT);
         // 添加到缓存
-        ProductGroupRelCacheCtrl.setSortCache(aid, unionPriId, sort);
+        ProductGroupRelCache.SortCache.set(aid, unionPriId, sort);
         return sort;
     }
 
@@ -252,7 +294,6 @@ public class ProductGroupRelProc {
         if(transactionCrtl == null) {
             return;
         }
-        // 事务注册失败则设置dao为null，防止在TransactionCtrl无法控制的情况下使用dao
         if(!transactionCrtl.register(m_relDao)) {
             throw new MgException("registered ProductGroupRelDaoCtrl err;");
         }

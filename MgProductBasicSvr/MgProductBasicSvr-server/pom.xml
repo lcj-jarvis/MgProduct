@@ -23,6 +23,12 @@
 
         <dependency>
             <groupId>MgProduct</groupId>
+            <artifactId>MgProductComm</artifactId>
+            <version>${MgProduct-MgProductComm-ver}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>MgProduct</groupId>
             <artifactId>MgProductBasicSvr-interfaces</artifactId>
             <version>${MgProduct-MgProductBasicSvr-interfaces-ver}</version>
         </dependency>

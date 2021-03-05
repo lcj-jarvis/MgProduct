@@ -1,6 +1,5 @@
-package fai.MgProductBasicSvr.domain.repository;
+package fai.MgProductBasicSvr.domain.repository.dao;
 
-import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.Dao;
 import fai.comm.util.DaoPool;
 import fai.comm.util.Log;

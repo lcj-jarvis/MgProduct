@@ -61,7 +61,6 @@ public class MgProductSearch {
     public enum SearchTableNameEnum{
         MG_PRODUCT("mgProduct"),
         MG_PRODUCT_REL("mgProductRel"),
-        MG_PRODUCT_PROP_VAL("mgProductPropVal"),
         MG_PRODUCT_BIND_PROP("mgProductBindProp"),
         MG_PRODUCT_GROUP_REL("mgProductGroupRel"),
         MG_PRODUCT_LABLE_REL("mgProductLableRel"),

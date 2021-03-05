@@ -4,7 +4,7 @@ import fai.MgProductGroupSvr.domain.entity.ProductGroupEntity;
 import fai.MgProductGroupSvr.interfaces.dto.ProductGroupDto;
 import fai.comm.util.*;
 
-public class ProductGroupCacheCtrl extends CacheCtrl {
+public class ProductGroupCache extends CacheCtrl {
 
     public static FaiList<Param> getCacheList(int aid) {
         String cacheKey = getCacheKey(aid);

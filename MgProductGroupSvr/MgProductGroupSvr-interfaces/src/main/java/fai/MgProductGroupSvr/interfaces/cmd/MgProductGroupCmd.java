@@ -4,6 +4,9 @@ public class MgProductGroupCmd {
     // 5000  以上的范围
     public static class ReadCmdNum{
         public static final int NUM = 5000;	/** @see GroupCmd#GET_LIST */
+        public static final int NUM1 = 5001;	/** @see GroupCmd#GET_REL_DATA_STATUS */
+        public static final int NUM2 = 5002;	/** @see GroupCmd#SEARCH_REL */
+        public static final int NUM3 = 5003;	/** @see GroupCmd#GET_ALL_REL */
     }
 
     // 1000 到 5000 的范围
@@ -18,5 +21,8 @@ public class MgProductGroupCmd {
         public static final int BATCH_SET = WriteCmdNum.NUM1;
         public static final int BATCH_DEL = WriteCmdNum.NUM2;
         public static final int GET_LIST = ReadCmdNum.NUM;
+        public static final int GET_REL_DATA_STATUS = ReadCmdNum.NUM1;
+        public static final int SEARCH_REL = ReadCmdNum.NUM2;
+        public static final int GET_ALL_REL = ReadCmdNum.NUM3;
     }
 }

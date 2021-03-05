@@ -1,9 +1,11 @@
 package fai.MgProductBasicSvr.application;
 
 import fai.MgProductBasicSvr.application.service.ProductBasicService;
-import fai.MgProductBasicSvr.application.service.ProductPropBindService;
+import fai.MgProductBasicSvr.application.service.ProductBindPropService;
+import fai.MgProductBasicSvr.application.service.ProductGroupAssocService;
 import fai.MgProductBasicSvr.interfaces.cmd.MgProductBasicCmd;
 import fai.MgProductBasicSvr.interfaces.dto.ProductBindPropDto;
+import fai.MgProductBasicSvr.interfaces.dto.ProductGroupAssocDto;
 import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
@@ -13,6 +15,7 @@ import fai.comm.jnetkit.server.fai.annotation.args.*;
 import fai.comm.util.FaiList;
 import fai.comm.util.Param;
 import fai.middleground.svrutil.service.MiddleGroundHandler;
+import fai.middleground.svrutil.service.ServiceProxy;
 
 import java.io.IOException;
 
@@ -167,6 +170,37 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
         return service.batchDelPdRelBind(session, flow, aid, unionPriId, rlPdIds);
     }
 
-    private ProductBasicService service = new ProductBasicService();
-    private ProductPropBindService propBindservice = new ProductPropBindService();
+    @Cmd(MgProductBasicCmd.GroupAssocCmd.GET_LIST)
+    public int getPdsGroupAssoc(final FaiSession session,
+                                @ArgFlow final int flow,
+                                @ArgAid int aid,
+                                @ArgBodyInteger(ProductGroupAssocDto.Key.UNION_PRI_ID) int unionPriId,
+                                @ArgList(keyMatch = ProductGroupAssocDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
+        return groupAssocService.getPdsGroupAssoc(session, flow, aid, unionPriId, rlPdIds);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.GroupAssocCmd.BATCH_SET)
+    public int setPdGroupAssoc(final FaiSession session,
+                               @ArgFlow final int flow,
+                               @ArgAid int aid,
+                               @ArgBodyInteger(ProductGroupAssocDto.Key.UNION_PRI_ID) int unionPriId,
+                               @ArgBodyInteger(ProductGroupAssocDto.Key.RL_PD_ID) int rlPdId,
+                               @ArgList(keyMatch = ProductGroupAssocDto.Key.RL_GROUP_IDS) FaiList<Integer> addGroupIds,
+                               @ArgList(keyMatch = ProductGroupAssocDto.Key.DEL_RL_GROUP_IDS) FaiList<Integer> delGroupIds) throws IOException {
+        return groupAssocService.setPdGroupAssoc(session, flow, aid, unionPriId, rlPdId, addGroupIds, delGroupIds);
+    }
+
+    @Cmd(MgProductBasicCmd.GroupAssocCmd.GET_PD_BY_GROUP)
+    public int getRlPdByRlGroupId(final FaiSession session,
+                                  @ArgFlow final int flow,
+                                  @ArgAid int aid,
+                                  @ArgBodyInteger(ProductGroupAssocDto.Key.UNION_PRI_ID) int unionPriId,
+                                  @ArgList(keyMatch = ProductGroupAssocDto.Key.RL_GROUP_IDS) FaiList<Integer> rlGroupIds) throws IOException {
+        return groupAssocService.getRlPdByRlGroupId(session, flow, aid, unionPriId, rlGroupIds);
+    }
+
+    private ProductBasicService service = ServiceProxy.create(new ProductBasicService());
+    private ProductGroupAssocService groupAssocService = ServiceProxy.create(new ProductGroupAssocService());
+    private ProductBindPropService propBindservice = ServiceProxy.create(new ProductBindPropService());
 }

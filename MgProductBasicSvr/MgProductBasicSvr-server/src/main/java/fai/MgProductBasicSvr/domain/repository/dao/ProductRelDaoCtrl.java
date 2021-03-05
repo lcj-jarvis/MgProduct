@@ -1,22 +1,21 @@
-package fai.MgProductBasicSvr.domain.repository;
+package fai.MgProductBasicSvr.domain.repository.dao;
 
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.distributedkit.idBuilder.domain.IdBuilderConfig;
 import fai.comm.distributedkit.idBuilder.wrapper.IdBuilderWrapper;
-import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.Dao;
 import fai.comm.util.DaoPool;
 import fai.comm.util.Errno;
 import fai.comm.util.Log;
 import fai.middleground.svrutil.repository.DaoCtrl;
 
-public class ProductDaoCtrl extends DaoCtrl {
+public class ProductRelDaoCtrl extends DaoCtrl {
 
-    public ProductDaoCtrl(int flow, int aid) {
+    public ProductRelDaoCtrl(int flow, int aid) {
         super(flow, aid);
     }
 
-    public ProductDaoCtrl(int flow, int aid, Dao dao) {
+    public ProductRelDaoCtrl(int flow, int aid, Dao dao) {
         super(flow, aid, dao);
     }
 
@@ -30,32 +29,32 @@ public class ProductDaoCtrl extends DaoCtrl {
         return m_daoPool;
     }
 
-    public static ProductDaoCtrl getInstance(int flow, int aid) {
+    public static ProductRelDaoCtrl getInstance(int flow, int aid) {
         if(m_daoPool == null) {
             Log.logErr("m_daoPool is not init;");
             return null;
         }
-        return new ProductDaoCtrl(flow, aid);
+        return new ProductRelDaoCtrl(flow, aid);
     }
 
-    public Integer buildId(int aid, boolean needLock) {
+    public Integer buildId(int aid, int unionPriId, boolean needLock) {
         int rt = openDao();
         if(rt != Errno.OK) {
             return null;
         }
-        return m_idBuilder.build(aid, m_dao, needLock);
+        return m_idBuilder.build(aid, unionPriId, m_dao, needLock);
     }
 
-    public static void clearIdBuilderCache(int aid) {
-        m_idBuilder.clearCache(aid);
+    public static void clearIdBuilderCache(int aid, int unionPriId) {
+        m_idBuilder.clearCache(aid, unionPriId);
     }
 
-    public Integer updateId(int aid, int id, boolean needLock) {
+    public Integer updateId(int aid, int unionPriId, int id, boolean needLock) {
         int rt = openDao();
         if(rt != Errno.OK) {
             return null;
         }
-        return m_idBuilder.update(aid, id, m_dao, needLock);
+        return m_idBuilder.update(aid, unionPriId, id, m_dao, needLock);
     }
 
     public static void init(DaoPool daoPool, RedisCacheManager cache) {
@@ -64,13 +63,14 @@ public class ProductDaoCtrl extends DaoCtrl {
     }
 
     private static DaoPool m_daoPool;
-    private static final String TABLE_PREFIX = "mgProduct";
+    private static final String TABLE_PREFIX = "mgProductRel";
     private static IdBuilderWrapper m_idBuilder;
     private static final int ID_BUILDER_INIT = 1;
     private static IdBuilderConfig idBuilderConfig = new IdBuilderConfig.HeavyweightBuilder()	// 渠道统计的stat
-            .buildTableName("mgProduct")
+            .buildTableName("mgProductRel")
             .buildAssistTableSuffix("idBuilder")
             .buildPrimaryMatchField("aid")
+            .buildForeignMatchField("unionPriId")
             .buildInitValue(ID_BUILDER_INIT)
             .build();
 }

@@ -12,4 +12,8 @@ public class ProductGroupRelEntity {
 		public static final String CREATE_TIME = "sysCreateTime"; // datetime 创建时间
 		public static final String UPDATE_TIME = "sysUpdateTime"; // datetime 更新时间
 	}
+
+	public static final String[] MANAGE_FIELDS = new String[]{
+			Info.AID, Info.RL_GROUP_ID, Info.GROUP_ID, Info.UNION_PRI_ID, Info.SORT, Info.RL_FLAG, Info.CREATE_TIME, Info.UPDATE_TIME
+	};
 }

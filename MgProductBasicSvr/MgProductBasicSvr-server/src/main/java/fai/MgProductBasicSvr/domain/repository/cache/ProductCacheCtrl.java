@@ -1,4 +1,4 @@
-package fai.MgProductBasicSvr.domain.repository;
+package fai.MgProductBasicSvr.domain.repository.cache;
 
 import fai.MgProductBasicSvr.domain.entity.ProductEntity;
 import fai.MgProductBasicSvr.interfaces.dto.ProductDto;

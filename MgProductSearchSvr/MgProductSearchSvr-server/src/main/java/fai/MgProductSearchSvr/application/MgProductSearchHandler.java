@@ -18,11 +18,11 @@ import fai.middleground.svrutil.service.ServiceProxy;
 
 public class MgProductSearchHandler extends MiddleGroundHandler {
 
-    public MgProductSearchHandler(FaiServer server, RedisCacheManager cache) {
+    public MgProductSearchHandler(FaiServer server, RedisCacheManager cache, ParamCacheRecycle cacheRecycle) {
         super(server);
         m_cache = cache;
         service = ServiceProxy.create(new MgProductSearchService());
-        service.initMgProductSearchService(cache);
+        service.initMgProductSearchService(cache, cacheRecycle);
     }
 
     @Cmd(MgProductSearchCmd.SearchCmd.SEARCH_LIST)

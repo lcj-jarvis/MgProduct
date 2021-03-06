@@ -1602,6 +1602,11 @@ public class MgProductInfCli extends FaiClient {
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
+            if(addList == null && delList == null && updaterList == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args 2 error");
+                return m_rt;
+            }
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
@@ -1611,6 +1616,11 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1);
             sendBody.putInt(ProductSpecDto.Key.RL_PD_ID, rlPdId);
             if (addList != null) {
+                if(addList.isEmpty()){
+                    m_rt = Errno.ARGS_ERROR;
+                    Log.logErr(m_rt, "addList isEmpty");
+                    return m_rt;
+                }
                 m_rt = addList.toBuffer(sendBody, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.Spec.getInfoDto());
                 if(m_rt != Errno.OK){
                     m_rt = Errno.ARGS_ERROR;
@@ -1619,9 +1629,19 @@ public class MgProductInfCli extends FaiClient {
                 }
             }
             if (delList != null) {
+                if(delList.isEmpty()){
+                    m_rt = Errno.ARGS_ERROR;
+                    Log.logErr(m_rt, "delList isEmpty");
+                    return m_rt;
+                }
                 delList.toBuffer(sendBody, ProductSpecDto.Key.ID_LIST);
             }
             if (updaterList != null) {
+                if(updaterList.isEmpty()){
+                    m_rt = Errno.ARGS_ERROR;
+                    Log.logErr(m_rt, "updaterList isEmpty");
+                    return m_rt;
+                }
                 m_rt = updaterList.toBuffer(sendBody, ProductSpecDto.Key.UPDATER_LIST, ProductSpecDto.Spec.getInfoDto());
                 if(m_rt != Errno.OK){
                     m_rt = Errno.ARGS_ERROR;

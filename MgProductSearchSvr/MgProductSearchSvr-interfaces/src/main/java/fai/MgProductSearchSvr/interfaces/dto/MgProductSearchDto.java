@@ -9,9 +9,10 @@ public class MgProductSearchDto {
 
     private static ParamDef g_productSearchDtoDef = new ParamDef();
     static{
-        g_productSearchDtoDef.add(MgProductSearchResultEntity.Info.CACHE_TIME, 0);
-        g_productSearchDtoDef.add(MgProductSearchResultEntity.Info.ID_LIST, 1);
-        g_productSearchDtoDef.add(MgProductSearchResultEntity.Info.TOTAL, 2);
+        g_productSearchDtoDef.add(MgProductSearchResultEntity.Info.MANAGE_DATA_CACHE_TIME, 0);
+        g_productSearchDtoDef.add(MgProductSearchResultEntity.Info.VISTOR_DATA_CACHE_TIME, 1);
+        g_productSearchDtoDef.add(MgProductSearchResultEntity.Info.ID_LIST, 2);
+        g_productSearchDtoDef.add(MgProductSearchResultEntity.Info.TOTAL, 3);
     }
     public static ParamDef getProductSearchDto() {
         return g_productSearchDtoDef;

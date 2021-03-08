@@ -347,6 +347,28 @@ public class SpuBizSummaryProc {
         return rt;
     }
 
+    public int getInfoListByUnionPriIdListFromDao(int aid, FaiList<Integer> unionPriIdList, FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef){
+        if(aid <= 0 || pdIdList == null || pdIdList.isEmpty() || (unionPriIdList != null && unionPriIdList.isEmpty())|| listRef == null){
+            Log.logStd("arg error;flow=%d;aid=%s;unionPriIdList=%s;pdIdList=%s;listRef=%s;", m_flow, aid, unionPriIdList, pdIdList, listRef);
+            return Errno.ARGS_ERROR;
+        }
+
+        ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SpuBizSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        if(unionPriIdList != null){
+            matcher.and(SpuBizSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIdList);
+        }
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        int rt = m_daoCtrl.select(searchArg, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            Log.logErr(rt, "select err;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+            return rt;
+        }
+        Log.logDbg("ok!;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+        return rt;
+    }
+
     public int getInfoListByUnionPriIdListFromDao(int aid, FaiList<Integer> unionPriIdList, int pdId, Ref<FaiList<Param>> listRef){
         if(aid <= 0 || pdId <= 0 || (unionPriIdList != null && unionPriIdList.isEmpty())|| listRef == null){
             Log.logStd("arg error;flow=%d;aid=%s;unionPriIdList=%s;pdId=%s;listRef=%s;", m_flow, aid, unionPriIdList, pdId, listRef);

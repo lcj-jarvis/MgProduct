@@ -773,7 +773,7 @@ public class ProductSpecService extends ServicePub {
                 Log.logErr(rt,"initPdScSkuSpecStr err;aid=%d;pdId=%d;", aid, pdId);
                 return rt;
             }
-            sendPdSkuScInfoList(session, psScSkuInfoList);
+            sendPdSkuScInfoList(session, psScSkuInfoList, true);
             Log.logDbg("flow=%s;aid=%s;unionPriId=%s;pdId=%s;", flow, aid, unionPriId, pdId);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
@@ -807,7 +807,7 @@ public class ProductSpecService extends ServicePub {
                 Log.logErr(rt,"initPdScSkuSpecStr err;aid=%d;skuIdList=%d;", aid, skuIdList);
                 return rt;
             }
-            sendPdSkuScInfoList(session, psScSkuInfoList);
+            sendPdSkuScInfoList(session, psScSkuInfoList, true);
             Log.logDbg("flow=%s;aid=%s;skuIdList=%s;", flow, aid, skuIdList);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
@@ -876,6 +876,14 @@ public class ProductSpecService extends ServicePub {
     }
 
     private void sendPdSkuScInfoList(FaiSession session, FaiList<Param> infoList) throws IOException {
+        sendPdSkuScInfoList(session, infoList, false);
+    }
+    private void sendPdSkuScInfoList(FaiSession session, FaiList<Param> infoList, boolean sort) throws IOException {
+        if(sort){
+            ParamComparator comparator = new ParamComparator(ProductSpecSkuEntity.Info.SORT);
+            comparator.addKey(ProductSpecSkuEntity.Info.SKU_ID);
+            comparator.sort(infoList);
+        }
         FaiBuffer sendBuf = new FaiBuffer(true);
         infoList.toBuffer(sendBuf, ProductSpecSkuDto.Key.INFO_LIST, ProductSpecSkuDto.getInfoDto());
         session.write(sendBuf);
@@ -916,6 +924,9 @@ public class ProductSpecService extends ServicePub {
     }
 
     private void sendPdScInfoList(FaiSession session, FaiList<Param> infoList) throws IOException {
+        ParamComparator comparator = new ParamComparator(ProductSpecEntity.Info.SORT);
+        comparator.addKey(ProductSpecEntity.Info.PD_SC_ID);
+        comparator.sort(infoList);
         FaiBuffer sendBuf = new FaiBuffer(true);
         infoList.toBuffer(sendBuf, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.getInfoDto());
         session.write(sendBuf);

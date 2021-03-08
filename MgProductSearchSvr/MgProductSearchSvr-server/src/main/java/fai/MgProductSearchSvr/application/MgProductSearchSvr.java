@@ -37,10 +37,15 @@ public class MgProductSearchSvr {
         JedisPool jedisPool = JedisPoolFactory.createJedisPool(redisConfig);
         RedisCacheManager m_cache = new RedisCacheManager(jedisPool, redisConfig.getExpire(), redisConfig.getExpireRandom());
 
-        // 公共配置文件在svr main 的方法做一次初始化
+
+        // 数据缓存组件
+        ParamCacheRecycle cacheRecycle = new ParamCacheRecycle(config.getName(),
+                svrOption.getCacheHours() * 3600, svrOption.getCacheRecycleIntervalHours() * 3600);
+
+        // 公共配置文件, 在svr main 的方法做一次初始化
         ConfPool.setFaiConfigGlobalConf(MgProductSearchSvr.SvrConfigGlobalConf.svrConfigGlobalConfKey, FaiConfig.EtcType.ENV);
 
-        server.setHandler(new MgProductSearchHandler(server, m_cache));
+        server.setHandler(new MgProductSearchHandler(server, m_cache, cacheRecycle));
         server.start();
     }
 
@@ -49,45 +54,33 @@ public class MgProductSearchSvr {
         public static String loadFromDbThresholdKey = "loadFromDbThreshold";
     }
 
-
-
     @ParamKeyMapping(path = ".svr")
     public static class SvrOption {
-        private int lockLease = 1000;
         private boolean debug = false;
-        private String productBasicDbInstance;
-        private int dbMaxSize = 10;
-
-        public int getDbMaxSize() {
-            return dbMaxSize;
-        }
-
-        public void setDbMaxSize(int dbMaxSize) {
-            this.dbMaxSize = dbMaxSize;
-        }
-
-        public int getLockLease() {
-            return lockLease;
-        }
-
-        public void setLockLease(int lockLease) {
-            this.lockLease = lockLease;
-        }
+        private int cacheHours = 1;
+        private int cacheRecycleIntervalHours = 1;
 
         public boolean getDebug() {
             return debug;
         }
-
         public void setDebug(boolean debug) {
             this.debug = debug;
         }
 
-        public String getProductBasicDbInstance() {
-            return productBasicDbInstance;
+        public int getCacheHours() {
+            return cacheHours;
         }
 
-        public void setProductBasicDbInstance(String productBasicDbInstance) {
-            this.productBasicDbInstance = productBasicDbInstance;
+        public void setCacheHours(int cacheHours) {
+            this.cacheHours = cacheHours;
+        }
+
+        public int getCacheRecycleIntervalHours() {
+            return cacheRecycleIntervalHours;
+        }
+
+        public void setCacheRecycleIntervalHours(int cacheRecycleIntervalHours) {
+            this.cacheRecycleIntervalHours = cacheRecycleIntervalHours;
         }
     }
 }

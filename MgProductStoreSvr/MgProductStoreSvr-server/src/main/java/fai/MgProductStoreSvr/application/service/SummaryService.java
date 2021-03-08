@@ -238,6 +238,38 @@ public class SummaryService extends StoreService {
     }
 
     /**
+     * 根据pdIdList 获取所关联的 spu 业务库存销售汇总信息
+     */
+    public int getSpuBizSummaryInfoListByPdIdList(FaiSession session, int flow, int aid, int tid, FaiList<Integer> pdIdList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || pdIdList == null || pdIdList.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;pdIdList=%s;", flow, aid, pdIdList);
+                return rt;
+            }
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            SpuBizSummaryDaoCtrl spuBizSummaryDaoCtrl = SpuBizSummaryDaoCtrl.getInstance(flow, aid);
+            try {
+                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(spuBizSummaryDaoCtrl, flow);
+                rt = spuBizSummaryProc.getInfoListByUnionPriIdListFromDao(aid, null, pdIdList, listRef);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+            }finally {
+                spuBizSummaryDaoCtrl.closeDao();
+            }
+            sendSpuBizSummary(session, listRef.value);
+            Log.logDbg("ok;aid=%d;pdIdList=%s;", aid, pdIdList);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+
+
+    /**
      * 获取 spu 业务库存销售汇总信息 数据状态
      */
     public int getSpuBizSummaryDataStatus(FaiSession session, int flow, int aid, int unionPriId)throws IOException {

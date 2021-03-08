@@ -1,74 +1,89 @@
 package fai.MgProductPropSvr.domain.serviceproc;
 
-import fai.MgProductPropSvr.domain.entity.ProductPropEntity;
 import fai.MgProductPropSvr.domain.entity.ProductPropRelEntity;
 import fai.MgProductPropSvr.domain.entity.ProductPropRelValObj;
 import fai.MgProductPropSvr.domain.repository.ProductPropRelCacheCtrl;
 import fai.MgProductPropSvr.domain.repository.ProductPropRelDaoCtrl;
 import fai.MgProductPropSvr.interfaces.entity.ProductPropValObj;
 import fai.comm.util.*;
+import fai.mgproduct.comm.Util;
+import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.Calendar;
 import java.util.HashMap;
 
 public class ProductPropRelProc {
-	public ProductPropRelProc(int flow, ProductPropRelDaoCtrl dao) {
+	public ProductPropRelProc(int flow, int aid, TransactionCtrl tc) {
 		this.m_flow = flow;
-		this.m_relDao = dao;
+		this.m_relDao = ProductPropRelDaoCtrl.getInstance(flow, aid);
+		init(tc);
 	}
 
 	public int addPropRelInfo(int aid, int unionPriId, int libId , Param info) {
-		Ref<Integer> countRef = new Ref<Integer>();
-		int rt = getCount(aid, unionPriId, libId, countRef);
-		if(rt != Errno.OK) {
-			return rt;
-		}
-		int count = countRef.value;
+		int rt;
+		int count = getCount(aid, unionPriId, libId);
 		if(count >= ProductPropRelValObj.Limit.COUNT_MAX) {
 			rt = Errno.COUNT_LIMIT;
-			Log.logErr(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductPropRelValObj.Limit.COUNT_MAX);
-			return rt;
+			throw new MgException(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductPropRelValObj.Limit.COUNT_MAX);
 		}
+		int rlPropId = creatAndSetId(aid, unionPriId, info);
 		rt = m_relDao.insert(info);
 		if(rt != Errno.OK) {
-			Log.logErr(rt, "batch insert prop rel error;flow=%d;aid=%d;", m_flow, aid);
-			return rt;
+			throw new MgException(rt, "batch insert prop rel error;flow=%d;aid=%d;", m_flow, aid);
 		}
-		return rt;
+		return rlPropId;
 	}
 
-	public int addPropRelList(int aid, int unionPriId, int libId, FaiList<Param> infoList) {
+	public FaiList<Integer> addPropRelList(int aid, int unionPriId, int libId, FaiList<Param> infoList) {
 		int rt;
 		if(infoList == null || infoList.isEmpty()) {
 			rt = Errno.ARGS_ERROR;
-			Log.logErr(rt, "infoList is null;flow=%d;aid=%d;uid=%d;libId=%d;", m_flow, aid, unionPriId, libId);
-			return rt;
+			throw new MgException(rt, "infoList is null;flow=%d;aid=%d;uid=%d;libId=%d;", m_flow, aid, unionPriId, libId);
 		}
-		Ref<Integer> countRef = new Ref<Integer>();
-		rt = getCount(aid, unionPriId, libId, countRef);
-		if(rt != Errno.OK) {
-			return rt;
-		}
-		int count = countRef.value + infoList.size();
+		int count = getCount(aid, unionPriId, libId) + infoList.size();
 		if(count > ProductPropRelValObj.Limit.COUNT_MAX) {
 			rt = Errno.COUNT_LIMIT;
-			Log.logErr(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductPropRelValObj.Limit.COUNT_MAX);
-			return rt;
+			throw new MgException(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductPropRelValObj.Limit.COUNT_MAX);
 		}
-		rt = m_relDao.batchInsert(infoList, null, true);
+		FaiList<Integer> rlPropIds = new FaiList<>();
+		for(int i = 0; i < infoList.size(); i++) {
+			Param info = infoList.get(i);
+			int rlPropId = creatAndSetId(aid, unionPriId, info);
+			rlPropIds.add(rlPropId);
+		}
+		rt = m_relDao.batchInsert(infoList, null, false);
 		if(rt != Errno.OK) {
-			Log.logErr(rt, "batch insert prop rel error;flow=%d;aid=%d;", m_flow, aid);
-			return rt;
+			throw new MgException(rt, "batch insert prop rel error;flow=%d;aid=%d;", m_flow, aid);
 		}
-		return rt;
+		return rlPropIds;
 	}
 
-	public int delPropList(int aid, int unionPriId, int libId, FaiList<Integer> delRlIdList) {
+	private int creatAndSetId(int aid, int unionPriId, Param info) {
+		int rt;
+		Integer rlPropId = info.getInt(ProductPropRelEntity.Info.RL_PROP_ID);
+		if(rlPropId == null) {
+			rlPropId = m_relDao.buildId(aid, unionPriId, false);
+			if (rlPropId == null) {
+				rt = Errno.ERROR;
+				throw new MgException(rt, "propId build error;flow=%d;aid=%d;", m_flow, aid);
+			}
+		}else {
+			rlPropId = m_relDao.updateId(aid, unionPriId, rlPropId, false);
+			if (rlPropId == null) {
+				rt = Errno.ERROR;
+				throw new MgException(rt, "rlPropId update error;flow=%d;aid=%d;", m_flow, aid);
+			}
+		}
+		info.setInt(ProductPropRelEntity.Info.RL_PROP_ID, rlPropId);
+		return rlPropId;
+	}
+
+	public void delPropList(int aid, int unionPriId, int libId, FaiList<Integer> delRlIdList) {
 		int rt;
 		if(delRlIdList == null || delRlIdList.isEmpty()) {
 			rt = Errno.ARGS_ERROR;
-			Log.logErr(rt, "args err;flow=%d;aid=%d;idList=%s", m_flow, aid, delRlIdList);
-			return rt;
+			throw new MgException(rt, "args err;flow=%d;aid=%d;idList=%s", m_flow, aid, delRlIdList);
 		}
 
 		ParamMatcher matcher = new ParamMatcher(ProductPropRelEntity.Info.AID, ParamMatcher.EQ, aid);
@@ -77,12 +92,8 @@ public class ProductPropRelProc {
 		matcher.and(ProductPropRelEntity.Info.RL_PROP_ID, ParamMatcher.IN, delRlIdList);
 		rt = m_relDao.delete(matcher);
 		if(rt != Errno.OK){
-			Log.logErr(rt, "delPropList error;flow=%d;aid=%d;delRlIdList=%s", m_flow, aid, delRlIdList);
-			return rt;
+			throw new MgException(rt, "delPropList error;flow=%d;aid=%d;delRlIdList=%s", m_flow, aid, delRlIdList);
 		}
-
-		rt = Errno.OK;
-		return rt;
 	}
 
 	/**
@@ -93,14 +104,8 @@ public class ProductPropRelProc {
 		if(rlIdList == null || rlIdList.isEmpty()) {
 			return null;
 		}
-		Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
-		int rt = getList(aid, unionPriId, libId, listRef);
-		if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
-			Log.logErr(rt, "get error;flow=%d;aid=%d;unionPriId=%d;libId=%d;", m_flow, aid, unionPriId, libId);
-			return null;
-		}
+		FaiList<Param> list = getList(aid, unionPriId, libId);
 		FaiList<Integer> idList = new FaiList<Integer>();
-		FaiList<Param> list = listRef.value;
 		if(list.isEmpty()) {
 			return idList;
 		}
@@ -117,14 +122,8 @@ public class ProductPropRelProc {
 		if(rlIdList == null || rlIdList.isEmpty()) {
 			return null;
 		}
-		Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
-		int rt = getList(aid, unionPriId, libId, listRef);
-		if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
-			Log.logErr(rt, "get error;flow=%d;aid=%d;unionPriId=%d;libId=%d;", m_flow, aid, unionPriId, libId);
-			return null;
-		}
+		FaiList<Param> list = getList(aid, unionPriId, libId);
 		HashMap<Integer, Integer> idList = new HashMap<Integer, Integer>();
-		FaiList<Param> list = listRef.value;
 		if(list.isEmpty()) {
 			return idList;
 		}
@@ -139,17 +138,11 @@ public class ProductPropRelProc {
 		return idList;
 	}
 
-	public int setPropList(int aid, int unionPriId, int libId, FaiList<ParamUpdater> updaterList, FaiList<ParamUpdater> propUpdaterList) {
+	public void setPropList(int aid, int unionPriId, int libId, FaiList<ParamUpdater> updaterList, FaiList<ParamUpdater> propUpdaterList) {
 		if(propUpdaterList != null) {
 			propUpdaterList.clear();
 		}
-		Ref<FaiList<Param>> oldListRef = new Ref<FaiList<Param>>();
-		int rt = getList(aid, unionPriId, libId, oldListRef);
-		if (rt != Errno.OK) {
-			Log.logErr(rt, "get error;flow=%d;aid=%d;unionPriId=%d;libId=%d;", m_flow, aid, unionPriId, libId);
-			return rt;
-		}
-		FaiList<Param> oldInfoList = oldListRef.value;
+		FaiList<Param> oldInfoList = getList(aid, unionPriId, libId);
 		FaiList<Param> dataList = new FaiList<Param>();
 		Calendar now = Calendar.getInstance();
 		for(ParamUpdater updater : updaterList){
@@ -175,7 +168,7 @@ public class ProductPropRelProc {
 			data.assign(oldInfo, ProductPropRelEntity.Info.RL_PROP_ID);
 			dataList.add(data);
 			if(propUpdaterList != null) {
-				updateInfo.setInt(ProductPropEntity.Info.PROP_ID, propId);
+				updateInfo.setInt(ProductPropRelEntity.Info.PROP_ID, propId);
 				propUpdaterList.add(updater);
 			}
 		}
@@ -190,33 +183,24 @@ public class ProductPropRelProc {
 		item.setString(ProductPropRelEntity.Info.SORT, "?");
 		item.setString(ProductPropRelEntity.Info.RL_FLAG, "?");
 		item.setString(ProductPropRelEntity.Info.UPDATE_TIME, "?");
-		rt = m_relDao.doBatchUpdate(doBatchUpdater, doBatchMatcher, dataList, true);
+		int rt = m_relDao.doBatchUpdate(doBatchUpdater, doBatchMatcher, dataList, true);
 		if(rt != Errno.OK){
-			Log.logErr(rt, "doBatchUpdate product prop error;flow=%d;aid=%d;updateList=%s", m_flow, aid, dataList);
-			return rt;
+			throw new MgException(rt, "doBatchUpdate product prop error;flow=%d;aid=%d;updateList=%s", m_flow, aid, dataList);
 		}
-		rt = Errno.OK;
-		return rt;
 	}
 
-	public int getPropRelList(int aid, int unionPriId, int libId, Ref<FaiList<Param>> listRef) {
-		int rt = getList(aid, unionPriId, libId, listRef);
-		if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
-			Log.logErr(rt, "get error;flow=%d;aid=%d;unionPriId=%d;libId=%d;", m_flow, aid, unionPriId, libId);
-			return rt;
-		}
-
-		return rt;
+	public FaiList<Param> getPropRelList(int aid, int unionPriId, int libId) {
+		return getList(aid, unionPriId, libId);
 	}
 
-	private int getList(int aid, int unionPriId, int libId, Ref<FaiList<Param>> listRef) {
+	private FaiList<Param> getList(int aid, int unionPriId, int libId) {
 		// 从缓存获取数据
 		FaiList<Param> list = ProductPropRelCacheCtrl.getCacheList(aid, unionPriId, libId);
 		if(list != null && !list.isEmpty()) {
-			listRef.value = list;
-			return Errno.OK;
+			return list;
 		}
 
+		Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
 		// db中获取
 		SearchArg searchArg = new SearchArg();
 		searchArg.matcher = new ParamMatcher(ProductPropRelEntity.Info.AID, ParamMatcher.EQ, aid);
@@ -224,32 +208,30 @@ public class ProductPropRelProc {
 		searchArg.matcher.and(ProductPropRelEntity.Info.RL_LIB_ID, ParamMatcher.EQ, libId);
 		int rt = m_relDao.select(searchArg, listRef);
 		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-			return rt;
+			throw new MgException(rt, "get error;flow=%d;aid=%d;unionPriId=%d;libId=%d;", m_flow, aid, unionPriId, libId);
 		}
-		if (listRef.value == null || listRef.value.isEmpty()) {
+
+		list = listRef.value;
+		if(list == null) {
+			list = new FaiList<Param>();
+		}
+		if (Util.isEmptyList(list)) {
 			rt = Errno.NOT_FOUND;
 			Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;libId=%d;", m_flow, aid, unionPriId, libId);
-			return rt;
+			return list;
 		}
 		// 添加到缓存
-		ProductPropRelCacheCtrl.addCacheList(aid, unionPriId, libId, listRef.value);
-		return Errno.OK;
+		ProductPropRelCacheCtrl.addCacheList(aid, unionPriId, libId, list);
+		return list;
 	}
 
-	public int getCount(int aid, int unionPriId, int libId, Ref<Integer> countRef) {
-		Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
-		int rt = getList(aid, unionPriId, libId, listRef);
-		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-			Log.logErr(rt, "get count error;flow=%d;aid=%d;uid=%d;libId=%d;", m_flow, aid, unionPriId, libId);
-			return rt;
-		}
+	public int getCount(int aid, int unionPriId, int libId) {
+		FaiList<Param> list = getList(aid, unionPriId, libId);
 
-		if(listRef.value == null || listRef.value.isEmpty()) {
-			countRef.value = 0;
-		}else {
-			countRef.value = listRef.value.size();
+		if(Util.isEmptyList(list)) {
+			return 0;
 		}
-		return Errno.OK;
+		return list.size();
 	}
 
 	public int getMaxSort(int aid, int unionPriId, int libId) {
@@ -279,6 +261,12 @@ public class ProductPropRelProc {
 		// 添加到缓存
 		ProductPropRelCacheCtrl.setSortCache(aid, unionPriId, libId, sort);
 		return sort;
+	}
+
+	private void init(TransactionCtrl tc) {
+		if(!tc.register(m_relDao)) {
+			throw new MgException("registered ProductPropRelDaoCtrl err;");
+		}
 	}
 
 	private int m_flow;

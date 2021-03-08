@@ -6,117 +6,113 @@ import fai.MgProductPropSvr.domain.entity.ProductPropValObj;
 import fai.MgProductPropSvr.domain.repository.ProductPropCacheCtrl;
 import fai.MgProductPropSvr.domain.repository.ProductPropDaoCtrl;
 import fai.comm.util.*;
+import fai.mgproduct.comm.Util;
+import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.Calendar;
 
 public class ProductPropProc {
 
-	public ProductPropProc(int flow, ProductPropDaoCtrl dao) {
+	public ProductPropProc(int flow, int aid, TransactionCtrl tc) {
 		this.m_flow = flow;
-		this.m_propDao = dao;
+		this.m_propDao = ProductPropDaoCtrl.getInstance(flow, aid);
+		init(tc);
 	}
 
 	public int addPropInfo(int aid, Param info) {
-		Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
-		int rt = getList(aid, listRef);
-		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-			return rt;
-		}
-		FaiList<Param> list = listRef.value;
-		if(list == null) {
-			list = new FaiList<Param>();
-		}
+		int rt;
+		FaiList<Param> list = getList(aid);
 		int count = list.size();
 		if(count >= ProductPropValObj.Limit.COUNT_MAX) {
 			rt = Errno.COUNT_LIMIT;
-			Log.logErr(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductPropValObj.Limit.COUNT_MAX);
-			return rt;
+			throw new MgException(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductPropValObj.Limit.COUNT_MAX);
 		}
 		String name = info.getString(ProductPropEntity.Info.NAME);
 		Param existInfo = Misc.getFirst(list, ProductPropEntity.Info.NAME, name);
 		if(!Str.isEmpty(existInfo)) {
 			rt = Errno.ALREADY_EXISTED;
-			Log.logErr(rt, "prop name is existed;flow=%d;aid=%d;name=%s;", m_flow, aid, name);
-			return rt;
+			throw new MgException(rt, "prop name is existed;flow=%d;aid=%d;name=%s;", m_flow, aid, name);
 		}
+		int propId = creatAndSetId(aid, info);
 		rt = m_propDao.insert(info);
 		if(rt != Errno.OK) {
-			Log.logErr(rt, "insert prop info error;flow=%d;aid=%d;", m_flow, aid);
-			return rt;
+			throw new MgException(rt, "insert prop info error;flow=%d;aid=%d;", m_flow, aid);
 		}
 
-		return rt;
+		return propId;
 	}
 
-	public int addPropList(int aid, FaiList<Param> propList) {
+	public FaiList<Integer> addPropList(int aid, FaiList<Param> propList) {
 		int rt;
 		if(propList == null || propList.isEmpty()) {
 			rt = Errno.ARGS_ERROR;
-			Log.logErr(rt, "args error;propList is null;aid=%d", aid);
-			return rt;
+			throw new MgException(rt, "args error;propList is null;aid=%d", aid);
 		}
-		Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
-		rt = getList(aid, listRef);
-		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-			return rt;
-		}
-		FaiList<Param> list = listRef.value;
-		if(list == null) {
-			list = new FaiList<Param>();
-		}
+		FaiList<Param> list = getList(aid);
 		int count = list.size() + propList.size();
 		if(count > ProductPropValObj.Limit.COUNT_MAX) {
 			rt = Errno.COUNT_LIMIT;
-			Log.logErr(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductPropValObj.Limit.COUNT_MAX);
-			return rt;
+			throw new MgException(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductPropValObj.Limit.COUNT_MAX);
 		}
+		FaiList<Integer> propIds = new FaiList<>();
 		// 校验参数名是否已经存在
 		for(Param info : propList) {
 			String name = info.getString(ProductPropEntity.Info.NAME);
-			Param existInfo = Misc.getFirst(listRef.value, ProductPropEntity.Info.NAME, name);
+			Param existInfo = Misc.getFirst(list, ProductPropEntity.Info.NAME, name);
 			if(!Str.isEmpty(existInfo)) {
 				rt = Errno.ALREADY_EXISTED;
-				Log.logErr(rt, "prop name is existed;flow=%d;aid=%d;name=%s;", m_flow, aid, name);
-				return rt;
+				throw new MgException(rt, "prop name is existed;flow=%d;aid=%d;name=%s;", m_flow, aid, name);
+			}
+			int propId = creatAndSetId(aid, info);
+			propIds.add(propId);
+		}
+		rt = m_propDao.batchInsert(propList, null, false);
+		if(rt != Errno.OK) {
+			throw new MgException(rt, "batch insert prop error;flow=%d;aid=%d;", m_flow, aid);
+		}
+
+		return propIds;
+	}
+
+	private int creatAndSetId(int aid, Param info) {
+		int rt;
+		Integer propId = info.getInt(ProductPropEntity.Info.PROP_ID);
+		if(propId == null) {
+			propId = m_propDao.buildId(aid, false);
+			if (propId == null) {
+				rt = Errno.ERROR;
+				throw new MgException(rt, "propId build error;flow=%d;aid=%d;", m_flow, aid);
+			}
+		}else {
+			propId = m_propDao.updateId(aid, propId, false);
+			if (propId == null) {
+				rt = Errno.ERROR;
+				throw new MgException(rt, "pdId update error;flow=%d;aid=%d;", m_flow, aid);
 			}
 		}
-		rt = m_propDao.batchInsert(propList, null, true);
-		if(rt != Errno.OK) {
-			Log.logErr(rt, "batch insert prop error;flow=%d;aid=%d;", m_flow, aid);
-			return rt;
-		}
-
-		return rt;
+		info.setInt(ProductPropEntity.Info.PROP_ID, propId);
+		return propId;
 	}
 
-	public int getPropList(int aid, Ref<FaiList<Param>> listRef) {
-		int rt = getList(aid, listRef);
-		if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
-			Log.logErr(rt, "get error;flow=%d;aid=%d;", m_flow, aid);
-			return rt;
-		}
-
-		return rt;
+	public FaiList<Param> getPropList(int aid) {
+		return getList(aid);
 	}
 
-	public int setPropList(int aid, FaiList<ParamUpdater> updaterList) {
+	public void setPropList(int aid, FaiList<ParamUpdater> updaterList) {
 		int rt;
 		for(ParamUpdater updater : updaterList){
 			Param updateInfo = updater.getData();
 			String name = updateInfo.getString(ProductPropEntity.Info.NAME);
 			if(name != null && !ProductPropCheck.isNameValid(name)) {
 				rt = Errno.ARGS_ERROR;
-				Log.logErr(rt, "flow=%d;aid=%d;name=%s", m_flow, aid, name);
-				return rt;
+				throw new MgException(rt, "flow=%d;aid=%d;name=%s", m_flow, aid, name);
 			}
 		}
-		Ref<FaiList<Param>> oldListRef = new Ref<FaiList<Param>>();
-		rt = getList(aid, oldListRef);
-		if (rt != Errno.OK) {
-			Log.logErr(rt, "get error;flow=%d;aid=%d;", m_flow, aid);
-			return rt;
+		FaiList<Param> oldInfoList = getList(aid);
+		if(Util.isEmptyList(oldInfoList)) {
+			throw new MgException(Errno.ARGS_ERROR, "set error;get old info is empty;flow=%d;aid=%d;", m_flow, aid);
 		}
-		FaiList<Param> oldInfoList = oldListRef.value;
 		FaiList<Param> dataList = new FaiList<Param>();
 		Calendar now = Calendar.getInstance();
 		for(ParamUpdater updater : updaterList){
@@ -146,56 +142,58 @@ public class ProductPropProc {
 		item.setString(ProductPropEntity.Info.UPDATE_TIME, "?");
 		rt = m_propDao.doBatchUpdate(doBatchUpdater, doBatchMatcher, dataList, true);
 		if(rt != Errno.OK){
-			Log.logErr(rt, "doBatchUpdate product prop error;flow=%d;aid=%d;updateList=%s", m_flow, aid, dataList);
-			return rt;
+			throw new MgException(rt, "doBatchUpdate product prop error;flow=%d;aid=%d;updateList=%s", m_flow, aid, dataList);
 		}
-		rt = Errno.OK;
-		return rt;
 	}
 
-	public int delPropList(int aid, FaiList<Integer> delIdList) {
+	public void delPropList(int aid, FaiList<Integer> delIdList) {
 		int rt;
 		if(delIdList == null || delIdList.isEmpty()) {
 			rt = Errno.ARGS_ERROR;
-			Log.logErr(rt, "args err;flow=%d;aid=%d;idList=%s", m_flow, aid, delIdList);
-			return rt;
+			throw new MgException(rt, "args err;flow=%d;aid=%d;idList=%s", m_flow, aid, delIdList);
 		}
 
 		ParamMatcher matcher = new ParamMatcher(ProductPropEntity.Info.AID, ParamMatcher.EQ, aid);
 		matcher.and(ProductPropEntity.Info.PROP_ID, ParamMatcher.IN, delIdList);
 		rt = m_propDao.delete(matcher);
 		if(rt != Errno.OK){
-			Log.logErr(rt, "delPropList error;flow=%d;aid=%d;delIdList=%s", m_flow, aid, delIdList);
-			return rt;
+			throw new MgException(rt, "delPropList error;flow=%d;aid=%d;delIdList=%s", m_flow, aid, delIdList);
 		}
-
-		return rt;
 	}
 
-	private int getList(int aid, Ref<FaiList<Param>> listRef) {
+	private FaiList<Param> getList(int aid) {
 		// 从缓存获取数据
 		FaiList<Param> list = ProductPropCacheCtrl.getCacheList(aid);
 		if(list != null && !list.isEmpty()) {
-			listRef.value = list;
-			return Errno.OK;
+			return list;
 		}
 
 		// 从db获取数据
 		SearchArg searchArg = new SearchArg();
 		searchArg.matcher = new ParamMatcher(ProductPropEntity.Info.AID, ParamMatcher.EQ, aid);
+		Ref<FaiList<Param>> listRef = new Ref<>();
 		int rt = m_propDao.select(searchArg, listRef);
 		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-			Log.logErr(rt, "getList error;flow=%d;aid=%d;", m_flow, aid);
-			return rt;
+			throw new MgException(rt, "getList error;flow=%d;aid=%d;", m_flow, aid);
 		}
-		if (listRef.value == null || listRef.value.isEmpty()) {
+		list = listRef.value;
+		if(list == null) {
+			list = new FaiList<Param>();
+		}
+		if (list.isEmpty()) {
 			rt = Errno.NOT_FOUND;
 			Log.logDbg(rt, "not found;aid=%d", aid);
-			return rt;
+			return list;
 		}
 		// 添加到缓存
-		ProductPropCacheCtrl.addCacheList(aid, listRef.value);
-		return Errno.OK;
+		ProductPropCacheCtrl.addCacheList(aid, list);
+		return list;
+	}
+
+	private void init(TransactionCtrl tc) {
+		if(!tc.register(m_propDao)) {
+			throw new MgException("registered ProductPropDaoCtrl err;");
+		}
 	}
 
 	private int m_flow;

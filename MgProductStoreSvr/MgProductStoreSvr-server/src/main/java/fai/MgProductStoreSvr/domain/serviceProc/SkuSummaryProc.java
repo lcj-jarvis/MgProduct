@@ -16,7 +16,7 @@ public class SkuSummaryProc {
 
     public int report(int aid, long skuId, Param info) {
         if(aid <= 0 || info == null || info.isEmpty()){
-            Log.logStd("arg error;flow=%d;aid=%s;info=%s;", m_flow, aid, info);
+            Log.logErr("arg error;flow=%d;aid=%s;info=%s;", m_flow, aid, info);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -57,7 +57,7 @@ public class SkuSummaryProc {
     }
     public int report4synSPU2SKU(int aid, Map<Long, Param> skuIdStoreSkuSummaryInfoMap) {
         if(aid <= 0 || skuIdStoreSkuSummaryInfoMap == null || skuIdStoreSkuSummaryInfoMap.isEmpty()){
-            Log.logStd("arg error;flow=%d;aid=%s;skuIdStoreSkuSummaryInfoMap=%s;", m_flow, aid, skuIdStoreSkuSummaryInfoMap);
+            Log.logErr("arg error;flow=%d;aid=%s;skuIdStoreSkuSummaryInfoMap=%s;", m_flow, aid, skuIdStoreSkuSummaryInfoMap);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -131,12 +131,12 @@ public class SkuSummaryProc {
                 Log.logStd("dao.batchInsert error;flow=%d;aid=%s;addDataList=%s;", m_flow, aid, addDataList);
             }
         }
-        Log.logStd("ok!;flow=%s;aid=%s;", m_flow, aid);
+        Log.logStd("ok;flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
     public int report(int aid, FaiList<Param> infoList) {
         if(aid <= 0 || infoList == null || infoList.isEmpty()){
-            Log.logStd("arg error;flow=%d;aid=%s;infoList=%s;", m_flow, aid, infoList);
+            Log.logErr("arg error;flow=%d;aid=%s;infoList=%s;", m_flow, aid, infoList);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -214,7 +214,7 @@ public class SkuSummaryProc {
         }
 
 
-        Log.logStd("ok!;flow=%s;aid=%s;", m_flow, aid);
+        Log.logStd("ok;flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
     public int batchDel(int aid, FaiList<Integer> pdIdList) {
@@ -253,7 +253,7 @@ public class SkuSummaryProc {
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             Log.logStd("dao.select error;flow=%d;aid=%s;skuIdList=%s;", m_flow, aid, skuIdList);
         }
-        Log.logDbg(rt, "flow=%d;aid=%s;skuIdList=%s;", m_flow, aid, skuIdList);
+        Log.logStd(rt, "ok;flow=%d;aid=%s;skuIdList=%s;", m_flow, aid, skuIdList);
         return rt;
     }
 
@@ -265,7 +265,7 @@ public class SkuSummaryProc {
             Log.logStd("dao.select error;flow=%d;aid=%s;searchArg=%s;", m_flow, aid, searchArg);
             return rt;
         }
-        Log.logDbg(rt, "flow=%d;aid=%s;searchArg=%s;", m_flow, aid, searchArg);
+        Log.logStd(rt, "ok;flow=%d;aid=%s;searchArg=%s;", m_flow, aid, searchArg);
         return rt;
     }
 

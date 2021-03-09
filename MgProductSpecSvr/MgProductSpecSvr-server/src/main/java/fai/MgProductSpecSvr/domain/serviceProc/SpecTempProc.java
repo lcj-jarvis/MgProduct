@@ -17,7 +17,7 @@ public class SpecTempProc {
 
     public int batchAdd(int aid, FaiList<Param> infoList, FaiList<Integer> rtIdList) {
         if(aid <= 0 || infoList == null || infoList.isEmpty() || rtIdList == null){
-            Log.logStd("batchAdd arg error;flow=%d;aid=%s;infoList=%s;rtIdList=%s;", m_flow, aid, infoList, rtIdList);
+            Log.logErr("batchAdd arg error;flow=%d;aid=%s;infoList=%s;rtIdList=%s;", m_flow, aid, infoList, rtIdList);
             return Errno.ARGS_ERROR;
         }
         FaiList<Param> dataList = new FaiList<>(infoList.size());
@@ -52,7 +52,7 @@ public class SpecTempProc {
     }
     public int batchDel(int aid, FaiList<Integer> idList) {
         if(aid <= 0 || idList == null){
-            Log.logStd("batchDel arg error;flow=%d;aid=%s;idList=%s;", m_flow, aid, idList);
+            Log.logErr("batchDel arg error;flow=%d;aid=%s;idList=%s;", m_flow, aid, idList);
             return Errno.ARGS_ERROR;
         }
         ParamMatcher matcher = new ParamMatcher(SpecTempEntity.Info.AID, ParamMatcher.EQ, aid);

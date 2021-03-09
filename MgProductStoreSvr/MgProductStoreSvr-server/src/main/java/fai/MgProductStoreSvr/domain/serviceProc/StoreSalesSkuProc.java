@@ -23,7 +23,7 @@ public class StoreSalesSkuProc {
     }
     public int batchAdd(int aid, Integer pdId, FaiList<Param> infoList) {
         if(aid <= 0 || (pdId != null && pdId <= 0) || infoList == null || infoList.isEmpty()){
-            Log.logStd("batchAdd arg error;flow=%d;aid=%s;pdId=%s;infoList=%s;", m_flow, aid, pdId, infoList);
+            Log.logErr("batchAdd arg error;flow=%d;aid=%s;pdId=%s;infoList=%s;", m_flow, aid, pdId, infoList);
             return Errno.ARGS_ERROR;
         }
         FaiList<Param> dataList = new FaiList<>(infoList.size());
@@ -70,7 +70,7 @@ public class StoreSalesSkuProc {
     }
     public int batchSynchronousSPU2SKU(int aid, Map<Integer, Map<Long, Param>> unionPriId_skuId_salesStoreDataMapMap, Set<String> maxUpdateFieldSet) {
         if(aid <= 0 || unionPriId_skuId_salesStoreDataMapMap == null || unionPriId_skuId_salesStoreDataMapMap.isEmpty() || maxUpdateFieldSet == null || maxUpdateFieldSet.isEmpty()){
-            Log.logStd("batchSynchronous arg error;flow=%d;aid=%s;unionPriId_skuId_salesStoreDataMapMap=%s;maxUpdateFieldSet=%s;", m_flow, aid, unionPriId_skuId_salesStoreDataMapMap, maxUpdateFieldSet);
+            Log.logErr("batchSynchronous arg error;flow=%d;aid=%s;unionPriId_skuId_salesStoreDataMapMap=%s;maxUpdateFieldSet=%s;", m_flow, aid, unionPriId_skuId_salesStoreDataMapMap, maxUpdateFieldSet);
             return Errno.ARGS_ERROR;
         }
         Set<String> maxGetFieldSet = new HashSet<>(maxUpdateFieldSet);
@@ -154,7 +154,7 @@ public class StoreSalesSkuProc {
     }
     public int batchDel(int aid, int pdId, FaiList<Long> delSkuIdList) {
         if(aid <= 0 || pdId <= 0 || delSkuIdList == null || delSkuIdList.isEmpty()){
-            Log.logStd("batchAdd error;flow=%d;aid=%s;pdId=%s;delSkuIdList=%s;", m_flow, aid, pdId, delSkuIdList);
+            Log.logErr("batchAdd error;flow=%d;aid=%s;pdId=%s;delSkuIdList=%s;", m_flow, aid, pdId, delSkuIdList);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -185,7 +185,7 @@ public class StoreSalesSkuProc {
 
     public int batchSet(int aid, int unionPriId, int pdId, FaiList<ParamUpdater> updaterList) {
         if(aid <= 0 || pdId <=0 || updaterList == null || updaterList.isEmpty()){
-            Log.logStd("batchSet error;flow=%d;aid=%s;pdId=%s;updaterList=%s;", m_flow, aid, pdId, updaterList);
+            Log.logErr("batchSet error;flow=%d;aid=%s;pdId=%s;updaterList=%s;", m_flow, aid, pdId, updaterList);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -263,7 +263,7 @@ public class StoreSalesSkuProc {
      */
     public int batchReduceStore(int aid, int unionPriId, TreeMap<Long, Integer> skuIdCountMap, boolean holdingMode, boolean reduceHoldingCount) {
         if(skuIdCountMap == null || skuIdCountMap.isEmpty()){
-            Log.logStd("batchReduceStore arg;flow=%d;aid=%s;unionPriId=%s;skuIdCountMap=%s;", m_flow, aid, unionPriId, skuIdCountMap);
+            Log.logErr("batchReduceStore arg;flow=%d;aid=%s;unionPriId=%s;skuIdCountMap=%s;", m_flow, aid, unionPriId, skuIdCountMap);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -382,7 +382,7 @@ public class StoreSalesSkuProc {
      */
     public int reduceStore(int aid, int unionPriId, long skuId, int count, boolean holdingMode, boolean reduceHoldingCount) {
         if(aid <= 0 || unionPriId <= 0 || skuId <=0 || count <= 0){
-            Log.logStd("reduceStore arg;flow=%d;aid=%s;unionPriId=%s;skuId=%s;count=%s;", m_flow, aid, unionPriId, skuId, count);
+            Log.logErr("reduceStore arg;flow=%d;aid=%s;unionPriId=%s;skuId=%s;count=%s;", m_flow, aid, unionPriId, skuId, count);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -419,7 +419,7 @@ public class StoreSalesSkuProc {
      */
     public int batchMakeUpStore(int aid, int unionPriId, TreeMap<Long, Integer> skuIdCountMap, boolean holdingMode) {
         if(skuIdCountMap == null || skuIdCountMap.isEmpty()){
-            Log.logStd("batchMakeUpStore arg;flow=%d;aid=%s;unionPriId=%s;skuIdCountMap=%s;", m_flow, aid, unionPriId, skuIdCountMap);
+            Log.logErr("batchMakeUpStore arg;flow=%d;aid=%s;unionPriId=%s;skuIdCountMap=%s;", m_flow, aid, unionPriId, skuIdCountMap);
             return Errno.ARGS_ERROR;
         }
         Map<Long, Integer> alreadyChangeSkuIdCountMap = new HashMap<>();
@@ -465,7 +465,7 @@ public class StoreSalesSkuProc {
      */
     public int makeUpStore(int aid, int unionPriId, long skuId, int count, boolean holdingMode) {
         if(aid <= 0 || unionPriId <= 0 || skuId <=0 || count <= 0){
-            Log.logStd("makeUpStore arg;flow=%d;aid=%s;unionPriId=%s;skuId=%s;count=%s;", m_flow, aid, unionPriId, skuId, count);
+            Log.logErr("makeUpStore arg;flow=%d;aid=%s;unionPriId=%s;skuId=%s;count=%s;", m_flow, aid, unionPriId, skuId, count);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -501,7 +501,7 @@ public class StoreSalesSkuProc {
      */
     public int checkAndAdd(int aid, int ownerUnionPriId, Map<SkuStoreKey, PdKey> needCheckSkuStoreKeyPdKeyMap) {
         if(needCheckSkuStoreKeyPdKeyMap == null || needCheckSkuStoreKeyPdKeyMap.isEmpty()){
-            Log.logStd("checkAndAdd arg error;flow=%s;aid=%s;ownerUnionPriId=%s;needCheckSkuStoreKeyPdKeyMap=%s;", m_flow, aid, ownerUnionPriId, needCheckSkuStoreKeyPdKeyMap);
+            Log.logErr("checkAndAdd arg error;flow=%s;aid=%s;ownerUnionPriId=%s;needCheckSkuStoreKeyPdKeyMap=%s;", m_flow, aid, ownerUnionPriId, needCheckSkuStoreKeyPdKeyMap);
             return Errno.ARGS_ERROR;
         }
         Map<Integer, Set<Long>> uidSkuIdSetMap = new HashMap<>();
@@ -562,7 +562,7 @@ public class StoreSalesSkuProc {
      */
     public int batchChangeStore(int aid, TreeMap<SkuStoreKey, Pair<Integer, Integer>>  skuStoreChangeCountMap) {
         if(aid <= 0 || skuStoreChangeCountMap == null || skuStoreChangeCountMap.isEmpty()){
-            Log.logStd("batchChangeStore arg error;flow=%s;aid=%s;skuStoreChangeCountMap=%s;", m_flow, aid, skuStoreChangeCountMap);
+            Log.logErr("batchChangeStore arg error;flow=%s;aid=%s;skuStoreChangeCountMap=%s;", m_flow, aid, skuStoreChangeCountMap);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.OK;
@@ -606,7 +606,7 @@ public class StoreSalesSkuProc {
             }
             if(refRowCount.value <= 0){ // 库存异常
                 Log.logStd("store err;matcher=%s", matcher.toJson());
-                return Errno.ERROR;
+                return MgProductErrno.Store.SHORTAGE;
             }
         }
         /* 批量更新不能根据影响的行数来判断更新是否成功。
@@ -697,7 +697,7 @@ public class StoreSalesSkuProc {
     }
     public int getListFromDaoByPdIdAndSkuIdList(int aid, int pdId, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef, String ... fields){
         if(aid <= 0 || pdId <=0 || (skuIdList != null && skuIdList.isEmpty()) || listRef == null){
-            Log.logStd("arg error;flow=%d;aid=%s;pdId=%s;skuIdList=%s;listRef=%s;fields=%s", m_flow, aid, pdId, skuIdList, listRef, fields);
+            Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;skuIdList=%s;listRef=%s;fields=%s", m_flow, aid, pdId, skuIdList, listRef, fields);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -714,13 +714,13 @@ public class StoreSalesSkuProc {
             return rt;
         }
 
-        Log.logDbg(rt,"getListFromDao ok;flow=%d;aid=%s;pdId=%s;", m_flow, aid, pdId);
+        Log.logStd(rt,"getListFromDao ok;flow=%d;aid=%s;pdId=%s;", m_flow, aid, pdId);
         return rt;
     }
 
     public int getListFromDao(int aid, int unionPriId, int pdId, Ref<FaiList<Param>> listRef, String ... fields){
         if(aid <= 0 || unionPriId <=0 || pdId <=0 || listRef == null){
-            Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;pdId=%s;listRef=%s;fields=%s", m_flow, aid, unionPriId, pdId, listRef, fields);
+            Log.logErr("arg error;flow=%d;aid=%s;unionPriId=%s;pdId=%s;listRef=%s;fields=%s", m_flow, aid, unionPriId, pdId, listRef, fields);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -735,13 +735,13 @@ public class StoreSalesSkuProc {
             return rt;
         }
 
-        Log.logDbg(rt,"getListFromDao ok;flow=%d;aid=%d;unionPriId=%s;pdId=%s;", m_flow, aid, unionPriId, pdId);
+        Log.logStd(rt,"getListFromDao ok;flow=%d;aid=%d;unionPriId=%s;pdId=%s;", m_flow, aid, unionPriId, pdId);
         return rt;
     }
 
     public int getInfoMap4OutRecordFromDao(int aid, Set<SkuStoreKey> skuStoreKeySet, Map<SkuStoreKey, Param> skuCountAndTotalCostMap) {
         if(skuStoreKeySet == null || skuStoreKeySet.isEmpty() || skuCountAndTotalCostMap == null){
-            Log.logStd("arg error;flow=%d;aid=%s;skuStoreKeySet=%s;skuCountAndTotalCostMap=%s;", m_flow, aid, skuStoreKeySet, skuCountAndTotalCostMap);
+            Log.logErr("arg error;flow=%d;aid=%s;skuStoreKeySet=%s;skuCountAndTotalCostMap=%s;", m_flow, aid, skuStoreKeySet, skuCountAndTotalCostMap);
             return Errno.ARGS_ERROR;
         }
         Map<Integer, FaiList<Long>> unionPriIdSkuIdListMap = new HashMap<>();
@@ -797,7 +797,7 @@ public class StoreSalesSkuProc {
             return rt;
         }
 
-        Log.logDbg(rt,"getInfoListFromDao ok;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;", m_flow, aid, unionPriId, skuIdList);
+        Log.logStd(rt,"getInfoListFromDao ok;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;", m_flow, aid, unionPriId, skuIdList);
         return rt;
     }
     private int getListFromDaoBySkuIdAndUnionPriIdList(int aid, long skuId, FaiList<Integer> unionPriIdList, Ref<FaiList<Param>> listRef) {
@@ -813,6 +813,7 @@ public class StoreSalesSkuProc {
             Log.logStd("dao.select error;flow=%d;aid=%s;skuId=%s;unionPriIdList=%s;", m_flow, aid, skuId, unionPriIdList);
             return rt;
         }
+        Log.logStd(rt,"getListBySkuIdAndUnionPriId ok;flow=%d;aid=%d;skuId=%s;unionPriIdList=%s;", m_flow, aid, skuId, unionPriIdList);
         return rt;
     }
 
@@ -821,7 +822,7 @@ public class StoreSalesSkuProc {
      */
     public int searchSkuBizSummaryFromDao(int aid, SearchArg searchArg, Ref<FaiList<Param>> listRef) {
         if(aid <= 0 || searchArg == null || searchArg.matcher == null || searchArg.matcher.isEmpty() || listRef == null){
-            Log.logStd("arg error;flow=%d;aid=%s;searchArg=%s;listRef=%s;", m_flow, aid, searchArg, listRef);
+            Log.logErr("arg error;flow=%d;aid=%s;searchArg=%s;listRef=%s;", m_flow, aid, searchArg, listRef);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -838,7 +839,7 @@ public class StoreSalesSkuProc {
     }
     public int getReportListBySkuIdList(int aid, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef){
         if(aid <= 0 || skuIdList == null || skuIdList.isEmpty() || listRef == null){
-            Log.logStd("arg error;flow=%d;aid=%s;skuIdList=%s;listRef=%s;", m_flow, aid, skuIdList, listRef);
+            Log.logErr("arg error;flow=%d;aid=%s;skuIdList=%s;listRef=%s;", m_flow, aid, skuIdList, listRef);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -861,7 +862,7 @@ public class StoreSalesSkuProc {
     }
     public int getReportList4synSPU2SKU(int aid, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef){
         if(aid <= 0 || skuIdList == null || skuIdList.isEmpty() || listRef == null){
-            Log.logStd("arg error;flow=%d;aid=%s;skuIdList=%s;listRef=%s;", m_flow, aid, skuIdList, listRef);
+            Log.logErr("arg error;flow=%d;aid=%s;skuIdList=%s;listRef=%s;", m_flow, aid, skuIdList, listRef);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -886,7 +887,7 @@ public class StoreSalesSkuProc {
     }
     public int getReportListByPdIdList(int aid, FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef){
         if(aid <= 0 || pdIdList == null || pdIdList.isEmpty() || listRef == null){
-            Log.logStd("arg error;flow=%d;aid=%s;pdIdList=%s;listRef=%s;", m_flow, aid, pdIdList, listRef);
+            Log.logErr("arg error;flow=%d;aid=%s;pdIdList=%s;listRef=%s;", m_flow, aid, pdIdList, listRef);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -910,7 +911,7 @@ public class StoreSalesSkuProc {
     }
     public int getReportInfo(int aid, int pdId, int unionPriId, Ref<Param> infoRef){
         if(aid <= 0 || pdId <=0 || unionPriId <= 0|| infoRef == null){
-            Log.logStd("arg error;flow=%d;aid=%s;pdId=%s;unionPriId=%s;listRef=%s;", m_flow, aid, pdId, unionPriId, infoRef);
+            Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;unionPriId=%s;listRef=%s;", m_flow, aid, pdId, unionPriId, infoRef);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -1003,7 +1004,7 @@ public class StoreSalesSkuProc {
     }
     public int getListBySkuIdAndUnionPriIdList(int aid, long skuId, FaiList<Integer> unionPriIdList, Ref<FaiList<Param>> listRef) {
         if(aid <= 0 || skuId <=0 || (unionPriIdList != null && unionPriIdList.isEmpty()) || listRef == null){
-            Log.logStd("arg error;flow=%d;aid=%s;skuId=%s;unionPriIdList=%s;;listRef=%s;", m_flow, aid, skuId, unionPriIdList, listRef);
+            Log.logErr("arg error;flow=%d;aid=%s;skuId=%s;unionPriIdList=%s;;listRef=%s;", m_flow, aid, skuId, unionPriIdList, listRef);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -1017,7 +1018,7 @@ public class StoreSalesSkuProc {
 
     public int getListByPdId(int aid, int pdId, Ref<FaiList<Param>> listRef){
         if(aid <= 0 || pdId <= 0 || listRef == null){
-            Log.logStd("arg error;flow=%d;aid=%s;pdId=%s;listRef=%s;", m_flow, aid, pdId, listRef);
+            Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;listRef=%s;", m_flow, aid, pdId, listRef);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;

@@ -63,7 +63,7 @@ public class InOutStoreRecordProc {
      */
     public int batchAddOutStoreRecord(int aid, int unionPriId, Map<Long, Integer> skuIdChangeCountMap, Map<SkuStoreKey, Param> changeCountAfterSkuStoreSalesInfoMap, Param info, Map<Long, FaiList<Integer>> skuIdInPdScStrIdListMap, Ref<Integer> idRef) {
         if(aid <= 0 || unionPriId <= 0 || skuIdChangeCountMap == null || info == null || info.isEmpty() || skuIdInPdScStrIdListMap == null){
-            Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;skuIdChangeCountMap=%s;info=%s;skuIdInPdScStrIdListMap=%s;", m_flow, aid, unionPriId, skuIdChangeCountMap, info, skuIdInPdScStrIdListMap);
+            Log.logErr("arg error;flow=%d;aid=%s;unionPriId=%s;skuIdChangeCountMap=%s;info=%s;skuIdInPdScStrIdListMap=%s;", m_flow, aid, unionPriId, skuIdChangeCountMap, info, skuIdInPdScStrIdListMap);
             return Errno.ARGS_ERROR;
         }
         FaiList<Param> dataList = new FaiList<>(skuIdChangeCountMap.size());
@@ -93,7 +93,7 @@ public class InOutStoreRecordProc {
 
     public int batchAdd(int aid, FaiList<Param> infoList, Map<SkuStoreKey, Param> changeCountAfterSkuStoreSalesInfoMap, Ref<Integer> idRef) {
         if(aid <= 0 || infoList == null || infoList.isEmpty() || changeCountAfterSkuStoreSalesInfoMap == null){
-            Log.logStd("arg error;flow=%d;aid=%s;infoList=%s;changeCountAfterSkuStoreSalesInfoMap=%s;", m_flow, aid, infoList, changeCountAfterSkuStoreSalesInfoMap);
+            Log.logErr("arg error;flow=%d;aid=%s;infoList=%s;changeCountAfterSkuStoreSalesInfoMap=%s;", m_flow, aid, infoList, changeCountAfterSkuStoreSalesInfoMap);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -235,7 +235,7 @@ public class InOutStoreRecordProc {
                 return rt;
             }
         }
-        Log.logStd("ok!flow=%s;aid=%s;", m_flow, aid);
+        Log.logStd("ok;flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
 
@@ -359,7 +359,7 @@ public class InOutStoreRecordProc {
                         totalCost += availableCount*price;
                     }
                 }
-                Log.logDbg("whalelog  0 totalCost=%s", totalCost);
+                Log.logStd("whalelog  0 totalCost=%s", totalCost);
 
                 if(lastAvailableIoStoreRecId > 0){
                     SearchArg lastAvailableSearchArg = new SearchArg();
@@ -375,7 +375,7 @@ public class InOutStoreRecordProc {
                     long price = info.getLong(InOutStoreRecordEntity.Info.PRICE);
                     totalCost += (availableCount-lastAvailableCount)*price;
                 }
-                Log.logDbg("whalelog  1 totalCost=%s", totalCost);
+                Log.logStd("whalelog  1 totalCost=%s", totalCost);
 
                 fifoOutTotalCostRef.value = totalCost;
             }
@@ -430,7 +430,7 @@ public class InOutStoreRecordProc {
                 }
                 FaiList<Param> list = listRef.value;
                 for (Param info : list) {
-                    Log.logDbg("whalelog totalChangeCount=%s; info=%s", totalChangeCount, info);
+                    Log.logStd("whalelog totalChangeCount=%s; info=%s", totalChangeCount, info);
                     int availableCount = info.getInt(InOutStoreRecordEntity.Info.AVAILABLE_COUNT);
                     int ioStoreRecId = info.getInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID);
                     long price = info.getLong(InOutStoreRecordEntity.Info.PRICE);
@@ -458,7 +458,7 @@ public class InOutStoreRecordProc {
                 }
                 start += batchSize;
             }
-            Log.logDbg("whalelog  dataList=%s", dataList);
+            Log.logStd("whalelog  dataList=%s", dataList);
             fifoOutTotalCostRef.value = totalCost;
             ParamUpdater batchUpdater = new ParamUpdater();
             batchUpdater.getData().setString(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, "?");
@@ -474,7 +474,7 @@ public class InOutStoreRecordProc {
                 return rt;
             }
         }
-        Log.logStd("ok!flow=%s;aid=%s;", m_flow, aid);
+        Log.logStd("ok;flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
 
@@ -499,7 +499,7 @@ public class InOutStoreRecordProc {
             return rt;
         }
         initDbInfoList(listRef.value);
-        Log.logDbg(rt, "flow=%d;aid=%s;searchArg=%s;", m_flow, aid, searchArg);
+        Log.logStd(rt, "ok;flow=%d;aid=%s;searchArg=%s;", m_flow, aid, searchArg);
         return rt;
     }
 

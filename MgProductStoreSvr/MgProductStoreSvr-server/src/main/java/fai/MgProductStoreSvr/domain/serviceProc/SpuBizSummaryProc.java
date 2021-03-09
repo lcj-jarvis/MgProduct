@@ -18,7 +18,7 @@ public class SpuBizSummaryProc {
 
     public int report4synSPU2SKU(int aid, Map<Integer, Map<Integer, Param>> unionPriId_pdId_bizSalesSummaryInfoMapMap) {
         if(aid <= 0 || unionPriId_pdId_bizSalesSummaryInfoMapMap == null || unionPriId_pdId_bizSalesSummaryInfoMapMap.isEmpty()){
-            Log.logStd("arg error;flow=%d;aid=%s;unionPriId_pdId_bizSalesSummaryInfoMapMap=%s;", m_flow, aid, unionPriId_pdId_bizSalesSummaryInfoMapMap);
+            Log.logErr("arg error;flow=%d;aid=%s;unionPriId_pdId_bizSalesSummaryInfoMapMap=%s;", m_flow, aid, unionPriId_pdId_bizSalesSummaryInfoMapMap);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -110,7 +110,7 @@ public class SpuBizSummaryProc {
     }
     public int report(int aid, int pdId, FaiList<Param> infoList) {
         if(aid <= 0 || pdId <= 0 || infoList == null || infoList.isEmpty()){
-            Log.logStd("arg error;flow=%d;aid=%s;pdId=%s;infoList=%s;", m_flow, aid, pdId, infoList);
+            Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;infoList=%s;", m_flow, aid, pdId, infoList);
             return Errno.ARGS_ERROR;
         }
         Set<String> needMaxFields = new HashSet<>();
@@ -253,7 +253,7 @@ public class SpuBizSummaryProc {
     }
     public int getReportList(int aid, FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef){
         if(aid <= 0 || pdIdList == null || pdIdList.isEmpty() || listRef == null){
-            Log.logStd("arg error;flow=%d;aid=%s;pdIdList=%s;listRef=%s;", m_flow, aid, pdIdList, listRef);
+            Log.logErr("arg error;flow=%d;aid=%s;pdIdList=%s;listRef=%s;", m_flow, aid, pdIdList, listRef);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -272,13 +272,13 @@ public class SpuBizSummaryProc {
         for (Param reportInfo : listRef.value) {
             initReportInfo(reportInfo);
         }
-        Log.logDbg(rt,"getReportList ok;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
+        Log.logStd(rt,"getReportList ok;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
         return rt;
     }
 
     public int getReportInfo(int aid, int pdId, Ref<Param> infoRef){
         if(aid <= 0 || pdId <= 0 || infoRef == null){
-            Log.logStd("arg error;flow=%d;aid=%s;pdId=%s;infoRef=%s;", m_flow, aid, pdId, infoRef);
+            Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;infoRef=%s;", m_flow, aid, pdId, infoRef);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -299,7 +299,7 @@ public class SpuBizSummaryProc {
             infoRef.value = listRef.value.get(0);
         }
         initReportInfo(infoRef.value);
-        Log.logDbg(rt,"getReportList ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
+        Log.logStd(rt,"getReportList ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
         return rt;
     }
     private void initReportInfo(Param info){
@@ -349,7 +349,7 @@ public class SpuBizSummaryProc {
 
     public int getInfoListByUnionPriIdListFromDao(int aid, FaiList<Integer> unionPriIdList, FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef){
         if(aid <= 0 || pdIdList == null || pdIdList.isEmpty() || (unionPriIdList != null && unionPriIdList.isEmpty())|| listRef == null){
-            Log.logStd("arg error;flow=%d;aid=%s;unionPriIdList=%s;pdIdList=%s;listRef=%s;", m_flow, aid, unionPriIdList, pdIdList, listRef);
+            Log.logErr("arg error;flow=%d;aid=%s;unionPriIdList=%s;pdIdList=%s;listRef=%s;", m_flow, aid, unionPriIdList, pdIdList, listRef);
             return Errno.ARGS_ERROR;
         }
 
@@ -365,13 +365,13 @@ public class SpuBizSummaryProc {
             Log.logErr(rt, "select err;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
             return rt;
         }
-        Log.logDbg("ok!;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+        Log.logStd("ok;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
         return rt;
     }
 
     public int getInfoListByUnionPriIdListFromDao(int aid, FaiList<Integer> unionPriIdList, int pdId, Ref<FaiList<Param>> listRef){
         if(aid <= 0 || pdId <= 0 || (unionPriIdList != null && unionPriIdList.isEmpty())|| listRef == null){
-            Log.logStd("arg error;flow=%d;aid=%s;unionPriIdList=%s;pdId=%s;listRef=%s;", m_flow, aid, unionPriIdList, pdId, listRef);
+            Log.logErr("arg error;flow=%d;aid=%s;unionPriIdList=%s;pdId=%s;listRef=%s;", m_flow, aid, unionPriIdList, pdId, listRef);
             return Errno.ARGS_ERROR;
         }
         ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
@@ -386,13 +386,13 @@ public class SpuBizSummaryProc {
             Log.logErr(rt, "select err;flow=%d;aid=%s;pdId=%s;", m_flow, aid, pdId);
             return rt;
         }
-        Log.logDbg("ok!;flow=%d;aid=%s;pdId=%s;", m_flow, aid, pdId);
+        Log.logStd("ok;flow=%d;aid=%s;pdId=%s;", m_flow, aid, pdId);
         return rt;
     }
 
     public int getInfoListByPdIdListFromDao(int aid, int unionPriId, FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef, String ... fields){
         if(aid <= 0 || unionPriId <= 0 || pdIdList == null || pdIdList.isEmpty() || listRef == null){
-            Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;pdIdList=%s;", m_flow, aid, unionPriId, pdIdList);
+            Log.logErr("arg error;flow=%d;aid=%s;unionPriId=%s;pdIdList=%s;", m_flow, aid, unionPriId, pdIdList);
             return Errno.ARGS_ERROR;
         }
         ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
@@ -405,7 +405,7 @@ public class SpuBizSummaryProc {
             Log.logErr(rt, "select err;flow=%d;aid=%s;unionPriId=%s;pdIdList=%s;", m_flow, aid, unionPriId, pdIdList);
             return rt;
         }
-        Log.logDbg("ok!;flow=%d;aid=%s;unionPriId=%s;pdIdList=%s;", m_flow, aid, unionPriId, pdIdList);
+        Log.logStd("ok;flow=%d;aid=%s;unionPriId=%s;pdIdList=%s;", m_flow, aid, unionPriId, pdIdList);
         return rt;
     }
 
@@ -419,7 +419,7 @@ public class SpuBizSummaryProc {
             Log.logErr(rt, "select err;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
             return rt;
         }
-        Log.logDbg("ok!;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+        Log.logStd("ok;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
         return rt;
     }
 
@@ -433,13 +433,13 @@ public class SpuBizSummaryProc {
             Log.logErr(rt, "select err;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
             return rt;
         }
-        Log.logDbg("ok!;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+        Log.logStd("ok;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
         return rt;
     }
 
     public int getInfoListByPdIdList(int aid, int unionPriId, FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef){
         if(aid <= 0 || unionPriId <= 0 || pdIdList == null || pdIdList.isEmpty() || listRef == null){
-            Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;pdIdList=%s;", m_flow, aid, unionPriId, pdIdList);
+            Log.logErr("arg error;flow=%d;aid=%s;unionPriId=%s;pdIdList=%s;", m_flow, aid, unionPriId, pdIdList);
             return Errno.ARGS_ERROR;
         }
         FaiList<Param> resultList = new FaiList<>();
@@ -513,7 +513,7 @@ public class SpuBizSummaryProc {
         }finally {
             LockUtil.unlock(aid);
         }
-        Log.logDbg("ok!;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+        Log.logStd("ok;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
         return rt;
     }
 

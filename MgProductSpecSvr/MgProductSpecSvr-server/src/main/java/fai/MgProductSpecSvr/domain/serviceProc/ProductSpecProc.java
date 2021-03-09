@@ -21,7 +21,7 @@ public class ProductSpecProc {
     }
     public int batchAdd(int aid, int pdId, FaiList<Param> infoList, FaiList<Integer> rtIdList, Ref<Boolean> needRefreshSkuRef) {
         if(aid <= 0 || pdId <= 0 || infoList == null || infoList.isEmpty()){
-            Log.logStd("batchAdd arg error;flow=%d;aid=%s;pdId=%s;infoList=%s;", m_flow, aid, pdId, infoList);
+            Log.logErr("batchAdd arg error;flow=%d;aid=%s;pdId=%s;infoList=%s;", m_flow, aid, pdId, infoList);
             return Errno.ARGS_ERROR;
         }
 
@@ -80,7 +80,7 @@ public class ProductSpecProc {
      */
     public int batchSynchronousSPU2SKU(int aid, Map<Integer, Param> pdId_InfoMap, Map<Integer, Integer> pdId_pdScIdMap) {
         if(aid <= 0 || pdId_InfoMap == null || pdId_pdScIdMap == null){
-            Log.logStd("arg error;flow=%d;aid=%s;pdId_InfoMap=%s;pdId_pdScIdMap=%s;", m_flow, aid, pdId_InfoMap, pdId_pdScIdMap);
+            Log.logErr("arg error;flow=%d;aid=%s;pdId_InfoMap=%s;pdId_pdScIdMap=%s;", m_flow, aid, pdId_InfoMap, pdId_pdScIdMap);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -189,7 +189,7 @@ public class ProductSpecProc {
     }
     public int batchDel(int aid, FaiList<Integer> pdIdList) {
         if(aid <= 0 || pdIdList == null || pdIdList.isEmpty()){
-            Log.logStd("batchDel arg error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+            Log.logErr("batchDel arg error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -206,7 +206,7 @@ public class ProductSpecProc {
     }
     public int batchDel(int aid, int pdId, FaiList<Integer> pdScIdList, Ref<Boolean> needRefreshSkuRef) {
         if(aid <= 0 || pdId <=0 || (pdScIdList != null && pdScIdList.isEmpty())){
-            Log.logStd("batchDel arg error;flow=%d;aid=%s;pdId=%s;tpScDtIdList=%s;", m_flow, aid, pdId, pdScIdList);
+            Log.logErr("batchDel arg error;flow=%d;aid=%s;pdId=%s;tpScDtIdList=%s;", m_flow, aid, pdId, pdScIdList);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -241,7 +241,7 @@ public class ProductSpecProc {
 
     public int batchSet(int aid, int pdId, FaiList<ParamUpdater> updaterList, Ref<Boolean> needRefreshSkuRef) {
         if(aid <= 0 || pdId <=0 || updaterList == null || updaterList.isEmpty()){
-            Log.logStd("batchDel arg error;flow=%d;aid=%s;pdId=%s;tpScDtIdList=%s;", m_flow, aid, pdId, updaterList);
+            Log.logErr("batchDel arg error;flow=%d;aid=%s;pdId=%s;tpScDtIdList=%s;", m_flow, aid, pdId, updaterList);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -393,6 +393,7 @@ public class ProductSpecProc {
             return rt;
         }
         initDBInfoList(listRef.value);
+        Log.logStd(rt,"ok;flow=%s;aid=%s;pdId=%s;scStrIdList=%s;",m_flow, aid, pdId, scStrIdList);
         return rt;
     }
 
@@ -410,6 +411,7 @@ public class ProductSpecProc {
             return rt;
         }
         initDBInfoList(listRef.value);
+        Log.logStd(rt,"ok;flow=%s;aid=%s;pdId=%s;pdScIdList=%s;",m_flow, aid, pdId, pdScIdList);
         return rt;
     }
     private void initDBInfoList(FaiList<Param> infoList){

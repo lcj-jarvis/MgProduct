@@ -17,7 +17,7 @@ public class SpuSummaryProc {
     }
     public int report4synSPU2SKU(int aid, Map<Integer, Param> pdIdSalesSummaryInfoMap) {
         if(aid <= 0 || pdIdSalesSummaryInfoMap == null || pdIdSalesSummaryInfoMap.isEmpty()){
-            Log.logStd("arg error;flow=%d;aid=%s;pdIdSalesSummaryInfoMap=%s;", m_flow, aid, pdIdSalesSummaryInfoMap);
+            Log.logErr("arg error;flow=%d;aid=%s;pdIdSalesSummaryInfoMap=%s;", m_flow, aid, pdIdSalesSummaryInfoMap);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -98,7 +98,7 @@ public class SpuSummaryProc {
 
     public int batchReport(int aid, Map<Integer, Param> pdIdInfoMap) {
         if(aid <= 0 || pdIdInfoMap == null || pdIdInfoMap.isEmpty()){
-            Log.logStd("arg error;flow=%d;aid=%s;pdIdInfoMap=%s;", m_flow, aid, pdIdInfoMap);
+            Log.logErr("arg error;flow=%d;aid=%s;pdIdInfoMap=%s;", m_flow, aid, pdIdInfoMap);
             return Errno.ARGS_ERROR;
         }
         Calendar now = Calendar.getInstance();
@@ -170,11 +170,12 @@ public class SpuSummaryProc {
                 return rt;
             }
         }
+        Log.logStd("ok;flow=%s;aid=%s;pdIdInfoMap=%s;", m_flow, aid, pdIdInfoMap);
         return rt;
     }
     public int report(int aid, int pdId, Param info) {
         if(aid <= 0 || pdId <= 0 || info == null || info.isEmpty()){
-            Log.logStd("arg error;flow=%d;aid=%s;pdId=%s;info=%s;", m_flow, aid, pdId, info);
+            Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;info=%s;", m_flow, aid, pdId, info);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -236,13 +237,13 @@ public class SpuSummaryProc {
             Log.logDbg(rt, "select err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
             return rt;
         }
-        Log.logDbg(rt,"ok!;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+        Log.logStd(rt,"ok!;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
         return rt;
     }
 
     public int getList(int aid, FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef){
         if(aid <= 0 || pdIdList == null || pdIdList.isEmpty() || listRef == null){
-            Log.logStd("arg error;flow=%d;aid=%s;pdIdList=%s;listRef=%s;", m_flow, aid, pdIdList, listRef);
+            Log.logErr("arg error;flow=%d;aid=%s;pdIdList=%s;listRef=%s;", m_flow, aid, pdIdList, listRef);
             return Errno.ARGS_ERROR;
         }
         FaiList<Param> resultList = new FaiList<>();

@@ -58,7 +58,7 @@ public class SpecStrProc {
 
     private int batchAdd(int aid, FaiList<Param> infoList, FaiList<Integer> rtIdList, Param nameIdMap) {
         if(aid <= 0 || infoList == null || infoList.isEmpty()){
-            Log.logStd("batchAdd error;flow=%d;aid=%s;infoList=%s;", m_flow, aid, infoList);
+            Log.logErr("batchAdd error;flow=%d;aid=%s;infoList=%s;", m_flow, aid, infoList);
             return Errno.ARGS_ERROR;
         }
         FaiList<Param> dataList = new FaiList<>(infoList.size());

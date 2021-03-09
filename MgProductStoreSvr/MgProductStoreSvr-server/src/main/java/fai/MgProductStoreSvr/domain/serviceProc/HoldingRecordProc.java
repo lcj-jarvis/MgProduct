@@ -16,7 +16,7 @@ public class HoldingRecordProc {
 
     public int batchAdd(int aid, int unionPriId, Map<Long, Integer> skuIdCountMap, String rlOrderCode, int expireTimeSeconds) {
         if(aid <= 0 || unionPriId <= 0 || skuIdCountMap == null || Str.isEmpty(rlOrderCode) || expireTimeSeconds < 0){
-            Log.logStd("add error;flow=%d;aid=%d;unionPriId=%s;skuIdCountMap=%s;rlOrderCode=%s;expireTimeSeconds=%s", m_flow, aid, unionPriId, skuIdCountMap, rlOrderCode, expireTimeSeconds);
+            Log.logErr("add error;flow=%d;aid=%d;unionPriId=%s;skuIdCountMap=%s;rlOrderCode=%s;expireTimeSeconds=%s", m_flow, aid, unionPriId, skuIdCountMap, rlOrderCode, expireTimeSeconds);
             return Errno.ARGS_ERROR;
         }
         Calendar now = Calendar.getInstance();
@@ -39,15 +39,16 @@ public class HoldingRecordProc {
 
         int rt = m_daoCtrl.batchInsert(dataList, null, true);
         if(rt != Errno.OK){
-            Log.logStd(rt,"batchAdd error;flow=%d;aid=%d;unionPriId=%s;skuIdCountMap=%s;rlOrderCode=%s;expireTimeSeconds=%s", m_flow, aid, unionPriId, skuIdCountMap, rlOrderCode, expireTimeSeconds);
+            Log.logErr(rt,"batchAdd error;flow=%d;aid=%d;unionPriId=%s;skuIdCountMap=%s;rlOrderCode=%s;expireTimeSeconds=%s", m_flow, aid, unionPriId, skuIdCountMap, rlOrderCode, expireTimeSeconds);
         }
+        Log.logStd("ok;flow=%d;aid=%d;unionPriId=%s;skuIdCountMap=%s;rlOrderCode=%s;expireTimeSeconds=%s", m_flow, aid, unionPriId, skuIdCountMap, rlOrderCode, expireTimeSeconds);
         return rt;
     }
 
     // 逻辑删除
     public int batchLogicDel(int aid, int unionPriId, FaiList<Long> skuIdList, String rlOrderCode){
         if(aid <= 0 || unionPriId <= 0 || skuIdList == null || skuIdList.isEmpty() || Str.isEmpty(rlOrderCode)){
-            Log.logStd("batchLogicDel error;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;rlOrderCode=%s;", m_flow, aid, unionPriId, skuIdList, rlOrderCode);
+            Log.logErr("batchLogicDel error;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;rlOrderCode=%s;", m_flow, aid, unionPriId, skuIdList, rlOrderCode);
             return Errno.ARGS_ERROR;
         }
         ParamMatcher matcher = new ParamMatcher(HoldingRecordEntity.Info.AID, ParamMatcher.EQ, aid);
@@ -64,15 +65,16 @@ public class HoldingRecordProc {
         }
         if(rowRef.value != skuIdList.size()){ // 匹配
             rt = Errno.ERROR;
-            Log.logStd(rt,"size no match;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;rlOrderCode=%s;rowRef.value=%s;", m_flow, aid, unionPriId, skuIdList, rlOrderCode, rowRef.value);
+            Log.logErr(rt,"size no match;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;rlOrderCode=%s;rowRef.value=%s;", m_flow, aid, unionPriId, skuIdList, rlOrderCode, rowRef.value);
             return rt;
         }
+        Log.logStd("ok;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;rlOrderCode=%s;rowRef.value=%s;", m_flow, aid, unionPriId, skuIdList, rlOrderCode, rowRef.value);
         return rt;
     }
 
     public int getListFromDao(int aid, int unionPriId, FaiList<Long> skuIdList, String rlOrderCode, Ref<FaiList<Param>> listRef){
         if(aid <= 0 || unionPriId <= 0 || skuIdList == null || Str.isEmpty(rlOrderCode)){
-            Log.logStd("get error;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;rlOrderCode=%s;", m_flow, aid, unionPriId, skuIdList, rlOrderCode);
+            Log.logErr("get error;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;rlOrderCode=%s;", m_flow, aid, unionPriId, skuIdList, rlOrderCode);
             return Errno.ARGS_ERROR;
         }
         ParamMatcher matcher = new ParamMatcher(HoldingRecordEntity.Info.AID, ParamMatcher.EQ, aid);
@@ -85,13 +87,13 @@ public class HoldingRecordProc {
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             Log.logErr(rt,"dao selectFirst error;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;rlOrderCode=%s;", m_flow, aid, unionPriId, skuIdList, rlOrderCode);
         }
-        Log.logDbg(rt,"ok;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;rlOrderCode=%s;", m_flow, aid, unionPriId, skuIdList, rlOrderCode);
+        Log.logStd(rt,"ok;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;rlOrderCode=%s;", m_flow, aid, unionPriId, skuIdList, rlOrderCode);
         return rt;
     }
 
     public int getNotDelListFromDao(int aid, int unionPriId, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef){
         if(aid <= 0 || unionPriId <= 0 || skuIdList == null){
-            Log.logStd("get error;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;rlOrderCode=%s;", m_flow, aid, unionPriId, skuIdList);
+            Log.logErr("get error;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;rlOrderCode=%s;", m_flow, aid, unionPriId, skuIdList);
             return Errno.ARGS_ERROR;
         }
         ParamMatcher matcher = new ParamMatcher(HoldingRecordEntity.Info.AID, ParamMatcher.EQ, aid);
@@ -104,7 +106,7 @@ public class HoldingRecordProc {
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             Log.logErr(rt,"dao selectFirst error;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s", m_flow, aid, unionPriId, skuIdList);
         }
-        Log.logDbg(rt,"ok;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;", m_flow, aid, unionPriId, skuIdList);
+        Log.logStd(rt,"ok;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;", m_flow, aid, unionPriId, skuIdList);
         return rt;
     }
 

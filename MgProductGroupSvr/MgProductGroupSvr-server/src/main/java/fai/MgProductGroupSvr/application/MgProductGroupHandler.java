@@ -1,9 +1,7 @@
 package fai.MgProductGroupSvr.application;
 
 import fai.MgProductGroupSvr.application.service.ProductGroupService;
-import fai.MgProductGroupSvr.domain.entity.ProductGroupRelEntity;
 import fai.MgProductGroupSvr.interfaces.cmd.MgProductGroupCmd;
-import fai.MgProductGroupSvr.interfaces.dto.ProductGroupDto;
 import fai.MgProductGroupSvr.interfaces.dto.ProductGroupRelDto;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;

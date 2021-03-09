@@ -2,9 +2,13 @@ package fai.MgProductPropSvr.domain.serviceproc;
 
 import fai.MgProductPropSvr.domain.entity.ProductPropValEntity;
 import fai.MgProductPropSvr.domain.entity.ProductPropValObj;
+import fai.MgProductPropSvr.domain.repository.ProductPropRelDaoCtrl;
 import fai.MgProductPropSvr.domain.repository.ProductPropValCacheCtrl;
 import fai.MgProductPropSvr.domain.repository.ProductPropValDaoCtrl;
 import fai.comm.util.*;
+import fai.mgproduct.comm.Util;
+import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.Calendar;
 import java.util.HashMap;
@@ -12,82 +16,64 @@ import java.util.Set;
 
 public class ProductPropValProc {
 
-	public ProductPropValProc(int flow, ProductPropValDaoCtrl dao) {
+	public ProductPropValProc(int flow, int aid, TransactionCtrl tc) {
 		this.m_flow = flow;
-		this.m_valDao = dao;
+		this.m_valDao = ProductPropValDaoCtrl.getInstance(flow, aid);
+		init(tc);
 	}
 
-	public int getListByPropIds(int aid, HashMap<Integer, Integer> idRels, Ref<FaiList<Param>> listRef) {
+	public FaiList<Param> getListByPropIds(int aid, HashMap<Integer, Integer> idRels) {
 		int rt;
 		if(idRels == null || idRels.isEmpty()) {
 			rt = Errno.ARGS_ERROR;
-			Log.logErr(rt, "args error;flow=%d;aid=%d;propIds=%s;", m_flow, aid, idRels);
-			return rt;
+			throw new MgException(rt, "args error;flow=%d;aid=%d;propIds=%s;", m_flow, aid, idRels);
 		}
 		Set<Integer> propIds = idRels.keySet();
 		FaiList<Param> list = new FaiList<Param>();
 		for(Integer propId : propIds) {
-			Ref<FaiList<Param>> tmpRef = new Ref<FaiList<Param>>();
-			rt = getList(aid, propId, tmpRef);
-			if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-				Log.logErr("get error;flow=%d;aid=%d;propId=%s;", m_flow, aid, propId);
-				return rt;
+			FaiList<Param> tmpList = getList(aid, propId);
+			if(Util.isEmptyList(tmpList)) {
+				continue;
 			}
 			// 设置rlPropId
-			initInfo(idRels.get(propId), tmpRef.value);
-			list.addAll(tmpRef.value);
-		}
-		listRef.value = list;
-		if(list.isEmpty()) {
-			return Errno.NOT_FOUND;
+			initInfo(idRels.get(propId), tmpList);
+			list.addAll(tmpList);
 		}
 
-		return Errno.OK;
+		return list;
 	}
 
-	public int delValList(int aid, int propId, FaiList<Integer> delValIds) {
+	public void delValList(int aid, int propId, FaiList<Integer> delValIds) {
 		if(delValIds == null || delValIds.isEmpty()) {
-			return Errno.OK;
+			return;
 		}
 		ParamMatcher matcher = new ParamMatcher(ProductPropValEntity.Info.AID, ParamMatcher.EQ, aid);
 		matcher.and(ProductPropValEntity.Info.PROP_ID, ParamMatcher.EQ, propId);
 		matcher.and(ProductPropValEntity.Info.PROP_VAL_ID, ParamMatcher.IN, delValIds);
 		int rt = m_valDao.delete(matcher);
 		if(rt != Errno.OK){
-			Log.logErr(rt, "delValList error;flow=%d;aid=%d;propId=%d;delIdList=%s", m_flow, aid, propId, delValIds);
-			return rt;
+			throw new MgException(rt, "delValList error;flow=%d;aid=%d;propId=%d;delIdList=%s", m_flow, aid, propId, delValIds);
 		}
-
-		return rt;
 	}
 
-	public int delValListByPropIds(int aid, FaiList<Integer> propIds) {
+	public void delValListByPropIds(int aid, FaiList<Integer> propIds) {
 		if(propIds == null || propIds.isEmpty()) {
-			return Errno.OK;
+			return;
 		}
 		ParamMatcher matcher = new ParamMatcher(ProductPropValEntity.Info.AID, ParamMatcher.EQ, aid);
 		matcher.and(ProductPropValEntity.Info.PROP_ID, ParamMatcher.IN, propIds);
 		int rt = m_valDao.delete(matcher);
 		if(rt != Errno.OK){
-			Log.logErr(rt, "delValList error;flow=%d;aid=%d;propIds=%s;", m_flow, aid, propIds);
-			return rt;
+			throw new MgException(rt, "delValList error;flow=%d;aid=%d;propIds=%s;", m_flow, aid, propIds);
 		}
-
-		return rt;
 	}
 
-	public int setValList(int aid, int propId, FaiList<ParamUpdater> updaterList) {
+	public void setValList(int aid, int propId, FaiList<ParamUpdater> updaterList) {
 		if(updaterList == null || updaterList.isEmpty()) {
-			return Errno.OK;
+			return;
 		}
-		Ref<FaiList<Param>> oldListRef = new Ref<FaiList<Param>>();
-		int rt = getList(aid, propId, oldListRef);
-		if (rt != Errno.OK) {
-			Log.logErr(rt, "get error;flow=%d;aid=%d;", m_flow, aid);
-			return rt;
-		}
+		FaiList<Param> oldInfoList = getList(aid, propId);
 
-		FaiList<Param> oldInfoList = oldListRef.value;
 		FaiList<Param> dataList = new FaiList<Param>();
 		Calendar now = Calendar.getInstance();
 		for(ParamUpdater updater : updaterList){
@@ -120,35 +106,23 @@ public class ProductPropValProc {
 		item.setString(ProductPropValEntity.Info.DATA_TYPE, "?");
 		item.setString(ProductPropValEntity.Info.UPDATE_TIME, "?");
 
-		rt = m_valDao.doBatchUpdate(doBatchUpdater, doBatchMatcher, dataList, false);
+		int rt = m_valDao.doBatchUpdate(doBatchUpdater, doBatchMatcher, dataList, false);
 		if(rt != Errno.OK){
-			Log.logErr(rt, "doBatchUpdate product prop error;flow=%d;aid=%d;updateList=%s", m_flow, aid, dataList);
-			return rt;
+			throw new MgException(rt, "doBatchUpdate product prop error;flow=%d;aid=%d;updateList=%s", m_flow, aid, dataList);
 		}
-		return rt;
 	}
 
-	public int addValList(int aid, int propId, FaiList<Param> valList, boolean needLock) {
+	public void addValList(int aid, int propId, FaiList<Param> valList, boolean needLock) {
 		int rt;
 		if(valList == null || valList.isEmpty()) {
 			rt = Errno.ARGS_ERROR;
-			Log.logErr("valList is null;flow=%d;aid=%d;", m_flow, aid);
-			return rt;
+			throw new MgException(rt, "valList is null;flow=%d;aid=%d;", m_flow, aid);
 		}
-		Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
-		rt = getList(aid, propId, listRef);
-		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-			return rt;
-		}
-		FaiList<Param> list = listRef.value;
-		if(list == null) {
-			list = new FaiList<Param>();
-		}
+		FaiList<Param> list = getList(aid, propId);
 		int count = list.size();
 		if(count >= ProductPropValObj.Limit.COUNT_MAX) {
 			rt = Errno.COUNT_LIMIT;
-			Log.logErr(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductPropValObj.Limit.COUNT_MAX);
-			return rt;
+			throw new MgException(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductPropValObj.Limit.COUNT_MAX);
 		}
 		Calendar now = Calendar.getInstance();
 		// 数据
@@ -163,43 +137,49 @@ public class ProductPropValProc {
 		}
 		rt = m_valDao.batchInsert(valList.clone(), null, true);
 		if(rt != Errno.OK) {
-			Log.logErr(rt, "batch insert prop error;flow=%d;aid=%d;", m_flow, aid);
-			return rt;
+			throw new MgException(rt, "batch insert prop error;flow=%d;aid=%d;", m_flow, aid);
 		}
-
-		return rt;
 	}
 
-	private int getList(int aid, int propId, Ref<FaiList<Param>> listRef) {
+	private FaiList<Param> getList(int aid, int propId) {
 		// 从缓存获取数据
 		FaiList<Param> list = ProductPropValCacheCtrl.getCacheList(aid, propId);
 		if(list != null && !list.isEmpty()) {
-			listRef.value = list;
-			return Errno.OK;
+			return list;
 		}
 
+		Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
 		// 从db获取数据
 		SearchArg searchArg = new SearchArg();
 		searchArg.matcher = new ParamMatcher(ProductPropValEntity.Info.AID, ParamMatcher.EQ, aid);
 		searchArg.matcher.and(ProductPropValEntity.Info.PROP_ID, ParamMatcher.EQ, propId);
 		int rt = m_valDao.select(searchArg, listRef);
 		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-			Log.logErr(rt, "getList error;flow=%d;aid=%d;propId=%d;", m_flow, aid, propId);
-			return rt;
+			throw new MgException(rt, "getList error;flow=%d;aid=%d;propId=%d;", m_flow, aid, propId);
 		}
-		if (listRef.value == null || listRef.value.isEmpty()) {
+		list = listRef.value;
+		if(list == null) {
+			list = new FaiList<Param>();
+		}
+		if (Util.isEmptyList(list)) {
 			rt = Errno.NOT_FOUND;
 			Log.logDbg(rt, "not found;aid=%d", aid);
-			return rt;
+			return list;
 		}
 		// 添加到缓存
-		ProductPropValCacheCtrl.addCacheList(aid, propId, listRef.value);
-		return Errno.OK;
+		ProductPropValCacheCtrl.addCacheList(aid, propId, list);
+		return list;
 	}
 
 	private void initInfo(int rlPropId, FaiList<Param> list) {
 		for(Param info : list) {
 			info.setInt(ProductPropValEntity.Info.RL_PROP_ID, rlPropId);
+		}
+	}
+
+	private void init(TransactionCtrl tc) {
+		if(!tc.register(m_valDao)) {
+			throw new MgException("registered ProductPropValDaoCtrl err;");
 		}
 	}
 

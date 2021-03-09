@@ -11,6 +11,7 @@ import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
 import fai.comm.util.*;
 import fai.middleground.svrutil.service.MiddleGroundHandler;
+import fai.middleground.svrutil.service.ServiceProxy;
 
 import java.io.IOException;
 
@@ -111,5 +112,5 @@ public class MgProductPropHandler extends MiddleGroundHandler {
 		return service.setPropValList(session, flow, aid, unionPriId, tid, libId, rlPropId, updaterList, delValIds, addInfoList);
 	}
 
-	private ProductPropService service = new ProductPropService();
+	private ProductPropService service = ServiceProxy.create(new ProductPropService());
 }

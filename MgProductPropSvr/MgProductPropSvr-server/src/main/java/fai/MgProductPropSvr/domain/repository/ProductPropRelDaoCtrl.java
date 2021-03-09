@@ -45,7 +45,15 @@ public class ProductPropRelDaoCtrl extends DaoCtrl {
 		return m_idBuilder.build(aid, unionPriId, m_dao, needLock);
 	}
 
-	public void clearIdBuilderCache(int aid, int unionPriId) {
+	public Integer updateId(int aid, int unionPriId, int id, boolean needLock) {
+		int rt = openDao();
+		if(rt != Errno.OK) {
+			return null;
+		}
+		return m_idBuilder.update(aid, unionPriId, id, m_dao, needLock);
+	}
+
+	public static void clearIdBuilderCache(int aid, int unionPriId) {
 		m_idBuilder.clearCache(aid, unionPriId);
 	}
 

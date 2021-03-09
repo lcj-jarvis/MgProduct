@@ -45,7 +45,7 @@ public class ProductPropValDaoCtrl extends DaoCtrl {
 		return m_idBuilder.build(aid, m_dao, needLock);
 	}
 
-	public void clearIdBuilderCache(int aid) {
+	public static void clearIdBuilderCache(int aid) {
 		m_idBuilder.clearCache(aid);
 	}
 

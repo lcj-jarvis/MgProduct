@@ -38,15 +38,15 @@ public class ProductRelProc {
             if (rlPdId == null) {
                 rt = Errno.ERROR;
                 throw new MgException(rt, "rlPdId build error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
-            }else {
-                rlPdId = m_dao.updateId(aid, unionPriId, rlPdId, false);
-                if (rlPdId == null) {
-                    rt = Errno.ERROR;
-                    throw new MgException(rt, "rlPdId update error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
-                }
             }
-            relData.setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId);
+        }else {
+            rlPdId = m_dao.updateId(aid, unionPriId, rlPdId, false);
+            if (rlPdId == null) {
+                rt = Errno.ERROR;
+                throw new MgException(rt, "rlPdId update error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
+            }
         }
+        relData.setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId);
         rt = m_dao.insert(relData);
         if(rt != Errno.OK) {
             throw new MgException(rt, "insert product rel error;flow=%d;aid=%d;uid=%d;relData=%s;", m_flow, aid, unionPriId, relData);
@@ -85,15 +85,15 @@ public class ProductRelProc {
                 if (rlPdId == null) {
                     rt = Errno.ERROR;
                     throw new MgException(rt, "rlPdId build error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
-                }else {
-                    rlPdId = m_dao.updateId(aid, unionPriId, rlPdId, false);
-                    if (rlPdId == null) {
-                        rt = Errno.ERROR;
-                        throw new MgException(rt, "rlPdId update error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
-                    }
                 }
-                relData.setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId);
+            }else {
+                rlPdId = m_dao.updateId(aid, unionPriId, rlPdId, false);
+                if (rlPdId == null) {
+                    rt = Errno.ERROR;
+                    throw new MgException(rt, "rlPdId update error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
+                }
             }
+            relData.setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId);
             rlPdIds.add(rlPdId);
         }
 
@@ -281,7 +281,7 @@ public class ProductRelProc {
         FaiList<Integer> noCacheIds = new FaiList<Integer>();
         noCacheIds.addAll(pdIds);
         for(Param info : list) {
-            Integer pdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
+            Integer pdId = info.getInt(ProductRelEntity.Info.PD_ID);
             noCacheIds.remove(pdId);
         }
 

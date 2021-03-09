@@ -133,31 +133,31 @@ public class ProductRelCacheCtrl extends CacheCtrl {
             return;
         }
         String cacheKey = getRlIdRelCacheKey(aid, unionPriId);
-        m_cache.hmsetFaiList(cacheKey, ProductRelEntity.Info.RL_PD_ID, Var.Type.INT, list, ProductRelDto.Key.REDUCED_INFO, ProductRelDto.getReducedInfoDto());
+        m_cache.hmsetFaiList(cacheKey, ProductRelEntity.Info.PD_ID, Var.Type.INT, list, ProductRelDto.Key.REDUCED_INFO, ProductRelDto.getReducedInfoDto());
     }
 
-    public static FaiList<Param> getRlIdRelCacheList(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
+    public static FaiList<Param> getRlIdRelCacheList(int aid, int unionPriId, FaiList<Integer> pdIds) {
         FaiList list = null;
-        if(rlPdIds == null || rlPdIds.isEmpty()) {
+        if(pdIds == null || pdIds.isEmpty()) {
             return list;
         }
-        List<String> rlPdIdStrs = rlPdIds.stream().map(String::valueOf).collect(Collectors.toList());
+        List<String> pdIdStrs = pdIds.stream().map(String::valueOf).collect(Collectors.toList());
         String cacheKey = getRlIdRelCacheKey(aid, unionPriId);
         try {
-            list = m_cache.hmget(cacheKey, ProductRelDto.Key.REDUCED_INFO, ProductRelDto.getReducedInfoDto(), rlPdIdStrs);
+            list = m_cache.hmget(cacheKey, ProductRelDto.Key.REDUCED_INFO, ProductRelDto.getReducedInfoDto(), pdIdStrs);
         } catch (Exception e) {
-            Log.logErr(e,"getCacheList error;aid=%d;rlPdIdStrs=%s;", aid, rlPdIdStrs);
+            Log.logErr(e,"getCacheList error;aid=%d;pdIdStrs=%s;", aid, pdIdStrs);
         }
         return list;
     }
 
-    public static void delRlIdRelCache(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
-        if(rlPdIds == null || rlPdIds.isEmpty()) {
+    public static void delRlIdRelCache(int aid, int unionPriId, FaiList<Integer> pdIds) {
+        if(pdIds == null || pdIds.isEmpty()) {
             return;
         }
-        String[] rlPdIdStrs = new String[rlPdIds.size()];
-        for(int i = 0; i < rlPdIds.size(); i++) {
-            rlPdIdStrs[i] = String.valueOf(rlPdIds.get(i));
+        String[] rlPdIdStrs = new String[pdIds.size()];
+        for(int i = 0; i < pdIds.size(); i++) {
+            rlPdIdStrs[i] = String.valueOf(pdIds.get(i));
         }
         String cacheKey = getRlIdRelCacheKey(aid, unionPriId);
         m_cache.hdel(cacheKey, rlPdIdStrs);

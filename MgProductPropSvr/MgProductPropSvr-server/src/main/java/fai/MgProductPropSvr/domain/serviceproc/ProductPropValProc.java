@@ -6,6 +6,7 @@ import fai.MgProductPropSvr.domain.repository.ProductPropRelDaoCtrl;
 import fai.MgProductPropSvr.domain.repository.ProductPropValCacheCtrl;
 import fai.MgProductPropSvr.domain.repository.ProductPropValDaoCtrl;
 import fai.comm.util.*;
+import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
@@ -139,6 +140,61 @@ public class ProductPropValProc {
 		if(rt != Errno.OK) {
 			throw new MgException(rt, "batch insert prop error;flow=%d;aid=%d;", m_flow, aid);
 		}
+	}
+
+	public FaiList<Param> searchFromDb(int aid, SearchArg searchArg) {
+		if(searchArg == null) {
+			searchArg = new SearchArg();
+		}
+		if(searchArg.matcher == null) {
+			searchArg.matcher = new ParamMatcher();
+		}
+		searchArg.matcher.and(ProductPropValEntity.Info.AID, ParamMatcher.EQ, aid);
+
+		Ref<FaiList<Param>> listRef = new Ref<>();
+		int rt = m_valDao.select(searchArg, listRef, ProductPropValEntity.MANAGE_FIELDS);
+		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+			throw new MgException(rt, "get error;flow=%d;aid=%d;", m_flow, aid);
+		}
+		if(listRef.value == null) {
+			listRef.value = new FaiList<Param>();
+		}
+		if (listRef.value.isEmpty()) {
+			rt = Errno.NOT_FOUND;
+			Log.logDbg(rt, "not found;flow=%d;aid=%d;", m_flow, aid);
+		}
+		return listRef.value;
+	}
+
+	public Param getDataStatus(int aid) {
+		Param statusInfo = ProductPropValCacheCtrl.DataStatusCache.get(aid);
+		if(!Str.isEmpty(statusInfo)) {
+			return statusInfo;
+		}
+
+		long now = System.currentTimeMillis();
+		statusInfo = new Param();
+		int totalSize = getTotalSize(aid);
+		statusInfo.setInt(DataStatus.Info.TOTAL_SIZE, totalSize);
+		statusInfo.setLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME, now);
+		statusInfo.setLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME, 0L);
+
+		ProductPropValCacheCtrl.DataStatusCache.add(aid, statusInfo);
+		return statusInfo;
+	}
+
+	private int getTotalSize(int aid) {
+		SearchArg searchArg = new SearchArg();
+		searchArg.matcher = new ParamMatcher(ProductPropValEntity.Info.AID, ParamMatcher.EQ, aid);
+		Ref<Integer> countRef = new Ref<>();
+		int rt = m_valDao.selectCount(searchArg, countRef);
+		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+			throw new MgException(rt, "get propVal count error;flow=%d;aid=%d;", m_flow, aid);
+		}
+		if(countRef.value == null) {
+			countRef.value = 0;
+		}
+		return countRef.value;
 	}
 
 	private FaiList<Param> getList(int aid, int propId) {

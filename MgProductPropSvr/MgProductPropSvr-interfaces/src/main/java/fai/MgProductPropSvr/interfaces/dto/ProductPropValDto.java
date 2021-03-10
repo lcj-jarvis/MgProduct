@@ -49,5 +49,8 @@ public class ProductPropValDto {
 		public static final int UPDATERLIST = 7;
 		public static final int RL_PROP_IDS = 8;
 		public static final int VAL_IDS = 9;
+		public static final int DATA_STATUS = 10;
+		public static final int TOTAL_SIZE = 11;
+		public static final int SEARCH_ARG = 12;
 	}
 }

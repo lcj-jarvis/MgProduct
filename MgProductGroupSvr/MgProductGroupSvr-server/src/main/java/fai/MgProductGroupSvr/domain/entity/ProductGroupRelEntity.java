@@ -1,5 +1,7 @@
 package fai.MgProductGroupSvr.domain.entity;
 
+import fai.comm.util.FaiList;
+
 public class ProductGroupRelEntity {
 
 	public static final class Info {
@@ -13,7 +15,17 @@ public class ProductGroupRelEntity {
 		public static final String UPDATE_TIME = "sysUpdateTime"; // datetime 更新时间
 	}
 
-	public static final String[] MANAGE_FIELDS = new String[]{
-			Info.AID, Info.RL_GROUP_ID, Info.GROUP_ID, Info.UNION_PRI_ID, Info.SORT, Info.RL_FLAG, Info.CREATE_TIME, Info.UPDATE_TIME
-	};
+	public static final FaiList<String> MANAGE_FIELDS; // 管理态字段
+	static {
+		MANAGE_FIELDS = new FaiList<String>();
+		MANAGE_FIELDS.add(Info.AID);
+		MANAGE_FIELDS.add(Info.RL_GROUP_ID);
+		MANAGE_FIELDS.add(Info.GROUP_ID);
+		MANAGE_FIELDS.add(Info.UNION_PRI_ID);
+		MANAGE_FIELDS.add(Info.SORT);
+		MANAGE_FIELDS.add(Info.RL_FLAG);
+		MANAGE_FIELDS.add(Info.CREATE_TIME);
+		MANAGE_FIELDS.add(Info.UPDATE_TIME);
+		MANAGE_FIELDS.setReadOnly(true);
+	}
 }

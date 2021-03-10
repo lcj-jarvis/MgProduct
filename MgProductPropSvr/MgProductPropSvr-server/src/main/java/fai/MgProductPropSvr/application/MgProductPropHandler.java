@@ -112,5 +112,27 @@ public class MgProductPropHandler extends MiddleGroundHandler {
 		return service.setPropValList(session, flow, aid, unionPriId, tid, libId, rlPropId, updaterList, delValIds, addInfoList);
 	}
 
+	@Cmd(MgProductPropCmd.PropValCmd.GET_DATA_STATUS)
+	public int getPropValDataStatus(final FaiSession session,
+									@ArgFlow int flow,
+									@ArgAid final int aid) throws IOException {
+		return service.getPropValDataStatus(session, flow, aid);
+	}
+
+	@Cmd(MgProductPropCmd.PropValCmd.GET_ALL_DATA)
+	public int getAllPropValData(final FaiSession session,
+								 @ArgFlow int flow,
+								 @ArgAid final int aid) throws IOException {
+		return service.getAllPropValData(session, flow, aid);
+	}
+
+	@Cmd(MgProductPropCmd.PropValCmd.SEARCH_FROM_DB)
+	public int searchPropValFromDb(final FaiSession session,
+								 @ArgFlow int flow,
+								 @ArgAid final int aid,
+								 @ArgSearchArg(ProductPropValDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
+		return service.searchPropValFromDb(session, flow, aid, searchArg);
+	}
+
 	private ProductPropService service = ServiceProxy.create(new ProductPropService());
 }

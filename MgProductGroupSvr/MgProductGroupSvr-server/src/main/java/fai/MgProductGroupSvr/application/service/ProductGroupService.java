@@ -11,6 +11,7 @@ import fai.MgProductGroupSvr.domain.serviceproc.ProductGroupRelProc;
 import fai.MgProductGroupSvr.interfaces.dto.ProductGroupRelDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
+import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.annotation.SuccessRt;
 import fai.middleground.svrutil.exception.MgException;
@@ -174,7 +175,7 @@ public class ProductGroupService extends ServicePub {
             transactionCtrl.closeDao();
         }
         FaiBuffer sendBuf = new FaiBuffer(true);
-        info.toBuffer(sendBuf, ProductGroupRelDto.Key.DATA_STATUS, ProductGroupRelDto.getDataStatusDto());
+        info.toBuffer(sendBuf, ProductGroupRelDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
         session.write(sendBuf);
         rt = Errno.OK;
         Log.logDbg("getGroupRelDataStatus ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);

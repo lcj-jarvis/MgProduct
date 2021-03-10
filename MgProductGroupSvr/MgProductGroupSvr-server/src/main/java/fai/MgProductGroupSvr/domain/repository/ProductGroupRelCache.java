@@ -114,12 +114,12 @@ public class ProductGroupRelCache extends CacheCtrl {
 
         public static Param get(int aid, int unionPriId) {
             String cacheKey = getCacheKey(aid, unionPriId);
-            return m_cache.getParam(cacheKey, ProductGroupRelDto.Key.DATA_STATUS, ProductGroupRelDto.getDataStatusDto());
+            return m_cache.getParam(cacheKey, ProductGroupRelDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
         }
 
         public static void add(int aid, int unionPriId, Param info) {
             String cacheKey = getCacheKey(aid, unionPriId);
-            m_cache.setParam(cacheKey, info, ProductGroupRelDto.Key.DATA_STATUS, ProductGroupRelDto.getDataStatusDto());
+            m_cache.setParam(cacheKey, info, ProductGroupRelDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
         }
 
         public static void update(int aid, int unionPriId) {
@@ -138,7 +138,7 @@ public class ProductGroupRelCache extends CacheCtrl {
                 String op = add ? ParamUpdater.INC : ParamUpdater.DEC;
                 updater.add(DataStatus.Info.TOTAL_SIZE, op, count);
             }
-            m_cache.updateParam(getCacheKey(aid, unionPriId), updater, ProductGroupRelDto.Key.DATA_STATUS, ProductGroupRelDto.getDataStatusDto());
+            m_cache.updateParam(getCacheKey(aid, unionPriId), updater, ProductGroupRelDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
         }
 
         public static void expire(int aid, int unionPriId, int second) {
@@ -149,6 +149,6 @@ public class ProductGroupRelCache extends CacheCtrl {
             return DATA_STATUS_CACHE_KEY + "-" + aid + "-" + unionPriId;
         }
 
-        private static final String DATA_STATUS_CACHE_KEY = "MG_productGroupRelDataStatus";
+        private static final String DATA_STATUS_CACHE_KEY = "MG_pdGroupRelDS";
     }
 }

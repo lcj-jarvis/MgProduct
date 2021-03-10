@@ -2,9 +2,8 @@ package fai.MgProductPropSvr.domain.repository;
 
 import fai.MgProductPropSvr.domain.entity.ProductPropValEntity;
 import fai.MgProductPropSvr.interfaces.dto.ProductPropValDto;
-import fai.comm.util.FaiList;
-import fai.comm.util.Param;
-import fai.comm.util.Var;
+import fai.comm.util.*;
+import fai.mgproduct.comm.DataStatus;
 
 public class ProductPropValCacheCtrl extends CacheCtrl {
 
@@ -56,4 +55,50 @@ public class ProductPropValCacheCtrl extends CacheCtrl {
 
 	private static final int EXPIRE_SECOND = 10;
 	private static final String CACHE_KEY = "MG_productPropVal";
+
+	/** 数据状态缓存 **/
+	public static class DataStatusCache {
+
+		public static Param get(int aid) {
+			String cacheKey = getCacheKey(aid);
+			Param info = m_cache.getParam(cacheKey, ProductPropValDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
+			if(!Str.isEmpty(info)) {
+				expire(aid, 6*3600);
+			}
+			return info;
+		}
+
+		public static void add(int aid, Param info) {
+			String cacheKey = getCacheKey(aid);
+			m_cache.setParam(cacheKey, info, ProductPropValDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
+		}
+
+		public static void update(int aid) {
+			update(aid, 0);
+		}
+
+		public static void update(int aid, int count) {
+			update(aid, count, true);
+		}
+
+		public static void update(int aid, int count, boolean add) {
+			Param info = new Param();
+			info.setLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME, System.currentTimeMillis());
+			ParamUpdater updater = new ParamUpdater(info);
+			if(count != 0) {
+				String op = add ? ParamUpdater.INC : ParamUpdater.DEC;
+				updater.add(DataStatus.Info.TOTAL_SIZE, op, count);
+			}
+			m_cache.updateParam(getCacheKey(aid), updater, ProductPropValDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
+		}
+
+		public static void expire(int aid, int second) {
+			m_cache.expire(getCacheKey(aid), second);
+		}
+
+		public static String getCacheKey(int aid) {
+			return DATA_STATUS_CACHE_KEY + "-" + aid;
+		}
+		private static final String DATA_STATUS_CACHE_KEY = "MG_pdPropValDS";
+	}
 }

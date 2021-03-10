@@ -526,6 +526,23 @@ public class MgProductInfHandler extends FaiHandler {
         return storeService.batchMakeUpStore(session, flow, aid, tid, siteId, lgId, keepPriId1, skuIdCountList, rlOrderCode, reduceMode);
     }
 
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.StoreSalesSkuCmd.BATCH_REFUND_STORE)
+    public int batchRefundStore(final FaiSession session,
+                                @ArgFlow final int flow,
+                                @ArgAid final int aid,
+                                @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
+                                @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
+                                @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
+                                @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
+                                @ArgList(classDef = ProductStoreDto.StoreSalesSku.class, methodDef = "getInfoDto",
+                                        keyMatch = ProductStoreDto.Key.INFO_LIST) FaiList<Param> skuIdCountList,
+                                @ArgBodyString(ProductStoreDto.Key.RL_REFUND_ID) String rlRefundId,
+                                @ArgParam(classDef = ProductStoreDto.InOutStoreRecord.class, methodDef = "getInfoDto",
+                                        keyMatch = ProductStoreDto.Key.IN_OUT_STORE_RECORD) Param inStoreRecordInfo) throws IOException {
+        return storeService.batchRefundStore(session, flow, aid, tid, siteId, lgId, keepPriId1, skuIdCountList, rlRefundId, inStoreRecordInfo);
+    }
+
 
     @Cmd(MgProductInfCmd.StoreSalesSkuCmd.GET_LIST)
     public int getSkuStoreSalesList(final FaiSession session,

@@ -579,8 +579,8 @@ public class StoreSalesSkuService extends StoreService {
                         }
                         if(skuIdChangeCountMap.isEmpty()){ // 重复扣减了
                             FaiBuffer sendBuf = new FaiBuffer(true);
-                            session.write(sendBuf);
                             sendBuf.putInt(StoreSalesSkuDto.Key.IN_OUT_STORE_REC_ID, -1);
+                            session.write(sendBuf);
                             Log.logStd("find repeat reduceHolding;aid=%d;unionPriId=%s;rlOrderCode=%s;skuIdCountList=%s", aid, unionPriId, rlOrderCode, skuIdCountList);
                             return rt = Errno.OK;
                         }

@@ -62,10 +62,10 @@ public class MgProductSearch {
     public enum SearchTableNameEnum{
         MG_PRODUCT("pt"),    // 对应 mgProduct
         MG_PRODUCT_REL("pr"),  // 对应 mgProductRel
-        MG_PRODUCT_BIND_PROP("pb"),  // 对应 mgProductBindProp
-        MG_PRODUCT_BIND_GROUP("pg"),  // 对应 mgProductGroupRel
-        MG_PRODUCT_LABLE_REL("pl"), // 对应 mgProductLableRel
-        MG_SPU_BIZ_SUMMARY("sb");  // 对应 mgSpuBizSummary
+        MG_PRODUCT_BIND_PROP("pbp"),  // 对应 mgProductBindProp
+        MG_PRODUCT_BIND_GROUP("pbg"),  // 对应 mgProductGroupRel
+        MG_PRODUCT_LABLE_REL("plr"), // 对应 mgProductLableRel
+        MG_SPU_BIZ_SUMMARY("sbs");  // 对应 mgSpuBizSummary
 
         public String searchTableName;
         private SearchTableNameEnum(String searchTableName) {
@@ -350,7 +350,6 @@ public class MgProductSearch {
         return paramMatcher;
     }
 
-
     // 在 "分类业务关系表" mgProductBindGroup_xxxx 搜索
     public ParamMatcher getProductBindGroupSearchMatcher(ParamMatcher paramMatcher){
         if(paramMatcher == null){
@@ -383,7 +382,6 @@ public class MgProductSearch {
         return paramMatcher;
     }
 
-
     // 在 "商品业务销售总表" mgSpuBizSummary_xxxx 搜索
     public ParamMatcher getProductSpuBizSummarySearchMatcher(ParamMatcher paramMatcher){
         if(paramMatcher == null){
@@ -406,38 +404,6 @@ public class MgProductSearch {
         return paramMatcher;
     }
 
-    //  把排序转换为 ParamComparator
-    // 暂时不允许第一排序和第二排序字段key是一样的，如果第二排序字段key重复，只有第一排序字段生效，可以看 setSecondComparator
-    public ParamComparator getFirstParamComparator(){
-        ParamComparator paramComparator = new ParamComparator();
-        // 商品idList 排序，设置了这个排序，其他设置的排序就无效了
-        if(rlPdIdComparatorList != null && !rlPdIdComparatorList.isEmpty()){
-            paramComparator.addKey(ProductRelEntity.Info.RL_PD_ID, rlPdIdComparatorList);
-            // 第二排序
-            if(needSecondComparatorSorting){
-                paramComparator.addKey(secondComparatorKey, secondComparatorKeyOrderByDesc);
-            }
-        }else{
-            // 第一排序
-            if(!Str.isEmpty(this.firstComparatorTable) && !Str.isEmpty(this.firstComparatorKey)){
-                paramComparator.addKey(this.firstComparatorKey, this.firstComparatorKeyOrderByDesc);
-            }
-            // 第二排序
-            if(needSecondComparatorSorting){
-                paramComparator.addKey(secondComparatorKey, secondComparatorKeyOrderByDesc);
-            }
-        }
-        return paramComparator;
-    }
-
-    //  把把查询条件转换为 SearchArg
-    public void setSearArgStartAndLimit(SearchArg searchArg){
-        if(searchArg == null){
-            return;
-        }
-        searchArg.start = this.start;
-        searchArg.limit = this.limit;
-    }
 
     public FaiList<Integer> getRlLableIdList() {
         return rlLableIdList;
@@ -493,7 +459,7 @@ public class MgProductSearch {
         this.searchKeyWord = searchKeyWord;
         this.enableSearchProductName = enableSearchProductName;
         this.enableSearchProductProp = enableSearchProductProp;
-        this.propIdList = propIdList;
+        this.propIdList = propIdList;   //  在指定 propId 进行 like  搜索
         this.enableSearchProductRemark = enableSearchProductRemark;
         this.searchProductRemarkKeyList = searchProductRemarkKeyList;
         return this;
@@ -567,6 +533,47 @@ public class MgProductSearch {
         return priceEnd;
     }
 
+
+    //  把排序转换为 ParamComparator
+    // 暂时不允许第一排序和第二排序字段key是一样的，如果第二排序字段key重复，只有第一排序字段生效，可以看 setSecondComparator
+    public ParamComparator getParamComparator(){
+        ParamComparator paramComparator = new ParamComparator();
+        // 商品idList 排序，设置了这个排序，其他设置的排序就无效了
+        if(rlPdIdComparatorList != null && !rlPdIdComparatorList.isEmpty()){
+            paramComparator.addKey(ProductRelEntity.Info.RL_PD_ID, rlPdIdComparatorList);
+            // 第二排序
+            if(needSecondComparatorSorting){
+                paramComparator.addKey(secondComparatorKey, secondComparatorKeyOrderByDesc);
+            }
+        }else{
+            // 第一排序
+            if(!Str.isEmpty(this.firstComparatorTable) && !Str.isEmpty(this.firstComparatorKey)){
+                paramComparator.addKey(this.firstComparatorKey, this.firstComparatorKeyOrderByDesc);
+            }
+            // 第二排序
+            if(needSecondComparatorSorting){
+                paramComparator.addKey(secondComparatorKey, secondComparatorKeyOrderByDesc);
+            }
+        }
+        return paramComparator;
+    }
+
+    // 设置一个排序后，支持是否开启默认的第二个能够确认 唯一 排序字：secondComparatorKey = ProductRelEntity.Info.RL_PD_ID，相当于创建时间排序
+    public MgProductSearch setComparator(Pair<SearchTableNameEnum, String> comparatorTableAndKey, boolean desc){
+        return setComparator(comparatorTableAndKey, desc, false, false);
+    }
+    public MgProductSearch setComparator(Pair<SearchTableNameEnum, String> comparatorTableAndKey, boolean desc, boolean needSecondComparatorSorting, boolean rlPdIdSortingDesc){
+        if(Str.isEmpty(comparatorTableAndKey.first.searchTableName) || Str.isEmpty(comparatorTableAndKey.second)){
+            return this;
+        }
+        this.firstComparatorTable = comparatorTableAndKey.first.searchTableName;
+        this.firstComparatorKey = comparatorTableAndKey.second;
+        this.firstComparatorKeyOrderByDesc = desc;
+        this.needSecondComparatorSorting = needSecondComparatorSorting;
+        this.secondComparatorKeyOrderByDesc = rlPdIdSortingDesc;
+        return this;
+    }
+
     public FaiList<Integer> getRlPdIdComparatorList() {
         return rlPdIdComparatorList;
     }
@@ -580,38 +587,6 @@ public class MgProductSearch {
         return this;
     }
 
-    public MgProductSearch setStart(int start){
-        this.start = start >= 0 ? start : this.start;
-        return this;
-    }
-    public int getStart(){
-        return this.start;
-    }
-
-    public MgProductSearch setLimit(int limit){
-        this.limit = limit >= 0 ? limit : this.limit;
-        return this;
-    }
-    public int getLimit(){
-        return this.limit;
-    }
-
-    public MgProductSearch setComparator(Pair<SearchTableNameEnum, String> comparatorTableAndKey, boolean desc){
-        return setComparator(comparatorTableAndKey, desc, false, false);
-    }
-
-    // 设置一个排序后，支持是否开启默认的第二个能够确认 唯一 排序字：secondComparatorKey = ProductRelEntity.Info.RL_PD_ID，相当于创建时间排序
-    public MgProductSearch setComparator(Pair<SearchTableNameEnum, String> comparatorTableAndKey, boolean desc, boolean needSecondComparatorSorting, boolean rlPdIdSortingDesc){
-        if(Str.isEmpty(comparatorTableAndKey.first.searchTableName) || Str.isEmpty(comparatorTableAndKey.second)){
-            return this;
-        }
-        this.firstComparatorTable = comparatorTableAndKey.first.searchTableName;
-        this.firstComparatorKey = comparatorTableAndKey.second;
-        this.firstComparatorKeyOrderByDesc = desc;
-        this.needSecondComparatorSorting = needSecondComparatorSorting;
-        this.secondComparatorKeyOrderByDesc = rlPdIdSortingDesc;
-        return this;
-    }
     public String getFirstComparatorTable() {
         return firstComparatorTable;
     }
@@ -633,6 +608,32 @@ public class MgProductSearch {
     }
     public boolean isNeedSecondComparatorSorting() {
         return needSecondComparatorSorting;
+    }
+
+
+    //  把把查询条件转换为 SearchArg
+    public void setSearArgStartAndLimit(SearchArg searchArg){
+        if(searchArg == null){
+            return;
+        }
+        searchArg.start = this.start;
+        searchArg.limit = this.limit;
+    }
+
+    public MgProductSearch setStart(int start){
+        this.start = start >= 0 ? start : this.start;
+        return this;
+    }
+    public int getStart(){
+        return this.start;
+    }
+
+    public MgProductSearch setLimit(int limit){
+        this.limit = limit >= 0 ? limit : this.limit;
+        return this;
+    }
+    public int getLimit(){
+        return this.limit;
     }
 
 }

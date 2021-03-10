@@ -16,6 +16,7 @@ public class ProductGroupRelEntity {
 	}
 
 	public static final FaiList<String> MANAGE_FIELDS; // 管理态字段
+	public static final FaiList<String> VISITOR_FIELDS; // 访客态字段
 	static {
 		MANAGE_FIELDS = new FaiList<String>();
 		MANAGE_FIELDS.add(Info.AID);
@@ -27,5 +28,8 @@ public class ProductGroupRelEntity {
 		MANAGE_FIELDS.add(Info.CREATE_TIME);
 		MANAGE_FIELDS.add(Info.UPDATE_TIME);
 		MANAGE_FIELDS.setReadOnly(true);
+
+		VISITOR_FIELDS = new FaiList<String>();
+		VISITOR_FIELDS.setReadOnly(true);
 	}
 }

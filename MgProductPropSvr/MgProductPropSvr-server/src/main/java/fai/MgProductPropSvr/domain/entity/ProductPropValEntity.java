@@ -20,6 +20,7 @@ public class ProductPropValEntity {
 	}
 
 	public static final FaiList<String> MANAGE_FIELDS; // 管理态字段
+	public static final FaiList<String> VISITOR_FIELDS; // 访客态字段
 	static {
 		MANAGE_FIELDS = new FaiList<String>();
 		MANAGE_FIELDS.add(Info.AID);
@@ -30,5 +31,8 @@ public class ProductPropValEntity {
 		MANAGE_FIELDS.add(Info.DATA_TYPE);
 		MANAGE_FIELDS.add(Info.UPDATE_TIME);
 		MANAGE_FIELDS.setReadOnly(true);
+
+		VISITOR_FIELDS = new FaiList<String>();
+		VISITOR_FIELDS.setReadOnly(true);
 	}
 }

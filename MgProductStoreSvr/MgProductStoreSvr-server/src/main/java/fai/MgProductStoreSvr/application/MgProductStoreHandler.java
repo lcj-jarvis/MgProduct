@@ -153,6 +153,21 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
         return  m_storeSalesSkuService.batchMakeUpStore(session, flow, aid, unionPriId, skuIdCountList, rlOrderCode, reduceMode);
     }
 
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_REFUND_STORE)
+    private int batchRefundStore(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid final int aid,
+                                 @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
+                                 @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
+                                 @ArgList(classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto", keyMatch = StoreSalesSkuDto.Key.SKU_ID_COUNT_LIST)
+                                         FaiList<Param> skuIdCountList,
+                                 @ArgBodyString(StoreSalesSkuDto.Key.RL_REFUND_ID) final String rlRefundId,
+                                 @ArgParam(classDef = InOutStoreRecordDto.class, methodDef ="getInfoDto", keyMatch=StoreSalesSkuDto.Key.IN_OUT_STORE_RECORD_INFO)
+                                             Param inStoreRecordInfo) throws IOException {
+        return  m_storeSalesSkuService.batchRefundStore(session, flow, aid, tid, unionPriId, skuIdCountList, rlRefundId, inStoreRecordInfo);
+    }
+
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.GET_LIST)
     private int getSkuStoreSales(final FaiSession session,
                                  @ArgFlow final int flow,

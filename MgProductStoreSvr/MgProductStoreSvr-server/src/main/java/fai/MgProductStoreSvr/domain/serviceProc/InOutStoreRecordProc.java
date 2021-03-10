@@ -86,6 +86,43 @@ public class InOutStoreRecordProc {
 
         return batchAdd(aid, dataList, changeCountAfterSkuStoreSalesInfoMap, idRef);
     }
+    /**
+     * 批量添加入库记录
+     */
+    public int batchAddInStoreRecord(int aid, int unionPriId, Map<Long, Integer> skuIdChangeCountMap, Map<SkuStoreKey, Param> changeCountAfterSkuStoreSalesInfoMap, Param info, Map<Long, FaiList<Integer>> skuIdInPdScStrIdListMap, Map<Long, Pair<Long, Long>> skuIdPriceMap, Ref<Integer> idRef) {
+        if(aid <= 0 || unionPriId <= 0 || skuIdChangeCountMap == null || info == null || info.isEmpty() || skuIdInPdScStrIdListMap == null){
+            Log.logErr("arg error;flow=%d;aid=%s;unionPriId=%s;skuIdChangeCountMap=%s;info=%s;skuIdInPdScStrIdListMap=%s;", m_flow, aid, unionPriId, skuIdChangeCountMap, info, skuIdInPdScStrIdListMap);
+            return Errno.ARGS_ERROR;
+        }
+        FaiList<Param> dataList = new FaiList<>(skuIdChangeCountMap.size());
+        for (Map.Entry<Long, Integer> entry : skuIdChangeCountMap.entrySet()) {
+            long skuId = entry.getKey();
+            int count = entry.getValue();
+            Pair<Long, Long> pricePair = skuIdPriceMap.get(skuId);
+            Param data = info.clone();
+            FaiList<Integer> inPdScStrIdList = skuIdInPdScStrIdListMap.get(skuId);
+            if(inPdScStrIdList == null){
+                inPdScStrIdList = new FaiList<>();
+            }
+            long price = 0L;
+            long mwPrice = 0L;
+            if(pricePair != null){
+                price = pricePair.first;
+                mwPrice = pricePair.second;
+            }
+            data.setInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, unionPriId);
+            data.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
+            data.setLong(InOutStoreRecordEntity.Info.PRICE, price);
+            data.setLong(InOutStoreRecordEntity.Info.MW_PRICE, mwPrice);
+            data.setInt(InOutStoreRecordEntity.Info.CHANGE_COUNT, count);
+            data.setList(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList);
+            dataList.add(data);
+        }
+        Log.logDbg("whalelog skuIdPriceMap=%s;dataList=%s;", skuIdPriceMap, dataList);
+
+        return batchAdd(aid, dataList, changeCountAfterSkuStoreSalesInfoMap, idRef);
+    }
+
 
     public int batchAdd(int aid, FaiList<Param> infoList, Map<SkuStoreKey, Param> changeCountAfterSkuStoreSalesInfoMap) {
         return  batchAdd(aid, infoList, changeCountAfterSkuStoreSalesInfoMap, null);
@@ -141,6 +178,10 @@ public class InOutStoreRecordProc {
                 return rt = Errno.ARGS_ERROR;
             }
             long price = info.getLong(InOutStoreRecordEntity.Info.PRICE, 0L);
+            long inMwPrice = info.getLong(InOutStoreRecordEntity.Info.MW_PRICE, price);
+            if(inMwPrice == 0L){
+                inMwPrice = price;
+            }
 
             Param data = new Param();
             data.setInt(InOutStoreRecordEntity.Info.AID, aid);
@@ -160,11 +201,12 @@ public class InOutStoreRecordProc {
                 data.setInt(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, changeCount);
                 if(price > 0 && changeCount > 0){
                     long totalCost = changeCount*price;
+                    long inMwTotalCost = changeCount*inMwPrice;
                     Param storeSalesSkuInfo = changeCountAfterSkuStoreSalesInfoMap.get(new SkuStoreKey(unionPriId, skuId));
                     long fifoTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, 0L);
                     long mwTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, 0L);
                     storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, fifoTotalCost + totalCost);
-                    storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, mwTotalCost + totalCost);
+                    storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, mwTotalCost + inMwTotalCost);
                 }
             }
             // 转化为字符串
@@ -174,6 +216,7 @@ public class InOutStoreRecordProc {
             }
 
             data.setLong(InOutStoreRecordEntity.Info.PRICE, price);
+            data.assign(info, InOutStoreRecordEntity.Info.MW_PRICE);
             data.setString(InOutStoreRecordEntity.Info.NUMBER, number);
             data.assign(info, InOutStoreRecordEntity.Info.OPT_SID);
             data.assign(info, InOutStoreRecordEntity.Info.HEAD_SID);
@@ -484,7 +527,7 @@ public class InOutStoreRecordProc {
         matcher.and(InOutStoreRecordEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
         int rt = m_daoCtrl.delete(matcher);
         if(rt != Errno.OK){
-            Log.logStd(rt, "delete err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
+            Log.logErr(rt, "delete err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
             return rt;
         }
         Log.logStd("ok;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
@@ -495,11 +538,11 @@ public class InOutStoreRecordProc {
     public int searchFromDao(int aid, SearchArg searchArg, Ref<FaiList<Param>> listRef) {
         int rt = m_daoCtrl.select(searchArg, listRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
-            Log.logStd("dao.select error;flow=%d;aid=%s;searchArg=%s;", m_flow, aid, searchArg);
+            Log.logErr("dao.select error;flow=%d;aid=%s;matcher=%s;", m_flow, aid, searchArg.matcher.toJson());
             return rt;
         }
         initDbInfoList(listRef.value);
-        Log.logStd(rt, "ok;flow=%d;aid=%s;searchArg=%s;", m_flow, aid, searchArg);
+        Log.logStd(rt, "ok;flow=%d;aid=%s;matcher=%s;", m_flow, aid, searchArg.matcher.toJson());
         return rt;
     }
 
@@ -515,6 +558,29 @@ public class InOutStoreRecordProc {
         }
     }
 
+    public int getListFromDao(int aid, int unionPriId, FaiList<Long> skuIdList, int ioStoreRecId, String rlOrderCode, Ref<FaiList<Param>> listRef, String ... fields) {
+        ParamMatcher matcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(InOutStoreRecordEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
+        if(ioStoreRecId > 0){
+            matcher.and(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, ParamMatcher.EQ, ioStoreRecId);
+        }else if(!Str.isEmpty(rlOrderCode)){
+            matcher.and(InOutStoreRecordEntity.Info.RL_ORDER_CODE, ParamMatcher.EQ, rlOrderCode);
+        }else{
+            listRef.value = new FaiList<>();
+            return Errno.OK;
+        }
+        int rt = Errno.ERROR;
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        rt = m_daoCtrl.select(searchArg, listRef, fields);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            Log.logErr("dao.select error;flow=%d;aid=%s;matcher=%s;", m_flow, aid, matcher.toJson());
+            return rt;
+        }
+        Log.logStd(rt, "ok;flow=%d;aid=%s;unionPriId=%s;matcher=%s;", m_flow, aid, unionPriId, searchArg.matcher.toJson());
+        return rt;
+    }
 
     public int clearIdBuilderCache(int aid){
         int rt = m_daoCtrl.clearIdBuilderCache(aid);
@@ -523,7 +589,6 @@ public class InOutStoreRecordProc {
 
     private int m_flow;
     private InOutStoreRecordDaoCtrl m_daoCtrl;
-
     private static class TmpKey{
         private int unionPriId;
         private long skuId;

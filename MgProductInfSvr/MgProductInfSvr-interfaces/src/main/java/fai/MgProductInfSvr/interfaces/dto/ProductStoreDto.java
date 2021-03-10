@@ -187,5 +187,6 @@ public class ProductStoreDto {
         public static final int IS_BIZ = 18;
         public static final int STR_LIST = 19;
         public static final int IN_OUT_STORE_RECORD_ID = 20;
+        public static final int RL_REFUND_ID = 21;
     }
 }

@@ -133,7 +133,7 @@ public class ProductStoreProc extends AbstractProductProc{
 
 
     /**
-     * 补偿库存
+     * 补偿库存，不会生成入库记录
      * @param unionPriId
      * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
      * @param rlOrderCode 业务订单id/code
@@ -151,6 +151,28 @@ public class ProductStoreProc extends AbstractProductProc{
         rt = m_cli.batchMakeUpStore(aid, unionPriId, skuIdCountList, rlOrderCode, reduceMode);
         if (rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;skuIdCountList=%s;rlOrderCode=%s;reduceMode=%s;", m_flow, aid, unionPriId, skuIdCountList, rlOrderCode, reduceMode);
+            return rt;
+        }
+        return rt;
+    }
+
+    /**
+     * 退库存，会生成入库记录
+     * @param unionPriId
+     * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
+     * @param rlRefundId 退款id
+     * @return
+     */
+    public int batchRefundStore(int aid, int tid, int unionPriId, FaiList<Param> skuIdCountList, String rlRefundId, Param inStoreRecordInfo) {
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.batchRefundStore(aid, tid , unionPriId, skuIdCountList, rlRefundId, inStoreRecordInfo, null);
+        if (rt != Errno.OK) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;skuIdCountList=%s;rlRefundId=%s;inStoreRecordInfo=%s;", m_flow, aid, unionPriId, skuIdCountList, rlRefundId, inStoreRecordInfo);
             return rt;
         }
         return rt;

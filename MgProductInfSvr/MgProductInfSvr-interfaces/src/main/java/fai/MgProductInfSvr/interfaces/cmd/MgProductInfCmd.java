@@ -122,6 +122,9 @@ public class MgProductInfCmd {
         public static final int NUM27 = 1027;
         /**@see TempCmd#SYN_IN_OUT_STORE_RECORD */
         public static final int NUM28 = 1028;
+
+        /**@see StoreSalesSkuCmd#BATCH_REFUND_STORE */
+        public static final int NUM29 = 1029;
     }
 
     /**
@@ -224,6 +227,7 @@ public class MgProductInfCmd {
         public static final int BATCH_REDUCE_STORE = WriteCmdNum.NUM23;
         public static final int BATCH_REDUCE_HOLDING_STORE = WriteCmdNum.NUM24;
         public static final int BATCH_MAKE_UP_STORE = WriteCmdNum.NUM25;
+        public static final int BATCH_REFUND_STORE = WriteCmdNum.NUM29;
     }
 
     /**

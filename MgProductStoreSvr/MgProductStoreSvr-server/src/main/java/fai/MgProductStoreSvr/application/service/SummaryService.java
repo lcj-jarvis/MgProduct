@@ -11,13 +11,12 @@ import fai.MgProductStoreSvr.domain.serviceProc.SkuSummaryProc;
 import fai.MgProductStoreSvr.domain.serviceProc.SpuBizSummaryProc;
 import fai.MgProductStoreSvr.domain.serviceProc.SpuSummaryProc;
 import fai.MgProductStoreSvr.domain.serviceProc.StoreSalesSkuProc;
-import fai.MgProductStoreSvr.interfaces.dto.DataStatusDto;
 import fai.MgProductStoreSvr.interfaces.dto.SkuSummaryDto;
 import fai.MgProductStoreSvr.interfaces.dto.SpuBizSummaryDto;
 import fai.MgProductStoreSvr.interfaces.dto.SpuSummaryDto;
-import fai.MgProductStoreSvr.interfaces.entity.DataStatus;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
+import fai.mgproduct.comm.DataStatus;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
@@ -297,7 +296,7 @@ public class SummaryService extends StoreService {
                     .setLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME, manageDataLastUpdateTime)
                     ;
             FaiBuffer sendBody = new FaiBuffer();
-            dataStatus.toBuffer(sendBody, SpuBizSummaryDto.Key.INFO, DataStatusDto.getInfoDto());
+            dataStatus.toBuffer(sendBody, SpuBizSummaryDto.Key.INFO, DataStatus.Dto.getDataStatusDto());
             session.write(sendBody);
             Log.logDbg("ok;aid=%d;unionPriId=%s;", aid, unionPriId);
         }finally {

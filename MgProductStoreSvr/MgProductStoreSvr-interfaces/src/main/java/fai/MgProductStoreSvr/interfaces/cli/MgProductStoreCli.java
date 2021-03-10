@@ -6,6 +6,7 @@ import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuValObj;
 import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
+import fai.mgproduct.comm.DataStatus;
 
 public class MgProductStoreCli extends FaiClient {
     public MgProductStoreCli(int flow) {
@@ -1202,7 +1203,7 @@ public class MgProductStoreCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            m_rt = dataStatusInfo.fromBuffer(recvBody, keyRef, DataStatusDto.getInfoDto());
+            m_rt = dataStatusInfo.fromBuffer(recvBody, keyRef, DataStatus.Dto.getDataStatusDto());
             if (m_rt != Errno.OK || keyRef.value != SpuBizSummaryDto.Key.INFO) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;

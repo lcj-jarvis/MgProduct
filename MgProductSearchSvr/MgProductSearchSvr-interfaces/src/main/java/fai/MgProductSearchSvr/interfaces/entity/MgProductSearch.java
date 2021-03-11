@@ -359,9 +359,9 @@ public class MgProductSearch {
         // 业务商品分类
         if(rlGroupIdList != null && !rlGroupIdList.isEmpty()){
             if(rlGroupIdList.size() == 1){
-                paramMatcher.and(ProductGroupAssocEntity.Info.RL_GROUP_ID, ParamMatcher.EQ, rlGroupIdList.get(0));
+                paramMatcher.and(ProductBindGroupEntity.Info.RL_GROUP_ID, ParamMatcher.EQ, rlGroupIdList.get(0));
             }else{
-                paramMatcher.and(ProductGroupAssocEntity.Info.RL_GROUP_ID, ParamMatcher.IN, rlGroupIdList);
+                paramMatcher.and(ProductBindGroupEntity.Info.RL_GROUP_ID, ParamMatcher.IN, rlGroupIdList);
             }
         }
         return paramMatcher;

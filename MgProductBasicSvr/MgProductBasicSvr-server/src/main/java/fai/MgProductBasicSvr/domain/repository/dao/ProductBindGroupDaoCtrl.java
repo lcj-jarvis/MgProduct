@@ -4,17 +4,17 @@ import fai.comm.util.DaoPool;
 import fai.comm.util.Log;
 import fai.middleground.svrutil.repository.DaoCtrl;
 
-public class ProductGroupAssocDaoCtrl extends DaoCtrl {
+public class ProductBindGroupDaoCtrl extends DaoCtrl {
 
-    public static ProductGroupAssocDaoCtrl getInstance(int flow, int aid) {
+    public static ProductBindGroupDaoCtrl getInstance(int flow, int aid) {
         if(m_daoPool == null) {
             Log.logErr("m_daoPool is not init;");
             return null;
         }
-        return new ProductGroupAssocDaoCtrl(flow, aid);
+        return new ProductBindGroupDaoCtrl(flow, aid);
     }
 
-    public ProductGroupAssocDaoCtrl(int flow, int aid) {
+    public ProductBindGroupDaoCtrl(int flow, int aid) {
         super(flow, aid);
     }
 
@@ -33,5 +33,5 @@ public class ProductGroupAssocDaoCtrl extends DaoCtrl {
     }
 
     private static DaoPool m_daoPool;
-    private static final String TABLE_PREFIX = "mgProductGroupAssoc";
+    private static final String TABLE_PREFIX = "mgProductBindGroup";
 }

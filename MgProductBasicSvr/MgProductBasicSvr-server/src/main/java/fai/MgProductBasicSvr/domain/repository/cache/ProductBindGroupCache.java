@@ -2,10 +2,8 @@ package fai.MgProductBasicSvr.domain.repository.cache;
 
 import fai.MgProductBasicSvr.domain.entity.ProductBindGroupEntity;
 import fai.MgProductBasicSvr.interfaces.dto.ProductBindGroupDto;
-import fai.comm.util.FaiList;
-import fai.comm.util.Log;
-import fai.comm.util.Param;
-import fai.comm.util.Var;
+import fai.comm.util.*;
+import fai.mgproduct.comm.DataStatus;
 
 import java.util.List;
 
@@ -35,6 +33,39 @@ public class ProductBindGroupCache extends CacheCtrl {
         if(m_cache.exists(cacheKey)) {
             m_cache.del(cacheKey);
         }
+    }
+
+    /** 数据状态缓存 **/
+    public static class DataStatusCache {
+        public static Param get(int aid, int unionPriId) {
+            String cacheKey = getCacheKey(aid, unionPriId);
+            return m_cache.getParam(cacheKey, ProductBindGroupDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
+        }
+
+        public static void add(int aid, int unionPriId, Param info) {
+            String cacheKey = getCacheKey(aid, unionPriId);
+            m_cache.setParam(cacheKey, info, ProductBindGroupDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
+        }
+
+        public static void update(int aid, int unionPriId, int addCount) {
+            Param info = new Param();
+            info.setLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME, System.currentTimeMillis());
+            ParamUpdater updater = new ParamUpdater(info);
+            if(addCount != 0) {
+                updater.add(DataStatus.Info.TOTAL_SIZE, ParamUpdater.INC, addCount);
+            }
+            m_cache.updateParam(getCacheKey(aid, unionPriId), updater, ProductBindGroupDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
+        }
+
+        public static void expire(int aid, int unionPriId, int second) {
+            m_cache.expire(getCacheKey(aid, unionPriId), second);
+        }
+
+        public static String getCacheKey(int aid, int unionPriId) {
+            return DATA_STATUS_CACHE_KEY + "-" + aid + "-" + unionPriId;
+        }
+
+        private static final String DATA_STATUS_CACHE_KEY = "MG_pdBindGroupDS";
     }
 
     public static String getCacheKey(int aid, int unionPriId) {

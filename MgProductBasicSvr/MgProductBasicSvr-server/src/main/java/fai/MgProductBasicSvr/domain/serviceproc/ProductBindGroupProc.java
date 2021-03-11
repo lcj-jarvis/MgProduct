@@ -4,6 +4,7 @@ import fai.MgProductBasicSvr.domain.entity.ProductBindGroupEntity;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductBindGroupCache;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductBindGroupDaoCtrl;
 import fai.comm.util.*;
+import fai.mgproduct.comm.DataStatus;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
@@ -52,7 +53,7 @@ public class ProductBindGroupProc {
         }
     }
 
-    public void delPdBindGroupList(int aid, int unionPriId, int rlPdId, FaiList<Integer> rlGroupIds) {
+    public int delPdBindGroupList(int aid, int unionPriId, int rlPdId, FaiList<Integer> rlGroupIds) {
         int rt;
         if(rlGroupIds == null || rlGroupIds.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -62,11 +63,13 @@ public class ProductBindGroupProc {
         matcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         matcher.and(ProductBindGroupEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
         matcher.and(ProductBindGroupEntity.Info.RL_GROUP_ID, ParamMatcher.IN, rlGroupIds);
-        rt = m_dao.delete(matcher);
+        Ref<Integer> refRowCount = new Ref<>();
+        rt = m_dao.delete(matcher, refRowCount);
         if(rt != Errno.OK) {
             throw new MgException(rt, "del info error;flow=%d;aid=%d;rlPdId=%d;rlGroupIds=%s;", m_flow, aid, rlPdId, rlGroupIds);
         }
         Log.logStd("delPdBindGroupList ok;flow=%d;aid=%d;rlPdId=%d;rlGroupIds=%s;", m_flow, aid, rlPdId, rlGroupIds);
+        return refRowCount.value;
     }
 
     public FaiList<Integer> getRlPdIdsByGroupId(int aid, int unionPriId, FaiList<Integer> rlGroupIds) {
@@ -93,6 +96,65 @@ public class ProductBindGroupProc {
             rlPdIds.add(info.getInt(ProductBindGroupEntity.Info.RL_PD_ID));
         }
         return rlPdIds;
+    }
+
+    public Param getDataStatus(int aid, int unionPriId) {
+        Param statusInfo = ProductBindGroupCache.DataStatusCache.get(aid, unionPriId);
+        if(!Str.isEmpty(statusInfo)) {
+            // 获取数据，则更新数据过期时间
+            ProductBindGroupCache.DataStatusCache.expire(aid, unionPriId, 6*3600);
+            return statusInfo;
+        }
+        long now = System.currentTimeMillis();
+        statusInfo = new Param();
+        int count = getCountFromDB(aid, unionPriId);
+        statusInfo.setInt(DataStatus.Info.TOTAL_SIZE, count);
+        statusInfo.setLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME, now);
+        statusInfo.setLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME, 0L);
+
+        ProductBindGroupCache.DataStatusCache.add(aid, unionPriId, statusInfo);
+        return statusInfo;
+    }
+
+    public FaiList<Param> searchFromDb(int aid, int unionPriId, SearchArg searchArg, String ... selectFields) {
+        if(searchArg == null) {
+            searchArg = new SearchArg();
+        }
+        if(searchArg.matcher == null) {
+            searchArg.matcher = new ParamMatcher();
+        }
+        searchArg.matcher.and(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        int rt = m_dao.select(searchArg, listRef, ProductBindGroupEntity.MANAGE_FIELDS);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "get error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+        }
+        if(listRef.value == null) {
+            listRef.value = new FaiList<Param>();
+        }
+        if (listRef.value.isEmpty()) {
+            rt = Errno.NOT_FOUND;
+            Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+        }
+        return listRef.value;
+    }
+
+    private int getCountFromDB(int aid, int unionPriId) {
+        // db中获取
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        Ref<Integer> countRef = new Ref<>();
+        int rt = m_dao.selectCount(searchArg, countRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "get error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+        }
+        if(countRef.value == null) {
+            countRef.value = 0;
+        }
+        return countRef.value;
     }
 
     private FaiList<Param> getList(int aid, int unionPriId, HashSet<Integer> rlPdIds) {

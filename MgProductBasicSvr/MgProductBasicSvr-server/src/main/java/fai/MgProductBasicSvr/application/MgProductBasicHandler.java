@@ -14,6 +14,7 @@ import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
 import fai.comm.util.FaiList;
 import fai.comm.util.Param;
+import fai.comm.util.SearchArg;
 import fai.middleground.svrutil.service.MiddleGroundHandler;
 import fai.middleground.svrutil.service.ServiceProxy;
 
@@ -58,6 +59,31 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                              @ArgList(classDef = ProductBindPropDto.class, methodDef = "getInfoDto",
                              keyMatch = ProductBindPropDto.Key.INFO_LIST) FaiList<Param> proIdsAndValIds) throws IOException {
         return propBindservice.getRlPdByPropVal(session, flow, aid, unionPriId, tid, proIdsAndValIds);
+    }
+
+    @Cmd(MgProductBasicCmd.BindPropCmd.GET_DATA_STATUS)
+    public int getBindPropDataStatus(final FaiSession session,
+                                     @ArgFlow final int flow,
+                                     @ArgAid final int aid,
+                                     @ArgBodyInteger(ProductBindPropDto.Key.UNION_PRI_ID) int unionPriId) throws IOException {
+        return propBindservice.getBindPropDataStatus(session, flow, aid, unionPriId);
+    }
+
+    @Cmd(MgProductBasicCmd.BindPropCmd.GET_ALL_DATA)
+    public int getAllBindProp(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid final int aid,
+                              @ArgBodyInteger(ProductBindPropDto.Key.UNION_PRI_ID) int unionPriId) throws IOException {
+        return propBindservice.getAllBindProp(session, flow, aid, unionPriId);
+    }
+
+    @Cmd(MgProductBasicCmd.BindPropCmd.SEARCH_FROM_DB)
+    public int searchBindPropFromDb(final FaiSession session,
+                                    @ArgFlow final int flow,
+                                    @ArgAid final int aid,
+                                    @ArgBodyInteger(ProductBindPropDto.Key.UNION_PRI_ID) int unionPriId,
+                                    @ArgSearchArg(ProductBindPropDto.Key.SEARCH_ARG)SearchArg searchArg) throws IOException {
+        return propBindservice.searchBindPropFromDb(session, flow, aid, unionPriId, searchArg);
     }
 
     @Cmd(MgProductBasicCmd.BasicCmd.GET_REL)
@@ -198,6 +224,31 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                   @ArgBodyInteger(ProductBindGroupDto.Key.UNION_PRI_ID) int unionPriId,
                                   @ArgList(keyMatch = ProductBindGroupDto.Key.RL_GROUP_IDS) FaiList<Integer> rlGroupIds) throws IOException {
         return groupBindService.getRlPdByRlGroupId(session, flow, aid, unionPriId, rlGroupIds);
+    }
+
+    @Cmd(MgProductBasicCmd.BindGroupCmd.GET_DATA_STATUS)
+    public int getBindGroupDataStatus(final FaiSession session,
+                                     @ArgFlow final int flow,
+                                     @ArgAid final int aid,
+                                     @ArgBodyInteger(ProductBindGroupDto.Key.UNION_PRI_ID) int unionPriId) throws IOException {
+        return groupBindService.getBindGroupDataStatus(session, flow, aid, unionPriId);
+    }
+
+    @Cmd(MgProductBasicCmd.BindGroupCmd.GET_ALL_DATA)
+    public int getAllBindGroup(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid final int aid,
+                              @ArgBodyInteger(ProductBindGroupDto.Key.UNION_PRI_ID) int unionPriId) throws IOException {
+        return groupBindService.getAllBindGroup(session, flow, aid, unionPriId);
+    }
+
+    @Cmd(MgProductBasicCmd.BindGroupCmd.SEARCH_FROM_DB)
+    public int searchBindGroupFromDb(final FaiSession session,
+                                    @ArgFlow final int flow,
+                                    @ArgAid final int aid,
+                                    @ArgBodyInteger(ProductBindGroupDto.Key.UNION_PRI_ID) int unionPriId,
+                                    @ArgSearchArg(ProductBindGroupDto.Key.SEARCH_ARG)SearchArg searchArg) throws IOException {
+        return groupBindService.searchBindGroupFromDb(session, flow, aid, unionPriId, searchArg);
     }
 
     private ProductBasicService service = ServiceProxy.create(new ProductBasicService());

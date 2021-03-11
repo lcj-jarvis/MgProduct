@@ -29,5 +29,8 @@ public class ProductBindGroupDto {
         public static final int RL_PD_IDS = 5;
         public static final int RL_GROUP_IDS = 6;
         public static final int DEL_RL_GROUP_IDS = 7;
+        public static final int SEARCH_ARG = 8;
+        public static final int TOTAL_SIZE = 9;
+        public static final int DATA_STATUS = 10;
     }
 }

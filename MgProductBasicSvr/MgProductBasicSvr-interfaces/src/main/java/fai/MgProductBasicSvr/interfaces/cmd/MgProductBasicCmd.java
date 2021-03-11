@@ -10,6 +10,12 @@ public class MgProductBasicCmd {
         public static final int NUM4 = 5004; /** @see BasicCmd#GET_REDUCED_REL_LIST */
         public static final int NUM5 = 5005; /** @see BindGroupCmd#GET_LIST */
         public static final int NUM6 = 5006; /** @see BindGroupCmd#GET_PD_BY_GROUP */
+        public static final int NUM7 = 5007; /** @see BindGroupCmd#GET_DATA_STATUS */
+        public static final int NUM8 = 5008; /** @see BindGroupCmd#GET_ALL_DATA */
+        public static final int NUM9 = 5009; /** @see BindGroupCmd#SEARCH_FROM_DB */
+        public static final int NUM10 = 5010; /** @see BindPropCmd#GET_DATA_STATUS */
+        public static final int NUM11 = 5011; /** @see BindPropCmd#GET_ALL_DATA */
+        public static final int NUM12 = 5012; /** @see BindPropCmd#SEARCH_FROM_DB */
     }
 
     // 1000 到 5000 的范围
@@ -31,6 +37,9 @@ public class MgProductBasicCmd {
     public static class BindPropCmd {
         public static final int GET_LIST = ReadCmdNum.NUM;
         public static final int GET_LIST_BY_PROP = ReadCmdNum.NUM1;
+        public static final int GET_DATA_STATUS = ReadCmdNum.NUM10;
+        public static final int GET_ALL_DATA = ReadCmdNum.NUM11;
+        public static final int SEARCH_FROM_DB = ReadCmdNum.NUM12;
 
         public static final int BATCH_SET = WriteCmdNum.NUM;
     }
@@ -38,6 +47,9 @@ public class MgProductBasicCmd {
     public static class BindGroupCmd {
         public static final int GET_LIST = ReadCmdNum.NUM5;
         public static final int GET_PD_BY_GROUP = ReadCmdNum.NUM6;
+        public static final int GET_DATA_STATUS = ReadCmdNum.NUM7;
+        public static final int GET_ALL_DATA = ReadCmdNum.NUM8;
+        public static final int SEARCH_FROM_DB = ReadCmdNum.NUM9;
 
         public static final int BATCH_SET = WriteCmdNum.NUM8;
     }

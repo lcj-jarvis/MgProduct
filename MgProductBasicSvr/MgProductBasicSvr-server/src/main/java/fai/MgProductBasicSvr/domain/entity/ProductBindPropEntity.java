@@ -1,5 +1,7 @@
 package fai.MgProductBasicSvr.domain.entity;
 
+import fai.comm.util.FaiList;
+
 public class ProductBindPropEntity {
 
     public static final class Info {
@@ -12,4 +14,20 @@ public class ProductBindPropEntity {
         public static final String CREATE_TIME = "sysCreateTime"; // datetime 创建时间
     }
 
+    public static final FaiList<String> MANAGE_FIELDS; // 管理态字段
+    public static final FaiList<String> VISITOR_FIELDS; // 访客态字段
+    static {
+        MANAGE_FIELDS = new FaiList<String>();
+        MANAGE_FIELDS.add(Info.AID);
+        MANAGE_FIELDS.add(Info.RL_PD_ID);
+        MANAGE_FIELDS.add(Info.RL_PROP_ID);
+        MANAGE_FIELDS.add(Info.PROP_VAL_ID);
+        MANAGE_FIELDS.add(Info.UNION_PRI_ID);
+        MANAGE_FIELDS.add(Info.PD_ID);
+        MANAGE_FIELDS.add(Info.CREATE_TIME);
+        MANAGE_FIELDS.setReadOnly(true);
+
+        VISITOR_FIELDS = new FaiList<String>();
+        VISITOR_FIELDS.setReadOnly(true);
+    }
 }

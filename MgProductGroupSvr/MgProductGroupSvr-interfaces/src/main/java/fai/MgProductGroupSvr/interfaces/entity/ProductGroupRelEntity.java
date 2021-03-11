@@ -1,5 +1,7 @@
 package fai.MgProductGroupSvr.interfaces.entity;
 
+import fai.comm.util.FaiList;
+
 public class ProductGroupRelEntity {
 
 	public static final class Info {
@@ -11,5 +13,19 @@ public class ProductGroupRelEntity {
 		public static final String RL_FLAG = "rlFlag"; // int
 		public static final String CREATE_TIME = "sysCreateTime"; // datetime 创建时间
 		public static final String UPDATE_TIME = "sysUpdateTime"; // datetime 更新时间
+	}
+
+	public static final FaiList<String> MANAGE_FIELDS; // 管理态字段
+	static {
+		MANAGE_FIELDS = new FaiList<String>();
+		MANAGE_FIELDS.add(Info.AID);
+		MANAGE_FIELDS.add(Info.RL_GROUP_ID);
+		MANAGE_FIELDS.add(Info.GROUP_ID);
+		MANAGE_FIELDS.add(Info.UNION_PRI_ID);
+		MANAGE_FIELDS.add(Info.SORT);
+		MANAGE_FIELDS.add(Info.RL_FLAG);
+		MANAGE_FIELDS.add(Info.CREATE_TIME);
+		MANAGE_FIELDS.add(Info.UPDATE_TIME);
+		MANAGE_FIELDS.setReadOnly(true);
 	}
 }

@@ -15,6 +15,7 @@ import fai.MgProductPropSvr.interfaces.dto.ProductPropValDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
 import fai.comm.middleground.FaiValObj;
+import fai.mgproduct.comm.DataStatus;
 import fai.middleground.svrutil.annotation.SuccessRt;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 import fai.middleground.svrutil.service.ServicePub;
@@ -502,6 +503,87 @@ public class ProductPropService extends ServicePub {
 			lock.unlock();
 		}
 		Log.logStd("setPropValList ok;flow=%d;aid=%d;unionPriId=%d;tid=%d;", flow, aid, unionPriId, tid);
+		return rt;
+	}
+
+	@SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
+	public int getPropValDataStatus(FaiSession session, int flow, int aid) throws IOException {
+		int rt;
+		if(aid <= 0) {
+			rt = Errno.ARGS_ERROR;
+			Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
+			return rt;
+		}
+		Param info;
+		TransactionCtrl transactionCtrl = new TransactionCtrl();
+		try {
+			ProductPropValProc valProc = new ProductPropValProc(flow, aid, transactionCtrl);
+			info = valProc.getDataStatus(aid);
+		}finally {
+			transactionCtrl.closeDao();
+		}
+		FaiBuffer sendBuf = new FaiBuffer(true);
+		info.toBuffer(sendBuf, ProductPropValDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
+		session.write(sendBuf);
+		rt = Errno.OK;
+		Log.logDbg("getGroupRelDataStatus ok;flow=%d;aid=%d;", flow, aid);
+		return rt;
+	}
+
+	@SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
+	public int getAllPropValData(FaiSession session, int flow, int aid) throws IOException {
+		int rt;
+		if(aid <= 0) {
+			rt = Errno.ARGS_ERROR;
+			Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
+			return rt;
+		}
+		FaiList<Param> list;
+		TransactionCtrl transactionCtrl = new TransactionCtrl();
+		try {
+			// 查aid下所有数据，传入空的searchArg
+			SearchArg searchArg = new SearchArg();
+			ProductPropValProc valProc = new ProductPropValProc(flow, aid, transactionCtrl);
+			list = valProc.searchFromDb(aid, searchArg);
+
+		}finally {
+			transactionCtrl.closeDao();
+		}
+		FaiBuffer sendBuf = new FaiBuffer(true);
+		list.toBuffer(sendBuf, ProductPropValDto.Key.INFO_LIST, ProductPropValDto.getInfoDto());
+		session.write(sendBuf);
+		rt = Errno.OK;
+		Log.logDbg("get list ok;flow=%d;aid=%d;size=%d;", flow, aid, list.size());
+
+		return rt;
+	}
+
+	@SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
+	public int searchPropValFromDb(FaiSession session, int flow, int aid, SearchArg searchArg) throws IOException {
+		int rt;
+		if(aid <= 0) {
+			rt = Errno.ARGS_ERROR;
+			Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
+			return rt;
+		}
+		FaiList<Param> list;
+		TransactionCtrl transactionCtrl = new TransactionCtrl();
+		try {
+			ProductPropValProc valProc = new ProductPropValProc(flow, aid, transactionCtrl);
+			list = valProc.searchFromDb(aid, searchArg);
+
+		}finally {
+			transactionCtrl.closeDao();
+		}
+		FaiBuffer sendBuf = new FaiBuffer(true);
+		list.toBuffer(sendBuf, ProductPropValDto.Key.INFO_LIST, ProductPropValDto.getInfoDto());
+		if (searchArg != null && searchArg.totalSize != null && searchArg.totalSize.value != null) {
+			sendBuf.putInt(ProductPropValDto.Key.TOTAL_SIZE, searchArg.totalSize.value);
+		}
+		session.write(sendBuf);
+		rt = Errno.OK;
+		Log.logDbg("search from db ok;flow=%d;aid=%d;size=%d;", flow, aid, list.size());
+
 		return rt;
 	}
 

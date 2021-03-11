@@ -1,11 +1,11 @@
 package fai.MgProductGroupSvr.interfaces.cli;
 
 import fai.MgProductGroupSvr.interfaces.cmd.MgProductGroupCmd;
-import fai.MgProductGroupSvr.interfaces.dto.ProductGroupDto;
 import fai.MgProductGroupSvr.interfaces.dto.ProductGroupRelDto;
 import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
+import fai.mgproduct.comm.DataStatus;
 
 public class MgProductGroupCli extends FaiClient {
     public MgProductGroupCli(int flow) {
@@ -301,7 +301,7 @@ public class MgProductGroupCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            m_rt = statusInfo.fromBuffer(recvBody, keyRef, ProductGroupRelDto.getDataStatusDto());
+            m_rt = statusInfo.fromBuffer(recvBody, keyRef, DataStatus.Dto.getDataStatusDto());
             if (m_rt != Errno.OK || keyRef.value != ProductGroupRelDto.Key.DATA_STATUS) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;

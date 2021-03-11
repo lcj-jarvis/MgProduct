@@ -1,20 +1,20 @@
 package fai.MgProductBasicSvr.interfaces.dto;
 
-import fai.MgProductBasicSvr.interfaces.entity.ProductGroupAssocEntity;
+import fai.MgProductBasicSvr.interfaces.entity.ProductBindGroupEntity;
 import fai.comm.util.ParamDef;
 import fai.comm.util.Var;
 
-public class ProductGroupAssocDto {
+public class ProductBindGroupDto {
 
     private static ParamDef g_infoDtoDef = new ParamDef();
 
     static {
-        g_infoDtoDef.add(ProductGroupAssocEntity.Info.AID, 0, Var.Type.INT);
-        g_infoDtoDef.add(ProductGroupAssocEntity.Info.RL_GROUP_ID, 1, Var.Type.INT);
-        g_infoDtoDef.add(ProductGroupAssocEntity.Info.RL_PD_ID, 2, Var.Type.INT);
-        g_infoDtoDef.add(ProductGroupAssocEntity.Info.UNION_PRI_ID, 3, Var.Type.INT);
-        g_infoDtoDef.add(ProductGroupAssocEntity.Info.PD_ID, 4, Var.Type.INT);
-        g_infoDtoDef.add(ProductGroupAssocEntity.Info.CREATE_TIME, 5, Var.Type.CALENDAR);
+        g_infoDtoDef.add(ProductBindGroupEntity.Info.AID, 0, Var.Type.INT);
+        g_infoDtoDef.add(ProductBindGroupEntity.Info.RL_GROUP_ID, 1, Var.Type.INT);
+        g_infoDtoDef.add(ProductBindGroupEntity.Info.RL_PD_ID, 2, Var.Type.INT);
+        g_infoDtoDef.add(ProductBindGroupEntity.Info.UNION_PRI_ID, 3, Var.Type.INT);
+        g_infoDtoDef.add(ProductBindGroupEntity.Info.PD_ID, 4, Var.Type.INT);
+        g_infoDtoDef.add(ProductBindGroupEntity.Info.CREATE_TIME, 5, Var.Type.CALENDAR);
     }
 
     public static ParamDef getInfoDto() {

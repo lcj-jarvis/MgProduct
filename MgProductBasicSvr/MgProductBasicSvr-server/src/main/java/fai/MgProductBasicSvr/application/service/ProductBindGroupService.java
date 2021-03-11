@@ -1,11 +1,11 @@
 package fai.MgProductBasicSvr.application.service;
 
 import fai.MgProductBasicSvr.domain.common.LockUtil;
-import fai.MgProductBasicSvr.domain.entity.ProductGroupAssocEntity;
-import fai.MgProductBasicSvr.domain.repository.cache.ProductGroupAssocCache;
-import fai.MgProductBasicSvr.domain.serviceproc.ProductGroupAssocProc;
+import fai.MgProductBasicSvr.domain.entity.ProductBindGroupEntity;
+import fai.MgProductBasicSvr.domain.repository.cache.ProductBindGroupCache;
+import fai.MgProductBasicSvr.domain.serviceproc.ProductBindGroupProc;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductRelProc;
-import fai.MgProductBasicSvr.interfaces.dto.ProductGroupAssocDto;
+import fai.MgProductBasicSvr.interfaces.dto.ProductBindGroupDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
 import fai.mgproduct.comm.Util;
@@ -16,13 +16,13 @@ import fai.middleground.svrutil.service.ServicePub;
 import java.io.IOException;
 import java.util.concurrent.locks.Lock;
 
-public class ProductGroupAssocService extends ServicePub {
+public class ProductBindGroupService extends ServicePub {
 
     /**
      * 获取指定商品关联的商品分类信息
      */
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
-    public int getPdsGroupAssoc(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlPdIds) throws IOException {
+    public int getPdsBindGroup(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlPdIds) throws IOException {
         if(Util.isEmptyList(rlPdIds)) {
             int rt = Errno.ARGS_ERROR;
             Log.logErr(rt, "args error, rlPdIds is empty;aid=%d;unionPriId=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
@@ -31,8 +31,8 @@ public class ProductGroupAssocService extends ServicePub {
         TransactionCtrl tc = new TransactionCtrl();
         FaiList<Param> list;
         try {
-            ProductGroupAssocProc groupAssocProc = new ProductGroupAssocProc(flow, aid, tc);
-            list = groupAssocProc.getGroupAssocList(aid, unionPriId, rlPdIds);
+            ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+            list = bindGroupProc.getPdBindGroupList(aid, unionPriId, rlPdIds);
         }finally {
             tc.closeDao();
         }
@@ -41,7 +41,7 @@ public class ProductGroupAssocService extends ServicePub {
         }
 
         FaiBuffer sendBuf = new FaiBuffer(true);
-        list.toBuffer(sendBuf, ProductGroupAssocDto.Key.INFO_LIST, ProductGroupAssocDto.getInfoDto());
+        list.toBuffer(sendBuf, ProductBindGroupDto.Key.INFO_LIST, ProductBindGroupDto.getInfoDto());
         session.write(sendBuf);
         Log.logDbg("get ok;flow=%d;aid=%d;unionPriId=%d;ids=%s;", flow, aid, unionPriId, rlPdIds);
         return Errno.OK;
@@ -51,7 +51,7 @@ public class ProductGroupAssocService extends ServicePub {
      * 修改指定商品设置的商品分类关联
      */
     @SuccessRt(value = Errno.OK)
-    public int setPdGroupAssoc(FaiSession session, int flow, int aid, int unionPriId, int rlPdId, FaiList<Integer> addGroupIds, FaiList<Integer> delGroupIds) throws IOException {
+    public int setPdBindGroup(FaiSession session, int flow, int aid, int unionPriId, int rlPdId, FaiList<Integer> addGroupIds, FaiList<Integer> delGroupIds) throws IOException {
         if(Util.isEmptyList(addGroupIds) && Util.isEmptyList(delGroupIds)) {
             int rt = Errno.ARGS_ERROR;
             Log.logErr(rt, "args error, addGroupIds and delGroupIds is empty;aid=%d;unionPriId=%d;rlPdId=%s;", aid, unionPriId, rlPdId);
@@ -64,7 +64,7 @@ public class ProductGroupAssocService extends ServicePub {
             TransactionCtrl tc = new TransactionCtrl();
             boolean commit = false;
             try {
-                ProductGroupAssocProc groupAssocProc = new ProductGroupAssocProc(flow, aid, tc);
+                ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
                 if(!Util.isEmptyList(addGroupIds)) {
                     ProductRelProc pdRelProc = new ProductRelProc(flow, aid, tc);
                     Param pdRelInfo = pdRelProc.getProductRel(aid, unionPriId, rlPdId);
@@ -72,19 +72,19 @@ public class ProductGroupAssocService extends ServicePub {
                         Log.logErr("pd rel info is not exist;flow=%d;aid=%d;uid=%d;rlPdId=%d;", flow, aid, unionPriId, rlPdId);
                         return Errno.NOT_FOUND;
                     }
-                    int pdId = pdRelInfo.getInt(ProductGroupAssocEntity.Info.PD_ID);
+                    int pdId = pdRelInfo.getInt(ProductBindGroupEntity.Info.PD_ID);
                     // 添加数据
-                    groupAssocProc.addPdGroupAssocList(aid, unionPriId, rlPdId, pdId, addGroupIds);
+                    bindGroupProc.addPdBindGroupList(aid, unionPriId, rlPdId, pdId, addGroupIds);
                 }
 
                 if(!Util.isEmptyList(delGroupIds)) {
                     // 删除数据
-                    groupAssocProc.delPdGroupAssocList(aid, unionPriId, rlPdId, delGroupIds);
+                    bindGroupProc.delPdBindGroupList(aid, unionPriId, rlPdId, delGroupIds);
                 }
                 commit = true;
                 tc.commit();
                 // 删除缓存
-                ProductGroupAssocCache.delCache(aid, unionPriId);
+                ProductBindGroupCache.delCache(aid, unionPriId);
             }finally {
                 if(!commit) {
                     tc.rollback();
@@ -114,8 +114,8 @@ public class ProductGroupAssocService extends ServicePub {
         FaiList<Integer> rlPdIds = new FaiList<>();
         TransactionCtrl tc = new TransactionCtrl();
         try {
-            ProductGroupAssocProc groupAssocProc = new ProductGroupAssocProc(flow, aid, tc);
-            rlPdIds = groupAssocProc.getRlPdIdsByGroupId(aid, unionPriId, rlGroupIds);
+            ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+            rlPdIds = bindGroupProc.getRlPdIdsByGroupId(aid, unionPriId, rlGroupIds);
             if(Util.isEmptyList(rlPdIds)) {
                 Log.logDbg("not found;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
                 return Errno.NOT_FOUND;
@@ -125,7 +125,7 @@ public class ProductGroupAssocService extends ServicePub {
         }
 
         FaiBuffer sendBuf = new FaiBuffer(true);
-        rlPdIds.toBuffer(sendBuf, ProductGroupAssocDto.Key.INFO_LIST, ProductGroupAssocDto.getInfoDto());
+        rlPdIds.toBuffer(sendBuf, ProductBindGroupDto.Key.INFO_LIST, ProductBindGroupDto.getInfoDto());
         session.write(sendBuf);
         Log.logDbg("get ok;flow=%d;aid=%d;uid=%d;rlGroupIds=%s;", flow, aid, unionPriId, rlGroupIds);
         return Errno.OK;

@@ -2,7 +2,7 @@ package fai.MgProductBasicSvr.application;
 
 import fai.MgProductBasicSvr.domain.common.LockUtil;
 import fai.MgProductBasicSvr.domain.repository.cache.CacheCtrl;
-import fai.MgProductBasicSvr.domain.repository.dao.ProductGroupAssocDaoCtrl;
+import fai.MgProductBasicSvr.domain.repository.dao.ProductBindGroupDaoCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductBindPropDaoCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductDaoCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductRelDaoCtrl;
@@ -87,7 +87,7 @@ public class MgProductBasicSvr {
         ProductDaoCtrl.init(daoPool, cache);
         ProductRelDaoCtrl.init(daoPool, cache);
         ProductBindPropDaoCtrl.init(daoPool);
-        ProductGroupAssocDaoCtrl.init(daoPool);
+        ProductBindGroupDaoCtrl.init(daoPool);
 
         // 缓存初始化
         CacheCtrl.init(cache);

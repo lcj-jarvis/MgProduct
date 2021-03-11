@@ -3,7 +3,6 @@ package fai.MgProductBasicSvr.domain.serviceproc;
 import fai.MgProductBasicSvr.domain.entity.ProductBindPropEntity;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductBindPropCache;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductBindPropDaoCtrl;
-import fai.MgProductBasicSvr.domain.repository.dao.ProductGroupAssocDaoCtrl;
 import fai.comm.util.*;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
@@ -51,7 +50,7 @@ public class ProductBindPropProc {
         }
         rt = m_bindPropDao.batchInsert(addList, null, true);
         if(rt != Errno.OK) {
-            throw new MgException(rt, "batch insert product prop assoc error;flow=%d;aid=%d;", m_flow, aid);
+            throw new MgException(rt, "batch insert product bind prop error;flow=%d;aid=%d;", m_flow, aid);
         }
     }
 
@@ -74,7 +73,7 @@ public class ProductBindPropProc {
                 throw new MgException(rt, "del info error;flow=%d;aid=%d;rlPdId=%d;rlPropId=%d;propValId=%d;", m_flow, aid, rlPdId, rlPropId, propValId);
             }
         }
-        Log.logStd("delPropAssocList ok;flow=%d;aid=%d;rlPdId=%d;", m_flow, aid, rlPdId);
+        Log.logStd("delPdBindPropList ok;flow=%d;aid=%d;rlPdId=%d;", m_flow, aid, rlPdId);
     }
 
     /**

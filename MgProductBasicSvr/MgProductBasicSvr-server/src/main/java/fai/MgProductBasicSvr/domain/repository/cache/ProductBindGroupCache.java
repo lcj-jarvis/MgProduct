@@ -1,7 +1,7 @@
 package fai.MgProductBasicSvr.domain.repository.cache;
 
-import fai.MgProductBasicSvr.domain.entity.ProductGroupAssocEntity;
-import fai.MgProductBasicSvr.interfaces.dto.ProductGroupAssocDto;
+import fai.MgProductBasicSvr.domain.entity.ProductBindGroupEntity;
+import fai.MgProductBasicSvr.interfaces.dto.ProductBindGroupDto;
 import fai.comm.util.FaiList;
 import fai.comm.util.Log;
 import fai.comm.util.Param;
@@ -9,13 +9,13 @@ import fai.comm.util.Var;
 
 import java.util.List;
 
-public class ProductGroupAssocCache extends CacheCtrl {
+public class ProductBindGroupCache extends CacheCtrl {
 
     public static FaiList<Param> getCacheList(int aid, int unionPriId, List<String> rlPdIds) {
         String cacheKey = getCacheKey(aid, unionPriId);
         FaiList<Param> list = null;
         try {
-            m_cache.hmget(cacheKey, ProductGroupAssocDto.Key.INFO, ProductGroupAssocDto.getInfoDto(), rlPdIds);
+            m_cache.hmget(cacheKey, ProductBindGroupDto.Key.INFO, ProductBindGroupDto.getInfoDto(), rlPdIds);
         } catch (Exception e) {
             Log.logErr(e,"getCacheList error;aid=%d;unionPriId=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
         }
@@ -27,7 +27,7 @@ public class ProductGroupAssocCache extends CacheCtrl {
             return;
         }
         String cacheKey = getCacheKey(aid, unionPriId);
-        m_cache.hmsetFaiList(cacheKey, ProductGroupAssocEntity.Info.RL_GROUP_ID, Var.Type.INT, list, ProductGroupAssocDto.Key.INFO, ProductGroupAssocDto.getInfoDto());
+        m_cache.hmsetFaiList(cacheKey, ProductBindGroupEntity.Info.RL_GROUP_ID, Var.Type.INT, list, ProductBindGroupDto.Key.INFO, ProductBindGroupDto.getInfoDto());
     }
 
     public static void delCache(int aid, int unionPriId) {

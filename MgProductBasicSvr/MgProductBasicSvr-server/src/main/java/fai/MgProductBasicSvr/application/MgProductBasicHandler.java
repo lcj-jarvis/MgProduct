@@ -2,10 +2,10 @@ package fai.MgProductBasicSvr.application;
 
 import fai.MgProductBasicSvr.application.service.ProductBasicService;
 import fai.MgProductBasicSvr.application.service.ProductBindPropService;
-import fai.MgProductBasicSvr.application.service.ProductGroupAssocService;
+import fai.MgProductBasicSvr.application.service.ProductBindGroupService;
 import fai.MgProductBasicSvr.interfaces.cmd.MgProductBasicCmd;
 import fai.MgProductBasicSvr.interfaces.dto.ProductBindPropDto;
-import fai.MgProductBasicSvr.interfaces.dto.ProductGroupAssocDto;
+import fai.MgProductBasicSvr.interfaces.dto.ProductBindGroupDto;
 import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
@@ -170,37 +170,37 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
         return service.batchDelPdRelBind(session, flow, aid, unionPriId, rlPdIds);
     }
 
-    @Cmd(MgProductBasicCmd.GroupAssocCmd.GET_LIST)
-    public int getPdsGroupAssoc(final FaiSession session,
+    @Cmd(MgProductBasicCmd.BindGroupCmd.GET_LIST)
+    public int getPdsBindGroup(final FaiSession session,
                                 @ArgFlow final int flow,
                                 @ArgAid int aid,
-                                @ArgBodyInteger(ProductGroupAssocDto.Key.UNION_PRI_ID) int unionPriId,
-                                @ArgList(keyMatch = ProductGroupAssocDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
-        return groupAssocService.getPdsGroupAssoc(session, flow, aid, unionPriId, rlPdIds);
+                                @ArgBodyInteger(ProductBindGroupDto.Key.UNION_PRI_ID) int unionPriId,
+                                @ArgList(keyMatch = ProductBindGroupDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
+        return groupBindService.getPdsBindGroup(session, flow, aid, unionPriId, rlPdIds);
     }
 
     @WrittenCmd
-    @Cmd(MgProductBasicCmd.GroupAssocCmd.BATCH_SET)
-    public int setPdGroupAssoc(final FaiSession session,
+    @Cmd(MgProductBasicCmd.BindGroupCmd.BATCH_SET)
+    public int setPdBindGroup(final FaiSession session,
                                @ArgFlow final int flow,
                                @ArgAid int aid,
-                               @ArgBodyInteger(ProductGroupAssocDto.Key.UNION_PRI_ID) int unionPriId,
-                               @ArgBodyInteger(ProductGroupAssocDto.Key.RL_PD_ID) int rlPdId,
-                               @ArgList(keyMatch = ProductGroupAssocDto.Key.RL_GROUP_IDS) FaiList<Integer> addGroupIds,
-                               @ArgList(keyMatch = ProductGroupAssocDto.Key.DEL_RL_GROUP_IDS) FaiList<Integer> delGroupIds) throws IOException {
-        return groupAssocService.setPdGroupAssoc(session, flow, aid, unionPriId, rlPdId, addGroupIds, delGroupIds);
+                               @ArgBodyInteger(ProductBindGroupDto.Key.UNION_PRI_ID) int unionPriId,
+                               @ArgBodyInteger(ProductBindGroupDto.Key.RL_PD_ID) int rlPdId,
+                               @ArgList(keyMatch = ProductBindGroupDto.Key.RL_GROUP_IDS) FaiList<Integer> addGroupIds,
+                               @ArgList(keyMatch = ProductBindGroupDto.Key.DEL_RL_GROUP_IDS) FaiList<Integer> delGroupIds) throws IOException {
+        return groupBindService.setPdBindGroup(session, flow, aid, unionPriId, rlPdId, addGroupIds, delGroupIds);
     }
 
-    @Cmd(MgProductBasicCmd.GroupAssocCmd.GET_PD_BY_GROUP)
+    @Cmd(MgProductBasicCmd.BindGroupCmd.GET_PD_BY_GROUP)
     public int getRlPdByRlGroupId(final FaiSession session,
                                   @ArgFlow final int flow,
                                   @ArgAid int aid,
-                                  @ArgBodyInteger(ProductGroupAssocDto.Key.UNION_PRI_ID) int unionPriId,
-                                  @ArgList(keyMatch = ProductGroupAssocDto.Key.RL_GROUP_IDS) FaiList<Integer> rlGroupIds) throws IOException {
-        return groupAssocService.getRlPdByRlGroupId(session, flow, aid, unionPriId, rlGroupIds);
+                                  @ArgBodyInteger(ProductBindGroupDto.Key.UNION_PRI_ID) int unionPriId,
+                                  @ArgList(keyMatch = ProductBindGroupDto.Key.RL_GROUP_IDS) FaiList<Integer> rlGroupIds) throws IOException {
+        return groupBindService.getRlPdByRlGroupId(session, flow, aid, unionPriId, rlGroupIds);
     }
 
     private ProductBasicService service = ServiceProxy.create(new ProductBasicService());
-    private ProductGroupAssocService groupAssocService = ServiceProxy.create(new ProductGroupAssocService());
+    private ProductBindGroupService groupBindService = ServiceProxy.create(new ProductBindGroupService());
     private ProductBindPropService propBindservice = ServiceProxy.create(new ProductBindPropService());
 }

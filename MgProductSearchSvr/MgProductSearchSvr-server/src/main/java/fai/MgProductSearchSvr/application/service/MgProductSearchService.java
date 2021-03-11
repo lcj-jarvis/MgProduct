@@ -357,15 +357,15 @@ public class MgProductSearchService {
 
             }
             Param info = new Param();
-            info.setInt(ProductGroupAssocEntity.Info.AID, mockAid);
-            info.setInt(ProductGroupAssocEntity.Info.UNION_PRI_ID, mockUnionPriId);
-            info.setInt(ProductGroupAssocEntity.Info.RL_PD_ID, 1);
-            info.setInt(ProductGroupAssocEntity.Info.RL_GROUP_ID, 1);
+            info.setInt(ProductBindGroupEntity.Info.AID, mockAid);
+            info.setInt(ProductBindGroupEntity.Info.UNION_PRI_ID, mockUnionPriId);
+            info.setInt(ProductBindGroupEntity.Info.RL_PD_ID, 1);
+            info.setInt(ProductBindGroupEntity.Info.RL_GROUP_ID, 1);
             searchDataList.add(info);
 
             Param info2 = info.clone();
-            info2.setInt(ProductGroupAssocEntity.Info.RL_GROUP_ID, 2);
-            info2.setInt(ProductGroupAssocEntity.Info.RL_PD_ID, 5);
+            info2.setInt(ProductBindGroupEntity.Info.RL_GROUP_ID, 2);
+            info2.setInt(ProductBindGroupEntity.Info.RL_PD_ID, 5);
             searchDataList.add(info2);
 
             faiListToHashMap(ProductGroupAssocEntity.Info.RL_PD_ID, searchDataList, searchMapDataList);

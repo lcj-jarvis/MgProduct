@@ -1,6 +1,6 @@
 package fai.MgProductBasicSvr.domain.entity;
 
-public class ProductGroupAssocEntity {
+public class ProductBindGroupEntity {
     public static final class Info {
         public static final String AID = "aid"; // int 企业id
         public static final String RL_GROUP_ID = "rlGroupId"; // int 分类业务 id

@@ -16,6 +16,7 @@ import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
 import fai.comm.middleground.FaiValObj;
 import fai.mgproduct.comm.DataStatus;
+import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.annotation.SuccessRt;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 import fai.middleground.svrutil.service.ServicePub;
@@ -97,6 +98,7 @@ public class ProductPropService extends ServicePub {
 				ProductPropRelCacheCtrl.addCache(aid, unionPriId, libId, relInfo);
 				if(valList != null && !valList.isEmpty() && ProductPropValCacheCtrl.exists(aid, propId)) {
 					ProductPropValCacheCtrl.addCacheList(aid, propId, valList);
+					ProductPropValCacheCtrl.DataStatusCache.update(aid, valList.size(), true);
 				}
 				if(maxSort > 0) {
 					ProductPropRelCacheCtrl.setSortCache(aid, unionPriId, libId, maxSort);
@@ -328,6 +330,8 @@ public class ProductPropService extends ServicePub {
 
 				commit = true;
 				tc.commit();
+				int delCount = delPropIdList == null ? 0 : delPropIdList.size();
+				ProductPropValCacheCtrl.DataStatusCache.update(aid, delCount, false);
 			}finally {
 				if(!commit) {
 					tc.rollback();
@@ -474,24 +478,29 @@ public class ProductPropService extends ServicePub {
 			boolean commit = false;
 			try {
 				tc.setAutoCommit(false);
-
 				ProductPropValProc valProc = new ProductPropValProc(flow, aid, tc);
 				ProductPropValCacheCtrl.setExpire(aid, propId);
 				// 修改
 				valProc.setValList(aid, propId, updaterList);
 
+				int addCount = 0;
 				// 删除
-				valProc.delValList(aid, propId, delValIds);
+				if(!Util.isEmptyList(delValIds)) {
+					valProc.delValList(aid, propId, delValIds);
+					addCount -= delValIds.size();
+				}
 
 				// 新增
 				if(addInfoList != null && !addInfoList.isEmpty()) {
 					valProc.addValList(aid, propId, addInfoList, false);
+					addCount += addInfoList.size();
 				}
 
 				commit = true;
 				tc.commit();
 				// 清掉参数值缓存
 				ProductPropValCacheCtrl.delCache(aid, propId);
+				ProductPropValCacheCtrl.DataStatusCache.update(aid, addCount, true);
 			}finally {
 				if(!commit) {
 					tc.rollback();

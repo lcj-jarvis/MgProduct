@@ -1218,7 +1218,7 @@ public class MgProductStoreCli extends FaiClient {
     /**
      * 获取 spu 业务销售汇总 的全部数据的部分字段
      */
-    public int getSpuBizSummaryAllDataPartFiled(int aid, int tid, int unionPriId, FaiList<Param> infoList){
+    public int getSpuBizSummaryAllData(int aid, int tid, int unionPriId, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1282,7 +1282,7 @@ public class MgProductStoreCli extends FaiClient {
     /**
      * 直接从db搜索 spu 业务销售汇总 ，返回部分字段
      */
-    public int searchSpuBizSummaryPartFiled(int aid, int tid, int unionPriId, SearchArg searchArg, FaiList<Param> infoList){
+    public int searchSpuBizSummaryFromDb(int aid, int tid, int unionPriId, SearchArg searchArg, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {

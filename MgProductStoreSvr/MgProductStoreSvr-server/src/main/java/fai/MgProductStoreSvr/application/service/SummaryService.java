@@ -308,7 +308,7 @@ public class SummaryService extends StoreService {
     /**
      * 获取全部数据的部分字段
      */
-    public int getSpuBizSummaryAllDataPartFiled(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
+    public int getSpuBizSummaryAllData(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -317,12 +317,13 @@ public class SummaryService extends StoreService {
             try {
                 SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(spuBizSummaryDaoCtrl, flow);
                 rt = spuBizSummaryProc.getAllDataFromDao(aid, unionPriId, listRef, SpuBizSummaryEntity.getManageVisitorKeys());
-                if(rt != Errno.OK){
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                     return rt;
                 }
             }finally {
                 spuBizSummaryDaoCtrl.closeDao();
             }
+            rt = Errno.OK;
             sendSpuBizSummary(session, listRef.value);
             Log.logDbg("ok;aid=%d;unionPriId=%s;", aid, unionPriId);
         }finally {
@@ -333,29 +334,23 @@ public class SummaryService extends StoreService {
     /**
      * 搜索全部数据的部分字段
      */
-    public int searchSpuBizSummaryPartFiled(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg) throws IOException {
+    public int searchSpuBizSummaryFromDb(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
-            /*Set<String> validKey = new HashSet<>(Arrays.asList(SpuBizSummaryEntity.getManageVisitorKeys()));
-            ParamMatcher matcher = searchArg.matcher;
-            if(matcher != null && !matcher.isEmpty()){
-                if(!retainValidKey(validKey, matcher)){
-                    rt = Errno.NOT_FOUND;
-                    Log.logErr(rt, "not exists valid key;flow=%s;aid=%s;unionPriId=%s;matcher=%s;", flow, aid, unionPriId, matcher.toJson());
-                }
-            }*/
+
             Ref<FaiList<Param>> listRef = new Ref<>();
             SpuBizSummaryDaoCtrl spuBizSummaryDaoCtrl = SpuBizSummaryDaoCtrl.getInstance(flow, aid);
             try {
                 SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(spuBizSummaryDaoCtrl, flow);
                 rt = spuBizSummaryProc.searchAllDataFromDao(aid, unionPriId, searchArg, listRef, SpuBizSummaryEntity.getManageVisitorKeys());
-                if(rt != Errno.OK){
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                     return rt;
                 }
             }finally {
                 spuBizSummaryDaoCtrl.closeDao();
             }
+            rt = Errno.OK;
             sendSpuBizSummary(session, listRef.value, searchArg);
             Log.logDbg("ok;aid=%d;unionPriId=%s;", aid, unionPriId);
         }finally {
@@ -364,32 +359,6 @@ public class SummaryService extends StoreService {
         return rt;
     }
 
-    /**
-     * 保留有效的key,存在有效的就返回true, 否则返回false
-     * @param validKey
-     * @param matcher
-     */
-    private boolean retainValidKey(Set<String> validKey, ParamMatcher matcher) {
-        FaiList<ParamMatcher.Cond> rawCondList = matcher.getRawCondList();
-        for (int i = rawCondList.size()-1; i >= 0 ; i--) {
-            ParamMatcher.Cond cond = rawCondList.get(i);
-            if(cond.key != null){
-                if(!validKey.contains(cond.key)){
-                    rawCondList.remove(i);
-                }
-            }else{
-                if(cond.matcher != null){
-                    if(retainValidKey(validKey, cond.matcher)){
-                        rawCondList.remove(i);
-                    }
-                }
-            }
-        }
-        if(rawCondList.isEmpty()){
-            return true;
-        }
-        return false;
-    }
 
     /**
      * 获取spu库存销售汇总信息

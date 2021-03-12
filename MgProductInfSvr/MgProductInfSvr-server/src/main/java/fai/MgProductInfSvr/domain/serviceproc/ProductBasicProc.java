@@ -49,6 +49,38 @@ public class ProductBasicProc {
         return rt;
     }
 
+    public int delPdBindProp(int aid, int unionPriId, int rlPropId, FaiList<Integer> delPropVals) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.delPdBindProp(aid, unionPriId, rlPropId, delPropVals);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "setPdBindProp error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+
+        return rt;
+    }
+
+    public int delPdBindProp(int aid, int unionPriId, FaiList<Integer> rlPropIds) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.delPdBindProp(aid, unionPriId, rlPropIds);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "setPdBindProp error;flow=%d;aid=%d;uid=%d;rlPropIds=%s;", m_flow, aid, unionPriId, rlPropIds);
+            return rt;
+        }
+
+        return rt;
+    }
+
     public int getRlPdByPropVal(int aid, int tid, int unionPriId, FaiList<Param> proIdsAndValIds, FaiList<Integer> rlPdIds) {
         int rt = Errno.ERROR;
         if(m_cli == null) {

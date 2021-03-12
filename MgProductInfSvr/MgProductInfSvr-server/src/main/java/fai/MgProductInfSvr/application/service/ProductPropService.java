@@ -1,5 +1,6 @@
 package fai.MgProductInfSvr.application.service;
 
+import fai.MgProductInfSvr.domain.serviceproc.ProductBasicProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductPropProc;
 import fai.MgProductInfSvr.interfaces.dto.ProductPropDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
@@ -95,6 +96,15 @@ public class ProductPropService extends MgProductInfService {
                 rt = productPropProc.setPropValList(aid, tid, unionPriId, libId, rlPropId, addValList, setValList, delValIds);
                 if(rt != Errno.OK) {
                     return rt;
+                }
+                if(!delValIds.isEmpty()) {
+                    ProductBasicProc basicProc = new ProductBasicProc(flow);
+                    rt = basicProc.delPdBindProp(aid, unionPriId, rlPropId, delValIds);
+                    if(rt != Errno.OK) {
+                        Oss.logAlarm("del pd bind prop err;aid=" + aid);
+                        Log.logErr("del pd bind prop err;aid=%d;uid=%d;rlPropId=%d;delValIds=%s;", aid, unionPriId, rlPropId, delValIds);
+                        return rt;
+                    }
                 }
             }
             if(argsError) {
@@ -256,6 +266,14 @@ public class ProductPropService extends MgProductInfService {
                 return rt;
             }
 
+            ProductBasicProc basicProc = new ProductBasicProc(flow);
+            rt = basicProc.delPdBindProp(aid, unionPriId, idList);
+            if(rt != Errno.OK) {
+                Oss.logAlarm("del pd bind prop err;aid=" + aid);
+                Log.logErr("del pd bind prop err;aid=%d;uid=%d;delPropIds=%s;", aid, unionPriId, idList);
+                return rt;
+            }
+
             rt = Errno.OK;
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
@@ -347,6 +365,16 @@ public class ProductPropService extends MgProductInfService {
             rt = productPropProc.setPropValList(aid, tid, unionPriId, libId, rlPropId, addValList, setValList, delValIds);
             if(rt != Errno.OK) {
                 return rt;
+            }
+
+            if(!delValIds.isEmpty()) {
+                ProductBasicProc basicProc = new ProductBasicProc(flow);
+                rt = basicProc.delPdBindProp(aid, unionPriId, rlPropId, delValIds);
+                if(rt != Errno.OK) {
+                    Oss.logAlarm("del pd bind prop err;aid=" + aid);
+                    Log.logErr("del pd bind prop err;aid=%d;uid=%d;rlPropId=%d;delValIds=%s;", aid, unionPriId, rlPropId, delValIds);
+                    return rt;
+                }
             }
 
             rt = Errno.OK;

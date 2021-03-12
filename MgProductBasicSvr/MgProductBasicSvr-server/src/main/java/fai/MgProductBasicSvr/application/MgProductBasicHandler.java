@@ -61,6 +61,27 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
         return propBindservice.getRlPdByPropVal(session, flow, aid, unionPriId, tid, proIdsAndValIds);
     }
 
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BindPropCmd.DEL_BY_PROP_IDS)
+    public int delPdBindPropByProps(final FaiSession session,
+                                   @ArgFlow final int flow,
+                                   @ArgAid final int aid,
+                                   @ArgBodyInteger(ProductBindPropDto.Key.UNION_PRI_ID) int unionPriId,
+                                   @ArgList(keyMatch = ProductBindPropDto.Key.RL_PROP_IDS) FaiList<Integer> rlPropIds) throws IOException {
+        return propBindservice.delPdBindPropByPropId(session, flow, aid, unionPriId, rlPropIds);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BindPropCmd.DEL_BY_VAL_IDS)
+    public int delPdBindPropByVals(final FaiSession session,
+                             @ArgFlow final int flow,
+                             @ArgAid final int aid,
+                             @ArgBodyInteger(ProductBindPropDto.Key.UNION_PRI_ID) int unionPriId,
+                             @ArgBodyInteger(ProductBindPropDto.Key.RL_PROP_ID) int rlPropId,
+                             @ArgList(keyMatch = ProductBindPropDto.Key.PROP_VAL_IDS) FaiList<Integer> delPropValIds) throws IOException {
+        return propBindservice.delPdBindPropByValId(session, flow, aid, unionPriId, rlPropId, delPropValIds);
+    }
+
     @Cmd(MgProductBasicCmd.BindPropCmd.GET_DATA_STATUS)
     public int getBindPropDataStatus(final FaiSession session,
                                      @ArgFlow final int flow,

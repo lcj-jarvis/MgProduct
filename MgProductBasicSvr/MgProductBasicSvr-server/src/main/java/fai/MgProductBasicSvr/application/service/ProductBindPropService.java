@@ -1,6 +1,7 @@
 package fai.MgProductBasicSvr.application.service;
 
 import fai.MgProductBasicSvr.domain.common.LockUtil;
+import fai.MgProductBasicSvr.domain.entity.ProductBindPropEntity;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductBindPropCache;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductBindPropProc;
 import fai.MgProductBasicSvr.interfaces.dto.ProductBindPropDto;
@@ -14,6 +15,7 @@ import fai.middleground.svrutil.repository.TransactionCtrl;
 import fai.middleground.svrutil.service.ServicePub;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -111,6 +113,57 @@ public class ProductBindPropService extends ServicePub {
     }
 
     /**
+     * 根据参数id+参数值ids 删除关联的商品参数信息
+     */
+    @SuccessRt(value = Errno.OK)
+    public int delPdBindPropByValId(FaiSession session, int flow, int aid, int unionPriId, int rlPropId, FaiList<Integer> delPropValIds) throws IOException {
+        int rt;
+        if(aid < 0 || Util.isEmptyList(delPropValIds)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
+            return rt;
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.RL_PROP_ID, ParamMatcher.EQ, rlPropId);
+        matcher.and(ProductBindPropEntity.Info.PROP_VAL_ID, ParamMatcher.IN, delPropValIds);
+
+        rt = delPdBindProp(flow, aid, unionPriId, matcher);
+        if(rt != Errno.OK) {
+            Log.logErr("del by valIds error;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("del by valIds ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+        return rt;
+    }
+
+    /**
+     * 根据参数ids 删除关联的商品参数信息
+     */
+    @SuccessRt(value = Errno.OK)
+    public int delPdBindPropByPropId(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlPropIds) throws IOException {
+        int rt;
+        if(aid < 0 || Util.isEmptyList(rlPropIds)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
+            return rt;
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.RL_PROP_ID, ParamMatcher.IN, rlPropIds);
+
+        rt = delPdBindProp(flow, aid, unionPriId, matcher);
+        if(rt != Errno.OK) {
+            Log.logErr("del by propIds error;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("del by propIds ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+        return rt;
+    }
+
+    /**
      * 根据商品参数id和商品参数值id，返回商品业务id集合
      */
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
@@ -188,7 +241,7 @@ public class ProductBindPropService extends ServicePub {
             ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
             // 查aid + unionPriId 下所有数据，传入空的searchArg
             SearchArg searchArg = new SearchArg();
-            list = bindPropProc.searchFromDb(aid, unionPriId, searchArg);
+            list = bindPropProc.searchFromDb(aid, unionPriId, searchArg, ProductBindPropEntity.MANAGE_FIELDS);
         }finally {
             tc.closeDao();
         }
@@ -213,7 +266,7 @@ public class ProductBindPropService extends ServicePub {
         TransactionCtrl tc = new TransactionCtrl();
         try {
             ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
-            list = bindPropProc.searchFromDb(aid, unionPriId, searchArg);
+            list = bindPropProc.searchFromDb(aid, unionPriId, searchArg, ProductBindPropEntity.MANAGE_FIELDS);
 
         }finally {
             tc.closeDao();
@@ -227,6 +280,53 @@ public class ProductBindPropService extends ServicePub {
         rt = Errno.OK;
         Log.logDbg("search from db ok;flow=%d;aid=%d;unionPriId=%d;size=%d;", flow, aid, unionPriId, list.size());
 
+        return rt;
+    }
+
+    private int delPdBindProp(int flow, int aid, int unionPriId, ParamMatcher matcher) {
+        int rt;
+        if(aid < 0 || matcher == null || matcher.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
+            return rt;
+        }
+
+        Lock lock = LockUtil.getLock(aid);
+        lock.lock();
+        try {
+            //统一控制事务
+            TransactionCtrl tc = new TransactionCtrl();
+            try {
+                ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
+                SearchArg searchArg = new SearchArg();
+                searchArg.matcher = matcher;
+                FaiList<String> selectFields = new FaiList<>();
+                selectFields.add(ProductBindPropEntity.Info.RL_PD_ID);
+                FaiList<Param> list = bindPropProc.searchFromDb(aid, unionPriId, searchArg, selectFields);
+                if(Util.isEmptyList(list)) {
+                    Log.logStd("del data not found;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
+                    return Errno.OK;
+                }
+                // 删除数据
+                int delCount = bindPropProc.delPdBindProp(aid, unionPriId, matcher);
+                int addCount = 0 - delCount;
+
+                HashSet<Integer> rlPdIds = new HashSet<>();
+                // 删除缓存
+                for (int i = 0; i < list.size(); i++) {
+                    Param info = list.get(i);
+                    rlPdIds.add(info.getInt(ProductBindPropEntity.Info.RL_PD_ID));
+                }
+                ProductBindPropCache.delCacheList(aid, unionPriId, rlPdIds);
+                ProductBindPropCache.DataStatusCache.update(aid, unionPriId, addCount);
+            } finally {
+                tc.closeDao();
+            }
+        } finally {
+            lock.unlock();
+        }
+
+        rt = Errno.OK;
         return rt;
     }
 }

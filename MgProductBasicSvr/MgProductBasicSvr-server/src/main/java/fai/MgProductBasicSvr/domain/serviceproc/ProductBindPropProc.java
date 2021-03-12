@@ -5,6 +5,7 @@ import fai.MgProductBasicSvr.domain.repository.cache.ProductBindPropCache;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductBindPropDaoCtrl;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
+import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
@@ -79,6 +80,60 @@ public class ProductBindPropProc {
         }
         Log.logStd("delPdBindPropList ok;flow=%d;aid=%d;rlPdId=%d;delCount=%d;", m_flow, aid, rlPdId, delCount);
         return delCount;
+    }
+
+    public int delPdBindProp(int aid, int unionPriId, ParamMatcher matcher) {
+        int rt;
+        if(matcher == null || matcher.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args error, matcher is empty;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
+        }
+        Ref<Integer> refRowCount = new Ref<>();
+        matcher.and(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        rt = m_bindPropDao.delete(matcher, refRowCount);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "del info error;flow=%d;aid=%d;rlPropId=%d;delPropValIds=%d;", m_flow, aid);
+        }
+
+        return refRowCount.value;
+    }
+
+    public int delPdBindPropByValId(int aid, int unionPriId, int rlPropId, FaiList<Integer> delPropValIds) {
+        int rt;
+        if(Util.isEmptyList(delPropValIds)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args error, delPropValIds is empty;flow=%d;aid=%d;", m_flow, aid);
+        }
+        Ref<Integer> refRowCount = new Ref<>();
+        ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(ProductBindPropEntity.Info.RL_PROP_ID, ParamMatcher.EQ, rlPropId);
+        matcher.and(ProductBindPropEntity.Info.PROP_VAL_ID, ParamMatcher.IN, delPropValIds);
+        rt = m_bindPropDao.delete(matcher, refRowCount);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "del info error;flow=%d;aid=%d;rlPropId=%d;delPropValIds=%d;", m_flow, aid, rlPropId, delPropValIds);
+        }
+
+        return refRowCount.value;
+    }
+
+    public int delPdBindPropByPropId(int aid, int unionPriId, FaiList<Integer> rlPropIds) {
+        int rt;
+        if(Util.isEmptyList(rlPropIds)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args error, rlPropIds is empty;flow=%d;aid=%d;", m_flow, aid);
+        }
+        Ref<Integer> refRowCount = new Ref<>();
+        ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(ProductBindPropEntity.Info.RL_PROP_ID, ParamMatcher.IN, rlPropIds);
+        rt = m_bindPropDao.delete(matcher, refRowCount);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "del info error;flow=%d;aid=%d;rlPropIds=%d;uid=%d;", m_flow, aid, rlPropIds, unionPriId);
+        }
+
+        return refRowCount.value;
     }
 
     /**
@@ -175,7 +230,7 @@ public class ProductBindPropProc {
         return statusInfo;
     }
 
-    public FaiList<Param> searchFromDb(int aid, int unionPriId, SearchArg searchArg, String ... selectFields) {
+    public FaiList<Param> searchFromDb(int aid, int unionPriId, SearchArg searchArg, FaiList<String> selectFields) {
         if(searchArg == null) {
             searchArg = new SearchArg();
         }
@@ -186,7 +241,7 @@ public class ProductBindPropProc {
         searchArg.matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
-        int rt = m_bindPropDao.select(searchArg, listRef, ProductBindPropEntity.MANAGE_FIELDS);
+        int rt = m_bindPropDao.select(searchArg, listRef, selectFields);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             throw new MgException(rt, "get error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
         }

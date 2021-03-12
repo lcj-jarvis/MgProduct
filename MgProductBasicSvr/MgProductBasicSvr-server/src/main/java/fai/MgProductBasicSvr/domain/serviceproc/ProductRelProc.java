@@ -1,5 +1,6 @@
 package fai.MgProductBasicSvr.domain.serviceproc;
 
+import fai.MgProductBasicSvr.domain.entity.ProductEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductRelEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductRelValObj;
 import fai.MgProductBasicSvr.domain.entity.ProductValObj;
@@ -54,7 +55,7 @@ public class ProductRelProc {
         return rlPdId;
     }
 
-    public FaiList<Integer> batchAddProductRel(int aid, Integer pdId, FaiList<Param> relDataList) {
+    public FaiList<Integer> batchAddProductRel(int aid, Param pdInfo, FaiList<Param> relDataList) {
         int rt;
         if(relDataList == null || relDataList.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -63,8 +64,9 @@ public class ProductRelProc {
 
         FaiList<Integer> rlPdIds = new FaiList<Integer>();
         for(Param relData : relDataList) {
-            if(pdId != null) {
-                relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
+            if(!Str.isEmpty(pdInfo)) {
+                relData.assign(pdInfo, ProductRelEntity.Info.PD_ID);
+                relData.assign(pdInfo, ProductRelEntity.Info.PD_TYPE);
             }
             Integer curPdId = relData.getInt(ProductRelEntity.Info.PD_ID);
             if(curPdId == null) {

@@ -69,6 +69,8 @@ public class ProductBasicDto {
         g_productRelDef.add(ProductBasicEntity.ProductRelInfo.LGID, 15);
         g_productRelDef.add(ProductBasicEntity.ProductRelInfo.KEEP_PRI_ID1, 16);
         g_productRelDef.add(ProductBasicEntity.ProductRelInfo.TID, 17);
+
+        g_productRelDef.add(ProductBasicEntity.ProductRelInfo.PD_TYPE, 18);
     }
 
     public static ParamDef getProductRelDto() {

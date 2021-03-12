@@ -5,6 +5,9 @@ import fai.comm.util.FaiList;
 import fai.comm.util.Param;
 import fai.comm.util.ParamUpdater;
 import fai.mgproduct.comm.DataStatus;
+import fai.mgproduct.comm.Util;
+
+import java.util.HashSet;
 
 public class ProductBindPropCache extends CacheCtrl {
 
@@ -26,6 +29,18 @@ public class ProductBindPropCache extends CacheCtrl {
         if(m_cache.exists(cacheKey)) {
             m_cache.del(cacheKey);
         }
+    }
+
+    public static void delCacheList(int aid, int unionPriId, HashSet<Integer> rlPdIds) {
+        if(Util.isEmptyList(rlPdIds)) {
+            return;
+        }
+        String[] cacheKeys = new String[rlPdIds.size()];
+        int i = 0;
+        for(Integer rlPdId : rlPdIds) {
+            cacheKeys[i++] = getCacheKey(aid, unionPriId, rlPdId);
+        }
+        m_cache.del(cacheKeys);
     }
 
     public static String getCacheKey(int aid, int unionPriId, int rlPdId) {

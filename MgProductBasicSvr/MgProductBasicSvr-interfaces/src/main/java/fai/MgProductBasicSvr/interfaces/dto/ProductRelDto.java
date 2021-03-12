@@ -28,6 +28,7 @@ public class ProductRelDto {
         g_infoDtoDef.add(ProductRelEntity.Info.CREATE_TIME, 13);
         g_infoDtoDef.add(ProductRelEntity.Info.UPDATE_TIME, 14);
         g_infoDtoDef.add(ProductRelEntity.Info.INFO_CHECK, 15);
+        g_infoDtoDef.add(ProductRelEntity.Info.PD_TYPE, 16);
     }
 
     static {

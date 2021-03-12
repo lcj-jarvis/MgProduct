@@ -444,6 +444,7 @@ public class ProductBasicService extends ServicePub {
         relData.assign(info, ProductRelEntity.Info.STATUS);
         relData.assign(info, ProductRelEntity.Info.UP_SALE_TIME);
         relData.assign(info, ProductRelEntity.Info.FLAG);
+        relData.assign(info, ProductRelEntity.Info.PD_TYPE);
 
         pdData.setInt(ProductEntity.Info.AID, aid);
         pdData.setInt(ProductEntity.Info.SOURCE_TID, sourceTid);
@@ -570,8 +571,8 @@ public class ProductBasicService extends ServicePub {
                     rt = Errno.ERROR;
                     return rt;
                 }
-                int pdId = bindRel.getInt(ProductRelEntity.Info.PD_ID);
-                relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
+                relData.assign(bindRel, ProductRelEntity.Info.PD_ID);
+                relData.assign(bindRel, ProductRelEntity.Info.PD_TYPE);
 
                 // 新增商品业务关系
                 rlPdId = relProc.addProductRel(aid, unionPriId, relData);
@@ -715,10 +716,9 @@ public class ProductBasicService extends ServicePub {
                     rt = Errno.ERROR;
                     return rt;
                 }
-                int pdId = bindRel.getInt(ProductRelEntity.Info.PD_ID);
 
                 // 新增商品业务关系
-                rlPdIds = relProc.batchAddProductRel(aid, pdId, relDataList);
+                rlPdIds = relProc.batchAddProductRel(aid, bindRel, relDataList);
 
                 commit = true;
                 tc.commit();
@@ -857,6 +857,7 @@ public class ProductBasicService extends ServicePub {
                 relData.assign(info, ProductRelEntity.Info.STATUS);
                 relData.assign(info, ProductRelEntity.Info.UP_SALE_TIME);
                 relData.assign(info, ProductRelEntity.Info.FLAG);
+                relData.assign(info, ProductRelEntity.Info.PD_TYPE);
 
                 relDataList.add(relData);
             }

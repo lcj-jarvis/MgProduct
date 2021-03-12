@@ -60,6 +60,7 @@ public class ProductBasicEntity {
         public static final String FLAG = "rlFlag"; // int
         public static final String CREATE_TIME = "sysCreateTime"; // datetime 创建时间
         public static final String UPDATE_TIME = "sysUpdateTime"; // datetime 更新时间
+        public static final String PD_TYPE = "productType"; // int 商品类型
 
         public static final String TID = "tid";  // int 项目id
         public static final String SITE_ID = "siteId"; // int 站点id

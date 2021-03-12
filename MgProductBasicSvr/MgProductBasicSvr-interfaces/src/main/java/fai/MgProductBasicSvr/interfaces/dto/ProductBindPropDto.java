@@ -32,5 +32,8 @@ public class ProductBindPropDto {
         public static final int DATA_STATUS = 9;
         public static final int TOTAL_SIZE = 10;
         public static final int SEARCH_ARG = 11;
+        public static final int RL_PROP_ID = 12;
+        public static final int RL_PROP_IDS = 13;
+        public static final int PROP_VAL_IDS = 14;
     }
 }

@@ -22,6 +22,7 @@ import fai.mgproduct.comm.MgProductErrno;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.*;
 
 public class StoreSalesSkuService extends StoreService {
@@ -169,6 +170,10 @@ public class StoreSalesSkuService extends StoreService {
                     skuId_SalesStoreDataMap = new HashMap<>();
                     unionPriId_skuId_salesStoreDataMapMap.put(unionPriId, skuId_SalesStoreDataMap);
                 }
+                int flag = spuSalesStoreInfo.getInt(StoreSalesSkuEntity.Info.FLAG, 0);
+                if(spuSalesStoreInfo.containsKey(StoreSalesSkuEntity.Info.PRICE)){
+                    flag |= StoreSalesSkuValObj.FLag.SETED_PRICE;
+                }
                 Param skuSalesStoreData = new Param();
                 skuSalesStoreData.setInt(StoreSalesSkuEntity.Info.AID, aid);
                 skuSalesStoreData.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId);
@@ -176,6 +181,7 @@ public class StoreSalesSkuService extends StoreService {
                 skuSalesStoreData.setInt(StoreSalesSkuEntity.Info.RL_PD_ID, rlPdId);
                 skuSalesStoreData.setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId);
                 skuSalesStoreData.setInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
+                skuSalesStoreData.setInt(StoreSalesSkuEntity.Info.FLAG, flag);
                 skuSalesStoreData.assign(spuSalesStoreInfo, StoreSalesSkuEntity.Info.SKU_TYPE);
                 skuSalesStoreData.assign(spuSalesStoreInfo, StoreSalesSkuEntity.Info.SORT);
                 skuSalesStoreData.assign(spuSalesStoreInfo, StoreSalesSkuEntity.Info.COUNT);
@@ -238,11 +244,19 @@ public class StoreSalesSkuService extends StoreService {
                             }
                             pdId_bizSalesSummaryInfoMap.put(pdId, spuBizSalesSummaryInfo);
                         }
+                        Object bitOrFlagObj = reportInfo.getObject(StoreSalesSkuEntity.ReportInfo.BIT_OR_FLAG);
+                        int bigOrFlag = ((BigInteger)bitOrFlagObj).intValue();
+                        boolean setPrice = Misc.checkBit(bigOrFlag, StoreSalesSkuValObj.FLag.SETED_PRICE);
+
                         int sumCount = reportInfo.getInt(StoreSalesSkuEntity.ReportInfo.SUM_COUNT);
                         int sumRemainCount = reportInfo.getInt(StoreSalesSkuEntity.ReportInfo.SUM_REMAIN_COUNT);
                         int sumHoldingCount = reportInfo.getInt(StoreSalesSkuEntity.ReportInfo.SUM_HOLDING_COUNT);
                         long maxPrice= reportInfo.getInt(StoreSalesSkuEntity.ReportInfo.MAX_PRICE);
                         long minPrice= reportInfo.getInt(StoreSalesSkuEntity.ReportInfo.MIN_PRICE);
+                        if(!setPrice){
+                            minPrice = Long.MAX_VALUE;
+                            maxPrice = Long.MIN_VALUE;
+                        }
                         {
                             Param spuSummaryInfo = pdIdSalesSummaryInfoMap.get(pdId);
                             if(spuSummaryInfo == null){
@@ -253,8 +267,8 @@ public class StoreSalesSkuService extends StoreService {
                             int lastCount = spuSummaryInfo.getInt(SpuSummaryEntity.Info.COUNT, 0);
                             int lastRemainCount = spuSummaryInfo.getInt(SpuSummaryEntity.Info.REMAIN_COUNT, 0);
                             int lastHoldingCount = spuSummaryInfo.getInt(SpuSummaryEntity.Info.HOLDING_COUNT, 0);
-                            long lastMaxPrice =  spuSummaryInfo.getLong(SpuSummaryEntity.Info.MAX_PRICE, Long.MIN_VALUE);
-                            long lastMinPrice =  spuSummaryInfo.getLong(SpuSummaryEntity.Info.MIN_PRICE, Long.MAX_VALUE);
+                            long lastMaxPrice = spuSummaryInfo.getLong(SpuSummaryEntity.Info.MAX_PRICE, Long.MIN_VALUE);
+                            long lastMinPrice = spuSummaryInfo.getLong(SpuSummaryEntity.Info.MIN_PRICE, Long.MAX_VALUE);
                             spuSummaryInfo.setInt(SpuSummaryEntity.Info.COUNT, lastCount+sumCount);
                             spuSummaryInfo.setInt(SpuSummaryEntity.Info.REMAIN_COUNT, lastRemainCount + sumRemainCount);
                             spuSummaryInfo.setInt(SpuSummaryEntity.Info.HOLDING_COUNT, lastHoldingCount + sumHoldingCount);
@@ -272,8 +286,8 @@ public class StoreSalesSkuService extends StoreService {
                             int lastCount = skuSummaryInfo.getInt(SkuSummaryEntity.Info.COUNT, 0);
                             int lastRemainCount = skuSummaryInfo.getInt(SkuSummaryEntity.Info.REMAIN_COUNT, 0);
                             int lastHoldingCount = skuSummaryInfo.getInt(SkuSummaryEntity.Info.HOLDING_COUNT, 0);
-                            long lastMaxPrice =  skuSummaryInfo.getLong(SkuSummaryEntity.Info.MAX_PRICE, Long.MIN_VALUE);
-                            long lastMinPrice =  skuSummaryInfo.getLong(SkuSummaryEntity.Info.MIN_PRICE, Long.MAX_VALUE);
+                            long lastMaxPrice = skuSummaryInfo.getLong(SkuSummaryEntity.Info.MAX_PRICE, Long.MIN_VALUE);
+                            long lastMinPrice = skuSummaryInfo.getLong(SkuSummaryEntity.Info.MIN_PRICE, Long.MAX_VALUE);
                             skuSummaryInfo.setInt(SkuSummaryEntity.Info.COUNT, lastCount+sumCount);
                             skuSummaryInfo.setInt(SkuSummaryEntity.Info.REMAIN_COUNT, lastRemainCount + sumRemainCount);
                             skuSummaryInfo.setInt(SkuSummaryEntity.Info.HOLDING_COUNT, lastHoldingCount + sumHoldingCount);

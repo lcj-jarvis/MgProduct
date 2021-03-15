@@ -102,5 +102,8 @@ public class ProductRelDto {
         public static final int RL_PD_IDS = 7;
         public static final int PD_IDS = 8;
         public static final int REDUCED_INFO = 9;
+        public static final int DATA_STATUS = 10;
+        public static final int TOTAL_SIZE = 11;
+        public static final int SEARCH_ARG = 12;
     }
 }

@@ -3,6 +3,7 @@ package fai.MgProductBasicSvr.domain.repository.cache;
 import fai.MgProductBasicSvr.domain.entity.ProductRelEntity;
 import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
 import fai.comm.util.*;
+import fai.mgproduct.comm.DataStatus;
 
 import java.util.HashSet;
 import java.util.List;
@@ -52,11 +53,6 @@ public class ProductRelCacheCtrl extends CacheCtrl {
     public static void delCache(int aid, int unionPriId, int rlPdId) {
         String cacheKey = getCacheKey(aid, unionPriId);
         m_cache.hdel(cacheKey, String.valueOf(rlPdId));
-        // 更新数量缓存
-        Integer count = getRelCountCache(aid, unionPriId);
-        if(count != null) {
-            setRelCountCache(aid, unionPriId, count--);
-        }
     }
 
     public static void delCacheList(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
@@ -69,14 +65,7 @@ public class ProductRelCacheCtrl extends CacheCtrl {
         }
         String cacheKey = getCacheKey(aid, unionPriId);
         m_cache.hdel(cacheKey, rlPdIdStrs);
-        // 更新数量缓存
-        Integer count = getRelCountCache(aid, unionPriId);
-        if(count != null) {
-            count -= rlPdIdStrs.length;
-            setRelCountCache(aid, unionPriId, count);
-        }
     }
-
 
     public static void addCacheList(int aid, int unionPriId, FaiList<Param> list) {
         if(list == null || list.isEmpty()) {
@@ -84,12 +73,6 @@ public class ProductRelCacheCtrl extends CacheCtrl {
         }
         String cacheKey = getCacheKey(aid, unionPriId);
         m_cache.hmsetFaiList(cacheKey, ProductRelEntity.Info.RL_PD_ID, Var.Type.INT, list, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto());
-        // 更新数量缓存
-        Integer count = getRelCountCache(aid, unionPriId);
-        if(count != null) {
-            count += list.size();
-            setRelCountCache(aid, unionPriId, count);
-        }
     }
 
     public static void addCache(int aid, int unionPriId, Param info) {
@@ -99,11 +82,6 @@ public class ProductRelCacheCtrl extends CacheCtrl {
         String cacheKey = getCacheKey(aid, unionPriId);
         int rlPdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
         m_cache.hsetParam(true, cacheKey, String.valueOf(rlPdId), info, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto());
-        // 更新数量缓存
-        Integer count = getRelCountCache(aid, unionPriId);
-        if(count != null) {
-            setRelCountCache(aid, unionPriId, count++);
-        }
     }
 
     public static void setExpire(int aid, int uninoId) {
@@ -167,32 +145,45 @@ public class ProductRelCacheCtrl extends CacheCtrl {
         return RLID_REL_CACHE_KEY + "-" + aid + "-" + unionPriId;
     }
 
-    /** productRel Count cache **/
-
-    public static void setRelCountCache(int aid, int unionPriId, int count) {
-        String cacheKey = getRelCountCacheKey(aid, unionPriId);
-        m_cache.set(cacheKey, String.valueOf(count));
-    }
-
-    public static Integer getRelCountCache(int aid, int unionPriId) {
-        String cacheKey = getRelCountCacheKey(aid, unionPriId);
-        String countStr = m_cache.get(cacheKey);
-        if(Str.isEmpty(countStr)) {
-            return null;
-        }
-        int count = Parser.parseInt(countStr, -1);
-        if(count < 0) {
-            return null;
-        }
-        return count;
-    }
-
-    public static String getRelCountCacheKey(int aid, int unionPriId) {
-        return COUNT_CACHE_KEY + "-" + aid + "-" + unionPriId;
-    }
-
     private static final int EXPIRE_SECOND = 10;
     private static final String CACHE_KEY = "MG_productRel"; // 商品业务表数据缓存，aid+unionPriId 做 cache key，rlPdId做hash key
     private static final String RLID_REL_CACHE_KEY = "MG_productRlIdRel"; // 商品业务表 id和业务id关系缓存，aid + unionPriId 为 cache key，pdId为hash key，数据只包含rlPdId+pdId+unionPriId
-    private static final String COUNT_CACHE_KEY = "MG_productRelCount";// 商品业务表数据量缓存，aid+unionPriId 做 cache key
+
+    /** 数据状态缓存 **/
+    public static class DataStatusCache {
+        public static Param get(int aid, int unionPriId) {
+            String cacheKey = getCacheKey(aid, unionPriId);
+            return m_cache.getParam(cacheKey, ProductRelDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
+        }
+
+        public static void add(int aid, int unionPriId, Param info) {
+            String cacheKey = getCacheKey(aid, unionPriId);
+            m_cache.setParam(cacheKey, info, ProductRelDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
+        }
+
+        public static void update(int aid, int unionPriId, int addCount) {
+            Param info = new Param();
+            info.setLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME, System.currentTimeMillis());
+            ParamUpdater updater = new ParamUpdater(info);
+            if(addCount != 0) {
+                updater.add(DataStatus.Info.TOTAL_SIZE, ParamUpdater.INC, addCount);
+            }
+            m_cache.updateParam(getCacheKey(aid, unionPriId), updater, ProductRelDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
+        }
+
+        public static void del(int aid, int unionPriId) {
+            String cacheKey = getCacheKey(aid, unionPriId);
+            m_cache.del(cacheKey);
+        }
+
+        public static void expire(int aid, int unionPriId, int second) {
+            m_cache.expire(getCacheKey(aid, unionPriId), second);
+        }
+
+        public static String getCacheKey(int aid, int unionPriId) {
+            return DATA_STATUS_CACHE_KEY + "-" + aid + "-" + unionPriId;
+        }
+
+        private static final String DATA_STATUS_CACHE_KEY = "MG_pdRelDS";
+    }
 }

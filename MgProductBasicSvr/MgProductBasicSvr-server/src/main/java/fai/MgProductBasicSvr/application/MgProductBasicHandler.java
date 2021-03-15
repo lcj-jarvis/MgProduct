@@ -6,6 +6,7 @@ import fai.MgProductBasicSvr.application.service.ProductBindGroupService;
 import fai.MgProductBasicSvr.interfaces.cmd.MgProductBasicCmd;
 import fai.MgProductBasicSvr.interfaces.dto.ProductBindPropDto;
 import fai.MgProductBasicSvr.interfaces.dto.ProductBindGroupDto;
+import fai.MgProductBasicSvr.interfaces.dto.ProductDto;
 import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
@@ -215,6 +216,53 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                  @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
                                  @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
         return service.batchDelPdRelBind(session, flow, aid, unionPriId, rlPdIds);
+    }
+
+    @Cmd(MgProductBasicCmd.BasicCmd.PD_DATA_STATUS)
+    public int getPdDataStatus(final FaiSession session,
+                                     @ArgFlow final int flow,
+                                     @ArgAid final int aid) throws IOException {
+        return service.getProductDataStatus(session, flow, aid);
+    }
+
+    @Cmd(MgProductBasicCmd.BasicCmd.SEARCH_PD_FROM_DB)
+    public int searchPdFromDb(final FaiSession session,
+                                     @ArgFlow final int flow,
+                                     @ArgAid final int aid,
+                                     @ArgSearchArg(ProductDto.Key.SEARCH_ARG)SearchArg searchArg) throws IOException {
+        return service.searchProductFromDb(session, flow, aid, searchArg);
+    }
+
+    @Cmd(MgProductBasicCmd.BasicCmd.GET_ALL_PD)
+    public int getAllProduct(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid final int aid) throws IOException {
+        return service.getAllProduct(session, flow, aid);
+    }
+
+    @Cmd(MgProductBasicCmd.BasicCmd.PD_REL_DATA_STATUS)
+    public int getPdRelDataStatus(final FaiSession session,
+                               @ArgFlow final int flow,
+                               @ArgAid final int aid,
+                               @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId) throws IOException {
+        return service.getProductRelDataStatus(session, flow, aid, unionPriId);
+    }
+
+    @Cmd(MgProductBasicCmd.BasicCmd.SEARCH_PD_REL_FROM_DB)
+    public int searchPdRelFromDb(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid final int aid,
+                              @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                              @ArgSearchArg(ProductRelDto.Key.SEARCH_ARG)SearchArg searchArg) throws IOException {
+        return service.searchProductRelFromDb(session, flow, aid, unionPriId, searchArg);
+    }
+
+    @Cmd(MgProductBasicCmd.BasicCmd.GET_ALL_PD_REL)
+    public int getAllProductRel(final FaiSession session,
+                             @ArgFlow final int flow,
+                             @ArgAid final int aid,
+                             @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId) throws IOException {
+        return service.getAllProductRel(session, flow, aid, unionPriId);
     }
 
     @Cmd(MgProductBasicCmd.BindGroupCmd.GET_LIST)

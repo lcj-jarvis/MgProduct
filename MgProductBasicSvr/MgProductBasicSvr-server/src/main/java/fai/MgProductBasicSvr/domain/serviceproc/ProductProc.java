@@ -3,9 +3,9 @@ package fai.MgProductBasicSvr.domain.serviceproc;
 import fai.MgProductBasicSvr.domain.entity.ProductEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductValObj;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductCacheCtrl;
-import fai.MgProductBasicSvr.domain.repository.dao.ProductBindPropDaoCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductDaoCtrl;
 import fai.comm.util.*;
+import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
@@ -84,7 +84,7 @@ public class ProductProc {
         return pdId;
     }
 
-    public void deleteProductList(int aid, int tid, FaiList<Integer> pdIds) {
+    public int deleteProductList(int aid, int tid, FaiList<Integer> pdIds) {
         int rt;
         if(pdIds == null || pdIds.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -94,37 +94,22 @@ public class ProductProc {
         ParamMatcher matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
         matcher.and(ProductEntity.Info.SOURCE_TID, ParamMatcher.EQ, tid);
-        rt = m_dao.delete(matcher);
+        Ref<Integer> refRowCount = new Ref<>();
+        rt = m_dao.delete(matcher, refRowCount);
         if(rt != Errno.OK) {
             throw new MgException(rt, "del product list error;flow=%d;aid=%d;pdIds=%d;", m_flow, aid, pdIds);
         }
+
+        return refRowCount.value;
     }
 
     public int getPdCount(int aid) {
         // 从缓存中获取
-        Integer count = ProductCacheCtrl.getCountCache(aid);
-        if(count != null) {
-            return count;
+        Param dataStatus = getDataStatus(aid);
+        Integer count = dataStatus.getInt(DataStatus.Info.TOTAL_SIZE);
+        if(count == null) {
+            throw new MgException(Errno.ERROR, "get pd rel count error;flow=%d;aid=%d;", m_flow, aid);
         }
-
-        // 从db获取
-        SearchArg searchArg = new SearchArg();
-        searchArg.matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
-        String fields = "count(*) as cnt";
-        Ref<FaiList<Param>> listRef = new Ref<>();
-        int rt = m_dao.select(searchArg, listRef, fields);
-        if(rt != Errno.OK) {
-            throw new MgException(rt, "get pd rel count error;flow=%d;aid=%d;", m_flow, aid);
-        }
-        if (listRef.value == null || listRef.value.isEmpty()) {
-            rt = Errno.NOT_FOUND;
-            throw new MgException(rt, "not found;flow=%d;aid=%d;", m_flow, aid);
-        }
-        Param res = listRef.value.get(0);
-        count = res.getInt("cnt", 0);
-
-        // 添加到缓存
-        ProductCacheCtrl.setCountCache(aid, count);
         return count;
     }
 
@@ -145,6 +130,48 @@ public class ProductProc {
 
     public FaiList<Param> getProductList(int aid, HashSet<Integer> pdIdList, Ref<FaiList<Param>> listRef) {
         return getList(aid, pdIdList);
+    }
+
+    public Param getDataStatus(int aid) {
+        Param statusInfo = ProductCacheCtrl.DataStatusCache.get(aid);
+        if(!Str.isEmpty(statusInfo)) {
+            // 获取数据，则更新数据过期时间
+            ProductCacheCtrl.DataStatusCache.expire(aid, 6*3600);
+            return statusInfo;
+        }
+        long now = System.currentTimeMillis();
+        statusInfo = new Param();
+        int count = getPdCountFromDb(aid);
+        statusInfo.setInt(DataStatus.Info.TOTAL_SIZE, count);
+        statusInfo.setLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME, now);
+        statusInfo.setLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME, 0L);
+
+        ProductCacheCtrl.DataStatusCache.add(aid, statusInfo);
+        return statusInfo;
+    }
+
+    public FaiList<Param> searchFromDb(int aid, SearchArg searchArg, FaiList<String> selectFields) {
+        if(searchArg == null) {
+            searchArg = new SearchArg();
+        }
+        if(searchArg.matcher == null) {
+            searchArg.matcher = new ParamMatcher();
+        }
+        searchArg.matcher.and(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
+
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        int rt = m_dao.select(searchArg, listRef, selectFields);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "get error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        if(listRef.value == null) {
+            listRef.value = new FaiList<Param>();
+        }
+        if (listRef.value.isEmpty()) {
+            rt = Errno.NOT_FOUND;
+            Log.logDbg(rt, "not found;flow=%d;aid=%d;", m_flow, aid);
+        }
+        return listRef.value;
     }
 
     private FaiList<Param> getList(int aid, HashSet<Integer> pdIds) {
@@ -196,6 +223,17 @@ public class ProductProc {
         ProductCacheCtrl.addCacheList(aid, tmpRef.value);
 
         return list;
+    }
+
+    private int getPdCountFromDb(int aid) {
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
+        Ref<Integer> countRef = new Ref<>();
+        int rt = m_dao.selectCount(searchArg, countRef);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "get pd rel count error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        return countRef.value;
     }
 
     private void init(TransactionCtrl tc) {

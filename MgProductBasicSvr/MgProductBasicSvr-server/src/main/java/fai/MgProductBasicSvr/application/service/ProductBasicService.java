@@ -10,10 +10,13 @@ import fai.MgProductBasicSvr.domain.repository.dao.ProductDaoCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductRelDaoCtrl;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductProc;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductRelProc;
+import fai.MgProductBasicSvr.interfaces.dto.ProductDto;
 import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
 import fai.comm.middleground.FaiValObj;
+import fai.mgproduct.comm.DataStatus;
+import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.annotation.SuccessRt;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 import fai.middleground.svrutil.service.ServicePub;
@@ -22,6 +25,7 @@ import java.io.IOException;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -48,9 +52,10 @@ public class ProductBasicService extends ServicePub {
             try {
                 ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
                 ProductRelCacheCtrl.setExpire(aid, unionPriId);
-                relProc.delProductRel(aid, unionPriId, rlPdIds);
+                int delCount = relProc.delProductRel(aid, unionPriId, rlPdIds);
                 // 删除缓存
                 ProductRelCacheCtrl.delCacheList(aid, unionPriId, rlPdIds);
+                ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, -delCount); // 更新数据状态缓存
             }finally {
                 tc.closeDao();
             }
@@ -88,7 +93,7 @@ public class ProductBasicService extends ServicePub {
             //统一控制事务
             TransactionCtrl tc = new TransactionCtrl();
             FaiList<Integer> pdIdList = new FaiList<Integer>();
-            FaiList<Integer> returnUids = new FaiList<Integer>();
+            HashSet<Integer> returnUids = new HashSet<Integer>();
             boolean commit = false;
             try {
                 tc.setAutoCommit(false);
@@ -108,7 +113,7 @@ public class ProductBasicService extends ServicePub {
                 relProc.delProductRelByPdId(aid, pdIdList, returnUids);
                 ProductProc pdProc = new ProductProc(flow, aid, tc);
                 // 删除商品数据
-                pdProc.deleteProductList(aid, tid, pdIdList);
+                int delPdCount = pdProc.deleteProductList(aid, tid, pdIdList);
 
                 commit = true;
                 tc.commit();
@@ -119,9 +124,12 @@ public class ProductBasicService extends ServicePub {
                         ProductRelCacheCtrl.delCacheList(aid, curUnionPriId, rlPdIds);
                         // 删除 cache: aid+unionPriId+pdId -> rlPdId
                         ProductRelCacheCtrl.delRlIdRelCache(aid, curUnionPriId, pdIdList);
+                        // 删除 数据状态dataStatus 缓存
+                        ProductRelCacheCtrl.DataStatusCache.del(aid, curUnionPriId);
                     }
                 }
                 ProductCacheCtrl.delCacheList(aid, pdIdList);
+                ProductCacheCtrl.DataStatusCache.update(aid, -delPdCount); // 更新数据状态缓存
             }finally {
                 if(!commit){
                     tc.rollback();
@@ -282,6 +290,8 @@ public class ProductBasicService extends ServicePub {
                 // 更新缓存
                 ProductCacheCtrl.addCache(aid, pdData);
                 ProductRelCacheCtrl.addCache(aid, unionPriId, relData);
+                ProductCacheCtrl.DataStatusCache.update(aid, 1); // 更新数据状态缓存
+                ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, 1); // 更新数据状态缓存
             } finally {
                 if(!commit) {
                     tc.rollback();
@@ -350,8 +360,14 @@ public class ProductBasicService extends ServicePub {
                 commit = true;
                 tc.commit();
                 // 更新缓存
-                ProductCacheCtrl.addCacheList(aid, pdDataList);
-                ProductRelCacheCtrl.delCache(aid, unionPriId);
+                if(!Util.isEmptyList(pdDataList)) {
+                    ProductCacheCtrl.addCacheList(aid, pdDataList);
+                    ProductCacheCtrl.DataStatusCache.update(aid, pdDataList.size()); // 更新数据状态缓存
+                }
+                if(!Util.isEmptyList(relDataList)) {
+                    ProductRelCacheCtrl.addCacheList(aid, unionPriId, relDataList);
+                    ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, relDataList.size()); // 更新数据状态缓存
+                }
             } finally {
                 if(!commit) {
                     tc.rollback();
@@ -581,6 +597,7 @@ public class ProductBasicService extends ServicePub {
                 tc.commit();
                 // 更新缓存
                 ProductRelCacheCtrl.addCache(aid, unionPriId, relData);
+                ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, 1); //更新数据状态缓存
             } finally {
                 if(!commit) {
                     tc.rollback();
@@ -636,7 +653,7 @@ public class ProductBasicService extends ServicePub {
         }
 
         FaiList<Param> relDataList = new FaiList<Param>();
-        HashSet<Integer> unionPriIds = new HashSet<Integer>();
+        HashMap<Integer, FaiList<Param>> listOfUid = new HashMap<>();
         for(Param info : infoList) {
             // 是否需要校验数据，初步接入中台，一些非必要数据可能存在需要添加空数据场景
             boolean infoCheck = info.getBoolean(ProductRelEntity.Info.INFO_CHECK, true);
@@ -647,7 +664,6 @@ public class ProductBasicService extends ServicePub {
                 Log.logErr("args error, unionPriId is null;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
                 return rt;
             }
-            unionPriIds.add(unionPriId);
             Integer addedSid = info.getInt(ProductRelEntity.Info.ADD_SID);
             if(addedSid == null && !infoCheck) {
                 addedSid = 0;
@@ -695,7 +711,15 @@ public class ProductBasicService extends ServicePub {
             relData.assign(info, ProductRelEntity.Info.FLAG);
 
             relDataList.add(relData);
+            FaiList<Param> curUidList = listOfUid.get(unionPriId);
+            if(curUidList == null) {
+                curUidList = new FaiList<>();
+                listOfUid.put(unionPriId, curUidList);
+            }
+            curUidList.add(relData);
         }
+
+        Set<Integer> unionPriIds = listOfUid.keySet();
 
         FaiList<Integer> rlPdIds = new FaiList<Integer>();
 
@@ -722,8 +746,15 @@ public class ProductBasicService extends ServicePub {
 
                 commit = true;
                 tc.commit();
+                for(Integer unionPriId : unionPriIds) {
+                    FaiList<Param> curList = listOfUid.get(unionPriId);
+                    if(Util.isEmptyList(curList)) {
+                        continue;
+                    }
+                    ProductRelCacheCtrl.addCacheList(aid, unionPriId, curList);
+                    ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, curList.size()); // 更新数据状态缓存
+                }
                 // 删除缓存
-                ProductRelCacheCtrl.delCacheByUids(aid, unionPriIds);
             } finally {
                 if(!commit) {
                     tc.rollback();
@@ -776,7 +807,7 @@ public class ProductBasicService extends ServicePub {
         HashMap<Integer, FaiList<Integer>> pdRels = getBoundUniPriIds(flow, aid, bindPdIds);
 
         FaiList<Param> relDataList = new FaiList<Param>();
-        HashSet<Integer> unionPriIds = new HashSet<Integer>();
+        HashMap<Integer, FaiList<Param>> listOfUid = new HashMap<>();
         for(Param recvInfo : recvList) {
             Integer pdId = recvInfo.getInt(ProductRelEntity.Info.PD_ID);
             if(pdId == null) {
@@ -808,7 +839,6 @@ public class ProductBasicService extends ServicePub {
                 if(boundUniPriIds.contains(unionPriId)) {
                     continue;
                 }
-                unionPriIds.add(unionPriId);
                 // 是否需要校验数据，初步接入中台，一些非必要数据可能存在需要添加空数据场景
                 boolean infoCheck = info.getBoolean(ProductRelEntity.Info.INFO_CHECK, true);
                 Integer addedSid = info.getInt(ProductRelEntity.Info.ADD_SID);
@@ -860,6 +890,12 @@ public class ProductBasicService extends ServicePub {
                 relData.assign(info, ProductRelEntity.Info.PD_TYPE);
 
                 relDataList.add(relData);
+                FaiList<Param> curUidList = listOfUid.get(unionPriId);
+                if(curUidList == null) {
+                    curUidList = new FaiList<>();
+                    listOfUid.put(unionPriId, curUidList);
+                }
+                curUidList.add(relData);
             }
         }
         if(relDataList.isEmpty()) {
@@ -869,6 +905,7 @@ public class ProductBasicService extends ServicePub {
             session.write(sendBuf);
             return rt;
         }
+        Set<Integer> unionPriIds = listOfUid.keySet();
         Lock lock = LockUtil.getLock(aid);
         lock.lock();
         try {
@@ -885,8 +922,15 @@ public class ProductBasicService extends ServicePub {
 
                 commit = true;
                 tc.commit();
-                // 删除缓存
-                ProductRelCacheCtrl.delCacheByUids(aid, unionPriIds);
+                // 更新缓存
+                for(Integer unionPriId : unionPriIds) {
+                    FaiList<Param> list = listOfUid.get(unionPriId);
+                    if(!Util.isEmptyList(list)) {
+                        continue;
+                    }
+                    ProductRelCacheCtrl.addCacheList(aid, unionPriId, list);
+                    ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, list.size()); // 更新数据状态缓存
+                }
             } finally {
                 if(!commit) {
                     tc.rollback();
@@ -903,6 +947,183 @@ public class ProductBasicService extends ServicePub {
         FaiBuffer sendBuf = new FaiBuffer(true);
         session.write(sendBuf);
         Log.logStd("batch add ok;flow=%d;aid=%d;uids=%s;", flow, aid, unionPriIds);
+        return rt;
+    }
+
+    /**
+     * 获取产品数据data status
+     */
+    @SuccessRt(value = Errno.OK)
+    public int getProductDataStatus(FaiSession session, int flow, int aid) throws IOException {
+        int rt;
+        if(aid <= 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
+            return rt;
+        }
+
+        Param info;
+        TransactionCtrl tc = new TransactionCtrl();
+        try {
+            ProductProc productProc = new ProductProc(flow, aid, tc);
+            info = productProc.getDataStatus(aid);
+        }finally {
+            tc.closeDao();
+        }
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        info.toBuffer(sendBuf, ProductDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
+        session.write(sendBuf);
+        rt = Errno.OK;
+        Log.logDbg("getProductDataStatus ok;flow=%d;aid=%d;", flow, aid);
+        return rt;
+    }
+
+    /**
+     * 从db搜索aid下的商品数据
+     * 只获取部分字段：ProductEntity.MANAGE_FIELDS
+     * 目前提供给搜索服务使用
+     */
+    @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
+    public int searchProductFromDb(FaiSession session, int flow, int aid, SearchArg searchArg) throws IOException {
+        int rt;
+        if(aid <= 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
+            return rt;
+        }
+        FaiList<Param> list;
+        TransactionCtrl tc = new TransactionCtrl();
+        try {
+            ProductProc pdProc = new ProductProc(flow, aid, tc);
+            list = pdProc.searchFromDb(aid, searchArg, ProductEntity.MANAGE_FIELDS);
+
+        }finally {
+            tc.closeDao();
+        }
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        list.toBuffer(sendBuf, ProductDto.Key.INFO_LIST, ProductDto.getInfoDto());
+        if (searchArg != null && searchArg.totalSize != null && searchArg.totalSize.value != null) {
+            sendBuf.putInt(ProductDto.Key.TOTAL_SIZE, searchArg.totalSize.value);
+        }
+        session.write(sendBuf);
+        rt = Errno.OK;
+        Log.logDbg("search from db ok;flow=%d;aid=%d;size=%d;", flow, aid, list.size());
+
+        return rt;
+    }
+
+    /**
+     * 从db获取aid下所有的商品数据
+     * 只获取部分字段：ProductEntity.MANAGE_FIELDS
+     * 目前提供给搜索服务使用
+     */
+    @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
+    public int getAllProduct(FaiSession session, int flow, int aid) throws IOException {
+        int rt;
+        if(aid <= 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
+            return rt;
+        }
+        FaiList<Param> list;
+        TransactionCtrl tc = new TransactionCtrl();
+        try {
+            ProductProc pdProc = new ProductProc(flow, aid, tc);
+            SearchArg searchArg = new SearchArg(); // 获取所有数据
+            list = pdProc.searchFromDb(aid, searchArg, ProductEntity.MANAGE_FIELDS);
+
+        }finally {
+            tc.closeDao();
+        }
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        list.toBuffer(sendBuf, ProductDto.Key.INFO_LIST, ProductDto.getInfoDto());
+        session.write(sendBuf);
+        rt = Errno.OK;
+        Log.logDbg("get all from db ok;flow=%d;aid=%d;size=%d;", flow, aid, list.size());
+
+        return rt;
+    }
+
+    /**
+     * 获取商品关联数据data status
+     */
+    @SuccessRt(value = Errno.OK)
+    public int getProductRelDataStatus(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
+        int rt;
+        if(aid <= 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
+            return rt;
+        }
+
+        Param info;
+        TransactionCtrl tc = new TransactionCtrl();
+        try {
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+            info = relProc.getDataStatus(aid, unionPriId);
+        }finally {
+            tc.closeDao();
+        }
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        info.toBuffer(sendBuf, ProductRelDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
+        session.write(sendBuf);
+        rt = Errno.OK;
+        Log.logDbg("getProductRelDataStatus ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+        return rt;
+    }
+
+    @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
+    public int getAllProductRel(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
+        int rt;
+        if(aid <= 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
+            return rt;
+        }
+        FaiList<Param> list;
+        TransactionCtrl tc = new TransactionCtrl();
+        try {
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+            // 查aid + unionPriId 下所有数据，传入空的searchArg
+            SearchArg searchArg = new SearchArg();
+            list = relProc.searchFromDb(aid, unionPriId, searchArg, ProductRelEntity.MANAGE_FIELDS);
+        }finally {
+            tc.closeDao();
+        }
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        list.toBuffer(sendBuf, ProductRelDto.Key.INFO_LIST, ProductRelDto.getInfoDto());
+        session.write(sendBuf);
+        rt = Errno.OK;
+        Log.logDbg("get list ok;flow=%d;aid=%d;unionPriId=%d;size=%d;", flow, aid, unionPriId, list.size());
+
+        return rt;
+    }
+
+    @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
+    public int searchProductRelFromDb(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg) throws IOException {
+        int rt;
+        if(aid <= 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
+            return rt;
+        }
+        FaiList<Param> list;
+        TransactionCtrl tc = new TransactionCtrl();
+        try {
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+            list = relProc.searchFromDb(aid, unionPriId, searchArg, ProductRelEntity.MANAGE_FIELDS);
+        }finally {
+            tc.closeDao();
+        }
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        list.toBuffer(sendBuf, ProductRelDto.Key.INFO_LIST, ProductRelDto.getInfoDto());
+        if (searchArg != null && searchArg.totalSize != null && searchArg.totalSize.value != null) {
+            sendBuf.putInt(ProductRelDto.Key.TOTAL_SIZE, searchArg.totalSize.value);
+        }
+        session.write(sendBuf);
+        rt = Errno.OK;
+        Log.logDbg("search from db ok;flow=%d;aid=%d;unionPriId=%d;size=%d;", flow, aid, unionPriId, list.size());
+
         return rt;
     }
 

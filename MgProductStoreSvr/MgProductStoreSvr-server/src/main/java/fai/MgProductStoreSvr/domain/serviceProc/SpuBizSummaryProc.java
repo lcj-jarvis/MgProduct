@@ -44,6 +44,7 @@ public class SpuBizSummaryProc {
                 data.assign(newInfo, SpuBizSummaryEntity.Info.REMAIN_COUNT);
                 data.assign(newInfo, SpuBizSummaryEntity.Info.HOLDING_COUNT);
                 data.assign(newInfo, SpuBizSummaryEntity.Info.SALES);
+                data.assign(newInfo, SpuBizSummaryEntity.Info.FLAG);
                 data.setCalendar(SpuBizSummaryEntity.Info.SYS_UPDATE_TIME, now);
 
                 data.setInt(SpuBizSummaryEntity.Info.AID, aid);
@@ -59,6 +60,7 @@ public class SpuBizSummaryProc {
                 batchUpdater.getData().setString(SpuBizSummaryEntity.Info.REMAIN_COUNT, "?");
                 batchUpdater.getData().setString(SpuBizSummaryEntity.Info.HOLDING_COUNT, "?");
                 batchUpdater.getData().setString(SpuBizSummaryEntity.Info.SALES, "?");
+                batchUpdater.getData().setString(SpuBizSummaryEntity.Info.FLAG, "?");
                 batchUpdater.getData().setString(SpuBizSummaryEntity.Info.SYS_UPDATE_TIME, "?");
 
                 ParamMatcher batchMatcher = new ParamMatcher();
@@ -88,6 +90,7 @@ public class SpuBizSummaryProc {
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.MIN_PRICE);
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.SALES);
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.COUNT);
+                    data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.FLAG);
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.REMAIN_COUNT);
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.HOLDING_COUNT);
                     addDataList.add(data);

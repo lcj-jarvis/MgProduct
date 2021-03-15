@@ -1,5 +1,6 @@
 package fai.MgProductGroupSvr.domain.serviceproc;
 
+import fai.MgProductGroupSvr.domain.common.LockUtil;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupEntity;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupRelEntity;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupRelValObj;
@@ -8,6 +9,7 @@ import fai.MgProductGroupSvr.domain.repository.ProductGroupRelCache;
 import fai.MgProductGroupSvr.domain.repository.ProductGroupRelDaoCtrl;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
+import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
@@ -187,30 +189,43 @@ public class ProductGroupRelProc {
     private FaiList<Param> getList(int aid, int unionPriId) {
         // 从缓存获取数据
         FaiList<Param> list = ProductGroupRelCache.getCacheList(aid, unionPriId);
-        if(list != null && !list.isEmpty()) {
+        if(!Util.isEmptyList(list)) {
             return list;
         }
 
-        // db中获取
-        SearchArg searchArg = new SearchArg();
-        searchArg.matcher = new ParamMatcher(ProductGroupRelEntity.Info.AID, ParamMatcher.EQ, aid);
-        searchArg.matcher.and(ProductGroupRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        Ref<FaiList<Param>> listRef = new Ref<>();
-        int rt = m_relDao.select(searchArg, listRef);
-        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            throw new MgException(rt, "get error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+        LockUtil.GroupRelLock.readLock(aid);
+        try {
+            // check again
+            list = ProductGroupRelCache.getCacheList(aid, unionPriId);
+            if(!Util.isEmptyList(list)) {
+                return list;
+            }
+
+            // db中获取
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = new ParamMatcher(ProductGroupRelEntity.Info.AID, ParamMatcher.EQ, aid);
+            searchArg.matcher.and(ProductGroupRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            int rt = m_relDao.select(searchArg, listRef);
+            if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                throw new MgException(rt, "get error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            }
+            list = listRef.value;
+            if(list == null) {
+                list = new FaiList<Param>();
+            }
+            if (list.isEmpty()) {
+                rt = Errno.NOT_FOUND;
+                Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+                return listRef.value;
+            }
+            // 添加到缓存
+            ProductGroupRelCache.addCacheList(aid, unionPriId, list);
+        }finally {
+            LockUtil.GroupRelLock.readUnLock(aid);
         }
-        if(listRef.value == null) {
-            listRef.value = new FaiList<Param>();
-        }
-        if (listRef.value.isEmpty()) {
-            rt = Errno.NOT_FOUND;
-            Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
-            return listRef.value;
-        }
-        // 添加到缓存
-        ProductGroupRelCache.addCacheList(aid, unionPriId, listRef.value);
-        return listRef.value;
+
+        return list;
     }
 
     public int getCount(int aid, int unionPriId) {

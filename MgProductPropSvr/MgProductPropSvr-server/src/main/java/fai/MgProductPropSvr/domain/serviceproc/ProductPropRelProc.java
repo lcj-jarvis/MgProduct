@@ -1,5 +1,6 @@
 package fai.MgProductPropSvr.domain.serviceproc;
 
+import fai.MgProductPropSvr.domain.common.LockUtil;
 import fai.MgProductPropSvr.domain.entity.ProductPropRelEntity;
 import fai.MgProductPropSvr.domain.entity.ProductPropRelValObj;
 import fai.MgProductPropSvr.domain.repository.ProductPropRelCacheCtrl;
@@ -196,32 +197,44 @@ public class ProductPropRelProc {
 	private FaiList<Param> getList(int aid, int unionPriId, int libId) {
 		// 从缓存获取数据
 		FaiList<Param> list = ProductPropRelCacheCtrl.getCacheList(aid, unionPriId, libId);
-		if(list != null && !list.isEmpty()) {
+		if(!Util.isEmptyList(list)) {
 			return list;
 		}
 
-		Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
-		// db中获取
-		SearchArg searchArg = new SearchArg();
-		searchArg.matcher = new ParamMatcher(ProductPropRelEntity.Info.AID, ParamMatcher.EQ, aid);
-		searchArg.matcher.and(ProductPropRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-		searchArg.matcher.and(ProductPropRelEntity.Info.RL_LIB_ID, ParamMatcher.EQ, libId);
-		int rt = m_relDao.select(searchArg, listRef);
-		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-			throw new MgException(rt, "get error;flow=%d;aid=%d;unionPriId=%d;libId=%d;", m_flow, aid, unionPriId, libId);
+		LockUtil.PropRelLock.readLock(aid);
+		try {
+			// check again
+			list = ProductPropRelCacheCtrl.getCacheList(aid, unionPriId, libId);
+			if(!Util.isEmptyList(list)) {
+				return list;
+			}
+
+			Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
+			// db中获取
+			SearchArg searchArg = new SearchArg();
+			searchArg.matcher = new ParamMatcher(ProductPropRelEntity.Info.AID, ParamMatcher.EQ, aid);
+			searchArg.matcher.and(ProductPropRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+			searchArg.matcher.and(ProductPropRelEntity.Info.RL_LIB_ID, ParamMatcher.EQ, libId);
+			int rt = m_relDao.select(searchArg, listRef);
+			if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+				throw new MgException(rt, "get error;flow=%d;aid=%d;unionPriId=%d;libId=%d;", m_flow, aid, unionPriId, libId);
+			}
+
+			list = listRef.value;
+			if(list == null) {
+				list = new FaiList<Param>();
+			}
+			if (list.isEmpty()) {
+				rt = Errno.NOT_FOUND;
+				Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;libId=%d;", m_flow, aid, unionPriId, libId);
+				return list;
+			}
+			// 添加到缓存
+			ProductPropRelCacheCtrl.addCacheList(aid, unionPriId, libId, list);
+		}finally {
+			LockUtil.PropRelLock.readUnLock(aid);
 		}
 
-		list = listRef.value;
-		if(list == null) {
-			list = new FaiList<Param>();
-		}
-		if (Util.isEmptyList(list)) {
-			rt = Errno.NOT_FOUND;
-			Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;libId=%d;", m_flow, aid, unionPriId, libId);
-			return list;
-		}
-		// 添加到缓存
-		ProductPropRelCacheCtrl.addCacheList(aid, unionPriId, libId, list);
 		return list;
 	}
 

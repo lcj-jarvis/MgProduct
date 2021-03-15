@@ -57,8 +57,10 @@ public class MgProductPropSvr {
 
 		int lockLease = svrOption.getLockLease();
 		Log.logStd("lockLease=%d;", lockLease);
+		int readLockLength = svrOption.getReadLockLength();
+		Log.logStd("readLockLength=%d;", readLockLength);
 
-		init(daoPool, m_cache, lockLease);
+		init(daoPool, m_cache, lockLease, readLockLength);
 
 		server.setHandler(new MgProductPropHandler(server));
 		server.start();
@@ -81,17 +83,18 @@ public class MgProductPropSvr {
 		return daoPool;
 	}
 
-	public static void init(DaoPool daoPool, RedisCacheManager cache, int lockLease) {
+	public static void init(DaoPool daoPool, RedisCacheManager cache, int lockLease, int readLockLength) {
 		ProductPropDaoCtrl.init(daoPool, cache);
 		ProductPropRelDaoCtrl.init(daoPool, cache);
 		ProductPropValDaoCtrl.init(daoPool, cache);
-		LockUtil.init(cache, lockLease);
+		LockUtil.init(cache, lockLease, readLockLength);
 		CacheCtrl.init(cache);
 	}
 
 	@ParamKeyMapping(path = ".svr")
 	public static class SvrOption {
 		private int lockLease = 1000;
+		private int readLockLength = 300;
 		private boolean debug = false;
 		private String dbInstance;
 		private int dbMaxSize = 10;
@@ -110,6 +113,14 @@ public class MgProductPropSvr {
 
 		public void setLockLease(int lockLease) {
 			this.lockLease = lockLease;
+		}
+
+		public int getReadLockLength() {
+			return readLockLength;
+		}
+
+		public void setReadLockLength(int readLockLength) {
+			this.readLockLength = readLockLength;
 		}
 
 		public boolean getDebug() {

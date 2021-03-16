@@ -3,6 +3,7 @@ package fai.MgProductBasicSvr.domain.repository.cache;
 import fai.MgProductBasicSvr.domain.entity.ProductEntity;
 import fai.MgProductBasicSvr.interfaces.dto.ProductDto;
 import fai.comm.util.*;
+import fai.mgproduct.comm.DataStatus;
 
 import java.util.List;
 
@@ -31,11 +32,6 @@ public class ProductCacheCtrl extends CacheCtrl {
         String cacheKey = getCacheKey(aid);
         int pdId = info.getInt(ProductEntity.Info.PD_ID);
         m_cache.hsetParam(true, cacheKey, String.valueOf(pdId), info, ProductDto.Key.INFO, ProductDto.getInfoDto());
-        // 更新数量缓存
-        Integer count = getCountCache(aid);
-        if(count != null) {
-            setCountCache(aid, count++);
-        }
     }
 
     public static void addCacheList(int aid, FaiList<Param> list) {
@@ -44,12 +40,6 @@ public class ProductCacheCtrl extends CacheCtrl {
         }
         String cacheKey = getCacheKey(aid);
         m_cache.hmsetFaiList(cacheKey, ProductEntity.Info.PD_ID, Var.Type.INT, list, ProductDto.Key.INFO, ProductDto.getInfoDto());
-        // 更新数量缓存
-        Integer count = getCountCache(aid);
-        if(count != null) {
-            count += list.size();
-            setCountCache(aid, count);
-        }
     }
 
     public static void delCache(int aid) {
@@ -67,12 +57,6 @@ public class ProductCacheCtrl extends CacheCtrl {
         }
         String cacheKey = getCacheKey(aid);
         m_cache.hdel(cacheKey, pdIdStrs);
-        // 更新数量缓存
-        Integer count = getCountCache(aid);
-        if(count != null) {
-            count -= pdIds.size();
-            setCountCache(aid, count);
-        }
     }
 
     public static void setExpire(int aid) {
@@ -84,31 +68,39 @@ public class ProductCacheCtrl extends CacheCtrl {
         return CACHE_KEY + "-" + aid;
     }
 
-    /** productRel Count cache **/
-
-    public static void setCountCache(int aid, int count) {
-        String cacheKey = getCountCacheKey(aid);
-        m_cache.set(cacheKey, String.valueOf(count));
-    }
-
-    public static Integer getCountCache(int aid) {
-        String cacheKey = getCountCacheKey(aid);
-        String countStr = m_cache.get(cacheKey);
-        if(Str.isEmpty(countStr)) {
-            return null;
-        }
-        int count = Parser.parseInt(countStr, -1);
-        if(count < 0) {
-            return null;
-        }
-        return count;
-    }
-
-    public static String getCountCacheKey(int aid) {
-        return COUNT_CACHE_KEY + "-" + aid;
-    }
-
     private static final int EXPIRE_SECOND = 10;
     private static final String CACHE_KEY = "MG_product";
-    private static final String COUNT_CACHE_KEY = "MG_productCount";// 商品数据量缓存，aid+unionPriId 做 cache key
+
+    /** 数据状态缓存 **/
+    public static class DataStatusCache {
+        public static Param get(int aid) {
+            String cacheKey = getCacheKey(aid);
+            return m_cache.getParam(cacheKey, ProductDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
+        }
+
+        public static void add(int aid, Param info) {
+            String cacheKey = getCacheKey(aid);
+            m_cache.setParam(cacheKey, info, ProductDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
+        }
+
+        public static void update(int aid, int addCount) {
+            Param info = new Param();
+            info.setLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME, System.currentTimeMillis());
+            ParamUpdater updater = new ParamUpdater(info);
+            if(addCount != 0) {
+                updater.add(DataStatus.Info.TOTAL_SIZE, ParamUpdater.INC, addCount);
+            }
+            m_cache.updateParam(getCacheKey(aid), updater, ProductDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
+        }
+
+        public static void expire(int aid, int second) {
+            m_cache.expire(getCacheKey(aid), second);
+        }
+
+        public static String getCacheKey(int aid) {
+            return DATA_STATUS_CACHE_KEY + "-" + aid;
+        }
+
+        private static final String DATA_STATUS_CACHE_KEY = "MG_pdDS";
+    }
 }

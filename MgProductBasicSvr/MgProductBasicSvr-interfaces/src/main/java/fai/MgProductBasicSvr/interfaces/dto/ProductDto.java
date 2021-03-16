@@ -37,5 +37,8 @@ public class ProductDto {
         public static final int UNION_PRI_ID = 3;
         public static final int TID = 4;
         public static final int RL_PD_ID = 5;
+        public static final int DATA_STATUS = 6;
+        public static final int TOTAL_SIZE = 7;
+        public static final int SEARCH_ARG = 8;
     }
 }

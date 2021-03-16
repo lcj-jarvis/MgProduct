@@ -12,6 +12,16 @@ public class ProductPropValCacheCtrl extends CacheCtrl {
 		return m_cache.hgetAllFaiList(cacheKey, ProductPropValDto.Key.INFO, ProductPropValDto.getCacheInfoDto());
 	}
 
+	public static void addCacheListExist(int aid, int propId, FaiList<Param> list) {
+		if(list == null || list.isEmpty()) {
+			return;
+		}
+		if(!exists(aid, propId)) {
+			return;
+		}
+		addCacheList(aid, propId, list);
+	}
+
 	public static void addCacheList(int aid, int propId, FaiList<Param> list) {
 		if(list == null || list.isEmpty()) {
 			return;

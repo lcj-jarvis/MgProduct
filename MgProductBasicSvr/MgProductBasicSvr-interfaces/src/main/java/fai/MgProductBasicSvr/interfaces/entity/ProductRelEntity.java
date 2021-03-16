@@ -1,5 +1,7 @@
 package fai.MgProductBasicSvr.interfaces.entity;
 
+import fai.comm.util.FaiList;
+
 public class ProductRelEntity {
 
     public static final class Info {
@@ -22,5 +24,24 @@ public class ProductRelEntity {
 
         public static final String INFO_CHECK = "infoCheck"; // boolean 是否要校验info中的数据，中台内部使用。业务方接入可能需要添加一些空数据
         public static final String BIND_LIST = "bindList"; // FaiList 要绑定的商品关系表数据集合，给悦客接入进销存临时使用
+    }
+
+    public static final FaiList<String> MANAGE_FIELDS; // 管理态字段
+    public static final FaiList<String> VISITOR_FIELDS; // 访客态字段
+    static {
+        MANAGE_FIELDS = new FaiList<String>();
+        MANAGE_FIELDS.add(Info.RL_PD_ID);
+        MANAGE_FIELDS.add(Info.PD_ID);
+        MANAGE_FIELDS.add(Info.RL_LIB_ID);
+        MANAGE_FIELDS.add(Info.PD_TYPE);
+        MANAGE_FIELDS.add(Info.ADD_TIME);
+        MANAGE_FIELDS.add(Info.LAST_UPDATE_TIME);
+        MANAGE_FIELDS.add(Info.STATUS);
+        MANAGE_FIELDS.add(Info.UP_SALE_TIME);
+        MANAGE_FIELDS.add(Info.FLAG);
+        MANAGE_FIELDS.setReadOnly(true);
+
+        VISITOR_FIELDS = new FaiList<String>();
+        VISITOR_FIELDS.setReadOnly(true);
     }
 }

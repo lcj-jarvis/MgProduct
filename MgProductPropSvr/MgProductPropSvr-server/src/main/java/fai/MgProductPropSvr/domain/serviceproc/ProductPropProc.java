@@ -1,5 +1,6 @@
 package fai.MgProductPropSvr.domain.serviceproc;
 
+import fai.MgProductPropSvr.domain.common.LockUtil;
 import fai.MgProductPropSvr.domain.common.ProductPropCheck;
 import fai.MgProductPropSvr.domain.entity.ProductPropEntity;
 import fai.MgProductPropSvr.domain.entity.ProductPropValObj;
@@ -164,29 +165,41 @@ public class ProductPropProc {
 	private FaiList<Param> getList(int aid) {
 		// 从缓存获取数据
 		FaiList<Param> list = ProductPropCacheCtrl.getCacheList(aid);
-		if(list != null && !list.isEmpty()) {
+		if(!Util.isEmptyList(list)) {
 			return list;
 		}
 
-		// 从db获取数据
-		SearchArg searchArg = new SearchArg();
-		searchArg.matcher = new ParamMatcher(ProductPropEntity.Info.AID, ParamMatcher.EQ, aid);
-		Ref<FaiList<Param>> listRef = new Ref<>();
-		int rt = m_propDao.select(searchArg, listRef);
-		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-			throw new MgException(rt, "getList error;flow=%d;aid=%d;", m_flow, aid);
+		LockUtil.PropLock.readLock(aid);
+		try {
+			// check again
+			list = ProductPropCacheCtrl.getCacheList(aid);
+			if(!Util.isEmptyList(list)) {
+				return list;
+			}
+
+			// 从db获取数据
+			SearchArg searchArg = new SearchArg();
+			searchArg.matcher = new ParamMatcher(ProductPropEntity.Info.AID, ParamMatcher.EQ, aid);
+			Ref<FaiList<Param>> listRef = new Ref<>();
+			int rt = m_propDao.select(searchArg, listRef);
+			if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+				throw new MgException(rt, "getList error;flow=%d;aid=%d;", m_flow, aid);
+			}
+			list = listRef.value;
+			if(list == null) {
+				list = new FaiList<Param>();
+			}
+			if (list.isEmpty()) {
+				rt = Errno.NOT_FOUND;
+				Log.logDbg(rt, "not found;aid=%d", aid);
+				return list;
+			}
+			// 添加到缓存
+			ProductPropCacheCtrl.addCacheList(aid, list);
+		}finally {
+			LockUtil.PropLock.readUnLock(aid);
 		}
-		list = listRef.value;
-		if(list == null) {
-			list = new FaiList<Param>();
-		}
-		if (list.isEmpty()) {
-			rt = Errno.NOT_FOUND;
-			Log.logDbg(rt, "not found;aid=%d", aid);
-			return list;
-		}
-		// 添加到缓存
-		ProductPropCacheCtrl.addCacheList(aid, list);
+
 		return list;
 	}
 

@@ -1,5 +1,6 @@
 package fai.MgProductPropSvr.domain.serviceproc;
 
+import fai.MgProductPropSvr.domain.common.LockUtil;
 import fai.MgProductPropSvr.domain.entity.ProductPropValEntity;
 import fai.MgProductPropSvr.domain.entity.ProductPropValObj;
 import fai.MgProductPropSvr.domain.repository.ProductPropRelDaoCtrl;
@@ -200,30 +201,42 @@ public class ProductPropValProc {
 	private FaiList<Param> getList(int aid, int propId) {
 		// 从缓存获取数据
 		FaiList<Param> list = ProductPropValCacheCtrl.getCacheList(aid, propId);
-		if(list != null && !list.isEmpty()) {
+		if(!Util.isEmptyList(list)) {
 			return list;
 		}
 
-		Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
-		// 从db获取数据
-		SearchArg searchArg = new SearchArg();
-		searchArg.matcher = new ParamMatcher(ProductPropValEntity.Info.AID, ParamMatcher.EQ, aid);
-		searchArg.matcher.and(ProductPropValEntity.Info.PROP_ID, ParamMatcher.EQ, propId);
-		int rt = m_valDao.select(searchArg, listRef);
-		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-			throw new MgException(rt, "getList error;flow=%d;aid=%d;propId=%d;", m_flow, aid, propId);
+		LockUtil.PropValLock.readLock(aid);
+		try {
+			// check again
+			list = ProductPropValCacheCtrl.getCacheList(aid, propId);
+			if(!Util.isEmptyList(list)) {
+				return list;
+			}
+
+			Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
+			// 从db获取数据
+			SearchArg searchArg = new SearchArg();
+			searchArg.matcher = new ParamMatcher(ProductPropValEntity.Info.AID, ParamMatcher.EQ, aid);
+			searchArg.matcher.and(ProductPropValEntity.Info.PROP_ID, ParamMatcher.EQ, propId);
+			int rt = m_valDao.select(searchArg, listRef);
+			if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+				throw new MgException(rt, "getList error;flow=%d;aid=%d;propId=%d;", m_flow, aid, propId);
+			}
+			list = listRef.value;
+			if(list == null) {
+				list = new FaiList<Param>();
+			}
+			if (Util.isEmptyList(list)) {
+				rt = Errno.NOT_FOUND;
+				Log.logDbg(rt, "not found;aid=%d", aid);
+				return list;
+			}
+			// 添加到缓存
+			ProductPropValCacheCtrl.addCacheList(aid, propId, list);
+		}finally {
+			LockUtil.PropValLock.readUnLock(aid);
 		}
-		list = listRef.value;
-		if(list == null) {
-			list = new FaiList<Param>();
-		}
-		if (Util.isEmptyList(list)) {
-			rt = Errno.NOT_FOUND;
-			Log.logDbg(rt, "not found;aid=%d", aid);
-			return list;
-		}
-		// 添加到缓存
-		ProductPropValCacheCtrl.addCacheList(aid, propId, list);
+
 		return list;
 	}
 

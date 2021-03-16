@@ -1,11 +1,13 @@
 package fai.MgProductGroupSvr.domain.serviceproc;
 
+import fai.MgProductGroupSvr.domain.common.LockUtil;
 import fai.MgProductGroupSvr.domain.common.ProductGroupCheck;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupEntity;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupValObj;
 import fai.MgProductGroupSvr.domain.repository.ProductGroupCache;
 import fai.MgProductGroupSvr.domain.repository.ProductGroupDaoCtrl;
 import fai.comm.util.*;
+import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
@@ -185,29 +187,42 @@ public class ProductGroupProc {
     private FaiList<Param> getList(int aid) {
         // 从缓存获取数据
         FaiList<Param> list = ProductGroupCache.getCacheList(aid);
-        if(list != null && !list.isEmpty()) {
+        if(!Util.isEmptyList(list)) {
             return list;
         }
 
-        Ref<FaiList<Param>> listRef = new Ref<>();
-        // 从db获取数据
-        SearchArg searchArg = new SearchArg();
-        searchArg.matcher = new ParamMatcher(ProductGroupEntity.Info.AID, ParamMatcher.EQ, aid);
-        int rt = m_daoCtrl.select(searchArg, listRef);
-        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            throw new MgException(rt, "getList error;flow=%d;aid=%d;", m_flow, aid);
+        LockUtil.GroupLock.readLock(aid);
+        try {
+            // check again
+            list = ProductGroupCache.getCacheList(aid);
+            if(!Util.isEmptyList(list)) {
+                return list;
+            }
+
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            // 从db获取数据
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = new ParamMatcher(ProductGroupEntity.Info.AID, ParamMatcher.EQ, aid);
+            int rt = m_daoCtrl.select(searchArg, listRef);
+            if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                throw new MgException(rt, "getList error;flow=%d;aid=%d;", m_flow, aid);
+            }
+            list = listRef.value;
+            if(list == null) {
+                list = new FaiList<Param>();
+            }
+            if (list.isEmpty()) {
+                rt = Errno.NOT_FOUND;
+                Log.logDbg(rt, "not found;aid=%d", aid);
+                return list;
+            }
+            // 添加到缓存
+            ProductGroupCache.addCacheList(aid, list);
+        }finally {
+            LockUtil.GroupLock.readUnLock(aid);
         }
-        if(listRef.value == null) {
-            listRef.value = new FaiList<Param>();
-        }
-        if (listRef.value.isEmpty()) {
-            rt = Errno.NOT_FOUND;
-            Log.logDbg(rt, "not found;aid=%d", aid);
-            return listRef.value;
-        }
-        // 添加到缓存
-        ProductGroupCache.addCacheList(aid, listRef.value);
-        return listRef.value;
+
+        return list;
     }
 
     private int creatAndSetId(int aid, Param info) {

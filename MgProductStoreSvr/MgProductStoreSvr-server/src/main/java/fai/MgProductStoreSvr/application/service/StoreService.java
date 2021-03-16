@@ -30,7 +30,7 @@ public class StoreService {
                 return rt;
             }
             if(!reportListRef.value.isEmpty()){
-                Map<Integer, List<Param>> pdIdReportListMap = reportListRef.value.parallelStream().collect(Collectors.groupingBy((info) -> {
+                Map<Integer, List<Param>> pdIdReportListMap = reportListRef.value.stream().collect(Collectors.groupingBy((info) -> {
                     return info.getInt(StoreSalesSkuEntity.Info.PD_ID);
                 }));
                 for (Map.Entry<Integer, List<Param>> pdIdReportListEntry : pdIdReportListMap.entrySet()) {

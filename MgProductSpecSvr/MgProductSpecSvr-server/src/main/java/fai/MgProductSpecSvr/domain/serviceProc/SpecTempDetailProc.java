@@ -18,6 +18,26 @@ public class SpecTempDetailProc {
             Log.logErr("batchAdd error;flow=%d;aid=%s;infoList=%s;", m_flow, aid, infoList);
             return Errno.ARGS_ERROR;
         }
+        int rt = Errno.ERROR;
+        { // 添加前校验是否有已经存在
+            FaiList<Integer> scStrIdList = Utils.getValList(infoList, SpecTempDetailEntity.Info.SC_STR_ID);
+            ParamMatcher matcher = new ParamMatcher(SpecTempDetailEntity.Info.AID, ParamMatcher.EQ, aid);
+            matcher.and(SpecTempDetailEntity.Info.TP_SC_ID, ParamMatcher.EQ, tpScId);
+            matcher.and(SpecTempDetailEntity.Info.SC_STR_ID, ParamMatcher.IN, scStrIdList);
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = matcher;
+            Ref<Integer> countRef = new Ref<>();
+            rt = m_daoCtrl.selectCount(searchArg, countRef);
+            if(rt != Errno.OK){
+                Log.logErr(rt, "get error;flow=%d;aid=%s;tpScId=%s;scStrIdList=%s;", m_flow, aid, tpScId, scStrIdList);
+                return rt;
+            }
+            if(countRef.value>0){
+                rt = Errno.ALREADY_EXISTED;
+                Log.logStd(rt, "already existed;flow=%d;aid=%s;tpScId=%s;scStrIdList=%s;", m_flow, aid, tpScId, scStrIdList);
+                return rt;
+            }
+        }
         FaiList<Param> dataList = new FaiList<>(infoList.size());
         Calendar now = Calendar.getInstance();
         for (Param info : infoList) {
@@ -43,7 +63,7 @@ public class SpecTempDetailProc {
             dataList.add(data);
         }
 
-        int rt = m_daoCtrl.batchInsert(dataList, null);
+        rt = m_daoCtrl.batchInsert(dataList, null);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batchAdd error;flow=%d;aid=%s;", m_flow, aid);
             return rt;

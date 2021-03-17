@@ -17,7 +17,7 @@ public class MgProductSearch {
         public static final String SEARCH_KEY_WORD = "searchKeyWord";        // 搜索关键词
         public static final String ENABLE_SEARCH_PRODUCT_NAME = "enableSearchProductName";  // 是否允许搜索商品名称, 默认是 false
         public static final String ENABLE_SEARCH_PRODUCT_PROP = "enableSearchProductProp";  // 是否允许搜索商品参数, 默认是 false
-        public static final String PROP_ID_LIST = "propIdList";   //  在哪些参数下搜索, 与 searchKeyWord 匹配使用
+        public static final String KEY_WORD_SEARCH_IN_PROP_ID_LIST = "keyWordSearchInPropIdList";   //  在哪些参数下搜索, 与 searchKeyWord 匹配使用
         public static final String ENABLE_SEARCH_PRODUCT_REMARK = "enableSearchProductRemark";  // 是否允许搜索商品详情, 默认是 false
         public static final String SEARCH_PRODUCT_REMARK_KEY_LIST = "searchProductRemarkKeyList";   // 搜索商品详情 keyList, 可能区分 mobi key、site key，合适由各个项目传入进来
 
@@ -96,7 +96,7 @@ public class MgProductSearch {
     private String searchKeyWord;            //  搜索的关键字，会关联商品名称、商品对应的参数
     private boolean enableSearchProductName = false;   // 是否允许搜索商品名称, 默认是 false
     private boolean enableSearchProductProp = false;   // 是否允许搜索商品参数, 默认是 false
-    private FaiList<Integer> propIdList;    //  在哪些参数下搜索, 与 searchKeyWord 匹配使用
+    private FaiList<Integer> keyWordSearchInPropIdList;    //  在哪些参数下搜索, 与 searchKeyWord 匹配使用
     private boolean enableSearchProductRemark = false;   // 是否允许搜索商品详情, 默认是 false
     private FaiList<String> searchProductRemarkKeyList;  //  在哪些富文本详情下搜索, 与 searchKeyWord 匹配使用
     private FaiList<Integer> rlPropValIdList;   //  根据 参数值 搜索
@@ -137,7 +137,7 @@ public class MgProductSearch {
         param.setString(Info.SEARCH_KEY_WORD, searchKeyWord);  // 商品搜索关键词
         param.setBoolean(Info.ENABLE_SEARCH_PRODUCT_NAME, enableSearchProductName);   // 是否允许搜索商品名称, 默认是 false
         param.setBoolean(Info.ENABLE_SEARCH_PRODUCT_PROP, enableSearchProductProp);   // 是否允许搜索商品参数, 默认是 false
-        param.setList(Info.PROP_ID_LIST, propIdList);     //  在哪些参数下搜索, 与 searchKeyWord 匹配使用
+        param.setList(Info.KEY_WORD_SEARCH_IN_PROP_ID_LIST, keyWordSearchInPropIdList);     //  在哪些参数下搜索, 与 searchKeyWord 匹配使用
         param.setBoolean(Info.ENABLE_SEARCH_PRODUCT_REMARK, enableSearchProductRemark);  // 是否允许搜索商品详情, 默认是 false
         param.setList(Info.SEARCH_PRODUCT_REMARK_KEY_LIST, searchProductRemarkKeyList);
 
@@ -177,7 +177,7 @@ public class MgProductSearch {
         this.searchKeyWord = searchParam.getString(Info.SEARCH_KEY_WORD);   // 商品搜索关键词
         this.enableSearchProductName = searchParam.getBoolean(Info.ENABLE_SEARCH_PRODUCT_NAME);  // 是否允许搜索商品名称, 默认是 false
         this.enableSearchProductProp = searchParam.getBoolean(Info.ENABLE_SEARCH_PRODUCT_PROP);  // 是否允许搜索商品参数, 默认是 false
-        this.propIdList = searchParam.getList(Info.PROP_ID_LIST);  //  在哪些参数下筛选
+        this.keyWordSearchInPropIdList = searchParam.getList(Info.KEY_WORD_SEARCH_IN_PROP_ID_LIST);  //  在哪些参数下筛选
         this.enableSearchProductRemark = searchParam.getBoolean(Info.ENABLE_SEARCH_PRODUCT_REMARK); // 是否允许搜索商品详情, 默认是 false
         this.searchProductRemarkKeyList = searchParam.getList(Info.SEARCH_PRODUCT_REMARK_KEY_LIST);
         this.rlPropValIdList = searchParam.getList(Info.RL_PROP_VAL_ID_LIST);   // 根据 参数值 搜索
@@ -248,10 +248,12 @@ public class MgProductSearch {
             if(remainCountBegin != null || remainCountEnd != null){
                 isOnlySearchManageData = false;
             }
+
             // 判断排序字段是否包含访客字段
+            ParamComparator paramComparator = getParamComparator();
             String comparatorTable = getFirstComparatorTable();
             String firstComparatorKey = getFirstComparatorKey();
-            if(MgProductSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.searchTableName.equals(comparatorTable) && !Str.isEmpty(firstComparatorKey) && SpuBizSummaryEntity.VISITOR_FIELDS.contains(firstComparatorKey)){
+            if(!paramComparator.isEmpty() && MgProductSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.searchTableName.equals(comparatorTable) && SpuBizSummaryEntity.VISITOR_FIELDS.contains(firstComparatorKey)){
                 isOnlySearchManageData = false;
             }
             return isOnlySearchManageData;
@@ -289,11 +291,11 @@ public class MgProductSearch {
         if(paramMatcher == null){
             paramMatcher = new ParamMatcher();
         }
-        if(!Str.isEmpty(searchKeyWord) && enableSearchProductProp && propIdList != null && !propIdList.isEmpty()){
-            if(propIdList.size() == 1){
-                paramMatcher.and(ProductPropValEntity.Info.PROP_ID, ParamMatcher.EQ, propIdList.get(0));
+        if(!Str.isEmpty(searchKeyWord) && enableSearchProductProp && keyWordSearchInPropIdList != null && !keyWordSearchInPropIdList.isEmpty()){
+            if(keyWordSearchInPropIdList.size() == 1){
+                paramMatcher.and(ProductPropValEntity.Info.PROP_ID, ParamMatcher.EQ, keyWordSearchInPropIdList.get(0));
             }else{
-                paramMatcher.and(ProductPropValEntity.Info.PROP_ID, ParamMatcher.IN, propIdList);
+                paramMatcher.and(ProductPropValEntity.Info.PROP_ID, ParamMatcher.IN, keyWordSearchInPropIdList);
             }
             // 对参数值进行 like 搜索
             paramMatcher.and(ProductPropValEntity.Info.VAL, ParamMatcher.LK, searchKeyWord);
@@ -459,9 +461,23 @@ public class MgProductSearch {
         }
         // 商品价格
         if(priceBegin != null || priceEnd != null){
-            if(priceBegin != null && priceEnd != null && priceBegin.longValue() == priceEnd.longValue()){
-                paramMatcher.and(SpuBizSummaryEntity.Info.MIN_PRICE, ParamMatcher.EQ, priceBegin);
-                paramMatcher.and(SpuBizSummaryEntity.Info.MAX_PRICE, ParamMatcher.EQ, priceBegin);
+            if(priceBegin != null && priceEnd != null){
+                if(priceBegin.longValue() == priceEnd.longValue()){
+                    paramMatcher.and(SpuBizSummaryEntity.Info.MIN_PRICE, ParamMatcher.EQ, priceBegin);
+                    paramMatcher.and(SpuBizSummaryEntity.Info.MAX_PRICE, ParamMatcher.EQ, priceBegin);
+                }else{
+                    ParamMatcher priceMatcher = new ParamMatcher();
+                    ParamMatcher minPriceMatcher = new ParamMatcher();
+                    minPriceMatcher.and(SpuBizSummaryEntity.Info.MIN_PRICE, ParamMatcher.GE, priceBegin);
+                    minPriceMatcher.and(SpuBizSummaryEntity.Info.MIN_PRICE, ParamMatcher.LE, priceEnd);
+                    priceMatcher.or(minPriceMatcher);
+
+                    ParamMatcher maxPriceMatcher = new ParamMatcher();
+                    maxPriceMatcher.and(SpuBizSummaryEntity.Info.MAX_PRICE, ParamMatcher.GE, priceBegin);
+                    maxPriceMatcher.and(SpuBizSummaryEntity.Info.MAX_PRICE, ParamMatcher.LE, priceEnd);
+                    priceMatcher.or(maxPriceMatcher);
+                    paramMatcher.and(priceMatcher);
+                }
             }else{
                 if(priceBegin != null){
                     paramMatcher.and(SpuBizSummaryEntity.Info.MIN_PRICE, ParamMatcher.GE, priceBegin);
@@ -525,11 +541,11 @@ public class MgProductSearch {
         return searchKeyWord;
     }
     // 如果商品参数的搜索rlPropIdList没有设置的话，那就只是代表商品名称like搜索
-    public MgProductSearch setSearchKeyWord(String searchKeyWord, boolean enableSearchProductName, boolean enableSearchProductProp, FaiList<Integer> propIdList, boolean enableSearchProductRemark, FaiList<String> searchProductRemarkKeyList) {
+    public MgProductSearch setSearchKeyWord(String searchKeyWord, boolean enableSearchProductName, boolean enableSearchProductProp, FaiList<Integer> keyWordSearchInPropIdList, boolean enableSearchProductRemark, FaiList<String> searchProductRemarkKeyList) {
         this.searchKeyWord = searchKeyWord;
         this.enableSearchProductName = enableSearchProductName;
         this.enableSearchProductProp = enableSearchProductProp;
-        this.propIdList = propIdList;   //  在指定 propId 进行 like  搜索
+        this.keyWordSearchInPropIdList = keyWordSearchInPropIdList;   //  在指定 propId 进行 like  搜索
         this.enableSearchProductRemark = enableSearchProductRemark;
         this.searchProductRemarkKeyList = searchProductRemarkKeyList;
         return this;
@@ -563,13 +579,13 @@ public class MgProductSearch {
         this.searchProductRemarkKeyList = searchProductRemarkKeyList;
         return this;
     }
-    public MgProductSearch setPropIdList(FaiList<Integer> propIdList) {
-        this.propIdList = propIdList;
+    public MgProductSearch setKeyWordSearchInPropIdList(FaiList<Integer> keyWordSearchInPropIdList) {
+        this.keyWordSearchInPropIdList = keyWordSearchInPropIdList;
         return this;
     }
 
-    public FaiList<Integer> getPropIdList() {
-        return propIdList;
+    public FaiList<Integer> getKeyWordSearchInPropIdList() {
+        return keyWordSearchInPropIdList;
     }
     public FaiList<Integer> getRlPropValIdList() {
         return rlPropValIdList;

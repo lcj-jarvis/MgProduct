@@ -471,9 +471,12 @@ public class MgProductSearchService {
             searchDataList.add(info);
 
             Param info2 = info.clone();
+            info2.setInt(ProductEntity.Info.PD_TYPE, 1);
             info2.setInt(ProductRelEntity.Info.RL_PD_ID, 5);    //  业务商品id
             info2.setInt(ProductRelEntity.Info.PD_ID, 5);       //  商品id
+            info2.setInt(ProductRelEntity.Info.RL_LIB_ID, 5);   // 库 id
             info2.setString(ProductRelEntity.Info.ADD_TIME, "2021-03-01 05:04:12");   // 录入时间
+            info2.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DOWN);   // 上架状态
             searchDataList.add(info2);
         }
 
@@ -557,8 +560,8 @@ public class MgProductSearchService {
             searchDataList.add(info);
 
             Param info2 = info.clone();
-            info.setInt("pdId", 5);  // 商品id
-            info.setInt("rlPdId", 5);  // 商品业务id
+            info2.setInt("pdId", 5);  // 商品id
+            info2.setInt("rlPdId", 5);  // 商品业务id
             info2.setInt("rlLableId", 4);  // 商品业务标签id
             searchDataList.add(info2);
         }

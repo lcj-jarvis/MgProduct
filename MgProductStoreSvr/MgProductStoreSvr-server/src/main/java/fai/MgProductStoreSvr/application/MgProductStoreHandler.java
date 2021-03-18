@@ -153,6 +153,21 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
         return  m_storeSalesSkuService.batchMakeUpStore(session, flow, aid, unionPriId, skuIdCountList, rlOrderCode, reduceMode);
     }
 
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_REFUND_STORE)
+    private int batchRefundStore(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid final int aid,
+                                 @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
+                                 @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
+                                 @ArgList(classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto", keyMatch = StoreSalesSkuDto.Key.SKU_ID_COUNT_LIST)
+                                         FaiList<Param> skuIdCountList,
+                                 @ArgBodyString(StoreSalesSkuDto.Key.RL_REFUND_ID) final String rlRefundId,
+                                 @ArgParam(classDef = InOutStoreRecordDto.class, methodDef ="getInfoDto", keyMatch=StoreSalesSkuDto.Key.IN_OUT_STORE_RECORD_INFO)
+                                             Param inStoreRecordInfo) throws IOException {
+        return  m_storeSalesSkuService.batchRefundStore(session, flow, aid, tid, unionPriId, skuIdCountList, rlRefundId, inStoreRecordInfo);
+    }
+
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.GET_LIST)
     private int getSkuStoreSales(final FaiSession session,
                                  @ArgFlow final int flow,
@@ -272,22 +287,22 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
     }
 
     @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.GET_ALL_DATA_PART_FIELD)
-    private int getSpuBizSummaryAllDataPartFiled(final FaiSession session,
+    private int getSpuBizSummaryAllData(final FaiSession session,
                                                  @ArgFlow final int flow,
                                                  @ArgAid final int aid,
                                                  @ArgBodyInteger(SpuBizSummaryDto.Key.TID) final int tid,
                                                  @ArgBodyInteger(SpuBizSummaryDto.Key.UNION_PRI_ID) final int unionPriId) throws IOException {
-        return  m_summaryService.getSpuBizSummaryAllDataPartFiled(session, flow, aid, unionPriId);
+        return  m_summaryService.getSpuBizSummaryAllData(session, flow, aid, unionPriId);
     }
 
     @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.SEARCH_PART_FIELD)
-    private int searchSpuBizSummaryPartFiled(final FaiSession session,
+    private int searchSpuBizSummaryFromDb(final FaiSession session,
                                       @ArgFlow final int flow,
                                       @ArgAid final int aid,
                                       @ArgBodyInteger(SpuBizSummaryDto.Key.TID) final int tid,
                                       @ArgBodyInteger(SpuBizSummaryDto.Key.UNION_PRI_ID) final int unionPriId,
                                       @ArgSearchArg(value = SpuBizSummaryDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
-        return  m_summaryService.searchSpuBizSummaryPartFiled(session, flow, aid, unionPriId, searchArg);
+        return  m_summaryService.searchSpuBizSummaryFromDb(session, flow, aid, unionPriId, searchArg);
     }
 
     @Cmd(MgProductStoreCmd.SpuSummaryCmd.GET_LIST)

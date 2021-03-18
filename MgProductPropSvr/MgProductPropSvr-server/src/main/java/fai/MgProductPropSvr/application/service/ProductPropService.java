@@ -96,8 +96,8 @@ public class ProductPropService extends ServicePub {
 				// 缓存处理
 				ProductPropCacheCtrl.addCache(aid, propInfo);
 				ProductPropRelCacheCtrl.addCache(aid, unionPriId, libId, relInfo);
-				if(valList != null && !valList.isEmpty() && ProductPropValCacheCtrl.exists(aid, propId)) {
-					ProductPropValCacheCtrl.addCacheList(aid, propId, valList);
+				if(valList != null && !valList.isEmpty()) {
+					ProductPropValCacheCtrl.addCacheListExist(aid, propId, valList);
 					ProductPropValCacheCtrl.DataStatusCache.update(aid, valList.size(), true);
 				}
 				if(maxSort > 0) {

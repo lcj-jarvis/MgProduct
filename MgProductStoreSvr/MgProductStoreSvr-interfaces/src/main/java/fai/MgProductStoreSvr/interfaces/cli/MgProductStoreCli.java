@@ -6,6 +6,7 @@ import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuValObj;
 import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
+import fai.mgproduct.comm.DataStatus;
 
 public class MgProductStoreCli extends FaiClient {
     public MgProductStoreCli(int flow) {
@@ -370,7 +371,7 @@ public class MgProductStoreCli extends FaiClient {
     }
 
     /**
-     * 批量补偿库存
+     * 批量补偿库存，不需要生成入库记录
      * @param unionPriId
      * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
      * @param rlOrderCode 业务订单id/code
@@ -421,6 +422,74 @@ public class MgProductStoreCli extends FaiClient {
             stat.end((m_rt != Errno.OK), m_rt);
         }
     }
+
+    /**
+     * 批量退库存，需要生成入库记录
+     * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
+     * @param rlRefundId 退款id
+     * @return
+     */
+    public int batchRefundStore(int aid, int tid, int unionPriId, FaiList<Param> skuIdCountList, String rlRefundId, Param inStoreRecordInfo, Ref<Integer> ioStoreRecordIdRef){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0 || tid == 0 || unionPriId == 0 || skuIdCountList == null || skuIdCountList.isEmpty() || Str.isEmpty(rlRefundId) || inStoreRecordInfo == null ) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;aid=%s;tid=%s;unionPriId=%s;skuIdCountList=%s;rlRefundId=%s;inStoreRecordInfo=%s;", aid, tid, unionPriId, skuIdCountList, rlRefundId, inStoreRecordInfo);
+                return m_rt;
+            }
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(StoreSalesSkuDto.Key.TID, tid);
+            sendBody.putInt(StoreSalesSkuDto.Key.UNION_PRI_ID, unionPriId);
+            skuIdCountList.toBuffer(sendBody, StoreSalesSkuDto.Key.SKU_ID_COUNT_LIST, StoreSalesSkuDto.getInfoDto());
+            sendBody.putString(StoreSalesSkuDto.Key.RL_REFUND_ID, rlRefundId);
+            inStoreRecordInfo.toBuffer(sendBody, StoreSalesSkuDto.Key.IN_OUT_STORE_RECORD_INFO, InOutStoreRecordDto.getInfoDto());
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_REFUND_STORE);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+            if(ioStoreRecordIdRef != null){
+                FaiBuffer recvBody = recvProtocol.getDecodeBody();
+                if (recvBody == null) {
+                    m_rt = Errno.CODEC_ERROR;
+                    Log.logErr(m_rt, "recv body null");
+                    return m_rt;
+                }
+                // recv info
+                Ref<Integer> keyRef = new Ref<Integer>();
+                m_rt = recvBody.getInt(keyRef, ioStoreRecordIdRef);
+                if(m_rt != Errno.OK || keyRef.value != StoreSalesSkuDto.Key.IN_OUT_STORE_REC_ID){
+                    Log.logErr(m_rt, "recv codec err");
+                    return m_rt;
+                }
+            }
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK), m_rt);
+        }
+    }
+
+
     /**
      * 根据uid和pdId 获取商品规格库存销售sku
      */
@@ -1134,7 +1203,7 @@ public class MgProductStoreCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            m_rt = dataStatusInfo.fromBuffer(recvBody, keyRef, DataStatusDto.getInfoDto());
+            m_rt = dataStatusInfo.fromBuffer(recvBody, keyRef, DataStatus.Dto.getDataStatusDto());
             if (m_rt != Errno.OK || keyRef.value != SpuBizSummaryDto.Key.INFO) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
@@ -1149,7 +1218,7 @@ public class MgProductStoreCli extends FaiClient {
     /**
      * 获取 spu 业务销售汇总 的全部数据的部分字段
      */
-    public int getSpuBizSummaryAllDataPartFiled(int aid, int tid, int unionPriId, FaiList<Param> infoList){
+    public int getSpuBizSummaryAllData(int aid, int tid, int unionPriId, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1213,7 +1282,7 @@ public class MgProductStoreCli extends FaiClient {
     /**
      * 直接从db搜索 spu 业务销售汇总 ，返回部分字段
      */
-    public int searchSpuBizSummaryPartFiled(int aid, int tid, int unionPriId, SearchArg searchArg, FaiList<Param> infoList){
+    public int searchSpuBizSummaryFromDb(int aid, int tid, int unionPriId, SearchArg searchArg, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {

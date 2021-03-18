@@ -18,13 +18,9 @@ public class ProductBindPropEntity {
     public static final FaiList<String> VISITOR_FIELDS; // 访客态字段
     static {
         MANAGE_FIELDS = new FaiList<String>();
-        MANAGE_FIELDS.add(Info.AID);
         MANAGE_FIELDS.add(Info.RL_PD_ID);
-        MANAGE_FIELDS.add(Info.RL_PROP_ID);
         MANAGE_FIELDS.add(Info.PROP_VAL_ID);
-        MANAGE_FIELDS.add(Info.UNION_PRI_ID);
         MANAGE_FIELDS.add(Info.PD_ID);
-        MANAGE_FIELDS.add(Info.CREATE_TIME);
         MANAGE_FIELDS.setReadOnly(true);
 
         VISITOR_FIELDS = new FaiList<String>();

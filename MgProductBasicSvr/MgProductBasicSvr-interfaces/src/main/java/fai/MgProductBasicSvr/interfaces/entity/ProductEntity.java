@@ -1,5 +1,7 @@
 package fai.MgProductBasicSvr.interfaces.entity;
 
+import fai.comm.util.FaiList;
+
 public class ProductEntity {
     public static final class Info {
         public static final String AID = "aid"; // int 企业id
@@ -20,5 +22,20 @@ public class ProductEntity {
         public static final String KEEP_INT_PROP2 = "keepIntProp2"; // int 整型 保留字段2
         public static final String CREATE_TIME = "sysCreateTime"; // datetime 创建时间
         public static final String UPDATE_TIME = "sysUpdateTime"; // datetime 更新时间
+    }
+
+    public static final FaiList<String> MANAGE_FIELDS; // 管理态字段
+    public static final FaiList<String> VISITOR_FIELDS; // 访客态字段
+    static {
+        MANAGE_FIELDS = new FaiList<String>();
+        MANAGE_FIELDS.add(Info.PD_ID);
+        MANAGE_FIELDS.add(Info.NAME);
+        MANAGE_FIELDS.add(Info.PD_TYPE);
+        MANAGE_FIELDS.add(Info.FLAG);
+        MANAGE_FIELDS.add(Info.FLAG1);
+        MANAGE_FIELDS.setReadOnly(true);
+
+        VISITOR_FIELDS = new FaiList<String>();
+        VISITOR_FIELDS.setReadOnly(true);
     }
 }

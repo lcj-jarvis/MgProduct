@@ -2178,7 +2178,7 @@ public class MgProductInfCli extends FaiClient {
                 Log.logErr(m_rt, "arg skuIdCountList error");
                 return m_rt;
             }
-            if(outStoreRecordInfo == null || outStoreRecordInfo.isEmpty()){
+            if(Str.isEmpty(outStoreRecordInfo)){
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "arg outStoreRecordInfo error");
                 return m_rt;
@@ -2281,6 +2281,77 @@ public class MgProductInfCli extends FaiClient {
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductInfCmd.StoreSalesSkuCmd.BATCH_MAKE_UP_STORE);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    /**
+     * 退库存，会生成入库记录
+     * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
+     * @param rlRefundId 退款id
+     * @param inStoreRecordInfo 入库记录
+     * @return
+     */
+    public int batchRefundPdSkuStore(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> skuIdCountList, String rlRefundId, Param inStoreRecordInfo){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(skuIdCountList == null || skuIdCountList.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "arg skuIdCountList error");
+                return m_rt;
+            }
+            if(Str.isEmpty(inStoreRecordInfo)){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "arg inStoreRecordInfo error");
+                return m_rt;
+            }
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductStoreDto.Key.TID, tid);
+            sendBody.putInt(ProductStoreDto.Key.SITE_ID, siteId);
+            sendBody.putInt(ProductStoreDto.Key.LGID, lgId);
+            sendBody.putInt(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1);
+            m_rt = skuIdCountList.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.StoreSalesSku.getInfoDto());
+            if(m_rt != Errno.OK){
+                return m_rt;
+            }
+            sendBody.putString(ProductStoreDto.Key.RL_REFUND_ID, rlRefundId);
+            m_rt = inStoreRecordInfo.toBuffer(sendBody, ProductStoreDto.Key.IN_OUT_STORE_RECORD, ProductStoreDto.InOutStoreRecord.getInfoDto());
+            if(m_rt != Errno.OK){
+                return m_rt;
+            }
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductInfCmd.StoreSalesSkuCmd.BATCH_REFUND_STORE);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);

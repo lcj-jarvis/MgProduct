@@ -175,7 +175,7 @@ public class ProductBindGroupService extends ServicePub {
             ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
             // 查aid + unionPriId 下所有数据，传入空的searchArg
             SearchArg searchArg = new SearchArg();
-            list = bindGroupProc.searchFromDb(aid, unionPriId, searchArg);
+            list = bindGroupProc.searchFromDb(aid, unionPriId, searchArg, ProductBindGroupEntity.MANAGE_FIELDS);
         }finally {
             tc.closeDao();
         }
@@ -200,7 +200,7 @@ public class ProductBindGroupService extends ServicePub {
         TransactionCtrl tc = new TransactionCtrl();
         try {
             ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
-            list = bindGroupProc.searchFromDb(aid, unionPriId, searchArg);
+            list = bindGroupProc.searchFromDb(aid, unionPriId, searchArg, ProductBindGroupEntity.MANAGE_FIELDS);
 
         }finally {
             tc.closeDao();

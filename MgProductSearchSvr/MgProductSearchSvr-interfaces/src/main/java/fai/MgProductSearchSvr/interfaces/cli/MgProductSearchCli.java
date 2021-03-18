@@ -28,6 +28,10 @@ public class MgProductSearchCli extends FaiClient {
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
             searchReult.clear();
+            // 如果没有筛选条件，返回空数据，防止误调用
+            if(mgProductSearch == null || mgProductSearch.isEmpty()){
+                return Errno.ARGS_ERROR;
+            }
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(MgProductSearchDto.Key.UNION_PRI_ID, unionPriId);

@@ -116,7 +116,7 @@ public class ProductBindGroupProc {
         return statusInfo;
     }
 
-    public FaiList<Param> searchFromDb(int aid, int unionPriId, SearchArg searchArg, String ... selectFields) {
+    public FaiList<Param> searchFromDb(int aid, int unionPriId, SearchArg searchArg, FaiList<String> selectFields) {
         if(searchArg == null) {
             searchArg = new SearchArg();
         }
@@ -127,7 +127,7 @@ public class ProductBindGroupProc {
         searchArg.matcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
-        int rt = m_dao.select(searchArg, listRef, ProductBindGroupEntity.MANAGE_FIELDS);
+        int rt = m_dao.select(searchArg, listRef, selectFields);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             throw new MgException(rt, "get error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
         }

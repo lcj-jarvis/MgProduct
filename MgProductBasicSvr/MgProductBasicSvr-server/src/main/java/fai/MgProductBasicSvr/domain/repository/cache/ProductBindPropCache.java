@@ -6,6 +6,7 @@ import fai.comm.util.Param;
 import fai.comm.util.ParamUpdater;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
+
 import java.util.HashSet;
 
 public class ProductBindPropCache extends CacheCtrl {

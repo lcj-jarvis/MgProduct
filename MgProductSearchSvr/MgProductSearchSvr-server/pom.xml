@@ -10,7 +10,30 @@
     <packaging>jar</packaging>
     <version>1.0.0-SNAPSHOT</version>
     <dependencies>
-        <!-- 架构包 -->
+        <dependency>
+            <groupId>fai-comm-middleground</groupId>
+            <artifactId>fai-comm-middleground</artifactId>
+            <version>${fai-comm-middleground-ver}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>fai-middleground-svrutil</groupId>
+            <artifactId>fai-middleground-svrutil</artifactId>
+            <version>${fai-middleground-svrutil-ver}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProductComm</artifactId>
+            <version>${MgProduct-MgProductComm-ver}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>fai-comm-netkit</groupId>
+            <artifactId>fai-comm-netkit</artifactId>
+            <version>${fai-comm-netkit-ver}</version>
+        </dependency>
+
         <dependency>
             <groupId>fai-comm-jnetkit</groupId>
             <artifactId>fai-comm-jnetkit</artifactId>
@@ -55,21 +78,32 @@
 
         <!-- 中台包 -->
         <dependency>
-            <groupId>fai-comm-middleground</groupId>
-            <artifactId>fai-comm-middleground</artifactId>
-            <version>${fai-comm-middleground-ver}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>fai-middleground-svrutil</groupId>
-            <artifactId>fai-middleground-svrutil</artifactId>
-            <version>${fai-middleground-svrutil-ver}</version>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProductSearchSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductSearchSvr-interfaces-ver}</version>
         </dependency>
 
         <dependency>
             <groupId>MgProduct</groupId>
-            <artifactId>MgProductSearchSvr-interfaces</artifactId>
-            <version>${MgProduct-MgProductSearchSvr-interfaces-ver}</version>
+            <artifactId>MgProductBasicSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductBasicSvr-interfaces-ver}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProductStoreSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductStoreSvr-interfaces-ver}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProductPropSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductPropSvr-interfaces-ver}</version>
+        </dependency>
+        <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProductGroupSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductGroupSvr-interfaces-ver}</version>
         </dependency>
 
         <!-- 第三方的包 -->
@@ -139,62 +173,7 @@
             <artifactId>log4j</artifactId>
             <version>1.2.16</version>
         </dependency>
-        <dependency>
-            <groupId>fai-comm-middleground</groupId>
-            <artifactId>fai-comm-middleground</artifactId>
-            <version>RELEASE</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>fai-comm-jnetkit</groupId>
-            <artifactId>fai-comm-jnetkit</artifactId>
-            <version>RELEASE</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>fai-comm-jnetkit</groupId>
-            <artifactId>fai-comm-jnetkit</artifactId>
-            <version>RELEASE</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>fai-comm-jnetkit</groupId>
-            <artifactId>fai-comm-jnetkit</artifactId>
-            <version>RELEASE</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>fai-comm-jnetkit</groupId>
-            <artifactId>fai-comm-jnetkit</artifactId>
-            <version>RELEASE</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>fai-comm-jnetkit</groupId>
-            <artifactId>fai-comm-jnetkit</artifactId>
-            <version>RELEASE</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>fai-comm-jnetkit</groupId>
-            <artifactId>fai-comm-jnetkit</artifactId>
-            <version>RELEASE</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>MgProduct</groupId>
-            <artifactId>MgProductSearchSvr-interfaces</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>MgProduct</groupId>
-            <artifactId>MgProductGroupSvr-interfaces</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
-            <scope>compile</scope>
-        </dependency>
 
-        <!-- 注册与发现end -->
     </dependencies>
 
     <build>

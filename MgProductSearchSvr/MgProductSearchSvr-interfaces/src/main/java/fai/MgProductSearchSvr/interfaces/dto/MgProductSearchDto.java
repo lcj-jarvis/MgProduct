@@ -1,7 +1,5 @@
 package fai.MgProductSearchSvr.interfaces.dto;
 
-import fai.MgProductBasicSvr.interfaces.entity.ProductEntity;
-import fai.MgProductSearchSvr.interfaces.entity.MgProductSearch;
 import fai.MgProductSearchSvr.interfaces.entity.MgProductSearchResultEntity;
 import fai.comm.util.ParamDef;
 import fai.comm.util.Var;

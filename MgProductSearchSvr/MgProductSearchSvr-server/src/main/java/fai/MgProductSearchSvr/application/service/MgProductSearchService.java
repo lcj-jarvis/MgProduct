@@ -343,24 +343,34 @@ public class MgProductSearchService {
 
         if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName.equals(tableName)){
             // 从远端获取数据, 待完善
+            Param testDataStatusInfo = new Param();
+            int rt = mgProductBasicCli.getPdDataStatus(aid, testDataStatusInfo);
+            if(rt != Errno.OK){
+                Log.logErr(rt,"getPdDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
+            }
+            //Log.logDbg("getPdDataStatus, testDataStatusInfo=%s;", testDataStatusInfo);
             remoteDataStatusInfo.setInt(DataStatus.Info.TOTAL_SIZE, 1000);
             return remoteDataStatusInfo;
         }
         if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_REL.searchTableName.equals(tableName)){
             // 从远端获取数据, 待完善
+            Param testDataStatusInfo = new Param();
+            int rt = mgProductBasicCli.getPdRelDataStatus(aid, unionPriId, testDataStatusInfo);
+            if(rt != Errno.OK){
+                Log.logErr(rt,"getPdRelDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
+            }
+            //Log.logDbg("getPdRelDataStatus, testDataStatusInfo=%s;", testDataStatusInfo);
             remoteDataStatusInfo.setInt(DataStatus.Info.TOTAL_SIZE, 1000);
-            // 从远端获取数据, 待完善
+            return remoteDataStatusInfo;
+        }
+
+        if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.searchTableName.equals(tableName)){
             Param testDataStatusInfo = new Param();
             int rt = mgProductBasicCli.getBindPropDataStatus(aid, unionPriId, testDataStatusInfo);
             if(rt != Errno.OK){
                 Log.logErr(rt,"getBindPropDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
             }
             //Log.logDbg("getBindPropDataStatus, testDataStatusInfo=%s;", testDataStatusInfo);
-            return remoteDataStatusInfo;
-        }
-
-        if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.searchTableName.equals(tableName)){
-            // 从远端获取数据, 待完善
             remoteDataStatusInfo.setInt(DataStatus.Info.TOTAL_SIZE, 5000);
             return remoteDataStatusInfo;
         }
@@ -440,9 +450,21 @@ public class MgProductSearchService {
         int mockUnionPriId = 100;
         if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName.equals(tableName)){
             // 从远端获取数据, 待完善
+            FaiList tmpSearchDataList = new FaiList<Param>();
             if(needLoadFromDb){
+                int rt = mgProductBasicCli.searchPdFromDb(aid, searchArg, tmpSearchDataList);
+                if(rt != Errno.OK){
+                    Log.logErr(rt,"searchPdFromDb err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
+                }
+                //Log.logDbg("searchPdFromDb, tmpSearchDataList=%s;", tmpSearchDataList);
             }else{
+                int rt = mgProductBasicCli.getAllPdData(aid, tmpSearchDataList);
+                if(rt != Errno.OK){
+                    Log.logErr(rt,"getAllPdData err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
+                }
+                //Log.logDbg("getAllPdData, tmpSearchDataList=%s;", tmpSearchDataList);
             }
+
             Param info = new Param();
             info.setInt(ProductEntity.Info.AID, mockAid);
             info.setInt(ProductEntity.Info.PD_ID, 1);
@@ -454,11 +476,25 @@ public class MgProductSearchService {
             info2.setString(ProductEntity.Info.NAME, "测试商品2");
             searchDataList.add(info2);
         }
+
+
         if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_REL.searchTableName.equals(tableName)){
             // 从远端获取数据, 待完善
+            FaiList tmpSearchDataList = new FaiList<Param>();
             if(needLoadFromDb){
+                int rt = mgProductBasicCli.searchPdRelFromDb(aid, unionPriId, searchArg, tmpSearchDataList);
+                if(rt != Errno.OK){
+                    Log.logErr(rt,"searchPdRelFromDb err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
+                }
+                //Log.logDbg("searchPdRelFromDb, tmpSearchDataList=%s;", tmpSearchDataList);
             }else{
+                int rt = mgProductBasicCli.getAllPdRelData(aid, unionPriId, tmpSearchDataList);
+                if(rt != Errno.OK){
+                    Log.logErr(rt,"getAllPdRelData err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
+                }
+                //Log.logDbg("getAllPdRelData, tmpSearchDataList=%s;", tmpSearchDataList);
             }
+
             Param info = new Param();
             info.setInt(ProductRelEntity.Info.AID, mockAid);    //  aid
             info.setInt(ProductRelEntity.Info.UNION_PRI_ID, mockUnionPriId);  // 联合主键id

@@ -38,6 +38,30 @@
             <artifactId>fai-comm-distributedkit</artifactId>
             <version>${fai-comm-distributedkit-ver}</version>
         </dependency>
+
+        <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProductBasicSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductBasicSvr-interfaces-ver}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProductStoreSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductStoreSvr-interfaces-ver}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProductPropSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductPropSvr-interfaces-ver}</version>
+        </dependency>
+        <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProductGroupSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductGroupSvr-interfaces-ver}</version>
+        </dependency>
+
     </dependencies>
 
     <distributionManagement>

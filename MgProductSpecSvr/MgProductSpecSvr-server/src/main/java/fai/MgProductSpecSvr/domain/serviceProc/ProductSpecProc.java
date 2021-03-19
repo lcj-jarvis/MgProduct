@@ -310,17 +310,20 @@ public class ProductSpecProc {
         for (ParamUpdater updater : updaterList) {
             Integer pdScId = updater.getData().getInt(ProductSpecEntity.Info.PD_SC_ID);
             Param oldData = oldDataMap.remove(pdScId); // help gc
+            int oldFlag = oldData.getInt(ProductSpecEntity.Info.FLAG, 0);
             Param updatedData = updater.update(oldData, true);
-            if(!needRefreshSkuRef.value){
-                FaiList<Integer> oldCheckIdList = getCheckIdList(oldData);
-                FaiList<Integer> updatedCheckIdList = getCheckIdList(updatedData);
-                // 当原先一个规格值都未勾选，更新后存在有勾选的规格值，则需要刷新sku
-                if(oldCheckIdList.size() == 0 && updatedCheckIdList.size() > 0){
-                    needRefreshSkuRef.value = true;
-                }
-                // 当原先存在有勾选的规格值，更新后一个规格值都未勾选，则需要刷新sku
-                if(oldCheckIdList.size() > 0 && updatedCheckIdList.size() == 0){
-                    needRefreshSkuRef.value = true;
+            if(!Misc.checkBit(oldFlag, ProductSpecValObj.FLag.ALLOW_IN_PD_SC_VAL_LIST_IS_EMPTY)){
+                if(!needRefreshSkuRef.value){
+                    FaiList<Integer> oldCheckIdList = getCheckIdList(oldData);
+                    FaiList<Integer> updatedCheckIdList = getCheckIdList(updatedData);
+                    // 当原先一个规格值都未勾选，更新后存在有勾选的规格值，则需要刷新sku
+                    if(oldCheckIdList.size() == 0 && updatedCheckIdList.size() > 0){
+                        needRefreshSkuRef.value = true;
+                    }
+                    // 当原先存在有勾选的规格值，更新后一个规格值都未勾选，则需要刷新sku
+                    if(oldCheckIdList.size() > 0 && updatedCheckIdList.size() == 0){
+                        needRefreshSkuRef.value = true;
+                    }
                 }
             }
             FaiList<Param> updatedInPdScValList = updatedData.getList(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST);

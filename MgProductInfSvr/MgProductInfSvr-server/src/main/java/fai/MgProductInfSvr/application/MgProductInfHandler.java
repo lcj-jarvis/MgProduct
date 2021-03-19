@@ -444,8 +444,10 @@ public class MgProductInfHandler extends FaiHandler {
                                  @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
                                  @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
                                  @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
-                                 @ArgList(keyMatch = ProductBasicDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
-        return basicService.batchDelPdRelBind(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIds);
+                                 @ArgList(keyMatch = ProductBasicDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
+                                 @ArgBodyBoolean(value = ProductBasicDto.Key.SOFT_DEL,
+                                 useDefault = true, defaultValue = false) boolean softDel) throws IOException {
+        return basicService.batchDelPdRelBind(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIds, softDel);
     }
 
     @Cmd(MgProductInfCmd.BasicCmd.BATCH_DEL_PDS)
@@ -456,8 +458,10 @@ public class MgProductInfHandler extends FaiHandler {
                                @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
                                @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
                                @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
-                               @ArgList(keyMatch = ProductBasicDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
-        return basicService.batchDelProduct(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIds);
+                               @ArgList(keyMatch = ProductBasicDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
+                               @ArgBodyBoolean(value = ProductBasicDto.Key.SOFT_DEL,
+                               useDefault = true, defaultValue = false) boolean softDel) throws IOException {
+        return basicService.batchDelProduct(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIds, softDel);
     }
 
     @WrittenCmd

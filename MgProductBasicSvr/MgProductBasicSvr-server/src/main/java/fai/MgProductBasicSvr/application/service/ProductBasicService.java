@@ -35,9 +35,10 @@ public class ProductBasicService extends ServicePub {
 
     /**
      * 取消商品业务关联
+     * softDel: 是否软删除，软删除实际只是置起标志位
      */
     @SuccessRt(value = Errno.OK)
-    public int batchDelPdRelBind(FaiSession session, int flow ,int aid, int unionPriId, FaiList<Integer> rlPdIds) throws IOException {
+    public int batchDelPdRelBind(FaiSession session, int flow ,int aid, int unionPriId, FaiList<Integer> rlPdIds, boolean softDel) throws IOException {
         int rt;
         if(rlPdIds == null || rlPdIds.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -52,7 +53,7 @@ public class ProductBasicService extends ServicePub {
             try {
                 ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
                 ProductRelCacheCtrl.setExpire(aid, unionPriId);
-                int delCount = relProc.delProductRel(aid, unionPriId, rlPdIds);
+                int delCount = relProc.delProductRel(aid, unionPriId, rlPdIds, softDel);
                 // 删除缓存
                 ProductRelCacheCtrl.delCacheList(aid, unionPriId, rlPdIds);
                 ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, -delCount); // 更新数据状态缓存
@@ -74,7 +75,7 @@ public class ProductBasicService extends ServicePub {
      * 删除商品数据，同时删除所有相关业务关联数据
      */
     @SuccessRt(value = Errno.OK)
-    public int delProductList(FaiSession session, int flow ,int aid, int tid, int unionPriId, FaiList<Integer> rlPdIds) throws IOException {
+    public int delProductList(FaiSession session, int flow ,int aid, int tid, int unionPriId, FaiList<Integer> rlPdIds, boolean softDel) throws IOException {
         int rt;
         if(!FaiValObj.TermId.isValidTid(tid)) {
             rt = Errno.ARGS_ERROR;
@@ -93,7 +94,7 @@ public class ProductBasicService extends ServicePub {
             //统一控制事务
             TransactionCtrl tc = new TransactionCtrl();
             FaiList<Integer> pdIdList = new FaiList<Integer>();
-            HashSet<Integer> returnUids = new HashSet<Integer>();
+            FaiList<Param> delRelInfos = new FaiList<>();
             boolean commit = false;
             try {
                 tc.setAutoCommit(false);
@@ -110,23 +111,27 @@ public class ProductBasicService extends ServicePub {
                     pdIdList.add(pdId);
                 }
                 // 删除pdIdList的所有业务关联数据
-                relProc.delProductRelByPdId(aid, pdIdList, returnUids);
+                delRelInfos = relProc.delProductRelByPdId(aid, pdIdList, softDel);
                 ProductProc pdProc = new ProductProc(flow, aid, tc);
                 // 删除商品数据
-                int delPdCount = pdProc.deleteProductList(aid, tid, pdIdList);
+                int delPdCount = pdProc.deleteProductList(aid, tid, pdIdList, softDel);
 
                 commit = true;
                 tc.commit();
                 // 清缓存
-                if(!returnUids.isEmpty()) {
-                    for(Integer curUnionPriId : returnUids) {
+                if(!Util.isEmptyList(delRelInfos)) {
+                    HashSet<Integer> uids = new HashSet<>();
+                    for(Param info : delRelInfos) {
+                        int curUnionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
+                        int curRlPdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
+                        uids.add(curUnionPriId);
                         // 删除 mgProductRel 缓存
-                        ProductRelCacheCtrl.delCacheList(aid, curUnionPriId, rlPdIds);
+                        ProductRelCacheCtrl.delCache(aid, curUnionPriId, curRlPdId);
                         // 删除 cache: aid+unionPriId+pdId -> rlPdId
                         ProductRelCacheCtrl.delRlIdRelCache(aid, curUnionPriId, pdIdList);
-                        // 删除 数据状态dataStatus 缓存
-                        ProductRelCacheCtrl.DataStatusCache.del(aid, curUnionPriId);
                     }
+                    // 删除 数据状态dataStatus 缓存
+                    ProductRelCacheCtrl.DataStatusCache.del(aid, uids);
                 }
                 ProductCacheCtrl.delCacheList(aid, pdIdList);
                 ProductCacheCtrl.DataStatusCache.update(aid, -delPdCount); // 更新数据状态缓存
@@ -480,6 +485,7 @@ public class ProductBasicService extends ServicePub {
         pdData.assign(info, ProductEntity.Info.KEEP_PROP3);
         pdData.assign(info, ProductEntity.Info.KEEP_INT_PROP1);
         pdData.assign(info, ProductEntity.Info.KEEP_INT_PROP2);
+        pdData.assign(info, ProductEntity.Info.STATUS);
 
         return rt;
     }

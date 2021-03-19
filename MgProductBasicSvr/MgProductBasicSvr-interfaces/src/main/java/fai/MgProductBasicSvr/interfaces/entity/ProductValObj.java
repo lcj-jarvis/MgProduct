@@ -6,4 +6,8 @@ public class ProductValObj {
         public static final int NAME_MAXLEN = 100;
         public static final int COUNT_MAX = 300000;
     }
+
+    public static class Status {
+        public static final int DEL = 1; // 删除
+    }
 }

@@ -864,6 +864,9 @@ public class MgProductBasicCli extends FaiClient {
      * 删除商品数据，同时删除所有相关业务关联数据
      */
     public int batchDelProduct(int aid, int tid, int unionPriId, FaiList<Integer> rlPdIds) {
+        return batchDelProduct(aid, tid, unionPriId, rlPdIds, false);
+    }
+    public int batchDelProduct(int aid, int tid, int unionPriId, FaiList<Integer> rlPdIds, boolean softDel) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -883,6 +886,7 @@ public class MgProductBasicCli extends FaiClient {
             sendBody.putInt(ProductRelDto.Key.TID, tid);
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
             rlPdIds.toBuffer(sendBody, ProductRelDto.Key.RL_PD_IDS);
+            sendBody.putBoolean(ProductRelDto.Key.SOFT_DEL, softDel);
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductBasicCmd.BasicCmd.DEL_PDS);
@@ -915,8 +919,12 @@ public class MgProductBasicCli extends FaiClient {
 
     /**
      * 取消商品业务关联
+     * softDel: 是否软删除
      */
     public int batchDelPdRelBind(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
+        return batchDelPdRelBind(aid, unionPriId, rlPdIds, false);
+    }
+    public int batchDelPdRelBind(int aid, int unionPriId, FaiList<Integer> rlPdIds, boolean softDel) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -935,6 +943,7 @@ public class MgProductBasicCli extends FaiClient {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
             rlPdIds.toBuffer(sendBody, ProductRelDto.Key.RL_PD_IDS);
+            sendBody.putBoolean(ProductRelDto.Key.SOFT_DEL, softDel);
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductBasicCmd.BasicCmd.DEL_REL_BIND);

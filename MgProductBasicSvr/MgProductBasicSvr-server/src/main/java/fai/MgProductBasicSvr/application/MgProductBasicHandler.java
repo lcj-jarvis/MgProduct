@@ -204,8 +204,10 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                               @ArgAid final int aid,
                               @ArgBodyInteger(ProductRelDto.Key.TID) int tid,
                               @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
-                              @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
-        return service.delProductList(session, flow, aid, tid, unionPriId, rlPdIds);
+                              @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
+                              @ArgBodyBoolean(value = ProductRelDto.Key.SOFT_DEL,
+                              useDefault = true, defaultValue = false) boolean softDel) throws IOException {
+        return service.delProductList(session, flow, aid, tid, unionPriId, rlPdIds, softDel);
     }
 
     @WrittenCmd
@@ -214,8 +216,10 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                  @ArgFlow final int flow,
                                  @ArgAid final int aid,
                                  @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
-                                 @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
-        return service.batchDelPdRelBind(session, flow, aid, unionPriId, rlPdIds);
+                                 @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
+                                 @ArgBodyBoolean(value = ProductRelDto.Key.SOFT_DEL,
+                                 useDefault = true, defaultValue = false) boolean softDel) throws IOException {
+        return service.batchDelPdRelBind(session, flow, aid, unionPriId, rlPdIds, softDel);
     }
 
     @Cmd(MgProductBasicCmd.BasicCmd.PD_DATA_STATUS)

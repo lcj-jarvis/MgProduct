@@ -114,6 +114,7 @@ public class ProductBasicDto {
         public static final int PD_REL_INFO_LIST = 13;
         public static final int PD_REL_INFO = 14;
         public static final int PD_BIND_INFO = 15;
+        public static final int SOFT_DEL = 16;
     }
 
 

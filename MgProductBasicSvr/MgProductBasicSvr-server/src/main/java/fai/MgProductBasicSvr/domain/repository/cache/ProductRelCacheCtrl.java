@@ -176,12 +176,32 @@ public class ProductRelCacheCtrl extends CacheCtrl {
             m_cache.del(cacheKey);
         }
 
+        public static void del(int aid, HashSet<Integer> unionPriIds) {
+            String[] cacheKeys = getCacheKeys(aid, unionPriIds);
+            if(cacheKeys == null) {
+                return;
+            }
+            m_cache.del(cacheKeys);
+        }
+
         public static void expire(int aid, int unionPriId, int second) {
             m_cache.expire(getCacheKey(aid, unionPriId), second);
         }
 
         public static String getCacheKey(int aid, int unionPriId) {
             return DATA_STATUS_CACHE_KEY + "-" + aid + "-" + unionPriId;
+        }
+
+        public static String[] getCacheKeys(int aid, HashSet<Integer> unionPriIds) {
+            if(unionPriIds == null || unionPriIds.isEmpty()) {
+                return null;
+            }
+            String[] keys = new String[unionPriIds.size()];
+            int index = 0;
+            for(int unionPriId : unionPriIds) {
+                keys[index++] = getCacheKey(aid, unionPriId);
+            }
+            return keys;
         }
 
         private static final String DATA_STATUS_CACHE_KEY = "MG_pdRelDS";

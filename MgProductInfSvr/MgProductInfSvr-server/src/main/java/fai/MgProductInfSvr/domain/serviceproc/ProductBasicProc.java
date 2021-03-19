@@ -169,14 +169,14 @@ public class ProductBasicProc {
      * 取消 rlPdIds 的商品业务关联
      * @return
      */
-    public int batchDelPdRelBind(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
+    public int batchDelPdRelBind(int aid, int unionPriId, FaiList<Integer> rlPdIds, boolean softDel) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.batchDelPdRelBind(aid, unionPriId, rlPdIds);
+        rt = m_cli.batchDelPdRelBind(aid, unionPriId, rlPdIds, softDel);
         if(rt != Errno.OK) {
             if(rt != Errno.NOT_FOUND) {
                 Log.logErr(rt, "batchDelPdRelBind error;flow=%d;aid=%d;unionPriId=%d;rlPdIds=%s;", m_flow, aid, unionPriId, rlPdIds);
@@ -212,14 +212,14 @@ public class ProductBasicProc {
      * 删除指定id列表(rlPdIds)的商品数据，同时删除所有相关业务关联数据
      * @return
      */
-    public int batchDelProduct(int aid, int tid, int unionPriId, FaiList<Integer> rlPdIds) {
+    public int batchDelProduct(int aid, int tid, int unionPriId, FaiList<Integer> rlPdIds, boolean softDel) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.batchDelProduct(aid, tid, unionPriId, rlPdIds);
+        rt = m_cli.batchDelProduct(aid, tid, unionPriId, rlPdIds, softDel);
         if(rt != Errno.OK) {
             if(rt != Errno.NOT_FOUND) {
                 Log.logErr(rt, "batchDelProduct error;flow=%d;aid=%d;unionPriId=%d;rlPdIds=%s;", m_flow, aid, unionPriId, rlPdIds);

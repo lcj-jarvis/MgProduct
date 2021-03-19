@@ -180,7 +180,7 @@ public class ProductSpecService extends ServicePub {
                     pdScInfo.setInt(ProductSpecEntity.Info.SOURCE_TID, tid);
                     pdScInfo.setInt(ProductSpecEntity.Info.SOURCE_UNION_PRI_ID, unionPriId);
                     pdScInfo.setInt(ProductSpecEntity.Info.SORT, ProductSpecValObj.Default.SORT);
-                    pdScInfo.setInt(ProductSpecEntity.Info.FLAG, ProductSpecValObj.FLag.ALL|ProductSpecValObj.FLag.IN_PD_SC_VAL_LIST_CHECKED);
+                    pdScInfo.setInt(ProductSpecEntity.Info.FLAG, ProductSpecValObj.FLag.ALLOW_IN_PD_SC_VAL_LIST_IS_EMPTY|ProductSpecValObj.FLag.IN_PD_SC_VAL_LIST_CHECKED);
                     pdScInfo.setString(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST, inPdScValList.toJson());
                     pdId_pdScInfoMap.put(pdId, pdScInfo);
                 }
@@ -189,10 +189,7 @@ public class ProductSpecService extends ServicePub {
                     pdScSkuInfo.setInt(ProductSpecSkuEntity.Info.SOURCE_TID, tid);
                     pdScSkuInfo.setInt(ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID, unionPriId);
                     pdScSkuInfo.setInt(ProductSpecSkuEntity.Info.SORT, ProductSpecValObj.Default.SORT);
-                    int flag = 0;
-                    if(inPdScStrIdList.isEmpty()){
-                        flag |= ProductSpecSkuValObj.FLag.EMPTY;
-                    }
+                    int flag = ProductSpecSkuValObj.FLag.ALLOW_EMPTY;
                     pdScSkuInfo.setInt(ProductSpecSkuEntity.Info.FLAG, flag);
                     pdScSkuInfo.setString(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList.toJson());
                     pdId_pdScSkuInfoMap.put(pdId, pdScSkuInfo);
@@ -334,109 +331,132 @@ public class ProductSpecService extends ServicePub {
                         if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
                             return rt;
                         }
+                        boolean allowInPdScValListIsEmpty = false;
+                        for (Param pdScInfo : pdScInfoListRef.value) {
+                            int flag = pdScInfo.getInt(ProductSpecEntity.Info.FLAG, 0);
+                            allowInPdScValListIsEmpty |= Misc.checkBit(flag, ProductSpecValObj.FLag.ALLOW_IN_PD_SC_VAL_LIST_IS_EMPTY);
+                        }
+                        // 如果存在 允许 InPdScValList 为空的规格时，规格只能有一个
+                        if(allowInPdScValListIsEmpty && pdScInfoListRef.value.size() != 1){
+                            rt = Errno.ARGS_ERROR;
+                            Log.logErr(rt,"arg 1 error;flow=%s;aid=%s;pdId=%s;addPdScInfoList=%s;delPdScIdList=%s;updaterList=%s;", flow, aid, pdId, addPdScInfoList, delPdScIdList, updaterList);
+                            return rt;
+                        }
                         Map<Integer, Integer> idxPdScIdMap = new HashMap<>();
                         FaiList<FaiList<Integer>> skuList = genSkuList(pdScInfoListRef.value, idxPdScIdMap, ProductSpecSkuValObj.Limit.SINGLE_PRODUCT_MAX_SIZE, ProductSpecSkuValObj.Limit.InPdScValIdSkuList.MAX_SIZE);
                         if (skuList == null) {
-                            return Errno.SIZE_LIMIT;
+                            return rt = Errno.SIZE_LIMIT;
                         }
-                        if (!needReFreshSkuRef.value) {
-                            HashMap<String, FaiList<Integer>> newSkuMap = new HashMap<>( skuList.size() * 4 / 3 +1);
-                            skuList.forEach(sku -> {
-                                FaiList<Integer> tmpSku = new FaiList<>(sku);
-                                Collections.sort(tmpSku); // 排序
-                                newSkuMap.put(tmpSku.toJson(), sku); // toJson
-                            });
-
-
-                            Ref<FaiList<Param>> pdScSkuInfoListRef = new Ref<>();
-                            rt = productSpecSkuProc.getListFromDao(aid, pdId, pdScSkuInfoListRef);
-                            if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                        if(allowInPdScValListIsEmpty){
+                            if(skuList.size() != 1){
+                                rt = Errno.ARGS_ERROR;
+                                Log.logErr(rt,"arg 2 error;flow=%s;aid=%s;pdId=%s;addPdScInfoList=%s;delPdScIdList=%s;updaterList=%s;skuList=%s;", flow, aid, pdId, addPdScInfoList, delPdScIdList, updaterList, skuList);
                                 return rt;
                             }
-                            FaiList<Param> pdScSkuInfoList = pdScSkuInfoListRef.value;
-                            // 获取需要 删除 或 替换 的sku
-                            FaiList<Long> delSkuIdList = new FaiList<>();
-                            FaiList<ParamUpdater> skuUpdaterList = new FaiList<>();
-                            for (Param pdScSkuInfo : pdScSkuInfoList) {
-                                FaiList<Integer> oldInPdScStrIdList = pdScSkuInfo.getList(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST);
+                            rt = productSpecSkuProc.updateAllowEmptySku(aid, tid, unionPriId, pdId, skuList.get(0));
+                            if(rt != Errno.OK){
+                                return rt;
+                            }
+                        }else{
+                            if (!needReFreshSkuRef.value) {
+                                HashMap<String, FaiList<Integer>> newSkuMap = new HashMap<>( skuList.size() * 4 / 3 +1);
+                                skuList.forEach(sku -> {
+                                    FaiList<Integer> tmpSku = new FaiList<>(sku);
+                                    Collections.sort(tmpSku); // 排序
+                                    newSkuMap.put(tmpSku.toJson(), sku); // toJson
+                                });
 
-                                FaiList<Integer> tmpInPdScSrtIdList = null;
-                                for (int i = 0; i < oldInPdScStrIdList.size(); i++) {
-                                    Integer oldScStrId = oldInPdScStrIdList.get(i);
-                                    if(!oldNewProductSpecValKeyMap.isEmpty()){
-                                        Integer pdScId = idxPdScIdMap.get(i);
-                                        ProductSpecValKey newPdScValKey = oldNewProductSpecValKeyMap.get(new ProductSpecValKey(pdScId, oldScStrId));
-                                        if(newPdScValKey != null){
-                                            int newScStrId = newPdScValKey.inPdScValListScStrId;
-                                            if(tmpInPdScSrtIdList == null){
-                                                tmpInPdScSrtIdList = oldInPdScStrIdList.clone();
+
+                                Ref<FaiList<Param>> pdScSkuInfoListRef = new Ref<>();
+                                rt = productSpecSkuProc.getListFromDao(aid, pdId, pdScSkuInfoListRef);
+                                if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                                    return rt;
+                                }
+                                FaiList<Param> pdScSkuInfoList = pdScSkuInfoListRef.value;
+                                // 获取需要 删除 或 替换 的sku
+                                FaiList<Long> delSkuIdList = new FaiList<>();
+                                FaiList<ParamUpdater> skuUpdaterList = new FaiList<>();
+                                for (Param pdScSkuInfo : pdScSkuInfoList) {
+                                    FaiList<Integer> oldInPdScStrIdList = pdScSkuInfo.getList(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST);
+
+                                    FaiList<Integer> tmpInPdScSrtIdList = null;
+                                    for (int i = 0; i < oldInPdScStrIdList.size(); i++) {
+                                        Integer oldScStrId = oldInPdScStrIdList.get(i);
+                                        if(!oldNewProductSpecValKeyMap.isEmpty()){
+                                            Integer pdScId = idxPdScIdMap.get(i);
+                                            ProductSpecValKey newPdScValKey = oldNewProductSpecValKeyMap.get(new ProductSpecValKey(pdScId, oldScStrId));
+                                            if(newPdScValKey != null){
+                                                int newScStrId = newPdScValKey.inPdScValListScStrId;
+                                                if(tmpInPdScSrtIdList == null){
+                                                    tmpInPdScSrtIdList = oldInPdScStrIdList.clone();
+                                                }
+                                                tmpInPdScSrtIdList.set(i, newScStrId);
                                             }
-                                            tmpInPdScSrtIdList.set(i, newScStrId);
                                         }
                                     }
-                                }
-                                if(tmpInPdScSrtIdList != null){ // 说明是规格值修改名称
-                                    Log.logDbg("whalelog   tmpInPdScSrtIdList=%s", tmpInPdScSrtIdList);
-                                    ParamUpdater updater = new ParamUpdater();
-                                    updater.getData().assign(pdScSkuInfo, ProductSpecSkuEntity.Info.SKU_ID);
+                                    if(tmpInPdScSrtIdList != null){ // 说明是规格值修改名称
+                                        Log.logDbg("whalelog   tmpInPdScSrtIdList=%s", tmpInPdScSrtIdList);
+                                        ParamUpdater updater = new ParamUpdater();
+                                        updater.getData().assign(pdScSkuInfo, ProductSpecSkuEntity.Info.SKU_ID);
+                                        // toJson
+                                        updater.getData().setString(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, tmpInPdScSrtIdList.toJson());
+                                        skuUpdaterList.add(updater);
+                                    }
+                                    if(tmpInPdScSrtIdList == null){
+                                        tmpInPdScSrtIdList = oldInPdScStrIdList.clone();
+                                    }
+                                    // 排序
+                                    Collections.sort(tmpInPdScSrtIdList);
                                     // toJson
-                                    updater.getData().setString(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, tmpInPdScSrtIdList.toJson());
-                                    skuUpdaterList.add(updater);
+                                    String oldSkuKey = tmpInPdScSrtIdList.toJson();
+                                    // 从新的sku key集中移除 旧的sku key ，如果不存在旧的sku key,则当前的sku需要删除
+                                    if (newSkuMap.remove(oldSkuKey) == null) {
+                                        Log.logDbg("whalelog oldSkuKey=%s", oldSkuKey);
+                                        delSkuIdList.add(pdScSkuInfo.getLong(ProductSpecSkuEntity.Info.SKU_ID));
+                                    }
                                 }
-                                if(tmpInPdScSrtIdList == null){
-                                    tmpInPdScSrtIdList = oldInPdScStrIdList.clone();
-                                }
-                                // 排序
-                                Collections.sort(tmpInPdScSrtIdList);
-                                // toJson
-                                String oldSkuKey = tmpInPdScSrtIdList.toJson();
-                                // 从新的sku key集中移除 旧的sku key ，如果不存在旧的sku key,则当前的sku需要删除
-                                if (newSkuMap.remove(oldSkuKey) == null) {
-                                    Log.logDbg("whalelog oldSkuKey=%s", oldSkuKey);
-                                    delSkuIdList.add(pdScSkuInfo.getLong(ProductSpecSkuEntity.Info.SKU_ID));
-                                }
-                            }
 
-                            if(delSkuIdList.size() > 0){
-                                // 删除没用的sku
-                                rt = productSpecSkuProc.batchDel(aid, pdId, delSkuIdList);
+                                if(delSkuIdList.size() > 0){
+                                    // 删除没用的sku
+                                    rt = productSpecSkuProc.batchDel(aid, pdId, delSkuIdList);
+                                    if (rt != Errno.OK) {
+                                        return rt;
+                                    }
+                                }
+
+                                if(skuUpdaterList.size() > 0){
+                                    // 修改替换名称的sku
+                                    rt = productSpecSkuProc.batchSet(aid, pdId, skuUpdaterList);
+                                    if(rt != Errno.OK){
+                                        return rt;
+                                    }
+                                }
+
+                                if(newSkuMap.size() > 0){
+                                    // 需要新增的sku
+                                    FaiList<Param> addPdScSkuInfoList = new FaiList<>(newSkuMap.size());
+                                    newSkuMap.forEach((skuKey, sku) -> {
+                                        addPdScSkuInfoList.add(
+                                                new Param()
+                                                        .setList(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, sku)
+                                                        .setInt(ProductSpecSkuEntity.Info.SOURCE_TID, tid)
+                                                        .setInt(ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID, unionPriId)
+                                        );
+                                    });
+                                    FaiList<Long> addSkuIdList = new FaiList<>(addPdScSkuInfoList.size());
+                                    rt = productSpecSkuProc.batchAdd(aid, pdId, addPdScSkuInfoList, addSkuIdList);
+                                    if (rt != Errno.OK) {
+                                        return rt;
+                                    }
+                                }
+
+                            } else {
+                                FaiList<Long> rtIdList = new FaiList<>(skuList.size());
+                                rt = productSpecSkuProc.refreshSku(aid, tid, unionPriId, pdId, skuList, rtIdList);
                                 if (rt != Errno.OK) {
+                                    Log.logDbg(rt,"refreshSku err aid=%s;pdId=%s;", aid, pdId);
                                     return rt;
                                 }
-                            }
-
-                            if(skuUpdaterList.size() > 0){
-                                // 修改替换名称的sku
-                                rt = productSpecSkuProc.batchSet(aid, pdId, skuUpdaterList);
-                                if(rt != Errno.OK){
-                                    return rt;
-                                }
-                            }
-
-                            if(newSkuMap.size() > 0){
-                                // 需要新增的sku
-                                FaiList<Param> addPdScSkuInfoList = new FaiList<>(newSkuMap.size());
-                                newSkuMap.forEach((skuKey, sku) -> {
-                                    addPdScSkuInfoList.add(
-                                            new Param()
-                                            .setList(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, sku)
-                                            .setInt(ProductSpecSkuEntity.Info.SOURCE_TID, tid)
-                                            .setInt(ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID, unionPriId)
-                                    );
-                                });
-                                FaiList<Long> addSkuIdList = new FaiList<>(addPdScSkuInfoList.size());
-                                rt = productSpecSkuProc.batchAdd(aid, pdId, addPdScSkuInfoList, addSkuIdList);
-                                if (rt != Errno.OK) {
-                                    return rt;
-                                }
-                            }
-
-                        } else {
-                            FaiList<Long> rtIdList = new FaiList<>(skuList.size());
-                            rt = productSpecSkuProc.refreshSku(aid, tid, unionPriId, pdId, skuList, rtIdList);
-                            if (rt != Errno.OK) {
-                                Log.logDbg(rt,"refreshSku err aid=%s;pdId=%s;", aid, pdId);
-                                return rt;
                             }
                         }
                         rt = Errno.OK;
@@ -981,6 +1001,7 @@ public class ProductSpecService extends ServicePub {
         }finally {
             specStrDaoCtrl.closeDao();
         }
+        Log.logDbg("whalog  nameIdMap=%s");
 
         for (ParamUpdater updater : updaterList) {
             Param data = updater.getData();
@@ -992,19 +1013,20 @@ public class ProductSpecService extends ServicePub {
                     return Errno.ERROR;
                 }
                 data.setInt(ProductSpecEntity.Info.SC_STR_ID, scStrId);
-                FaiList<Param> inPdScValList = data.getListNullIsEmpty(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST);
-                for (Param inPdScValInfo : inPdScValList) {
-                    name = (String)inPdScValInfo.remove(fai.MgProductSpecSvr.interfaces.entity.ProductSpecValObj.InPdScValList.Item.NAME);
-                    scStrId = nameIdMap.getInt(name);
-                    if(scStrId == null){
-                        return Errno.ERROR;
-                    }
-                    Integer oldScSrcId = inPdScValInfo.getInt(ProductSpecValObj.InPdScValList.Item.SC_STR_ID);
-                    if (oldScSrcId != null && !scStrId.equals(oldScSrcId)) { // 说明发生了修改
-                        oldNewProductSpecValKeyMap.put(new ProductSpecValKey(pdScId, oldScSrcId), new ProductSpecValKey(pdScId, scStrId));
-                    }
-                    inPdScValInfo.setInt(ProductSpecValObj.InPdScValList.Item.SC_STR_ID, scStrId);
+
+            }
+            FaiList<Param> inPdScValList = data.getListNullIsEmpty(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST);
+            for (Param inPdScValInfo : inPdScValList) {
+                name = (String)inPdScValInfo.remove(fai.MgProductSpecSvr.interfaces.entity.ProductSpecValObj.InPdScValList.Item.NAME);
+                Integer scStrId = nameIdMap.getInt(name);
+                if(scStrId == null){
+                    return Errno.ERROR;
                 }
+                Integer oldScSrcId = inPdScValInfo.getInt(ProductSpecValObj.InPdScValList.Item.SC_STR_ID);
+                if (oldScSrcId != null && !scStrId.equals(oldScSrcId)) { // 说明发生了修改
+                    oldNewProductSpecValKeyMap.put(new ProductSpecValKey(pdScId, oldScSrcId), new ProductSpecValKey(pdScId, scStrId));
+                }
+                inPdScValInfo.setInt(ProductSpecValObj.InPdScValList.Item.SC_STR_ID, scStrId);
             }
             Log.logDbg("whalelog   data=%s", data);
         }
@@ -1133,7 +1155,9 @@ public class ProductSpecService extends ServicePub {
             }
         }
         if(allCheckScStrIds.size() == 0){
-            return new FaiList<>(new FaiList<>());
+            FaiList<FaiList<Integer>> result = new FaiList<>();
+            result.add(new FaiList<>());
+            return result;
         }
         if(allCheckScStrIds.size() > checkedListLimit){
             return null;

@@ -710,11 +710,11 @@ public class StoreSalesSkuProc {
         searchArg.matcher = matcher;
         rt = m_daoCtrl.select(searchArg, listRef, fields);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
-            Log.logStd("dao.select error;flow=%d;aid=%s;pdId=%s;", m_flow, aid, pdId);
+            Log.logErr(rt,"dao.select error;flow=%d;aid=%s;pdId=%s;skuIdList=%s", m_flow, aid, pdId, skuIdList);
             return rt;
         }
 
-        Log.logStd(rt,"getListFromDao ok;flow=%d;aid=%s;pdId=%s;", m_flow, aid, pdId);
+        Log.logStd(rt,"getListFromDao ok;flow=%d;aid=%s;pdId=%s;skuIdList=%s;", m_flow, aid, pdId, skuIdList);
         return rt;
     }
 

@@ -1011,7 +1011,7 @@ public class MgProductInfCli extends FaiClient {
     /**
      * 软删除 rlPdIds 的商品数据及所有商品业务关联数据
      */
-    public int softBatchDelProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) {
+    public int batchSoftDelProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) {
         return batchDelProduct(aid, tid, siteId, lgId, keepPriId1, rlPdIds, true);
     }
     private int batchDelProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, boolean softDel) {

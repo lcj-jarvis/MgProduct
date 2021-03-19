@@ -772,17 +772,20 @@ public class ProductStoreService extends MgProductInfService {
                     scStrIdSet.addAll(inPdScSteIdList);
                 }
             }
-            if(!scStrIdSet.isEmpty()){
-                ProductSpecProc productSpecProc = new ProductSpecProc(flow);
+            {
                 FaiList<Param> list = new FaiList<>();
-                rt = productSpecProc.getScStrInfoList(aid, tid, new FaiList<>(scStrIdSet), list);
-                if(rt != Errno.OK){
-                    return rt;
+                if(!scStrIdSet.isEmpty()){
+                    ProductSpecProc productSpecProc = new ProductSpecProc(flow);
+                    rt = productSpecProc.getScStrInfoList(aid, tid, new FaiList<>(scStrIdSet), list);
+                    if(rt != Errno.OK){
+                        return rt;
+                    }
                 }
+
                 Map<Integer, String> scStrIdNameMap = OptMisc.getMap(list, SpecStrEntity.Info.SC_STR_ID, SpecStrEntity.Info.NAME);
                 for (Param info : infoList) {
                     FaiList<Integer> inPdScSteIdList = info.getList(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST);
-                    if(inPdScSteIdList != null && !inPdScSteIdList.isEmpty()){
+                    if(inPdScSteIdList != null){
                         FaiList<String> inPdScStrNameList = new FaiList<>(inPdScSteIdList.size());
                         for (Integer scStrId : inPdScSteIdList) {
                             String name = scStrIdNameMap.get(scStrId);

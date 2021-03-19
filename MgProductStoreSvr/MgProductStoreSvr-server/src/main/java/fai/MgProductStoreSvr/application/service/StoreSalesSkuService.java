@@ -94,6 +94,14 @@ public class StoreSalesSkuService extends StoreService {
                         if(rt != Errno.OK){
                             return rt;
                         }
+                        rt = spuBizSummaryProc.batchDel(aid, new FaiList<>(Arrays.asList(pdId)));
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
+                        rt = spuSummaryProc.batchDel(aid, new FaiList<>(Arrays.asList(pdId)));
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
                     }
                     if(!addInfoList.isEmpty()){
                         notModify = false;

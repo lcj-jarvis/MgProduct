@@ -235,10 +235,10 @@ public class SkuSummaryProc {
         matcher.and(SkuSummaryEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
         int rt = m_daoCtrl.delete(matcher);
         if(rt != Errno.OK){
-            Log.logStd(rt, "delete err;flow=%s;aid=%s;pdId;skuIdList=%s;", m_flow, aid, pdId, skuIdList);
+            Log.logStd(rt, "delete err;flow=%s;aid=%s;pdId=%s;skuIdList=%s;", m_flow, aid, pdId, skuIdList);
             return rt;
         }
-        Log.logStd("ok;flow=%s;aid=%s;pdId;skuIdList=%s;", m_flow, aid, pdId, skuIdList);
+        Log.logStd("ok;flow=%s;aid=%s;pdId=%s;skuIdList=%s;", m_flow, aid, pdId, skuIdList);
         return rt;
     }
 

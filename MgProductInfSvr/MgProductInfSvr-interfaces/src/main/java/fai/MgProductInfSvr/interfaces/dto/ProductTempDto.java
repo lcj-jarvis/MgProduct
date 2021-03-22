@@ -12,6 +12,15 @@ public class ProductTempDto {
      * 商品信息
      */
     public static final class Info{
+        private static ParamDef g_holderOrderDtoDef = new ParamDef();
+        static{
+            g_holderOrderDtoDef.add("orderId", 0, Var.Type.STRING);
+            g_holderOrderDtoDef.add("count", 1, Var.Type.INT);
+        }
+        private static ParamDef getHoldingOrderDef(){
+            return g_holderOrderDtoDef;
+        }
+
         private static ParamDef g_infoDtoDef = new ParamDef();
         static {
             g_infoDtoDef.add(ProductTempEntity.ProductInfo.AID, 0, Var.Type.INT);
@@ -29,6 +38,7 @@ public class ProductTempDto {
             g_infoDtoDef.add(ProductTempEntity.ProductInfo.REMAIN_COUNT, 12, Var.Type.INT);
             g_infoDtoDef.add(ProductTempEntity.ProductInfo.HOLDING_COUNT, 13, Var.Type.INT);
             g_infoDtoDef.add(ProductTempEntity.ProductInfo.SPEC_VAL_NAME, 14, Var.Type.STRING);
+            g_infoDtoDef.add(ProductTempEntity.ProductInfo.HOLDING_ORDER_LIST, 15, getHoldingOrderDef());
         }
         public static ParamDef getInfoDto() {
             return g_infoDtoDef;

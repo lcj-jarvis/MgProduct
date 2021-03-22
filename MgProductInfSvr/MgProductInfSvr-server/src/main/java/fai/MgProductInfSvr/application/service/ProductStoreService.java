@@ -1320,6 +1320,7 @@ public class ProductStoreService extends MgProductInfService {
                 spuStoreSalesInfo.assign(info, ProductTempEntity.ProductInfo.COUNT, StoreSalesSkuEntity.Info.COUNT);
                 spuStoreSalesInfo.assign(info, ProductTempEntity.ProductInfo.REMAIN_COUNT, StoreSalesSkuEntity.Info.REMAIN_COUNT);
                 spuStoreSalesInfo.assign(info, ProductTempEntity.ProductInfo.HOLDING_COUNT, StoreSalesSkuEntity.Info.HOLDING_COUNT);
+                spuStoreSalesInfo.assign(info, ProductTempEntity.ProductInfo.HOLDING_ORDER_LIST, StoreSalesSkuEntity.Info.HOLDING_ORDER_LIST);
                 spuStoreSalesInfoList.add(spuStoreSalesInfo);
             }
 

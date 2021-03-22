@@ -6,14 +6,61 @@ import fai.MgProductStoreSvr.domain.repository.HoldingRecordDaoCtrl;
 import fai.comm.util.*;
 
 import java.util.Calendar;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class HoldingRecordProc {
     public HoldingRecordProc(HoldingRecordDaoCtrl daoCtrl, int flow) {
         m_daoCtrl = daoCtrl;
         m_flow = flow;
     }
+    public int batchSynchronous(int aid, FaiList<Param> holdingRecordList) {
+        if(holdingRecordList.isEmpty()){
+            return Errno.OK;
+        }
+        ParamMatcher matcher = new ParamMatcher(HoldingRecordEntity.Info.AID, ParamMatcher.EQ, aid);
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        int rt = m_daoCtrl.select(searchArg, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            Log.logErr(rt,"dao selectFirst error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        Set<String/*unionPirId-skuId-rlOrderCode*/> keySet = new HashSet<>(listRef.value.size()*4/3+1);
+        for (Param info : listRef.value) {
+            int unionPriId = info.getInt(HoldingRecordEntity.Info.UNION_PRI_ID);
+            long skuId = info.getLong(HoldingRecordEntity.Info.SKU_ID);
+            String rlOrderCode = info.getString(HoldingRecordEntity.Info.RL_ORDER_CODE);
+            keySet.add(unionPriId+"-"+skuId+"-"+rlOrderCode);
+        }
+        Log.logDbg("whalelog  keySet=%s;", keySet);
+        FaiList<Param> addInfoList = new FaiList<>();
+        Calendar now = Calendar.getInstance();
+        Calendar expireTime = Calendar.getInstance();
+        expireTime.set(Calendar.YEAR, 9999); // 不过期
+        for (Param info : holdingRecordList) {
+            int unionPriId = info.getInt(HoldingRecordEntity.Info.UNION_PRI_ID);
+            long skuId = info.getLong(HoldingRecordEntity.Info.SKU_ID);
+            String rlOrderCode = info.getString(HoldingRecordEntity.Info.RL_ORDER_CODE);
+            if(keySet.contains(unionPriId+"-"+skuId+"-"+rlOrderCode)){
+                continue;
+            }
 
+            info.setCalendar(HoldingRecordEntity.Info.EXPIRE_TIME, expireTime);
+            info.setCalendar(HoldingRecordEntity.Info.SYS_CREATE_TIME, now);
+            addInfoList.add(info);
+        }
+        Log.logDbg("whalelog  addInfoList=%s;", addInfoList);
+
+        rt = m_daoCtrl.batchInsert(addInfoList, null, true);
+        if(rt != Errno.OK){
+            Log.logErr(rt,"batchAdd error;flow=%d;aid=%d;addInfoList=%s", m_flow, aid, addInfoList);
+        }
+        Log.logStd("ok;flow=%d;aid=%d;", m_flow, aid);
+        return rt;
+    }
     public int batchAdd(int aid, int unionPriId, Map<Long, Integer> skuIdCountMap, String rlOrderCode, int expireTimeSeconds) {
         if(aid <= 0 || unionPriId <= 0 || skuIdCountMap == null || Str.isEmpty(rlOrderCode) || expireTimeSeconds < 0){
             Log.logErr("add error;flow=%d;aid=%d;unionPriId=%s;skuIdCountMap=%s;rlOrderCode=%s;expireTimeSeconds=%s", m_flow, aid, unionPriId, skuIdCountMap, rlOrderCode, expireTimeSeconds);

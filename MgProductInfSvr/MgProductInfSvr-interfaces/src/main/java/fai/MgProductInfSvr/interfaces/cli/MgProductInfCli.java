@@ -2172,9 +2172,12 @@ public class MgProductInfCli extends FaiClient {
         }
     }
 
-
     public int batchReducePdSkuHoldingStore(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> skuIdCountList, String rlOrderCode, Param outStoreRecordInfo){
         return batchReducePdSkuHoldingStore(aid, tid, siteId, lgId, keepPriId1, skuIdCountList, rlOrderCode, outStoreRecordInfo, null);
+    }
+
+    public int batchReducePdSkuHoldingStore(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> skuIdCountList, String rlOrderCode, Param outStoreRecordInfo, Ref<Integer> ioStoreRecordIdRef){
+        return batchReducePdSkuHoldingStore(aid, tid, siteId, lgId, keepPriId1, skuIdCountList, rlOrderCode, outStoreRecordInfo, ioStoreRecordIdRef, false);
     }
     /**
      * 批量扣除锁住的库存
@@ -2182,9 +2185,10 @@ public class MgProductInfCli extends FaiClient {
      * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
      * @param rlOrderCode 业务订单id/code
      * @param outStoreRecordInfo 出库记录
+     * @param isSynBeforeOrder 是否是同步数据前产生的订单
      * @return
      */
-    public int batchReducePdSkuHoldingStore(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> skuIdCountList, String rlOrderCode, Param outStoreRecordInfo, Ref<Integer> ioStoreRecordIdRef){
+    public int batchReducePdSkuHoldingStore(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> skuIdCountList, String rlOrderCode, Param outStoreRecordInfo, Ref<Integer> ioStoreRecordIdRef, boolean isSynBeforeOrder){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2219,6 +2223,7 @@ public class MgProductInfCli extends FaiClient {
             if(m_rt != Errno.OK){
                 return m_rt;
             }
+            sendBody.putBoolean(ProductStoreDto.Key.IS_SYN_BEFORE_ORDER, isSynBeforeOrder);
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductInfCmd.StoreSalesSkuCmd.BATCH_REDUCE_HOLDING_STORE);
@@ -2264,15 +2269,19 @@ public class MgProductInfCli extends FaiClient {
         }
     }
 
+    public int batchMakeUpPdSkuStore(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> skuIdCountList, String rlOrderCode, int reduceMode){
+        return batchMakeUpPdSkuStore(aid, tid, siteId, lgId, keepPriId1, skuIdCountList, rlOrderCode, reduceMode, false);
+    }
     /**
      * 批量补偿库存
      * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
      * @param rlOrderCode 业务订单id/code
      * @param reduceMode
      *  扣减模式 {@link ProductStoreValObj.StoreSalesSku.ReduceMode}
+     * @param isSynBeforeOrder 是否是同步数据前产生的订单
      * @return
      */
-    public int batchMakeUpPdSkuStore(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> skuIdCountList, String rlOrderCode, int reduceMode){
+    public int batchMakeUpPdSkuStore(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> skuIdCountList, String rlOrderCode, int reduceMode, boolean isSynBeforeOrder){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2298,6 +2307,7 @@ public class MgProductInfCli extends FaiClient {
             }
             sendBody.putString(ProductStoreDto.Key.RL_ORDER_CODE, rlOrderCode);
             sendBody.putInt(ProductStoreDto.Key.REDUCE_MODE, reduceMode);
+            sendBody.putBoolean(ProductStoreDto.Key.IS_SYN_BEFORE_ORDER, isSynBeforeOrder);
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductInfCmd.StoreSalesSkuCmd.BATCH_MAKE_UP_STORE);

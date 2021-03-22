@@ -467,6 +467,7 @@ public class ProductBasicService extends MgProductInfService {
             FaiList<Param> list = new FaiList<>();
             rt = basicService.getRelListByRlIds(aid, unionPriId, rlPdIds, list);
             if(rt != Errno.OK){
+                Log.logErr(rt, "batchDelProduct err;aid=%s;tid=%s;uid=%d;rlPdIds=%s;", aid, tid, unionPriId, rlPdIds);
                 return rt;
             }
             FaiList<Integer> pdIdList = OptMisc.getValList(list, ProductBasicEntity.ProductRelInfo.PD_ID);
@@ -476,6 +477,7 @@ public class ProductBasicService extends MgProductInfService {
             // 删除商品基础信息
             rt = basicService.batchDelProduct(aid, tid, unionPriId, rlPdIds, softDel);
             if(rt != Errno.OK) {
+                Log.logErr(rt, "batchDelProduct err;aid=%s;tid=%s;pdIdList=%s;", aid, tid, pdIdList);
                 return rt;
             }
             // 删除库存销售相关信息

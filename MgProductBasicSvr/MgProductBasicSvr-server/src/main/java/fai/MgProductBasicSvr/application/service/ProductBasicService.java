@@ -79,13 +79,13 @@ public class ProductBasicService extends ServicePub {
         int rt;
         if(!FaiValObj.TermId.isValidTid(tid)) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr("args error, args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+            Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
             return rt;
         }
 
         if(rlPdIds == null || rlPdIds.isEmpty()) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr("args error rlPdIds is empty;flow=%d;aid=%d;rlPdIds=%s;", flow, aid, rlPdIds);
+            Log.logErr("args error, rlPdIds is empty;flow=%d;aid=%d;rlPdIds=%s;", flow, aid, rlPdIds);
             return rt;
         }
         Lock lock = LockUtil.getLock(aid);
@@ -778,7 +778,7 @@ public class ProductBasicService extends ServicePub {
         FaiBuffer sendBuf = new FaiBuffer(true);
         rlPdIds.toBuffer(sendBuf, ProductRelDto.Key.RL_PD_IDS);
         session.write(sendBuf);
-        Log.logStd("batchBindProductRel ok;flow=%d;aid=%d;tid=%d;", flow, aid);
+        Log.logStd("batchBindProductRel ok;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
         return rt;
     }
 

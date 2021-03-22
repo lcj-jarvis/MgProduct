@@ -447,7 +447,7 @@ public class MgProductBasicCli extends FaiClient {
             }
             if(pdIds == null || pdIds.isEmpty()) {
                 m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "get args error, pdIds is null;aid=%d;uid=%d;rlPdIds=%s;", aid, unionPriId, pdIds);
+                Log.logErr(m_rt, "get args error, pdIds is null;aid=%d;uid=%d;pdIds=%s;", aid, unionPriId, pdIds);
                 return m_rt;
             }
             list.clear();

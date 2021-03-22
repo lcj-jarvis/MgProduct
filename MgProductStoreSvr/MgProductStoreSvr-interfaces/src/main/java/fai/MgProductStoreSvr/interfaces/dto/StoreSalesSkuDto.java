@@ -5,7 +5,14 @@ import fai.comm.util.ParamDef;
 import fai.comm.util.Var;
 
 public class StoreSalesSkuDto {
-
+    private static ParamDef g_holderOrderDtoDef = new ParamDef();
+    static {
+        g_holderOrderDtoDef.add("orderId", 0);
+        g_holderOrderDtoDef.add("count", 1);
+    }
+    private static ParamDef getHoldingOrderDef(){
+        return g_holderOrderDtoDef;
+    }
 
     private static ParamDef g_dtoDef = new ParamDef();
     static {
@@ -31,6 +38,7 @@ public class StoreSalesSkuDto {
         g_dtoDef.add(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, 20, Var.Type.LONG);
         g_dtoDef.add(StoreSalesSkuEntity.Info.MW_TOTAL_COST, 21, Var.Type.LONG);
         g_dtoDef.add(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, 22, Var.Type.INT);
+        g_dtoDef.add(StoreSalesSkuEntity.Info.HOLDING_ORDER_LIST, 23, getHoldingOrderDef());
     }
 
     public static ParamDef getInfoDto() {

@@ -351,7 +351,7 @@ public class RecordService extends StoreService {
             sendInOutRecord(session, searchArg, listRef);
             Log.logDbg("ok;aid=%d;searchArg.matcher.toJson=%s", aid, searchArg.matcher.toJson());
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }
         return rt;
     }

@@ -35,6 +35,7 @@ public class ProductTempEntity {
         public static final String COUNT = "count";                                 // int 设置的库存
         public static final String REMAIN_COUNT = "remainCount";                    // int 剩余库存
         public static final String HOLDING_COUNT = "holdingCount";                  // int 预扣库存
+        public static final String HOLDING_ORDER_LIST = "holdingOrderList";         // 预扣状态的预扣记录集
     }
 
     /**

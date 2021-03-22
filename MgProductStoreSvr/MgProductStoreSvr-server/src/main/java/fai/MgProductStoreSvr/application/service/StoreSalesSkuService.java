@@ -161,6 +161,7 @@ public class StoreSalesSkuService extends StoreService {
             Map<Integer, Map<Long, Param>> unionPriId_skuId_salesStoreDataMapMap = new HashMap<>();
             // 需要更新的最多key集
             Set<String> maxUpdateKeySet = new HashSet<>();
+            FaiList<Param> holdingRecordList = new FaiList<>();
             FaiList<Long> skuIdList = new FaiList<>();
             for (Param spuSalesStoreInfo : spuStoreSalesInfoList) {
                 int unionPriId = spuSalesStoreInfo.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, 0);
@@ -203,6 +204,20 @@ public class StoreSalesSkuService extends StoreService {
                 skuSalesStoreData.assign(spuSalesStoreInfo, StoreSalesSkuEntity.Info.VIRTUAL_COUNT);
                 maxUpdateKeySet.addAll(skuSalesStoreData.keySet());
                 skuId_SalesStoreDataMap.put(skuId, skuSalesStoreData);
+                FaiList<Param> holdingOrderList = spuSalesStoreInfo.getListNullIsEmpty(fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity.Info.HOLDING_ORDER_LIST);
+                if(!holdingOrderList.isEmpty()){
+                    for (Param holdingOrder : holdingOrderList) {
+                        String orderId = holdingOrder.getString("orderId");
+                        int count = holdingOrder.getInt("count");
+                        holdingRecordList.add(
+                          new Param().setInt(HoldingRecordEntity.Info.AID, aid)
+                                  .setInt(HoldingRecordEntity.Info.UNION_PRI_ID, unionPriId)
+                                  .setLong(HoldingRecordEntity.Info.SKU_ID, skuId)
+                                  .setString(HoldingRecordEntity.Info.RL_ORDER_CODE, orderId)
+                                  .setInt(HoldingRecordEntity.Info.COUNT, count)
+                        );
+                    }
+                }
             }
             maxUpdateKeySet.removeAll(Arrays.asList(StoreSalesSkuEntity.Info.AID, StoreSalesSkuEntity.Info.UNION_PRI_ID, StoreSalesSkuEntity.Info.PD_ID, StoreSalesSkuEntity.Info.RL_PD_ID, StoreSalesSkuEntity.Info.SKU_ID));
 
@@ -213,8 +228,9 @@ public class StoreSalesSkuService extends StoreService {
                 SpuBizSummaryDaoCtrl spuBizSummaryDaoCtrl = SpuBizSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
                 SpuSummaryDaoCtrl spuSummaryDaoCtrl = SpuSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
                 SkuSummaryDaoCtrl skuSummaryDaoCtrl = SkuSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+                HoldingRecordDaoCtrl holdingRecordDaoCtrl = HoldingRecordDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
 
-                if(!transactionCtrl.checkRegistered(storeSalesSkuDaoCtrl, spuBizSummaryDaoCtrl, spuSummaryDaoCtrl, skuSummaryDaoCtrl)){
+                if(!transactionCtrl.checkRegistered(storeSalesSkuDaoCtrl, spuBizSummaryDaoCtrl, spuSummaryDaoCtrl, skuSummaryDaoCtrl, holdingRecordDaoCtrl)){
                     return rt = Errno.ERROR;
                 }
 
@@ -222,9 +238,13 @@ public class StoreSalesSkuService extends StoreService {
                 SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(spuBizSummaryDaoCtrl, flow);
                 SpuSummaryProc spuSummaryProc = new SpuSummaryProc(spuSummaryDaoCtrl, flow);
                 SkuSummaryProc skuSummaryProc = new SkuSummaryProc(skuSummaryDaoCtrl, flow);
-
+                HoldingRecordProc holdingRecordProc = new HoldingRecordProc(holdingRecordDaoCtrl, flow);
                 try {
                     transactionCtrl.setAutoCommit(false);
+                    rt = holdingRecordProc.batchSynchronous(aid, holdingRecordList);
+                    if(rt != Errno.OK){
+                        return rt;
+                    }
                     rt = storeSalesSkuProc.batchSynchronousSPU2SKU(aid, unionPriId_skuId_salesStoreDataMapMap, maxUpdateKeySet);
                     if(rt != Errno.OK){
                         return rt;

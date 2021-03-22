@@ -8,6 +8,6 @@ public class ProductValObj {
     }
 
     public static class Status {
-        public static final int DEL = 1; // 删除
+        public static final int DEL = -1; // 删除, 删除状态统一用 -1
     }
 }

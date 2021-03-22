@@ -84,7 +84,26 @@ public class ProductProc {
         return pdId;
     }
 
-    public int deleteProductList(int aid, int tid, FaiList<Integer> pdIds) {
+    public int updateProduct(int aid, ParamMatcher matcher, ParamUpdater updater) {
+        int rt;
+        if(updater == null || updater.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args err, updater is null;flow=%d;aid=%d;", m_flow, aid);
+        }
+        if(matcher == null || matcher.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args err, matcher is null;flow=%d;aid=%d;", m_flow, aid);
+        }
+        matcher.and(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
+        Ref<Integer> refRowCount = new Ref<>();
+        rt = m_dao.update(updater, matcher, refRowCount);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "updateProduct error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        return refRowCount.value;
+    }
+
+    public int deleteProductList(int aid, int tid, FaiList<Integer> pdIds, boolean softDel) {
         int rt;
         if(pdIds == null || pdIds.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -94,6 +113,12 @@ public class ProductProc {
         ParamMatcher matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
         matcher.and(ProductEntity.Info.SOURCE_TID, ParamMatcher.EQ, tid);
+        if(softDel) {
+            Param updateInfo = new Param();
+            updateInfo.setInt(ProductEntity.Info.STATUS, ProductValObj.Status.DEL);
+            ParamUpdater updater = new ParamUpdater(updateInfo);
+            return updateProduct(aid, matcher, updater);
+        }
         Ref<Integer> refRowCount = new Ref<>();
         rt = m_dao.delete(matcher, refRowCount);
         if(rt != Errno.OK) {

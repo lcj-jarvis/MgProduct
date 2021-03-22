@@ -2,7 +2,6 @@ package fai.MgProductBasicSvr.domain.serviceproc;
 
 import fai.MgProductBasicSvr.domain.entity.ProductRelEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductRelValObj;
-import fai.MgProductBasicSvr.domain.entity.ProductValObj;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductRelCacheCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductRelDaoCtrl;
 import fai.comm.util.*;
@@ -31,7 +30,7 @@ public class ProductRelProc {
         int count = getPdRelCount(aid, unionPriId);
         if(count >= ProductRelValObj.Limit.COUNT_MAX) {
             rt = Errno.COUNT_LIMIT;
-            throw new MgException(rt, "over limit;flow=%d;aid=%d;uid=%d;count=%d;limit=%d;", m_flow, aid, unionPriId, count, ProductValObj.Limit.COUNT_MAX);
+            throw new MgException(rt, "over limit;flow=%d;aid=%d;uid=%d;count=%d;limit=%d;", m_flow, aid, unionPriId, count, ProductRelValObj.Limit.COUNT_MAX);
         }
         Integer rlPdId = relData.getInt(ProductRelEntity.Info.RL_PD_ID);
         if(rlPdId == null) {
@@ -78,7 +77,7 @@ public class ProductRelProc {
             int count = getPdRelCount(aid, unionPriId);
             if(count >= ProductRelValObj.Limit.COUNT_MAX) {
                 rt = Errno.COUNT_LIMIT;
-                throw new MgException(rt, "over limit;flow=%d;aid=%d;uid=%d;count=%d;limit=%d;", m_flow, aid, unionPriId, count, ProductValObj.Limit.COUNT_MAX);
+                throw new MgException(rt, "over limit;flow=%d;aid=%d;uid=%d;count=%d;limit=%d;", m_flow, aid, unionPriId, count, ProductRelValObj.Limit.COUNT_MAX);
             }
 
             Integer rlPdId = relData.getInt(ProductRelEntity.Info.RL_PD_ID);
@@ -115,7 +114,7 @@ public class ProductRelProc {
         return count;
     }
 
-    public int delProductRel(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
+    public int delProductRel(int aid, int unionPriId, FaiList<Integer> rlPdIds, boolean softDel) {
         int rt;
         if(rlPdIds == null || rlPdIds.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -124,6 +123,12 @@ public class ProductRelProc {
         ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         matcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
+        if(softDel) {
+            Param updateInfo = new Param();
+            updateInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DEL);
+            ParamUpdater updater = new ParamUpdater(updateInfo);
+            return updatePdRel(aid, matcher, updater);
+        }
         Ref<Integer> refRowCount = new Ref<>();
         rt = m_dao.delete(matcher, refRowCount);
         if(rt != Errno.OK) {
@@ -135,7 +140,7 @@ public class ProductRelProc {
     /**
      * 根据pdId, 删除所有关联数据
      */
-    public void delProductRelByPdId(int aid, FaiList<Integer> pdIds, HashSet<Integer> returnUids) {
+    public FaiList<Param> delProductRelByPdId(int aid, FaiList<Integer> pdIds, boolean softDel) {
         int rt;
         if(pdIds == null || pdIds.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -147,21 +152,45 @@ public class ProductRelProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
         Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
-        rt = m_dao.select(searchArg, listRef, ProductRelEntity.Info.UNION_PRI_ID);
+        rt = m_dao.select(searchArg, listRef, ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.RL_PD_ID);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             throw new MgException(rt, "get unionPriId error;flow=%d;aid=%d;pdIds=%d;", m_flow, aid, pdIds);
         }
         if(listRef.value == null || listRef.value.isEmpty()) {
-            return;
+            return null;
         }
-        for(Param info : listRef.value) {
-            int unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
-            returnUids.add(unionPriId);
+        if(softDel) {
+            Param updateInfo = new Param();
+            updateInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DEL);
+            ParamUpdater updater = new ParamUpdater(updateInfo);
+            updatePdRel(aid, matcher, updater);
+            return listRef.value;
         }
         rt = m_dao.delete(matcher);
         if(rt != Errno.OK) {
             throw new MgException(rt, "del product rel error;flow=%d;aid=%d;pdIds=%d;", m_flow, aid, pdIds);
         }
+
+        return listRef.value;
+    }
+
+    public int updatePdRel(int aid, ParamMatcher matcher, ParamUpdater updater) {
+        int rt;
+        if(updater == null || updater.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args err, updater is null;flow=%d;aid=%d;", m_flow, aid);
+        }
+        if(matcher == null || matcher.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args err, matcher is null;flow=%d;aid=%d;", m_flow, aid);
+        }
+        matcher.and(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        Ref<Integer> refRowCount = new Ref<>();
+        rt = m_dao.update(updater, matcher, refRowCount);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "updatePdRel error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        return refRowCount.value;
     }
 
     public Param getProductRel(int aid, int unionPriId, int rlPdId) {

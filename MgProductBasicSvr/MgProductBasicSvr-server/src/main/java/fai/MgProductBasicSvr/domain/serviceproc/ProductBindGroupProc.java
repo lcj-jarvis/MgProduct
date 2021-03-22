@@ -1,6 +1,7 @@
 package fai.MgProductBasicSvr.domain.serviceproc;
 
 import fai.MgProductBasicSvr.domain.entity.ProductBindGroupEntity;
+import fai.MgProductBasicSvr.domain.entity.ProductEntity;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductBindGroupCache;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductBindGroupDaoCtrl;
 import fai.comm.util.*;
@@ -164,31 +165,45 @@ public class ProductBindGroupProc {
         // 缓存中获取
         List<String> rlPdIdStrs = rlPdIds.stream().map(String::valueOf).collect(Collectors.toList());
         FaiList<Param> list = ProductBindGroupCache.getCacheList(aid, unionPriId, rlPdIdStrs);
-        if(list != null && !list.isEmpty()) {
+        if(list == null) {
+            list = new FaiList<Param>();
+        }
+        list.remove(null);
+        // 查到的数据量和pdIds的数据量一致，则说明都有缓存
+        if(list.size() == rlPdIds.size()) {
             return list;
+        }
+
+        // 拿到未缓存的pdId list
+        FaiList<Integer> noCacheIds = new FaiList<>();
+        noCacheIds.addAll(rlPdIds);
+        for(Param info : list) {
+            Integer rlPdId = info.getInt(ProductBindGroupEntity.Info.RL_PD_ID);
+            noCacheIds.remove(rlPdId);
         }
 
         // db中获取
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        searchArg.matcher.and(ProductBindGroupEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
-        Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
-        int rt = m_dao.select(searchArg, listRef);
+        searchArg.matcher.and(ProductBindGroupEntity.Info.RL_PD_ID, ParamMatcher.IN, noCacheIds);
+        Ref<FaiList<Param>> tmpRef = new Ref<FaiList<Param>>();
+        int rt = m_dao.select(searchArg, tmpRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            throw new MgException(rt, "get error;flow=%d;aid=%d;unionPriId=%d;rlPdIds=%s;", m_flow, aid, unionPriId, rlPdIds);
+            throw new MgException(rt, "get error;flow=%d;aid=%d;unionPriId=%d;rlPdIds=%s;", m_flow, aid, unionPriId, noCacheIds);
         }
-        if(listRef.value == null) {
-            listRef.value = new FaiList<Param>();
+        if(tmpRef.value != null && !tmpRef.value.isEmpty()) {
+            list.addAll(tmpRef.value);
+            // 添加到缓存
+            ProductBindGroupCache.addCacheList(aid, unionPriId, tmpRef.value);
         }
-        if (listRef.value.isEmpty()) {
+
+        if (list.isEmpty()) {
             rt = Errno.NOT_FOUND;
             Log.logDbg(rt, "not found;aid=%d;unionPriId=%d;", aid, unionPriId);
-            return listRef.value;
         }
-        // 添加到缓存
-        ProductBindGroupCache.addCacheList(aid, unionPriId, list);
-        return listRef.value;
+
+        return list;
     }
 
     private void init(TransactionCtrl tc) {

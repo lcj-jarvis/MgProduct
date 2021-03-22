@@ -398,7 +398,7 @@ public class ProductBasicService extends MgProductInfService {
      * 取消 rlPdIds 的商品业务关联
      * @return
      */
-    public int batchDelPdRelBind(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) throws IOException {
+    public int batchDelPdRelBind(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, boolean softDel) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -421,7 +421,7 @@ public class ProductBasicService extends MgProductInfService {
             int unionPriId = idRef.value;
 
             ProductBasicProc basicService = new ProductBasicProc(flow);
-            rt = basicService.batchDelPdRelBind(aid, unionPriId, rlPdIds);
+            rt = basicService.batchDelPdRelBind(aid, unionPriId, rlPdIds, softDel);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -439,7 +439,7 @@ public class ProductBasicService extends MgProductInfService {
      * 删除 rlPdIds 的商品数据及业务关联
      * @return
      */
-    public int batchDelProduct(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) throws IOException {
+    public int batchDelProduct(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, boolean softDel) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -467,6 +467,7 @@ public class ProductBasicService extends MgProductInfService {
             FaiList<Param> list = new FaiList<>();
             rt = basicService.getRelListByRlIds(aid, unionPriId, rlPdIds, list);
             if(rt != Errno.OK){
+                Log.logErr(rt, "batchDelProduct err;aid=%s;tid=%s;uid=%d;rlPdIds=%s;", aid, tid, unionPriId, rlPdIds);
                 return rt;
             }
             FaiList<Integer> pdIdList = OptMisc.getValList(list, ProductBasicEntity.ProductRelInfo.PD_ID);
@@ -474,8 +475,9 @@ public class ProductBasicService extends MgProductInfService {
             // TODO 分布式事务
 
             // 删除商品基础信息
-            rt = basicService.batchDelProduct(aid, tid, unionPriId, rlPdIds);
+            rt = basicService.batchDelProduct(aid, tid, unionPriId, rlPdIds, softDel);
             if(rt != Errno.OK) {
+                Log.logErr(rt, "batchDelProduct err;aid=%s;tid=%s;pdIdList=%s;", aid, tid, pdIdList);
                 return rt;
             }
             // 删除库存销售相关信息

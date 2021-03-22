@@ -940,6 +940,15 @@ public class MgProductInfCli extends FaiClient {
      * 指定业务下，取消 rlPdIds 的商品业务关联
      */
     public int batchDelPdRelBind(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) {
+        return batchDelPdRelBind(aid, tid, siteId, lgId, keepPriId1, rlPdIds, false);
+    }
+    /**
+     * 指定业务下，软删除 rlPdIds 的商品业务关联
+     */
+    public int batchSoftDelPdRelBind(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) {
+        return batchDelPdRelBind(aid, tid, siteId, lgId, keepPriId1, rlPdIds, true);
+    }
+    private int batchDelPdRelBind(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, boolean softDel) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -962,6 +971,7 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductBasicDto.Key.LGID, lgId);
             sendBody.putInt(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1);
             rlPdIds.toBuffer(sendBody, ProductBasicDto.Key.RL_PD_IDS);
+            sendBody.putBoolean(ProductBasicDto.Key.SOFT_DEL, softDel);
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductInfCmd.BasicCmd.BATCH_DEL_PD_BIND);
@@ -996,6 +1006,15 @@ public class MgProductInfCli extends FaiClient {
      * 删除 rlPdIds 的商品数据及所有商品业务关联数据
      */
     public int batchDelProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) {
+        return batchDelProduct(aid, tid, siteId, lgId, keepPriId1, rlPdIds, false);
+    }
+    /**
+     * 软删除 rlPdIds 的商品数据及所有商品业务关联数据
+     */
+    public int batchSoftDelProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) {
+        return batchDelProduct(aid, tid, siteId, lgId, keepPriId1, rlPdIds, true);
+    }
+    private int batchDelProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, boolean softDel) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1018,6 +1037,7 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductBasicDto.Key.LGID, lgId);
             sendBody.putInt(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1);
             rlPdIds.toBuffer(sendBody, ProductBasicDto.Key.RL_PD_IDS);
+            sendBody.putBoolean(ProductBasicDto.Key.SOFT_DEL, softDel);
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductInfCmd.BasicCmd.BATCH_DEL_PDS);

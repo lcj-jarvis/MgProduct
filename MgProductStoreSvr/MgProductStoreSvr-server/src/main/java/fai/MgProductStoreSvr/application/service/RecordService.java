@@ -75,7 +75,7 @@ public class RecordService extends StoreService {
                 data.assign(info, InOutStoreRecordEntity.Info.REMARK);
                 data.assign(info, InOutStoreRecordEntity.Info.RL_ORDER_CODE);
                 data.assign(info, InOutStoreRecordEntity.Info.RL_REFUND_ID);
-                if(data.containsKey(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST)){
+                if(info.containsKey(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST)){
                     data.setString(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST, info.getList(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST).toJson());
                 }
                 batchAddDataList.add(data);

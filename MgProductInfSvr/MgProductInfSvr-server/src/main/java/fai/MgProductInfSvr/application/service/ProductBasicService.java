@@ -481,13 +481,13 @@ public class ProductBasicService extends MgProductInfService {
                 return rt;
             }
             // 删除库存销售相关信息
-            rt = storeProc.batchDelPdAllStoreSales(aid, tid, pdIdList);
+            rt = storeProc.batchDelPdAllStoreSales(aid, tid, pdIdList, softDel);
             if(rt != Errno.OK){
                 Log.logErr(rt, "batchDelPdAllStoreSales err;aid=%s;tid=%s;pdIdList=%s;", aid, tid, pdIdList);
                 return rt;
             }
             // 删除商品规格相关信息
-            rt = productSpecProc.batchDelPdAllSc(aid, tid, pdIdList);
+            rt = productSpecProc.batchDelPdAllSc(aid, tid, pdIdList, softDel);
             if(rt != Errno.OK){
                 Log.logErr(rt, "batchDelPdAllStoreSales err;aid=%s;tid=%s;pdIdList=%s;", aid, tid, pdIdList);
                 return rt;
@@ -495,7 +495,7 @@ public class ProductBasicService extends MgProductInfService {
 
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
-            Log.logStd("del products ok;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+            Log.logStd("del products ok;flow=%d;aid=%d;tid=%d;softDel=%s;pdIdList=%s;", flow, aid, tid, softDel, pdIdList);
         }finally {
             stat.end(rt != Errno.OK, rt);
         }

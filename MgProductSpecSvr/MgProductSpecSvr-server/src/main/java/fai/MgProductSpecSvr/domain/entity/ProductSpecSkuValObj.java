@@ -25,4 +25,12 @@ public class ProductSpecSkuValObj {
     public static final class FLag{
         public static final int ALLOW_EMPTY = 0x2; // 允许是空规格值组合的sku
     }
+
+    /**
+     * 数据状态
+     */
+    public static final class Status{
+        public static final int DEL = -1;       // 删除, 删除状态统一用 -1
+        public static final int DEFAULT = 0;    // 默认
+    }
 }

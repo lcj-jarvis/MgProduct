@@ -309,14 +309,14 @@ public class ProductStoreProc extends AbstractProductProc{
     /**
      * 批量删除商品所有库存销售相关信息
      */
-    public int batchDelPdAllStoreSales(int aid, int tid, FaiList<Integer> pdIdList){
+    public int batchDelPdAllStoreSales(int aid, int tid, FaiList<Integer> pdIdList, boolean softDel){
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
             return rt;
         }
-        rt = m_cli.batchDelPdAllStoreSales(aid, tid, pdIdList);
+        rt = m_cli.batchDelPdAllStoreSales(aid, tid, pdIdList, softDel);
         if (rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
             return rt;

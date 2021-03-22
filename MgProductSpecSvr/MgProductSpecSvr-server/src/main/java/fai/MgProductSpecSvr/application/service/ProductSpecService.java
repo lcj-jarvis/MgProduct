@@ -418,7 +418,7 @@ public class ProductSpecService extends ServicePub {
 
                                 if(delSkuIdList.size() > 0){
                                     // 删除没用的sku
-                                    rt = productSpecSkuProc.batchDel(aid, pdId, delSkuIdList);
+                                    rt = productSpecSkuProc.batchSoftDel(aid, pdId, delSkuIdList);
                                     if (rt != Errno.OK) {
                                         return rt;
                                     }
@@ -497,7 +497,7 @@ public class ProductSpecService extends ServicePub {
         return rt;
     }
 
-    public int batchDelPdAllSc(FaiSession session, int flow, int aid, int tid, FaiList<Integer> pdIdList) throws IOException {
+    public int batchDelPdAllSc(FaiSession session, int flow, int aid, int tid, FaiList<Integer> pdIdList, boolean softDel) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -525,12 +525,13 @@ public class ProductSpecService extends ServicePub {
                     LockUtil.lock(aid);
                     try {
                         transactionCtrl.setAutoCommit(false);
-
-                        rt = productSpecProc.batchDel(aid, pdIdList);
-                        if(rt != Errno.OK){
-                            return rt;
+                        if(!softDel){
+                            rt = productSpecProc.batchDel(aid, pdIdList);
+                            if(rt != Errno.OK){
+                                return rt;
+                            }
                         }
-                        rt = productSpecSkuProc.batchDel(aid, pdIdList);
+                        rt = productSpecSkuProc.batchDel(aid, pdIdList, softDel);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -554,7 +555,7 @@ public class ProductSpecService extends ServicePub {
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
             session.write(rt);
-            Log.logStd("ok;flow=%d;aid=%d;pdIdList=%d;", flow, aid, pdIdList);
+            Log.logStd("ok;flow=%d;aid=%d;pdIdList=%s;softDel=%s;", flow, aid, pdIdList, softDel);
         }finally {
             stat.end(rt != Errno.OK, rt);
         }

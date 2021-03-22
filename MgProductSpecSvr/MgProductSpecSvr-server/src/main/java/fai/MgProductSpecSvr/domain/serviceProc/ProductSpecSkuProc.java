@@ -18,7 +18,7 @@ public class ProductSpecSkuProc {
 
     public int batchAdd(int aid, int pdId, FaiList<Param> infoList, FaiList<Long> rtIdList) {
         if(aid <= 0 || pdId <= 0 || infoList == null || infoList.isEmpty()){
-            Log.logErr("batchAdd error;flow=%d;aid=%s;pdId=%s;infoList=%s;", m_flow, aid, pdId, infoList);
+            Log.logErr("error;flow=%d;aid=%s;pdId=%s;infoList=%s;", m_flow, aid, pdId, infoList);
             return Errno.ARGS_ERROR;
         }
         FaiList<Param> dataList = new FaiList<>(infoList.size());
@@ -29,7 +29,7 @@ public class ProductSpecSkuProc {
             data.setInt(ProductSpecSkuEntity.Info.PD_ID, pdId);
             Long skuId = m_daoCtrl.buildId();
             if(skuId == null){
-                Log.logErr("batchAdd arg error;flow=%d;aid=%s;skuId=%s;info=%s;", m_flow, aid, skuId, info);
+                Log.logErr("arg error 2;flow=%d;aid=%s;skuId=%s;info=%s;", m_flow, aid, skuId, info);
                 return Errno.ERROR;
             }
             if(rtIdList != null){
@@ -52,10 +52,10 @@ public class ProductSpecSkuProc {
         cacheManage.addNeedCachedPdId(aid, pdId);
         int rt = m_daoCtrl.batchInsert(dataList, null);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "batchAdd error;flow=%d;aid=%s;pdId=%s;", m_flow, aid, pdId);
+            Log.logErr(rt, "dao.batchInsert error;flow=%d;aid=%s;pdId=%s;", m_flow, aid, pdId);
             return rt;
         }
-        Log.logStd("batchAdd ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
+        Log.logStd("ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
         return rt;
     }
 
@@ -104,7 +104,7 @@ public class ProductSpecSkuProc {
                 Long skuId = m_daoCtrl.buildId();
                 if(skuId == null){
                     rt = Errno.ERROR;
-                    Log.logStd(rt,"batchReplace4SpuToSku arg error;flow=%d;aid=%s;skuId=%s;pdScSkuInfo=%s;", m_flow, aid, skuId, pdScSkuInfo);
+                    Log.logStd(rt,"arg error 2;flow=%d;aid=%s;skuId=%s;pdScSkuInfo=%s;", m_flow, aid, skuId, pdScSkuInfo);
                     return rt;
                 }
                 pdIdSkuIdMap.put(pdId, skuId);
@@ -134,9 +134,9 @@ public class ProductSpecSkuProc {
         return rt;
     }
 
-    public int batchDel(int aid, FaiList<Integer> pdIdList) {
+    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean softDel) {
         if(aid <= 0 || pdIdList == null || pdIdList.isEmpty()){
-            Log.logErr("batchDel arg error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+            Log.logErr("arg error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
             return Errno.ARGS_ERROR;
         }
         ParamMatcher delMatcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
@@ -151,17 +151,33 @@ public class ProductSpecSkuProc {
             cacheManage.addNeedDelCachedSkuIdList(aid, skuIdList);
             cacheManage.addNeedCachedPdIdList(aid, pdIdList);
         }
-        int rt = m_daoCtrl.delete(delMatcher);
-        if(rt != Errno.OK) {
-            Log.logErr(rt, "batchDel error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
-            return rt;
+        int rt = Errno.ERROR;
+        if(softDel){
+            ParamUpdater updater = new ParamUpdater();
+            updater.getData().setInt(ProductSpecSkuEntity.Info.STATUS, ProductSpecSkuValObj.Status.DEL);
+            rt = m_daoCtrl.update(updater, delMatcher);
+            if(rt != Errno.OK) {
+                Log.logErr(rt, "dao.update error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                return rt;
+            }
+        }else{
+            rt = m_daoCtrl.delete(delMatcher);
+            if(rt != Errno.OK) {
+                Log.logErr(rt, "dao.delete error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                return rt;
+            }
         }
-        Log.logStd("batchDel ok;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
+
+        Log.logStd("ok;flow=%d;aid=%d;pdIdList=%s;softDel=%s;", m_flow, aid, pdIdList, softDel);
         return rt;
     }
-    public int batchDel(int aid, int pdId, FaiList<Long> delSkuIdList) {
+
+    /**
+     * 软删
+     */
+    public int batchSoftDel(int aid, int pdId, FaiList<Long> delSkuIdList) {
         if(aid <= 0 || pdId <= 0){
-            Log.logErr("batchDel arg error;flow=%d;aid=%s;pdId=%s;delSkuIdList=%s;", m_flow, aid, pdId, delSkuIdList);
+            Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;delSkuIdList=%s;", m_flow, aid, pdId, delSkuIdList);
             return Errno.ARGS_ERROR;
         }
         ParamMatcher delMatcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
@@ -185,21 +201,23 @@ public class ProductSpecSkuProc {
         cacheManage.addNeedDelCachedSkuIdList(aid, delSkuIdList);
         cacheManage.addNeedCachedPdId(aid, pdId);
         Log.logDbg("delMatcher.sql=%s;delMatcher.json=%s;", delMatcher.getSql(), delMatcher.toJson());
-        int rt = m_daoCtrl.delete(delMatcher);
+        ParamUpdater updater = new ParamUpdater();
+        updater.getData().setInt(ProductSpecSkuEntity.Info.STATUS, ProductSpecSkuValObj.Status.DEL);
+        int rt = m_daoCtrl.update(updater, delMatcher);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "batchDel error;flow=%d;aid=%s;pdId=%s;", m_flow, aid, pdId);
+            Log.logErr(rt, "dao.update error;flow=%d;aid=%s;pdId=%s;", m_flow, aid, pdId);
             return rt;
         }
-        Log.logStd("batchDel ok;flow=%d;aid=%d;pdId=%s;delSkuIdList=%s;", m_flow, aid, pdId, delSkuIdList);
+        Log.logStd("ok;flow=%d;aid=%d;pdId=%s;delSkuIdList=%s;", m_flow, aid, pdId, delSkuIdList);
         return rt;
     }
 
     public int refreshSku(int aid, int tid, int unionPriId, int pdId, FaiList<FaiList<Integer>> skuList, FaiList<Long> rtIdList) {
         if(aid <= 0 || pdId <= 0 || skuList == null){
-            Log.logErr("batchDel arg error;flow=%d;aid=%s;pdId=%s;skuList=%s;", m_flow, aid, pdId, skuList);
+            Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;skuList=%s;", m_flow, aid, pdId, skuList);
             return Errno.ARGS_ERROR;
         }
-        int rt = batchDel(aid, pdId, null);
+        int rt = batchSoftDel(aid, pdId, null);
         if(rt != Errno.OK) {
             return rt;
         }
@@ -216,13 +234,13 @@ public class ProductSpecSkuProc {
         if(rt != Errno.OK){
             return rt;
         }
-        Log.logStd("refreshSku ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
+        Log.logStd("ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
         return rt;
     }
 
     public int batchSet(int aid, int pdId, FaiList<ParamUpdater> updaterList){
         if(aid <= 0 || pdId <=0 || updaterList == null || updaterList.isEmpty()){
-            Log.logErr("batchDel error;flow=%d;aid=%s;pdId=%updaterList=%s;", m_flow, aid, pdId, updaterList);
+            Log.logErr("arg error;flow=%d;aid=%s;pdId=%updaterList=%s;", m_flow, aid, pdId, updaterList);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -279,10 +297,10 @@ public class ProductSpecSkuProc {
         cacheManage.addNeedCachedPdId(aid, pdId);
         rt = m_daoCtrl.batchUpdate(doBatchUpdater, doBatchMatcher, dataList);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "batchSet error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
+            Log.logErr(rt, "dao.batchUpdate error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
             return rt;
         }
-        Log.logStd("batchSet ok;flow=%d;aid=%d;", m_flow, aid);
+        Log.logStd("ok;flow=%d;aid=%d;", m_flow, aid);
         return rt;
     }
 
@@ -324,13 +342,13 @@ public class ProductSpecSkuProc {
             addInfo.setCalendar(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME, now);
             Long skuId = m_daoCtrl.buildId();
             if(skuId == null){
-                Log.logErr("batchAdd arg error;flow=%d;aid=%s;pdId=%s;skuId=%s;", m_flow, aid, pdId, skuId);
+                Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;skuId=%s;", m_flow, aid, pdId, skuId);
                 return Errno.ERROR;
             }
             addInfo.setLong(ProductSpecSkuEntity.Info.SKU_ID, skuId);
             rt = m_daoCtrl.insert(addInfo);
             if(rt != Errno.OK){
-                Log.logErr(rt, "insert err;flow=%d;aid=%s;pdId=%s;skuId=%s;", m_flow, aid, pdId, skuId);
+                Log.logErr(rt, "dao.insert err;flow=%d;aid=%s;pdId=%s;skuId=%s;", m_flow, aid, pdId, skuId);
                 return rt;
             }
         }else {
@@ -345,7 +363,7 @@ public class ProductSpecSkuProc {
 
             rt = m_daoCtrl.update(updater, matcher);
             if(rt != Errno.OK){
-                Log.logErr(rt, "update err;flow=%d;aid=%s;pdId=%s;skuId=%s;", m_flow, aid, pdId, allowEmptySkuId);
+                Log.logErr(rt, "dao.update err;flow=%d;aid=%s;pdId=%s;skuId=%s;", m_flow, aid, pdId, allowEmptySkuId);
                 return rt;
             }
         }
@@ -362,11 +380,11 @@ public class ProductSpecSkuProc {
         searchArg.matcher = matcher;
         int rt = m_daoCtrl.select(searchArg, pdScSkuInfoListRef, onlyNeedFields);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
-            Log.logErr(rt, "getListFromDao error;flow=%d;aid=%s;", m_flow, aid);
+            Log.logErr(rt, "dao.select error;flow=%d;aid=%s;", m_flow, aid);
             return rt;
         }
         initDBInfoList(pdScSkuInfoListRef.value, onlyNeedFields);
-        Log.logStd(rt,"getListFromDao ok;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
+        Log.logStd(rt,"ok;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
         return Errno.OK;
     }
     public int getListFromDao(int aid, int pdId, Ref<FaiList<Param>> pdScSkuInfoListRef, String ... onlyNeedFields) {
@@ -380,16 +398,21 @@ public class ProductSpecSkuProc {
         if(skuIdList != null){
             matcher.and(ProductSpecSkuEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
         }
+        matcher.and(ProductSpecSkuEntity.Info.STATUS, ParamMatcher.EQ, ProductSpecSkuValObj.Status.DEFAULT);
         searchArg.matcher = matcher;
         int rt = m_daoCtrl.select(searchArg, pdScSkuInfoListRef, onlyNeedFields);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
-            Log.logErr(rt, "getListFromDao error;flow=%d;aid=%s;", m_flow, aid);
+            Log.logErr(rt, "dao.select error;flow=%d;aid=%s;", m_flow, aid);
             return rt;
         }
         initDBInfoList(pdScSkuInfoListRef.value, onlyNeedFields);
-        Log.logStd(rt,"getListFromDao ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
+        Log.logStd(rt,"ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
         return Errno.OK;
     }
+
+    /**
+     * 明确skuId时可以获取到已删除的sku
+     */
     public int getListFromDao(int aid, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef, String ... onlyNeedFields) {
         SearchArg searchArg = new SearchArg();
         ParamMatcher matcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
@@ -397,25 +420,26 @@ public class ProductSpecSkuProc {
         searchArg.matcher = matcher;
         int rt = m_daoCtrl.select(searchArg, listRef, onlyNeedFields);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
-            Log.logErr(rt, "getListFromDao error;flow=%d;aid=%s;", m_flow, aid);
+            Log.logErr(rt, "dao.select error;flow=%d;aid=%s;", m_flow, aid);
             return rt;
         }
         initDBInfoList(listRef.value, onlyNeedFields);
-        Log.logStd(rt,"getListFromDao ok;flow=%d;aid=%d;skuIdList=%s;", m_flow, aid, skuIdList);
+        Log.logStd(rt,"ok;flow=%d;aid=%d;skuIdList=%s;", m_flow, aid, skuIdList);
         return Errno.OK;
     }
     public int getListByScStrIdListFromDao(int aid, int pdId, FaiList<String> inPdScStrIdLists, Ref<FaiList<Param>> pdScSkuInfoListRef, String ... onlyNeedFields) {
         SearchArg searchArg = new SearchArg();
         ParamMatcher matcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
+        matcher.and(ProductSpecSkuEntity.Info.STATUS, ParamMatcher.EQ, ProductSpecSkuValObj.Status.DEFAULT);
         matcher.and(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, ParamMatcher.IN, inPdScStrIdLists);
         searchArg.matcher = matcher;
         int rt = m_daoCtrl.select(searchArg, pdScSkuInfoListRef, onlyNeedFields);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
-            Log.logErr(rt, "getListByScStrIdListFromDao error;flow=%d;aid=%s;", m_flow, aid);
+            Log.logErr(rt, "dao.select error;flow=%d;aid=%s;", m_flow, aid);
             return rt;
         }
-        Log.logStd(rt,"getListByScStrIdListFromDao ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
+        Log.logStd(rt,"ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
         return Errno.OK;
     }
     private void initDBInfoList(FaiList<Param> infoList, String ... onlyNeedFields){
@@ -442,7 +466,7 @@ public class ProductSpecSkuProc {
 
     public int getList(int aid, int pdId, Ref<FaiList<Param>> listRef){
         if(pdId <= 0 || listRef == null){
-            Log.logErr("getList arg error;flow=%d;aid=%s;pdId=%s;", m_flow, aid, pdId);
+            Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;", m_flow, aid, pdId);
             return Errno.ARGS_ERROR;
         }
         FaiList<Param> cacheList = ProductSpecSkuCacheCtrl.getListByPdId(aid, pdId);
@@ -460,7 +484,7 @@ public class ProductSpecSkuProc {
     }
     public int getList(int aid, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef){
         if(skuIdList == null || skuIdList.isEmpty() || listRef == null){
-            Log.logErr("getList arg error;flow=%d;aid=%s;skuIdList=%s;", m_flow, aid, skuIdList);
+            Log.logErr("arg error;flow=%d;aid=%s;skuIdList=%s;", m_flow, aid, skuIdList);
             return Errno.ARGS_ERROR;
         }
         Set<Long> skuIdSet = new HashSet<>(skuIdList);

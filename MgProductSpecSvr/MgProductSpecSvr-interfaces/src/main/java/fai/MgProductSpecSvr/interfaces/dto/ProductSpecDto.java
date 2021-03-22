@@ -49,6 +49,7 @@ public class ProductSpecDto {
         public static final int ID_LIST = 9;
         public static final int RL_TP_SC_ID = 10;
         public static final int PD_ID_LIST = 11;
+        public static final int SOFT_DEL = 12;
     }
 
     /**

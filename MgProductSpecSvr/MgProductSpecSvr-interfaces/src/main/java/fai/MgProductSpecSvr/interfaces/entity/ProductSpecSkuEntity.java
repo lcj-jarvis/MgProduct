@@ -25,5 +25,6 @@ public class ProductSpecSkuEntity {
         public static final String FLAG = "flag";                                   // int flag
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
+        public static final String STATUS = "status";                               // tinyint 状态
     }
 }

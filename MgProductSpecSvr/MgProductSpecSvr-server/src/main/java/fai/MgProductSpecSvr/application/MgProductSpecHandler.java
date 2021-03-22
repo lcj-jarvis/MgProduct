@@ -9,10 +9,7 @@ import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
 import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
-import fai.comm.jnetkit.server.fai.annotation.args.ArgAid;
-import fai.comm.jnetkit.server.fai.annotation.args.ArgBodyInteger;
-import fai.comm.jnetkit.server.fai.annotation.args.ArgFlow;
-import fai.comm.jnetkit.server.fai.annotation.args.ArgList;
+import fai.comm.jnetkit.server.fai.annotation.args.*;
 import fai.comm.util.FaiList;
 import fai.comm.util.Param;
 import fai.comm.util.ParamUpdater;
@@ -169,8 +166,9 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
                                 @ArgAid final int aid,
                                 @ArgBodyInteger(ProductSpecDto.Key.TID) final int tid,
                                 @ArgList(keyMatch = ProductSpecDto.Key.PD_ID_LIST)
-                                FaiList<Integer> pdIdList) throws IOException {
-        return  m_productSpecService.batchDelPdAllSc(session, flow, aid, tid, pdIdList);
+                                FaiList<Integer> pdIdList,
+                                @ArgBodyBoolean(value = ProductSpecDto.Key.SOFT_DEL, useDefault = true) final boolean softDel) throws IOException {
+        return  m_productSpecService.batchDelPdAllSc(session, flow, aid, tid, pdIdList, softDel);
     }
 
     @Cmd(MgProductSpecCmd.ProductSpecCmd.GET_LIST)

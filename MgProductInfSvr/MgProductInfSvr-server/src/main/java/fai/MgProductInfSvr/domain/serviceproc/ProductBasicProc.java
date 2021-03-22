@@ -112,9 +112,7 @@ public class ProductBasicProc {
         }
         rt = m_cli.addProductAndRel(aid, tid, unionPriId, info, pdIdRef, rlPdIdRef);
         if(rt != Errno.OK) {
-            if(rt != Errno.NOT_FOUND) {
-                Log.logErr(rt, "addProductAndRel error;flow=%d;aid=%d;tid=%d;unionPriId=%d;", m_flow, aid, tid, unionPriId);
-            }
+            Log.logErr(rt, "addProductAndRel error;flow=%d;aid=%d;tid=%d;unionPriId=%d;", m_flow, aid, tid, unionPriId);
             return rt;
         }
 
@@ -134,9 +132,7 @@ public class ProductBasicProc {
         }
         rt = m_cli.bindProductRel(aid, tid, unionPriId, bindRlPdInfo, info, rlPdIdRef);
         if(rt != Errno.OK) {
-            if(rt != Errno.NOT_FOUND) {
-                Log.logErr(rt, "bindProductRel error;flow=%d;aid=%d;tid=%d;unionPriId=%d;", m_flow, aid, tid, unionPriId);
-            }
+            Log.logErr(rt, "bindProductRel error;flow=%d;aid=%d;tid=%d;unionPriId=%d;", m_flow, aid, tid, unionPriId);
             return rt;
         }
 
@@ -156,9 +152,7 @@ public class ProductBasicProc {
         }
         rt = m_cli.batchBindProductRel(aid, tid, bindRlPdInfo, infoList, rlPdIdsRef);
         if(rt != Errno.OK) {
-            if(rt != Errno.NOT_FOUND) {
-                Log.logErr(rt, "batchBindProductRel error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
-            }
+            Log.logErr(rt, "batchBindProductRel error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
             return rt;
         }
 
@@ -178,9 +172,7 @@ public class ProductBasicProc {
         }
         rt = m_cli.batchDelPdRelBind(aid, unionPriId, rlPdIds, softDel);
         if(rt != Errno.OK) {
-            if(rt != Errno.NOT_FOUND) {
-                Log.logErr(rt, "batchDelPdRelBind error;flow=%d;aid=%d;unionPriId=%d;rlPdIds=%s;", m_flow, aid, unionPriId, rlPdIds);
-            }
+            Log.logErr(rt, "batchDelPdRelBind error;flow=%d;aid=%d;unionPriId=%d;rlPdIds=%s;", m_flow, aid, unionPriId, rlPdIds);
             return rt;
         }
 
@@ -199,9 +191,7 @@ public class ProductBasicProc {
         }
         rt = m_cli.batchBindProductRel(aid, tid, bindRlPdInfo, infoList);
         if(rt != Errno.OK) {
-            if(rt != Errno.NOT_FOUND) {
-                Log.logErr(rt, "batchBindProductRel error;flow=%d;aid=%d;", m_flow, aid);
-            }
+            Log.logErr(rt, "batchBindProductRel error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
 
@@ -221,9 +211,7 @@ public class ProductBasicProc {
         }
         rt = m_cli.batchDelProduct(aid, tid, unionPriId, rlPdIds, softDel);
         if(rt != Errno.OK) {
-            if(rt != Errno.NOT_FOUND) {
-                Log.logErr(rt, "batchDelProduct error;flow=%d;aid=%d;unionPriId=%d;rlPdIds=%s;", m_flow, aid, unionPriId, rlPdIds);
-            }
+            Log.logErr(rt, "batchDelProduct error;flow=%d;aid=%d;unionPriId=%d;rlPdIds=%s;", m_flow, aid, unionPriId, rlPdIds);
             return rt;
         }
 
@@ -304,9 +292,7 @@ public class ProductBasicProc {
         }
         rt = m_cli.batchAddProductAndRel(aid, tid, unionPriId, list, idInfoList);
         if(rt != Errno.OK) {
-            if(rt != Errno.NOT_FOUND) {
-                Log.logErr(rt, "batchAddProductAndRel error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
-            }
+            Log.logErr(rt, "batchAddProductAndRel error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
 
@@ -326,9 +312,7 @@ public class ProductBasicProc {
         }
         rt = m_cli.batchBindProductsRel(aid, tid, list);
         if(rt != Errno.OK) {
-            if(rt != Errno.NOT_FOUND) {
-                Log.logErr(rt, "batchAddProductAndRel error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
-            }
+            Log.logErr(rt, "batchAddProductAndRel error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
             return rt;
         }
 

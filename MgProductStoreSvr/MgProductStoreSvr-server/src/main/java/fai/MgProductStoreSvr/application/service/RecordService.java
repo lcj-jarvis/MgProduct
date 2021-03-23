@@ -91,7 +91,7 @@ public class RecordService extends StoreService {
                     LockUtil.lock(aid);
                     try {
                         transactionCtrl.setAutoCommit(false);
-                        rt = inOutStoreRecordProc.synBatchAdd(aid, unionPriIdSet, skuIdSet, batchAddDataList);
+                        rt = inOutStoreRecordProc.synBatchAdd(aid, sourceTid, unionPriIdSet, skuIdSet, batchAddDataList);
                         if(rt != Errno.OK){
                             return rt;
                         }

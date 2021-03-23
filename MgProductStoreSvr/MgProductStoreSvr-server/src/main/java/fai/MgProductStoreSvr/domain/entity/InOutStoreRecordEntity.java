@@ -31,7 +31,7 @@ public class InOutStoreRecordEntity {
         public static final String RL_ORDER_CODE = "rlOrderCode";                   // varchar(32) 业务订单code
         public static final String RL_REFUND_ID = "rlRefundId";                     // varchar(32) 业务退款编号
         public static final String IN_PD_SC_STR_ID_LIST = "inPdScStrIdList";        // varchar(150) 规格值 FaiList<Integer>
-        public static final String KEEP_INT_PROP1 = "keepIntProp1";                 // int 整型 保留字段1 TODO
+        public static final String KEEP_INT_PROP1 = "keepIntProp1";                 // int 整型 保留字段1 TODO 临时用于存储YK那边的出入库记录Id
         public static final String KEEP_PROP1 = "keepProp1";                        // varchar(255) 字符串 保留字段1 TODO
 
     }

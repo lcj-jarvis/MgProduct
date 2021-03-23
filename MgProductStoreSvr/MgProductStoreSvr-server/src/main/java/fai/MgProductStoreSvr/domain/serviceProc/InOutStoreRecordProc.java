@@ -5,6 +5,7 @@ import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordEntity;
 import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordValObj;
 import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuEntity;
 import fai.MgProductStoreSvr.domain.repository.InOutStoreRecordDaoCtrl;
+import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
 
 import java.math.BigDecimal;
@@ -18,22 +19,29 @@ public class InOutStoreRecordProc {
     }
 
     //同步批量增加
-    public int synBatchAdd(int aid, Set<Integer> unionPriIdSet, Set<Long> skuIdSet, FaiList<Param> dataList) {
+    public int synBatchAdd(int aid, int sourceTid, Set<Integer> unionPriIdSet, Set<Long> skuIdSet, FaiList<Param> dataList) {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ ,aid);
         searchArg.matcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.IN, new FaiList<>(unionPriIdSet));
         searchArg.matcher.and(InOutStoreRecordEntity.Info.SKU_ID, ParamMatcher.IN, new FaiList<>(skuIdSet));
-        Ref<FaiList<Param>> primaryKeyListRef = new Ref<>();
-        int rt = m_daoCtrl.select(searchArg, primaryKeyListRef, InOutStoreRecordEntity.Info.UNION_PRI_ID, InOutStoreRecordEntity.Info.SKU_ID, InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID);
+        String[] fields = {InOutStoreRecordEntity.Info.UNION_PRI_ID, InOutStoreRecordEntity.Info.SKU_ID, InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID};
+        if(FaiValObj.TermId.YK == sourceTid){
+            fields = new String[]{InOutStoreRecordEntity.Info.UNION_PRI_ID, InOutStoreRecordEntity.Info.SKU_ID, InOutStoreRecordEntity.Info.KEEP_INT_PROP1};
+        }
+        Ref<FaiList<Param>> dbPrimaryKeyListRef = new Ref<>();
+        int rt = m_daoCtrl.select(searchArg, dbPrimaryKeyListRef, fields);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             Log.logErr(rt,"dao insert err;flow=%s;aid=%s;dataList=%s;", m_flow, aid, dataList);
             return rt;
         }
-        Set<TmpKey> primaryKeySet = new HashSet<>(primaryKeyListRef.value.size()*4/3+1);
-        for (Param info : primaryKeyListRef.value) {
+        Set<TmpKey> primaryKeySet = new HashSet<>(dbPrimaryKeyListRef.value.size()*4/3+1);
+        for (Param info : dbPrimaryKeyListRef.value) {
             int unionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID);
             long skuId = info.getLong(InOutStoreRecordEntity.Info.SKU_ID);
             int ioStoreRecId = info.getInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID);
+            if(FaiValObj.TermId.YK == sourceTid){
+                ioStoreRecId = info.getInt(InOutStoreRecordEntity.Info.KEEP_INT_PROP1);
+            }
             primaryKeySet.add(new TmpKey(unionPriId, skuId, ioStoreRecId));
         }
         Log.logDbg("whalelog  flow=%s;aid=%s;primaryKeySet.size=%s;", m_flow, aid, primaryKeySet.size());
@@ -44,6 +52,15 @@ public class InOutStoreRecordProc {
             int ioStoreRecId = data.getInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID);
             if(primaryKeySet.contains(new TmpKey(unionPriId, skuId, ioStoreRecId))){
                 continue;
+            }
+            if(FaiValObj.TermId.YK == sourceTid){
+                Integer buildIoStoreRecId = m_daoCtrl.buildId();
+                if(buildIoStoreRecId == null){
+                    Log.logErr("buildId err aid=%s", aid);
+                    return Errno.ERROR;
+                }
+                data.setInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, buildIoStoreRecId);
+                data.setInt(InOutStoreRecordEntity.Info.KEEP_INT_PROP1, ioStoreRecId);
             }
             addDataList.add(data);
         }

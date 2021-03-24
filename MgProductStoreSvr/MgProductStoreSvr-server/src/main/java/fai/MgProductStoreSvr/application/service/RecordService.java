@@ -84,8 +84,9 @@ public class RecordService extends StoreService {
             try {
                 InOutStoreRecordDaoCtrl inOutStoreRecordDaoCtrl = InOutStoreRecordDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
                 if(!transactionCtrl.checkRegistered(inOutStoreRecordDaoCtrl)){
+                    rt = Errno.ERROR;
                     Log.logErr(rt,"checkRegistered err;flow=%s;aid=%s;", flow, aid);
-                    return rt = Errno.ERROR;
+                    return rt;
                 }
                 InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(inOutStoreRecordDaoCtrl, flow);
                 try {

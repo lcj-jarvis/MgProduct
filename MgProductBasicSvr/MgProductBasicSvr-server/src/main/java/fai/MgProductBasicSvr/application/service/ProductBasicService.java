@@ -309,6 +309,7 @@ public class ProductBasicService extends ServicePub {
         } finally {
             lock.unlock();
         }
+        rt = Errno.OK;
         Log.logStd("addProductAndRel ok;flow=%d;aid=%d;uid=%d;tid=%s;", flow, aid, unionPriId, tid);
         FaiBuffer sendBuf = new FaiBuffer(true);
         sendBuf.putInt(ProductRelDto.Key.RL_PD_ID, rlPdId);
@@ -393,6 +394,7 @@ public class ProductBasicService extends ServicePub {
             idInfo.assign(relData, ProductRelEntity.Info.RL_PD_ID);
             idInfoList.add(idInfo);
         }
+        rt = Errno.OK;
         Log.logStd("batchAddProductAndRel ok;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
         FaiBuffer sendBuf = new FaiBuffer(true);
         idInfoList.toBuffer(sendBuf, ProductRelDto.Key.INFO_LIST, ProductRelDto.getInfoDto());
@@ -616,6 +618,7 @@ public class ProductBasicService extends ServicePub {
         } finally {
             lock.unlock();
         }
+        rt = Errno.OK;
         Log.logStd("bindProductRel ok;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
         FaiBuffer sendBuf = new FaiBuffer(true);
         sendBuf.putInt(ProductRelDto.Key.RL_PD_ID, rlPdId);
@@ -774,7 +777,7 @@ public class ProductBasicService extends ServicePub {
         } finally {
             lock.unlock();
         }
-
+        rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
         rlPdIds.toBuffer(sendBuf, ProductRelDto.Key.RL_PD_IDS);
         session.write(sendBuf);
@@ -950,6 +953,7 @@ public class ProductBasicService extends ServicePub {
         } finally {
             lock.unlock();
         }
+        rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
         session.write(sendBuf);
         Log.logStd("batch add ok;flow=%d;aid=%d;uids=%s;", flow, aid, unionPriIds);

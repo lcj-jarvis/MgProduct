@@ -56,8 +56,9 @@ public class InOutStoreRecordProc {
             if(FaiValObj.TermId.YK == sourceTid){
                 Integer buildIoStoreRecId = m_daoCtrl.buildId();
                 if(buildIoStoreRecId == null){
-                    Log.logErr("buildId err aid=%s", aid);
-                    return Errno.ERROR;
+                    rt = Errno.ERROR;
+                    Log.logErr(rt,"buildId err;m_flow=%s;aid=%s;", m_flow, aid);
+                    return rt;
                 }
                 data.setInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, buildIoStoreRecId);
                 data.setInt(InOutStoreRecordEntity.Info.KEEP_INT_PROP1, ioStoreRecId);
@@ -69,9 +70,11 @@ public class InOutStoreRecordProc {
             if(rt != Errno.OK){
                 Log.logErr(rt,"dao insert err;flow=%s;aid=%s;dataList=%s;", m_flow, aid, dataList);
             }
-            m_daoCtrl.restoreMaxId();
+            if(FaiValObj.TermId.YK != sourceTid){
+                m_daoCtrl.restoreMaxId();
+            }
         }
-        Log.logStd("ok;flow=%s;aid=%s;", m_flow, aid);
+        Log.logStd(rt,"ok;flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
 

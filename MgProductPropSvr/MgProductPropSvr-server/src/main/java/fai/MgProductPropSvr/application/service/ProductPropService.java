@@ -511,6 +511,7 @@ public class ProductPropService extends ServicePub {
 		}finally {
 			lock.unlock();
 		}
+		rt = Errno.OK;
 		Log.logStd("setPropValList ok;flow=%d;aid=%d;unionPriId=%d;tid=%d;", flow, aid, unionPriId, tid);
 		return rt;
 	}

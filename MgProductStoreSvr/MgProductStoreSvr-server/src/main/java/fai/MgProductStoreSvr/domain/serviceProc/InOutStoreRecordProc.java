@@ -38,7 +38,7 @@ public class InOutStoreRecordProc {
         for (Param info : dbPrimaryKeyListRef.value) {
             int unionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID);
             long skuId = info.getLong(InOutStoreRecordEntity.Info.SKU_ID);
-            int ioStoreRecId = info.getInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID);
+            int ioStoreRecId = info.getInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, 0);
             if(FaiValObj.TermId.YK == sourceTid){
                 ioStoreRecId = info.getInt(InOutStoreRecordEntity.Info.KEEP_INT_PROP1);
             }

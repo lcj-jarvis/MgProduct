@@ -84,7 +84,9 @@ public class RecordService extends StoreService {
             try {
                 InOutStoreRecordDaoCtrl inOutStoreRecordDaoCtrl = InOutStoreRecordDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
                 if(!transactionCtrl.checkRegistered(inOutStoreRecordDaoCtrl)){
-                    return rt = Errno.ERROR;
+                    rt = Errno.ERROR;
+                    Log.logErr(rt,"checkRegistered err;flow=%s;aid=%s;", flow, aid);
+                    return rt;
                 }
                 InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(inOutStoreRecordDaoCtrl, flow);
                 try {
@@ -111,7 +113,7 @@ public class RecordService extends StoreService {
             }
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
-            Log.logStd("ok;flow=%s;aid=%s;", flow, aid);
+            Log.logStd(rt,"ok;flow=%s;aid=%s;", flow, aid);
         }finally {
             stat.end(rt != Errno.OK, rt);
         }
@@ -300,7 +302,7 @@ public class RecordService extends StoreService {
             }
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
-            Log.logDbg("ok;;aid=%d;ownerUnionPriId=%s;", aid, ownerUnionPriId);
+            Log.logStd("ok;;aid=%d;ownerUnionPriId=%s;", aid, ownerUnionPriId);
         }finally {
             stat.end(rt != Errno.OK, rt);
         }

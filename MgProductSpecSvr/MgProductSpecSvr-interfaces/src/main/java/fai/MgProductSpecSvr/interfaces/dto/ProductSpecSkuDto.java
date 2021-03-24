@@ -19,6 +19,7 @@ public class ProductSpecSkuDto {
         g_dtoDef.add(ProductSpecSkuEntity.Info.SYS_CREATE_TIME, 9);
         g_dtoDef.add(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME, 10);
         g_dtoDef.add(ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID, 11, Var.Type.INT);
+        g_dtoDef.add(ProductSpecSkuEntity.Info.STATUS, 12, Var.Type.INT);
     }
     public static ParamDef getInfoDto() {
         return g_dtoDef;
@@ -56,6 +57,7 @@ public class ProductSpecSkuDto {
             g_cacheDtoDef.add(ProductSpecSkuEntity.Info.SYS_CREATE_TIME, 9);
             g_cacheDtoDef.add(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME, 10);
             g_cacheDtoDef.add(ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID, 11, Var.Type.INT);
+            g_cacheDtoDef.add(ProductSpecSkuEntity.Info.STATUS, 12, Var.Type.INT);
         }
 
         public static ParamDef getCacheDto() {

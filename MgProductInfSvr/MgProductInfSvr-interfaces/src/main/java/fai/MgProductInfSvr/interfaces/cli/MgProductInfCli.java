@@ -2,12 +2,14 @@ package fai.MgProductInfSvr.interfaces.cli;
 
 import fai.MgProductInfSvr.interfaces.cmd.MgProductInfCmd;
 import fai.MgProductInfSvr.interfaces.dto.*;
+import fai.MgProductInfSvr.interfaces.entity.ProductSpecEntity;
 import fai.MgProductInfSvr.interfaces.entity.ProductStoreEntity;
 import fai.MgProductInfSvr.interfaces.entity.ProductStoreValObj;
 import fai.MgProductInfSvr.interfaces.entity.ProductTempEntity;
 import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
+import fai.mgproduct.comm.MgProductErrno;
 
 import java.nio.ByteBuffer;
 
@@ -1067,9 +1069,11 @@ public class MgProductInfCli extends FaiClient {
             stat.end(m_rt != Errno.OK, m_rt);
         }
     }
-
     /**
      * 批量添加规格模板
+     * @param list Param 见 {@link ProductSpecEntity.SpecTempInfo} <bt/>
+     *      {@link ProductSpecEntity.SpecTempInfo#NAME} 必填 <bt/>
+     * @return {@link Errno}
      */
     public int addTpScInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> list) {
         m_rt = Errno.ERROR;
@@ -1130,6 +1134,8 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 批量删除规格模板
+     * @param rlTpScIdList 规格模板id集合
+     * @return {@link Errno}
      */
     public int delTpScInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlTpScIdList) {
         m_rt = Errno.ERROR;
@@ -1185,6 +1191,9 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 批量修改规格模板
+     * @param updaterList Param 见 {@link ProductSpecEntity.SpecTempInfo} <br/>
+     *      {@link ProductSpecEntity.SpecTempInfo#RL_TP_SC_ID} 必须要有
+     * @return {@link Errno}
      */
     public int setTpScInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<ParamUpdater> updaterList) {
         m_rt = Errno.ERROR;
@@ -1245,6 +1254,8 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 获取规格模板列表
+     * @param infoList Param 见 {@link ProductSpecEntity.SpecTempInfo}
+     * @return {@link Errno}
      */
     public int getTpScInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
@@ -1312,6 +1323,11 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 批量添加规格模板详情
+     * @param rlTpScId 规格模板id {@link ProductSpecEntity.SpecTempDetailInfo#RL_TP_SC_ID}
+     * @param list Param 见 {@link ProductSpecEntity.SpecTempDetailInfo} <br/>
+     *      {@link ProductSpecEntity.SpecTempDetailInfo#NAME} 必填 <br/>
+     *      {@link ProductSpecEntity.SpecTempDetailInfo#IN_SC_VAL_LIST} 必填 <br/>
+     * @return {@link Errno}
      */
     public int addTpScDetailInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlTpScId, FaiList<Param> list) {
         m_rt = Errno.ERROR;
@@ -1373,6 +1389,9 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 批量删除规格模板详情
+     * @param rlTpScId 规格模板id {@link ProductSpecEntity.SpecTempDetailInfo#RL_TP_SC_ID
+     * @param tpScDtIdList 集合中的元素为 规格详情id {@link ProductSpecEntity.SpecTempDetailInfo#TP_SC_DT_ID}
+     * @return {@link Errno}
      */
     public int delTpScDetailInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlTpScId, FaiList<Integer> tpScDtIdList) {
         m_rt = Errno.ERROR;
@@ -1427,8 +1446,13 @@ public class MgProductInfCli extends FaiClient {
         }
     }
 
+
     /**
      * 批量修改规格模板详情
+     * @param rlTpScId {@link ProductSpecEntity.SpecTempDetailInfo#RL_TP_SC_ID} 规格模板id
+     * @param updaterList Param 见 {@link ProductSpecEntity.SpecTempDetailInfo} <br/>
+     *      {@link ProductSpecEntity.SpecTempDetailInfo#TP_SC_DT_ID} 必填 <br/>
+     * @return {@link Errno}
      */
     public int setTpScDetailInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlTpScId, FaiList<ParamUpdater> updaterList) {
         m_rt = Errno.ERROR;
@@ -1490,6 +1514,9 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 获取规格模板列表详情
+     * @param rlTpScId 规格模板id {@link ProductSpecEntity.SpecTempDetailInfo#RL_TP_SC_ID}
+     * @param infoList Param 见 {@link ProductSpecEntity.SpecTempDetailInfo} <br/>
+     * @return {@link Errno}
      */
     public int getTpScDetailInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlTpScId, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
@@ -1555,8 +1582,13 @@ public class MgProductInfCli extends FaiClient {
         }
     }
 
+
     /**
-     * 导入规格模板
+     * 导入规格模板 到 某个商品
+     * @param rlPdId 商品业务id {@link ProductSpecEntity.SpecInfo#RL_PD_ID}
+     * @param rlTpScId 规格模板id{@link ProductSpecEntity.SpecTempDetailInfo#RL_TP_SC_ID}
+     * @param tpScDtIdList null(指定规格模板的全部规格详情) || 指定规格模板的部分规格详情Id {@link ProductSpecEntity.SpecTempDetailInfo#TP_SC_DT_ID}
+     * @return {@link Errno}
      */
     public int importPdScInfo(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, int rlTpScId, FaiList<Integer> tpScDtIdList) {
         m_rt = Errno.ERROR;
@@ -1609,9 +1641,19 @@ public class MgProductInfCli extends FaiClient {
         }
     }
 
+
     /**
-     * 修改产品规格总接口
+     * 修改产品规格总接口 <br/>
      * 批量修改(包括增、删、改)指定商品的商品规格总接口；会自动生成sku规格，并且会调用商品库存服务的“刷新商品库存销售sku”
+     * @param rlPdId 商品业务id {@link ProductSpecEntity.SpecInfo#RL_PD_ID}
+     * @param addList Param 见 {@link ProductSpecEntity.SpecInfo} <br/>
+     *      {@link ProductSpecEntity.SpecInfo#NAME} 必填 <br/>
+     *      {@link ProductSpecEntity.SpecInfo#RL_PD_ID} 必填 <br/>
+     *      {@link ProductSpecEntity.SpecInfo#IN_PD_SC_VAL_LIST} 必填 <br/>
+     * @param delList 集合中元素为 商品规格id {@link ProductSpecEntity.SpecInfo#PD_SC_ID}
+     * @param updaterList Param 见 {@link ProductSpecEntity.SpecInfo}
+     *      {@link ProductSpecEntity.SpecInfo#PD_SC_ID} 必填 <br/>
+     * @return {@link Errno}
      */
     public int unionSetPdScInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> addList, FaiList<Integer> delList, FaiList<ParamUpdater> updaterList) {
         m_rt = Errno.ERROR;
@@ -1701,6 +1743,10 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 获取产品规格列表
+     * @param rlPdId 商品业务id {@link ProductSpecEntity.SpecInfo#RL_PD_ID}
+     * @param infoList Param 见 {@link ProductSpecEntity.SpecInfo} <br/>
+     * @param onlyGetChecked 是否只获取有勾选的商品规格
+     * @return {@link Errno}
      */
     public int getPdScInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> infoList, boolean onlyGetChecked) {
         m_rt = Errno.ERROR;
@@ -1770,6 +1816,10 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 批量修改产品规格SKU
+     * @param rlPdId 商品业务id {@link ProductSpecEntity.SpecSkuInfo#RL_PD_ID}
+     * @param updaterList Param 见 {@link ProductSpecEntity.SpecSkuInfo} <br/>
+     *      {@link ProductSpecEntity.SpecSkuInfo#SKU_ID} 或者 {@link ProductSpecEntity.SpecSkuInfo#IN_PD_SC_STR_NAME_LIST} 两个必须要有一个 <br/>
+     * @return {@link Errno}
      */
     public int setPdSkuScInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<ParamUpdater> updaterList) {
         m_rt = Errno.ERROR;
@@ -1831,6 +1881,9 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 获取产品规格SKU列表
+     * @param rlPdId 商品业务id {@link ProductSpecEntity.SpecSkuInfo#RL_PD_ID}
+     * @param infoList Param 见 {@link ProductSpecEntity.SpecSkuInfo} <br/>
+     * @return {@link Errno}
      */
     public int getPdSkuScInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
@@ -1897,8 +1950,12 @@ public class MgProductInfCli extends FaiClient {
             stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
         }
     }
+
     /**
      * 根据 skuIdList 获取产品规格SKU列表
+     * @param skuIdList skuId集合 {@link ProductSpecEntity.SpecSkuInfo#SKU_ID}
+     * @param infoList Param 见 {@link ProductSpecEntity.SpecSkuInfo} <br/>
+     * @return {@link Errno}
      */
     public int getPdSkuIdInfoListBySkuIdList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Long> skuIdList, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
@@ -1971,8 +2028,12 @@ public class MgProductInfCli extends FaiClient {
         }
     }
 
+
     /**
      * 根据业务商品id获取skuId集
+     * @param rlPdIdList  {@link ProductSpecEntity.SpecSkuInfo#RL_PD_ID}
+     * @param infoList Param 中只有 {@link ProductSpecEntity.SpecSkuInfo#RL_PD_ID} 和 {@link ProductSpecEntity.SpecSkuInfo#SKU_ID}
+     * @return {@link Errno}
      */
     public int getPdSkuIdInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
@@ -2045,8 +2106,13 @@ public class MgProductInfCli extends FaiClient {
         }
     }
 
+
     /**
      * 修改 sku 库存销售信息
+     * @param rlPdId 商品业务id {@link ProductStoreEntity.StoreSalesSkuInfo#RL_PD_ID}
+     * @param updaterList Param 见 {@link ProductStoreEntity.StoreSalesSkuInfo}
+     *       {@link ProductStoreEntity.StoreSalesSkuInfo#SKU_ID} 或者 {@link ProductStoreEntity.StoreSalesSkuInfo#IN_PD_SC_STR_NAME_LIST} 两个必须要有一个 <br/>
+     * @return {@link Errno}
      */
     public int setSkuStoreSales(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<ParamUpdater> updaterList) {
         m_rt = Errno.ERROR;
@@ -2108,15 +2174,11 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 批量扣减库存
-     * @param aid
-     * @param tid
-     * @param siteId
-     * @param lgId
-     * @param keepPriId1
      * @param skuIdCountList    [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
      * @param rlOrderCode       业务订单id/code
      * @param reduceMode        扣减模式 {@link ProductStoreValObj.StoreSalesSku.ReduceMode}
      * @param expireTimeSeconds 扣减模式 - 预扣 下 步骤1 -> 步骤2 过程超时时间，单位s；这个值基本比订单超时时间值大
+     * @return {@link Errno} 和 {@link MgProductErrno}
      */
     public int batchReducePdSkuStore(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> skuIdCountList, String rlOrderCode, int reduceMode, int expireTimeSeconds) {
         m_rt = Errno.ERROR;
@@ -2181,8 +2243,8 @@ public class MgProductInfCli extends FaiClient {
      * 预扣模式 {@link ProductStoreValObj.StoreSalesSku.ReduceMode#HOLDING} 步骤2
      * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
      * @param rlOrderCode 业务订单id/code
-     * @param outStoreRecordInfo 出库记录
-     * @return
+     * @param outStoreRecordInfo 出库记录 见 {@link ProductStoreEntity.InOutStoreRecordInfo}
+     * @return {@link Errno} 和 {@link MgProductErrno}
      */
     public int batchReducePdSkuHoldingStore(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> skuIdCountList, String rlOrderCode, Param outStoreRecordInfo, Ref<Integer> ioStoreRecordIdRef){
         m_rt = Errno.ERROR;
@@ -2269,8 +2331,8 @@ public class MgProductInfCli extends FaiClient {
      * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
      * @param rlOrderCode 业务订单id/code
      * @param reduceMode
-     *  扣减模式 {@link ProductStoreValObj.StoreSalesSku.ReduceMode}
-     * @return
+     *      扣减模式 {@link ProductStoreValObj.StoreSalesSku.ReduceMode}
+     * @return {@link Errno} 和 {@link MgProductErrno}
      */
     public int batchMakeUpPdSkuStore(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> skuIdCountList, String rlOrderCode, int reduceMode){
         m_rt = Errno.ERROR;
@@ -2332,8 +2394,8 @@ public class MgProductInfCli extends FaiClient {
      * 退库存，会生成入库记录
      * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
      * @param rlRefundId 退款id
-     * @param inStoreRecordInfo 入库记录
-     * @return
+     * @param inStoreRecordInfo 入库记录 见 {@link ProductStoreEntity.InOutStoreRecordInfo}
+     * @return {@link Errno} 和 {@link MgProductErrno}
      */
     public int batchRefundPdSkuStore(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> skuIdCountList, String rlRefundId, Param inStoreRecordInfo){
         m_rt = Errno.ERROR;
@@ -2401,8 +2463,11 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 获取 sku 库存销售信息
-     * @param useOwnerFieldList 使用 创建商品的业务数据
-     *   例如：悦客价格是由总店控制，门店只能使用总店的价格，这时查询门店的的信息时，选择使用总店的价格进行覆盖
+     * @param rlPdId 商品业务id
+     * @param useOwnerFieldList 使用 创建商品的业务数据 <br/>
+     *      例如：悦客价格是由总店控制，门店只能使用总店的价格，这时查询门店的的信息时，选择使用总店的价格进行覆盖
+     * @param infoList Param 见  {@link ProductStoreEntity.StoreSalesSkuInfo}
+     * @return {@link Errno}
      */
     public int getSkuStoreSalesList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<String> useOwnerFieldList, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
@@ -2475,10 +2540,14 @@ public class MgProductInfCli extends FaiClient {
             stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
         }
     }
+
     /**
      * 根据skuIdList 获取 sku 库存销售信息
-     * @param useOwnerFieldList 使用 创建商品的业务数据
-     *   例如：悦客价格是由总店控制，门店只能使用总店的价格，这时查询门店的的信息时，选择使用总店的价格进行覆盖
+     * @param skuIdList skuId 集合
+     * @param useOwnerFieldList 使用 创建商品的业务数据 <br/>
+     *      例如：悦客价格是由总店控制，门店只能使用总店的价格，这时查询门店的的信息时，选择使用总店的价格进行覆盖
+     * @param infoList Param 见  {@link ProductStoreEntity.StoreSalesSkuInfo}
+     * @return {@link Errno}
      */
     public int getSkuStoreSalesBySkuIdList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Long> skuIdList, FaiList<String> useOwnerFieldList, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
@@ -2558,11 +2627,13 @@ public class MgProductInfCli extends FaiClient {
     }
 
     /**
-     * 获取 sku 关联业务的库存销售信息
-     *  场景：
+     * 获取 sku 关联业务的库存销售信息  <br/>
+     *  场景： <br/>
      *      悦客查看某个规格的库存分布。
      * @param skuId skuId
      * @param bizInfoList 所关联的业务集 Param 只需要 tid，siteId, lgId, keepPriId1 {@link ProductStoreEntity.StoreSalesSkuInfo}
+     * @param infoList {@link ProductStoreEntity.StoreSalesSkuInfo}
+     * @return {@link Errno}
      */
     public int getSkuStoreSalesBySkuId(int aid, int tid, long skuId, FaiList<Param> bizInfoList, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
@@ -2635,8 +2706,9 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 获取预扣记录
-     * @param skuIdList
-     * @param infoList
+     * @param skuIdList skuId 集合
+     * @param infoList  Param 见 {@link ProductStoreEntity.HoldingRecordInfo}
+     * @return {@link Errno}
      */
     public int getHoldingRecordList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Long> skuIdList, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
@@ -2711,12 +2783,19 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 添加库存出入库记录
-     * @param aid
-     * @param tid
      * @param siteId 业务商品所属权的 siteId (如:悦客总店的 siteId)
      * @param lgId 业务商品所属权的 lgId (如:悦客总店的 lgId)
      * @param keepPriId1 业务商品所属权的 keepPriId1 (如:悦客总店的 keepPriId1)
-     * @param infoList 出入库记录集合，需要包含 siteId, lgId, keepPriId1, skuId
+     * @param infoList 出入库记录集合 Param 见 {@link ProductStoreEntity.InOutStoreRecordInfo} <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#SITE_ID} 必填  <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#LGID} 必填  <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#KEEP_PRI_ID1} 必填  <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#SKU_ID} 或者 {@link ProductStoreEntity.InOutStoreRecordInfo#IN_PD_SC_STR_NAME_LIST} 必填其一  <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#RL_PD_ID} 必填  <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#OWNER_RL_PD_ID} 必填  <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#OPT_TYPE} 必填  <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#CHANGE_COUNT} 必填  <br/>
+     * @return {@link Errno}
      */
     public int addInOutStoreRecordInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
@@ -2785,13 +2864,17 @@ public class MgProductInfCli extends FaiClient {
      *              例：<br/>
      *              isBiz：false 悦客-查询所有门店的数据 <br/>
      *              isBiz：true 悦客-查询指定门店的数据 <br/>
-     * @param searchArg
+     * @param searchArg 查询条件
      * 分页限制：100 <br/>
-     * {@link ProductStoreEntity.InOutStoreRecordInfo#OPT_TYPE}  可查询条件 <br/>
-     * {@link ProductStoreEntity.InOutStoreRecordInfo#C_TYPE}  可查询条件 <br/>
-     * {@link ProductStoreEntity.InOutStoreRecordInfo#S_TYPE}  可查询条件 <br/>
-     * {@link ProductStoreEntity.InOutStoreRecordInfo#SYS_CREATE_TIME}  可查询条件 <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#RL_PD_ID}  可查询条件 <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#OPT_TYPE}  可查询条件 <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#C_TYPE}  可查询条件 <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#S_TYPE}  可查询条件 <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#OPT_TIME}  可查询条件 <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#SYS_CREATE_TIME}  可查询条件 <br/>
      * 默认按创建时间降序
+     * @param list 出入库记录集合 Param 见 {@link ProductStoreEntity.InOutStoreRecordInfo} <br/>
+     * @return {@link Errno}
      */
     public int searchInOutStoreRecordInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, boolean isBiz, SearchArg searchArg, FaiList<Param> list){
         m_rt = Errno.ERROR;
@@ -2878,6 +2961,9 @@ public class MgProductInfCli extends FaiClient {
      * 获取 spu 所有关联的业务的库存销售信息汇总 <br/>
      * 适用场景： <br/>
      *    例如：悦客总店查看某个商品时，想进一步查看这个商品在门店的维度下的数据
+     * @param rlPdId 商品业务id
+     * @param infoList Param 见 {@link ProductStoreEntity.SpuBizSummaryInfo}
+     * @return {@link Errno}
      */
     public int getAllSpuBizStoreSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
@@ -2953,6 +3039,9 @@ public class MgProductInfCli extends FaiClient {
      * @param siteId 创建商品的 siteId
      * @param lgId 创建商品的 siteId
      * @param keepPriId1 创建商品的 keepPriId1
+     * @param rlPdIdList 商品业务id 集
+     * @param infoList Param 见 {@link ProductStoreEntity.SpuBizSummaryInfo}
+     * @return {@link Errno}
      */
     public int getAllSpuBizStoreSalesSummaryInfoListByPdIdList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
@@ -3029,8 +3118,11 @@ public class MgProductInfCli extends FaiClient {
      * 获取 spu 指定业务的库存销售信息汇总 <br/>
      * 适用场景： <br/>
      *    例如：悦客门店查看商品 门店维度的信息汇总
+     * @param rlPdIdList 商品业务id 集
      * @param useOwnerFieldList 使用 创建商品的业务数据
      *   例如：悦客价格是由总店控制，门店只能使用总店的价格，这时查询门店的的信息时，选择使用总店的价格进行覆盖
+     * @param infoList Param 见 {@link ProductStoreEntity.SpuBizSummaryInfo}
+     * @return {@link Errno}
      */
     public int getSpuBizStoreSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, FaiList<String> useOwnerFieldList, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
@@ -3115,6 +3207,9 @@ public class MgProductInfCli extends FaiClient {
      * 获取 spu 库存销售信息汇总 <br/>
      * 适用场景： <br/>
      *    例如：悦客总店查看商品信息汇总
+     * @param rlPdIdList rlPdIdList 商品业务id 集
+     * @param infoList Param 见 {@link ProductStoreEntity.SpuBizSummaryInfo}
+     * @return {@link Errno}
      */
     public int getSpuStoreSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
@@ -3202,11 +3297,13 @@ public class MgProductInfCli extends FaiClient {
      * @param lgId 创建商品的lgId | 相关联的lgId
      * @param keepPriId1 创建商品的keepPriId1 | 相关联的keepPriId1
      * @param isBiz 是否是 查询 业务（主键）+sku 维度
-     * @param searchArg
-     * 分页限制：100
-     * {@link ProductStoreEntity.SkuSummaryInfo#COUNT}  可查询、排序
-     * {@link ProductStoreEntity.SkuSummaryInfo#REMAIN_COUNT}  可查询、排序
-     * {@link ProductStoreEntity.SkuSummaryInfo#HOLDING_COUNT}  可查询、排序
+     * @param searchArg 查询条件
+     * 分页限制：100  <br/>
+     *      {@link ProductStoreEntity.SkuSummaryInfo#COUNT}  可查询、排序  <br/>
+     *      {@link ProductStoreEntity.SkuSummaryInfo#REMAIN_COUNT}  可查询、排序  <br/>
+     *      {@link ProductStoreEntity.SkuSummaryInfo#HOLDING_COUNT}  可查询、排序  <br/>
+     * @param list Param 见 {@link ProductStoreEntity.SpuBizSummaryInfo}
+     * @return {@link Errno}
      */
     public int searchSkuStoreSalesSummaryInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, boolean isBiz, SearchArg searchArg, FaiList<Param> list){
         m_rt = Errno.ERROR;

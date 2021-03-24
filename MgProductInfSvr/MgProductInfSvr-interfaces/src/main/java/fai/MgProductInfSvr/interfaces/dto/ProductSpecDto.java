@@ -1,6 +1,7 @@
 package fai.MgProductInfSvr.interfaces.dto;
 
-import fai.MgProductInfSvr.interfaces.entity.*;
+import fai.MgProductInfSvr.interfaces.entity.ProductSpecEntity;
+import fai.MgProductInfSvr.interfaces.entity.ProductSpecValObj;
 import fai.comm.util.ParamDef;
 import fai.comm.util.Var;
 
@@ -59,6 +60,7 @@ public class ProductSpecDto {
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.FLAG, 8, Var.Type.INT);
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SYS_CREATE_TIME, 9);
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SYS_UPDATE_TIME, 10);
+            g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.STATUS, 11, Var.Type.INT);
         }
         public static ParamDef getInfoDto() {
             return g_dtoDef;

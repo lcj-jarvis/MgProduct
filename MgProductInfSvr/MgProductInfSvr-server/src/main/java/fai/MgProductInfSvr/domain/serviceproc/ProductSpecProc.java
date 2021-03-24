@@ -293,16 +293,16 @@ public class ProductSpecProc extends AbstractProductProc {
     /**
      * 批量删除商品所有规格
      */
-    public int batchDelPdAllSc(int aid, int tid, FaiList<Integer> pdIdList) {
+    public int batchDelPdAllSc(int aid, int tid, FaiList<Integer> pdIdList, boolean softDel) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
             return rt;
         }
-        rt = m_cli.batchDelPdAllSc(aid, tid, pdIdList);
+        rt = m_cli.batchDelPdAllSc(aid, tid, pdIdList, softDel);
         if(rt != Errno.OK) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;pdIdList=%s;softDel=%s;", m_flow, aid, pdIdList, softDel);
             return rt;
         }
         return rt;

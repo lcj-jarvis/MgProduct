@@ -310,6 +310,7 @@ public class ProductSpecSkuProc {
         {
             ParamMatcher matcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
             matcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
+            matcher.and(ProductSpecSkuEntity.Info.STATUS, ParamMatcher.EQ, ProductSpecSkuValObj.Status.DEFAULT);
             SearchArg searchArg = new SearchArg();
             searchArg.matcher = matcher;
 
@@ -320,14 +321,19 @@ public class ProductSpecSkuProc {
             }
         }
         Long allowEmptySkuId = null;
-        FaiList<Long> skuIdList = new FaiList<>(listRef.value.size());
+        FaiList<Long> delSkuIdList = new FaiList<>(listRef.value.size());
         for (Param info : listRef.value) {
             int flag = info.getInt(ProductSpecSkuEntity.Info.FLAG, 0);
             long skuId = info.getLong(ProductSpecSkuEntity.Info.SKU_ID);
             if(Misc.checkBit(flag, ProductSpecSkuValObj.FLag.ALLOW_EMPTY)){
                 allowEmptySkuId = skuId;
+            }else{
+                delSkuIdList.add(skuId);
             }
-            skuIdList.add(skuId);
+        }
+        rt = batchSoftDel(aid, pdId, delSkuIdList);
+        if(rt != Errno.OK){
+            return rt;
         }
         Calendar now = Calendar.getInstance();
         if(allowEmptySkuId == null){
@@ -366,8 +372,8 @@ public class ProductSpecSkuProc {
                 Log.logErr(rt, "dao.update err;flow=%d;aid=%s;pdId=%s;skuId=%s;", m_flow, aid, pdId, allowEmptySkuId);
                 return rt;
             }
+            cacheManage.addNeedDelCachedSkuIdSet(aid, new HashSet<>(Arrays.asList(allowEmptySkuId)));
         }
-        cacheManage.addNeedDelCachedSkuIdList(aid, skuIdList);
         cacheManage.addNeedCachedPdId(aid, pdId);
         Log.logStd("ok;flow=%d;aid=%s;pdId=%s;", m_flow, aid, pdId);
         return rt;

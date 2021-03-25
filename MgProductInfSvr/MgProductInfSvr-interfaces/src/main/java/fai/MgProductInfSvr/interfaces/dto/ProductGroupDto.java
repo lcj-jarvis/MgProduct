@@ -8,20 +8,20 @@ public class ProductGroupDto {
     private static ParamDef g_pdGroupDtoDef = new ParamDef();
 
     static {
-        g_pdGroupDtoDef.add(ProductGroupEntity.PropInfo.AID, 0, Var.Type.INT);
-        g_pdGroupDtoDef.add(ProductGroupEntity.PropInfo.RL_GROUP_ID, 1, Var.Type.INT);
-        g_pdGroupDtoDef.add(ProductGroupEntity.PropInfo.GROUP_ID, 2, Var.Type.INT);
-        g_pdGroupDtoDef.add(ProductGroupEntity.PropInfo.UNION_PRI_ID, 3, Var.Type.INT);
-        g_pdGroupDtoDef.add(ProductGroupEntity.PropInfo.SORT, 4, Var.Type.INT);
-        g_pdGroupDtoDef.add(ProductGroupEntity.PropInfo.RL_FLAG, 5, Var.Type.INT);
-        g_pdGroupDtoDef.add(ProductGroupEntity.PropInfo.CREATE_TIME, 6, Var.Type.CALENDAR);
-        g_pdGroupDtoDef.add(ProductGroupEntity.PropInfo.UPDATE_TIME, 7, Var.Type.CALENDAR);
-        g_pdGroupDtoDef.add(ProductGroupEntity.PropInfo.SOURCE_TID, 8, Var.Type.INT);
-        g_pdGroupDtoDef.add(ProductGroupEntity.PropInfo.SOURCE_UNIONPRIID, 9, Var.Type.INT);
-        g_pdGroupDtoDef.add(ProductGroupEntity.PropInfo.PARENT_ID, 10, Var.Type.INT);
-        g_pdGroupDtoDef.add(ProductGroupEntity.PropInfo.GROUP_NAME, 11, Var.Type.STRING);
-        g_pdGroupDtoDef.add(ProductGroupEntity.PropInfo.ICON_LIST, 12, Var.Type.STRING);
-        g_pdGroupDtoDef.add(ProductGroupEntity.PropInfo.FLAG, 13, Var.Type.INT);
+        g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.AID, 0, Var.Type.INT);
+        g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.RL_GROUP_ID, 1, Var.Type.INT);
+        g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.GROUP_ID, 2, Var.Type.INT);
+        g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.UNION_PRI_ID, 3, Var.Type.INT);
+        g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.SORT, 4, Var.Type.INT);
+        g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.RL_FLAG, 5, Var.Type.INT);
+        g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.CREATE_TIME, 6, Var.Type.CALENDAR);
+        g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.UPDATE_TIME, 7, Var.Type.CALENDAR);
+        g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.SOURCE_TID, 8, Var.Type.INT);
+        g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.SOURCE_UNIONPRIID, 9, Var.Type.INT);
+        g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.PARENT_ID, 10, Var.Type.INT);
+        g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.GROUP_NAME, 11, Var.Type.STRING);
+        g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.ICON_LIST, 12, Var.Type.STRING);
+        g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.FLAG, 13, Var.Type.INT);
     }
 
     public static ParamDef getPdGroupDto() {

@@ -4,7 +4,7 @@ package fai.MgProductInfSvr.interfaces.entity;
  * 商品分类服务对外Entity
  */
 public class ProductGroupEntity {
-    public static class PropInfo {
+    public static class GroupInfo {
         public static final String AID = "aid"; // int 企业id
         public static final String RL_GROUP_ID = "rlGroupId"; // int 分类业务id
         public static final String GROUP_ID = "groupId"; // int 分类id

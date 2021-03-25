@@ -66,6 +66,7 @@ public class MgProductInfCmd {
         public static final int NUM25 = 5025;
 
         public static final int NUM26 = 5026;/**@see BasicCmd#GET_PD_LIST */
+        public static final int NUM27 = 5027;/**@see GroupCmd#GET_GROUP_LIST */
     }
 
     // 1000 到 5000 的范围
@@ -127,6 +128,10 @@ public class MgProductInfCmd {
 
         /**@see StoreSalesSkuCmd#BATCH_REFUND_STORE */
         public static final int NUM29 = 1029;
+
+        public static final int NUM30 = 1030; /**@see GroupCmd#ADD_GROUP_LIST */
+        public static final int NUM31 = 1031; /**@see GroupCmd#DEL_GROUP_LIST */
+        public static final int NUM32 = 1032; /**@see GroupCmd#SET_GROUP_LIST */
     }
 
     /**
@@ -161,7 +166,15 @@ public class MgProductInfCmd {
         public static final int BATCH_DEL_PDS = WriteCmdNum.NUM21;
     }
 
+    public static class GroupCmd {
+        //读命令
+        public static final int GET_GROUP_LIST = ReadCmdNum.NUM27;
 
+        //写命令
+        public static final int ADD_GROUP = WriteCmdNum.NUM30;
+        public static final int DEL_GROUP_LIST = WriteCmdNum.NUM31;
+        public static final int SET_GROUP_LIST = WriteCmdNum.NUM32;
+    }
 
     /**
      * 规格模板 相关 cmd

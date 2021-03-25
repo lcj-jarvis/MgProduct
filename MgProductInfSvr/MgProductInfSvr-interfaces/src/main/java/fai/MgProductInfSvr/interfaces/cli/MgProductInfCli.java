@@ -1137,6 +1137,267 @@ public class MgProductInfCli extends FaiClient {
             stat.end(m_rt != Errno.OK, m_rt);
         }
     }
+
+    /**
+     * 获取商品分类数据
+     * @param searchArg 搜索条件
+     * @param list  接收返回结果
+     * @return
+     */
+    public int getPdGroupList(int aid, int tid, int siteId, int lgId, int keepPriId1, SearchArg searchArg, FaiList<Param> list) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            list.clear();
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductGroupDto.Key.TID, tid);
+            sendBody.putInt(ProductGroupDto.Key.SITE_ID, siteId);
+            sendBody.putInt(ProductGroupDto.Key.LGID, lgId);
+            sendBody.putInt(ProductGroupDto.Key.KEEP_PRIID1, keepPriId1);
+            searchArg.toBuffer(sendBody, ProductGroupDto.Key.SEARCH_ARG);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setAid(aid);
+            sendProtocol.setCmd(MgProductInfCmd.GroupCmd.GET_GROUP_LIST);
+            sendProtocol.addEncodeBody(sendBody);
+
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                if (m_rt != Errno.NOT_FOUND) {
+                    Log.logErr(m_rt, "recv result err");
+                }
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = list.fromBuffer(recvBody, keyRef, ProductGroupDto.getPdGroupDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductGroupDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    /**
+     * 新增商品分类
+     * @param info  新增数据
+     * @param rlGroupIdRef  返回的商品分类业务id
+     * @return
+     */
+    public int addProductGroup(int aid, int tid, int siteId, int lgId, int keepPriId1, Param info, Ref<Integer> rlGroupIdRef){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if (Str.isEmpty(info)) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "info is null;aid=%d;", aid);
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductGroupDto.Key.TID, tid);
+            sendBody.putInt(ProductGroupDto.Key.SITE_ID, siteId);
+            sendBody.putInt(ProductGroupDto.Key.LGID, lgId);
+            sendBody.putInt(ProductGroupDto.Key.KEEP_PRIID1, keepPriId1);
+            info.toBuffer(sendBody, ProductGroupDto.Key.INFO, ProductGroupDto.getPdGroupDto());
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductInfCmd.GroupCmd.ADD_GROUP);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            if (rlGroupIdRef != null) {
+                FaiBuffer recvBody = recvProtocol.getDecodeBody();
+                if (recvBody == null) {
+                    m_rt = Errno.ERROR;
+                    Log.logErr(m_rt, "recv body=null;aid=%d", aid);
+                    return m_rt;
+                }
+                Ref<Integer> keyRef = new Ref<Integer>();
+                m_rt = recvBody.getInt(keyRef, rlGroupIdRef);
+                if (m_rt != Errno.OK || keyRef.value != ProductGroupDto.Key.RL_GROUP_ID) {
+                    Log.logErr(m_rt, "recv rlGroupId codec err");
+                    return m_rt;
+                }
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    /**
+     * 修改商品分类
+     * @param updaterList 修改信息
+     * @return
+     */
+    public int setPdGroupList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<ParamUpdater> updaterList){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if (updaterList == null || updaterList.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "updaterList is null;aid=%d;", aid);
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductGroupDto.Key.TID, tid);
+            sendBody.putInt(ProductGroupDto.Key.SITE_ID, siteId);
+            sendBody.putInt(ProductGroupDto.Key.LGID, lgId);
+            sendBody.putInt(ProductGroupDto.Key.KEEP_PRIID1, keepPriId1);
+            updaterList.toBuffer(sendBody, ProductGroupDto.Key.UPDATERLIST, ProductGroupDto.getPdGroupDto());
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductInfCmd.GroupCmd.SET_GROUP_LIST);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    /**
+     * 删除商品分类
+     * @param rlGroupIds 要删除的商品分类业务id集合
+     * @return
+     */
+    public int delPdGroupList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlGroupIds){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if (rlGroupIds == null || rlGroupIds.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "rlGroupIds is null;aid=%d;", aid);
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductGroupDto.Key.TID, tid);
+            sendBody.putInt(ProductGroupDto.Key.SITE_ID, siteId);
+            sendBody.putInt(ProductGroupDto.Key.LGID, lgId);
+            sendBody.putInt(ProductGroupDto.Key.KEEP_PRIID1, keepPriId1);
+            rlGroupIds.toBuffer(sendBody, ProductGroupDto.Key.RL_GROUP_IDS);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductInfCmd.GroupCmd.DEL_GROUP_LIST);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
     /**
      * 批量添加规格模板
      * @param list Param 见 {@link ProductSpecEntity.SpecTempInfo} <bt/>

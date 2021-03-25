@@ -14,6 +14,7 @@ import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
+import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.service.ServicePub;
 
 import java.io.IOException;
@@ -26,23 +27,37 @@ import java.util.Map;
 public class MgProductInfService extends ServicePub {
 
     /**
-     * 获取unionPriId
+     * 获取unionPriId，返回rt
      */
     protected int getUnionPriId(int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, Ref<Integer> idRef) {
+        int rt = Errno.OK;
+        try {
+            int unionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
+            idRef.value = unionPriId;
+        }catch (MgException e) {
+            e.log();
+            rt = e.getRt();
+        }
+        return rt;
+    }
+
+    /**
+     * 获取unionPriId, 返回值为unionPriId, 出错直接抛异常
+     */
+    protected int getUnionPriId(int flow, int aid, int tid, int siteId, int lgId, int keepPriId1) {
         int rt = Errno.ERROR;
         MgPrimaryKeyCli cli = new MgPrimaryKeyCli(flow);
         if(!cli.init()) {
             rt = Errno.ERROR;
-            Log.logErr(rt, "init MgPrimaryKeyCli error");
-            return rt;
+            throw new MgException(rt, "init MgPrimaryKeyCli error");
         }
 
+        Ref<Integer> idRef = new Ref<>();
         rt = cli.getUnionPriId(aid, tid, siteId, lgId, keepPriId1, idRef);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "getUnionPriId error;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
-            return rt;
+            throw new MgException(rt, "getUnionPriId error;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
         }
-        return rt;
+        return idRef.value;
     }
 
     /**

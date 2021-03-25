@@ -927,7 +927,7 @@ public class ProductStoreService extends MgProductInfService {
             if(rt != Errno.OK) {
                 return rt;
             }
-            FaiList<Integer> pdIdList = OptMisc.getValList(pdInfoList, ProductBasicEntity.ProductRelInfo.PD_ID);
+            FaiList<Integer> pdIdList = OptMisc.getValList(pdInfoList, ProductBasicEntity.ProductInfo.PD_ID);
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
             FaiList<Param> infoList = new FaiList<Param>();
@@ -994,7 +994,7 @@ public class ProductStoreService extends MgProductInfService {
             if(rt != Errno.OK){
                 return rt;
             }
-            FaiList<Integer> pdIdList = OptMisc.getValList(list, ProductBasicEntity.ProductRelInfo.PD_ID);
+            FaiList<Integer> pdIdList = OptMisc.getValList(list, ProductBasicEntity.ProductInfo.PD_ID);
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
             FaiList<Param> infoList = new FaiList<Param>();
@@ -1042,8 +1042,8 @@ public class ProductStoreService extends MgProductInfService {
             Map<Integer, Integer> pdIdRlPdIdMap = new HashMap<>(list.size()*4/3+1);
             FaiList<Integer> pdIdList = new FaiList<>(list.size());
             list.forEach(info->{
-                Integer rlPdId = info.getInt(ProductBasicEntity.ProductRelInfo.RL_PD_ID);
-                Integer pdId = info.getInt(ProductBasicEntity.ProductRelInfo.PD_ID);
+                Integer rlPdId = info.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID);
+                Integer pdId = info.getInt(ProductBasicEntity.ProductInfo.PD_ID);
                 pdIdRlPdIdMap.put(pdId, rlPdId);
                 pdIdList.add(pdId);
             });
@@ -1124,8 +1124,8 @@ public class ProductStoreService extends MgProductInfService {
                     pdIdRlPdIdMap = new HashMap<>(list.size()*4/3+1);
                     Map<Integer, Integer> rlPdIdPdIdMap = new HashMap<>(list.size()*4/3+1);
                     for (Param relInfo : list) {
-                        Integer pdId = relInfo.getInt(ProductBasicEntity.ProductRelInfo.PD_ID);
-                        Integer rlPdId = relInfo.getInt(ProductBasicEntity.ProductRelInfo.RL_PD_ID);
+                        Integer pdId = relInfo.getInt(ProductBasicEntity.ProductInfo.PD_ID);
+                        Integer rlPdId = relInfo.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID);
                         pdIdRlPdIdMap.put(pdId, rlPdId);
                         rlPdIdPdIdMap.put(rlPdId, pdId);
                     }
@@ -1171,8 +1171,8 @@ public class ProductStoreService extends MgProductInfService {
                     }
                     pdIdRlPdIdMap = new HashMap<>(reducedRels.size()*4/3+1);
                     for (Param reducedRel : reducedRels) {
-                        Integer rlPdId = reducedRel.getInt(ProductBasicEntity.ProductRelInfo.RL_PD_ID);
-                        Integer pdId = reducedRel.getInt(ProductBasicEntity.ProductRelInfo.PD_ID);
+                        Integer rlPdId = reducedRel.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID);
+                        Integer pdId = reducedRel.getInt(ProductBasicEntity.ProductInfo.PD_ID);
                         pdIdRlPdIdMap.put(pdId, rlPdId);
                     }
                 }
@@ -1279,7 +1279,7 @@ public class ProductStoreService extends MgProductInfService {
                 Integer pdId = pdIdBindPdRelListEntry.getKey();
                 FaiList<Param> bindPdRelList = pdIdBindPdRelListEntry.getValue();
                 for (Param bindPdRelInfo : bindPdRelList) {
-                    BizPriKey bizPriKey = (BizPriKey)bindPdRelInfo.remove(ProductBasicEntity.ProductRelInfo.UNION_PRI_ID);
+                    BizPriKey bizPriKey = (BizPriKey)bindPdRelInfo.remove(ProductBasicEntity.ProductInfo.UNION_PRI_ID);
                     Integer unionPriId = bizPriKeyUnionPriIdMap.get(bizPriKey);
                     bindPdRelInfo.setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId);
                     bindPdRelInfo.setBoolean(ProductRelEntity.Info.INFO_CHECK, false);
@@ -1422,8 +1422,8 @@ public class ProductStoreService extends MgProductInfService {
             }
             FaiList<Integer> pdIdList = new FaiList<>();
             for (Param info : list) {
-                Integer rlPdId = info.getInt(ProductBasicEntity.ProductRelInfo.RL_PD_ID);
-                Integer pdId = info.getInt(ProductBasicEntity.ProductRelInfo.PD_ID);
+                Integer rlPdId = info.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID);
+                Integer pdId = info.getInt(ProductBasicEntity.ProductInfo.PD_ID);
                 pdIdList.add(pdId);
                 ownerRlPdIdPdIdMap.put(rlPdId, pdId);
             }

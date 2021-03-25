@@ -10,6 +10,7 @@ import fai.comm.jnetkit.server.fai.annotation.Cmd;
 import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
 import fai.comm.util.*;
+import fai.middleground.svrutil.service.ServiceProxy;
 
 import java.io.IOException;
 
@@ -396,6 +397,19 @@ public class MgProductInfHandler extends FaiHandler {
         return specService.getPdSkuIdInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIdList);
     }
 
+    @Cmd(MgProductInfCmd.BasicCmd.GET_PD_LIST)
+    public int getProductList(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid final int aid,
+                              @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
+                              @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
+                              @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
+                              @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
+                              @ArgList(keyMatch = ProductBasicDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
+        return basicService.getProductList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIds);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductInfCmd.BasicCmd.ADD_PD_AND_REL)
     public int addProductAndRel(final FaiSession session,
                                 @ArgFlow final int flow,
@@ -409,6 +423,7 @@ public class MgProductInfHandler extends FaiHandler {
         return basicService.addProductAndRel(session, flow, aid, tid, siteId, lgId, keepPriId1, info);
     }
 
+    @WrittenCmd
     @Cmd(MgProductInfCmd.BasicCmd.ADD_PD_BIND)
     public int bindProductRel(final FaiSession session,
                                 @ArgFlow final int flow,
@@ -424,6 +439,7 @@ public class MgProductInfHandler extends FaiHandler {
         return basicService.bindProductRel(session, flow, aid, tid, siteId, lgId, keepPriId1, bindRlPdInfo, info);
     }
 
+    @WrittenCmd
     @Cmd(MgProductInfCmd.BasicCmd.BATCH_ADD_PD_BIND)
     public int batchBindProductRel(final FaiSession session,
                               @ArgFlow final int flow,
@@ -436,6 +452,7 @@ public class MgProductInfHandler extends FaiHandler {
         return basicService.batchBindProductRel(session, flow, aid, tid, bindRlPdInfo, infoList);
     }
 
+    @WrittenCmd
     @Cmd(MgProductInfCmd.BasicCmd.BATCH_DEL_PD_BIND)
     public int batchDelPdRelBind(final FaiSession session,
                                  @ArgFlow final int flow,
@@ -450,6 +467,7 @@ public class MgProductInfHandler extends FaiHandler {
         return basicService.batchDelPdRelBind(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIds, softDel);
     }
 
+    @WrittenCmd
     @Cmd(MgProductInfCmd.BasicCmd.BATCH_DEL_PDS)
     public int batchDelProduct(final FaiSession session,
                                @ArgFlow final int flow,

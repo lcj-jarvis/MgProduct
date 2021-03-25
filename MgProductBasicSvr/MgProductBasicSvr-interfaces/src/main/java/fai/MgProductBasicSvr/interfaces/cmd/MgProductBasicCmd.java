@@ -22,6 +22,7 @@ public class MgProductBasicCmd {
         public static final int NUM16 = 5016; /** @see BasicCmd#PD_REL_DATA_STATUS */
         public static final int NUM17 = 5017; /** @see BasicCmd#GET_ALL_PD_REL */
         public static final int NUM18 = 5018; /** @see BasicCmd#SEARCH_PD_REL_FROM_DB */
+        public static final int NUM19 = 5019; /** @see BasicCmd#GET_PD_LIST */
     }
 
     // 1000 到 5000 的范围
@@ -74,6 +75,7 @@ public class MgProductBasicCmd {
         public static final int PD_REL_DATA_STATUS = ReadCmdNum.NUM16;
         public static final int GET_ALL_PD_REL = ReadCmdNum.NUM17;
         public static final int SEARCH_PD_REL_FROM_DB = ReadCmdNum.NUM18;
+        public static final int GET_PD_LIST = ReadCmdNum.NUM19;
 
         public static final int ADD_PD_AND_REL = WriteCmdNum.NUM1;
         public static final int ADD_REL_BIND = WriteCmdNum.NUM2;

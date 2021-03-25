@@ -153,8 +153,15 @@ public class ProductProc {
         return info;
     }
 
-    public FaiList<Param> getProductList(int aid, HashSet<Integer> pdIdList, Ref<FaiList<Param>> listRef) {
-        return getList(aid, pdIdList);
+    public FaiList<Param> getProductList(int aid, FaiList<Integer> pdIdList) {
+        int rt;
+        if(pdIdList == null || pdIdList.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "pdIdList is empty;aid=%d;pdIdList=%s;", aid, pdIdList);
+        }
+        HashSet<Integer> pdIds = new HashSet<Integer>(pdIdList);
+
+        return getList(aid, pdIds);
     }
 
     public Param getDataStatus(int aid) {

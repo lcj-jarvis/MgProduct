@@ -15,6 +15,20 @@ public class ProductBasicProc {
         }
     }
 
+    public int getProductList(int aid, int unionPriId, FaiList<Integer> rlPdIds, FaiList<Param> list) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.getProductList(aid, unionPriId, rlPdIds, list);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            Log.logErr(rt, "getProductList error;flow=%d;aid=%d;uid=%d;rlPdIds=%s;", m_flow, aid, unionPriId, rlPdIds);
+        }
+        return rt;
+    }
+
     public int getPdBindPropInfo(int aid, int tid, int unionPriId, int rlPdId, FaiList<Param> bindPropList) {
         int rt = Errno.ERROR;
         if(m_cli == null) {

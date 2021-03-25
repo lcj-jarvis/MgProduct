@@ -471,7 +471,9 @@ public class ProductBasicService extends MgProductInfService {
                 return rt;
             }
             FaiList<Integer> pdIdList = OptMisc.getValList(list, ProductBasicEntity.ProductRelInfo.PD_ID);
-            Log.logStd("del products start;flow=%d;aid=%d;tid=%d;rlPdIds=%s;", flow, aid, tid, rlPdIds);
+            StringBuilder msg = new StringBuilder();
+            msg.append(String.format("del products start;flow=%d;aid=%d;tid=%d;rlPdIds=%s;pdIdList=%s;", flow, aid, tid, rlPdIds, pdIdList));
+            Log.logStdCusLen(msg.length(), msg.toString());// 输出全日志
             // TODO 分布式事务
 
             // 删除商品基础信息

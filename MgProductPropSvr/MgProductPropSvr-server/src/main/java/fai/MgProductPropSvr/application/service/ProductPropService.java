@@ -245,6 +245,8 @@ public class ProductPropService extends ServicePub {
 			// 先查参数业务关系表
 			ProductPropRelProc propRelProc = new ProductPropRelProc(flow, aid, tc);
 			list = propRelProc.getPropRelList(aid, unionPriId, libId);
+
+			// 再查参数表数据
 			ProductPropProc propProc = new ProductPropProc(flow, aid, tc);
 			FaiList<Param> propList = propProc.getPropList(aid);
 
@@ -263,9 +265,8 @@ public class ProductPropService extends ServicePub {
 			Integer propId = info.getInt(ProductPropRelEntity.Info.PROP_ID);
 			Param propInfo = propMap.get(propId);
 			if(propInfo == null) {
-				rt = Errno.ERROR;
-				Log.logErr(rt, "data error;flow=%d;aid=%d;unionPriId=%d;tid=%d;libId=%d;propId=%d;", flow, aid, unionPriId, tid, libId, propId);
-				return rt;
+				Log.logErr(Errno.ERROR, "data error;flow=%d;aid=%d;unionPriId=%d;tid=%d;libId=%d;propId=%d;", flow, aid, unionPriId, tid, libId, propId);
+				continue;
 			}
 			info.assign(propInfo);
 		}

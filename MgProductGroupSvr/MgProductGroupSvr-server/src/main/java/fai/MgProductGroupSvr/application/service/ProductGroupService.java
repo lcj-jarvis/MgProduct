@@ -4,6 +4,8 @@ import fai.MgProductGroupSvr.domain.common.LockUtil;
 import fai.MgProductGroupSvr.domain.common.ProductGroupCheck;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupEntity;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupRelEntity;
+import fai.MgProductGroupSvr.domain.entity.ProductGroupRelValObj;
+import fai.MgProductGroupSvr.domain.entity.ProductGroupValObj;
 import fai.MgProductGroupSvr.domain.repository.ProductGroupCache;
 import fai.MgProductGroupSvr.domain.repository.ProductGroupRelCache;
 import fai.MgProductGroupSvr.domain.serviceproc.ProductGroupProc;
@@ -88,6 +90,7 @@ public class ProductGroupService extends ServicePub {
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
         sendBuf.putInt(ProductGroupRelDto.Key.RL_GROUP_ID, rlGroupId);
+        sendBuf.putInt(ProductGroupRelDto.Key.GROUP_ID, groupId);
         session.write(sendBuf);
         Log.logStd("add ok;flow=%d;aid=%d;unionPriId=%d;tid=%d;rlGroupId=%d;groupId=%d;", flow, aid, unionPriId, tid, rlGroupId, groupId);
         return rt;
@@ -357,6 +360,11 @@ public class ProductGroupService extends ServicePub {
         Calendar now = Calendar.getInstance();
         Calendar createTime = recvInfo.getCalendar(ProductGroupEntity.Info.CREATE_TIME, now);
         Calendar updateTime = recvInfo.getCalendar(ProductGroupEntity.Info.UPDATE_TIME, now);
+        int parentId = recvInfo.getInt(ProductGroupEntity.Info.PARENT_ID, ProductGroupValObj.Default.PARENT_ID);
+        String iconList = recvInfo.getString(ProductGroupEntity.Info.ICON_LIST, ProductGroupValObj.Default.ICON_LIST);
+        int flag = recvInfo.getInt(ProductGroupEntity.Info.FLAG, ProductGroupValObj.Default.FLAG);
+        int sort = recvInfo.getInt(ProductGroupRelEntity.Info.SORT, ProductGroupRelValObj.Default.SORT);
+        int rlFlag = recvInfo.getInt(ProductGroupRelEntity.Info.RL_FLAG, ProductGroupRelValObj.Default.RL_FLAG);
 
         // 分类表数据
         groupInfo.setInt(ProductGroupEntity.Info.AID, aid);
@@ -365,17 +373,17 @@ public class ProductGroupService extends ServicePub {
         groupInfo.setString(ProductGroupEntity.Info.GROUP_NAME, groupName);
         groupInfo.setCalendar(ProductGroupEntity.Info.CREATE_TIME, createTime);
         groupInfo.setCalendar(ProductGroupEntity.Info.UPDATE_TIME, updateTime);
-        groupInfo.assign(recvInfo, ProductGroupEntity.Info.PARENT_ID);
-        groupInfo.assign(recvInfo, ProductGroupEntity.Info.ICON_LIST);
-        groupInfo.assign(recvInfo, ProductGroupEntity.Info.FLAG);
+        groupInfo.setInt(ProductGroupEntity.Info.PARENT_ID, parentId);
+        groupInfo.setString(ProductGroupEntity.Info.ICON_LIST, iconList);
+        groupInfo.setInt(ProductGroupEntity.Info.FLAG, flag);
 
         // 分类业务关系表数据
         relInfo.setInt(ProductGroupRelEntity.Info.AID, aid);
         relInfo.setInt(ProductGroupRelEntity.Info.UNION_PRI_ID, unionPriId);
         groupInfo.setCalendar(ProductGroupRelEntity.Info.CREATE_TIME, createTime);
         groupInfo.setCalendar(ProductGroupRelEntity.Info.UPDATE_TIME, updateTime);
-        relInfo.assign(recvInfo, ProductGroupRelEntity.Info.SORT);
-        relInfo.assign(recvInfo, ProductGroupRelEntity.Info.RL_FLAG);
+        relInfo.setInt(ProductGroupRelEntity.Info.SORT, sort);
+        relInfo.setInt(ProductGroupRelEntity.Info.RL_FLAG, rlFlag);
     }
 
 }

@@ -258,7 +258,7 @@ public class ProductGroupRelProc {
     public int getMaxSort(int aid, int unionPriId) {
         String sortCache = ProductGroupRelCache.SortCache.get(aid, unionPriId);
         if(!Str.isEmpty(sortCache)) {
-            return Parser.parseInt(sortCache, ProductGroupValObj.Default.SORT);
+            return Parser.parseInt(sortCache, ProductGroupRelValObj.Default.SORT);
         }
 
         // db中获取
@@ -273,11 +273,11 @@ public class ProductGroupRelProc {
         if (listRef.value == null || listRef.value.isEmpty()) {
             rt = Errno.NOT_FOUND;
             Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
-            return ProductGroupValObj.Default.SORT;
+            return ProductGroupRelValObj.Default.SORT;
         }
 
         Param info = listRef.value.get(0);
-        int sort = info.getInt(ProductGroupRelEntity.Info.SORT, ProductGroupValObj.Default.SORT);
+        int sort = info.getInt(ProductGroupRelEntity.Info.SORT, ProductGroupRelValObj.Default.SORT);
         // 添加到缓存
         ProductGroupRelCache.SortCache.set(aid, unionPriId, sort);
         return sort;

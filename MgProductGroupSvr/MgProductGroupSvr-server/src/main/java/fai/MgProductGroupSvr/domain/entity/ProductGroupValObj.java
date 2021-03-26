@@ -6,7 +6,9 @@ public class ProductGroupValObj {
 	}
 
 	public static final class Default {
-		public static final int SORT = 0;
+		public static final int PARENT_ID = 0;
+		public static final String ICON_LIST = "";
+		public static final int FLAG = 0;
 	}
 
 	public static class Limit {

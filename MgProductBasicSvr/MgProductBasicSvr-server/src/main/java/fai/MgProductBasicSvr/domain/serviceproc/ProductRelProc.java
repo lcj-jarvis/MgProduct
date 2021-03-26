@@ -32,21 +32,7 @@ public class ProductRelProc {
             rt = Errno.COUNT_LIMIT;
             throw new MgException(rt, "over limit;flow=%d;aid=%d;uid=%d;count=%d;limit=%d;", m_flow, aid, unionPriId, count, ProductRelValObj.Limit.COUNT_MAX);
         }
-        Integer rlPdId = relData.getInt(ProductRelEntity.Info.RL_PD_ID);
-        if(rlPdId == null) {
-            rlPdId = m_dao.buildId(aid, unionPriId, false);
-            if (rlPdId == null) {
-                rt = Errno.ERROR;
-                throw new MgException(rt, "rlPdId build error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
-            }
-        }else {
-            rlPdId = m_dao.updateId(aid, unionPriId, rlPdId, false);
-            if (rlPdId == null) {
-                rt = Errno.ERROR;
-                throw new MgException(rt, "rlPdId update error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
-            }
-        }
-        relData.setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId);
+        int rlPdId = createAndSetRlPdId(aid, unionPriId, relData);
         rt = m_dao.insert(relData);
         if(rt != Errno.OK) {
             throw new MgException(rt, "insert product rel error;flow=%d;aid=%d;uid=%d;relData=%s;", m_flow, aid, unionPriId, relData);
@@ -80,21 +66,7 @@ public class ProductRelProc {
                 throw new MgException(rt, "over limit;flow=%d;aid=%d;uid=%d;count=%d;limit=%d;", m_flow, aid, unionPriId, count, ProductRelValObj.Limit.COUNT_MAX);
             }
 
-            Integer rlPdId = relData.getInt(ProductRelEntity.Info.RL_PD_ID);
-            if(rlPdId == null) {
-                rlPdId = m_dao.buildId(aid, unionPriId, false);
-                if (rlPdId == null) {
-                    rt = Errno.ERROR;
-                    throw new MgException(rt, "rlPdId build error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
-                }
-            }else {
-                rlPdId = m_dao.updateId(aid, unionPriId, rlPdId, false);
-                if (rlPdId == null) {
-                    rt = Errno.ERROR;
-                    throw new MgException(rt, "rlPdId update error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
-                }
-            }
-            relData.setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId);
+            int rlPdId = createAndSetRlPdId(aid, unionPriId, relData);
             rlPdIds.add(rlPdId);
         }
 
@@ -356,6 +328,26 @@ public class ProductRelProc {
         }
 
         return countRef.value;
+    }
+
+    private int createAndSetRlPdId(int aid, int unionPriId, Param relData) {
+        int rt;
+        Integer rlPdId = relData.getInt(ProductRelEntity.Info.RL_PD_ID, 0);
+        if(rlPdId <= 0) {
+            rlPdId = m_dao.buildId(aid, unionPriId, false);
+            if (rlPdId == null) {
+                rt = Errno.ERROR;
+                throw new MgException(rt, "rlPdId build error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
+            }
+        }else {
+            rlPdId = m_dao.updateId(aid, unionPriId, rlPdId, false);
+            if (rlPdId == null) {
+                rt = Errno.ERROR;
+                throw new MgException(rt, "rlPdId update error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
+            }
+        }
+        relData.setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId);
+        return rlPdId;
     }
 
     private FaiList<Param> getList(int aid, int unionPriId, HashSet<Integer> rlPdIds) {

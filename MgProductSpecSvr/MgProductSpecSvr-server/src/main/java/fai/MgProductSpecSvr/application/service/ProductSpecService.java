@@ -117,6 +117,7 @@ public class ProductSpecService extends ServicePub {
                     Log.logErr("arg pd err;flow=%d;aid=%d;tid=%s;unionPriId=%s;spuInfo=%s;", flow, aid, tid, unionPriId, spuInfo);
                     return rt;
                 }
+                trimProductSpecStrName(spuInfo);
                 String name = spuInfo.getString(SpecStrEntity.Info.NAME);
                 if(!SpecStrArgCheck.isValidName(name)){
                     Log.logErr("arg name err;flow=%d;aid=%d;pdId=%s;name=%s", flow, aid, pdId, name);
@@ -960,6 +961,7 @@ public class ProductSpecService extends ServicePub {
         Set<String> specStrNameSet = new HashSet<>();
         for (ParamUpdater updater : updaterList) {
             Param data = updater.getData();
+            trimProductSpecStrName(data);
             Log.logDbg("whalelog   data=%s", data);
             Integer pdScId = data.getInt(ProductSpecEntity.Info.PD_SC_ID);
             if(pdScId == null){
@@ -1037,6 +1039,7 @@ public class ProductSpecService extends ServicePub {
     private int checkAndReplaceAddPdScInfoList(int flow, int aid, int tid, int unionPriId, int pdId, FaiList<Param> addPdScInfoList){
         Set<String> specStrNameSet = new HashSet<>();
         for (Param pdScInfo : addPdScInfoList) {
+            trimProductSpecStrName(pdScInfo);
             pdScInfo.setInt(ProductSpecEntity.Info.SOURCE_TID, tid);
             pdScInfo.setInt(ProductSpecEntity.Info.SOURCE_UNION_PRI_ID, unionPriId);
             String name = pdScInfo.getString(fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity.Info.NAME);
@@ -1198,4 +1201,21 @@ public class ProductSpecService extends ServicePub {
         }
         return skuList;
     }
+
+    public static void trimProductSpecStrName(Param pdScInfo){
+        if(pdScInfo.containsKey(SpecStrEntity.Info.NAME)){
+            pdScInfo.setString(SpecStrEntity.Info.NAME, Str.trim(pdScInfo.getString(SpecStrEntity.Info.NAME)));
+        }
+        if(pdScInfo.containsKey(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST)){
+            FaiList<Param> list = pdScInfo.getList(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST);
+            for (Param inPdScStrInfo : list) {
+                String name = inPdScStrInfo.getString(fai.MgProductSpecSvr.interfaces.entity.ProductSpecValObj.InPdScValList.Item.NAME);
+                if (name == null){
+                    continue;
+                }
+                inPdScStrInfo.setString(fai.MgProductSpecSvr.interfaces.entity.ProductSpecValObj.InPdScValList.Item.NAME, Str.trim(name));
+            }
+        }
+    }
+
 }

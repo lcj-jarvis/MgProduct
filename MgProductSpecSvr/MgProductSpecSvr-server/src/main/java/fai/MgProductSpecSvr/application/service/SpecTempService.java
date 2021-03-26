@@ -3,7 +3,10 @@ package fai.MgProductSpecSvr.application.service;
 
 import fai.MgProductSpecSvr.domain.comm.*;
 import fai.MgProductSpecSvr.domain.entity.*;
-import fai.MgProductSpecSvr.domain.repository.*;
+import fai.MgProductSpecSvr.domain.repository.SpecStrDaoCtrl;
+import fai.MgProductSpecSvr.domain.repository.SpecTempBizRelDaoCtrl;
+import fai.MgProductSpecSvr.domain.repository.SpecTempDaoCtrl;
+import fai.MgProductSpecSvr.domain.repository.SpecTempDetailDaoCtrl;
 import fai.MgProductSpecSvr.domain.serviceProc.SpecStrProc;
 import fai.MgProductSpecSvr.domain.serviceProc.SpecTempBizRelProc;
 import fai.MgProductSpecSvr.domain.serviceProc.SpecTempDetailProc;
@@ -416,6 +419,8 @@ public class SpecTempService extends ServicePub {
             FaiList<Param> specTempDetailList = new FaiList<>(infoList.size());
             for (Param info : infoList) {
                 String name = info.getString(SpecStrEntity.Info.NAME);
+                name = Str.trim(name);
+                info.setString(SpecStrEntity.Info.NAME, name);
                 if(!SpecStrArgCheck.isValidName(name)){
                     Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;rlTpScId=%s;name=%s", flow, aid, unionPriId, rlTpScId, name);
                     return rt = Errno.ARGS_ERROR;
@@ -428,6 +433,8 @@ public class SpecTempService extends ServicePub {
                 }
                 for (Param inScVal : inScValList) {
                     String inScValName = inScVal.getString(fai.MgProductSpecSvr.interfaces.entity.SpecTempDetailValObj.InScValList.Item.NAME);
+                    inScValName = Str.trim(inScValName);
+                    inScVal.setString(fai.MgProductSpecSvr.interfaces.entity.SpecTempDetailValObj.InScValList.Item.NAME, inScValName);
                     if(!SpecStrArgCheck.isValidName(inScValName)){
                         Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;rlTpScId=%s;inScValName=%s", flow, aid, unionPriId, rlTpScId, inScValName);
                         return rt = Errno.ARGS_ERROR;
@@ -553,6 +560,8 @@ public class SpecTempService extends ServicePub {
                 }
                 String name = info.getString(SpecStrEntity.Info.NAME);
                 if(name != null){
+                    name = Str.trim(name);
+                    info.setString(SpecStrEntity.Info.NAME, name);
                     if(!SpecStrArgCheck.isValidName(name)){
                         Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;rlTpScId=%s;name=%s", flow, aid, unionPriId, rlTpScId, name);
                         return rt = Errno.ARGS_ERROR;
@@ -568,6 +577,10 @@ public class SpecTempService extends ServicePub {
                     }
                     for (Param inScVal : inScValList) {
                         String inScValName = inScVal.getString(fai.MgProductSpecSvr.interfaces.entity.SpecTempDetailValObj.InScValList.Item.NAME);
+                        if(inScValName != null){
+                            inScValName = Str.trim(inScValName);
+                            inScVal.setString(fai.MgProductSpecSvr.interfaces.entity.SpecTempDetailValObj.InScValList.Item.NAME, inScValName);
+                        }
                         if(!SpecStrArgCheck.isValidName(inScValName)){
                             Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;rlTpScId=%s;inScValName=%s", flow, aid, unionPriId, rlTpScId, inScValName);
                             return rt = Errno.ARGS_ERROR;

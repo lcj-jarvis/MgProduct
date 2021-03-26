@@ -1,11 +1,8 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" ?><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>MgProduct</groupId>
-    <artifactId>MgProductComm</artifactId>
+    <artifactId>MgProductInfUtil</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
@@ -18,23 +15,10 @@
 
     <dependencies>
         <dependency>
-            <groupId>fai-comm-util-arch</groupId>
-            <artifactId>fai-comm-util-arch</artifactId>
-            <version>${fai-comm-util-arch-ver}</version>
+            <groupId>fai-middleground-infutil</groupId>
+            <artifactId>fai-middleground-infutil</artifactId>
+            <version>${fai-middleground-infutil-ver}</version>
         </dependency>
-
-        <dependency>
-            <groupId>fai-comm-netkit</groupId>
-            <artifactId>fai-comm-netkit</artifactId>
-            <version>${fai-comm-netkit-ver}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>fai-comm-util-opt</groupId>
-            <artifactId>fai-comm-util-opt</artifactId>
-            <version>${fai-comm-util-opt-ver}</version>
-        </dependency>
-
     </dependencies>
 
     <build>
@@ -73,7 +57,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <!-- 不要轻易升级 除非保证调用方的环境都已经是1.8的 -->
                     <source>1.6</source>
                     <target>1.6</target>
                 </configuration>
@@ -93,4 +76,3 @@
     </build>
 
 </project>
-

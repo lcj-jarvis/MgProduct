@@ -730,8 +730,8 @@ public class ProductSpecService extends MgProductInfService {
             Map<Integer, Integer> pdIdRlPdIdMap = new HashMap<>(list.size()*4/3+1);
             FaiList<Integer> pdIdList = new FaiList<>();
             for (Param info : list) {
-                int pdId = info.getInt(ProductBasicEntity.ProductRelInfo.PD_ID);
-                int rlPdId = info.getInt(ProductBasicEntity.ProductRelInfo.RL_PD_ID);
+                int pdId = info.getInt(ProductBasicEntity.ProductInfo.PD_ID);
+                int rlPdId = info.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID);
                 pdIdRlPdIdMap.put(pdId, rlPdId);
                 pdIdList.add(pdId);
             }

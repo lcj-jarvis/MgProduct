@@ -54,6 +54,11 @@
             <artifactId>MgProductStoreSvr-interfaces</artifactId>
             <version>${MgProduct-MgProductStoreSvr-interfaces-ver}</version>
         </dependency>
+        <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProductGroupSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductGroupSvr-interfaces-ver}</version>
+        </dependency>
 
         <dependency>
             <groupId>fai-comm-jnetkit</groupId>

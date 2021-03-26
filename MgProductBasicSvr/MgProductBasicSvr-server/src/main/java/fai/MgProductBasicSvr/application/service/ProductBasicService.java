@@ -22,16 +22,72 @@ import fai.middleground.svrutil.repository.TransactionCtrl;
 import fai.middleground.svrutil.service.ServicePub;
 
 import java.io.IOException;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
+import java.util.stream.Collectors;
 
 /**
  * 操作商品基础数据
  */
 public class ProductBasicService extends ServicePub {
+
+    @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
+    public int getProductList(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlPdIds) throws IOException {
+        int rt;
+        if(rlPdIds == null || rlPdIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error rlPdIds is empty;flow=%d;aid=%d;rlPdIds=%s;", flow, aid, rlPdIds);
+            return rt;
+        }
+
+        FaiList<Param> relList = null;
+        FaiList<Param> pdList = null;
+        TransactionCtrl tc = new TransactionCtrl();
+        try {
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+            // 获取商品业务关系表数据
+            relList = relProc.getProductRelList(aid, unionPriId, rlPdIds);
+            if(Util.isEmptyList(relList)) {
+                return Errno.NOT_FOUND;
+            }
+            FaiList<Integer> pdIds = relList.stream().map(info -> info.getInt(ProductRelEntity.Info.PD_ID)).collect(Collectors.toCollection(FaiList::new));
+            // 获取商品表数据
+            ProductProc pdProc = new ProductProc(flow, aid, tc);
+            pdList = pdProc.getProductList(aid, pdIds);
+        } finally {
+            tc.closeDao();
+        }
+        if(Util.isEmptyList(pdList)) {
+            rt = Errno.NOT_FOUND;
+            Log.logErr("get pd list err;pdList is empty;aid=%d;uid=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
+            return rt;
+        }
+        Map<Integer, Param> pdMap = new HashMap<>(pdList.size());
+        for (int i = 0; i < pdList.size(); i++) {
+            Param info = pdList.get(i);
+            int pdId = info.getInt(ProductEntity.Info.PD_ID);
+            pdMap.put(pdId, info);
+        }
+        // 数据整合
+        for (int i = 0; i < relList.size(); i++) {
+            Param relInfo = relList.get(i);
+            int pdId = relInfo.getInt(ProductRelEntity.Info.PD_ID);
+            Param pdInfo = pdMap.get(pdId);
+            if(pdInfo == null) {
+                int rlPdId = relInfo.getInt(ProductRelEntity.Info.RL_PD_ID);
+                rt = Errno.ERROR;
+                Log.logErr(rt, "data error;flow=%d;aid=%d;uid=%d;pdId=%d;rlPdId=%d;", flow, aid, unionPriId, pdId, rlPdId);
+                return rt;
+            }
+            relInfo.assign(pdInfo);
+        }
+
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        relList.toBuffer(sendBuf, ProductRelDto.Key.INFO_LIST, ProductRelDto.getRelAndPdDto());
+        session.write(sendBuf);
+        Log.logDbg("get list ok;flow=%d;aid=%d;uid=%d;rlPdIds=%s;", flow, aid, unionPriId, rlPdIds);
+        return Errno.OK;
+    }
 
     /**
      * 取消商品业务关联

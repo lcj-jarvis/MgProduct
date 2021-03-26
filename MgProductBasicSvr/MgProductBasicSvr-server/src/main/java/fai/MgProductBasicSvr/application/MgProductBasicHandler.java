@@ -222,6 +222,15 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
         return service.batchDelPdRelBind(session, flow, aid, unionPriId, rlPdIds, softDel);
     }
 
+    @Cmd(MgProductBasicCmd.BasicCmd.GET_PD_LIST)
+    public int getProductList(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid int aid,
+                              @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                              @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
+        return service.getProductList(session, flow, aid, unionPriId, rlPdIds);
+    }
+
     @Cmd(MgProductBasicCmd.BasicCmd.PD_DATA_STATUS)
     public int getPdDataStatus(final FaiSession session,
                                      @ArgFlow final int flow,

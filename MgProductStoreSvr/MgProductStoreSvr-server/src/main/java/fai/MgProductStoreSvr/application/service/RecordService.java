@@ -62,7 +62,9 @@ public class RecordService extends StoreService {
                 data.assign(info, InOutStoreRecordEntity.Info.C_TYPE);
                 data.assign(info, InOutStoreRecordEntity.Info.S_TYPE);
                 data.assign(info, InOutStoreRecordEntity.Info.CHANGE_COUNT);
-                data.assign(info, InOutStoreRecordEntity.Info.CHANGE_COUNT, InOutStoreRecordEntity.Info.AVAILABLE_COUNT);
+                if(optType == InOutStoreRecordValObj.OptType.IN){
+                    data.assign(info, InOutStoreRecordEntity.Info.CHANGE_COUNT, InOutStoreRecordEntity.Info.AVAILABLE_COUNT);
+                }
                 data.assign(info, InOutStoreRecordEntity.Info.REMAIN_COUNT);
                 data.assign(info, InOutStoreRecordEntity.Info.PRICE);
                 data.setString(InOutStoreRecordEntity.Info.NUMBER, number);

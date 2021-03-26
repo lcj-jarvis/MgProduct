@@ -8,6 +8,7 @@ import fai.comm.util.Log;
 import fai.comm.util.Param;
 import fai.comm.util.Var;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,6 +68,7 @@ public class SpecStrCacheCtrl extends CacheCtrl {
         if(ids == null){
             return null;
         }
+        ids.removeAll(Collections.singletonList(null));
         return getCacheListByIdStrList(aid, new FaiList<>(ids));
     }
 

@@ -30,7 +30,7 @@
         <dependency>
             <groupId>MgProduct</groupId>
             <artifactId>MgProductInfSvr-interfaces</artifactId>
-            <version>${MgProduct-MgProductPropSvr-interfaces-ver}</version>
+            <version>${MgProduct-MgProductInfSvr-interfaces-ver}</version>
         </dependency>
 
         <dependency>

@@ -60,6 +60,7 @@
             <fai-middleground-infutil-ver>1.0.0-SNAPSHOT</fai-middleground-infutil-ver>
             <fai-middleground-svrutil-ver>1.0.0-SNAPSHOT</fai-middleground-svrutil-ver>
 
+            <MgProduct-MgProductInfSvr-interfaces-ver>1.0.0-SNAPSHOT</MgProduct-MgProductInfSvr-interfaces-ver>
             <MgCommon-MgPrimaryKeySvr-interfaces-ver>1.0.0-SNAPSHOT</MgCommon-MgPrimaryKeySvr-interfaces-ver>
             <MgProduct-MgProductInfSvr-interfaces-ver>1.0.0-SNAPSHOT</MgProduct-MgProductInfSvr-interfaces-ver>
             <MgProduct-MgProductPropSvr-interfaces-ver>1.0.0-SNAPSHOT</MgProduct-MgProductPropSvr-interfaces-ver>

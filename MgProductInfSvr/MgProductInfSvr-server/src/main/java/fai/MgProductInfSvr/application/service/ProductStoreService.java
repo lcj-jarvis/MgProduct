@@ -313,7 +313,7 @@ public class ProductStoreService extends MgProductInfService {
             infoList.toBuffer(sendBuf, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.StoreSalesSku.getInfoDto());
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
         }
         return rt;
     }
@@ -364,7 +364,7 @@ public class ProductStoreService extends MgProductInfService {
             infoList.toBuffer(sendBuf, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.StoreSalesSku.getInfoDto());
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
         }
         return rt;
     }
@@ -430,7 +430,7 @@ public class ProductStoreService extends MgProductInfService {
             infoList.toBuffer(sendBuf, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.StoreSalesSku.getInfoDto());
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
         }
         return rt;
     }
@@ -467,7 +467,7 @@ public class ProductStoreService extends MgProductInfService {
             infoList.toBuffer(sendBuf, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.HoldingRecord.getInfoDto());
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
         }
         return rt;
     }

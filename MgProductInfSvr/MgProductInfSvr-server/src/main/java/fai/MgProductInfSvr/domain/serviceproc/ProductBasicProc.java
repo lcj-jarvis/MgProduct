@@ -326,7 +326,23 @@ public class ProductBasicProc {
         }
         rt = m_cli.batchBindProductsRel(aid, tid, list);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "batchAddProductAndRel error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
+            Log.logErr(rt, "batchBindProductsRel error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
+            return rt;
+        }
+
+        return rt;
+    }
+
+    public int delPdBindGroup(int aid, int unionPriId, FaiList<Integer> rlGroupIds) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.delPdBindGroup(aid, unionPriId, rlGroupIds);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "delPdBindGroup error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
             return rt;
         }
 

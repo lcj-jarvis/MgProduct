@@ -38,6 +38,7 @@ public class MgProductBasicCmd {
         public static final int NUM8 = 1008; /** @see BindGroupCmd#BATCH_SET */
         public static final int NUM9 = 1009; /** @see BindPropCmd#DEL_BY_VAL_IDS */
         public static final int NUM10 = 1010; /** @see BindPropCmd#DEL_BY_PROP_IDS */
+        public static final int NUM11 = 1011; /** @see BindGroupCmd#DEL */
     }
 
     /**
@@ -63,6 +64,7 @@ public class MgProductBasicCmd {
         public static final int SEARCH_FROM_DB = ReadCmdNum.NUM9;
 
         public static final int BATCH_SET = WriteCmdNum.NUM8;
+        public static final int DEL = WriteCmdNum.NUM11;
     }
 
     public static class BasicCmd {

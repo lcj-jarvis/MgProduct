@@ -2,12 +2,17 @@ package fai.MgProductBasicSvr.application.service;
 
 import fai.MgProductBasicSvr.domain.common.LockUtil;
 import fai.MgProductBasicSvr.domain.common.MgProductCheck;
+import fai.MgProductBasicSvr.domain.entity.ProductBindPropEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductRelEntity;
+import fai.MgProductBasicSvr.domain.repository.cache.ProductBindGroupCache;
+import fai.MgProductBasicSvr.domain.repository.cache.ProductBindPropCache;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductCacheCtrl;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductRelCacheCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductDaoCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductRelDaoCtrl;
+import fai.MgProductBasicSvr.domain.serviceproc.ProductBindGroupProc;
+import fai.MgProductBasicSvr.domain.serviceproc.ProductBindPropProc;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductProc;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductRelProc;
 import fai.MgProductBasicSvr.interfaces.dto.ProductDto;
@@ -106,14 +111,42 @@ public class ProductBasicService extends ServicePub {
         lock.lock();
         try {
             TransactionCtrl tc = new TransactionCtrl();
+            boolean commit = false;
             try {
+                tc.setAutoCommit(false);
                 ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
                 ProductRelCacheCtrl.setExpire(aid, unionPriId);
                 int delCount = relProc.delProductRel(aid, unionPriId, rlPdIds, softDel);
+                // 删除参数、分类关联数据
+                int delGroupCount = 0;
+                int delPropCount = 0;
+                if(!softDel) {
+                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                    ProductBindGroupCache.setExpire(aid, unionPriId);
+                    delGroupCount = bindGroupProc.delPdBindGroupList(aid, unionPriId, rlPdIds);
+
+                    ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
+                    ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
+                    delPropCount = bindPropProc.delPdBindProp(aid, unionPriId, matcher);
+                }
+                commit = true;
+                tc.commit();
+
                 // 删除缓存
                 ProductRelCacheCtrl.delCacheList(aid, unionPriId, rlPdIds);
                 ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, -delCount); // 更新数据状态缓存
+                if(!softDel) {
+                    // 处理商品分类关联数据缓存
+                    ProductBindGroupCache.delCache(aid, unionPriId);
+                    ProductBindGroupCache.DataStatusCache.update(aid, unionPriId, -delGroupCount);
+                    // 处理商品参数关联数据缓存
+                    ProductBindPropCache.delCacheList(aid, unionPriId, new HashSet<>(rlPdIds));
+                    ProductBindPropCache.DataStatusCache.update(aid, unionPriId, -delPropCount);
+                }
             }finally {
+                if(!commit) {
+                    tc.rollback();
+                }
                 tc.closeDao();
             }
         }finally {
@@ -168,10 +201,18 @@ public class ProductBasicService extends ServicePub {
                 }
                 // 删除pdIdList的所有业务关联数据
                 delRelInfos = relProc.delProductRelByPdId(aid, pdIdList, softDel);
+
                 ProductProc pdProc = new ProductProc(flow, aid, tc);
                 // 删除商品数据
                 int delPdCount = pdProc.deleteProductList(aid, tid, pdIdList, softDel);
 
+                // 删除参数关联
+                ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
+                int delBindPropCnt = bindPropProc.delPdBindProp(aid, pdIdList);
+
+                // 删除分类关联
+                ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                int delBindGroupCnt = bindGroupProc.delPdBindGroupList(aid, pdIdList);
                 commit = true;
                 tc.commit();
                 // 清缓存
@@ -181,13 +222,19 @@ public class ProductBasicService extends ServicePub {
                         int curUnionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
                         int curRlPdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
                         uids.add(curUnionPriId);
-                        // 删除 mgProductRel 缓存
+                        // mgProductRel 缓存
                         ProductRelCacheCtrl.delCache(aid, curUnionPriId, curRlPdId);
-                        // 删除 cache: aid+unionPriId+pdId -> rlPdId
+                        // cache: aid+unionPriId+pdId -> rlPdId
                         ProductRelCacheCtrl.delRlIdRelCache(aid, curUnionPriId, pdIdList);
+                        // 参数关联缓存
+                        ProductBindPropCache.delCache(aid, curUnionPriId, curRlPdId);
+                        // 分类关联缓存
+                        ProductBindGroupCache.delCache(aid, curUnionPriId);
                     }
                     // 删除 数据状态dataStatus 缓存
                     ProductRelCacheCtrl.DataStatusCache.del(aid, uids);
+                    ProductBindPropCache.DataStatusCache.del(aid, uids);
+                    ProductBindGroupCache.DataStatusCache.del(aid, uids);
                 }
                 ProductCacheCtrl.delCacheList(aid, pdIdList);
                 ProductCacheCtrl.DataStatusCache.update(aid, -delPdCount); // 更新数据状态缓存

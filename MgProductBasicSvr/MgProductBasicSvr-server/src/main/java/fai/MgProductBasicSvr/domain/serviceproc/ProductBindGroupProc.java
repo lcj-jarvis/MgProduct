@@ -1,11 +1,11 @@
 package fai.MgProductBasicSvr.domain.serviceproc;
 
 import fai.MgProductBasicSvr.domain.entity.ProductBindGroupEntity;
-import fai.MgProductBasicSvr.domain.entity.ProductEntity;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductBindGroupCache;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductBindGroupDaoCtrl;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
+import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
@@ -54,6 +54,23 @@ public class ProductBindGroupProc {
         }
     }
 
+    public int delPdBindGroupList(int aid, FaiList<Integer> pdIds) {
+        int rt;
+        if(Util.isEmptyList(pdIds)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "del error;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductBindGroupEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        Ref<Integer> refRowCount = new Ref<>();
+        rt = m_dao.delete(matcher, refRowCount);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "del info error;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
+        }
+        Log.logStd("delPdBindGroupList ok;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
+        return refRowCount.value;
+    }
+
     public int delPdBindGroupList(int aid, int unionPriId, int rlPdId, FaiList<Integer> rlGroupIds) {
         int rt;
         if(rlGroupIds == null || rlGroupIds.isEmpty()) {
@@ -70,6 +87,24 @@ public class ProductBindGroupProc {
             throw new MgException(rt, "del info error;flow=%d;aid=%d;rlPdId=%d;rlGroupIds=%s;", m_flow, aid, rlPdId, rlGroupIds);
         }
         Log.logStd("delPdBindGroupList ok;flow=%d;aid=%d;rlPdId=%d;rlGroupIds=%s;", m_flow, aid, rlPdId, rlGroupIds);
+        return refRowCount.value;
+    }
+
+    public int delPdBindGroupList(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
+        int rt;
+        if(rlPdIds == null || rlPdIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(ProductBindGroupEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
+        Ref<Integer> refRowCount = new Ref<>();
+        rt = m_dao.delete(matcher, refRowCount);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "del info error;flow=%d;aid=%d;rlPdIds=%s;", m_flow, aid, rlPdIds);
+        }
+        Log.logStd("delPdBindGroupList ok;flow=%d;aid=%d;rlPdIds=%s;", m_flow, aid, rlPdIds);
         return refRowCount.value;
     }
 

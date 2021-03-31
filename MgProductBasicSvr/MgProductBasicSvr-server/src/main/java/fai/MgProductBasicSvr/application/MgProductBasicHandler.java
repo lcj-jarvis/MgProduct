@@ -299,6 +299,16 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
         return groupBindService.setPdBindGroup(session, flow, aid, unionPriId, rlPdId, addGroupIds, delGroupIds);
     }
 
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BindGroupCmd.DEL)
+    public int delPdBindGroup(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid int aid,
+                              @ArgBodyInteger(ProductBindGroupDto.Key.UNION_PRI_ID) int unionPriId,
+                              @ArgList(keyMatch = ProductBindGroupDto.Key.RL_GROUP_IDS) FaiList<Integer> delGroupIds) throws IOException {
+        return groupBindService.delBindGroupList(session, flow, aid, unionPriId, delGroupIds);
+    }
+
     @Cmd(MgProductBasicCmd.BindGroupCmd.GET_PD_BY_GROUP)
     public int getRlPdByRlGroupId(final FaiSession session,
                                   @ArgFlow final int flow,

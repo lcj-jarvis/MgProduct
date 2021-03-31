@@ -136,6 +136,34 @@ public class ProductBindGroupService extends ServicePub {
         return Errno.OK;
     }
 
+    /**
+     * 删除指定分类业务id的关联数据
+     */
+    @SuccessRt(value = Errno.OK)
+    public int delBindGroupList(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlGroupIds) throws IOException {
+        if(Util.isEmptyList(rlGroupIds)) {
+            int rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args error, rlGroupIds is empty;aid=%d;unionPriId=%d;rlGroupIds=%s;", aid, unionPriId, rlGroupIds);
+            return rt;
+        }
+        int delCount = 0;
+        TransactionCtrl tc = new TransactionCtrl();
+        try {
+            ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+            delCount = bindGroupProc.delPdBindGroupList(aid, unionPriId, rlGroupIds);
+        }finally {
+            tc.closeDao();
+        }
+        // 删除缓存
+        ProductBindGroupCache.delCache(aid, unionPriId);
+        ProductBindGroupCache.DataStatusCache.update(aid, unionPriId, -delCount);
+
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logDbg("del ok;flow=%d;aid=%d;uid=%d;rlGroupIds=%s;", flow, aid, unionPriId, rlGroupIds);
+        return Errno.OK;
+    }
+
     @SuccessRt(value = Errno.OK)
     public int getBindGroupDataStatus(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
         int rt;

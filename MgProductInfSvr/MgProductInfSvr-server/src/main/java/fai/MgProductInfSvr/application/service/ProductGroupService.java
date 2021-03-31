@@ -1,5 +1,6 @@
 package fai.MgProductInfSvr.application.service;
 
+import fai.MgProductInfSvr.domain.serviceproc.ProductBasicProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductGroupProc;
 import fai.MgProductInfSvr.interfaces.dto.ProductGroupDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
@@ -75,6 +76,14 @@ public class ProductGroupService extends MgProductInfService {
 
         ProductGroupProc groupProc = new ProductGroupProc(flow);
         groupProc.delGroupList(aid, unionPriId, rlGroupIds);
+
+        ProductBasicProc basicProc = new ProductBasicProc(flow);
+        int rt = basicProc.delPdBindGroup(aid, unionPriId, rlGroupIds);
+        if(rt != Errno.OK) {
+            Oss.logAlarm("del pd bind group err;aid=" + aid);
+            Log.logErr("del pd bind group err;aid=%d;uid=%d;rlGroupIds=%s;", aid, unionPriId, rlGroupIds);
+            return rt;
+        }
 
         FaiBuffer sendBuf = new FaiBuffer(true);
         session.write(sendBuf);

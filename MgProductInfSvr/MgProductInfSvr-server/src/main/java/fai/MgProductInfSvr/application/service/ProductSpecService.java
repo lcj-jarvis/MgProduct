@@ -296,7 +296,7 @@ public class ProductSpecService extends MgProductInfService {
             infoList.toBuffer(sendBuf, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecTempDetail.getInfoDto());
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
         }
         return rt;
     }
@@ -549,7 +549,7 @@ public class ProductSpecService extends MgProductInfService {
             infoList.toBuffer(sendBuf, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.Spec.getInfoDto());
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
         }
         return rt;
     }
@@ -591,7 +591,7 @@ public class ProductSpecService extends MgProductInfService {
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
         }
         return rt;
     }
@@ -638,7 +638,7 @@ public class ProductSpecService extends MgProductInfService {
             infoList.toBuffer(sendBuf, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecSku.getInfoDto());
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
         }
         return rt;
     }
@@ -694,7 +694,7 @@ public class ProductSpecService extends MgProductInfService {
             infoList.toBuffer(sendBuf, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecSku.getInfoDto());
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
         }
         return rt;
     }
@@ -752,7 +752,7 @@ public class ProductSpecService extends MgProductInfService {
             infoList.toBuffer(sendBuf, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecSku.getInfoDto());
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
         }
         return rt;
     }

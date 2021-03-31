@@ -1,0 +1,21 @@
+<?xml version="1.0" ?><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>MgProduct</groupId>
+    <artifactId>MgProduct</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    
+    <modules>
+        <module>MgProductParent</module>
+        <module>MgProductComm</module>
+        <module>MgProductInfUtil</module>
+        <module>MgProductBasicSvr</module>
+        <module>MgProductGroupSvr</module>
+        <module>MgProductPropSvr</module>
+        <module>MgProductSearchSvr</module>
+        <module>MgProductSpecSvr</module>
+        <module>MgProductStoreSvr</module>
+        <module>MgProductInfSvr</module>
+    </modules>
+</project>

@@ -483,6 +483,33 @@ public class MgProductInfHandler extends FaiHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductInfCmd.BasicCmd.SET_PD_BIND_GROUP)
+    public int setPdBindGroup(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid final int aid,
+                              @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
+                              @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
+                              @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
+                              @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
+                              @ArgBodyInteger(ProductBasicDto.Key.RL_PD_ID) int rlPdId,
+                              @ArgList(keyMatch = ProductBasicDto.Key.BIND_GROUP_IDS) FaiList<Integer> addRlGroupIds,
+                              @ArgList(keyMatch = ProductBasicDto.Key.DEL_BIND_GROUP_IDS) FaiList<Integer> delRlGroupIds) throws IOException {
+        return basicService.setPdBindGroup(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, addRlGroupIds, delRlGroupIds);
+    }
+
+    @Cmd(MgProductInfCmd.BasicCmd.GET_PD_BIND_GROUPS)
+    public int getPdBindGroups(final FaiSession session,
+                               @ArgFlow final int flow,
+                               @ArgAid final int aid,
+                               @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
+                               @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
+                               @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
+                               @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
+                               @ArgList(keyMatch = ProductBasicDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
+        return basicService.getPdBindGroupList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIds);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductInfCmd.StoreSalesSkuCmd.SET_LIST)
     public int setSkuStoreSales(final FaiSession session,
                                 @ArgFlow final int flow,

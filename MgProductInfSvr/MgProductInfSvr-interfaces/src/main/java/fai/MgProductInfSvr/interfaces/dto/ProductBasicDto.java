@@ -83,7 +83,6 @@ public class ProductBasicDto {
         g_bindPropValDef.add(ProductBasicEntity.BindPropInfo.PROP_VAL_ID, 0);
         g_bindPropValDef.add(ProductBasicEntity.BindPropInfo.RL_PROP_ID, 1);
     }
-
     public static ParamDef getBindPropDto(FaiList<Integer> propIds) {
         ParamDef def = new ParamDef();
         int bufKey = 0;
@@ -96,6 +95,20 @@ public class ProductBasicDto {
 
     public static ParamDef getBindPropValDto() {
         return g_bindPropValDef;
+    }
+
+    /*** 商品设置的分类 ***/
+    private static ParamDef g_bindGroupDef = new ParamDef();
+    static {
+        g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.AID, 0);
+        g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.RL_GROUP_ID, 1);
+        g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.RL_PD_ID, 2);
+        g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.UNION_PRI_ID, 3);
+        g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.PD_ID, 4);
+        g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.CREATE_TIME, 5);
+    }
+    public static ParamDef getBindGroupDto() {
+        return g_bindGroupDef;
     }
 
     public static class Key {
@@ -116,6 +129,9 @@ public class ProductBasicDto {
         public static final int PD_BIND_INFO = 15;
         public static final int SOFT_DEL = 16;
         public static final int PD_LIST = 17;
+        public static final int BIND_GROUP_LIST = 18;
+        public static final int BIND_GROUP_IDS = 19;
+        public static final int DEL_BIND_GROUP_IDS = 20;
     }
 
 

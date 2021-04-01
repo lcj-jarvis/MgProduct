@@ -67,6 +67,7 @@ public class MgProductInfCmd {
 
         public static final int NUM26 = 5026;/**@see BasicCmd#GET_PD_LIST */
         public static final int NUM27 = 5027;/**@see GroupCmd#GET_GROUP_LIST */
+        public static final int NUM28 = 5028;/**@see BasicCmd#GET_PD_BIND_GROUPS */
     }
 
     // 1000 到 5000 的范围
@@ -129,9 +130,10 @@ public class MgProductInfCmd {
         /**@see StoreSalesSkuCmd#BATCH_REFUND_STORE */
         public static final int NUM29 = 1029;
 
-        public static final int NUM30 = 1030; /**@see GroupCmd#ADD_GROUP_LIST */
+        public static final int NUM30 = 1030; /**@see GroupCmd#ADD_GROUP */
         public static final int NUM31 = 1031; /**@see GroupCmd#DEL_GROUP_LIST */
         public static final int NUM32 = 1032; /**@see GroupCmd#SET_GROUP_LIST */
+        public static final int NUM33 = 1033; /**@see BasicCmd#SET_PD_BIND_GROUP */
     }
 
     /**
@@ -156,6 +158,7 @@ public class MgProductInfCmd {
         public static final int GET_PROP_LIST = ReadCmdNum.NUM3;
         public static final int GET_RLPDIDS_BY_PROP = ReadCmdNum.NUM12;
         public static final int GET_PD_LIST = ReadCmdNum.NUM26;
+        public static final int GET_PD_BIND_GROUPS = ReadCmdNum.NUM28;
 
         //写命令
         public static final int SET_PROP_LIST = WriteCmdNum.NUM7;
@@ -164,6 +167,7 @@ public class MgProductInfCmd {
         public static final int BATCH_ADD_PD_BIND = WriteCmdNum.NUM19;
         public static final int BATCH_DEL_PD_BIND = WriteCmdNum.NUM20;
         public static final int BATCH_DEL_PDS = WriteCmdNum.NUM21;
+        public static final int SET_PD_BIND_GROUP = WriteCmdNum.NUM33;
     }
 
     public static class GroupCmd {

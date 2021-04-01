@@ -8,6 +8,8 @@ import fai.MgProductSpecSvr.domain.entity.ProductSpecValObj;
 import fai.MgProductSpecSvr.domain.repository.ProductSpecCacheCtrl;
 import fai.MgProductSpecSvr.domain.repository.ProductSpecDaoCtrl;
 import fai.comm.util.*;
+import fai.mgproduct.comm.Util;
+import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.*;
 
@@ -16,60 +18,75 @@ public class ProductSpecProc {
         m_daoCtrl = daoCtrl;
         m_flow = flow;
     }
-    public int batchAdd(int aid, int pdId, FaiList<Param> infoList, FaiList<Integer> rtIdList) {
-        return batchAdd(aid, pdId, infoList, rtIdList, null);
+    public ProductSpecProc(int flow, int aid, TransactionCtrl transactionCtrl) {
+        m_daoCtrl =  ProductSpecDaoCtrl.getInstance(flow, aid);
+        if(!transactionCtrl.register(m_daoCtrl)){
+            new RuntimeException("register dao err;flow="+flow+";aid="+aid);
+        }
+        m_flow = flow;
     }
-    public int batchAdd(int aid, int pdId, FaiList<Param> infoList, FaiList<Integer> rtIdList, Ref<Boolean> needRefreshSkuRef) {
-        if(aid <= 0 || pdId <= 0 || infoList == null || infoList.isEmpty()){
-            Log.logErr("batchAdd arg error;flow=%d;aid=%s;pdId=%s;infoList=%s;", m_flow, aid, pdId, infoList);
-            return Errno.ARGS_ERROR;
-        }
-
-        FaiList<Param> dataList = new FaiList<>(infoList.size());
-        Calendar now = Calendar.getInstance();
-        for (Param info : infoList) {
-            Param data = new Param();
-            data.setInt(ProductSpecEntity.Info.AID, aid);
-            data.setInt(ProductSpecEntity.Info.PD_ID, pdId);
-            data.assign( info, ProductSpecEntity.Info.SC_STR_ID);
-            Integer pdScId = m_daoCtrl.buildId();
-            if(pdScId == null){
-                Log.logErr("batchAdd arg error;flow=%d;aid=%s;tpScId=%s;info=%s;", m_flow, aid, pdScId, info);
-                return Errno.ERROR;
-            }
-            if(rtIdList != null){
-                rtIdList.add(pdScId);
-            }
-            data.setInt(ProductSpecEntity.Info.PD_SC_ID, pdScId);
-            data.assign( info, ProductSpecEntity.Info.SOURCE_TID);
-            data.assign( info, ProductSpecEntity.Info.SOURCE_UNION_PRI_ID);
-            data.assign( info, ProductSpecEntity.Info.SORT);
-            data.assign( info, ProductSpecEntity.Info.FLAG);
-            FaiList<Param> inPdScValList = info.getList(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST);
-            for (Param inPdScValInfo : inPdScValList) {
-                if(inPdScValInfo.getBoolean(ProductSpecValObj.InPdScValList.Item.CHECK, false)){
-                    int flag = data.getInt(ProductSpecEntity.Info.FLAG, 0) | ProductSpecValObj.FLag.IN_PD_SC_VAL_LIST_CHECKED;
-                    if(needRefreshSkuRef != null){
-                        needRefreshSkuRef.value = true;
-                    }
-                    data.setInt(ProductSpecEntity.Info.FLAG, flag);
-                    break;
-                }
-            }
-            String inScValListStr = inPdScValList.toJson();
-            data.setString(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST, inScValListStr);
-            data.setCalendar(ProductSpecEntity.Info.SYS_CREATE_TIME, now);
-            data.setCalendar(ProductSpecEntity.Info.SYS_UPDATE_TIME, now);
-            dataList.add(data);
-        }
-        cacheManage.addNeedDelCachedPdId(aid, pdId);
-        int rt = m_daoCtrl.batchInsert(dataList, null);
-        if(rt != Errno.OK) {
-            Log.logErr(rt, "batchAdd error;flow=%d;aid=%s;pdId=%s;", m_flow, aid, pdId);
+    public int batchAdd(int aid, Map<Integer, List<Param>> pdIdSpecListMap, Ref<Boolean> needRefreshSkuRef) {
+        int rt = Errno.ARGS_ERROR;
+        if(aid <= 0){
+            Log.logErr(rt,"arg error;flow=%d;aid=%s;", m_flow, aid);
             return rt;
         }
-        Log.logStd("batchAdd ok;flow=%d;aid=%d;", m_flow, aid);
+        FaiList<Param> dataList = new FaiList<>();
+        Calendar now = Calendar.getInstance();
+        for (Map.Entry<Integer, List<Param>> pdIdSpecListEntry : pdIdSpecListMap.entrySet()) {
+            Integer pdId = pdIdSpecListEntry.getKey();
+            List<Param> infoList = pdIdSpecListEntry.getValue();
+            if(pdId == null || pdId <= 0 || Util.isEmptyList(infoList)){
+                Log.logErr(rt, "arg error;flow=%d;aid=%s;pdId=%s;infoList=%s;", m_flow, aid, pdId, infoList);
+                return rt;
+            }
+            for (Param info : infoList) {
+                Param data = new Param();
+                data.setInt(ProductSpecEntity.Info.AID, aid);
+                data.setInt(ProductSpecEntity.Info.PD_ID, pdId);
+                data.assign( info, ProductSpecEntity.Info.SC_STR_ID);
+                Integer pdScId = m_daoCtrl.buildId();
+                if(pdScId == null){
+                    Log.logErr("batchAdd arg error;flow=%d;aid=%s;tpScId=%s;info=%s;", m_flow, aid, pdScId, info);
+                    return Errno.ERROR;
+                }
+                data.setInt(ProductSpecEntity.Info.PD_SC_ID, pdScId);
+                data.assign( info, ProductSpecEntity.Info.SOURCE_TID);
+                data.assign( info, ProductSpecEntity.Info.SOURCE_UNION_PRI_ID);
+                data.assign( info, ProductSpecEntity.Info.SORT);
+                data.assign( info, ProductSpecEntity.Info.FLAG);
+                FaiList<Param> inPdScValList = info.getList(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST);
+                for (Param inPdScValInfo : inPdScValList) {
+                    if(inPdScValInfo.getBoolean(ProductSpecValObj.InPdScValList.Item.CHECK, false)){
+                        int flag = data.getInt(ProductSpecEntity.Info.FLAG, 0) | ProductSpecValObj.FLag.IN_PD_SC_VAL_LIST_CHECKED;
+                        if(needRefreshSkuRef != null){
+                            needRefreshSkuRef.value = true;
+                        }
+                        data.setInt(ProductSpecEntity.Info.FLAG, flag);
+                        break;
+                    }
+                }
+                String inScValListStr = inPdScValList.toJson();
+                data.setString(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST, inScValListStr);
+                data.setCalendar(ProductSpecEntity.Info.SYS_CREATE_TIME, now);
+                data.setCalendar(ProductSpecEntity.Info.SYS_UPDATE_TIME, now);
+                dataList.add(data);
+            }
+            cacheManage.addNeedDelCachedPdId(aid, pdId);
+        }
+        rt = m_daoCtrl.batchInsert(dataList, null);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "dao.batchInsert error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
+            return rt;
+        }
+        Log.logStd("ok;flow=%d;aid=%d;", m_flow, aid);
         return rt;
+    }
+    public int batchAdd(int aid, int pdId, FaiList<Param> infoList) {
+        return batchAdd(aid, pdId, infoList, null);
+    }
+    public int batchAdd(int aid, int pdId, FaiList<Param> infoList, Ref<Boolean> needRefreshSkuRef) {
+        return batchAdd(aid, Collections.singletonMap(pdId, infoList), needRefreshSkuRef);
     }
 
     /**
@@ -247,7 +264,7 @@ public class ProductSpecProc {
         int rt = Errno.ERROR;
         FaiList<Integer> pdScIdList = new FaiList<>(updaterList.size());
         Set<Integer> scStrIdSet = new HashSet<>();
-        Set<String> maxUpdaterKeys = Utils.validUpdaterList(updaterList, ProductSpecEntity.getValidKeys(), data->{
+        Set<String> maxUpdaterKeys = Utils.retainValidUpdaterList(updaterList, ProductSpecEntity.getValidKeys(), data->{
             pdScIdList.add(data.getInt(ProductSpecEntity.Info.PD_SC_ID));
             Integer scStrId = data.getInt(ProductSpecEntity.Info.SC_STR_ID);
             if(scStrId != null){
@@ -439,7 +456,14 @@ public class ProductSpecProc {
         }
         int rt = Errno.ERROR;
         try {
-            LockUtil.lock(aid);
+            LockUtil.readLock(aid);
+            // double check
+            pdScList = ProductSpecCacheCtrl.getPdScList(aid, pdId);
+            if(pdScList != null){
+                listRef.value = pdScList;
+                return Errno.OK;
+            }
+
             rt = getListFromDaoByPdScIdList(aid, pdId, null, listRef);
             if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                 Log.logErr(rt,"getListFormDao err;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
@@ -448,7 +472,7 @@ public class ProductSpecProc {
             pdScList = listRef.value;
             ProductSpecCacheCtrl.initPdScList(aid, pdId, pdScList);
         }finally {
-            LockUtil.unlock(aid);
+            LockUtil.unReadLock(aid);
         }
         Log.logDbg(rt,"getList ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
         return rt;
@@ -467,6 +491,7 @@ public class ProductSpecProc {
     private ProductSpecDaoCtrl m_daoCtrl;
 
     private CacheManage cacheManage = new CacheManage();
+
     private static class CacheManage{
 
         public CacheManage() {

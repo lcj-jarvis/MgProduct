@@ -11,32 +11,31 @@ public class LockUtil {
     private LockUtil() {
     }
 
+    /**
+     * 公共锁 加锁
+     */
     public static void lock(int aid){
-        LockWarp lockWarp = threadIdLockWarpCache.get(Thread.currentThread().getId());
-        if(lockWarp == null){
-            Lock lock = lockGenerator.gen(LOCK_TYPE, String.valueOf(aid), lockLease, TimeUnit.MILLISECONDS, retryLockTime);
-            lockWarp = new LockWarp(aid, lock);
-            LockWarp exists = threadIdLockWarpCache.put(Thread.currentThread().getId(), lockWarp);
-            if(exists != null){
-                Log.logErr("already exists;threadId=%s;aid=%s;exists=%s;", Thread.currentThread().getId(), aid, exists);
-            }
-        }
-        if(lockWarp.holdingAid != aid){
-            Log.logErr("holding err;threadId=%s;aid=%s;holdingAid=%s;", Thread.currentThread().getId(), aid, lockWarp.holdingAid);
-        }
-        lockWarp.count++;
-        lockWarp.lock.lock();
+        commLock.lock(aid);
+    }
+    /**
+     * 公共锁 解锁
+     */
+    public static void unlock(int aid){
+        commLock.unlock(aid);
     }
 
-    public static void unlock(int aid){
-        LockWarp lockWarp = threadIdLockWarpCache.get(Thread.currentThread().getId());
-        if(lockWarp == null){
-            throw new RuntimeException("unlock err aid="+aid);
-        }
-        lockWarp.lock.unlock();
-        if(--lockWarp.count == 0){
-            threadIdLockWarpCache.remove(Thread.currentThread().getId());
-        }
+    /**
+     * 读锁 加锁
+     */
+    public static void readLock(int aid){
+        readLock.lock(aid);
+    }
+
+    /**
+     * 读锁 解锁
+     */
+    public static void unReadLock(int aid){
+        readLock.unlock(aid);
     }
 
     public static void initLock(FaiLockGenerator lockGenerator, int lockLease, long retryLockTime){
@@ -68,8 +67,47 @@ public class LockUtil {
         }
     }
 
+    private static class AidLock {
+        private ConcurrentHashMap<Long, LockWarp> threadIdLockWarpCache;
+        private String lockType;
 
-    public static final ConcurrentHashMap<Long, LockWarp> threadIdLockWarpCache = new ConcurrentHashMap<>();
+        public AidLock(String lockType) {
+            this.threadIdLockWarpCache = new ConcurrentHashMap<>();
+            this.lockType = lockType;
+        }
+        public void lock(int aid){
+            LockWarp lockWarp = threadIdLockWarpCache.get(Thread.currentThread().getId());
+            if(lockWarp == null){
+                Lock lock = lockGenerator.gen(lockType, String.valueOf(aid), lockLease, TimeUnit.MILLISECONDS, retryLockTime);
+                lockWarp = new LockWarp(aid, lock);
+                LockWarp exists = threadIdLockWarpCache.put(Thread.currentThread().getId(), lockWarp);
+                if(exists != null){
+                    String msg = String.format("already exists;threadId=%s;aid=%s;exists=%s;", Thread.currentThread().getId(), aid, exists);
+                    Log.logErr(msg);
+                    throw new RuntimeException(msg);
+                }
+            }
+            if(lockWarp.holdingAid != aid){
+                String msg = String.format("holding err;threadId=%s;aid=%s;holdingAid=%s;", Thread.currentThread().getId(), aid, lockWarp.holdingAid);
+                Log.logErr(msg);
+                throw new RuntimeException(msg);
+            }
+            lockWarp.count++;
+            lockWarp.lock.lock();
+        }
 
-    private static final String LOCK_TYPE = "MG_PRODUCT_SPEC_SVR_LOCK";
+        public void unlock(int aid){
+            LockWarp lockWarp = threadIdLockWarpCache.get(Thread.currentThread().getId());
+            if(lockWarp == null){
+                throw new RuntimeException("unlock err aid="+aid);
+            }
+            lockWarp.lock.unlock();
+            if(--lockWarp.count == 0){
+                threadIdLockWarpCache.remove(Thread.currentThread().getId());
+            }
+        }
+    }
+
+    public static final AidLock commLock = new AidLock("MG_PRODUCT_SPEC_SVR_LOCK");
+    public static final AidLock readLock = new AidLock("MG_PRODUCT_SPEC_SVR_READ_LOCK");
 }

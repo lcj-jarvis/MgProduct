@@ -5,19 +5,25 @@ import fai.MgProductSpecSvr.domain.comm.*;
 import fai.MgProductSpecSvr.domain.entity.*;
 import fai.MgProductSpecSvr.domain.repository.ProductSpecDaoCtrl;
 import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuDaoCtrl;
+import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuNumDaoCtrl;
 import fai.MgProductSpecSvr.domain.repository.SpecStrDaoCtrl;
 import fai.MgProductSpecSvr.domain.serviceProc.ProductSpecProc;
+import fai.MgProductSpecSvr.domain.serviceProc.ProductSpecSkuNumProc;
 import fai.MgProductSpecSvr.domain.serviceProc.ProductSpecSkuProc;
 import fai.MgProductSpecSvr.domain.serviceProc.SpecStrProc;
 import fai.MgProductSpecSvr.interfaces.dto.ProductSpecDto;
 import fai.MgProductSpecSvr.interfaces.dto.ProductSpecSkuDto;
+import fai.MgProductSpecSvr.interfaces.dto.ProductSpecSkuNumDao;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
+import fai.mgproduct.comm.DataStatus;
+import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 import fai.middleground.svrutil.service.ServicePub;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 public class ProductSpecService extends ServicePub {
@@ -56,12 +62,12 @@ public class ProductSpecService extends ServicePub {
                 try {
                     LockUtil.lock(aid);
                     try {
-                        productSpecDaoCtrl.setAutoCommit(true);
+                        productSpecDaoCtrl.setAutoCommit(false);
                         rt = productSpecProc.batchDel(aid, pdId, null, null);
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = productSpecProc.batchAdd(aid, pdId, pdScInfoList, null);
+                        rt = productSpecProc.batchAdd(aid, pdId, pdScInfoList);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -297,16 +303,13 @@ public class ProductSpecService extends ServicePub {
             try {
                 ProductSpecDaoCtrl productSpecDaoCtrl = ProductSpecDaoCtrl.getInstance(flow, aid);
                 ProductSpecSkuDaoCtrl productSpecSkuDaoCtrl = ProductSpecSkuDaoCtrl.getInstance(flow, aid);
-                if(!transactionCtrl.register(productSpecDaoCtrl)){
-                    Log.logErr("register ProductSpecDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
-                    return rt=Errno.ERROR;
-                }
-                if(!transactionCtrl.register(productSpecSkuDaoCtrl)){
-                    Log.logErr("register ProductSpecSkuDaoCtrl err;flow=%d;aid=%d;unionPriId=%s;", flow, aid, unionPriId);
+                ProductSpecSkuNumDaoCtrl productSpecSkuNumDaoCtrl = ProductSpecSkuNumDaoCtrl.getInstance(flow, aid);
+                if(!transactionCtrl.register(productSpecDaoCtrl, productSpecSkuDaoCtrl, productSpecSkuNumDaoCtrl)){
                     return rt=Errno.ERROR;
                 }
                 ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(productSpecSkuDaoCtrl, flow);
                 ProductSpecProc productSpecProc = new ProductSpecProc(productSpecDaoCtrl, flow);
+                ProductSpecSkuNumProc productSpecSkuNumProc = new ProductSpecSkuNumProc(productSpecSkuNumDaoCtrl, flow);
                 try {
                     LockUtil.lock(aid);
                     try {
@@ -319,7 +322,7 @@ public class ProductSpecService extends ServicePub {
                             }
                         }
                         if (hasAdd) {
-                            rt = productSpecProc.batchAdd(aid, pdId, addPdScInfoList, null, needReFreshSkuRef);
+                            rt = productSpecProc.batchAdd(aid, pdId, addPdScInfoList, needReFreshSkuRef);
                             if (rt != Errno.OK) {
                                 return rt;
                             }
@@ -344,7 +347,7 @@ public class ProductSpecService extends ServicePub {
                             return rt;
                         }
                         Map<Integer, Integer> idxPdScIdMap = new HashMap<>();
-                        FaiList<FaiList<Integer>> skuList = genSkuList(pdScInfoListRef.value, idxPdScIdMap, ProductSpecSkuValObj.Limit.SINGLE_PRODUCT_MAX_SIZE, ProductSpecSkuValObj.Limit.InPdScValIdSkuList.MAX_SIZE);
+                        FaiList<FaiList<Integer>> skuList = genSkuList(pdScInfoListRef.value, idxPdScIdMap, ProductSpecSkuValObj.Limit.SINGLE_PRODUCT_MAX_SIZE, ProductSpecSkuValObj.Limit.InPdScValIdSkuList.MAX_SIZE, allowInPdScValListIsEmpty);
                         if (skuList == null) {
                             return rt = Errno.SIZE_LIMIT;
                         }
@@ -444,23 +447,25 @@ public class ProductSpecService extends ServicePub {
                                                         .setInt(ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID, unionPriId)
                                         );
                                     });
-                                    FaiList<Long> addSkuIdList = new FaiList<>(addPdScSkuInfoList.size());
-                                    rt = productSpecSkuProc.batchAdd(aid, pdId, addPdScSkuInfoList, addSkuIdList);
+                                    rt = productSpecSkuProc.batchAdd(aid, pdId, addPdScSkuInfoList);
                                     if (rt != Errno.OK) {
                                         return rt;
                                     }
                                 }
 
                             } else {
-                                FaiList<Long> rtIdList = new FaiList<>(skuList.size());
-                                rt = productSpecSkuProc.refreshSku(aid, tid, unionPriId, pdId, skuList, rtIdList);
+                                rt = productSpecSkuProc.refreshSku(aid, tid, unionPriId, pdId, skuList);
                                 if (rt != Errno.OK) {
                                     Log.logDbg(rt,"refreshSku err aid=%s;pdId=%s;", aid, pdId);
                                     return rt;
                                 }
                             }
                         }
-                        rt = Errno.OK;
+
+                        rt = productSpecSkuNumProc.batchDel(aid, unionPriId, productSpecSkuProc.getDeletedSkuIdList());
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
                     }catch (Exception e){
                         rt = Errno.ERROR;
                         Log.logErr(e, "flow=%d;aid=%d;pdId=%s;addPdScInfoList=%s;delPdScIdList=%s;updaterList=%s", flow, aid, pdId, addPdScInfoList, delPdScIdList, updaterList);
@@ -476,10 +481,11 @@ public class ProductSpecService extends ServicePub {
                     }
                     productSpecProc.deleteDirtyCache(aid);
                     productSpecSkuProc.deleteDirtyCache(aid);
+                    productSpecSkuNumProc.deleteDirtyCache(aid);
                 }finally {
                     LockUtil.unlock(aid);
                 }
-                rt = productSpecSkuProc.getListFromDao(aid, pdId, productSpecSkuListRef, ProductSpecSkuEntity.Info.SKU_ID);
+                rt = productSpecSkuProc.getListFromDao(aid, pdId, productSpecSkuListRef, ProductSpecSkuEntity.Info.SKU_ID, ProductSpecSkuEntity.Info.FLAG);
                 if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                     return rt;
                 }
@@ -512,16 +518,14 @@ public class ProductSpecService extends ServicePub {
             try {
                 ProductSpecDaoCtrl productSpecDaoCtrl = ProductSpecDaoCtrl.getInstance(flow, aid);
                 ProductSpecSkuDaoCtrl productSpecSkuDaoCtrl = ProductSpecSkuDaoCtrl.getInstance(flow, aid);
-                if(!transactionCtrl.register(productSpecDaoCtrl)){
-                    Log.logErr("register ProductSpecDaoCtrl err;flow=%d;aid=%d;", flow, aid);
+                ProductSpecSkuNumDaoCtrl productSpecSkuNumDaoCtrl = ProductSpecSkuNumDaoCtrl.getInstance(flow, aid);
+                if(!transactionCtrl.register(productSpecDaoCtrl, productSpecSkuNumDaoCtrl, productSpecSkuDaoCtrl)){
                     return rt=Errno.ERROR;
                 }
-                if(!transactionCtrl.register(productSpecSkuDaoCtrl)){
-                    Log.logErr("register ProductSpecSkuDaoCtrl err;flow=%d;aid=%d;", flow, aid);
-                    return rt=Errno.ERROR;
-                }
+
                 ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(productSpecSkuDaoCtrl, flow);
                 ProductSpecProc productSpecProc = new ProductSpecProc(productSpecDaoCtrl, flow);
+                ProductSpecSkuNumProc productSpecSkuNumProc = new ProductSpecSkuNumProc(productSpecSkuNumDaoCtrl, flow);
                 try {
                     LockUtil.lock(aid);
                     try {
@@ -536,6 +540,10 @@ public class ProductSpecService extends ServicePub {
                         if(rt != Errno.OK){
                             return rt;
                         }
+                        rt = productSpecSkuNumProc.batchDel(aid, null, productSpecSkuProc.getDeletedSkuIdList());
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
                     }finally {
                         if(rt != Errno.OK){
                             transactionCtrl.rollback();
@@ -546,6 +554,8 @@ public class ProductSpecService extends ServicePub {
                         transactionCtrl.commit();
                     }
                     productSpecProc.deleteDirtyCache(aid);
+                    productSpecSkuProc.deleteDirtyCache(aid);
+                    productSpecSkuNumProc.deleteDirtyCache(aid);
                 }finally {
                     LockUtil.unlock(aid);
                 }
@@ -642,7 +652,61 @@ public class ProductSpecService extends ServicePub {
         return rt;
     }
 
-    public int setPdSkuScInfoList(FaiSession session, int flow, int aid, int unionPriId, int pdId, FaiList<ParamUpdater> updaterList) throws IOException {
+    /**
+     * 批量生成代表spu的sku数据
+     */
+    public int batchGenSkuRepresentSpuInfo(FaiSession session, int flow, int aid, int tid, int unionPriId, FaiList<Integer> pdIdList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || Util.isEmptyList(pdIdList) || unionPriId<= 0) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;pdIdList=%s;", flow, aid, pdIdList);
+                return rt;
+            }
+            Map<Integer, Long> pdIdSkuIdMap = new HashMap<>(pdIdList.size()*4/3+1);
+            ProductSpecSkuDaoCtrl productSpecSkuDaoCtrl = ProductSpecSkuDaoCtrl.getInstance(flow, aid);
+            try {
+                ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(productSpecSkuDaoCtrl, flow);
+                try {
+                    LockUtil.lock(aid);
+                    try {
+                        productSpecSkuDaoCtrl.setAutoCommit(false);
+                        rt = productSpecSkuProc.batchGenSkuRepresentSpuInfo(aid, tid, unionPriId, pdIdList, pdIdSkuIdMap);
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
+                    }finally {
+                        if(rt != Errno.OK){
+                            productSpecSkuProc.clearIdBuilderCache(aid);
+                            productSpecSkuDaoCtrl.rollback();
+                        }
+                        productSpecSkuDaoCtrl.commit();
+                        productSpecSkuProc.deleteDirtyCache(aid);
+                    }
+                }finally {
+                    LockUtil.unlock(aid);
+                }
+            }finally {
+                productSpecSkuDaoCtrl.closeDao();
+            }
+            FaiList<Param> skuIdInfoList = new FaiList<>(pdIdList.size());
+            pdIdSkuIdMap.forEach((pdId, skuId)->{
+                skuIdInfoList.add(
+                        new Param()
+                        .setInt(ProductSpecSkuEntity.Info.PD_ID, pdId)
+                        .setLong(ProductSpecSkuEntity.Info.SKU_ID, skuId)
+                );
+            });
+            sendPdSkuScInfoList(session, skuIdInfoList);
+            Log.logStd("ok;flow=%s;aid=%s;unionPriId=%s;pdIdList=%s", flow, aid, unionPriId, pdIdList);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    public int setPdSkuScInfoList(FaiSession session, int flow, int aid, int tid, int unionPriId, int pdId, FaiList<ParamUpdater> updaterList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -651,26 +715,59 @@ public class ProductSpecService extends ServicePub {
                 Log.logErr("arg err;flow=%d;aid=%d;pdId=%s;updaterList=%s", flow, aid, pdId, updaterList);
                 return rt;
             }
+            boolean needGenSpuInfo = false;
+            ParamUpdater spuUpdater = null;
             Set<String> inPdScStrNameSet = new HashSet<>();
             Map<FaiList<String>, Param> inPdScStrNameListInfoMap = new HashMap<>();
             for (ParamUpdater updater : updaterList) {
                 Param data = updater.getData();
                 Long skuId = data.getLong(ProductSpecSkuEntity.Info.SKU_ID);
                 if(skuId == null){
+                    boolean isSpu = data.getBoolean(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.SPU, false);
+                    if(isSpu){
+                        if(needGenSpuInfo){
+                            rt = Errno.ARGS_ERROR;
+                            Log.logErr("find repeat spuInfo err;flow=%d;aid=%d;pdId=%s;spuUpdater=%s;updater=%s", flow, aid, pdId, spuUpdater, updater);
+                            return rt;
+                        }
+                        needGenSpuInfo = true;
+                        spuUpdater = updater;
+                        continue;
+                    }
                     FaiList<String> inPdScStrNameList = data.getList(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.IN_PD_SC_STR_NAME_LIST);
                     if(inPdScStrNameList == null){
-                        return rt = Errno.ARGS_ERROR;
+                        rt = Errno.ARGS_ERROR;
+                        Log.logErr("inPdScStrNameList err;flow=%d;aid=%d;pdId=%s;updater=%s", flow, aid, pdId, updater);
+                        return rt;
                     }
+
                     inPdScStrNameSet.addAll(inPdScStrNameList);
                     inPdScStrNameListInfoMap.put(inPdScStrNameList, data);
+                }
+                FaiList<String> skuNumList = data.getList(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.SKU_NUM_LIST);
+                if(skuNumList != null){
+                    for (String skuNum : skuNumList) {
+                        if(!ProductSpecSkuArgCheck.isValidSkuNum(skuNum)){
+                            rt = Errno.ARGS_ERROR;
+                            Log.logErr("skuNumList skuNum err;flow=%d;aid=%d;pdId=%s;updater=%s", flow, aid, pdId, updater);
+                            return rt;
+                        }
+                    }
                 }
                 String skuNum = data.getString(ProductSpecSkuEntity.Info.SKU_NUM);
                 if(skuNum != null){
                     if(!ProductSpecSkuArgCheck.isValidSkuNum(skuNum)){
-                        return rt = Errno.ARGS_ERROR;
+                        rt = Errno.ARGS_ERROR;
+                        Log.logErr("skuNum err;flow=%d;aid=%d;pdId=%s;updater=%s", flow, aid, pdId, updater);
+                        return rt;
+                    }
+                    if(skuNumList == null){
+                        skuNumList = new FaiList<>(Arrays.asList(skuNum));
+                        data.setList(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.SKU_NUM_LIST, skuNumList);
                     }
                 }
             }
+            // 获取skuId 并移除 ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST 字段
             if(inPdScStrNameSet.size() != 0){
                 Ref<Param> nameIdMapRef = new Ref<>();
                 SpecStrDaoCtrl specStrDaoCtrl = SpecStrDaoCtrl.getInstance(flow, aid);
@@ -692,7 +789,7 @@ public class ProductSpecService extends ServicePub {
                     for (String inPdScStrName : inPdScStrNameList) {
                         Integer inPdScStrId = nameIdMap.getInt(inPdScStrName);
                         if(inPdScStrId == null){
-                            Log.logStd("err aid=%d;pdId=%s;inPdScStrName=%s;", aid, pdId, inPdScStrName);
+                            Log.logErr("err aid=%d;pdId=%s;inPdScStrName=%s;", aid, pdId, inPdScStrName);
                             return Errno.ARGS_ERROR;
                         }
                         inPdScStrIdList.add(inPdScStrId);
@@ -710,61 +807,166 @@ public class ProductSpecService extends ServicePub {
                     ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(productSpecSkuDaoCtrl, flow);
                     rt = productSpecSkuProc.getListByScStrIdListFromDao(aid, pdId, inPdScStrIdLists, pdScSkuInfoListRef, ProductSpecSkuEntity.Info.SKU_ID, ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST);
                     if(rt != Errno.OK){
-                        Log.logStd(rt, "err aid=%d;pdId=%s;inPdScStrIdLists=%s;", aid, pdId, inPdScStrIdLists);
+                        Log.logErr(rt, "err aid=%d;pdId=%s;inPdScStrIdLists=%s;", aid, pdId, inPdScStrIdLists);
                         return rt;
                     }
                 }finally {
                     productSpecSkuDaoCtrl.closeDao();
                 }
                 if(inPdScStrIdLists.size() != pdScSkuInfoListRef.value.size()){
-                    return rt = Errno.ERROR;
+                    rt = Errno.ERROR;
+                    Log.logErr(rt,"size no match;aid=%d;pdId=%s;inPdScStrIdLists.size=%s;dbList.size=%s;", aid, pdId, inPdScStrIdLists.size(), pdScSkuInfoListRef.value.size());
+                    return rt;
                 }
                 for (Param info : pdScSkuInfoListRef.value) {
                     String inPdScStrIdListJson = info.getString(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST);
                     Param data = inPdScStrIdListJsonInfoMap.remove(inPdScStrIdListJson);
                     if(data == null){
-                        Log.logStd("err aid=%d;pdId=%s;inPdScStrIdListJson=%s;", aid, pdId, inPdScStrIdListJson);
-                        return Errno.ERROR;
+                        rt = Errno.ERROR;
+                        Log.logErr(rt,"err aid=%d;pdId=%s;inPdScStrIdListJson=%s;", aid, pdId, inPdScStrIdListJson);
+                        return rt;
                     }
                     data.assign(info, ProductSpecSkuEntity.Info.SKU_ID);
                     data.remove(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST);
                 }
             }
+            Long skuIdRepresentSpu = null;
+            if(needGenSpuInfo){
+                Ref<Long> skuIdRef = new Ref<>();
+                rt = genSkuRepresentSpuInfo(flow, aid, tid, unionPriId, pdId, skuIdRef);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+                skuIdRepresentSpu = skuIdRef.value;
+            }
+            FaiList<Param> skuNumSortList = new FaiList<>();
+            HashSet<Long> changeSkuNumSkuIdSet = new HashSet<>();
+            boolean isFindSpu = false;
+            Map<String, Long> newSkuNumSkuIdMap = new HashMap<>();
+            FaiList<Long> needDelSkuNumSkuIdList = new FaiList<>();
+            for (int i = updaterList.size() - 1; i >= 0; i--) {
+                ParamUpdater updater = updaterList.get(i);
+                Param data = updater.getData();
+                Long skuId = data.getLong(ProductSpecSkuEntity.Info.SKU_ID);
+                if(skuId == null){
+                    boolean isSpu = data.getBoolean(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.SPU, false);
+                    if(!isSpu){
+                        rt = Errno.ERROR;
+                        Log.logErr(rt,"find not init skuId;aid=%d;pdId=%s;data=%s;", aid, pdId, data);
+                    }
+                    skuId = skuIdRepresentSpu;
+                }
+                FaiList<String> skuNumList = (FaiList<String>)data.remove(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.SKU_NUM_LIST);
+                if(skuNumList != null){
+                    changeSkuNumSkuIdSet.add(skuId);
+                    if(skuNumList.size() > 0){
+                        if(skuNumList.size() > ProductSpecSkuNumValObj.Limit.MAX_SIZE){
+                            rt = Errno.SIZE_LIMIT;
+                            Log.logErr(rt,"found not exist sku;flow=%s;aid=%s;pdId=%s;updater=%s;isFindSpu=%s;", flow, aid, pdId, updater, isFindSpu);
+                            return rt;
+                        }
+                        for (int j = 0; j < skuNumList.size(); j++) {
+                            String skuNum = skuNumList.get(j);
+                            Long ifAbsent = newSkuNumSkuIdMap.putIfAbsent(skuNum, skuId);
+                            if(ifAbsent != null){
+                                rt = Errno.ALREADY_EXISTED;
+                                Log.logErr(rt,"skuNum repeat;flow=%s;aid=%s;pdId=%s;updater=%s;isFindSpu=%s;skuNum=%s;ifAbsent=%s;", flow, aid, pdId, updater, isFindSpu, skuNum, ifAbsent);
+                                return rt;
+                            }
+                            skuNumSortList.add(
+                                    new Param()
+                                            .setInt(ProductSpecSkuNumEntity.Info.SORT, j)
+                                            .setInt(ProductSpecSkuNumEntity.Info.AID, aid)
+                                            .setInt(ProductSpecSkuNumEntity.Info.UNION_PRI_ID, unionPriId)
+                                            .setString(ProductSpecSkuNumEntity.Info.SKU_NUM, skuNum)
+                            );
+                        }
+                    }else{
+                        needDelSkuNumSkuIdList.add(skuId);
+                    }
+                }
+            }
+            Log.logDbg("whalelog  newSkuNumSkuIdMap=%s;needDelSkuNumSkuIdList=%s;", newSkuNumSkuIdMap, needDelSkuNumSkuIdList);
 
-            ProductSpecSkuDaoCtrl productSpecSkuDaoCtrl = ProductSpecSkuDaoCtrl.getInstance(flow, aid);
+            TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
-                ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(productSpecSkuDaoCtrl, flow);
+                ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(flow, aid, transactionCtrl);
+                ProductSpecSkuNumProc productSpecSkuNumProc = new ProductSpecSkuNumProc(flow, aid, transactionCtrl);
                 try {
                     LockUtil.lock(aid);
                     try {
-                        productSpecSkuDaoCtrl.setAutoCommit(false);
+                        transactionCtrl.setAutoCommit(false);
                         rt = productSpecSkuProc.batchSet(aid, pdId, updaterList);
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
+
+                        rt = productSpecSkuNumProc.refresh(aid, unionPriId, pdId, newSkuNumSkuIdMap, needDelSkuNumSkuIdList, skuNumSortList, changeSkuNumSkuIdSet);
                         if(rt != Errno.OK){
                             return rt;
                         }
                     }finally {
                         if(rt != Errno.OK){
-                            productSpecSkuDaoCtrl.rollback();
+                            transactionCtrl.rollback();
                             return rt;
                         }
-                        productSpecSkuDaoCtrl.commit();
+                        transactionCtrl.commit();
                     }
                     productSpecSkuProc.deleteDirtyCache(aid);
+                    productSpecSkuNumProc.deleteDirtyCache(aid);
                 }finally {
                     LockUtil.unlock(aid);
                 }
             }finally {
-                productSpecSkuDaoCtrl.closeDao();
+                transactionCtrl.closeDao();
             }
 
             rt = Errno.OK;
             FaiBuffer sendBuf = new FaiBuffer(true);
-            FaiList<Object> pdScSkuList = new FaiList<>();
+            FaiList<Param> pdScSkuList = new FaiList<>();
             pdScSkuList.toBuffer(sendBuf, ProductSpecSkuDto.Key.INFO_LIST, ProductSpecSkuDto.getInfoDto());
             session.write(sendBuf);
-            Log.logStd("ok;flow=%d;aid=%d;pdId=%d;", flow, aid, pdId);
+            Log.logStd("ok;flow=%d;aid=%d;pdId=%d;skuIdRepresentSpu=%s;", flow, aid, pdId, skuIdRepresentSpu);
         }finally {
             stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * 生成代表spu的sku数据
+     */
+    private int genSkuRepresentSpuInfo(int flow, int aid, int tid, int unionPriId, int pdId, Ref<Long> skuIdRef){
+        int rt = Errno.ERROR;
+        ProductSpecSkuDaoCtrl productSpecSkuDaoCtrl = ProductSpecSkuDaoCtrl.getInstance(flow, aid);
+        try {
+            ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(productSpecSkuDaoCtrl, flow);
+            rt = productSpecSkuProc.getSkuIdRepresentSpu(aid, pdId, skuIdRef);
+            if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                return rt;
+            }
+            if(skuIdRef.value != null){
+                return Errno.OK;
+            }
+            LockUtil.lock(aid);
+            try {
+                try {
+                    productSpecSkuDaoCtrl.setAutoCommit(false);
+                    rt = productSpecSkuProc.genSkuRepresentSpuInfo(aid, unionPriId, tid, pdId, skuIdRef);
+                }finally {
+                    if(rt != Errno.OK){
+                        productSpecSkuProc.clearIdBuilderCache(aid);
+                        productSpecSkuDaoCtrl.rollback();
+                        return rt;
+                    }
+                    productSpecSkuDaoCtrl.commit();
+                    productSpecSkuProc.deleteDirtyCache(aid);
+                }
+            }finally {
+                LockUtil.unlock(aid);
+            }
+        }finally {
+            productSpecSkuDaoCtrl.closeDao();
         }
         return rt;
     }
@@ -793,6 +995,11 @@ public class ProductSpecService extends ServicePub {
             rt = initPdScSkuSpecStr(flow, aid, psScSkuInfoList);
             if(rt != Errno.OK){
                 Log.logErr(rt,"initPdScSkuSpecStr err;aid=%d;pdId=%d;", aid, pdId);
+                return rt;
+            }
+            rt = initPdScSkuNumList(flow, aid, psScSkuInfoList);
+            if(rt != Errno.OK){
+                Log.logErr(rt,"initPdScSkuNumList err;aid=%d;pdId=%d;", aid, pdId);
                 return rt;
             }
             sendPdSkuScInfoList(session, psScSkuInfoList, true);
@@ -826,7 +1033,12 @@ public class ProductSpecService extends ServicePub {
             FaiList<Param> psScSkuInfoList = pdScSkuInfoListRef.value;
             rt = initPdScSkuSpecStr(flow, aid, psScSkuInfoList);
             if(rt != Errno.OK){
-                Log.logErr(rt,"initPdScSkuSpecStr err;aid=%d;skuIdList=%d;", aid, skuIdList);
+                Log.logErr(rt,"initPdScSkuSpecStr err;aid=%d;skuIdList=%s;", aid, skuIdList);
+                return rt;
+            }
+            rt = initPdScSkuNumList(flow, aid, psScSkuInfoList);
+            if(rt != Errno.OK){
+                Log.logErr(rt,"initPdScSkuNumList err;aid=%d;skuIdList=%s;", aid, skuIdList);
                 return rt;
             }
             sendPdSkuScInfoList(session, psScSkuInfoList, true);
@@ -868,6 +1080,397 @@ public class ProductSpecService extends ServicePub {
         return rt;
     }
 
+    /**
+     * 获取已经存在的 skuNumList
+     */
+    public int getExistsSkuNumList(FaiSession session, int flow, int aid, int unionPriId, FaiList<String> skuNumList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || skuNumList == null || skuNumList.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;skuNumList=%s", flow, aid, skuNumList);
+                return rt;
+            }
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            ProductSpecSkuNumDaoCtrl productSpecSkuNumDaoCtrl = ProductSpecSkuNumDaoCtrl.getInstance(flow, aid);
+            try {
+                ProductSpecSkuNumProc productSpecSkuNumProc = new ProductSpecSkuNumProc(productSpecSkuNumDaoCtrl, flow);
+                rt = productSpecSkuNumProc.getSkuNumListFromDao(aid, unionPriId, skuNumList, listRef);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+            }finally {
+                productSpecSkuNumDaoCtrl.closeDao();
+            }
+            FaiList<String> alreadyExistsSkuNumList = Utils.getValList(listRef.value, ProductSpecSkuNumEntity.Info.SKU_NUM);
+
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            sendBuf.putString(ProductSpecSkuDto.Key.SKU_NUM_LIST, alreadyExistsSkuNumList.toJson());
+            session.write(sendBuf);
+            Log.logDbg("flow=%s;aid=%s;unionPriId=%s;skuNumList=%s;", flow, aid, unionPriId, skuNumList);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+
+    public int searchPdSkuIdInfoListByLikeSkuNum(FaiSession session, int flow, int aid, int unionPriId, String skuNum) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || Str.isEmpty(skuNum)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;skuNum=%s", flow, aid, skuNum);
+                return rt;
+            }
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            ProductSpecSkuNumDaoCtrl productSpecSkuNumDaoCtrl = ProductSpecSkuNumDaoCtrl.getInstance(flow, aid);
+            try {
+                ProductSpecSkuNumProc productSpecSkuNumProc = new ProductSpecSkuNumProc(productSpecSkuNumDaoCtrl, flow);
+                rt = productSpecSkuNumProc.searchByLikeSkuNum(aid, unionPriId, skuNum, listRef);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+            }finally {
+                productSpecSkuNumDaoCtrl.closeDao();
+            }
+            Map<Long, FaiList<String>> skuIdSkuNumListMap = new HashMap<>();
+            for (Param info : listRef.value) {
+                Long skuId = info.getLong(ProductSpecSkuNumEntity.Info.SKU_ID);
+                String tmpSkuNum = info.getString(ProductSpecSkuNumEntity.Info.SKU_NUM);
+                FaiList<String> skuNumList = skuIdSkuNumListMap.getOrDefault(skuId, new FaiList<>());
+                skuNumList.add(tmpSkuNum);
+                if(skuNumList.size() == 1){
+                    skuIdSkuNumListMap.put(skuId, skuNumList);
+                }
+            }
+            Ref<FaiList<Param>> pdScSkuInfoListRef = new Ref<>();
+            ProductSpecSkuDaoCtrl productSpecSkuDaoCtrl = ProductSpecSkuDaoCtrl.getInstance(flow, aid);
+            try {
+                ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(productSpecSkuDaoCtrl, flow);
+                rt = productSpecSkuProc.getList(aid, new FaiList<>(skuIdSkuNumListMap.keySet()), pdScSkuInfoListRef);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+            }finally {
+                productSpecSkuDaoCtrl.closeDao();
+            }
+
+            FaiList<Param> psScSkuInfoList = pdScSkuInfoListRef.value;
+            rt = initPdScSkuSpecStr(flow, aid, psScSkuInfoList);
+            if(rt != Errno.OK){
+                Log.logErr(rt,"initPdScSkuSpecStr err;aid=%d;skuIdSkuNumListMap=%s;", aid, skuIdSkuNumListMap);
+                return rt;
+            }
+
+            for (Param skuInfo : psScSkuInfoList) {
+                Long skuId = skuInfo.getLong(ProductSpecSkuEntity.Info.SKU_ID);
+                FaiList<String> skuNumList = skuIdSkuNumListMap.get(skuId);
+                skuInfo.setList(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.SKU_NUM_LIST, skuNumList);
+            }
+            sendPdSkuScInfoList(session, psScSkuInfoList);
+            Log.logDbg("flow=%s;aid=%s;unionPriId=%s;skuNum=%s;skuIdSkuNumListMap=%s;", flow, aid, unionPriId, skuNum, skuIdSkuNumListMap);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * 获取 skuNum数据状态
+     */
+    public int getSkuNumDataStatus(FaiSession session, int flow, int aid, int unionPriId)throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            Ref<Param> dataStatusRef = new Ref<>();
+            ProductSpecSkuNumDaoCtrl productSpecSkuNumDaoCtrl = ProductSpecSkuNumDaoCtrl.getInstance(flow, aid);
+            try {
+                ProductSpecSkuNumProc productSpecSkuNumProc = new ProductSpecSkuNumProc(productSpecSkuNumDaoCtrl, flow);
+                rt = productSpecSkuNumProc.getDataStatus(aid, unionPriId, dataStatusRef);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+            }finally {
+                productSpecSkuNumDaoCtrl.closeDao();
+            }
+
+            FaiBuffer sendBody = new FaiBuffer();
+            dataStatusRef.value.toBuffer(sendBody, ProductSpecSkuNumDao.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
+            session.write(sendBody);
+            Log.logDbg("ok;aid=%d;unionPriId=%s;", aid, unionPriId);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * 获取全部数据的部分字段
+     */
+    public int getSkuNumAllData(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            ProductSpecSkuNumDaoCtrl productSpecSkuNumDaoCtrl = ProductSpecSkuNumDaoCtrl.getInstance(flow, aid);
+            try {
+                ProductSpecSkuNumProc productSpecSkuNumProc = new ProductSpecSkuNumProc(productSpecSkuNumDaoCtrl, flow);
+                rt = productSpecSkuNumProc.getAllDataFromDao(aid, unionPriId, listRef, ProductSpecSkuNumEntity.getManageVisitorKeys());
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                    return rt;
+                }
+            }finally {
+                productSpecSkuNumDaoCtrl.closeDao();
+            }
+            rt = Errno.OK;
+            sendSkuNum(session, listRef.value, null);
+            Log.logDbg("ok;aid=%d;unionPriId=%s;", aid, unionPriId);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+    /**
+     * 搜索全部数据的部分字段
+     */
+    public int searchSkuNumFromDb(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            ProductSpecSkuNumDaoCtrl productSpecSkuNumDaoCtrl = ProductSpecSkuNumDaoCtrl.getInstance(flow, aid);
+            try {
+                ProductSpecSkuNumProc productSpecSkuNumProc = new ProductSpecSkuNumProc(productSpecSkuNumDaoCtrl, flow);
+                rt = productSpecSkuNumProc.searchAllDataFromDao(aid, unionPriId, searchArg, listRef, ProductSpecSkuNumEntity.getManageVisitorKeys());
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                    return rt;
+                }
+            }finally {
+                productSpecSkuNumDaoCtrl.closeDao();
+            }
+            rt = Errno.OK;
+            sendSkuNum(session, listRef.value, searchArg);
+            Log.logDbg("ok;aid=%d;unionPriId=%s;", aid, unionPriId);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * 导入商品规格和sku信息
+     * @param specList 商品规格
+     * @param specSkuList 商品规格sku
+     */
+    public int importPdScWithSku(FaiSession session, int flow, int aid, int tid, int unionPriId, FaiList<Param> specList, FaiList<Param> specSkuList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            Param nameIdMap = new Param(true);
+            rt = checkAndReplaceAddPdScInfoList(flow, aid, tid, unionPriId, null, specList, nameIdMap);
+            if(rt != Errno.OK){
+                return rt;
+            }
+            // 根据pdId进行分组
+            Map<Integer/*pdId*/, List<Param>/*specList*/> pdIdSpecListMap = specList.stream().collect(Collectors.groupingBy(spec->spec.getInt(ProductSpecEntity.Info.PD_ID)));
+            // 根据pdId，inPdScStrIdListJson 进行映射，提升效率
+            Map<Integer/*pdId*/, Map<String /*inPdScStrIdListJson*/, Param/*specSkuInfo*/>> pdIdInPdScStrIdListJsonSpecSkuMap = new HashMap<>();
+            {
+                for (Param specSkuInfo : specSkuList) {
+                    int pdId = specSkuInfo.getInt(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.PD_ID);
+                    Map<String, Param> inPdScStrIdListJsonSpecSkuMap = pdIdInPdScStrIdListJsonSpecSkuMap.get(pdId);
+                    if(inPdScStrIdListJsonSpecSkuMap == null){
+                        inPdScStrIdListJsonSpecSkuMap = new HashMap<>();
+                        pdIdInPdScStrIdListJsonSpecSkuMap.put(pdId, inPdScStrIdListJsonSpecSkuMap);
+                    }
+                    boolean spu = specSkuInfo.getBoolean(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.SPU, false);
+                    if(spu){
+                        // 空字符串代表spu
+                        inPdScStrIdListJsonSpecSkuMap.put("", specSkuInfo);
+                        continue;
+                    }
+                    FaiList<String> inPdScStrNameList = specSkuInfo.getListNullIsEmpty(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.IN_PD_SC_STR_NAME_LIST);
+                    if(inPdScStrNameList.isEmpty()){
+                        rt = Errno.ARGS_ERROR;
+                        Log.logErr(rt, "specSkuInfo err;flow=%s;aid=%s;unionPriId=%s;specSkuInfo=%s;", flow, aid, unionPriId, specSkuInfo);
+                        return rt;
+                    }
+                    FaiList<Integer> inPdScStrIdList = new FaiList<>(inPdScStrNameList.size());
+                    for (String pdScStrName : inPdScStrNameList) {
+                        int pdScStrId = nameIdMap.getInt(pdScStrName, 0);
+                        if(pdScStrId == 0){
+                            rt = Errno.ARGS_ERROR;
+                            Log.logErr(rt, "specSkuInfo pdScStrName not found;flow=%s;aid=%s;unionPriId=%s;specSkuInfo=%s;pdScStrName=%s;", flow, aid, unionPriId, specSkuInfo, pdScStrName);
+                            return rt;
+                        }
+                        inPdScStrIdList.add(pdScStrId);
+                    }
+                    inPdScStrIdListJsonSpecSkuMap.put(inPdScStrIdList.toJson(), specSkuInfo);
+                }
+            }
+            // pdId 和 pdScSkuList map
+            Map<Integer/*pdId*/, FaiList<Param>/*pdScSkuList*/> pdIdPdScSkuListMap = new HashMap<>();
+            for (Map.Entry<Integer, List<Param>> pdIdSpecListEntry : pdIdSpecListMap.entrySet()) {
+                int pdId = pdIdSpecListEntry.getKey();
+                List<Param> pdScInfoList = pdIdSpecListEntry.getValue();
+                FaiList<FaiList<Integer>> skuList = genSkuList(new FaiList<>(pdScInfoList), null, ProductSpecSkuValObj.Limit.SINGLE_PRODUCT_MAX_SIZE, ProductSpecSkuValObj.Limit.InPdScValIdSkuList.MAX_SIZE, false);
+                if (skuList == null) {
+                    return rt = Errno.SIZE_LIMIT;
+                }
+                Map<String, Param> inPdScStrIdListJsonSpecSkuMap = pdIdInPdScStrIdListJsonSpecSkuMap.get(pdId);
+                FaiList<Param> pdScSkuList = new FaiList<>(skuList.size()+1);
+                // 生成一条代表spu的 sku数据 用于后面生成条码
+                pdScSkuList.add(
+                    new Param()
+                            .setInt(ProductSpecSkuEntity.Info.SOURCE_TID, tid)
+                            .setInt(ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID, unionPriId)
+                            .setInt(ProductSpecSkuEntity.Info.FLAG, ProductSpecSkuValObj.FLag.SPU)
+                );
+                for (FaiList<Integer> inPdScStrIdList : skuList) {
+                    Param addSpecSkuInfo = new Param();
+                    addSpecSkuInfo.setList(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList);
+                    addSpecSkuInfo.setInt(ProductSpecSkuEntity.Info.SOURCE_TID, tid);
+                    addSpecSkuInfo.setInt(ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID, unionPriId);
+                    if(inPdScStrIdListJsonSpecSkuMap != null){
+                        Param specSkuInfo = inPdScStrIdListJsonSpecSkuMap.get(inPdScStrIdList.toJson());
+                        if(specSkuInfo != null){
+                            addSpecSkuInfo.assign(specSkuInfo, fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.SORT, ProductSpecSkuEntity.Info.SORT);
+                        }
+                    }
+                    pdScSkuList.add(addSpecSkuInfo);
+                }
+                pdIdPdScSkuListMap.put(pdId, pdScSkuList);
+            }
+            FaiList<Param> rtPdSkuList = new FaiList<>();
+            Map<Integer/*pdId*/,Map<String/*InPdScStrIdListJson*/, Long/*skuId*/>> pdIdInPdScStrIdListJsonSkuIdMap = new HashMap<>();
+            TransactionCtrl transactionCtrl = new TransactionCtrl();
+            try {
+                ProductSpecProc productSpecProc = new ProductSpecProc(flow, aid, transactionCtrl);
+                ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(flow, aid, transactionCtrl);
+                ProductSpecSkuNumProc productSpecSkuNumProc = new ProductSpecSkuNumProc(flow, aid, transactionCtrl);
+                try {
+                    transactionCtrl.setAutoCommit(false);
+                    rt = productSpecProc.batchAdd(aid, pdIdSpecListMap, null);
+                    if(rt != Errno.OK){
+                        return rt;
+                    }
+                    rt = productSpecSkuProc.batchAdd(aid, pdIdPdScSkuListMap, pdIdInPdScStrIdListJsonSkuIdMap);
+                    if(rt != Errno.OK){
+                        return rt;
+                    }
+                    FaiList<Param> skuNumInfoList = new FaiList<>();
+                    for (Map.Entry<Integer, Map<String, Param>> entryMap : pdIdInPdScStrIdListJsonSpecSkuMap.entrySet()) {
+                        Integer pdId = entryMap.getKey();
+                        Map<String, Long> inPdScStrIdListJsonSkuIdMap = pdIdInPdScStrIdListJsonSkuIdMap.get(pdId);
+                        Map<String, Param> inPdScStrIdListJsonSpecSkuMap = entryMap.getValue();
+                        for (Map.Entry<String, Param> inPdScStrIdListJsonSpecSkuEntry : inPdScStrIdListJsonSpecSkuMap.entrySet()) {
+                            String inPdScStrIdListJson = inPdScStrIdListJsonSpecSkuEntry.getKey();
+                            Param specSkuInfo = inPdScStrIdListJsonSpecSkuEntry.getValue();
+                            FaiList<String> inPdScStrNameList = specSkuInfo.getList(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.IN_PD_SC_STR_NAME_LIST);
+                            Long skuId = inPdScStrIdListJsonSkuIdMap.get(inPdScStrIdListJson);
+                            Log.logDbg("inPdScStrIdListJson=%s;skuId=%s",inPdScStrIdListJson, skuId);
+                            int flag = 0;
+                            Param rtPdSku = new Param();
+                            rtPdSkuList.add(rtPdSku);
+                            if("".equals(inPdScStrIdListJson)){
+                                flag |= ProductSpecSkuValObj.FLag.SPU;
+                            }
+                            rtPdSku.setLong(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.SKU_ID, skuId)
+                                    .setInt(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.PD_ID, pdId)
+                                    .setInt(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.FLAG, flag);
+                            // 当表示为spu时， inPdScStrNameList值为null
+                            rtPdSku.setList(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.IN_PD_SC_STR_NAME_LIST, inPdScStrNameList);
+
+                            FaiList<String> skuNumList = specSkuInfo.getListNullIsEmpty(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.SKU_NUM_LIST);
+                            if(skuNumList.isEmpty()){
+                                continue;
+                            }
+                            int sort = 0;
+                            for (String skuNum : skuNumList) {
+                                skuNumInfoList.add(
+                                        new Param()
+                                                .setInt(ProductSpecSkuNumEntity.Info.PD_ID, pdId)
+                                                .setInt(ProductSpecSkuNumEntity.Info.SORT, sort++)
+                                                .setLong(ProductSpecSkuNumEntity.Info.SKU_ID, skuId)
+                                                .setString(ProductSpecSkuNumEntity.Info.SKU_NUM, skuNum)
+                                );
+                            }
+                        }
+                    }
+                    if(!skuNumInfoList.isEmpty()){
+                        rt = productSpecSkuNumProc.batchAdd(aid, unionPriId, skuNumInfoList);
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
+                    }
+                }finally {
+                    if(rt != Errno.OK){
+                        transactionCtrl.rollback();
+                        productSpecProc.clearIdBuilderCache(aid);
+                        productSpecSkuProc.clearIdBuilderCache(aid);
+                        transactionCtrl.rollback();
+                    }
+                    transactionCtrl.commit();
+                }
+                productSpecProc.deleteDirtyCache(aid);
+                productSpecSkuProc.deleteDirtyCache(aid);
+                productSpecSkuNumProc.deleteDirtyCache(aid);
+            }finally {
+                transactionCtrl.closeDao();
+            }
+            Log.logDbg("flow=%d;aid=%d;rtPdSkuList=%s", flow, aid, rtPdSkuList);
+
+            rt = Errno.OK;
+            sendPdSkuScInfoList(session, rtPdSkuList);
+            Log.logStd("ok;flow=%d;aid=%d;", flow, aid);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    private void sendSkuNum(FaiSession session, FaiList<Param> infoList, SearchArg searchArg) throws IOException {
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        infoList.toBuffer(sendBuf, ProductSpecSkuNumDao.Key.INFO_LIST, ProductSpecSkuNumDao.getInfoDto());
+        if(searchArg != null && searchArg.totalSize != null){
+            sendBuf.putInt(ProductSpecSkuNumDao.Key.TOTAL_SIZE, searchArg.totalSize.value);
+        }
+        session.write(sendBuf);
+    }
+
+    /**
+     * 初始化skuNumList
+     */
+    private int initPdScSkuNumList(int flow, int aid, FaiList<Param> psScSkuInfoList) {
+        if(psScSkuInfoList.isEmpty()){
+            return Errno.OK;
+        }
+        int rt = Errno.ERROR;
+        FaiList<Long> skuIdList = Utils.getValList(psScSkuInfoList, ProductSpecSkuEntity.Info.SKU_ID);
+        Ref<Map<Long, FaiList<String>>> mapRef = new Ref<>();
+        ProductSpecSkuNumDaoCtrl productSpecSkuNumDaoCtrl = ProductSpecSkuNumDaoCtrl.getInstance(flow, aid);
+        try {
+            ProductSpecSkuNumProc productSpecSkuNumProc = new ProductSpecSkuNumProc(productSpecSkuNumDaoCtrl, flow);
+            rt = productSpecSkuNumProc.getList(aid, skuIdList, mapRef);
+            if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                return rt;
+            }
+        }finally {
+            productSpecSkuNumDaoCtrl.closeDao();
+        }
+        for (Param info : psScSkuInfoList) {
+            Long skuId = info.getLong(ProductSpecSkuEntity.Info.SKU_ID);
+            info.setList(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.SKU_NUM_LIST, mapRef.value.getOrDefault(skuId, new FaiList<>()));
+        }
+        return rt;
+    }
+
+    /**
+     * 初始化规格字符串
+     */
     private int initPdScSkuSpecStr(int flow, int aid, FaiList<Param> psScSkuInfoList){
         Set<Integer> scStrIdSet = new HashSet<>();
         psScSkuInfoList.forEach(psScSkuInfo ->{
@@ -1036,9 +1639,20 @@ public class ProductSpecService extends ServicePub {
         return Errno.OK;
     }
 
-    private int checkAndReplaceAddPdScInfoList(int flow, int aid, int tid, int unionPriId, int pdId, FaiList<Param> addPdScInfoList){
+    private int checkAndReplaceAddPdScInfoList(int flow, int aid, int tid, int unionPriId, Integer pdId, FaiList<Param> addPdScInfoList){
+        return checkAndReplaceAddPdScInfoList(flow, aid, tid, unionPriId, pdId, addPdScInfoList, null);
+    }
+    /**
+     * 检查并替换商品规格的名称和规格值
+     * @param pdId
+     * @param addPdScInfoList
+     */
+    private int checkAndReplaceAddPdScInfoList(int flow, int aid, int tid, int unionPriId, Integer pdId, FaiList<Param> addPdScInfoList, Param nameIdMap){
         Set<String> specStrNameSet = new HashSet<>();
         for (Param pdScInfo : addPdScInfoList) {
+            if(pdId == null){
+                pdId = pdScInfo.getInt(ProductSpecEntity.Info.PD_ID);
+            }
             trimProductSpecStrName(pdScInfo);
             pdScInfo.setInt(ProductSpecEntity.Info.SOURCE_TID, tid);
             pdScInfo.setInt(ProductSpecEntity.Info.SOURCE_UNION_PRI_ID, unionPriId);
@@ -1060,7 +1674,9 @@ public class ProductSpecService extends ServicePub {
                 }
             }
         }
-        Param nameIdMap = new Param(true); // mapMode
+        if(nameIdMap == null){
+            nameIdMap = new Param(true); // mapMode
+        }
         SpecStrDaoCtrl specStrDaoCtrl = SpecStrDaoCtrl.getInstance(flow, aid);
         try {
             SpecStrProc specStrProc = new SpecStrProc(specStrDaoCtrl, flow);
@@ -1126,15 +1742,18 @@ public class ProductSpecService extends ServicePub {
      * 3-5-7
      * 3-5-8
      */
-    private FaiList<FaiList<Integer>> genSkuList(FaiList<Param> inPdScInfoList, Map<Integer, Integer> idxPdScIdMap, int limit, int checkedListLimit){
+    private FaiList<FaiList<Integer>> genSkuList(FaiList<Param> pdScInfoList, Map<Integer, Integer> idxPdScIdMap, int limit, int checkedListLimit, boolean allowInPdScValListIsEmpty){
+        if(idxPdScIdMap == null){
+            idxPdScIdMap = new HashMap<>();
+        }
         ParamComparator comparator = new ParamComparator(ProductSpecEntity.Info.SORT);
         comparator.addKey(ProductSpecEntity.Info.PD_SC_ID);
-        comparator.sort(inPdScInfoList);
+        comparator.sort(pdScInfoList);
         // 1 提取出所有勾选的规格字符串id
         FaiList<FaiList<Integer>> allCheckScStrIds = new FaiList<>();
         int idx = 0;
-        for (int i = 0; i < inPdScInfoList.size(); i++) {
-            Param inPdScInfo = inPdScInfoList.get(i);
+        for (int i = 0; i < pdScInfoList.size(); i++) {
+            Param inPdScInfo = pdScInfoList.get(i);
             Integer pdScId = inPdScInfo.getInt(ProductSpecEntity.Info.PD_SC_ID);
             FaiList<Param> inPdScValList = inPdScInfo.getList(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST);
             boolean hasCheck = false;
@@ -1160,7 +1779,9 @@ public class ProductSpecService extends ServicePub {
         }
         if(allCheckScStrIds.size() == 0){
             FaiList<FaiList<Integer>> result = new FaiList<>();
-            result.add(new FaiList<>());
+            if(allowInPdScValListIsEmpty){
+                result.add(new FaiList<>());
+            }
             return result;
         }
         if(allCheckScStrIds.size() > checkedListLimit){

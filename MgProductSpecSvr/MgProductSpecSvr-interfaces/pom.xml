@@ -29,6 +29,12 @@
             <version>${fai-comm-util-opt-ver}</version>
         </dependency>
 
+        <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProductComm</artifactId>
+            <version>${MgProduct-MgProductComm-ver}</version>
+        </dependency>
+
     </dependencies>
 
     <distributionManagement>

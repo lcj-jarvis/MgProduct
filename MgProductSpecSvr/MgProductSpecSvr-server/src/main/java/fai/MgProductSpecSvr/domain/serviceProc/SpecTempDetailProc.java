@@ -98,7 +98,7 @@ public class SpecTempDetailProc {
 
         FaiList<Integer> specTempDtIdList = new FaiList<>(specTempDetailUpdaterList.size());
         Set<Integer> scStrIdSet = new HashSet<>();
-        Set<String> maxUpdaterKeys = Utils.validUpdaterList(specTempDetailUpdaterList, SpecTempDetailEntity.getValidKeys(), data->{
+        Set<String> maxUpdaterKeys = Utils.retainValidUpdaterList(specTempDetailUpdaterList, SpecTempDetailEntity.getValidKeys(), data->{
             specTempDtIdList.add(data.getInt(SpecTempDetailEntity.Info.TP_SC_DT_ID));
             Integer scStrId = data.getInt(SpecTempDetailEntity.Info.SC_STR_ID);
             if(scStrId != null){

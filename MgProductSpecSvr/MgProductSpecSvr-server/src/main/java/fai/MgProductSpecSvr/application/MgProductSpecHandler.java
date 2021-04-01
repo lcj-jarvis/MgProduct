@@ -13,6 +13,7 @@ import fai.comm.jnetkit.server.fai.annotation.args.*;
 import fai.comm.util.FaiList;
 import fai.comm.util.Param;
 import fai.comm.util.ParamUpdater;
+import fai.comm.util.SearchArg;
 import fai.middleground.svrutil.service.MiddleGroundHandler;
 
 import java.io.IOException;
@@ -32,8 +33,8 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
                                 @ArgBodyInteger(SpecTempDto.Key.UNION_PRI_ID) final int unionPriId,
                                 @ArgBodyInteger(SpecTempDto.Key.TID) final int tid,
                                 @ArgList(classDef = SpecTempDto.class, methodDef = "getInfoDto",
-                            keyMatch = SpecTempDto.Key.INFO_LIST) FaiList<Param> recvInfoList) throws IOException {
-        return  m_specTempService.addTpScInfoList(session, flow, aid, unionPriId, tid, recvInfoList);
+                                        keyMatch = SpecTempDto.Key.INFO_LIST) FaiList<Param> recvInfoList) throws IOException {
+        return m_specTempService.addTpScInfoList(session, flow, aid, unionPriId, tid, recvInfoList);
     }
 
     @WrittenCmd
@@ -45,8 +46,9 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
                                 @ArgBodyInteger(SpecTempDto.Key.TID) final int tid,
                                 @ArgList(classDef = SpecTempDto.class, methodDef = "getInfoDto",
                                         keyMatch = SpecTempDto.Key.UPDATER_LIST) FaiList<ParamUpdater> recvInfoList) throws IOException {
-        return  m_specTempService.setTpScInfoList(session, flow, aid, unionPriId, tid, recvInfoList);
+        return m_specTempService.setTpScInfoList(session, flow, aid, unionPriId, tid, recvInfoList);
     }
+
     @Cmd(MgProductSpecCmd.SpecTempCmd.DEL_LIST)
     private int delTpScInfoList(final FaiSession session,
                                 @ArgFlow final int flow,
@@ -54,7 +56,7 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
                                 @ArgBodyInteger(SpecTempDto.Key.UNION_PRI_ID) final int unionPriId,
                                 @ArgBodyInteger(SpecTempDto.Key.TID) final int tid,
                                 @ArgList(keyMatch = SpecTempDto.Key.ID_LIST) FaiList<Integer> tpScIdList) throws IOException {
-        return  m_specTempService.delTpScInfoList(session, flow, aid, unionPriId, tpScIdList);
+        return m_specTempService.delTpScInfoList(session, flow, aid, unionPriId, tpScIdList);
     }
 
     @Cmd(MgProductSpecCmd.SpecTempCmd.GET_LIST)
@@ -63,33 +65,33 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
                                 @ArgAid final int aid,
                                 @ArgBodyInteger(SpecTempDto.Key.UNION_PRI_ID) final int unionPriId,
                                 @ArgBodyInteger(SpecTempDto.Key.TID) final int tid) throws IOException {
-        return  m_specTempService.getTpScInfoList(session, flow, aid, unionPriId);
+        return m_specTempService.getTpScInfoList(session, flow, aid, unionPriId);
     }
 
     @WrittenCmd
     @Cmd(MgProductSpecCmd.SpecTempDetailCmd.ADD_LIST)
     private int addTpScDetailInfoList(final FaiSession session,
-                                @ArgFlow final int flow,
-                                @ArgAid final int aid,
-                                @ArgBodyInteger(SpecTempDetailDto.Key.UNION_PRI_ID) final int unionPriId,
-                                @ArgBodyInteger(SpecTempDetailDto.Key.TID) final int tid,
-                                @ArgBodyInteger(SpecTempDetailDto.Key.RL_TP_SC_ID) final int rlTpScId,
-                                @ArgList(classDef = SpecTempDetailDto.class, methodDef = "getInfoDto",
-                                        keyMatch = SpecTempDetailDto.Key.INFO_LIST) FaiList<Param> recvInfoList) throws IOException {
-        return  m_specTempService.addTpScDetailInfoList(session, flow, aid, unionPriId, rlTpScId, recvInfoList);
+                                      @ArgFlow final int flow,
+                                      @ArgAid final int aid,
+                                      @ArgBodyInteger(SpecTempDetailDto.Key.UNION_PRI_ID) final int unionPriId,
+                                      @ArgBodyInteger(SpecTempDetailDto.Key.TID) final int tid,
+                                      @ArgBodyInteger(SpecTempDetailDto.Key.RL_TP_SC_ID) final int rlTpScId,
+                                      @ArgList(classDef = SpecTempDetailDto.class, methodDef = "getInfoDto",
+                                              keyMatch = SpecTempDetailDto.Key.INFO_LIST) FaiList<Param> recvInfoList) throws IOException {
+        return m_specTempService.addTpScDetailInfoList(session, flow, aid, unionPriId, rlTpScId, recvInfoList);
     }
 
     @WrittenCmd
     @Cmd(MgProductSpecCmd.SpecTempDetailCmd.SET_LIST)
     private int setTpScDetailInfoList(final FaiSession session,
-                                @ArgFlow final int flow,
-                                @ArgAid final int aid,
-                                @ArgBodyInteger(SpecTempDto.Key.UNION_PRI_ID) final int unionPriId,
-                                @ArgBodyInteger(SpecTempDto.Key.TID) final int tid,
-                                @ArgBodyInteger(SpecTempDetailDto.Key.RL_TP_SC_ID) final int rlTpScId,
-                                @ArgList(classDef = SpecTempDetailDto.class, methodDef = "getInfoDto",
-                                        keyMatch = SpecTempDetailDto.Key.UPDATER_LIST) FaiList<ParamUpdater> recvInfoList) throws IOException {
-        return  m_specTempService.setTpScDetailInfoList(session, flow, aid, unionPriId, rlTpScId, recvInfoList);
+                                      @ArgFlow final int flow,
+                                      @ArgAid final int aid,
+                                      @ArgBodyInteger(SpecTempDto.Key.UNION_PRI_ID) final int unionPriId,
+                                      @ArgBodyInteger(SpecTempDto.Key.TID) final int tid,
+                                      @ArgBodyInteger(SpecTempDetailDto.Key.RL_TP_SC_ID) final int rlTpScId,
+                                      @ArgList(classDef = SpecTempDetailDto.class, methodDef = "getInfoDto",
+                                              keyMatch = SpecTempDetailDto.Key.UPDATER_LIST) FaiList<ParamUpdater> recvInfoList) throws IOException {
+        return m_specTempService.setTpScDetailInfoList(session, flow, aid, unionPriId, rlTpScId, recvInfoList);
     }
 
     @WrittenCmd
@@ -102,29 +104,30 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
                                       @ArgBodyInteger(SpecTempDetailDto.Key.RL_TP_SC_ID) final int rlTpScId,
                                       @ArgList(classDef = SpecTempDetailDto.class, methodDef = "getInfoDto",
                                               keyMatch = SpecTempDetailDto.Key.ID_LIST) FaiList<Integer> tpScDtIdList) throws IOException {
-        return  m_specTempService.delTpScDetailInfoList(session, flow, aid, unionPriId, rlTpScId, tpScDtIdList);
+        return m_specTempService.delTpScDetailInfoList(session, flow, aid, unionPriId, rlTpScId, tpScDtIdList);
     }
 
     @Cmd(MgProductSpecCmd.SpecTempDetailCmd.GET_LIST)
     private int getTpScDetailInfoList(final FaiSession session,
-                                @ArgFlow final int flow,
-                                @ArgAid final int aid,
-                                @ArgBodyInteger(SpecTempDetailDto.Key.UNION_PRI_ID) final int unionPriId,
-                                @ArgBodyInteger(SpecTempDetailDto.Key.TID) final int tid,
-                                @ArgBodyInteger(SpecTempDetailDto.Key.RL_TP_SC_ID) final int rlTpScId) throws IOException {
-        return  m_specTempService.getTpScDetailInfoList(session, flow, aid, unionPriId, rlTpScId);
+                                      @ArgFlow final int flow,
+                                      @ArgAid final int aid,
+                                      @ArgBodyInteger(SpecTempDetailDto.Key.UNION_PRI_ID) final int unionPriId,
+                                      @ArgBodyInteger(SpecTempDetailDto.Key.TID) final int tid,
+                                      @ArgBodyInteger(SpecTempDetailDto.Key.RL_TP_SC_ID) final int rlTpScId) throws IOException {
+        return m_specTempService.getTpScDetailInfoList(session, flow, aid, unionPriId, rlTpScId);
     }
+
     ///////////////////////////////////////////////////////////////////////////////
     @WrittenCmd
     @Cmd(MgProductSpecCmd.ProductSpecCmd.IMPORT)
     private int importPdScInfo(final FaiSession session,
-                                      @ArgFlow final int flow,
-                                      @ArgAid final int aid,
-                                      @ArgBodyInteger(ProductSpecDto.Key.UNION_PRI_ID) final int unionPriId,
-                                      @ArgBodyInteger(ProductSpecDto.Key.TID) final int tid,
-                                      @ArgBodyInteger(ProductSpecDto.Key.PD_ID) final int pdId,
-                                      @ArgBodyInteger(ProductSpecDto.Key.RL_TP_SC_ID) final int rlTpScId,
-                                      @ArgList(keyMatch = ProductSpecDto.Key.ID_LIST, useDefault = true) FaiList<Integer> tpScDtIdList) throws IOException {
+                               @ArgFlow final int flow,
+                               @ArgAid final int aid,
+                               @ArgBodyInteger(ProductSpecDto.Key.UNION_PRI_ID) final int unionPriId,
+                               @ArgBodyInteger(ProductSpecDto.Key.TID) final int tid,
+                               @ArgBodyInteger(ProductSpecDto.Key.PD_ID) final int pdId,
+                               @ArgBodyInteger(ProductSpecDto.Key.RL_TP_SC_ID) final int rlTpScId,
+                               @ArgList(keyMatch = ProductSpecDto.Key.ID_LIST, useDefault = true) FaiList<Integer> tpScDtIdList) throws IOException {
         Param tpScInfo = m_specTempService.getTpScWithDetail(flow, aid, unionPriId, rlTpScId, tpScDtIdList);
         return m_productSpecService.importPdScInfo(session, flow, aid, tid, unionPriId, pdId, tpScInfo);
     }
@@ -137,7 +140,7 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
                                         @ArgBodyInteger(ProductSpecDto.Key.TID) final int tid,
                                         @ArgBodyInteger(ProductSpecDto.Key.UNION_PRI_ID) final int unionPriId,
                                         @ArgList(classDef = ProductSpecDto.class, methodDef = "getInfoDto", keyMatch = ProductSpecDto.Key.INFO_LIST)
-                                                    FaiList<Param> spuInfoList) throws IOException {
+                                                FaiList<Param> spuInfoList) throws IOException {
         return m_productSpecService.batchSynchronousSPU2SKU(session, flow, aid, tid, unionPriId, spuInfoList);
     }
 
@@ -156,7 +159,7 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
                                      @ArgList(classDef = ProductSpecDto.class, methodDef = "getInfoDto", keyMatch = ProductSpecDto.Key.UPDATER_LIST, useDefault = true)
                                              FaiList<ParamUpdater> updaterList) throws IOException {
 
-        return  m_productSpecService.unionSetPdScInfoList(session, flow, aid, tid, unionPriId, pdId, addPdScInfoList, delPdScIdList, updaterList);
+        return m_productSpecService.unionSetPdScInfoList(session, flow, aid, tid, unionPriId, pdId, addPdScInfoList, delPdScIdList, updaterList);
     }
 
     @WrittenCmd
@@ -166,40 +169,68 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
                                 @ArgAid final int aid,
                                 @ArgBodyInteger(ProductSpecDto.Key.TID) final int tid,
                                 @ArgList(keyMatch = ProductSpecDto.Key.PD_ID_LIST)
-                                FaiList<Integer> pdIdList,
+                                        FaiList<Integer> pdIdList,
                                 @ArgBodyBoolean(value = ProductSpecDto.Key.SOFT_DEL, useDefault = true) final boolean softDel) throws IOException {
-        return  m_productSpecService.batchDelPdAllSc(session, flow, aid, tid, pdIdList, softDel);
+        return m_productSpecService.batchDelPdAllSc(session, flow, aid, tid, pdIdList, softDel);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductSpecCmd.ProductSpecCmd.IMPORT_PD_SC_WITH_SKU)
+    private int importPdScWithSku(final FaiSession session,
+                                  @ArgFlow final int flow,
+                                  @ArgAid final int aid,
+                                  @ArgBodyInteger(ProductSpecDto.Key.TID) final int tid,
+                                  @ArgBodyInteger(ProductSpecDto.Key.UNION_PRI_ID) final int unionPriId,
+                                  @ArgList(classDef = ProductSpecDto.class, methodDef = "getInfoDto", keyMatch = ProductSpecDto.Key.INFO_LIST)
+                                          FaiList<Param> specList,
+                                  @ArgList(classDef = ProductSpecSkuDto.class, methodDef = "getInfoDto", keyMatch = ProductSpecDto.Key.SKU_INFO_LIST/*特意不同*/)
+                                          FaiList<Param> specSkuList) throws IOException {
+        return m_productSpecService.importPdScWithSku(session, flow, aid, tid, unionPriId, specList, specSkuList);
     }
 
     @Cmd(MgProductSpecCmd.ProductSpecCmd.GET_LIST)
     private int getPdScInfoList(final FaiSession session,
-                                      @ArgFlow final int flow,
-                                      @ArgAid final int aid,
-                                      @ArgBodyInteger(ProductSpecDto.Key.UNION_PRI_ID) final int unionPriId,
-                                      @ArgBodyInteger(ProductSpecDto.Key.TID) final int tid,
-                                      @ArgBodyInteger(ProductSpecDto.Key.PD_ID) final int pdId) throws IOException {
-        return  m_productSpecService.getPdScInfoList(session, flow, aid, unionPriId, pdId);
-    }
-    @Cmd(MgProductSpecCmd.ProductSpecCmd.GET_CHECKED_LIST)
-    private int getPdCheckedScInfoList(final FaiSession session,
                                 @ArgFlow final int flow,
                                 @ArgAid final int aid,
                                 @ArgBodyInteger(ProductSpecDto.Key.UNION_PRI_ID) final int unionPriId,
                                 @ArgBodyInteger(ProductSpecDto.Key.TID) final int tid,
                                 @ArgBodyInteger(ProductSpecDto.Key.PD_ID) final int pdId) throws IOException {
-        return  m_productSpecService.getPdCheckedScInfoList(session, flow, aid, unionPriId, pdId);
+        return m_productSpecService.getPdScInfoList(session, flow, aid, unionPriId, pdId);
     }
 
+    @Cmd(MgProductSpecCmd.ProductSpecCmd.GET_CHECKED_LIST)
+    private int getPdCheckedScInfoList(final FaiSession session,
+                                       @ArgFlow final int flow,
+                                       @ArgAid final int aid,
+                                       @ArgBodyInteger(ProductSpecDto.Key.UNION_PRI_ID) final int unionPriId,
+                                       @ArgBodyInteger(ProductSpecDto.Key.TID) final int tid,
+                                       @ArgBodyInteger(ProductSpecDto.Key.PD_ID) final int pdId) throws IOException {
+        return m_productSpecService.getPdCheckedScInfoList(session, flow, aid, unionPriId, pdId);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.SET_LIST)
     private int setPdSkuScInfoList(final FaiSession session,
+                                   @ArgFlow final int flow,
+                                   @ArgAid final int aid,
+                                   @ArgBodyInteger(ProductSpecSkuDto.Key.UNION_PRI_ID) final int unionPriId,
+                                   @ArgBodyInteger(ProductSpecSkuDto.Key.TID) final int tid,
+                                   @ArgBodyInteger(ProductSpecSkuDto.Key.PD_ID) final int pdId,
+                                   @ArgList(classDef = ProductSpecSkuDto.class, methodDef = "getInfoDto", keyMatch = ProductSpecSkuDto.Key.UPDATER_LIST)
+                                           FaiList<ParamUpdater> updaterList) throws IOException {
+        return m_productSpecService.setPdSkuScInfoList(session, flow, aid, tid, unionPriId, pdId, updaterList);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.BATCH_GEN_SPU)
+    private int batchGenSkuRepresentSpuInfo(final FaiSession session,
                                 @ArgFlow final int flow,
                                 @ArgAid final int aid,
                                 @ArgBodyInteger(ProductSpecSkuDto.Key.UNION_PRI_ID) final int unionPriId,
                                 @ArgBodyInteger(ProductSpecSkuDto.Key.TID) final int tid,
-                                @ArgBodyInteger(ProductSpecSkuDto.Key.PD_ID) final int pdId,
-                                @ArgList(classDef = ProductSpecSkuDto.class, methodDef = "getInfoDto", keyMatch = ProductSpecSkuDto.Key.UPDATER_LIST)
-                                               FaiList<ParamUpdater> updaterList) throws IOException {
-        return  m_productSpecService.setPdSkuScInfoList(session, flow, aid, unionPriId, pdId, updaterList);
+                                @ArgList(keyMatch = ProductSpecSkuDto.Key.PD_ID_LIST)
+                                        FaiList<Integer> pdIdList) throws IOException {
+        return m_productSpecService.batchGenSkuRepresentSpuInfo(session, flow, aid, tid, unionPriId, pdIdList);
     }
 
     @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_LIST)
@@ -209,7 +240,7 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
                                    @ArgBodyInteger(ProductSpecSkuDto.Key.UNION_PRI_ID) final int unionPriId,
                                    @ArgBodyInteger(ProductSpecSkuDto.Key.TID) final int tid,
                                    @ArgBodyInteger(ProductSpecSkuDto.Key.PD_ID) final int pdId) throws IOException {
-        return  m_productSpecService.getPdSkuScInfoList(session, flow, aid, unionPriId, pdId);
+        return m_productSpecService.getPdSkuScInfoList(session, flow, aid, unionPriId, pdId);
     }
 
     @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_LIST_BY_SKU_ID_LIST)
@@ -218,7 +249,7 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
                                               @ArgAid final int aid,
                                               @ArgBodyInteger(ProductSpecSkuDto.Key.TID) final int tid,
                                               @ArgList(keyMatch = ProductSpecSkuDto.Key.ID_LIST) final FaiList<Long> skuIdList) throws IOException {
-        return  m_productSpecService.getPdSkuScInfoListBySkuIdList(session, flow, aid, skuIdList);
+        return m_productSpecService.getPdSkuScInfoListBySkuIdList(session, flow, aid, skuIdList);
     }
 
     @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_SKU_ID_INFO_LIST_BY_PD_ID_LIST)
@@ -227,16 +258,61 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
                                    @ArgAid final int aid,
                                    @ArgBodyInteger(ProductSpecSkuDto.Key.TID) final int tid,
                                    @ArgList(keyMatch = ProductSpecSkuDto.Key.PD_ID_LIST) final FaiList<Integer> pdIdList) throws IOException {
-        return  m_productSpecService.getPdSkuIdInfoList(session, flow, aid, pdIdList);
+        return m_productSpecService.getPdSkuIdInfoList(session, flow, aid, pdIdList);
+    }
+
+    @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_SKU_NUM_LIST)
+    private int getExistsSkuNumList(final FaiSession session,
+                                    @ArgFlow final int flow,
+                                    @ArgAid final int aid,
+                                    @ArgBodyInteger(ProductSpecSkuDto.Key.TID) final int tid,
+                                    @ArgBodyInteger(ProductSpecSkuDto.Key.UNION_PRI_ID) final int unionPirId,
+                                    @ArgList(keyMatch = ProductSpecSkuDto.Key.SKU_NUM_LIST) final FaiList<String> skuNumList) throws IOException {
+        return m_productSpecService.getExistsSkuNumList(session, flow, aid, unionPirId, skuNumList);
+    }
+
+    @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.SEARCH_SKU_ID_INFO_LIST_BY_LIKE_SKU_NUM)
+    private int searchPdSkuIdInfoListByLikeSkuNum(final FaiSession session,
+                                                  @ArgFlow final int flow,
+                                                  @ArgAid final int aid,
+                                                  @ArgBodyInteger(ProductSpecSkuDto.Key.TID) final int tid,
+                                                  @ArgBodyInteger(ProductSpecSkuDto.Key.UNION_PRI_ID) final int unionPirId,
+                                                  @ArgBodyString(ProductSpecSkuDto.Key.SKU_NUM) final String skuNum) throws IOException {
+        return m_productSpecService.searchPdSkuIdInfoListByLikeSkuNum(session, flow, aid, unionPirId, skuNum);
+    }
+
+    @Cmd(MgProductSpecCmd.SkuNumCmd.GET_DATA_STATUS)
+    private int getSkuNumDataStatus(final FaiSession session,
+                                    @ArgFlow final int flow,
+                                    @ArgAid final int aid,
+                                    @ArgBodyInteger(ProductSpecSkuNumDao.Key.UNION_PRI_ID) final int unionPirId) throws IOException {
+        return m_productSpecService.getSkuNumDataStatus(session, flow, aid, unionPirId);
+    }
+
+    @Cmd(MgProductSpecCmd.SkuNumCmd.GET_ALL_DATA)
+    private int getSkuNumAllData(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid final int aid,
+                                 @ArgBodyInteger(ProductSpecSkuNumDao.Key.UNION_PRI_ID) final int unionPirId) throws IOException {
+        return m_productSpecService.getSkuNumAllData(session, flow, aid, unionPirId);
+    }
+
+    @Cmd(MgProductSpecCmd.SkuNumCmd.SEARCH_FROM_DB)
+    private int searchSkuNumFromDb(final FaiSession session,
+                                   @ArgFlow final int flow,
+                                   @ArgAid final int aid,
+                                   @ArgBodyInteger(ProductSpecSkuNumDao.Key.UNION_PRI_ID) final int unionPirId,
+                                   @ArgSearchArg(ProductSpecSkuNumDao.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
+        return m_productSpecService.searchSkuNumFromDb(session, flow, aid, unionPirId, searchArg);
     }
 
     @Cmd(MgProductSpecCmd.SpecStrCmd.GET_LIST)
     private int getScStrInfoList(final FaiSession session,
-                                   @ArgFlow final int flow,
-                                   @ArgAid final int aid,
-                                   @ArgBodyInteger(SpecStrDto.Key.TID) final int tid,
-                                   @ArgList(keyMatch = SpecStrDto.Key.ID_LIST) final FaiList<Integer> strIdList) throws IOException {
-        return  m_specStrService.getScStrInfoList(session, flow, aid, tid, strIdList);
+                                 @ArgFlow final int flow,
+                                 @ArgAid final int aid,
+                                 @ArgBodyInteger(SpecStrDto.Key.TID) final int tid,
+                                 @ArgList(keyMatch = SpecStrDto.Key.ID_LIST) final FaiList<Integer> strIdList) throws IOException {
+        return m_specStrService.getScStrInfoList(session, flow, aid, tid, strIdList);
     }
 
 

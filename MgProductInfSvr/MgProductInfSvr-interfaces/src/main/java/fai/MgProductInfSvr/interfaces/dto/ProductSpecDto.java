@@ -61,6 +61,8 @@ public class ProductSpecDto {
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SYS_CREATE_TIME, 9);
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SYS_UPDATE_TIME, 10);
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.STATUS, 11, Var.Type.INT);
+            g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SKU_NUM_LIST, 12, Var.Type.FAI_LIST);
+            g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SPU, 13, Var.Type.BOOLEAN);
         }
         public static ParamDef getInfoDto() {
             return g_dtoDef;
@@ -133,6 +135,8 @@ public class ProductSpecDto {
         public static final int ID_LIST = 8;
         public static final int RL_TP_SC_ID = 9;
         public static final int ONLY_GET_CHECKED = 10;
+        public static final int SKU_NUM_LIST = 11;
+        public static final int SKU_NUM = 12;
     }
 
 }

@@ -68,6 +68,12 @@ public class MgProductInfCmd {
         public static final int NUM26 = 5026;/**@see BasicCmd#GET_PD_LIST */
         public static final int NUM27 = 5027;/**@see GroupCmd#GET_GROUP_LIST */
         public static final int NUM28 = 5028;/**@see BasicCmd#GET_PD_BIND_GROUPS */
+
+        /**@see ProductSpecSkuCmd#GET_SKU_NUM_LIST */
+        public static final int NUM29 = 5029;
+
+        /**@see ProductSpecSkuCmd#SEARCH_SKU_ID_INFO_LIST_BY_LIKE_SKU_NUM */
+        public static final int NUM30 = 5030;
     }
 
     // 1000 到 5000 的范围
@@ -230,6 +236,8 @@ public class MgProductInfCmd {
         public static final int GET_LIST = ReadCmdNum.NUM11;
         public static final int GET_SKU_ID_LIST = ReadCmdNum.NUM18;
         public static final int GET_LIST_BY_SKU_ID_LIST = ReadCmdNum.NUM22;
+        public static final int GET_SKU_NUM_LIST = ReadCmdNum.NUM29;
+        public static final int SEARCH_SKU_ID_INFO_LIST_BY_LIKE_SKU_NUM = ReadCmdNum.NUM30;
 
         //写命令
         public static final int SET_LIST = WriteCmdNum.NUM16;

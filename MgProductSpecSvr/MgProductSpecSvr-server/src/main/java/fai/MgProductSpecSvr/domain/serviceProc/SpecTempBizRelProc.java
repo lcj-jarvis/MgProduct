@@ -88,7 +88,7 @@ public class SpecTempBizRelProc {
         int rt = Errno.ERROR;
 
         FaiList<Integer> rlTpScIdList = new FaiList<>(specTempBizRelUpdaterList.size());
-        Set<String> maxUpdaterKeys = Utils.validUpdaterList(specTempBizRelUpdaterList, SpecTempBizRelEntity.getValidKeys(), data->{
+        Set<String> maxUpdaterKeys = Utils.retainValidUpdaterList(specTempBizRelUpdaterList, SpecTempBizRelEntity.getValidKeys(), data->{
             rlTpScIdList.add(data.getInt(SpecTempBizRelEntity.Info.RL_TP_SC_ID));
         });
         maxUpdaterKeys.remove(SpecTempBizRelEntity.Info.RL_TP_SC_ID);

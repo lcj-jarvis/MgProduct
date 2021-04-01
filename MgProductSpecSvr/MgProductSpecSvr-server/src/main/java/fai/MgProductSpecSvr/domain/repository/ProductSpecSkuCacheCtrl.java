@@ -4,10 +4,7 @@ package fai.MgProductSpecSvr.domain.repository;
 import fai.MgProductSpecSvr.domain.comm.Utils;
 import fai.MgProductSpecSvr.domain.entity.ProductSpecSkuEntity;
 import fai.MgProductSpecSvr.interfaces.dto.ProductSpecSkuDto;
-import fai.comm.util.FaiList;
-import fai.comm.util.Log;
-import fai.comm.util.Param;
-import fai.comm.util.Var;
+import fai.comm.util.*;
 
 import java.util.List;
 import java.util.Set;
@@ -94,6 +91,22 @@ public class ProductSpecSkuCacheCtrl extends CacheCtrl {
 		m_cache.expire(pdIdSkuIdRelCacheKey, DIRTY_EXPIRE_SECOND);
 	}
 
+	public static Long getSkuIdRepresentSpu(int aid, int pdId){
+		String skuIdRepresentSpuCacheKey = getSkuIdRepresentSpuCacheKey(aid, pdId);
+		String skuIdStr = m_cache.get(skuIdRepresentSpuCacheKey);
+		long skuId = Parser.parseLong(skuIdStr, 0);
+		if(skuId == 0){
+			return null;
+		}
+		return skuId;
+	}
+
+	public static boolean setSkuIdRepresentSpu(int aid, int pdId, long skuId){
+		String skuIdRepresentSpuCacheKey = getSkuIdRepresentSpuCacheKey(aid, pdId);
+		return m_cache.set(skuIdRepresentSpuCacheKey, String.valueOf(skuId));
+	}
+
+
 	/**
 	 * 数据缓存
 	 */
@@ -108,9 +121,14 @@ public class ProductSpecSkuCacheCtrl extends CacheCtrl {
 		return CACHE_KEY_PREFIX+":pdIdSkuIdRel-"+aid;
 	}
 
+	/**
+	 * 代表spu的skuId
+	 */
+	private static String getSkuIdRepresentSpuCacheKey(int aid, int pdId){
+		return CACHE_KEY_PREFIX+":skuIdRepresentSpu-"+aid+"-"+pdId;
+	}
+
 
 	private static final String CACHE_KEY_PREFIX = "MG_productSpecSku";
-
-
 
 }

@@ -11,10 +11,9 @@ import java.util.function.Consumer;
 public class Utils {
 
     /**
-     * 从 list 中获取指定的key的值 和 info 组成的map
-     *
-     * 适用场景：list中各个元素key对应的value(即map的key值) 基本是唯一的
-     * 不然推荐使用OptMisc.getMap
+     * 从 list 中获取指定的key的值 和 info 组成的map  <br/>
+     * 适用场景：list中各个元素key对应的value(即map的key值) 基本是唯一的  <br/>
+     * 不然推荐使用{@link fai.comm.util.OptMisc#getMap(FaiList, String)}  <br/>
      * @param list
      * @param key
      * @param <K>
@@ -24,10 +23,9 @@ public class Utils {
     }
 
     /**
-     * 从list 中获取指定的keyKey 和 valueKey 组成的map
-     *
-     * 适用场景：list中各个元素key对应的value(即map的key值) 基本是唯一的
-     * 不然推荐使用OptMisc.getMap
+     * 从list 中获取指定的keyKey 和 valueKey 组成的map  <br/>
+     * 适用场景：list中各个元素key对应的value(即map的key值) 基本是唯一的  <br/>
+     * 不然推荐使用{@link fai.comm.util.OptMisc#getMap(FaiList, String, String)}  <br/>
      * @param list
      * @param keyKey
      * @param valueKey
@@ -53,13 +51,12 @@ public class Utils {
 
 
     /**
-     * 保留 updaterList 中有效的 validKeys ，附加 consumer 消费
+     * 保留 updaterList 中有效的 validKeys ，附加 consumer 进行额外处理
      * @param updaterList
      * @param validKeys
      * @param consumer
-     * @return
      */
-    public static Set<String> validUpdaterList(FaiList<ParamUpdater> updaterList, String[] validKeys, Consumer<Param> consumer){
+    public static Set<String> retainValidUpdaterList(FaiList<ParamUpdater> updaterList, String[] validKeys, Consumer<Param> consumer){
         if(updaterList == null){
             return null;
         }
@@ -98,7 +95,7 @@ public class Utils {
     }
 
     /**
-     * 获取某个key的值集
+     * 获取某个key的值集  <br/>
      * @param list
      * @param key
      * @param <T>
@@ -107,7 +104,7 @@ public class Utils {
         if(list == null){
             return null;
         }
-        FaiList<T> resultList = new FaiList<>(list.size());
+        FaiList<T> resultList = new FaiList<>(list.size()); // 直接初始化所需最大容量
         list.forEach(info->{
             resultList.add((T)info.getObject(key));
         });

@@ -103,9 +103,8 @@ public class ProductBasicDto {
         g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.AID, 0);
         g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.RL_GROUP_ID, 1);
         g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.RL_PD_ID, 2);
-        g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.UNION_PRI_ID, 3);
-        g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.PD_ID, 4);
-        g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.CREATE_TIME, 5);
+        g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.PD_ID, 3);
+        g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.CREATE_TIME, 4);
     }
     public static ParamDef getBindGroupDto() {
         return g_bindGroupDef;

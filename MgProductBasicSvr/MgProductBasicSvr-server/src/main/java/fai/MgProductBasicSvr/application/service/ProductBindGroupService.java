@@ -65,6 +65,7 @@ public class ProductBindGroupService extends ServicePub {
             TransactionCtrl tc = new TransactionCtrl();
             boolean commit = false;
             try {
+                tc.setAutoCommit(false);
                 ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
                 int addCount = 0;
                 if(!Util.isEmptyList(addGroupIds)) {

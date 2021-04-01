@@ -711,7 +711,7 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 根据rlPdIds获取商品绑定的分类数据
-     * @param rlPdIds 商品业务id
+     * @param rlPdIds 商品业务id集合
      * @param list 接收返回结果的集合
      * @return
      */
@@ -774,6 +774,13 @@ public class MgProductInfCli extends FaiClient {
         }
     }
 
+    /**
+     * 设置商品绑定的分类数据(新增和删除)
+     * @param rlPdId 商品业务id
+     * @param addRlGroupIds 新增绑定的商品分类集合
+     * @param delRlGroupIds 取消绑定的商品分类集合
+     * @return
+     */
     public int setPdBindGroup(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Integer> addRlGroupIds, FaiList<Integer> delRlGroupIds) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);

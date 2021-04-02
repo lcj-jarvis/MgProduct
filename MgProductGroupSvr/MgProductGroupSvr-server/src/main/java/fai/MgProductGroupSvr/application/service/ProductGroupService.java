@@ -380,8 +380,8 @@ public class ProductGroupService extends ServicePub {
         // 分类业务关系表数据
         relInfo.setInt(ProductGroupRelEntity.Info.AID, aid);
         relInfo.setInt(ProductGroupRelEntity.Info.UNION_PRI_ID, unionPriId);
-        groupInfo.setCalendar(ProductGroupRelEntity.Info.CREATE_TIME, createTime);
-        groupInfo.setCalendar(ProductGroupRelEntity.Info.UPDATE_TIME, updateTime);
+        relInfo.setCalendar(ProductGroupRelEntity.Info.CREATE_TIME, createTime);
+        relInfo.setCalendar(ProductGroupRelEntity.Info.UPDATE_TIME, updateTime);
         relInfo.setInt(ProductGroupRelEntity.Info.SORT, sort);
         relInfo.setInt(ProductGroupRelEntity.Info.RL_FLAG, rlFlag);
     }

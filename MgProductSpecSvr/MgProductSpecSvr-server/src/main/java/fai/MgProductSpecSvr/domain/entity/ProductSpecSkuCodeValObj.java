@@ -3,7 +3,7 @@ package fai.MgProductSpecSvr.domain.entity;
 /**
  * 产品规格SKUNum
  */
-public class ProductSpecSkuNumValObj {
+public class ProductSpecSkuCodeValObj {
     /**
      * 限制
      */

@@ -1,12 +1,9 @@
-package fai.MgProductInfSvr.interfaces.comm;
+package fai.MgProductInfSvr.domain.comm;
 
 
 import fai.MgProductInfSvr.interfaces.entity.MgProductSkuImport;
 import fai.MgProductInfSvr.interfaces.entity.ProductSpecValObj;
-import fai.comm.util.Errno;
-import fai.comm.util.FaiList;
-import fai.comm.util.Param;
-import fai.comm.util.Str;
+import fai.comm.util.*;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,14 +14,20 @@ import java.util.Set;
  * 导入sku维度的商品数据检查
  */
 public class MgProductSkuImportCheck {
-    public static int check(FaiList<Param> list){
+    /**
+     * 检查导入数据
+     */
+    public static int check(int flow, int aid, FaiList<Param> list, Set<String> skuNumSet){
+        int rt = Errno.ARGS_ERROR;
         if(list == null || list.isEmpty()){
-            return Errno.ARGS_ERROR;
+            Log.logStd(rt,"list error;flow=%s;aid=%s;", flow, aid);
+            return rt;
         }
+        // 收集条码
+        Set<String> numSet = skuNumSet;
         Map<Integer/*rlPdId*/, Set<String>/*specNameSet*/> rlPdIdSpecNameSet = new HashMap<Integer, Set<String>>();
         Map<Integer/*rlPdId*/, Map<Integer/*index*/, Set<String>/*specValSet*/>> rlPdIdIndexSpecValSetMap = new HashMap<Integer, Map<Integer, Set<String>>>();
         Integer lastRlPdId = -1;
-        Set<String> numSet = new HashSet<String>();
         for (Param info : list) {
             Integer rlPdId = info.getInt(MgProductSkuImport.Info.RL_PD_ID);
             Set<String> specNameSet = null;
@@ -42,20 +45,27 @@ public class MgProductSkuImportCheck {
             if(isFirst){
                 for (String specName : specNameList) {
                     if(Str.isEmpty(specName)){
-                        return Errno.ARGS_ERROR;
+                        Log.logStd(rt,"specName error;flow=%s;aid=%s;", flow, aid);
+                        return rt;
                     }
                     if(specName.length() > ProductSpecValObj.Spec.Limit.Name.MAX_LEN){
-                        return Errno.LEN_LIMIT;
+                        rt = Errno.LEN_LIMIT;
+                        Log.logStd(rt,"specName.length error;flow=%s;aid=%s;", flow, aid);
+                        return rt;
                     }
                     if(specNameSet.contains(specName)){
-                        return Errno.ALREADY_EXISTED;
+                        rt = Errno.ALREADY_EXISTED;
+                        Log.logStd(rt,"specName alreadyExisted error;flow=%s;aid=%s;specName=%s;", flow, aid, specName);
+                        return rt;
                     }
                     specNameSet.add(specName);
                 }
             }else{
                 for (String specName : specNameList) {
                     if(!specNameSet.contains(specName)){
-                        return Errno.NOT_FOUND;
+                        rt = Errno.NOT_FOUND;
+                        Log.logStd(rt,"specName notFound error;flow=%s;aid=%s;specName=%s;", flow, aid, specName);
+                        return rt;
                     }
                 }
             }
@@ -63,16 +73,20 @@ public class MgProductSkuImportCheck {
             //检查规格值
             FaiList<String> specValList = info.getList(MgProductSkuImport.Info.SPEC_VAL_LIST);
             if(specNameSet.size() != specValList.size()){
-                return Errno.ARGS_ERROR;
+                Log.logStd(rt,"no match error;flow=%s;aid=%s;", flow, aid);
+                return rt;
             }
             Map<Integer, Set<String>> indexSpecValSetMap = rlPdIdIndexSpecValSetMap.get(rlPdId);
             for (int i = 0; i < specValList.size(); i++) {
                 String specVal = specValList.get(i);
                 if(Str.isEmpty(specVal)){
-                    return Errno.ARGS_ERROR;
+                    Log.logStd(rt,"specVal isEmpty error;flow=%s;aid=%s;", flow, aid);
+                    return rt;
                 }
                 if(specVal.length() > ProductSpecValObj.Spec.Limit.Name.MAX_LEN){
-                    return Errno.LEN_LIMIT;
+                    rt = Errno.LEN_LIMIT;
+                    Log.logStd(rt,"specVal.length error;flow=%s;aid=%s;", flow, aid);
+                    return rt;
                 }
                 Set<String> specValSet = indexSpecValSetMap.get(i);
                 if(specValSet == null){
@@ -81,37 +95,45 @@ public class MgProductSkuImportCheck {
                 }
                 specValSet.add(specVal);
                 if(specValSet.size() > ProductSpecValObj.Spec.Limit.InPdScValList.MAX_SIZE){
-                    return Errno.LEN_LIMIT;
+                    rt = Errno.SIZE_LIMIT;
+                    Log.logStd(rt,"specVal sizeLimit error;flow=%s;aid=%s;", flow, aid);
+                    return rt;
                 }
             }
             // 检查条码
             FaiList<String> pdNumList = info.getList(MgProductSkuImport.Info.PD_CODE_LIST);
             FaiList<String> skuNumList = info.getList(MgProductSkuImport.Info.SKU_CODE_LIST);
-            int rt;
-            if ((rt = checkNumList(numSet, pdNumList)) != Errno.OK) return rt;
-            if ((rt = checkNumList(numSet, skuNumList)) != Errno.OK) return rt;
+            if ((rt = checkNumList(flow, aid, numSet, pdNumList)) != Errno.OK) return rt;
+            if ((rt = checkNumList(flow, aid, numSet, skuNumList)) != Errno.OK) return rt;
         }
         return Errno.OK;
     }
 
-    private static Integer checkNumList(Set<String> numSet, FaiList<String> numList) {
+    private static Integer checkNumList(int flow, int aid, Set<String> numSet, FaiList<String> numList) {
         int rt;
         for (String num : numList) {
-            if ((rt = checkNum(num)) != Errno.OK) return rt;
+            if ((rt = checkNum(flow, aid, num)) != Errno.OK) return rt;
             if(numSet.contains(num)){
-                return Errno.ALREADY_EXISTED;
+                rt = Errno.ALREADY_EXISTED;
+                Log.logStd(rt,"num alreadyExisted error;flow=%s;aid=%s;num=%s", flow, aid, num);
+                return rt;
             }
             numSet.add(num);
         }
         return rt = Errno.OK;
     }
 
-    private static int checkNum(String num) {
+    private static int checkNum(int flow, int aid, String num) {
+        int rt;
         if(Str.isEmpty(num)){
-            return Errno.ARGS_ERROR;
+            rt = Errno.ARGS_ERROR;
+            Log.logStd(rt,"num error;flow=%s;aid=%s;num=%s", flow, aid, num);
+            return rt;
         }
         if(num.length() > ProductSpecValObj.SpecSku.Limit.SkuNum.MAX_LEN){
-            return Errno.LEN_LIMIT;
+            rt = Errno.LEN_LIMIT;
+            Log.logStd(rt,"num length error;flow=%s;aid=%s;num=%s", flow, aid, num);
+            return rt;
         }
         return Errno.OK;
     }

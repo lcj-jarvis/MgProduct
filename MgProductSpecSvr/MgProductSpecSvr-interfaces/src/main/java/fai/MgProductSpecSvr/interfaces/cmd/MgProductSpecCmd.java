@@ -89,13 +89,13 @@ public class MgProductSpecCmd {
 		public static final int GET_SKU_ID_INFO_LIST_BY_PD_ID_LIST = ReadCmdNum.NUM9;
 		public static final int GET_LIST_BY_SKU_ID_LIST = ReadCmdNum.NUM10;
 
-		public static final int GET_SKU_NUM_LIST = ReadCmdNum.NUM12;
-		public static final int SEARCH_SKU_ID_INFO_LIST_BY_LIKE_SKU_NUM = ReadCmdNum.NUM13;
+		public static final int GET_SKU_CODE_LIST = ReadCmdNum.NUM12;
+		public static final int SEARCH_SKU_ID_INFO_LIST_BY_SKU_CODE = ReadCmdNum.NUM13;
 
 		public static final int SET_LIST = WriteCmdNum.NUM9;
 		public static final int BATCH_GEN_SPU = WriteCmdNum.NUM13;
 	}
-	public static class SkuNumCmd{
+	public static class SkuCodeCmd{
 		public static final int GET_DATA_STATUS = ReadCmdNum.NUM14;
 		public static final int GET_ALL_DATA = ReadCmdNum.NUM15;
 		public static final int SEARCH_FROM_DB = ReadCmdNum.NUM16;

@@ -261,49 +261,50 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
         return m_productSpecService.getPdSkuIdInfoList(session, flow, aid, pdIdList);
     }
 
-    @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_SKU_NUM_LIST)
-    private int getExistsSkuNumList(final FaiSession session,
+    @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_SKU_CODE_LIST)
+    private int getExistsSkuCodeList(final FaiSession session,
                                     @ArgFlow final int flow,
                                     @ArgAid final int aid,
                                     @ArgBodyInteger(ProductSpecSkuDto.Key.TID) final int tid,
                                     @ArgBodyInteger(ProductSpecSkuDto.Key.UNION_PRI_ID) final int unionPirId,
-                                    @ArgList(keyMatch = ProductSpecSkuDto.Key.SKU_NUM_LIST) final FaiList<String> skuNumList) throws IOException {
-        return m_productSpecService.getExistsSkuNumList(session, flow, aid, unionPirId, skuNumList);
+                                    @ArgList(keyMatch = ProductSpecSkuDto.Key.SKU_CODE_LIST) final FaiList<String> skuCodeList) throws IOException {
+        return m_productSpecService.getExistsSkuCodeList(session, flow, aid, unionPirId, skuCodeList);
     }
 
-    @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.SEARCH_SKU_ID_INFO_LIST_BY_LIKE_SKU_NUM)
-    private int searchPdSkuIdInfoListByLikeSkuNum(final FaiSession session,
-                                                  @ArgFlow final int flow,
-                                                  @ArgAid final int aid,
-                                                  @ArgBodyInteger(ProductSpecSkuDto.Key.TID) final int tid,
-                                                  @ArgBodyInteger(ProductSpecSkuDto.Key.UNION_PRI_ID) final int unionPirId,
-                                                  @ArgBodyString(ProductSpecSkuDto.Key.SKU_NUM) final String skuNum) throws IOException {
-        return m_productSpecService.searchPdSkuIdInfoListByLikeSkuNum(session, flow, aid, unionPirId, skuNum);
+    @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.SEARCH_SKU_ID_INFO_LIST_BY_SKU_CODE)
+    private int searchPdSkuIdInfoListBySkuCode(final FaiSession session,
+                                               @ArgFlow final int flow,
+                                               @ArgAid final int aid,
+                                               @ArgBodyInteger(ProductSpecSkuDto.Key.TID) final int tid,
+                                               @ArgBodyInteger(ProductSpecSkuDto.Key.UNION_PRI_ID) final int unionPirId,
+                                               @ArgBodyString(ProductSpecSkuDto.Key.SKU_CODE) final String skuCode,
+                                               @ArgParam(keyMatch = ProductSpecSkuDto.Key.CONDITION, classDef = ConditionDto.class, methodDef = "getInfoDto") Param condition) throws IOException {
+        return m_productSpecService.searchPdSkuIdInfoListBySkuCode(session, flow, aid, unionPirId, skuCode, condition);
     }
 
-    @Cmd(MgProductSpecCmd.SkuNumCmd.GET_DATA_STATUS)
-    private int getSkuNumDataStatus(final FaiSession session,
+    @Cmd(MgProductSpecCmd.SkuCodeCmd.GET_DATA_STATUS)
+    private int getSkuCodeDataStatus(final FaiSession session,
                                     @ArgFlow final int flow,
                                     @ArgAid final int aid,
-                                    @ArgBodyInteger(ProductSpecSkuNumDao.Key.UNION_PRI_ID) final int unionPirId) throws IOException {
-        return m_productSpecService.getSkuNumDataStatus(session, flow, aid, unionPirId);
+                                    @ArgBodyInteger(ProductSpecSkuCodeDao.Key.UNION_PRI_ID) final int unionPirId) throws IOException {
+        return m_productSpecService.getSkuCodeDataStatus(session, flow, aid, unionPirId);
     }
 
-    @Cmd(MgProductSpecCmd.SkuNumCmd.GET_ALL_DATA)
-    private int getSkuNumAllData(final FaiSession session,
+    @Cmd(MgProductSpecCmd.SkuCodeCmd.GET_ALL_DATA)
+    private int getSkuCodeAllData(final FaiSession session,
                                  @ArgFlow final int flow,
                                  @ArgAid final int aid,
-                                 @ArgBodyInteger(ProductSpecSkuNumDao.Key.UNION_PRI_ID) final int unionPirId) throws IOException {
-        return m_productSpecService.getSkuNumAllData(session, flow, aid, unionPirId);
+                                 @ArgBodyInteger(ProductSpecSkuCodeDao.Key.UNION_PRI_ID) final int unionPirId) throws IOException {
+        return m_productSpecService.getSkuCodeAllData(session, flow, aid, unionPirId);
     }
 
-    @Cmd(MgProductSpecCmd.SkuNumCmd.SEARCH_FROM_DB)
-    private int searchSkuNumFromDb(final FaiSession session,
+    @Cmd(MgProductSpecCmd.SkuCodeCmd.SEARCH_FROM_DB)
+    private int searchSkuCodeFromDb(final FaiSession session,
                                    @ArgFlow final int flow,
                                    @ArgAid final int aid,
-                                   @ArgBodyInteger(ProductSpecSkuNumDao.Key.UNION_PRI_ID) final int unionPirId,
-                                   @ArgSearchArg(ProductSpecSkuNumDao.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
-        return m_productSpecService.searchSkuNumFromDb(session, flow, aid, unionPirId, searchArg);
+                                   @ArgBodyInteger(ProductSpecSkuCodeDao.Key.UNION_PRI_ID) final int unionPirId,
+                                   @ArgSearchArg(ProductSpecSkuCodeDao.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
+        return m_productSpecService.searchSkuCodeFromDb(session, flow, aid, unionPirId, searchArg);
     }
 
     @Cmd(MgProductSpecCmd.SpecStrCmd.GET_LIST)

@@ -291,35 +291,35 @@ public class ProductSpecProc extends AbstractProductProc {
         return rt;
     }
     /**
-     * 获取已经存在的 skuNumList
+     * 获取已经存在的 skuCodeList
      */
-    public int getExistsSkuNumList(int aid, int tid, int unionPriId, FaiList<String> skuNumList, Ref<FaiList<String>> existsSkuNumListRef)  {
+    public int getExistsSkuCodeList(int aid, int tid, int unionPriId, FaiList<String> skuCodeList, Ref<FaiList<String>> existsSkuCodeListRef)  {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;unionPriId=%s;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.getExistsSkuNumList(aid, tid, unionPriId, skuNumList, existsSkuNumListRef);
+        rt = m_cli.getExistsSkuCodeList(aid, tid, unionPriId, skuCodeList, existsSkuCodeListRef);
         if(rt != Errno.OK) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%s;skuNumList=%s;", m_flow, aid, unionPriId, skuNumList);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%s;skuCodeList=%s;", m_flow, aid, unionPriId, skuCodeList);
             return rt;
         }
         return rt;
     }
     /**
-     * 通过模糊查询skuNum获取匹配到的skuInfo
+     * 通过模糊查询skuCode获取匹配到的skuIdInfo
      */
-    public int searchPdSkuIdInfoListByLikeSkuNum(int aid, int tid, int unionPriId, String skuNum, FaiList<Param> skuInfoList) {
+    public int searchPdSkuIdInfoListBySkuCode(int aid, int tid, int unionPriId, String skuCode, Param condition, FaiList<Param> skuInfoList) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;unionPriId=%s;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.searchPdSkuIdInfoListByLikeSkuNum(aid, tid, unionPriId, skuNum, skuInfoList);
+        rt = m_cli.searchPdSkuIdInfoListBySkuCode(aid, tid, unionPriId, skuCode, condition, skuInfoList);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%s;skuNum=%s;", m_flow, aid, unionPriId, skuNum);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%s;skuCode=%s;", m_flow, aid, unionPriId, skuCode);
             return rt;
         }
         return rt;

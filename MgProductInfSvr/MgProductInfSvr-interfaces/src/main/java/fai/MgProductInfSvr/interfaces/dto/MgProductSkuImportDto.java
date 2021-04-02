@@ -14,10 +14,10 @@ public class MgProductSkuImportDto {
         g_infoDef.add(MgProductSkuImport.Info.KEEP_PRI_ID1, 4, Var.Type.INT);
         g_infoDef.add(MgProductSkuImport.Info.RL_PD_ID, 5, Var.Type.INT);
         g_infoDef.add(MgProductSkuImport.Info.NAME, 6, Var.Type.STRING);
-        g_infoDef.add(MgProductSkuImport.Info.PD_NUM_LIST, 7, Var.Type.FAI_LIST);
+        g_infoDef.add(MgProductSkuImport.Info.PD_CODE_LIST, 7, Var.Type.FAI_LIST);
         g_infoDef.add(MgProductSkuImport.Info.SPEC_NAME_LIST, 8, Var.Type.FAI_LIST);
         g_infoDef.add(MgProductSkuImport.Info.SPEC_VAL_LIST, 9, Var.Type.FAI_LIST);
-        g_infoDef.add(MgProductSkuImport.Info.SKU_NUM_LIST, 10, Var.Type.FAI_LIST);
+        g_infoDef.add(MgProductSkuImport.Info.SKU_CODE_LIST, 10, Var.Type.FAI_LIST);
         g_infoDef.add(MgProductSkuImport.Info.PRICE, 11, Var.Type.LONG);
         g_infoDef.add(MgProductSkuImport.Info.COUNT, 12, Var.Type.INT);
     }

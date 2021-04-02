@@ -6,14 +6,12 @@ import fai.MgProductBasicSvr.interfaces.cli.MgProductBasicCli;
 import fai.MgProductBasicSvr.interfaces.entity.ProductRelEntity;
 import fai.MgProductInfSvr.application.MgProductInfSvr;
 import fai.MgProductInfSvr.domain.comm.BizPriKey;
+import fai.MgProductInfSvr.domain.comm.MgProductSkuImportCheck;
 import fai.MgProductInfSvr.domain.serviceproc.ProductBasicProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductSpecProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductStoreProc;
 import fai.MgProductInfSvr.interfaces.dto.MgProductDto;
-import fai.MgProductInfSvr.interfaces.entity.MgProductEntity;
-import fai.MgProductInfSvr.interfaces.entity.ProductBasicEntity;
-import fai.MgProductInfSvr.interfaces.entity.ProductSpecEntity;
-import fai.MgProductInfSvr.interfaces.entity.ProductSpecValObj;
+import fai.MgProductInfSvr.interfaces.entity.*;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuValObj;
 import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity;
@@ -232,6 +230,111 @@ public class MgProductInfService extends ServicePub {
     }
 
     /**
+     * 导入商品sku数据
+     * @param tid 创建商品的 tid
+     * @param siteId 创建商品的 siteId
+     * @param lgId 创建商品的 lgId
+     * @param keepPriId1 创建商品的 keepPriId1
+     * @param productSkuList 商品sku信息集合
+     * @param inStoreRecordInfo 入库记录信息
+     */
+    public int importProductSku(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> productSkuList, Param inStoreRecordInfo){
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            Set<String> skuNumSet = new HashSet<>();
+            rt = MgProductSkuImportCheck.check(flow, aid, productSkuList, skuNumSet);
+            if(rt != Errno.OK){
+                Log.logErr(rt,"productSkuList error;flow=%d;aid=%d;tid=%d;siteId=%s;lgId=%s;keepPriId1=%s;", flow, aid, tid, siteId, lgId, keepPriId1);
+                return rt;
+            }
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            ProductSpecProc productSpecProc = new ProductSpecProc(flow);
+            skuNumSet.removeAll(Collections.singletonList(null)); // 移除所有null值
+            if(!skuNumSet.isEmpty()){ // 校验 skuNum 是否已经存在
+                Ref<FaiList<String>> existsSkuNumListRef = new Ref<>();
+                rt = productSpecProc.getExistsSkuCodeList(aid, tid, unionPriId, new FaiList<>(skuNumSet), existsSkuNumListRef);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+                HashSet<String> existsSkuNumSet = new HashSet<>(existsSkuNumListRef.value);
+                // TODO 检查skuNum
+            }
+
+            Map<Integer, Integer> rlPdIdPdIdMap = new HashMap<>();
+            FaiList<Param> batchAddBasicInfoList = new FaiList<>();
+            // 分解出基础信息
+            for (Param productSkuInfo : productSkuList) {
+                Integer rlPdId = productSkuInfo.getInt(MgProductSkuImport.Info.RL_PD_ID);
+                Integer pdId = rlPdIdPdIdMap.get(rlPdId);
+                if(pdId == null){
+                    batchAddBasicInfoList.add( new Param()
+                            .setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId)
+                            .setBoolean(ProductRelEntity.Info.INFO_CHECK, false)
+                    );
+                    rlPdIdPdIdMap.put(rlPdId, -1); // 先放入-1
+                }
+            }
+            // 批量添加商品数据
+            ProductBasicProc productBasicProc = new ProductBasicProc(flow);
+            FaiList<Param> idInfoList = new FaiList<>();
+            rt = productBasicProc.batchAddProductAndRel(aid, tid, unionPriId, batchAddBasicInfoList, idInfoList);
+            if(rt != Errno.OK){
+                Log.logErr(rt, "productBasicProc.batchAddProductAndRel err;aid=%s;tid=%s;unionPriId=%s;batchAddBasicInfoList=%s;", aid, tid, unionPriId, batchAddBasicInfoList);
+                return rt;
+            }
+            if(idInfoList.size() != batchAddBasicInfoList.size()){
+                rt = Errno.ERROR;
+                Log.logErr(rt,"size err;aid=%s;tid=%s;unionPriId=%s;idInfoList.size=%s;batchAddBasicInfoList.size=%s;", aid, tid, unionPriId, idInfoList.size(), batchAddBasicInfoList.size());
+                return rt;
+            }
+            Log.logStd("begin;flow=%s;aid=%s;tid=%s;unionPrId=%s;pdIdList=%s;",flow, aid, tid, unionPriId, rlPdIdPdIdMap.values());
+            for (Param info : idInfoList) {
+                Integer rlPdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
+                Integer pdId = info.getInt(ProductRelEntity.Info.PD_ID);
+                rlPdIdPdIdMap.put(rlPdId, pdId);
+            }
+            // 分解出 商品规格、商品规格sku、库存销售sku信息
+            {
+                Map<Integer/*pdId*/, Map<Integer/*index*/, Param/*spec*/>> pdIdIndexSpecInfoMap = new HashMap<>();
+                FaiList<Param> importSpecSkuList = new FaiList<>();
+                for (Param productSkuInfo : productSkuList) {
+                    Integer rlPdId = productSkuInfo.getInt(MgProductSkuImport.Info.RL_PD_ID);
+                    Integer pdId = rlPdIdPdIdMap.get(rlPdId);
+                    Map<Integer, Param> indexSpecInfoMap = pdIdIndexSpecInfoMap.get(pdId);
+                    if(indexSpecInfoMap == null){
+                        indexSpecInfoMap = new HashMap<>();
+                        pdIdIndexSpecInfoMap.put(pdId, indexSpecInfoMap);
+                    }
+                    FaiList<String> specNameList = productSkuInfo.getList(MgProductSkuImport.Info.SPEC_NAME_LIST);
+                    FaiList<String> specValList = productSkuInfo.getList(MgProductSkuImport.Info.SPEC_VAL_LIST);
+                    for (int i = 0; i < specNameList.size(); i++) {
+                        String name = specNameList.get(i);
+                        Param specInfo = indexSpecInfoMap.get(i);
+                        specInfo.setString(fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity.Info.NAME, name);
+
+                    }
+                }
+            }
+
+        }finally {
+            stat.end((rt != Errno.OK), rt);
+        }
+        return rt;
+    }
+    /**
      * 导入商品
      * @param tid 创建商品的 tid
      * @param siteId 创建商品的 siteId
@@ -277,7 +380,7 @@ public class MgProductInfService extends ServicePub {
             skuNumSet.removeAll(Collections.singletonList(null)); // 移除所有null值
             if(!skuNumSet.isEmpty()){ // 校验 skuNum 是否已经存在
                 Ref<FaiList<String>> existsSkuNumListRef = new Ref<>();
-                rt = productSpecProc.getExistsSkuNumList(aid, tid, unionPriId, new FaiList<>(skuNumSet), existsSkuNumListRef);
+                rt = productSpecProc.getExistsSkuCodeList(aid, tid, unionPriId, new FaiList<>(skuNumSet), existsSkuNumListRef);
                 if(rt != Errno.OK){
                     return rt;
                 }
@@ -367,7 +470,7 @@ public class MgProductInfService extends ServicePub {
                     for (Param specSkuInfo : specSkuList) {
                         Param importSpecSkuInfo = new Param();
                         importSpecSkuInfo.assign(specSkuInfo, ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_NAME_LIST, ProductSpecSkuEntity.Info.IN_PD_SC_STR_NAME_LIST);
-                        importSpecSkuInfo.assign(specSkuInfo, ProductSpecEntity.SpecSkuInfo.SKU_NUM_LIST, ProductSpecSkuEntity.Info.SKU_NUM_LIST);
+                        importSpecSkuInfo.assign(specSkuInfo, ProductSpecEntity.SpecSkuInfo.SKU_CODE_LIST, ProductSpecSkuEntity.Info.SKU_CODE_LIST);
                         importSpecSkuInfo.setInt(ProductSpecSkuEntity.Info.PD_ID, pdId);
                         importSpecSkuList.add(importSpecSkuInfo);
                     }
@@ -391,7 +494,7 @@ public class MgProductInfService extends ServicePub {
 
                 }
             }
-
+            // TODO
 
 
         }finally {
@@ -404,12 +507,12 @@ public class MgProductInfService extends ServicePub {
             Param productInfo = iterator.next();
             FaiList<Param> specSkuList = productInfo.getListNullIsEmpty(MgProductEntity.Info.SPEC_SKU);
             for (Param specSkuInfo : specSkuList) {
-                if (existsSkuNumSet.contains(specSkuInfo.getString(ProductSpecEntity.SpecSkuInfo.SKU_NUM))) {
+                if (existsSkuNumSet.contains(specSkuInfo.getString(ProductSpecEntity.SpecSkuInfo.SKU_CODE))) {
                     errProductList.add(productInfo);
                     iterator.remove();
                     continue;
                 }
-                FaiList<String> skuNumList = specSkuInfo.getListNullIsEmpty(ProductSpecEntity.SpecSkuInfo.SKU_NUM_LIST);
+                FaiList<String> skuNumList = specSkuInfo.getListNullIsEmpty(ProductSpecEntity.SpecSkuInfo.SKU_CODE_LIST);
                 for (String skuNum : skuNumList) {
                     if(existsSkuNumSet.contains(skuNum)){
                         errProductList.add(productInfo);
@@ -440,8 +543,8 @@ public class MgProductInfService extends ServicePub {
 
             FaiList<Param> specSkuList = productInfo.getListNullIsEmpty(MgProductEntity.Info.SPEC_SKU);
             for (Param specSkuInfo : specSkuList) {
-                skuNumSet.add(specSkuInfo.getString(ProductSpecEntity.SpecSkuInfo.SKU_NUM));
-                FaiList<String> skuNumList = specSkuInfo.getListNullIsEmpty(ProductSpecEntity.SpecSkuInfo.SKU_NUM_LIST);
+                skuNumSet.add(specSkuInfo.getString(ProductSpecEntity.SpecSkuInfo.SKU_CODE));
+                FaiList<String> skuNumList = specSkuInfo.getListNullIsEmpty(ProductSpecEntity.SpecSkuInfo.SKU_CODE_LIST);
                 if(skuNumList.size() > ProductSpecValObj.SpecSku.Limit.SKU_NUM_MAX_SIZE){
                     errProductList.add(productInfo);
                     iterator.remove();

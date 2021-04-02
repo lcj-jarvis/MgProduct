@@ -1,7 +1,7 @@
 package fai.MgProductSpecSvr.domain.repository;
 
 
-import fai.MgProductSpecSvr.interfaces.dto.ProductSpecSkuNumDao;
+import fai.MgProductSpecSvr.interfaces.dto.ProductSpecSkuCodeDao;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.cache.redis.client.RedisClient;
 import fai.comm.util.*;
@@ -10,7 +10,7 @@ import fai.mgproduct.comm.DataStatus;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class ProductSpecSkuNumCacheCtrl extends CacheCtrl {
+public class ProductSpecSkuCodeCacheCtrl extends CacheCtrl {
 
     /**
      * 设置数据缓存
@@ -26,7 +26,7 @@ public class ProductSpecSkuNumCacheCtrl extends CacheCtrl {
             Long skuId = skuIdInfoListEntry.getKey();
             FaiList<Param> infoList = skuIdInfoListEntry.getValue();
             FaiBuffer faiBuffer = new FaiBuffer();
-            int rt = infoList.toBuffer(faiBuffer, ProductSpecSkuNumDao.Key.INFO_LIST, ProductSpecSkuNumDao.getInfoDto());
+            int rt = infoList.toBuffer(faiBuffer, ProductSpecSkuCodeDao.Key.INFO_LIST, ProductSpecSkuCodeDao.getInfoDto());
             if(rt != Errno.OK){
                 Log.logErr("infoList to buffer err");
                 return false;
@@ -62,7 +62,7 @@ public class ProductSpecSkuNumCacheCtrl extends CacheCtrl {
             Long skuId = Long.valueOf(new String(skuIdByteList.get(i)));
             FaiBuffer faiBuffer = new FaiBuffer(bytes);
             FaiList<Param> infoList = new FaiList<>();
-            infoList.fromBuffer(faiBuffer, null, ProductSpecSkuNumDao.getInfoDto());
+            infoList.fromBuffer(faiBuffer, null, ProductSpecSkuCodeDao.getInfoDto());
             skuIdInfoListMap.put(skuId, infoList);
         }
         return skuIdInfoListMap;
@@ -163,5 +163,5 @@ public class ProductSpecSkuNumCacheCtrl extends CacheCtrl {
         }
     }
 
-    private static final String CACHE_KEY_PREFIX = "MG_productSpecSkuNum";
+    private static final String CACHE_KEY_PREFIX = "MG_productSpecSkuCode";
 }

@@ -410,28 +410,30 @@ public class MgProductInfHandler extends FaiHandler {
     }
 
     @WrittenCmd
-    @Cmd(MgProductInfCmd.ProductSpecSkuCmd.GET_SKU_NUM_LIST)
-    public int getExistsSkuNumList(final FaiSession session,
+    @Cmd(MgProductInfCmd.ProductSpecSkuCmd.GET_SKU_CODE_LIST)
+    public int getExistsSkuCodeList(final FaiSession session,
                                   @ArgFlow final int flow,
                                   @ArgAid final int aid,
                                   @ArgBodyInteger(ProductSpecDto.Key.TID) int tid,
                                   @ArgBodyInteger(ProductSpecDto.Key.SITE_ID) int siteId,
                                   @ArgBodyInteger(ProductSpecDto.Key.LGID) int lgId,
                                   @ArgBodyInteger(ProductSpecDto.Key.KEEP_PRIID1) int keepPriId1,
-                                  @ArgList(keyMatch = ProductSpecDto.Key.SKU_NUM_LIST) FaiList<String> skuNumList) throws IOException {
-        return specService.getExistsSkuNumList(session, flow, aid, tid, siteId, lgId, keepPriId1, skuNumList);
+                                  @ArgList(keyMatch = ProductSpecDto.Key.SKU_CODE_LIST) FaiList<String> skuNumList) throws IOException {
+        return specService.getExistsSkuCodeList(session, flow, aid, tid, siteId, lgId, keepPriId1, skuNumList);
     }
 
-    @Cmd(MgProductInfCmd.ProductSpecSkuCmd.SEARCH_SKU_ID_INFO_LIST_BY_LIKE_SKU_NUM)
-    public int searchPdSkuIdInfoListByLikeSkuNum(final FaiSession session,
-                                   @ArgFlow final int flow,
-                                   @ArgAid final int aid,
-                                   @ArgBodyInteger(ProductSpecDto.Key.TID) int tid,
-                                   @ArgBodyInteger(ProductSpecDto.Key.SITE_ID) int siteId,
-                                   @ArgBodyInteger(ProductSpecDto.Key.LGID) int lgId,
-                                   @ArgBodyInteger(ProductSpecDto.Key.KEEP_PRIID1) int keepPriId1,
-                                   @ArgBodyString(ProductSpecDto.Key.SKU_NUM) String skuNumKeyWord) throws IOException {
-        return specService.searchPdSkuIdInfoListByLikeSkuNum(session, flow, aid, tid, siteId, lgId, keepPriId1, skuNumKeyWord);
+    @Cmd(MgProductInfCmd.ProductSpecSkuCmd.SEARCH_SKU_ID_INFO_LIST_BY_SKU_CODE)
+    public int searchPdSkuIdInfoListBySkuCode(final FaiSession session,
+                                              @ArgFlow final int flow,
+                                              @ArgAid final int aid,
+                                              @ArgBodyInteger(ProductSpecDto.Key.TID) int tid,
+                                              @ArgBodyInteger(ProductSpecDto.Key.SITE_ID) int siteId,
+                                              @ArgBodyInteger(ProductSpecDto.Key.LGID) int lgId,
+                                              @ArgBodyInteger(ProductSpecDto.Key.KEEP_PRIID1) int keepPriId1,
+                                              @ArgBodyString(ProductSpecDto.Key.SKU_CODE) String skuNumKeyWord,
+                                              @ArgParam(keyMatch = ProductSpecDto.Key.CONDITION,
+                                                      classDef = ProductSpecDto.Condition.class, methodDef = "getInfoDto") Param condition) throws IOException {
+        return specService.searchPdSkuIdInfoListBySkuCode(session, flow, aid, tid, siteId, lgId, keepPriId1, skuNumKeyWord, condition);
     }
 
     @Cmd(MgProductInfCmd.BasicCmd.ADD_PD_AND_REL)

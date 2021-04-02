@@ -37,6 +37,7 @@ public class SpuBizSummaryEntity {
             , Info.MAX_PRICE
             , Info.VIRTUAL_SALES
             , Info.SALES
+            , Info.DISTRIBUTE_LIST
     };
     /**
      * 支持批量更新的字段

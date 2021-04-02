@@ -63,7 +63,7 @@ public class ProductSpecSkuProc {
                 data.assign(info, ProductSpecSkuEntity.Info.SORT);
                 data.assign(info, ProductSpecSkuEntity.Info.SOURCE_TID);
                 data.assign(info, ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID);
-                data.assign(info, ProductSpecSkuEntity.Info.SKU_NUM); // TODO
+                data.assign(info, ProductSpecSkuEntity.Info.SKU_CODE); // TODO
                 int flag = info.getInt(ProductSpecSkuEntity.Info.FLAG, 0);
                 String inPdScStrIdListJson = null;
                 if(Misc.checkBit(flag, ProductSpecSkuValObj.FLag.SPU)){
@@ -156,7 +156,7 @@ public class ProductSpecSkuProc {
                 data.assign(pdScSkuInfo, ProductSpecSkuEntity.Info.SORT);
                 data.assign(pdScSkuInfo, ProductSpecSkuEntity.Info.SOURCE_TID);
                 data.assign(pdScSkuInfo, ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID);
-                data.assign(pdScSkuInfo, ProductSpecSkuEntity.Info.SKU_NUM);
+                data.assign(pdScSkuInfo, ProductSpecSkuEntity.Info.SKU_CODE);
                 data.assign(pdScSkuInfo, ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST);
                 data.assign(pdScSkuInfo, ProductSpecSkuEntity.Info.FLAG);
                 data.setCalendar(ProductSpecSkuEntity.Info.SYS_CREATE_TIME, now);
@@ -685,7 +685,7 @@ public class ProductSpecSkuProc {
         }
         return rt;
     }
-    public int getList(int aid, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef){
+    public int getList(int aid, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef, String ... fields){
         if(skuIdList == null || skuIdList.isEmpty() || listRef == null){
             Log.logErr("arg error;flow=%d;aid=%s;skuIdList=%s;", m_flow, aid, skuIdList);
             return Errno.ARGS_ERROR;
@@ -693,40 +693,53 @@ public class ProductSpecSkuProc {
         Set<Long> skuIdSet = new HashSet<>(skuIdList);
         FaiList<Param> resultList = new FaiList<>();
         int rt = Errno.ERROR;
-
-        getListFromCache(aid, skuIdSet, resultList);
-        if(skuIdSet.isEmpty()){
-            listRef.value = resultList;
-            return rt = Errno.OK;
-        }
         try {
-            LockUtil.readLock(aid);
-            // double check
             getListFromCache(aid, skuIdSet, resultList);
             if(skuIdSet.isEmpty()){
                 listRef.value = resultList;
                 return rt = Errno.OK;
             }
+            try {
+                LockUtil.readLock(aid);
+                // double check
+                getListFromCache(aid, skuIdSet, resultList);
+                if(skuIdSet.isEmpty()){
+                    listRef.value = resultList;
+                    return rt = Errno.OK;
+                }
 
-            rt = getListFromDao(aid, new FaiList<>(skuIdSet), listRef);
-            if(rt != Errno.OK && rt != Errno.NOT_FOUND){
-                return rt;
+                rt = getListFromDao(aid, new FaiList<>(skuIdSet), listRef);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                    return rt;
+                }
+                FaiList<Param> infoList = listRef.value;
+                for (Param info : infoList) {
+                    resultList.add(info);
+                    skuIdSet.remove(info.getLong(ProductSpecSkuEntity.Info.SKU_ID));
+                }
+                for (Long skuId : skuIdSet) {
+                    infoList.add(genEmptyCacheInfo(skuId));
+                }
+                ProductSpecSkuCacheCtrl.initInfoCache(aid, infoList);
+            }finally {
+                LockUtil.unReadLock(aid);
             }
-            FaiList<Param> infoList = listRef.value;
-            for (Param info : infoList) {
-                resultList.add(info);
-                skuIdSet.remove(info.getLong(ProductSpecSkuEntity.Info.SKU_ID));
-            }
-            for (Long skuId : skuIdSet) {
-                infoList.add(genEmptyCacheInfo(skuId));
-            }
-            ProductSpecSkuCacheCtrl.initInfoCache(aid, infoList);
+
+            listRef.value = resultList;
+            return rt;
         }finally {
-            LockUtil.unReadLock(aid);
+            if(fields != null && fields.length > 0){
+                Set<String> fieldSet = new HashSet<>(Arrays.asList(fields));
+                for (Param info : listRef.value) {
+                    for (String field : info.keySet()) {
+                        if(fieldSet.contains(field)){
+                            continue;
+                        }
+                        info.remove(field);
+                    }
+                }
+            }
         }
-
-        listRef.value = resultList;
-        return rt;
     }
 
     private void getListFromCache(int aid, Set<Long> skuIdSet, FaiList<Param> resultList) {

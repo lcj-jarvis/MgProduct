@@ -2,107 +2,107 @@ package fai.MgProductSpecSvr.domain.serviceProc;
 
 import fai.MgProductSpecSvr.domain.comm.LockUtil;
 import fai.MgProductSpecSvr.domain.comm.Utils;
-import fai.MgProductSpecSvr.domain.entity.ProductSpecSkuNumEntity;
-import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuNumCacheCtrl;
-import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuNumDaoCtrl;
+import fai.MgProductSpecSvr.domain.entity.ProductSpecSkuCodeEntity;
+import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuCodeCacheCtrl;
+import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuCodeDaoCtrl;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.*;
 
-public class ProductSpecSkuNumProc {
-    public ProductSpecSkuNumProc(ProductSpecSkuNumDaoCtrl daoCtrl, int flow) {
+public class ProductSpecSkuCodeProc {
+    public ProductSpecSkuCodeProc(ProductSpecSkuCodeDaoCtrl daoCtrl, int flow) {
         m_daoCtrl = daoCtrl;
         m_flow = flow;
     }
-    public ProductSpecSkuNumProc(int flow, int aid, TransactionCtrl transactionCtrl) {
-        m_daoCtrl = ProductSpecSkuNumDaoCtrl.getInstance(flow, aid);
+    public ProductSpecSkuCodeProc(int flow, int aid, TransactionCtrl transactionCtrl) {
+        m_daoCtrl = ProductSpecSkuCodeDaoCtrl.getInstance(flow, aid);
         if(!transactionCtrl.register(m_daoCtrl)){
             new RuntimeException("register dao err;flow="+flow+";aid="+aid);
         }
         m_flow = flow;
     }
-    public int batchAdd(int aid, int unionPriId, FaiList<Param> skuNumInfoList) {
+    public int batchAdd(int aid, int unionPriId, FaiList<Param> skuCodeInfoList) {
         int rt = Errno.ARGS_ERROR;
-        for (Param skuNumInfo : skuNumInfoList) {
-            skuNumInfo.setInt(ProductSpecSkuNumEntity.Info.AID, aid);
-            skuNumInfo.setInt(ProductSpecSkuNumEntity.Info.UNION_PRI_ID, unionPriId);
-            cacheManage.setSkuIdDirty(aid, skuNumInfo.getLong(ProductSpecSkuNumEntity.Info.SKU_ID));
+        for (Param skuCodeInfo : skuCodeInfoList) {
+            skuCodeInfo.setInt(ProductSpecSkuCodeEntity.Info.AID, aid);
+            skuCodeInfo.setInt(ProductSpecSkuCodeEntity.Info.UNION_PRI_ID, unionPriId);
+            cacheManage.setSkuIdDirty(aid, skuCodeInfo.getLong(ProductSpecSkuCodeEntity.Info.SKU_ID));
         }
         cacheManage.setDataStatusDirty(aid, unionPriId);
-        rt = m_daoCtrl.batchInsert(skuNumInfoList);
+        rt = m_daoCtrl.batchInsert(skuCodeInfoList);
         if(rt != Errno.OK){
-            Log.logErr(rt, "delete err;flow=%s;aid=%s;unionPriId=%s;skuNumInfoList=%s;", skuNumInfoList);
+            Log.logErr(rt, "delete err;flow=%s;aid=%s;unionPriId=%s;skuCodeInfoList=%s;", skuCodeInfoList);
             return rt;
         }
         Log.logStd("insert ok!;flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
 
-    public int refresh(int aid, int unionPriId, int pdId, Map<String, Long> newSkuNumSkuIdMap, FaiList<Long> needDelSkuNumSkuIdList, FaiList<Param> skuNumSortList, HashSet<Long> changeSkuNumSkuIdSet) {
-        if(newSkuNumSkuIdMap.isEmpty() && needDelSkuNumSkuIdList.isEmpty()){
+    public int refresh(int aid, int unionPriId, int pdId, Map<String, Long> newSkuCodeSkuIdMap, FaiList<Long> needDelSkuCodeSkuIdList, FaiList<Param> skuCodeSortList, HashSet<Long> changeSkuCodeSkuIdSet) {
+        if(newSkuCodeSkuIdMap.isEmpty() && needDelSkuCodeSkuIdList.isEmpty()){
             return Errno.OK;
         }
         int rt = Errno.OK;
-        cacheManage.setSkuIdListDirty(aid, changeSkuNumSkuIdSet);
-        if(!needDelSkuNumSkuIdList.isEmpty()){ // 删除skuNum
+        cacheManage.setSkuIdListDirty(aid, changeSkuCodeSkuIdSet);
+        if(!needDelSkuCodeSkuIdList.isEmpty()){ // 删除skuCode
             cacheManage.setDataStatusDirty(aid, unionPriId);
 
-            ParamMatcher matcher = new ParamMatcher(ProductSpecSkuNumEntity.Info.AID, ParamMatcher.EQ, aid);
-            matcher.and(ProductSpecSkuNumEntity.Info.SKU_ID, ParamMatcher.IN, needDelSkuNumSkuIdList);
+            ParamMatcher matcher = new ParamMatcher(ProductSpecSkuCodeEntity.Info.AID, ParamMatcher.EQ, aid);
+            matcher.and(ProductSpecSkuCodeEntity.Info.SKU_ID, ParamMatcher.IN, needDelSkuCodeSkuIdList);
             rt = m_daoCtrl.delete(matcher);
             if(rt != Errno.OK){
-                Log.logErr(rt, "delete err;flow=%s;unionPriId=%s;needDelSkuNumSkuIdList=%s;", m_flow, aid, unionPriId, needDelSkuNumSkuIdList);
+                Log.logErr(rt, "delete err;flow=%s;unionPriId=%s;needDelSkuCodeSkuIdList=%s;", m_flow, aid, unionPriId, needDelSkuCodeSkuIdList);
                 return rt;
             }
         }
-        if(!newSkuNumSkuIdMap.isEmpty()){
-            HashMap<Long, String> newSkuIdSkuNumMap = new HashMap<>(newSkuNumSkuIdMap.size()*4/3+1);
-            Set<String> skuIdStrSet = new HashSet<>(newSkuNumSkuIdMap.size()*4/3+1);
-            for (Map.Entry<String, Long> skuNumSkuIdEntry : newSkuNumSkuIdMap.entrySet()) {
-                String skuNum = skuNumSkuIdEntry.getKey();
-                Long skuId = skuNumSkuIdEntry.getValue();
-                newSkuIdSkuNumMap.put(skuId, skuNum);
+        if(!newSkuCodeSkuIdMap.isEmpty()){
+            HashMap<Long, String> newSkuIdSkuCodeMap = new HashMap<>(newSkuCodeSkuIdMap.size()*4/3+1);
+            Set<String> skuIdStrSet = new HashSet<>(newSkuCodeSkuIdMap.size()*4/3+1);
+            for (Map.Entry<String, Long> skuCodeSkuIdEntry : newSkuCodeSkuIdMap.entrySet()) {
+                String skuCode = skuCodeSkuIdEntry.getKey();
+                Long skuId = skuCodeSkuIdEntry.getValue();
+                newSkuIdSkuCodeMap.put(skuId, skuCode);
                 skuIdStrSet.add(String.valueOf(skuId));
             }
             String querySql = "select * from " + m_daoCtrl.getTableName()
-                    + " where "+ProductSpecSkuNumEntity.Info.AID+" = " + aid
-                    + " and " +ProductSpecSkuNumEntity.Info.UNION_PRI_ID+ " = " + unionPriId
-                    + " and " + ProductSpecSkuNumEntity.Info.SKU_NUM + " in ('" + Str.join("','", new FaiList<>(newSkuNumSkuIdMap.keySet())) + "')"
+                    + " where "+ ProductSpecSkuCodeEntity.Info.AID+" = " + aid
+                    + " and " + ProductSpecSkuCodeEntity.Info.UNION_PRI_ID+ " = " + unionPriId
+                    + " and " + ProductSpecSkuCodeEntity.Info.SKU_CODE + " in ('" + Str.join("','", new FaiList<>(newSkuCodeSkuIdMap.keySet())) + "')"
                     + " union all "
                     + " select * from " + m_daoCtrl.getTableName()
-                    + " where "+ProductSpecSkuNumEntity.Info.AID+" = " + aid
-                    + " and " +ProductSpecSkuNumEntity.Info.UNION_PRI_ID+ " = " + unionPriId
-                    + " and " + ProductSpecSkuNumEntity.Info.SKU_ID + " in ('" + Str.join("','", new FaiList<>(skuIdStrSet)) + "')"
+                    + " where "+ ProductSpecSkuCodeEntity.Info.AID+" = " + aid
+                    + " and " + ProductSpecSkuCodeEntity.Info.UNION_PRI_ID+ " = " + unionPriId
+                    + " and " + ProductSpecSkuCodeEntity.Info.SKU_ID + " in ('" + Str.join("','", new FaiList<>(skuIdStrSet)) + "')"
                     + ";" ;
             Log.logDbg("flow=%s;aid=%s;querySql=%s", m_flow, aid, querySql);
             Dao dao = m_daoCtrl.getDao();
             FaiList<Param> list = dao.executeQuery(querySql);
 
             // 已经存在的映射关系
-            Map<String, Long> oldSkuNumSkuIdMap = new HashMap<>(list.size());
+            Map<String, Long> oldSkuCodeSkuIdMap = new HashMap<>(list.size());
             for (Param info : list) {
-                String skuNum = info.getString(ProductSpecSkuNumEntity.Info.SKU_NUM);
-                long skuId = info.getLong(ProductSpecSkuNumEntity.Info.SKU_ID);
-                oldSkuNumSkuIdMap.put(skuNum, skuId);
+                String skuCode = info.getString(ProductSpecSkuCodeEntity.Info.SKU_CODE);
+                long skuId = info.getLong(ProductSpecSkuCodeEntity.Info.SKU_ID);
+                oldSkuCodeSkuIdMap.put(skuCode, skuId);
             }
             FaiList<Param> addDataList = new FaiList<>();
-            Iterator<Map.Entry<String, Long>> itr = newSkuNumSkuIdMap.entrySet().iterator();
+            Iterator<Map.Entry<String, Long>> itr = newSkuCodeSkuIdMap.entrySet().iterator();
             while (itr.hasNext()){
-                Map.Entry<String, Long> newSkuNumSkuIdEntry = itr.next();
-                String skuNum = newSkuNumSkuIdEntry.getKey();
-                long newSkuId = newSkuNumSkuIdEntry.getValue();
-                Long oldSkuId = oldSkuNumSkuIdMap.remove(skuNum);
+                Map.Entry<String, Long> newSkuCodeSkuIdEntry = itr.next();
+                String skuCode = newSkuCodeSkuIdEntry.getKey();
+                long newSkuId = newSkuCodeSkuIdEntry.getValue();
+                Long oldSkuId = oldSkuCodeSkuIdMap.remove(skuCode);
                 if(oldSkuId != null){
                     if(newSkuId == oldSkuId){
                         itr.remove();
                     }else{
                         // 判断是否是替换，从要更新的里面能拿出来，如果有 就说明是要替换
-                        String newSkuNum = newSkuIdSkuNumMap.get(oldSkuId);
-                        if(newSkuNum == null){
+                        String newSkuCode = newSkuIdSkuCodeMap.get(oldSkuId);
+                        if(newSkuCode == null){
                             rt = Errno.ALREADY_EXISTED;
-                            Log.logErr(rt, "skuNum already;flow=%s;aid=%s;unionPriId=%s;skuNum=%s;oldSkuId=%s;newSkuId=%s;", m_flow, aid, unionPriId, skuNum, oldSkuId, newSkuId);
+                            Log.logErr(rt, "skuCode already;flow=%s;aid=%s;unionPriId=%s;skuCode=%s;oldSkuId=%s;newSkuId=%s;", m_flow, aid, unionPriId, skuCode, oldSkuId, newSkuId);
                             return rt;
                         }
                     }
@@ -110,37 +110,37 @@ public class ProductSpecSkuNumProc {
                     itr.remove();
                     addDataList.add(
                             new Param()
-                            .setInt(ProductSpecSkuNumEntity.Info.AID, aid)
-                            .setInt(ProductSpecSkuNumEntity.Info.UNION_PRI_ID, unionPriId)
-                            .setString(ProductSpecSkuNumEntity.Info.SKU_NUM, skuNum)
-                            .setLong(ProductSpecSkuNumEntity.Info.SKU_ID, newSkuId)
-                            .setInt(ProductSpecSkuNumEntity.Info.PD_ID, pdId)
+                            .setInt(ProductSpecSkuCodeEntity.Info.AID, aid)
+                            .setInt(ProductSpecSkuCodeEntity.Info.UNION_PRI_ID, unionPriId)
+                            .setString(ProductSpecSkuCodeEntity.Info.SKU_CODE, skuCode)
+                            .setLong(ProductSpecSkuCodeEntity.Info.SKU_ID, newSkuId)
+                            .setInt(ProductSpecSkuCodeEntity.Info.PD_ID, pdId)
                     );
                 }
             }
-            FaiList<Param> updateDataList = new FaiList<>(newSkuNumSkuIdMap.size());
-            for (Map.Entry<String, Long> newSkuNumSkuIdEntry : newSkuNumSkuIdMap.entrySet()) {
-                String skuNum = newSkuNumSkuIdEntry.getKey();
-                long skuId = newSkuNumSkuIdEntry.getValue();
+            FaiList<Param> updateDataList = new FaiList<>(newSkuCodeSkuIdMap.size());
+            for (Map.Entry<String, Long> newSkuCodeSkuIdEntry : newSkuCodeSkuIdMap.entrySet()) {
+                String skuCode = newSkuCodeSkuIdEntry.getKey();
+                long skuId = newSkuCodeSkuIdEntry.getValue();
                 updateDataList.add(
                         new Param()
-                                .setLong(ProductSpecSkuNumEntity.Info.SKU_ID, skuId)
+                                .setLong(ProductSpecSkuCodeEntity.Info.SKU_ID, skuId)
 
-                                .setInt(ProductSpecSkuNumEntity.Info.AID, aid)
-                                .setInt(ProductSpecSkuNumEntity.Info.UNION_PRI_ID, unionPriId)
-                                .setString(ProductSpecSkuNumEntity.Info.SKU_NUM, skuNum)
+                                .setInt(ProductSpecSkuCodeEntity.Info.AID, aid)
+                                .setInt(ProductSpecSkuCodeEntity.Info.UNION_PRI_ID, unionPriId)
+                                .setString(ProductSpecSkuCodeEntity.Info.SKU_CODE, skuCode)
                 );
             }
             Log.logDbg("whalelog  aid=%s;unionPriId=%s;updateDataList=%s;", aid, unionPriId, updateDataList);
-            FaiList<String> needDelList = new FaiList<>(oldSkuNumSkuIdMap.keySet());
+            FaiList<String> needDelList = new FaiList<>(oldSkuCodeSkuIdMap.keySet());
             Log.logDbg("whalelog  aid=%s;unionPriId=%s;needDelList=%s;", aid, unionPriId, needDelList);
             if(!needDelList.isEmpty()){
                 cacheManage.setDataStatusDirty(aid, unionPriId);
 
 
-                ParamMatcher matcher = new ParamMatcher(ProductSpecSkuNumEntity.Info.AID, ParamMatcher.EQ, aid);
-                matcher.and(ProductSpecSkuNumEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-                matcher.and(ProductSpecSkuNumEntity.Info.SKU_NUM, ParamMatcher.IN, needDelList);
+                ParamMatcher matcher = new ParamMatcher(ProductSpecSkuCodeEntity.Info.AID, ParamMatcher.EQ, aid);
+                matcher.and(ProductSpecSkuCodeEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+                matcher.and(ProductSpecSkuCodeEntity.Info.SKU_CODE, ParamMatcher.IN, needDelList);
 
                 rt = m_daoCtrl.delete(matcher);
                 if(rt != Errno.OK){
@@ -153,12 +153,12 @@ public class ProductSpecSkuNumProc {
                 cacheManage.setManageDirty(aid, unionPriId);
 
                 ParamUpdater updater = new ParamUpdater();
-                updater.getData().setString(ProductSpecSkuNumEntity.Info.SKU_ID, "?");
+                updater.getData().setString(ProductSpecSkuCodeEntity.Info.SKU_ID, "?");
 
                 ParamMatcher matcher = new ParamMatcher();
-                matcher.and(ProductSpecSkuNumEntity.Info.AID, ParamMatcher.EQ, "?");
-                matcher.and(ProductSpecSkuNumEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
-                matcher.and(ProductSpecSkuNumEntity.Info.SKU_NUM, ParamMatcher.EQ, "?");
+                matcher.and(ProductSpecSkuCodeEntity.Info.AID, ParamMatcher.EQ, "?");
+                matcher.and(ProductSpecSkuCodeEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
+                matcher.and(ProductSpecSkuCodeEntity.Info.SKU_CODE, ParamMatcher.EQ, "?");
                 rt = m_daoCtrl.batchUpdate(updater, matcher, updateDataList);
                 if(rt != Errno.OK){
                     Log.logErr(rt, "batchUpdate err;flow=%s;aid=%s;unionPriId=%s;updateDataList=%s;", updateDataList);
@@ -177,25 +177,25 @@ public class ProductSpecSkuNumProc {
                 Log.logStd("insert ok!;flow=%s;aid=%s;unionPriId=%s;addDataList=%s;", m_flow, aid, unionPriId, addDataList);
             }
         }
-        if(!skuNumSortList.isEmpty()){ // 设置排序
+        if(!skuCodeSortList.isEmpty()){ // 设置排序
             cacheManage.setManageDirty(aid, unionPriId);
 
             ParamUpdater updater = new ParamUpdater();
-            updater.getData().setString(ProductSpecSkuNumEntity.Info.SORT, "?");
+            updater.getData().setString(ProductSpecSkuCodeEntity.Info.SORT, "?");
 
             ParamMatcher matcher = new ParamMatcher();
-            matcher.and(ProductSpecSkuNumEntity.Info.AID, ParamMatcher.EQ, "?");
-            matcher.and(ProductSpecSkuNumEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
-            matcher.and(ProductSpecSkuNumEntity.Info.SKU_NUM, ParamMatcher.EQ, "?");
+            matcher.and(ProductSpecSkuCodeEntity.Info.AID, ParamMatcher.EQ, "?");
+            matcher.and(ProductSpecSkuCodeEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
+            matcher.and(ProductSpecSkuCodeEntity.Info.SKU_CODE, ParamMatcher.EQ, "?");
 
-            rt = m_daoCtrl.batchUpdate(updater, matcher, skuNumSortList);
+            rt = m_daoCtrl.batchUpdate(updater, matcher, skuCodeSortList);
             if(rt != Errno.OK){
-                Log.logErr(rt, "batchUpdate err;flow=%s;aid=%s;unionPriId=%s;skuNumSortList=%s;", m_flow, aid, unionPriId, skuNumSortList);
+                Log.logErr(rt, "batchUpdate err;flow=%s;aid=%s;unionPriId=%s;skuCodeSortList=%s;", m_flow, aid, unionPriId, skuCodeSortList);
                 return rt;
             }
-            Log.logStd("set sort ok!;flow=%s;aid=%s;unionPriId=%s;skuNumSortList=%s;", m_flow, aid, unionPriId, skuNumSortList);
+            Log.logStd("set sort ok!;flow=%s;aid=%s;unionPriId=%s;skuCodeSortList=%s;", m_flow, aid, unionPriId, skuCodeSortList);
         }
-        Log.logStd("ok!;flow=%s;aid=%s;unionPriId=%s;needDelSkuNumSkuIdList=%s;", m_flow, aid, unionPriId, needDelSkuNumSkuIdList);
+        Log.logStd("ok!;flow=%s;aid=%s;unionPriId=%s;needDelSkuCodeSkuIdList=%s;", m_flow, aid, unionPriId, needDelSkuCodeSkuIdList);
         return rt;
     }
 
@@ -204,14 +204,14 @@ public class ProductSpecSkuNumProc {
             return Errno.OK;
         }
         int rt = Errno.ERROR;
-        ParamMatcher matcher = new ParamMatcher(ProductSpecSkuNumEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(ProductSpecSkuNumEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
+        ParamMatcher matcher = new ParamMatcher(ProductSpecSkuCodeEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductSpecSkuCodeEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
         cacheManage.setSkuIdListDirty(aid, skuIdList);
         if(unionPriId != null){
             cacheManage.setDataStatusDirty(aid, unionPriId);
         }else{
             Dao.SelectArg selectArg = new Dao.SelectArg();
-            selectArg.field = " distinct " + ProductSpecSkuNumEntity.Info.UNION_PRI_ID ;
+            selectArg.field = " distinct " + ProductSpecSkuCodeEntity.Info.UNION_PRI_ID ;
             selectArg.searchArg.matcher = matcher;
             Ref<FaiList<Param>> listRef = new Ref<>();
             rt = m_daoCtrl.select(selectArg, listRef);
@@ -220,7 +220,7 @@ public class ProductSpecSkuNumProc {
                 return rt;
             }
             for (Param info : listRef.value) {
-                Integer _unionPriId = info.getInt(ProductSpecSkuNumEntity.Info.UNION_PRI_ID);
+                Integer _unionPriId = info.getInt(ProductSpecSkuCodeEntity.Info.UNION_PRI_ID);
                 cacheManage.setDataStatusDirty(aid, _unionPriId);
             }
         }
@@ -238,8 +238,8 @@ public class ProductSpecSkuNumProc {
     public int getListFromDao(int aid, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef){
         int rt = Errno.ERROR;
 
-        ParamMatcher matcher = new ParamMatcher(ProductSpecSkuNumEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(ProductSpecSkuNumEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
+        ParamMatcher matcher = new ParamMatcher(ProductSpecSkuCodeEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductSpecSkuCodeEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
 
@@ -252,37 +252,41 @@ public class ProductSpecSkuNumProc {
         return rt;
     }
 
-    public int getSkuNumListFromDao(int aid, int unionPriId, FaiList<String> skuNumList, Ref<FaiList<Param>> listRef){
-        ParamMatcher matcher = new ParamMatcher(ProductSpecSkuNumEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(ProductSpecSkuNumEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        matcher.and(ProductSpecSkuNumEntity.Info.SKU_NUM, ParamMatcher.IN, skuNumList);
+    public int getSkuCodeListFromDao(int aid, int unionPriId, FaiList<String> skuCodeList, Ref<FaiList<Param>> listRef){
+        ParamMatcher matcher = new ParamMatcher(ProductSpecSkuCodeEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductSpecSkuCodeEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(ProductSpecSkuCodeEntity.Info.SKU_CODE, ParamMatcher.IN, skuCodeList);
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
-        int rt = m_daoCtrl.select(searchArg, listRef, ProductSpecSkuNumEntity.Info.SKU_NUM);
+        int rt = m_daoCtrl.select(searchArg, listRef, ProductSpecSkuCodeEntity.Info.SKU_CODE);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
-            Log.logErr(rt, "select err;flow=%s;aid=%s;unionPriId=%s;skuNumList=%s;", m_flow, aid, unionPriId, skuNumList);
+            Log.logErr(rt, "select err;flow=%s;aid=%s;unionPriId=%s;skuCodeList=%s;", m_flow, aid, unionPriId, skuCodeList);
             return rt;
         }
-        Log.logDbg(rt,"ok;flow=%s;aid=%s;unionPriId=%s;skuNumList=%s;", m_flow, aid, unionPriId, skuNumList);
+        Log.logDbg(rt,"ok;flow=%s;aid=%s;unionPriId=%s;skuCodeList=%s;", m_flow, aid, unionPriId, skuCodeList);
         return rt = Errno.OK;
     }
 
-    public int searchByLikeSkuNum(int aid, int unionPriId, String skuNum, Ref<FaiList<Param>> listRef){
-        ParamMatcher matcher = new ParamMatcher(ProductSpecSkuNumEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(ProductSpecSkuNumEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        matcher.and(ProductSpecSkuNumEntity.Info.SKU_NUM, ParamMatcher.LK, skuNum);
+    public int searchBySkuCode(int aid, int unionPriId, String skuCode, boolean isFuzzySearch, Ref<FaiList<Param>> listRef){
+        ParamMatcher matcher = new ParamMatcher(ProductSpecSkuCodeEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductSpecSkuCodeEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        if(isFuzzySearch){
+            matcher.and(ProductSpecSkuCodeEntity.Info.SKU_CODE, ParamMatcher.LK, skuCode);
+        }else{
+            matcher.and(ProductSpecSkuCodeEntity.Info.SKU_CODE, ParamMatcher.EQ, skuCode);
+        }
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
-        int rt = m_daoCtrl.select(searchArg, listRef, ProductSpecSkuNumEntity.Info.SKU_ID, ProductSpecSkuNumEntity.Info.SKU_NUM);
+        int rt = m_daoCtrl.select(searchArg, listRef, ProductSpecSkuCodeEntity.Info.SKU_ID, ProductSpecSkuCodeEntity.Info.SKU_CODE);
         if(rt != Errno.OK){
-            Log.logErr(rt, "select err;flow=%s;aid=%s;unionPriId=%s;skuNum=%s;", m_flow, aid, unionPriId, skuNum);
+            Log.logErr(rt, "select err;flow=%s;aid=%s;unionPriId=%s;skuCode=%s;", m_flow, aid, unionPriId, skuCode);
             return rt;
         }
         return rt;
     }
 
     public int getDataStatus(int aid, int unionPriId, Ref<Param> dataStatusRef){
-        Param info = ProductSpecSkuNumCacheCtrl.DataStatusCache.get(aid, unionPriId);
+        Param info = ProductSpecSkuCodeCacheCtrl.DataStatusCache.get(aid, unionPriId);
         boolean needInitTotalSize = info.getInt(DataStatus.Info.TOTAL_SIZE, -1) < 0;
         boolean needInitManage = info.getLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME) == null;
         info.setLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME, 0L);
@@ -290,13 +294,13 @@ public class ProductSpecSkuNumProc {
         if(needInitTotalSize || needInitManage){
             try {
                 LockUtil.readLock(aid);
-                info = ProductSpecSkuNumCacheCtrl.DataStatusCache.get(aid, unionPriId);
+                info = ProductSpecSkuCodeCacheCtrl.DataStatusCache.get(aid, unionPriId);
                 needInitTotalSize = info.getInt(DataStatus.Info.TOTAL_SIZE, -1) < 0;
                 needInitManage = info.getLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME) == null;
                 if(needInitTotalSize){
                     SearchArg searchArg = new SearchArg();
-                    searchArg.matcher = new ParamMatcher(ProductSpecSkuNumEntity.Info.AID, ParamMatcher.EQ, aid);
-                    searchArg.matcher.and(ProductSpecSkuNumEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+                    searchArg.matcher = new ParamMatcher(ProductSpecSkuCodeEntity.Info.AID, ParamMatcher.EQ, aid);
+                    searchArg.matcher.and(ProductSpecSkuCodeEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
                     Ref<Integer> countRef = new Ref<>();
                     rt = m_daoCtrl.selectCount(searchArg, countRef);
                     if(rt != Errno.OK){
@@ -308,7 +312,7 @@ public class ProductSpecSkuNumProc {
                 if(needInitManage){
                     info.setLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME, System.currentTimeMillis());
                 }
-                ProductSpecSkuNumCacheCtrl.DataStatusCache.set(aid, unionPriId, info);
+                ProductSpecSkuCodeCacheCtrl.DataStatusCache.set(aid, unionPriId, info);
             }finally {
                 LockUtil.unReadLock(aid);
             }
@@ -320,8 +324,8 @@ public class ProductSpecSkuNumProc {
     }
 
     public int getAllDataFromDao(int aid, int unionPriId, Ref<FaiList<Param>> listRef, String ... fields){
-        ParamMatcher matcher = new ParamMatcher(ProductSpecSkuNumEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(ProductSpecSkuNumEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        ParamMatcher matcher = new ParamMatcher(ProductSpecSkuCodeEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductSpecSkuCodeEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
         int rt = m_daoCtrl.select(searchArg, listRef, fields);
@@ -334,8 +338,8 @@ public class ProductSpecSkuNumProc {
     }
 
     public int searchAllDataFromDao(int aid, int unionPriId, SearchArg searchArg, Ref<FaiList<Param>> listRef, String ... fields){
-        ParamMatcher matcher = new ParamMatcher(ProductSpecSkuNumEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(ProductSpecSkuNumEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        ParamMatcher matcher = new ParamMatcher(ProductSpecSkuCodeEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductSpecSkuCodeEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         matcher.and(searchArg.matcher);
         searchArg.matcher = matcher;
         int rt = m_daoCtrl.select(searchArg, listRef, fields);
@@ -347,15 +351,15 @@ public class ProductSpecSkuNumProc {
         return rt;
     }
 
-    public int getList(int aid, FaiList<Long> skuIdList, Ref<Map<Long, FaiList<String>>> skuIdSkuNumListMapRef){
+    public int getList(int aid, FaiList<Long> skuIdList, Ref<Map<Long, FaiList<String>>> skuIdSkuCodeListMapRef){
         if(skuIdList == null || skuIdList.isEmpty()){
             Log.logErr("arg err;flow=%s;aid=%s;skuIdList=%s;", m_flow, aid, skuIdList);
             return Errno.ARGS_ERROR;
         }
         HashMap<Long, FaiList<String>> resultMap = new HashMap<>();
-        skuIdSkuNumListMapRef.value = resultMap;
+        skuIdSkuCodeListMapRef.value = resultMap;
         HashSet<Long> skuIdSet = new HashSet<>(skuIdList);
-        ParamComparator comparator = new ParamComparator(ProductSpecSkuNumEntity.Info.SORT);
+        ParamComparator comparator = new ParamComparator(ProductSpecSkuCodeEntity.Info.SORT);
 
         getListFromCache(aid, resultMap, skuIdSet, comparator);
         if(skuIdSet.isEmpty()){
@@ -378,7 +382,7 @@ public class ProductSpecSkuNumProc {
             }
             map = new HashMap<>(listRef.value.size()*4/3+1);
             for (Param info : listRef.value) {
-                Long skuId = info.getLong(ProductSpecSkuNumEntity.Info.SKU_ID);
+                Long skuId = info.getLong(ProductSpecSkuCodeEntity.Info.SKU_ID);
                 skuIdSet.remove(skuId);
                 FaiList<Param> list = map.getOrDefault(skuId, new FaiList<>());
                 list.add(info);
@@ -389,22 +393,22 @@ public class ProductSpecSkuNumProc {
             for (Long skuId : skuIdSet) {
                 map.put(skuId, new FaiList<>());
             }
-            ProductSpecSkuNumCacheCtrl.setInfoCache(aid, map);
+            ProductSpecSkuCodeCacheCtrl.setInfoCache(aid, map);
         }finally {
             LockUtil.unReadLock(aid);
         }
-        map.forEach((skuId, skuNumInfoList)->{
-            comparator.sort(skuNumInfoList);
-            resultMap.put(skuId, Utils.getValList(skuNumInfoList, ProductSpecSkuNumEntity.Info.SKU_NUM));
+        map.forEach((skuId, skuCodeInfoList)->{
+            comparator.sort(skuCodeInfoList);
+            resultMap.put(skuId, Utils.getValList(skuCodeInfoList, ProductSpecSkuCodeEntity.Info.SKU_CODE));
         });
         return rt;
     }
 
     private ParamComparator getListFromCache(int aid, HashMap<Long, FaiList<String>> resultMap, HashSet<Long> skuIdSet, ParamComparator comparator) {
-        Map<Long, FaiList<Param>> cacheMap = ProductSpecSkuNumCacheCtrl.getInfoCache(aid, skuIdSet);
-        cacheMap.forEach((skuId, skuNumInfoList)->{
-            comparator.sort(skuNumInfoList);
-            resultMap.put(skuId, Utils.getValList(skuNumInfoList, ProductSpecSkuNumEntity.Info.SKU_NUM));
+        Map<Long, FaiList<Param>> cacheMap = ProductSpecSkuCodeCacheCtrl.getInfoCache(aid, skuIdSet);
+        cacheMap.forEach((skuId, skuCodeInfoList)->{
+            comparator.sort(skuCodeInfoList);
+            resultMap.put(skuId, Utils.getValList(skuCodeInfoList, ProductSpecSkuCodeEntity.Info.SKU_CODE));
             skuIdSet.remove(skuId);
         });
         return comparator;
@@ -415,7 +419,7 @@ public class ProductSpecSkuNumProc {
     }
 
     private int m_flow;
-    private ProductSpecSkuNumDaoCtrl m_daoCtrl;
+    private ProductSpecSkuCodeDaoCtrl m_daoCtrl;
 
     private CacheManage cacheManage = new CacheManage();
 
@@ -431,9 +435,9 @@ public class ProductSpecSkuNumProc {
         public boolean deleteDirtyCache(int aid){
             try {
                 unionPriIdDataFlagMap.forEach((unionPriId, dataFlag)->{
-                    ProductSpecSkuNumCacheCtrl.DataStatusCache.clearDirty(aid, unionPriId, dataFlag);
+                    ProductSpecSkuCodeCacheCtrl.DataStatusCache.clearDirty(aid, unionPriId, dataFlag);
                 });
-                ProductSpecSkuNumCacheCtrl.delInfoCache(aid, skuIdSet);
+                ProductSpecSkuCodeCacheCtrl.delInfoCache(aid, skuIdSet);
             }finally {
                 init();
             }
@@ -442,14 +446,14 @@ public class ProductSpecSkuNumProc {
 
         public void setDataStatusDirty(int aid, int unionPriId){
             int dataFlag = unionPriIdDataFlagMap.getOrDefault(unionPriId, 0);
-            dataFlag |= ProductSpecSkuNumCacheCtrl.DataStatusCache.DataFlag.TOTAL_SIZE;
-            dataFlag |= ProductSpecSkuNumCacheCtrl.DataStatusCache.DataFlag.MANAGE_LAST_UPDATE_TIME;
+            dataFlag |= ProductSpecSkuCodeCacheCtrl.DataStatusCache.DataFlag.TOTAL_SIZE;
+            dataFlag |= ProductSpecSkuCodeCacheCtrl.DataStatusCache.DataFlag.MANAGE_LAST_UPDATE_TIME;
             unionPriIdDataFlagMap.put(unionPriId, dataFlag);
         }
 
         public void setManageDirty(int aid, int unionPriId){
             int dataFlag = unionPriIdDataFlagMap.getOrDefault(unionPriId, 0);
-            unionPriIdDataFlagMap.put(unionPriId, dataFlag|ProductSpecSkuNumCacheCtrl.DataStatusCache.DataFlag.MANAGE_LAST_UPDATE_TIME);
+            unionPriIdDataFlagMap.put(unionPriId, dataFlag| ProductSpecSkuCodeCacheCtrl.DataStatusCache.DataFlag.MANAGE_LAST_UPDATE_TIME);
         }
 
         private void init() {

@@ -13,12 +13,14 @@ public class MgProductSkuImport {
         public static final String RL_PD_ID = "rlPdId";                         // int 商品业务id
         public static final String NAME = "name";                               // String 商品名称
 
-        public static final String PD_NUM_LIST = "pdNumList";                   // FaiList<String> 商品条码，最多10个，全局唯一
+        public static final String PD_CODE_LIST = "pdCodeList";                 // FaiList<String> 商品条码，最多10个，全局唯一
         public static final String SPEC_NAME_LIST = "specNameList";             // FaiList<String> 规格名称 最多10个
         public static final String SPEC_VAL_LIST = "specValList";               // FaiList<String> 规格值
-        public static final String SKU_NUM_LIST = "skuNumList";                 // FaiList<String> 规格条码，最多10个，全局唯一
+        public static final String SKU_CODE_LIST = "skuCodeList";               // FaiList<String> 规格条码，最多10个，全局唯一
         public static final String PRICE = "price";                             // long 售价
         public static final String COUNT = "count";                             // int 初始库存
+
+        public static final String PD_ID = "pdId";                              // int 商品id中台内部使用
     }
 
 }

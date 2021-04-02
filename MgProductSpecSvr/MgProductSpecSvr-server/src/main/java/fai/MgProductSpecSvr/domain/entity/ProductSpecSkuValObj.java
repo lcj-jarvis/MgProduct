@@ -23,7 +23,9 @@ public class ProductSpecSkuValObj {
      * 标志位
      */
     public static final class FLag{
-        public static final int ALLOW_EMPTY = 0x2; // 允许是空规格值组合的sku
+        public static final int SPU = 0x1;          // 允许是空规格值组合的sku
+        public static final int ALLOW_EMPTY = 0x2;  // 允许是空规格值组合的sku
+
     }
 
     /**

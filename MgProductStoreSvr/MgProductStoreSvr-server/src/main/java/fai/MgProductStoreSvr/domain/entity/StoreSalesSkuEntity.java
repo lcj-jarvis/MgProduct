@@ -34,7 +34,6 @@ public class StoreSalesSkuEntity {
     private static final String[] VALID_KEYS = new String[]{
             Info.SKU_ID,
             Info.SKU_TYPE,
-            Info.SKU_TYPE,
             Info.SORT,
             Info.PRICE,
             Info.ORIGIN_PRICE,

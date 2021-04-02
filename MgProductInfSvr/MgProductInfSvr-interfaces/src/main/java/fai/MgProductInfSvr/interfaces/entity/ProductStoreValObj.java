@@ -26,9 +26,10 @@ public class ProductStoreValObj {
          */
         public static final class FLag{
             public static final int SETED_PRICE = 0x1;                              // 是否已设置价格
-            public static final int OPEN_MIN_AMOUNT = 0x2;                          // 开启起购量
-            public static final int OPEN_MAX_AMOUNT = 0x4;                          // 开启限购量
-            public static final int OPEN_VIRTUAL_COUNT = 0x8;                       // 开启虚拟库存
+            public static final int SPU = 0x2;                                      // 是否是spu
+            public static final int OPEN_MIN_AMOUNT = 0x4;                          // 开启起购量
+            public static final int OPEN_MAX_AMOUNT = 0x8;                          // 开启限购量
+            public static final int OPEN_VIRTUAL_COUNT = 0x10;                      // 开启虚拟库存
         }
     }
     /**

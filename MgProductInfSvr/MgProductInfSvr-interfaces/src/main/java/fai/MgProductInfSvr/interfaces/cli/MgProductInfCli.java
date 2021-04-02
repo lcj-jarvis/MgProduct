@@ -2276,7 +2276,8 @@ public class MgProductInfCli extends FaiClient {
     }
 
     /**
-     * 批量修改产品规格SKU
+     * 修改商品规格SKU。 <br/>
+     * 为了支持商品条码，允许一个ParamUpdater可以不提供skuId or inPdScStrNameList，但是spu（{@link ProductSpecEntity.SpecSkuInfo#SPU}}）必须为true
      * @param rlPdId 商品业务id {@link ProductSpecEntity.SpecSkuInfo#RL_PD_ID}
      * @param updaterList Param 见 {@link ProductSpecEntity.SpecSkuInfo} <br/>
      *      {@link ProductSpecEntity.SpecSkuInfo#SKU_ID} 或者 {@link ProductSpecEntity.SpecSkuInfo#IN_PD_SC_STR_NAME_LIST} 两个必须要有一个 <br/>
@@ -2556,6 +2557,169 @@ public class MgProductInfCli extends FaiClient {
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
             m_rt = infoList.fromBuffer(recvBody, keyRef, ProductSpecDto.SpecSku.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductSpecDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            return m_rt = Errno.OK;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+
+    /**
+     * 获取已经存在的 skuNumList
+     * @param tid 创建商品的 tid
+     * @param siteId 创建商品的 siteId
+     * @param lgId 创建商品的 lgId
+     * @param keepPriId1 创建商品的 keepPriId1
+     * @param skuNumList 需要判断的 skuNum 集合
+     * @param existsSkuNumListRef 返回存在的 skuNum 集合
+     */
+    public int getExistsSkuNumList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<String> skuNumList, Ref<FaiList<String>> existsSkuNumListRef) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(skuNumList == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "skuNumList error");
+                return m_rt;
+            }
+            if (existsSkuNumListRef == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "existsSkuNumListRef error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductSpecDto.Key.TID, tid);
+            sendBody.putInt(ProductSpecDto.Key.SITE_ID, siteId);
+            sendBody.putInt(ProductSpecDto.Key.LGID, lgId);
+            sendBody.putInt(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1);
+            skuNumList.toBuffer(sendBody, ProductSpecDto.Key.SKU_NUM_LIST);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductInfCmd.ProductSpecSkuCmd.GET_SKU_NUM_LIST);
+
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            Ref<String> valRef = new Ref<String>();
+            m_rt = recvBody.getString(keyRef, valRef);
+            if (m_rt != Errno.OK || keyRef.value != ProductSpecDto.Key.SKU_NUM_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            existsSkuNumListRef.value = FaiList.parseStringList(valRef.value);
+            return m_rt = Errno.OK;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    /**
+     * 根据 skuNum 模糊搜索匹配上的skuInfo
+     * @param tid 创建商品的 tid
+     * @param siteId 创建商品的 siteId
+     * @param lgId 创建商品的 lgId
+     * @param keepPriId1 创建商品的 keepPriId1
+     * @param skuNumKeyWord 搜索关键词
+     * @param skuIdInfoList 匹配上的结果集
+     */
+    public int searchPdSkuIdInfoListByLikeSkuNum(int aid, int tid, int siteId, int lgId, int keepPriId1, String skuNumKeyWord, FaiList<Param> skuIdInfoList) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(Str.isEmpty(skuNumKeyWord)){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "skuNumKeyWord error");
+                return m_rt;
+            }
+            if (skuIdInfoList == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "skuIdInfoList error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductSpecDto.Key.TID, tid);
+            sendBody.putInt(ProductSpecDto.Key.SITE_ID, siteId);
+            sendBody.putInt(ProductSpecDto.Key.LGID, lgId);
+            sendBody.putInt(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1);
+            sendBody.putString(ProductSpecDto.Key.SKU_NUM, skuNumKeyWord);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductInfCmd.ProductSpecSkuCmd.SEARCH_SKU_ID_INFO_LIST_BY_LIKE_SKU_NUM);
+
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = skuIdInfoList.fromBuffer(recvBody, keyRef, ProductSpecDto.SpecSku.getInfoDto());
             if (m_rt != Errno.OK || keyRef.value != ProductSpecDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;

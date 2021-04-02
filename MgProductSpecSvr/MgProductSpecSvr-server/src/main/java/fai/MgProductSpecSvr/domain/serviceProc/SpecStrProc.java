@@ -1,5 +1,6 @@
 package fai.MgProductSpecSvr.domain.serviceProc;
 
+import fai.MgProductSpecSvr.domain.comm.LockUtil;
 import fai.MgProductSpecSvr.domain.entity.SpecStrEntity;
 import fai.MgProductSpecSvr.domain.repository.SpecStrCacheCtrl;
 import fai.MgProductSpecSvr.domain.repository.SpecStrDaoCtrl;
@@ -7,7 +8,6 @@ import fai.comm.util.*;
 
 import java.util.Calendar;
 import java.util.HashSet;
-import java.util.Iterator;
 
 public class SpecStrProc {
     public SpecStrProc(SpecStrDaoCtrl daoCtrl, int flow) {
@@ -98,39 +98,55 @@ public class SpecStrProc {
         return rt;
     }
     private int getListByNames(int aid, FaiList<String> nameList, Ref<FaiList<Param>> listRef) {
-        FaiList<Param> list = SpecStrCacheCtrl.getCacheListByNames(aid, nameList);
         HashSet<String> nameSet = new HashSet<>(nameList);
-        if(list != null){
-            Iterator<Param> iterator = list.iterator();
-            while (iterator.hasNext()){
-                Param info = iterator.next();
-                nameSet.remove(info.getString(SpecStrEntity.Info.NAME));
-            }
+        FaiList<Param> resultList = new FaiList<>();
+
+        getListByNamesFromCache(aid, nameSet, resultList);
+        if(nameSet.isEmpty()){
+            listRef.value = resultList;
+            return Errno.OK;
+        }
+        int rt = Errno.ERROR;
+        FaiList<Param> dbInfoList = null;
+        try {
+            LockUtil.readLock(aid);
+            // double check
+            getListByNamesFromCache(aid, nameSet, resultList);
             if(nameSet.isEmpty()){
-                listRef.value = list;
+                listRef.value = resultList;
                 return Errno.OK;
             }
-            nameList = new FaiList<>(nameSet);
-        }else{
-            list = new FaiList<>();
+
+            ParamMatcher matcher = new ParamMatcher(SpecStrEntity.Info.AID, ParamMatcher.EQ, aid);
+            matcher.and(SpecStrEntity.Info.NAME, ParamMatcher.IN, new FaiList<>(nameSet));
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = matcher;
+            rt =  m_daoCtrl.select(searchArg, listRef);
+            if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                Log.logErr(rt, "getList error;flow=%d;aid=%s;nameSet=%s;", m_flow, aid, nameSet);
+                return rt;
+            }
+            dbInfoList = listRef.value;
+            FaiList<Param> newCacheList = dbInfoList;
+            SpecStrCacheCtrl.setCacheList(aid, newCacheList);
+        }finally {
+            LockUtil.unReadLock(aid);
         }
 
-        ParamMatcher matcher = new ParamMatcher(SpecStrEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(SpecStrEntity.Info.NAME, ParamMatcher.IN, nameList);
-        SearchArg searchArg = new SearchArg();
-        searchArg.matcher = matcher;
-        int rt =  m_daoCtrl.select(searchArg, listRef);
-        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            Log.logErr(rt, "getList error;flow=%d;aid=%s;nameList=%s;", m_flow, aid, nameList);
-            return rt;
-        }
-        FaiList<Param> newCacheList = new FaiList<>(listRef.value);
-        list.addAll(listRef.value);
-        listRef.value = list;
-
-        SpecStrCacheCtrl.setCacheList(aid, newCacheList);
+        resultList.addAll(dbInfoList);
+        listRef.value = resultList;
         Log.logDbg(rt,"getList ok;flow=%d;aid=%d;nameList=%s;", m_flow, aid, nameList);
         return rt = Errno.OK;
+    }
+
+    private void getListByNamesFromCache(int aid, HashSet<String> nameSet, FaiList<Param> resultList) {
+        FaiList<Param> cacheList = SpecStrCacheCtrl.getCacheListByNames(aid, new FaiList<>(nameSet));
+        if(cacheList != null){
+            for (Param cacheInfo : cacheList) {
+                nameSet.remove(cacheInfo.getString(SpecStrEntity.Info.NAME));
+                resultList.add(cacheInfo);
+            }
+        }
     }
 
     public int getNameIdMapByNames(int aid, FaiList<String> nameList, Ref<Param> nameIdMapRef){
@@ -151,47 +167,64 @@ public class SpecStrProc {
         //去重
         HashSet<Integer> scStrIdSet = new HashSet<>(scStrIdList);
         scStrIdList = new FaiList<>(scStrIdSet);
+        FaiList<Param> resultList = new FaiList<>(scStrIdSet.size());
 
-        FaiList<Param> list = SpecStrCacheCtrl.getCacheList(aid, scStrIdList);
-        if(list != null){
-            Iterator<Param> iterator = list.iterator();
-            while (iterator.hasNext()){
-                Param info = iterator.next();
-                scStrIdSet.remove(info.getInt(SpecStrEntity.Info.SC_STR_ID));
-                if(info.getInt(SpecStrEntity.Info.AID) == null){ // 去掉缓存的空数据
-                    iterator.remove();
-                }
-            }
-
+        getListFromCache(aid, scStrIdList, scStrIdSet, resultList);
+        if(scStrIdSet.isEmpty()){
+            listRef.value = resultList;
+            return Errno.OK;
+        }
+        int rt = Errno.ERROR;
+        FaiList<Param> dbInfoList = null;
+        try {
+            LockUtil.readLock(aid);
+            // double check
+            getListFromCache(aid, scStrIdList, scStrIdSet, resultList);
             if(scStrIdSet.isEmpty()){
-                listRef.value = list;
+                listRef.value = resultList;
                 return Errno.OK;
             }
-            scStrIdList = new FaiList<>(scStrIdSet);
-        }else{
-            list = new FaiList<>();
+
+            ParamMatcher matcher = new ParamMatcher(SpecStrEntity.Info.AID, ParamMatcher.EQ, aid);
+            matcher.and(SpecStrEntity.Info.SC_STR_ID, ParamMatcher.IN, new FaiList<>(scStrIdSet));
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = matcher;
+            rt =  m_daoCtrl.select(searchArg, listRef);
+            if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                Log.logErr(rt, "getList error;flow=%d;aid=%s;scStrIdSet=%s;", m_flow, aid, scStrIdSet);
+                return rt;
+            }
+            dbInfoList = listRef.value;
+            FaiList<Param> newCacheList = new FaiList<>(dbInfoList);
+            for (Param info : dbInfoList) {
+                scStrIdSet.remove(info.getInt(SpecStrEntity.Info.SC_STR_ID));
+            }
+            for (Integer scStrId : scStrIdSet) { // 缓存上空数据
+                newCacheList.add(new Param().setInt(SpecStrEntity.Info.SC_STR_ID, scStrId));
+            }
+            SpecStrCacheCtrl.setCacheList(aid, newCacheList);
+        }finally {
+            LockUtil.unReadLock(aid);
         }
-        ParamMatcher matcher = new ParamMatcher(SpecStrEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(SpecStrEntity.Info.SC_STR_ID, ParamMatcher.IN, scStrIdList);
-        SearchArg searchArg = new SearchArg();
-        searchArg.matcher = matcher;
-        int rt =  m_daoCtrl.select(searchArg, listRef);
-        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            Log.logErr(rt, "getList error;flow=%d;aid=%s;scStrIdList=%s;", m_flow, aid, scStrIdList);
-            return rt;
-        }
-        FaiList<Param> newCacheList = new FaiList<>(listRef.value);
-        list.addAll(listRef.value);
-        listRef.value = list;
-        for (Param info : listRef.value) {
-            scStrIdSet.remove(info.getInt(SpecStrEntity.Info.SC_STR_ID));
-        }
-        for (Integer scStrId : scStrIdSet) { // 缓存上空数据
-            newCacheList.add(new Param().setInt(SpecStrEntity.Info.SC_STR_ID, scStrId));
-        }
-        SpecStrCacheCtrl.setCacheList(aid, newCacheList);
+
+        resultList.addAll(dbInfoList);
+        listRef.value = resultList;
+
         Log.logDbg(rt,"getList ok;flow=%d;aid=%d;scStrIdList=%s;", m_flow, aid, scStrIdList);
         return rt = Errno.OK;
+    }
+
+    private void getListFromCache(int aid, FaiList<Integer> scStrIdList, HashSet<Integer> scStrIdSet, FaiList<Param> resultList) {
+        FaiList<Param> cacheList = SpecStrCacheCtrl.getCacheList(aid, scStrIdList);
+        if(cacheList != null){
+            for (Param cacheInfo : cacheList) {
+                scStrIdSet.remove(cacheInfo.getInt(SpecStrEntity.Info.SC_STR_ID));
+                if(cacheInfo.getInt(SpecStrEntity.Info.AID) == null){ // 去掉缓存的空数据
+                    continue;
+                }
+                resultList.add(cacheInfo);
+            }
+        }
     }
 
 

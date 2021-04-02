@@ -74,7 +74,7 @@ public class SpecTempProc {
         int rt = Errno.ERROR;
 
         FaiList<Integer> specTempIdList = new FaiList<>(specTempUpdaterList.size());
-        Set<String> maxUpdaterKeys = Utils.validUpdaterList(specTempUpdaterList, SpecTempEntity.getValidKeys(), data->{
+        Set<String> maxUpdaterKeys = Utils.retainValidUpdaterList(specTempUpdaterList, SpecTempEntity.getValidKeys(), data->{
             specTempIdList.add(data.getInt(SpecTempEntity.Info.TP_SC_ID));
         });
         maxUpdaterKeys.remove(SpecTempEntity.Info.TP_SC_ID);

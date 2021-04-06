@@ -8,12 +8,21 @@ import fai.MgProductStoreSvr.domain.repository.SpuBizSummaryCacheCtrl;
 import fai.MgProductStoreSvr.domain.repository.SpuBizSummaryDaoCtrl;
 import fai.comm.util.*;
 import fai.mgproduct.comm.Util;
+import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.*;
 
 public class SpuBizSummaryProc {
     public SpuBizSummaryProc(SpuBizSummaryDaoCtrl daoCtrl, int flow) {
         m_daoCtrl = daoCtrl;
+        m_flow = flow;
+    }
+
+    public SpuBizSummaryProc(int flow, int aid, TransactionCtrl transactionCtrl) {
+        m_daoCtrl = SpuBizSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+        if(m_daoCtrl == null){
+            throw new RuntimeException(String.format("SpuBizSummaryDaoCtrl init err;flow=%s;aid=%s;", flow, aid));
+        }
         m_flow = flow;
     }
 

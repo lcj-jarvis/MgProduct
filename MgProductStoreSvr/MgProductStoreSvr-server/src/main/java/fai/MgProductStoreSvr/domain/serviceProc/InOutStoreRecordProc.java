@@ -1,12 +1,13 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
-import fai.MgProductStoreSvr.domain.comm.SkuStoreKey;
+import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
 import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordEntity;
 import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordValObj;
 import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuEntity;
 import fai.MgProductStoreSvr.domain.repository.InOutStoreRecordDaoCtrl;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
+import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -15,6 +16,14 @@ public class InOutStoreRecordProc {
 
     public InOutStoreRecordProc(InOutStoreRecordDaoCtrl daoCtrl, int flow) {
         m_daoCtrl = daoCtrl;
+        m_flow = flow;
+    }
+
+    public InOutStoreRecordProc(int flow, int aid, TransactionCtrl transactionCtrl) {
+        m_daoCtrl = InOutStoreRecordDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+        if(m_daoCtrl == null){
+            throw new RuntimeException(String.format("InOutStoreRecordDaoCtrl init err;flow=%s;aid=%s;", flow, aid));
+        }
         m_flow = flow;
     }
 
@@ -81,7 +90,7 @@ public class InOutStoreRecordProc {
     /**
      * 批量添加出库记录
      */
-    public int batchAddOutStoreRecord(int aid, int unionPriId, Map<Long, Integer> skuIdChangeCountMap, Map<SkuStoreKey, Param> changeCountAfterSkuStoreSalesInfoMap, Param info, Map<Long, FaiList<Integer>> skuIdInPdScStrIdListMap, Ref<Integer> idRef) {
+    public int batchAddOutStoreRecord(int aid, int unionPriId, Map<Long, Integer> skuIdChangeCountMap, Map<SkuBizKey, Param> changeCountAfterSkuStoreSalesInfoMap, Param info, Map<Long, FaiList<Integer>> skuIdInPdScStrIdListMap, Ref<Integer> idRef) {
         if(aid <= 0 || unionPriId <= 0 || skuIdChangeCountMap == null || info == null || info.isEmpty() || skuIdInPdScStrIdListMap == null){
             Log.logErr("arg error;flow=%d;aid=%s;unionPriId=%s;skuIdChangeCountMap=%s;info=%s;skuIdInPdScStrIdListMap=%s;", m_flow, aid, unionPriId, skuIdChangeCountMap, info, skuIdInPdScStrIdListMap);
             return Errno.ARGS_ERROR;
@@ -109,7 +118,7 @@ public class InOutStoreRecordProc {
     /**
      * 批量添加入库记录
      */
-    public int batchAddInStoreRecord(int aid, int unionPriId, Map<Long, Integer> skuIdChangeCountMap, Map<SkuStoreKey, Param> changeCountAfterSkuStoreSalesInfoMap, Param info, Map<Long, FaiList<Integer>> skuIdInPdScStrIdListMap, Map<Long, Pair<Long, Long>> skuIdPriceMap, Ref<Integer> idRef) {
+    public int batchAddInStoreRecord(int aid, int unionPriId, Map<Long, Integer> skuIdChangeCountMap, Map<SkuBizKey, Param> changeCountAfterSkuStoreSalesInfoMap, Param info, Map<Long, FaiList<Integer>> skuIdInPdScStrIdListMap, Map<Long, Pair<Long, Long>> skuIdPriceMap, Ref<Integer> idRef) {
         if(aid <= 0 || unionPriId <= 0 || skuIdChangeCountMap == null || info == null || info.isEmpty() || skuIdInPdScStrIdListMap == null){
             Log.logErr("arg error;flow=%d;aid=%s;unionPriId=%s;skuIdChangeCountMap=%s;info=%s;skuIdInPdScStrIdListMap=%s;", m_flow, aid, unionPriId, skuIdChangeCountMap, info, skuIdInPdScStrIdListMap);
             return Errno.ARGS_ERROR;
@@ -144,11 +153,11 @@ public class InOutStoreRecordProc {
     }
 
 
-    public int batchAdd(int aid, FaiList<Param> infoList, Map<SkuStoreKey, Param> changeCountAfterSkuStoreSalesInfoMap) {
+    public int batchAdd(int aid, FaiList<Param> infoList, Map<SkuBizKey, Param> changeCountAfterSkuStoreSalesInfoMap) {
         return  batchAdd(aid, infoList, changeCountAfterSkuStoreSalesInfoMap, null);
     }
 
-    public int batchAdd(int aid, FaiList<Param> infoList, Map<SkuStoreKey, Param> changeCountAfterSkuStoreSalesInfoMap, Ref<Integer> idRef) {
+    public int batchAdd(int aid, FaiList<Param> infoList, Map<SkuBizKey, Param> changeCountAfterSkuStoreSalesInfoMap, Ref<Integer> idRef) {
         if(aid <= 0 || infoList == null || infoList.isEmpty() || changeCountAfterSkuStoreSalesInfoMap == null){
             Log.logErr("arg error;flow=%d;aid=%s;infoList=%s;changeCountAfterSkuStoreSalesInfoMap=%s;", m_flow, aid, infoList, changeCountAfterSkuStoreSalesInfoMap);
             return Errno.ARGS_ERROR;
@@ -181,7 +190,7 @@ public class InOutStoreRecordProc {
             int sourceUnionPriId = info.getInt(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, 0);
             Integer remainCount = info.getInt(InOutStoreRecordEntity.Info.REMAIN_COUNT);
             if(remainCount == null){
-                Param storeSalesSkuInfo = changeCountAfterSkuStoreSalesInfoMap.get(new SkuStoreKey(unionPriId, skuId));
+                Param storeSalesSkuInfo = changeCountAfterSkuStoreSalesInfoMap.get(new SkuBizKey(unionPriId, skuId));
                 remainCount = storeSalesSkuInfo.getInt(StoreSalesSkuEntity.Info.REMAIN_COUNT)+storeSalesSkuInfo.getInt(StoreSalesSkuEntity.Info.HOLDING_COUNT);
                 pdId = storeSalesSkuInfo.getInt(InOutStoreRecordEntity.Info.PD_ID, pdId);
                 rlPdId = storeSalesSkuInfo.getInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
@@ -222,7 +231,7 @@ public class InOutStoreRecordProc {
                 if(price > 0 && changeCount > 0){
                     long totalCost = changeCount*price;
                     long inMwTotalCost = changeCount*inMwPrice;
-                    Param storeSalesSkuInfo = changeCountAfterSkuStoreSalesInfoMap.get(new SkuStoreKey(unionPriId, skuId));
+                    Param storeSalesSkuInfo = changeCountAfterSkuStoreSalesInfoMap.get(new SkuBizKey(unionPriId, skuId));
                     long fifoTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, 0L);
                     long mwTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, 0L);
                     storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, fifoTotalCost + totalCost);
@@ -265,7 +274,7 @@ public class InOutStoreRecordProc {
                 if(rt != Errno.OK){
                     return rt;
                 }
-                Param storeSalesSkuInfo = changeCountAfterSkuStoreSalesInfoMap.get(new SkuStoreKey(unionPriId, skuId));
+                Param storeSalesSkuInfo = changeCountAfterSkuStoreSalesInfoMap.get(new SkuBizKey(unionPriId, skuId));
                 // 计算先进先出方式相关的价格
                 {
                     // 计算平均价

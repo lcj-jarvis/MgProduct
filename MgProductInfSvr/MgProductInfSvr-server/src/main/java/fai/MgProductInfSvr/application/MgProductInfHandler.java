@@ -798,6 +798,21 @@ public class MgProductInfHandler extends FaiHandler {
                                   @ArgBodyInteger(MgProductDto.Key.ID) int rlPdId) throws IOException {
         return mgProductInfService.getProductFullInfo(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId);
     }
+    @Cmd(MgProductInfCmd.Cmd.IMPORT_PRODUCT)
+    public int importProduct(final FaiSession session,
+                             @ArgFlow final int flow,
+                             @ArgAid final int aid,
+                             @ArgBodyInteger(MgProductDto.Key.TID) int tid,
+                             @ArgBodyInteger(MgProductDto.Key.SITE_ID) int siteId,
+                             @ArgBodyInteger(MgProductDto.Key.LGID) int lgId,
+                             @ArgBodyInteger(MgProductDto.Key.KEEP_PRIID1) int keepPriId1,
+                             @ArgList(keyMatch = MgProductDto.Key.INFO_LIST,
+                                     classDef = MgProductDto.class, methodDef = "getInfoDto") FaiList<Param> productList,
+                             @ArgParam(keyMatch = MgProductDto.Key.IN_OUT_STORE_RECORD_INFO,
+                                     classDef = ProductStoreDto.InOutStoreRecord.class, methodDef = "getInfoDto") Param inStoreRecordInfo,
+                             @ArgBodyBoolean(value = MgProductDto.Key.USE_BASIC, useDefault = true) boolean useMgProductBasicInfo) throws IOException {
+        return mgProductInfService.importProduct(session, flow, aid, tid, siteId, lgId, keepPriId1, productList, inStoreRecordInfo, useMgProductBasicInfo);
+    }
 
     /*** 商品分类 start ***/
     @Cmd(MgProductInfCmd.GroupCmd.GET_GROUP_LIST)

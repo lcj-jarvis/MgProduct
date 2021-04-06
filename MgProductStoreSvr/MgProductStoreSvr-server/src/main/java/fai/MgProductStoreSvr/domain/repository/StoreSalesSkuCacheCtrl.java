@@ -1,9 +1,12 @@
 package fai.MgProductStoreSvr.domain.repository;
 
-import fai.MgProductStoreSvr.domain.comm.SkuStoreKey;
+import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
 import fai.MgProductStoreSvr.interfaces.dto.StoreSalesSkuDto;
 import fai.comm.cache.redis.client.RedisClient;
-import fai.comm.util.*;
+import fai.comm.util.Errno;
+import fai.comm.util.FaiList;
+import fai.comm.util.Param;
+import fai.comm.util.Parser;
 
 import java.util.Arrays;
 import java.util.Set;
@@ -74,15 +77,15 @@ public class StoreSalesSkuCacheCtrl extends CacheCtrl{
         boolean boo = m_cache.del(remainCountCacheKey);
         return boo;
     }
-    public static boolean delRemainCount(int aid, Set<SkuStoreKey> SkuStoreKeySet) {
-        if(SkuStoreKeySet.isEmpty()){
+    public static boolean delRemainCount(int aid, Set<SkuBizKey> skuBizKeySet) {
+        if(skuBizKeySet.isEmpty()){
             return true;
         }
-        String[] keys = new String[SkuStoreKeySet.size()];
+        String[] keys = new String[skuBizKeySet.size()];
         int i = 0;
-        for (SkuStoreKey skuStoreKey : SkuStoreKeySet) {
-            int unionPriId = skuStoreKey.unionPriId;
-            long skuId  = skuStoreKey.skuId;
+        for (SkuBizKey skuBizKey : skuBizKeySet) {
+            int unionPriId = skuBizKey.unionPriId;
+            long skuId  = skuBizKey.skuId;
             keys[i++] = getRemainCountCacheKey(aid, unionPriId, skuId);
         }
         boolean boo = m_cache.del(keys);

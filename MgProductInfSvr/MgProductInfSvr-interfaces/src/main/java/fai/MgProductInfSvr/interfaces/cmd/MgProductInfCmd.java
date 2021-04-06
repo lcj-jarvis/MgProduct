@@ -140,6 +140,9 @@ public class MgProductInfCmd {
         public static final int NUM31 = 1031; /**@see GroupCmd#DEL_GROUP_LIST */
         public static final int NUM32 = 1032; /**@see GroupCmd#SET_GROUP_LIST */
         public static final int NUM33 = 1033; /**@see BasicCmd#SET_PD_BIND_GROUP */
+
+        /**@see Cmd#IMPORT_PRODUCT */
+        public static final int NUM34 = 1034;
     }
 
     /**
@@ -310,5 +313,6 @@ public class MgProductInfCmd {
      */
     public static class Cmd{
         public static final int GET_FULL_INFO = ReadCmdNum.NUM21;
+        public static final int IMPORT_PRODUCT = WriteCmdNum.NUM34;
     }
 }

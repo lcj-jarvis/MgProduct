@@ -1390,6 +1390,8 @@ public class ProductSpecService extends ServicePub {
                             rtPdSku.setLong(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.SKU_ID, skuId)
                                     .setInt(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.PD_ID, pdId)
                                     .setInt(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.FLAG, flag);
+                            // 当表示为spu时， inPdScStrIdList值为null
+                            rtPdSku.setList(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, FaiList.parseStringList(inPdScStrIdListJson));
                             // 当表示为spu时， inPdScStrNameList值为null
                             rtPdSku.setList(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.IN_PD_SC_STR_NAME_LIST, inPdScStrNameList);
 

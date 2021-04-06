@@ -31,8 +31,10 @@ public class StoreSalesSkuEntity {
 
 
 
-        // 临时字段
+        ////////////////////////////// 临时字段 ↓↓↓ ////////////////////////////////////////
         public static final String HOLDING_ORDER_LIST = "holdingOrderList";         // 预扣状态的预扣记录集
+        public static final String IN_PD_SC_STR_ID_LIST = "inPdScStrIdList";        // 规格值 FaiList<Integer>
+        ////////////////////////////// 临时字段 ↑↑↑ ////////////////////////////////////////
     }
 
 }

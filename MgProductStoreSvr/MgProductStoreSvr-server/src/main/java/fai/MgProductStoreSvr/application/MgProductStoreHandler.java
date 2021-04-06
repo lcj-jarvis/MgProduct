@@ -326,6 +326,19 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                                     FaiList<Integer> pdIdList) throws IOException {
         return  m_storeService.batchDelPdAllStoreSales(session, flow, aid, tid, pdIdList);
     }
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.IMPORT)
+    private int importStoreSales(final FaiSession session,
+                                            @ArgFlow final int flow,
+                                            @ArgAid final int aid,
+                                            @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
+                                            @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
+                                            @ArgList(keyMatch = StoreSalesSkuDto.Key.INFO_LIST,
+                                                    classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto") FaiList<Param> storeSaleSkuList,
+                                            @ArgParam(keyMatch = StoreSalesSkuDto.Key.IN_OUT_STORE_RECORD_INFO,
+                                                    classDef=InOutStoreRecordDto.class, methodDef = "getInfoDto") Param inStoreRecordInfo) throws IOException {
+        return  m_storeService.importStoreSales(session, flow, aid, tid, unionPriId, storeSaleSkuList, inStoreRecordInfo);
+    }
 
     @Cmd(MgProductStoreCmd.SkuSummaryCmd.BIZ_GET_LIST)
     private int getSkuBizSummaryInfoList(final FaiSession session,

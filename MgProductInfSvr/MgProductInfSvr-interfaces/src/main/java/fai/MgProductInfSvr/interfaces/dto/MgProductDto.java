@@ -23,5 +23,8 @@ public class MgProductDto {
         public static final int KEEP_PRIID1 = 4;
         public static final int ID = 5;
         public static final int INFO = 6;
+        public static final int INFO_LIST = 7;
+        public static final int IN_OUT_STORE_RECORD_INFO = 8;
+        public static final int USE_BASIC = 9;
     }
 }

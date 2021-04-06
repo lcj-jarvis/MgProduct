@@ -9,6 +9,8 @@ import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.*;
 
 public class ProductSpecSkuCodeProc {
@@ -59,29 +61,39 @@ public class ProductSpecSkuCodeProc {
         }
         if(!newSkuCodeSkuIdMap.isEmpty()){
             HashMap<Long, String> newSkuIdSkuCodeMap = new HashMap<>(newSkuCodeSkuIdMap.size()*4/3+1);
-            Set<String> skuIdStrSet = new HashSet<>(newSkuCodeSkuIdMap.size()*4/3+1);
             for (Map.Entry<String, Long> skuCodeSkuIdEntry : newSkuCodeSkuIdMap.entrySet()) {
                 String skuCode = skuCodeSkuIdEntry.getKey();
                 Long skuId = skuCodeSkuIdEntry.getValue();
                 newSkuIdSkuCodeMap.put(skuId, skuCode);
-                skuIdStrSet.add(String.valueOf(skuId));
             }
-            String querySql = "select * from " + m_daoCtrl.getTableName()
-                    + " where "+ ProductSpecSkuCodeEntity.Info.AID+" = " + aid
-                    + " and " + ProductSpecSkuCodeEntity.Info.UNION_PRI_ID+ " = " + unionPriId
-                    + " and " + ProductSpecSkuCodeEntity.Info.SKU_CODE + " in ('" + Str.join("','", new FaiList<>(newSkuCodeSkuIdMap.keySet())) + "')"
+            // 查询 本次修改到所关联的所有旧数据
+            StringBuilder skuCodeSetPlaceholder = new StringBuilder();
+            StringBuilder skuIdSetPlaceholder = new StringBuilder();
+
+            genPlaceholder4refresh(newSkuCodeSkuIdMap, newSkuIdSkuCodeMap, skuCodeSetPlaceholder, skuIdSetPlaceholder);
+
+            String prepareSql = "select * from " + m_daoCtrl.getTableName()
+                    + " where "+ ProductSpecSkuCodeEntity.Info.AID+" = ? "
+                    + " and " + ProductSpecSkuCodeEntity.Info.UNION_PRI_ID+ " = ? "
+                    + " and " + ProductSpecSkuCodeEntity.Info.SKU_CODE + " in " + skuCodeSetPlaceholder.toString()
                     + " union all "
                     + " select * from " + m_daoCtrl.getTableName()
-                    + " where "+ ProductSpecSkuCodeEntity.Info.AID+" = " + aid
-                    + " and " + ProductSpecSkuCodeEntity.Info.UNION_PRI_ID+ " = " + unionPriId
-                    + " and " + ProductSpecSkuCodeEntity.Info.SKU_ID + " in ('" + Str.join("','", new FaiList<>(skuIdStrSet)) + "')"
+                    + " where "+ ProductSpecSkuCodeEntity.Info.AID+" = ? "
+                    + " and " + ProductSpecSkuCodeEntity.Info.UNION_PRI_ID+ " = ? "
+                    + " and " + ProductSpecSkuCodeEntity.Info.SKU_ID + " in " + skuIdSetPlaceholder.toString()
                     + ";" ;
-            Log.logDbg("flow=%s;aid=%s;querySql=%s", m_flow, aid, querySql);
+
             Dao dao = m_daoCtrl.getDao();
-            FaiList<Param> list = dao.executeQuery(querySql);
+            PreparedStatement preparedStatement = dao.prepareStatement(prepareSql);
+
+            rt = setPrepareStatement4refresh(preparedStatement, aid, unionPriId, newSkuCodeSkuIdMap.keySet(), newSkuIdSkuCodeMap.keySet());
+            if(rt != Errno.OK){
+                return rt;
+            }
+            FaiList<Param> list = dao.executeQuery(preparedStatement, null);
 
             // 已经存在的映射关系
-            Map<String, Long> oldSkuCodeSkuIdMap = new HashMap<>(list.size());
+            Map<String/*oldSkuCode*/, Long /*skuId*/> oldSkuCodeSkuIdMap = new HashMap<>(list.size());
             for (Param info : list) {
                 String skuCode = info.getString(ProductSpecSkuCodeEntity.Info.SKU_CODE);
                 long skuId = info.getLong(ProductSpecSkuCodeEntity.Info.SKU_ID);
@@ -188,15 +200,69 @@ public class ProductSpecSkuCodeProc {
             matcher.and(ProductSpecSkuCodeEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
             matcher.and(ProductSpecSkuCodeEntity.Info.SKU_CODE, ParamMatcher.EQ, "?");
 
-            rt = m_daoCtrl.batchUpdate(updater, matcher, skuCodeSortList);
+            rt = m_daoCtrl.doBatchUpdate(updater, matcher, skuCodeSortList, false);
             if(rt != Errno.OK){
-                Log.logErr(rt, "batchUpdate err;flow=%s;aid=%s;unionPriId=%s;skuCodeSortList=%s;", m_flow, aid, unionPriId, skuCodeSortList);
+                Log.logErr(rt, "doBatchUpdate err;flow=%s;aid=%s;unionPriId=%s;skuCodeSortList=%s;", m_flow, aid, unionPriId, skuCodeSortList);
                 return rt;
             }
             Log.logStd("set sort ok!;flow=%s;aid=%s;unionPriId=%s;skuCodeSortList=%s;", m_flow, aid, unionPriId, skuCodeSortList);
         }
         Log.logStd("ok!;flow=%s;aid=%s;unionPriId=%s;needDelSkuCodeSkuIdList=%s;", m_flow, aid, unionPriId, needDelSkuCodeSkuIdList);
         return rt;
+    }
+
+    /**
+     * 填充占位符
+     */
+    private int setPrepareStatement4refresh(PreparedStatement preparedStatement, int aid, int unionPriId, Set<String> skuCodeSet, Set<Long> skuIdSet){
+        int rt = Errno.OK;
+        try {
+            int start = 1;
+            preparedStatement.setInt(start++, aid);
+            preparedStatement.setInt(start++, unionPriId);
+            for (String skuCode : skuCodeSet) {
+                preparedStatement.setString(start++, skuCode);
+            }
+            preparedStatement.setInt(start++, aid);
+            preparedStatement.setInt(start++, unionPriId);
+            for (Long skuId : skuIdSet) {
+                preparedStatement.setLong(start++, skuId);
+            }
+        } catch (SQLException exp) {
+            rt = Errno.DAO_SQL_ERROR;
+            Log.logErr(rt, exp, "code=" + exp.getErrorCode());
+            return rt;
+        } catch (Exception exp) {
+            rt = Errno.DAO_SQL_ERROR;
+            Log.logErr(rt, exp);
+            return rt;
+        }
+        return rt;
+    }
+
+    /**
+     * 生成占位符
+     */
+    private void genPlaceholder4refresh(Map<String, Long> newSkuCodeSkuIdMap, HashMap<Long, String> newSkuIdSkuCodeMap, StringBuilder skuCodeSetPlaceholder, StringBuilder skuIdSetPlaceholder) {
+        skuCodeSetPlaceholder.append("(");
+        int len = newSkuCodeSkuIdMap.keySet().size();
+        for (int i = 0; i < len; i++) {
+            if(i != 0){
+                skuCodeSetPlaceholder.append(", ");
+            }
+            skuCodeSetPlaceholder.append("?");
+        }
+        skuCodeSetPlaceholder.append(")");
+
+        skuIdSetPlaceholder.append("(");
+        len = newSkuIdSkuCodeMap.keySet().size();
+        for (int i = 0; i < len; i++) {
+            if(i != 0){
+                skuIdSetPlaceholder.append(", ");
+            }
+            skuIdSetPlaceholder.append("?");
+        }
+        skuIdSetPlaceholder.append(")");
     }
 
     public int batchDel(int aid, Integer unionPriId, FaiList<Long> skuIdList){

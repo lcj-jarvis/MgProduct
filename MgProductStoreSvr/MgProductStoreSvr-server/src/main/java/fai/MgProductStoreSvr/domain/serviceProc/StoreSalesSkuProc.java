@@ -59,16 +59,20 @@ public class StoreSalesSkuProc {
             data.assign(info, StoreSalesSkuEntity.Info.REMAIN_COUNT);
             data.assign(info, StoreSalesSkuEntity.Info.HOLDING_COUNT);
             Long price = info.getLong(StoreSalesSkuEntity.Info.PRICE);
+            int flag = info.getInt(StoreSalesSkuEntity.Info.FLAG, 0);
             if(price != null){
-                info.setInt(StoreSalesSkuEntity.Info.FLAG, info.getInt(StoreSalesSkuEntity.Info.FLAG, 0) | StoreSalesSkuValObj.FLag.SETED_PRICE);
+                flag |= StoreSalesSkuValObj.FLag.SETED_PRICE;
+            }else{
+                price = 0L;
             }
-            data.assign(info, StoreSalesSkuEntity.Info.PRICE);
-            data.assign(info, StoreSalesSkuEntity.Info.ORIGIN_PRICE);
+            data.setLong(StoreSalesSkuEntity.Info.PRICE, price);
+            data.setInt(StoreSalesSkuEntity.Info.FLAG, flag);
+            data.setLong(StoreSalesSkuEntity.Info.ORIGIN_PRICE, 0L); // 给默认值
+            data.assign(info, StoreSalesSkuEntity.Info.ORIGIN_PRICE); // 有就覆盖
             data.assign(info, StoreSalesSkuEntity.Info.MIN_AMOUNT);
             data.assign(info, StoreSalesSkuEntity.Info.MAX_AMOUNT);
             data.assign(info, StoreSalesSkuEntity.Info.DURATION);
             data.assign(info, StoreSalesSkuEntity.Info.VIRTUAL_COUNT);
-            data.assign(info, StoreSalesSkuEntity.Info.FLAG);
             data.setCalendar(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, now);
             data.setCalendar(StoreSalesSkuEntity.Info.SYS_CREATE_TIME, now);
             dataList.add(data);

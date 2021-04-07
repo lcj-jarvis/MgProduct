@@ -35,7 +35,7 @@ public class ProductSpecSkuCodeProc {
         cacheManage.setDataStatusDirty(aid, unionPriId);
         rt = m_daoCtrl.batchInsert(skuCodeInfoList);
         if(rt != Errno.OK){
-            Log.logErr(rt, "delete err;flow=%s;aid=%s;unionPriId=%s;skuCodeInfoList=%s;", skuCodeInfoList);
+            Log.logErr(rt, "delete err;flow=%s;aid=%s;unionPriId=%s;skuCodeInfoList=%s;", m_flow, aid, unionPriId, skuCodeInfoList);
             return rt;
         }
         Log.logStd("insert ok!;flow=%s;aid=%s;", m_flow, aid);
@@ -415,6 +415,27 @@ public class ProductSpecSkuCodeProc {
         }
         Log.logStd("ok;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
         return rt;
+    }
+    public int getSkuIdListFromDao(int aid, int unionPriId, FaiList<Integer> pdIdList, Ref<FaiList<Long>> skuIdListRef) {
+        ParamMatcher matcher = new ParamMatcher(ProductSpecSkuCodeEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductSpecSkuCodeEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(ProductSpecSkuCodeEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        int rt = m_daoCtrl.select(searchArg, listRef, ProductSpecSkuCodeEntity.Info.SKU_ID);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            Log.logErr(rt, "select err;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        FaiList<Long> skuIdList = new FaiList<>(listRef.value.size());
+        for (Param skuIdInfo : listRef.value) {
+            skuIdList.add(skuIdInfo.getLong(ProductSpecSkuCodeEntity.Info.SKU_ID));
+        }
+        skuIdListRef.value = skuIdList;
+        Log.logStd("ok;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+        return rt = Errno.OK;
     }
 
     public int getList(int aid, FaiList<Long> skuIdList, Ref<Map<Long, FaiList<String>>> skuIdSkuCodeListMapRef){

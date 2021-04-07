@@ -616,7 +616,7 @@ public class ProductSpecService extends MgProductInfService {
     /**
      * 获取产品规格SKU列表
      */
-    public int getPdSkuScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId) throws IOException {
+    public int getPdSkuScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, boolean withSpuInfo) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -644,7 +644,7 @@ public class ProductSpecService extends MgProductInfService {
 
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
             FaiList<Param> infoList = new FaiList<Param>();
-            rt = productSpecProc.getPdSkuScInfoList(aid, tid, unionPriId, pdId, infoList);
+            rt = productSpecProc.getPdSkuScInfoList(aid, tid, unionPriId, pdId, withSpuInfo, infoList);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -733,7 +733,7 @@ public class ProductSpecService extends MgProductInfService {
     /**
      * 根据 rlPdIdList 获取 rlPdId-skuId 集
      */
-    public int getPdSkuIdInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList) throws IOException {
+    public int getPdSkuIdInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, boolean withSpuInfo) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -769,7 +769,7 @@ public class ProductSpecService extends MgProductInfService {
 
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
             FaiList<Param> infoList = new FaiList<Param>();
-            rt = productSpecProc.getPdSkuIdInfoList(aid, tid, pdIdList, infoList);
+            rt = productSpecProc.getPdSkuIdInfoList(aid, tid, pdIdList, withSpuInfo, infoList);
             if(rt != Errno.OK) {
                 return rt;
             }

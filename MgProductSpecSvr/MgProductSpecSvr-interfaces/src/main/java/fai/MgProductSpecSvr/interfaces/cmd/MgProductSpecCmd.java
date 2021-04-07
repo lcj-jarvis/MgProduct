@@ -38,6 +38,7 @@ public class MgProductSpecCmd {
 		public static final int NUM11 = 1011;
 		public static final int NUM12 = 1012;
 		public static final int NUM13 = 1013;
+		public static final int NUM14 = 1014;
 	}
 
 	////////////////// cmd对外定义，实际做cmd读写分离 ////////////////////
@@ -99,6 +100,9 @@ public class MgProductSpecCmd {
 		public static final int GET_DATA_STATUS = ReadCmdNum.NUM14;
 		public static final int GET_ALL_DATA = ReadCmdNum.NUM15;
 		public static final int SEARCH_FROM_DB = ReadCmdNum.NUM16;
+
+
+		public static final int DELETE_BY_PD_ID_LIST = WriteCmdNum.NUM14;
 	}
 
 	/**

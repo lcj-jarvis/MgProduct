@@ -75,7 +75,7 @@ public class ProductStoreService extends MgProductInfService {
                 Log.logDbg("whalelog inPdScStrNameInfoMap=%s", inPdScStrNameInfoMap);
                 ProductSpecProc productSpecProc = new ProductSpecProc(flow);
                 FaiList<Param> infoList = new FaiList<Param>();
-                rt = productSpecProc.getPdSkuScInfoList(aid, tid, unionPriId, pdId, infoList);
+                rt = productSpecProc.getPdSkuScInfoList(aid, tid, unionPriId, pdId, false, infoList);
                 if(rt != Errno.OK) {
                     return rt;
                 }
@@ -675,7 +675,7 @@ public class ProductStoreService extends MgProductInfService {
                     Integer ownerRlPdId = ownerRlPdId_inPdScStrNameSkuIdMapEntry.getKey();
                     Integer ownerPdId = ownerRlPdIdPdIdMap.get(ownerRlPdId);
                     FaiList<Param> pdSkuScInfoList = new FaiList<Param>();
-                    rt = productSpecProc.getPdSkuScInfoList(aid, ownerTid, ownerUnionPriId, ownerPdId, pdSkuScInfoList);
+                    rt = productSpecProc.getPdSkuScInfoList(aid, ownerTid, ownerUnionPriId, ownerPdId, false, pdSkuScInfoList);
                     if(rt != Errno.OK) {
                         return rt;
                     }
@@ -1430,7 +1430,7 @@ public class ProductStoreService extends MgProductInfService {
             // 获取pdId-skuId
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
             list = new FaiList<>();
-            rt = productSpecProc.getPdSkuIdInfoList(aid, ownerTid, pdIdList, list);
+            rt = productSpecProc.getPdSkuIdInfoList(aid, ownerTid, pdIdList, false, list);
             if(rt != Errno.OK){
                 Log.logErr(rt, "getPdSkuIdInfoList err;flow=%s;aid=%s;pdIdList=%s;", flow, aid, pdIdList);
                 return rt;

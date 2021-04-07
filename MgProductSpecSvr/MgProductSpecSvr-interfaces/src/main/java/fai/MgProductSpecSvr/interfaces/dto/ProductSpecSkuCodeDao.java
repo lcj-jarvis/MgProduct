@@ -25,5 +25,6 @@ public class ProductSpecSkuCodeDao {
         public static final int DATA_STATUS = 7;
         public static final int SEARCH_ARG = 13;
         public static final int TOTAL_SIZE = 15;
+        public static final int PD_ID_LIST = 16;
     }
 }

@@ -189,7 +189,7 @@ public class MgProductInfService extends ServicePub {
             }
             // 获取商品规格sku
             FaiList<Param> pdScSkuInfoList = new FaiList<>();
-            rt = productSpecProc.getPdSkuScInfoList(aid, tid, unionPriId, pdId, pdScSkuInfoList);
+            rt = productSpecProc.getPdSkuScInfoList(aid, tid, unionPriId, pdId, true, pdScSkuInfoList);
             if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                 return rt;
             }
@@ -265,22 +265,22 @@ public class MgProductInfService extends ServicePub {
                 return rt;
             }
             int ownerUnionPriId = idRef.value;
-            HashSet<String> skuNumSet = new HashSet<>();
+            HashSet<String> skuCodeSet = new HashSet<>();
             FaiList<Param> errProductList = new FaiList<>();
             // 检查导入的数据，并分开正确的数据和错误的数据
-            checkImportProductList(productList, skuNumSet, errProductList, useMgProductBasicInfo);
+            checkImportProductList(productList, skuCodeSet, errProductList, useMgProductBasicInfo);
 
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
-            skuNumSet.removeAll(Collections.singletonList(null)); // 移除所有null值
-            if(!skuNumSet.isEmpty()){ // 校验 skuNum 是否已经存在
-                Ref<FaiList<String>> existsSkuNumListRef = new Ref<>();
-                rt = productSpecProc.getExistsSkuCodeList(aid, ownerTid, ownerUnionPriId, new FaiList<>(skuNumSet), existsSkuNumListRef);
+            skuCodeSet.removeAll(Collections.singletonList(null)); // 移除所有null值
+            if(!skuCodeSet.isEmpty()){ // 校验 skuCode 是否已经存在
+                Ref<FaiList<String>> existsSkuCodeListRef = new Ref<>();
+                rt = productSpecProc.getExistsSkuCodeList(aid, ownerTid, ownerUnionPriId, new FaiList<>(skuCodeSet), existsSkuCodeListRef);
                 if(rt != Errno.OK){
                     return rt;
                 }
-                HashSet<String> existsSkuNumSet = new HashSet<>(existsSkuNumListRef.value);
-                // 过滤掉已经存在skuNum的商品数据
-                filterExistsSkuNum(productList, existsSkuNumSet, errProductList);
+                HashSet<String> existsSkuCodeSet = new HashSet<>(existsSkuCodeListRef.value);
+                // 过滤掉已经存在skuCode的商品数据
+                filterExistsSkuCode(productList, existsSkuCodeSet, errProductList);
             }
             // 组装批量添加的商品基础信息
             FaiList<Param> batchAddBasicInfoList = new FaiList<>(productList.size());
@@ -298,6 +298,9 @@ public class MgProductInfService extends ServicePub {
                     Log.logErr(rt,"args error, ownerTid is not valid;flow=%d;aid=%d;ownerTid=%d;productInfo=%s;", flow, aid, ownerTid, productInfo);
                     return rt;
                 }
+            }
+            if(batchAddBasicInfoList.isEmpty()){
+                return rt;
             }
             // 批量添加商品数据
             ProductBasicProc productBasicProc = new ProductBasicProc(flow);
@@ -462,24 +465,27 @@ public class MgProductInfService extends ServicePub {
                     }
                 }
             }
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
         }finally {
             stat.end((rt != Errno.OK), rt);
         }
         return rt;
     }
-    private void filterExistsSkuNum(FaiList<Param> productList, HashSet<String> existsSkuNumSet, FaiList<Param> errProductList){
+    private void filterExistsSkuCode(FaiList<Param> productList, HashSet<String> existsSkuCodeSet, FaiList<Param> errProductList){
         for(Iterator<Param> iterator = productList.iterator(); iterator.hasNext();){
             Param productInfo = iterator.next();
             FaiList<Param> specSkuList = productInfo.getListNullIsEmpty(MgProductEntity.Info.SPEC_SKU);
             for (Param specSkuInfo : specSkuList) {
-                if (existsSkuNumSet.contains(specSkuInfo.getString(ProductSpecEntity.SpecSkuInfo.SKU_CODE))) {
+                if (existsSkuCodeSet.contains(specSkuInfo.getString(ProductSpecEntity.SpecSkuInfo.SKU_CODE))) {
                     errProductList.add(productInfo);
                     iterator.remove();
                     continue;
                 }
-                FaiList<String> skuNumList = specSkuInfo.getListNullIsEmpty(ProductSpecEntity.SpecSkuInfo.SKU_CODE_LIST);
-                for (String skuNum : skuNumList) {
-                    if(existsSkuNumSet.contains(skuNum)){
+                FaiList<String> skuCodeList = specSkuInfo.getListNullIsEmpty(ProductSpecEntity.SpecSkuInfo.SKU_CODE_LIST);
+                for (String skuCode : skuCodeList) {
+                    if(existsSkuCodeSet.contains(skuCode)){
                         errProductList.add(productInfo);
                         iterator.remove();
                         break;
@@ -488,7 +494,7 @@ public class MgProductInfService extends ServicePub {
             }
         }
     }
-    private void checkImportProductList(FaiList<Param> productList, HashSet<String> skuNumSet, FaiList<Param> errProductList, boolean useMgProductBasicInfo) {
+    private void checkImportProductList(FaiList<Param> productList, HashSet<String> skuCodeSet, FaiList<Param> errProductList, boolean useMgProductBasicInfo) {
         for(Iterator<Param> iterator = productList.iterator(); iterator.hasNext();){
             Param productInfo = iterator.next();
             Param basicInfo = productInfo.getParam(MgProductEntity.Info.BASIC);
@@ -507,15 +513,32 @@ public class MgProductInfService extends ServicePub {
             }
 
             FaiList<Param> specSkuList = productInfo.getListNullIsEmpty(MgProductEntity.Info.SPEC_SKU);
+            boolean remove = false;
+            tag:
             for (Param specSkuInfo : specSkuList) {
-                skuNumSet.add(specSkuInfo.getString(ProductSpecEntity.SpecSkuInfo.SKU_CODE));
-                FaiList<String> skuNumList = specSkuInfo.getListNullIsEmpty(ProductSpecEntity.SpecSkuInfo.SKU_CODE_LIST);
-                if(skuNumList.size() > ProductSpecValObj.SpecSku.Limit.SKU_NUM_MAX_SIZE){
-                    errProductList.add(productInfo);
-                    iterator.remove();
-                    continue;
+                String skuCode = specSkuInfo.getString(ProductSpecEntity.SpecSkuInfo.SKU_CODE);
+                if(skuCodeSet.contains(skuCode)){
+                    remove = true;
+                    break tag;
                 }
-                skuNumSet.addAll(skuNumList);
+                skuCodeSet.add(skuCode);
+                FaiList<String> skuCodeList = specSkuInfo.getListNullIsEmpty(ProductSpecEntity.SpecSkuInfo.SKU_CODE_LIST);
+                if(skuCodeList.size() > ProductSpecValObj.SpecSku.Limit.SKU_CODE_MAX_SIZE){
+                    remove = true;
+                    break tag;
+                }
+                for (String skuCode2 : skuCodeList) {
+                    if(skuCodeSet.contains(skuCode2)){
+                        remove = true;
+                        break tag;
+                    }
+                }
+                skuCodeSet.addAll(skuCodeList);
+            }
+            if(remove){
+                errProductList.add(productInfo);
+                iterator.remove();
+                continue;
             }
         }
     }

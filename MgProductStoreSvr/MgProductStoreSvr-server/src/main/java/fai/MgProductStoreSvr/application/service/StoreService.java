@@ -284,7 +284,7 @@ public class StoreService {
                         transactionCtrl.commit();
                     }
                 }finally {
-                    LockUtil.lock(aid);
+                    LockUtil.unlock(aid);
                 }
 
                 try {

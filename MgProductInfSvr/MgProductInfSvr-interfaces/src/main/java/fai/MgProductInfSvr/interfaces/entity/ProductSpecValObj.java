@@ -68,8 +68,8 @@ public class ProductSpecValObj {
             // 单个产品下sku数量的最大限制
             public static final int SINGLE_PRODUCT_MAX_SIZE = 10000;
             // 条码最多数量
-            public static final int SKU_NUM_MAX_SIZE = 10;
-            public static final class SkuNum{
+            public static final int SKU_CODE_MAX_SIZE = 10;
+            public static final class SkuCode {
                 public static final int MIN_LEN = 1; // 最小长度
                 public static final int MAX_LEN = 32; // 最大长度
             }

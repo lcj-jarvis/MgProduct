@@ -958,11 +958,13 @@ public class MgProductSpecCli extends FaiClient {
             stat.end(m_rt != Errno.OK, m_rt);
         }
     }
-
+    public int getPdSkuScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<Param> infoList) {
+        return getPdSkuScInfoList(aid, tid, unionPriId, pdId, false, infoList);
+    }
     /**
      * 获取产品规格SKU列表
      */
-    public int getPdSkuScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<Param> infoList) {
+    public int getPdSkuScInfoList(int aid, int tid, int unionPriId, int pdId, boolean withSpuInfo, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -982,6 +984,7 @@ public class MgProductSpecCli extends FaiClient {
             sendBody.putInt(ProductSpecSkuDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(ProductSpecSkuDto.Key.TID, tid);
             sendBody.putInt(ProductSpecSkuDto.Key.PD_ID, pdId);
+            sendBody.putBoolean(ProductSpecSkuDto.Key.WITH_SPU_INFO, withSpuInfo);
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_LIST);
@@ -1096,11 +1099,13 @@ public class MgProductSpecCli extends FaiClient {
             stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
         }
     }
-
+    public int getPdSkuIdInfoList(int aid, int tid, FaiList<Integer> pdIdList, FaiList<Param> list) {
+        return getPdSkuIdInfoList(aid, tid, pdIdList, false, list);
+    }
     /**
      * 获取 pdId-skuId 信息集
      */
-    public int getPdSkuIdInfoList(int aid, int tid, FaiList<Integer> pdIdList, FaiList<Param> infoList) {
+    public int getPdSkuIdInfoList(int aid, int tid, FaiList<Integer> pdIdList, boolean withSpuInfo, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1124,6 +1129,7 @@ public class MgProductSpecCli extends FaiClient {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductSpecSkuDto.Key.TID, tid);
             pdIdList.toBuffer(sendBody, ProductSpecSkuDto.Key.PD_ID_LIST);
+            sendBody.putBoolean(ProductSpecSkuDto.Key.WITH_SPU_INFO, withSpuInfo);
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_SKU_ID_INFO_LIST_BY_PD_ID_LIST);

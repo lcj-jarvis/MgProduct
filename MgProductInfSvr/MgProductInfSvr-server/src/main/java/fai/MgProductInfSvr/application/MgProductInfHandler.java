@@ -369,8 +369,9 @@ public class MgProductInfHandler extends FaiHandler {
                                   @ArgBodyInteger(ProductSpecDto.Key.SITE_ID) int siteId,
                                   @ArgBodyInteger(ProductSpecDto.Key.LGID) int lgId,
                                   @ArgBodyInteger(ProductSpecDto.Key.KEEP_PRIID1) int keepPriId1,
-                                  @ArgBodyInteger(ProductSpecDto.Key.RL_PD_ID) int rlPdId) throws IOException {
-        return specService.getPdSkuScInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId);
+                                  @ArgBodyInteger(ProductSpecDto.Key.RL_PD_ID) int rlPdId,
+                                  @ArgBodyBoolean(value = ProductSpecDto.Key.WITH_SPU_INFO, useDefault = true) boolean withSpuInfo) throws IOException {
+        return specService.getPdSkuScInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, withSpuInfo);
     }
 
     @Cmd(MgProductInfCmd.ProductSpecSkuCmd.GET_LIST_BY_SKU_ID_LIST)
@@ -393,8 +394,9 @@ public class MgProductInfHandler extends FaiHandler {
                                   @ArgBodyInteger(ProductSpecDto.Key.SITE_ID) int siteId,
                                   @ArgBodyInteger(ProductSpecDto.Key.LGID) int lgId,
                                   @ArgBodyInteger(ProductSpecDto.Key.KEEP_PRIID1) int keepPriId1,
-                                  @ArgList(keyMatch = ProductSpecDto.Key.ID_LIST) FaiList<Integer> rlPdIdList) throws IOException {
-        return specService.getPdSkuIdInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIdList);
+                                  @ArgList(keyMatch = ProductSpecDto.Key.ID_LIST) FaiList<Integer> rlPdIdList,
+                                  @ArgBodyBoolean(value = ProductSpecDto.Key.WITH_SPU_INFO, useDefault = true) boolean withSpuInfo) throws IOException {
+        return specService.getPdSkuIdInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIdList, withSpuInfo);
     }
 
     @Cmd(MgProductInfCmd.BasicCmd.GET_PD_LIST)

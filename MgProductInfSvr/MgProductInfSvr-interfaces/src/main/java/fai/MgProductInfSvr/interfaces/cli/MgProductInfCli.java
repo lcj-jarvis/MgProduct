@@ -708,8 +708,9 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 根据rlPdIds获取商品绑定的分类数据
+     *
      * @param rlPdIds 商品业务id集合
-     * @param list 接收返回结果的集合
+     * @param list    接收返回结果的集合
      * @return
      */
     public int getPdBindGroups(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, FaiList<Param> list) {
@@ -773,7 +774,8 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 设置商品绑定的分类数据(新增和删除)
-     * @param rlPdId 商品业务id
+     *
+     * @param rlPdId        商品业务id
      * @param addRlGroupIds 新增绑定的商品分类集合
      * @param delRlGroupIds 取消绑定的商品分类集合
      * @return
@@ -840,8 +842,9 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 根据rlPdIds获取商品数据（商品表+商品业表）
+     *
      * @param rlPdIds 商品业务id集合
-     * @param list  接收结果的集合
+     * @param list    接收结果的集合
      * @return
      */
     public int getProductList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, FaiList<Param> list) {
@@ -1141,12 +1144,14 @@ public class MgProductInfCli extends FaiClient {
     public int batchDelPdRelBind(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) {
         return batchDelPdRelBind(aid, tid, siteId, lgId, keepPriId1, rlPdIds, false);
     }
+
     /**
      * 指定业务下，软删除 rlPdIds 的商品业务关联
      */
     public int batchSoftDelPdRelBind(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) {
         return batchDelPdRelBind(aid, tid, siteId, lgId, keepPriId1, rlPdIds, true);
     }
+
     private int batchDelPdRelBind(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, boolean softDel) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
@@ -1207,12 +1212,14 @@ public class MgProductInfCli extends FaiClient {
     public int batchDelProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) {
         return batchDelProduct(aid, tid, siteId, lgId, keepPriId1, rlPdIds, false);
     }
+
     /**
      * 软删除 rlPdIds 的商品数据及所有商品业务关联数据
      */
     public int batchSoftDelProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) {
         return batchDelProduct(aid, tid, siteId, lgId, keepPriId1, rlPdIds, true);
     }
+
     private int batchDelProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, boolean softDel) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
@@ -1269,8 +1276,9 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 获取商品分类数据
+     *
      * @param searchArg 搜索条件
-     * @param list  接收返回结果
+     * @param list      接收返回结果
      * @return
      */
     public int getPdGroupList(int aid, int tid, int siteId, int lgId, int keepPriId1, SearchArg searchArg, FaiList<Param> list) {
@@ -1342,11 +1350,12 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 新增商品分类
-     * @param info  新增数据
-     * @param rlGroupIdRef  返回的商品分类业务id
+     *
+     * @param info         新增数据
+     * @param rlGroupIdRef 返回的商品分类业务id
      * @return
      */
-    public int addProductGroup(int aid, int tid, int siteId, int lgId, int keepPriId1, Param info, Ref<Integer> rlGroupIdRef){
+    public int addProductGroup(int aid, int tid, int siteId, int lgId, int keepPriId1, Param info, Ref<Integer> rlGroupIdRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1415,10 +1424,11 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 修改商品分类
+     *
      * @param updaterList 修改信息
      * @return
      */
-    public int setPdGroupList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<ParamUpdater> updaterList){
+    public int setPdGroupList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<ParamUpdater> updaterList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1472,10 +1482,11 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 删除商品分类
+     *
      * @param rlGroupIds 要删除的商品分类业务id集合
      * @return
      */
-    public int delPdGroupList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlGroupIds){
+    public int delPdGroupList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlGroupIds) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1529,8 +1540,9 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 批量添加规格模板
+     *
      * @param list Param 见 {@link ProductSpecEntity.SpecTempInfo} <bt/>
-     *      {@link ProductSpecEntity.SpecTempInfo#NAME} 必填 <bt/>
+     *             {@link ProductSpecEntity.SpecTempInfo#NAME} 必填 <bt/>
      * @return {@link Errno}
      */
     public int addTpScInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> list) {
@@ -1555,7 +1567,7 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductSpecDto.Key.LGID, lgId);
             sendBody.putInt(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1);
             m_rt = list.toBuffer(sendBody, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecTemp.getInfoDto());
-            if(m_rt != Errno.OK){
+            if (m_rt != Errno.OK) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "list err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;", aid, tid, siteId, lgId, keepPriId1);
                 return m_rt;
@@ -1592,6 +1604,7 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 批量删除规格模板
+     *
      * @param rlTpScIdList 规格模板id集合
      * @return {@link Errno}
      */
@@ -1649,8 +1662,9 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 批量修改规格模板
+     *
      * @param updaterList Param 见 {@link ProductSpecEntity.SpecTempInfo} <br/>
-     *      {@link ProductSpecEntity.SpecTempInfo#RL_TP_SC_ID} 必须要有
+     *                    {@link ProductSpecEntity.SpecTempInfo#RL_TP_SC_ID} 必须要有
      * @return {@link Errno}
      */
     public int setTpScInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<ParamUpdater> updaterList) {
@@ -1675,7 +1689,7 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductSpecDto.Key.LGID, lgId);
             sendBody.putInt(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1);
             m_rt = updaterList.toBuffer(sendBody, ProductSpecDto.Key.UPDATER_LIST, ProductSpecDto.SpecTemp.getInfoDto());
-            if(m_rt != Errno.OK){
+            if (m_rt != Errno.OK) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "updaterList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;", aid, tid, siteId, lgId, keepPriId1);
                 return m_rt;
@@ -1712,6 +1726,7 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 获取规格模板列表
+     *
      * @param infoList Param 见 {@link ProductSpecEntity.SpecTempInfo}
      * @return {@link Errno}
      */
@@ -1781,10 +1796,11 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 批量添加规格模板详情
+     *
      * @param rlTpScId 规格模板id {@link ProductSpecEntity.SpecTempDetailInfo#RL_TP_SC_ID}
-     * @param list Param 见 {@link ProductSpecEntity.SpecTempDetailInfo} <br/>
-     *      {@link ProductSpecEntity.SpecTempDetailInfo#NAME} 必填 <br/>
-     *      {@link ProductSpecEntity.SpecTempDetailInfo#IN_SC_VAL_LIST} 必填 <br/>
+     * @param list     Param 见 {@link ProductSpecEntity.SpecTempDetailInfo} <br/>
+     *                 {@link ProductSpecEntity.SpecTempDetailInfo#NAME} 必填 <br/>
+     *                 {@link ProductSpecEntity.SpecTempDetailInfo#IN_SC_VAL_LIST} 必填 <br/>
      * @return {@link Errno}
      */
     public int addTpScDetailInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlTpScId, FaiList<Param> list) {
@@ -1810,7 +1826,7 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1);
             sendBody.putInt(ProductSpecDto.Key.RL_TP_SC_ID, rlTpScId);
             m_rt = list.toBuffer(sendBody, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecTempDetail.getInfoDto());
-            if(m_rt != Errno.OK){
+            if (m_rt != Errno.OK) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "list err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;rlTpScId=%s;", aid, tid, siteId, lgId, keepPriId1, rlTpScId);
                 return m_rt;
@@ -1847,7 +1863,8 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 批量删除规格模板详情
-     * @param rlTpScId 规格模板id {@link ProductSpecEntity.SpecTempDetailInfo#RL_TP_SC_ID
+     *
+     * @param rlTpScId     规格模板id {@link ProductSpecEntity.SpecTempDetailInfo#RL_TP_SC_ID
      * @param tpScDtIdList 集合中的元素为 规格详情id {@link ProductSpecEntity.SpecTempDetailInfo#TP_SC_DT_ID}
      * @return {@link Errno}
      */
@@ -1907,9 +1924,10 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 批量修改规格模板详情
-     * @param rlTpScId {@link ProductSpecEntity.SpecTempDetailInfo#RL_TP_SC_ID} 规格模板id
+     *
+     * @param rlTpScId    {@link ProductSpecEntity.SpecTempDetailInfo#RL_TP_SC_ID} 规格模板id
      * @param updaterList Param 见 {@link ProductSpecEntity.SpecTempDetailInfo} <br/>
-     *      {@link ProductSpecEntity.SpecTempDetailInfo#TP_SC_DT_ID} 必填 <br/>
+     *                    {@link ProductSpecEntity.SpecTempDetailInfo#TP_SC_DT_ID} 必填 <br/>
      * @return {@link Errno}
      */
     public int setTpScDetailInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlTpScId, FaiList<ParamUpdater> updaterList) {
@@ -1935,7 +1953,7 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1);
             sendBody.putInt(ProductSpecDto.Key.RL_TP_SC_ID, rlTpScId);
             m_rt = updaterList.toBuffer(sendBody, ProductSpecDto.Key.UPDATER_LIST, ProductSpecDto.SpecTempDetail.getInfoDto());
-            if(m_rt != Errno.OK){
+            if (m_rt != Errno.OK) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "updaterList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;rlTpScId=%s;", aid, tid, siteId, lgId, keepPriId1, rlTpScId);
                 return m_rt;
@@ -1972,6 +1990,7 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 获取规格模板列表详情
+     *
      * @param rlTpScId 规格模板id {@link ProductSpecEntity.SpecTempDetailInfo#RL_TP_SC_ID}
      * @param infoList Param 见 {@link ProductSpecEntity.SpecTempDetailInfo} <br/>
      * @return {@link Errno}
@@ -2043,8 +2062,9 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 导入规格模板 到 某个商品
-     * @param rlPdId 商品业务id {@link ProductSpecEntity.SpecInfo#RL_PD_ID}
-     * @param rlTpScId 规格模板id{@link ProductSpecEntity.SpecTempDetailInfo#RL_TP_SC_ID}
+     *
+     * @param rlPdId       商品业务id {@link ProductSpecEntity.SpecInfo#RL_PD_ID}
+     * @param rlTpScId     规格模板id{@link ProductSpecEntity.SpecTempDetailInfo#RL_TP_SC_ID}
      * @param tpScDtIdList null(指定规格模板的全部规格详情) || 指定规格模板的部分规格详情Id {@link ProductSpecEntity.SpecTempDetailInfo#TP_SC_DT_ID}
      * @return {@link Errno}
      */
@@ -2103,14 +2123,15 @@ public class MgProductInfCli extends FaiClient {
     /**
      * 修改产品规格总接口 <br/>
      * 批量修改(包括增、删、改)指定商品的商品规格总接口；会自动生成sku规格，并且会调用商品库存服务的“刷新商品库存销售sku”
-     * @param rlPdId 商品业务id {@link ProductSpecEntity.SpecInfo#RL_PD_ID}
-     * @param addList Param 见 {@link ProductSpecEntity.SpecInfo} <br/>
-     *      {@link ProductSpecEntity.SpecInfo#NAME} 必填 <br/>
-     *      {@link ProductSpecEntity.SpecInfo#RL_PD_ID} 必填 <br/>
-     *      {@link ProductSpecEntity.SpecInfo#IN_PD_SC_VAL_LIST} 必填 <br/>
-     * @param delList 集合中元素为 商品规格id {@link ProductSpecEntity.SpecInfo#PD_SC_ID}
+     *
+     * @param rlPdId      商品业务id {@link ProductSpecEntity.SpecInfo#RL_PD_ID}
+     * @param addList     Param 见 {@link ProductSpecEntity.SpecInfo} <br/>
+     *                    {@link ProductSpecEntity.SpecInfo#NAME} 必填 <br/>
+     *                    {@link ProductSpecEntity.SpecInfo#RL_PD_ID} 必填 <br/>
+     *                    {@link ProductSpecEntity.SpecInfo#IN_PD_SC_VAL_LIST} 必填 <br/>
+     * @param delList     集合中元素为 商品规格id {@link ProductSpecEntity.SpecInfo#PD_SC_ID}
      * @param updaterList Param 见 {@link ProductSpecEntity.SpecInfo}
-     *      {@link ProductSpecEntity.SpecInfo#PD_SC_ID} 必填 <br/>
+     *                    {@link ProductSpecEntity.SpecInfo#PD_SC_ID} 必填 <br/>
      * @return {@link Errno}
      */
     public int unionSetPdScInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> addList, FaiList<Integer> delList, FaiList<ParamUpdater> updaterList) {
@@ -2122,7 +2143,7 @@ public class MgProductInfCli extends FaiClient {
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
-            if(addList == null && delList == null && updaterList == null){
+            if (addList == null && delList == null && updaterList == null) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args 2 error");
                 return m_rt;
@@ -2136,20 +2157,20 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1);
             sendBody.putInt(ProductSpecDto.Key.RL_PD_ID, rlPdId);
             if (addList != null) {
-                if(addList.isEmpty()){
+                if (addList.isEmpty()) {
                     m_rt = Errno.ARGS_ERROR;
                     Log.logErr(m_rt, "addList isEmpty");
                     return m_rt;
                 }
                 m_rt = addList.toBuffer(sendBody, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.Spec.getInfoDto());
-                if(m_rt != Errno.OK){
+                if (m_rt != Errno.OK) {
                     m_rt = Errno.ARGS_ERROR;
                     Log.logErr(m_rt, "addList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;rlPdId=%s;", aid, tid, siteId, lgId, keepPriId1, rlPdId);
                     return m_rt;
                 }
             }
             if (delList != null) {
-                if(delList.isEmpty()){
+                if (delList.isEmpty()) {
                     m_rt = Errno.ARGS_ERROR;
                     Log.logErr(m_rt, "delList isEmpty");
                     return m_rt;
@@ -2157,13 +2178,13 @@ public class MgProductInfCli extends FaiClient {
                 delList.toBuffer(sendBody, ProductSpecDto.Key.ID_LIST);
             }
             if (updaterList != null) {
-                if(updaterList.isEmpty()){
+                if (updaterList.isEmpty()) {
                     m_rt = Errno.ARGS_ERROR;
                     Log.logErr(m_rt, "updaterList isEmpty");
                     return m_rt;
                 }
                 m_rt = updaterList.toBuffer(sendBody, ProductSpecDto.Key.UPDATER_LIST, ProductSpecDto.Spec.getInfoDto());
-                if(m_rt != Errno.OK){
+                if (m_rt != Errno.OK) {
                     m_rt = Errno.ARGS_ERROR;
                     Log.logErr(m_rt, "updaterList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;rlPdId=%s;", aid, tid, siteId, lgId, keepPriId1, rlPdId);
                     return m_rt;
@@ -2201,8 +2222,9 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 获取产品规格列表
-     * @param rlPdId 商品业务id {@link ProductSpecEntity.SpecInfo#RL_PD_ID}
-     * @param infoList Param 见 {@link ProductSpecEntity.SpecInfo} <br/>
+     *
+     * @param rlPdId         商品业务id {@link ProductSpecEntity.SpecInfo#RL_PD_ID}
+     * @param infoList       Param 见 {@link ProductSpecEntity.SpecInfo} <br/>
      * @param onlyGetChecked 是否只获取有勾选的商品规格
      * @return {@link Errno}
      */
@@ -2275,9 +2297,10 @@ public class MgProductInfCli extends FaiClient {
     /**
      * 修改商品规格SKU。 <br/>
      * 为了支持商品条码，允许一个ParamUpdater可以不提供skuId or inPdScStrNameList，但是spu（{@link ProductSpecEntity.SpecSkuInfo#SPU}}）必须为true
-     * @param rlPdId 商品业务id {@link ProductSpecEntity.SpecSkuInfo#RL_PD_ID}
+     *
+     * @param rlPdId      商品业务id {@link ProductSpecEntity.SpecSkuInfo#RL_PD_ID}
      * @param updaterList Param 见 {@link ProductSpecEntity.SpecSkuInfo} <br/>
-     *      {@link ProductSpecEntity.SpecSkuInfo#SKU_ID} 或者 {@link ProductSpecEntity.SpecSkuInfo#IN_PD_SC_STR_NAME_LIST} 两个必须要有一个 <br/>
+     *                    {@link ProductSpecEntity.SpecSkuInfo#SKU_ID} 或者 {@link ProductSpecEntity.SpecSkuInfo#IN_PD_SC_STR_NAME_LIST} 两个必须要有一个 <br/>
      * @return {@link Errno}
      */
     public int setPdSkuScInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<ParamUpdater> updaterList) {
@@ -2303,7 +2326,7 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1);
             sendBody.putInt(ProductSpecDto.Key.RL_PD_ID, rlPdId);
             m_rt = updaterList.toBuffer(sendBody, ProductSpecDto.Key.UPDATER_LIST, ProductSpecDto.SpecSku.getInfoDto());
-            if(m_rt != Errno.OK){
+            if (m_rt != Errno.OK) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "updaterList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;rlPdId=%s;", aid, tid, siteId, lgId, keepPriId1, rlPdId);
                 return m_rt;
@@ -2338,13 +2361,18 @@ public class MgProductInfCli extends FaiClient {
         }
     }
 
+    public int getPdSkuScInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> infoList){
+        return getPdSkuScInfoList(aid, tid, siteId, lgId, keepPriId1, rlPdId, false, infoList);
+    }
+
     /**
      * 获取产品规格SKU列表
      * @param rlPdId 商品业务id {@link ProductSpecEntity.SpecSkuInfo#RL_PD_ID}
+     * @param withSpuInfo 是否同时获取spu的相关数据，例如商品条码
      * @param infoList Param 见 {@link ProductSpecEntity.SpecSkuInfo} <br/>
      * @return {@link Errno}
      */
-    public int getPdSkuScInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> infoList) {
+    public int getPdSkuScInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, boolean withSpuInfo, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2366,6 +2394,7 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductSpecDto.Key.LGID, lgId);
             sendBody.putInt(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1);
             sendBody.putInt(ProductSpecDto.Key.RL_PD_ID, rlPdId);
+            sendBody.putBoolean(ProductSpecDto.Key.WITH_SPU_INFO, withSpuInfo);
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductInfCmd.ProductSpecSkuCmd.GET_LIST);
@@ -2487,14 +2516,17 @@ public class MgProductInfCli extends FaiClient {
         }
     }
 
-
+    public int getPdSkuIdInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, FaiList<Param> infoList) {
+        return getPdSkuIdInfoList(aid, tid, siteId, lgId, keepPriId1, rlPdIdList, false, infoList);
+    }
     /**
      * 根据业务商品id获取skuId集
      * @param rlPdIdList  {@link ProductSpecEntity.SpecSkuInfo#RL_PD_ID}
+     * @param withSpuInfo 是否同时获取spu的相关数据，例如商品条码
      * @param infoList Param 中只有 {@link ProductSpecEntity.SpecSkuInfo#RL_PD_ID} 和 {@link ProductSpecEntity.SpecSkuInfo#SKU_ID}
      * @return {@link Errno}
      */
-    public int getPdSkuIdInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, FaiList<Param> infoList) {
+    public int getPdSkuIdInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, boolean withSpuInfo, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2521,6 +2553,7 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductSpecDto.Key.LGID, lgId);
             sendBody.putInt(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1);
             rlPdIdList.toBuffer(sendBody, ProductSpecDto.Key.ID_LIST);
+            sendBody.putBoolean(ProductSpecDto.Key.WITH_SPU_INFO, withSpuInfo);
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductInfCmd.ProductSpecSkuCmd.GET_SKU_ID_LIST);

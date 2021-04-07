@@ -42,6 +42,7 @@ public class ProductSpecSkuDto {
         public static final int SKU_CODE_LIST = 11;
         public static final int SKU_CODE = 12;
         public static final int CONDITION = 13;
+        public static final int WITH_SPU_INFO = 14;
     }
 
     /**

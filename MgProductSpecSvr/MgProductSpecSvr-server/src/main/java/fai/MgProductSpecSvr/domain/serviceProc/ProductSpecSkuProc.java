@@ -26,6 +26,9 @@ public class ProductSpecSkuProc {
         m_flow = flow;
     }
     public int batchAdd(int aid, Map<Integer, FaiList<Param>> pdIdPdScSkuListMap, Map<Integer, Map<String, Long>> pdIdInPdScStrIdListJsonSkuIdMap) {
+        return batchAdd(aid, pdIdPdScSkuListMap, pdIdInPdScStrIdListJsonSkuIdMap, null);
+    }
+    public int batchAdd(int aid, Map<Integer, FaiList<Param>> pdIdPdScSkuListMap, Map<Integer, Map<String, Long>> pdIdInPdScStrIdListJsonSkuIdMap, Ref<FaiList<Long>> skuIdListRef) {
         int rt = Errno.ARGS_ERROR;
         if(aid <= 0){
             Log.logErr("error;flow=%d;aid=%s;", m_flow, aid);
@@ -84,8 +87,11 @@ public class ProductSpecSkuProc {
                     inPdScStrIdListJsonSkuIdMap.put(inPdScStrIdListJson, skuId);
                 }
             }
-            cacheManage.addNeedDelCachedSkuIdList(aid, skuIdList);
             cacheManage.addNeedDelCachedPdId(aid, pdId);
+        }
+        cacheManage.addNeedDelCachedSkuIdList(aid, skuIdList);
+        if(skuIdListRef != null){
+            skuIdListRef.value = skuIdList;
         }
         rt = m_daoCtrl.batchInsert(dataList, null);
         if(rt != Errno.OK) {
@@ -272,7 +278,7 @@ public class ProductSpecSkuProc {
         delMatcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
         { // 获取skuIdList
             Ref<FaiList<Param>> skuIdInfoListRef = new Ref<>();
-            int rt = getListFromDaoByPdIdList(aid, pdIdList, skuIdInfoListRef, ProductSpecSkuEntity.Info.SKU_ID);
+            int rt = getListFromDaoByPdIdList(aid, pdIdList, true, skuIdInfoListRef, ProductSpecSkuEntity.Info.SKU_ID);
             if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                 return rt;
             }
@@ -520,10 +526,13 @@ public class ProductSpecSkuProc {
         return rt;
     }
 
-    public int getListFromDaoByPdIdList(int aid, FaiList<Integer> pdIdList, Ref<FaiList<Param>> pdScSkuInfoListRef, String ... onlyNeedFields) {
+    public int getListFromDaoByPdIdList(int aid, FaiList<Integer> pdIdList, boolean withSpuInfo, Ref<FaiList<Param>> pdScSkuInfoListRef, String... onlyNeedFields) {
         SearchArg searchArg = new SearchArg();
         ParamMatcher matcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        if(!withSpuInfo){
+            matcher.and(ProductSpecSkuEntity.Info.FLAG, ParamMatcher.LAND_NE, ProductSpecSkuValObj.FLag.SPU, ProductSpecSkuValObj.FLag.SPU);
+        }
         searchArg.matcher = matcher;
         int rt = m_daoCtrl.select(searchArg, pdScSkuInfoListRef, onlyNeedFields);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
@@ -537,14 +546,20 @@ public class ProductSpecSkuProc {
     public int getListFromDao(int aid, int pdId, Ref<FaiList<Param>> pdScSkuInfoListRef, String ... onlyNeedFields) {
         return getListFromDao(aid, pdId, null, pdScSkuInfoListRef, onlyNeedFields);
     }
-
     public int getListFromDao(int aid, int pdId, FaiList<Long> skuIdList, Ref<FaiList<Param>> pdScSkuInfoListRef, String ... onlyNeedFields) {
+        return getListFromDao(aid, pdId, false, skuIdList, pdScSkuInfoListRef, onlyNeedFields);
+    }
+
+    public int getListFromDao(int aid, int pdId, boolean withSpuInfo, FaiList<Long> skuIdList, Ref<FaiList<Param>> pdScSkuInfoListRef, String ... onlyNeedFields) {
         SearchArg searchArg = new SearchArg();
         ParamMatcher matcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
-        matcher.and(ProductSpecSkuEntity.Info.FLAG, ParamMatcher.LAND_NE, ProductSpecSkuValObj.FLag.SPU, ProductSpecSkuValObj.FLag.SPU);
         if(skuIdList != null){
             matcher.and(ProductSpecSkuEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
+        }else{
+            if(!withSpuInfo){
+                matcher.and(ProductSpecSkuEntity.Info.FLAG, ParamMatcher.LAND_NE, ProductSpecSkuValObj.FLag.SPU, ProductSpecSkuValObj.FLag.SPU);
+            }
         }
         matcher.and(ProductSpecSkuEntity.Info.STATUS, ParamMatcher.EQ, ProductSpecSkuValObj.Status.DEFAULT);
         searchArg.matcher = matcher;
@@ -655,33 +670,45 @@ public class ProductSpecSkuProc {
     }
 
 
-    public int getList(int aid, int pdId, Ref<FaiList<Param>> listRef){
+    public int getList(int aid, int pdId, boolean withSpuInfo, Ref<FaiList<Param>> listRef){
         if(pdId <= 0 || listRef == null){
             Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;", m_flow, aid, pdId);
             return Errno.ARGS_ERROR;
         }
-        FaiList<Param> cacheList = ProductSpecSkuCacheCtrl.getListByPdId(aid, pdId);
-        if(cacheList != null){
-            listRef.value = cacheList;
-            return Errno.OK;
-        }
         int rt = Errno.ERROR;
         try {
-            LockUtil.readLock(aid);
-            // double check
-            cacheList = ProductSpecSkuCacheCtrl.getListByPdId(aid, pdId);
+            FaiList<Param> cacheList = ProductSpecSkuCacheCtrl.getListByPdId(aid, pdId);
             if(cacheList != null){
                 listRef.value = cacheList;
                 return Errno.OK;
             }
+            try {
+                LockUtil.readLock(aid);
+                // double check
+                cacheList = ProductSpecSkuCacheCtrl.getListByPdId(aid, pdId);
+                if(cacheList != null){
+                    listRef.value = cacheList;
+                    return Errno.OK;
+                }
 
-            rt = getListFromDao(aid, pdId, listRef);
-            if(rt != Errno.OK && rt != Errno.NOT_FOUND){
-                return rt;
+                rt = getListFromDao(aid, pdId, true, null, listRef);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                    return rt;
+                }
+                ProductSpecSkuCacheCtrl.initInfoWithRelCache(aid, pdId, listRef.value);
+            }finally {
+                LockUtil.unReadLock(aid);
             }
-            ProductSpecSkuCacheCtrl.initInfoWithRelCache(aid, pdId, listRef.value);
         }finally {
-            LockUtil.unReadLock(aid);
+            if(!withSpuInfo){ // 不需要获取spu数据就移除掉
+                for(Iterator<Param> iterator = listRef.value.iterator(); iterator.hasNext();){
+                    Param info = iterator.next();
+                    int flag = info.getInt(ProductSpecSkuEntity.Info.FLAG, 0);
+                    if(Misc.checkBit(flag, ProductSpecSkuValObj.FLag.SPU)){
+                        iterator.remove();
+                    }
+                }
+            }
         }
         return rt;
     }

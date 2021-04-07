@@ -239,8 +239,9 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
                                    @ArgAid final int aid,
                                    @ArgBodyInteger(ProductSpecSkuDto.Key.UNION_PRI_ID) final int unionPriId,
                                    @ArgBodyInteger(ProductSpecSkuDto.Key.TID) final int tid,
-                                   @ArgBodyInteger(ProductSpecSkuDto.Key.PD_ID) final int pdId) throws IOException {
-        return m_productSpecService.getPdSkuScInfoList(session, flow, aid, unionPriId, pdId);
+                                   @ArgBodyInteger(ProductSpecSkuDto.Key.PD_ID) final int pdId,
+                                   @ArgBodyBoolean(value = ProductSpecSkuDto.Key.WITH_SPU_INFO, useDefault = true) final boolean withSpuInfo) throws IOException {
+        return m_productSpecService.getPdSkuScInfoList(session, flow, aid, unionPriId, pdId, withSpuInfo);
     }
 
     @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_LIST_BY_SKU_ID_LIST)
@@ -257,8 +258,9 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
                                    @ArgFlow final int flow,
                                    @ArgAid final int aid,
                                    @ArgBodyInteger(ProductSpecSkuDto.Key.TID) final int tid,
-                                   @ArgList(keyMatch = ProductSpecSkuDto.Key.PD_ID_LIST) final FaiList<Integer> pdIdList) throws IOException {
-        return m_productSpecService.getPdSkuIdInfoList(session, flow, aid, pdIdList);
+                                   @ArgList(keyMatch = ProductSpecSkuDto.Key.PD_ID_LIST) final FaiList<Integer> pdIdList,
+                                   @ArgBodyBoolean(value = ProductSpecSkuDto.Key.WITH_SPU_INFO, useDefault = true) final boolean withSpuInfo) throws IOException {
+        return m_productSpecService.getPdSkuIdInfoList(session, flow, aid, pdIdList, withSpuInfo);
     }
 
     @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_SKU_CODE_LIST)

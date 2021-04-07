@@ -15,6 +15,9 @@ public class ProductSpecEntity {
         public static final String PD_SC_ID = "pdScId";                             // int 商品规格 id
         public static final String SOURCE_TID = "sourceTid";                        // int 创建产品规格的 项目id
         public static final String SORT = "sort";                                   // int 排序
+        /**
+         * @see ProductSpecValObj.Spec.FLag
+         */
         public static final String FLAG = "flag";                                   // int flag
         /**
          * @see ProductSpecValObj.Spec.InPdScValList
@@ -43,6 +46,9 @@ public class ProductSpecEntity {
          * @see SpecStrInfo#NAME
          */
         public static final String IN_PD_SC_STR_NAME_LIST = "inPdScStrNameList";    // 规格值 name FaiList<String>, 支持最大 15 种规格
+        /**
+         * @see ProductSpecValObj.SpecSku.FLag
+         */
         public static final String FLAG = "flag";                                   // int flag
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
@@ -53,7 +59,7 @@ public class ProductSpecEntity {
          */
         public static final String SKU_CODE_LIST = "skuCodeList";                   // sku编码集合FaiList<String>，最大支持10个
 
-        public static final String SPU = "spu";                                     // boolean 零时数据不入库
+        public static final String SPU = "spu";                                     // boolean 临时数据，更新spu数据的时候使用
     }
     /**
      * 条件

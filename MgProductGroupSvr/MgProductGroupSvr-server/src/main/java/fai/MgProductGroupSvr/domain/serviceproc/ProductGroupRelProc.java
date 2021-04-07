@@ -32,14 +32,12 @@ public class ProductGroupRelProc {
         int count = getCount(aid, unionPriId);
         if(count >= ProductGroupRelValObj.Limit.COUNT_MAX) {
             rt = Errno.COUNT_LIMIT;
-            Log.logErr(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductGroupRelValObj.Limit.COUNT_MAX);
-            return rt;
+            throw new MgException(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductGroupRelValObj.Limit.COUNT_MAX);
         }
         int rlGroupId = creatAndSetId(aid, unionPriId, info);
         rt = m_relDao.insert(info);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "batch insert group rel error;flow=%d;aid=%d;", m_flow, aid);
-            return rt;
+            throw new MgException(rt, "batch insert group rel error;flow=%d;aid=%d;", m_flow, aid);
         }
 
         return rlGroupId;

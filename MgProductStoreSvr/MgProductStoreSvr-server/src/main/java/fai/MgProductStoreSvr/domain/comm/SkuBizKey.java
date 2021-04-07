@@ -5,11 +5,11 @@ import java.util.Objects;
 /**
  * 实现排序接口，先比较 unionPriId 再比较 skuId
  */
-public class SkuStoreKey implements Comparable<SkuStoreKey>  {
+public class SkuBizKey implements Comparable<SkuBizKey>  {
     public int unionPriId;
     public long skuId;
 
-    public SkuStoreKey(int unionPriId, long skuId) {
+    public SkuBizKey(int unionPriId, long skuId) {
         this.unionPriId = unionPriId;
         this.skuId = skuId;
     }
@@ -18,7 +18,7 @@ public class SkuStoreKey implements Comparable<SkuStoreKey>  {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        SkuStoreKey storeKey = (SkuStoreKey) o;
+        SkuBizKey storeKey = (SkuBizKey) o;
         return unionPriId == storeKey.unionPriId &&
                 skuId == storeKey.skuId;
     }
@@ -37,7 +37,7 @@ public class SkuStoreKey implements Comparable<SkuStoreKey>  {
     }
 
     @Override
-    public int compareTo(SkuStoreKey other) {
+    public int compareTo(SkuBizKey other) {
         int compareResult = Integer.compare(this.unionPriId, other.unionPriId);
         if(compareResult == 0){
             compareResult = Long.compare(this.skuId, other.skuId);

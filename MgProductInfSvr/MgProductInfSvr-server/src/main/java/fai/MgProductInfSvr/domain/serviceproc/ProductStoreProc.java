@@ -416,10 +416,26 @@ public class ProductStoreProc extends AbstractProductProc{
         }
         return rt;
     }
+    public int importStoreSales(int aid, int tid, int unionPriId, FaiList<Param> storeSaleSkuList, Param inStoreRecordInfo) {
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+
+        rt = m_cli.importStoreSales(aid, tid, unionPriId, storeSaleSkuList, inStoreRecordInfo);
+        if (rt != Errno.OK) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%s;storeSaleSkuList=%s;inStoreRecordInfo=%s;", m_flow, aid, unionPriId, storeSaleSkuList, inStoreRecordInfo);
+            return rt;
+        }
+        return rt;
+    }
 
 
     private int m_flow;
     private MgProductStoreCli m_cli;
+
 
 
 }

@@ -4,7 +4,7 @@ package fai.MgProductStoreSvr.domain.serviceProc;
 import fai.MgProductStoreSvr.application.MgProductStoreSvr;
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
 import fai.MgProductStoreSvr.domain.comm.PdKey;
-import fai.MgProductStoreSvr.domain.comm.SkuStoreKey;
+import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
 import fai.MgProductStoreSvr.domain.comm.Utils;
 import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuEntity;
 import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuValObj;
@@ -12,6 +12,7 @@ import fai.MgProductStoreSvr.domain.repository.StoreSalesSkuCacheCtrl;
 import fai.MgProductStoreSvr.domain.repository.StoreSalesSkuDaoCtrl;
 import fai.comm.util.*;
 import fai.mgproduct.comm.MgProductErrno;
+import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.*;
 
@@ -21,6 +22,15 @@ public class StoreSalesSkuProc {
         m_daoCtrl = daoCtrl;
         m_flow = flow;
     }
+
+    public StoreSalesSkuProc(int flow, int aid, TransactionCtrl transactionCtrl) {
+        m_daoCtrl = StoreSalesSkuDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+        if(m_daoCtrl == null){
+            throw new RuntimeException(String.format("StoreSalesSkuDaoCtrl init err;flow=%s;aid=%s;", flow, aid));
+        }
+        m_flow = flow;
+    }
+
     public int batchAdd(int aid, Integer pdId, FaiList<Param> infoList) {
         if(aid <= 0 || (pdId != null && pdId <= 0) || infoList == null || infoList.isEmpty()){
             Log.logErr("batchAdd arg error;flow=%d;aid=%s;pdId=%s;infoList=%s;", m_flow, aid, pdId, infoList);
@@ -499,19 +509,19 @@ public class StoreSalesSkuProc {
      * @param needCheckSkuStoreKeyPdKeyMap
      * @return
      */
-    public int checkAndAdd(int aid, int ownerUnionPriId, Map<SkuStoreKey, PdKey> needCheckSkuStoreKeyPdKeyMap) {
+    public int checkAndAdd(int aid, int ownerUnionPriId, Map<SkuBizKey, PdKey> needCheckSkuStoreKeyPdKeyMap) {
         if(needCheckSkuStoreKeyPdKeyMap == null || needCheckSkuStoreKeyPdKeyMap.isEmpty()){
             Log.logErr("checkAndAdd arg error;flow=%s;aid=%s;ownerUnionPriId=%s;needCheckSkuStoreKeyPdKeyMap=%s;", m_flow, aid, ownerUnionPriId, needCheckSkuStoreKeyPdKeyMap);
             return Errno.ARGS_ERROR;
         }
         Map<Integer, Set<Long>> uidSkuIdSetMap = new HashMap<>();
-        for (SkuStoreKey skuStoreKey : needCheckSkuStoreKeyPdKeyMap.keySet()) {
-            Set<Long> skuIdSet = uidSkuIdSetMap.get(skuStoreKey.unionPriId);
+        for (SkuBizKey skuBizKey : needCheckSkuStoreKeyPdKeyMap.keySet()) {
+            Set<Long> skuIdSet = uidSkuIdSetMap.get(skuBizKey.unionPriId);
             if(skuIdSet == null){
                 skuIdSet = new HashSet<>();
-                uidSkuIdSetMap.put(skuStoreKey.unionPriId, skuIdSet);
+                uidSkuIdSetMap.put(skuBizKey.unionPriId, skuIdSet);
             }
-            skuIdSet.add(skuStoreKey.skuId);
+            skuIdSet.add(skuBizKey.skuId);
         }
         int rt = Errno.ERROR;
         Set<Long> needAddedSkuIdSet = new HashSet<>();
@@ -537,7 +547,7 @@ public class StoreSalesSkuProc {
             int uid = uidSkuIdSetEntry.getKey();
             Set<Long> skuIdSet = uidSkuIdSetEntry.getValue();
             for (Long skuId : skuIdSet) {
-                PdKey pdKey = needCheckSkuStoreKeyPdKeyMap.get(new SkuStoreKey(uid, skuId));
+                PdKey pdKey = needCheckSkuStoreKeyPdKeyMap.get(new SkuBizKey(uid, skuId));
                 addInfoList.add(
                         new Param()
                                 .setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, uid)
@@ -560,20 +570,20 @@ public class StoreSalesSkuProc {
     /**
      * 只会改到count 和 remainCount
      */
-    public int batchChangeStore(int aid, TreeMap<SkuStoreKey, Pair<Integer, Integer>>  skuStoreChangeCountMap) {
-        if(aid <= 0 || skuStoreChangeCountMap == null || skuStoreChangeCountMap.isEmpty()){
-            Log.logErr("batchChangeStore arg error;flow=%s;aid=%s;skuStoreChangeCountMap=%s;", m_flow, aid, skuStoreChangeCountMap);
+    public int batchChangeStore(int aid, TreeMap<SkuBizKey, Pair<Integer, Integer>>  skuBizChangeCountMap) {
+        if(aid <= 0 || skuBizChangeCountMap == null || skuBizChangeCountMap.isEmpty()){
+            Log.logErr("batchChangeStore arg error;flow=%s;aid=%s;skuBizChangeCountMap=%s;", m_flow, aid, skuBizChangeCountMap);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.OK;
         Calendar now = Calendar.getInstance();
-        for (Map.Entry<SkuStoreKey, Pair<Integer, Integer>> skuStoreKeyChangeCountEntry : skuStoreChangeCountMap.entrySet()) {
+        for (Map.Entry<SkuBizKey, Pair<Integer, Integer>> skuBizKeyChangeCountEntry : skuBizChangeCountMap.entrySet()) {
             /*
               changeCount 和 changeRemainCount 取相反数，便于更新
                ... set `remainCount` = `remainCount` - changeCount, `changeCount` = `changeCount` - changeCount  where ... and `remainCount` >= changeCount and `changeCount` >= changeCount
                乐观锁 不考虑aba问题
              */
-            Pair<Integer, Integer> changePair = skuStoreKeyChangeCountEntry.getValue();
+            Pair<Integer, Integer> changePair = skuBizKeyChangeCountEntry.getValue();
             Integer changeRemainCount = -changePair.first; // 取相反数
             if(changeRemainCount == 0){
                 continue;
@@ -588,11 +598,11 @@ public class StoreSalesSkuProc {
             updater.add(StoreSalesSkuEntity.Info.REMAIN_COUNT, ParamUpdater.DEC, changeRemainCount);
             updater.getData().setCalendar(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, now);
 
-            SkuStoreKey skuStoreKey = skuStoreKeyChangeCountEntry.getKey();
-            cacheManage.collectionRemainCountDirtyCacheKey(aid, skuStoreKey.unionPriId, skuStoreKey.skuId);
+            SkuBizKey skuBizKey = skuBizKeyChangeCountEntry.getKey();
+            cacheManage.collectionRemainCountDirtyCacheKey(aid, skuBizKey.unionPriId, skuBizKey.skuId);
             ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
-            matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, skuStoreKey.unionPriId);
-            matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.EQ, skuStoreKey.skuId);
+            matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, skuBizKey.unionPriId);
+            matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.EQ, skuBizKey.skuId);
             if(changeCount != 0){
                 matcher.and(StoreSalesSkuEntity.Info.COUNT, ParamMatcher.GE, changeCount);
             }
@@ -610,8 +620,8 @@ public class StoreSalesSkuProc {
             }
         }
         /* 批量更新不能根据影响的行数来判断更新是否成功。
-        FaiList<Param> dataList = new FaiList<>(skuStoreChangeCountMap.size());
-        for (Map.Entry<SkuStoreKey, Integer> skuStoreKeyCountEntry : skuStoreChangeCountMap.entrySet()) {
+        FaiList<Param> dataList = new FaiList<>(skuBizChangeCountMap.size());
+        for (Map.Entry<SkuStoreKey, Integer> skuStoreKeyCountEntry : skuBizChangeCountMap.entrySet()) {
             // count 取相反数，用于批量更新  where ... and remainCount >= count  乐观锁
             Integer count = -skuStoreKeyCountEntry.getValue();
             Param data = new Param();
@@ -645,22 +655,22 @@ public class StoreSalesSkuProc {
             Log.logStd(rt, "batchChangeStore;flow=%s;doBatchMatcher=%s", m_flow, doBatchMatcher.toJson());
             return rt;
         }*/
-        Log.logStd("ok!flow=%s;aid=%s;skuStoreChangeCountMap=%s;", m_flow, aid, skuStoreChangeCountMap);
+        Log.logStd("ok!flow=%s;aid=%s;skuBizChangeCountMap=%s;", m_flow, aid, skuBizChangeCountMap);
         return rt;
     }
 
     /**
      * 只会改到 总成相关的字段
      */
-    public int batchUpdateTotalCost(int aid, Map<SkuStoreKey, Param> changeCountAfterSkuStoreCountAndTotalCostMap) {
+    public int batchUpdateTotalCost(int aid, Map<SkuBizKey, Param> changeCountAfterSkuBizCountAndTotalCostMap) {
         int rt = Errno.OK;
         Calendar now = Calendar.getInstance();
         FaiList<Param> dataList = new FaiList<>();
-        for (Map.Entry<SkuStoreKey, Param> skuStoreKeyInfoEntry : changeCountAfterSkuStoreCountAndTotalCostMap.entrySet()) {
-            SkuStoreKey skuStoreKey = skuStoreKeyInfoEntry.getKey();
-            int unionPriId = skuStoreKey.unionPriId;
-            long skuId = skuStoreKey.skuId;
-            Param totalCostInfo = skuStoreKeyInfoEntry.getValue();
+        for (Map.Entry<SkuBizKey, Param> skuBizKeyInfoEntry : changeCountAfterSkuBizCountAndTotalCostMap.entrySet()) {
+            SkuBizKey skuBizKey = skuBizKeyInfoEntry.getKey();
+            int unionPriId = skuBizKey.unionPriId;
+            long skuId = skuBizKey.skuId;
+            Param totalCostInfo = skuBizKeyInfoEntry.getValue();
             long fifoTotalCost = totalCostInfo.getLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST);
             long mwTotalCost = totalCostInfo.getLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST);
             Param data = new Param();
@@ -739,20 +749,20 @@ public class StoreSalesSkuProc {
         return rt;
     }
 
-    public int getInfoMap4OutRecordFromDao(int aid, Set<SkuStoreKey> skuStoreKeySet, Map<SkuStoreKey, Param> skuCountAndTotalCostMap) {
-        if(skuStoreKeySet == null || skuStoreKeySet.isEmpty() || skuCountAndTotalCostMap == null){
-            Log.logErr("arg error;flow=%d;aid=%s;skuStoreKeySet=%s;skuCountAndTotalCostMap=%s;", m_flow, aid, skuStoreKeySet, skuCountAndTotalCostMap);
+    public int getInfoMap4OutRecordFromDao(int aid, Set<SkuBizKey> skuBizKeySet, Map<SkuBizKey, Param> skuCountAndTotalCostMap) {
+        if(skuBizKeySet == null || skuBizKeySet.isEmpty() || skuCountAndTotalCostMap == null){
+            Log.logErr("arg error;flow=%d;aid=%s;skuStoreKeySet=%s;skuCountAndTotalCostMap=%s;", m_flow, aid, skuBizKeySet, skuCountAndTotalCostMap);
             return Errno.ARGS_ERROR;
         }
         Map<Integer, FaiList<Long>> unionPriIdSkuIdListMap = new HashMap<>();
-        for (SkuStoreKey skuStoreKey : skuStoreKeySet) {
-            int unionPriId = skuStoreKey.unionPriId;
+        for (SkuBizKey skuBizKey : skuBizKeySet) {
+            int unionPriId = skuBizKey.unionPriId;
             FaiList<Long> skuIdList = unionPriIdSkuIdListMap.get(unionPriId);
             if(skuIdList == null){
                 skuIdList = new FaiList<>();
                 unionPriIdSkuIdListMap.put(unionPriId, skuIdList);
             }
-            skuIdList.add(skuStoreKey.skuId);
+            skuIdList.add(skuBizKey.skuId);
         }
         int rt = Errno.ERROR;
         for (Map.Entry<Integer, FaiList<Long>> unionPriIdSkuIdListEntry : unionPriIdSkuIdListMap.entrySet()) {
@@ -773,7 +783,7 @@ public class StoreSalesSkuProc {
             }
             for (Param info : listRef.value) {
                 long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
-                skuCountAndTotalCostMap.put(new SkuStoreKey(unionPriId, skuId), info);
+                skuCountAndTotalCostMap.put(new SkuBizKey(unionPriId, skuId), info);
             }
         }
 
@@ -1058,13 +1068,13 @@ public class StoreSalesSkuProc {
             init();
         }
 
-        private Set<SkuStoreKey> remainCountDirtyCacheKeySet;
+        private Set<SkuBizKey> remainCountDirtyCacheKeySet;
 
         private void collectionRemainCountDirtyCacheKey(int aid, int unionPriId, long skuId){
-            remainCountDirtyCacheKeySet.add(new SkuStoreKey(unionPriId, skuId));
+            remainCountDirtyCacheKeySet.add(new SkuBizKey(unionPriId, skuId));
         }
         public void removeRemainCountDirtyCacheKey(int aid, int unionPriId, long skuId) {
-            remainCountDirtyCacheKeySet.remove(new SkuStoreKey(unionPriId, skuId));
+            remainCountDirtyCacheKeySet.remove(new SkuBizKey(unionPriId, skuId));
         }
         private boolean deleteRemainCountDirtyCache(int aid){
             try {

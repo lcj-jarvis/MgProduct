@@ -1169,9 +1169,9 @@ public class MgProductSpecCli extends FaiClient {
     }
 
     /**
-     * 获取已经存在的 skuNumList
+     * 获取已经存在的 skuCodeList
      */
-    public int getExistsSkuNumList(int aid, int tid, int unionPriId, FaiList<String> skuNumList, Ref<FaiList<String>> existsSkuNumListRef) {
+    public int getExistsSkuCodeList(int aid, int tid, int unionPriId, FaiList<String> skuCodeList, Ref<FaiList<String>> existsSkuCodeListRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1180,14 +1180,14 @@ public class MgProductSpecCli extends FaiClient {
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
-            if(skuNumList == null || skuNumList.isEmpty()){
+            if(skuCodeList == null || skuCodeList.isEmpty()){
                 m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "skuNumList error");
+                Log.logErr(m_rt, "skuCodeList error");
                 return m_rt;
             }
-            if(existsSkuNumListRef == null){
+            if(existsSkuCodeListRef == null){
                 m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "existsSkuNumListRef error");
+                Log.logErr(m_rt, "existsSkuCodeListRef error");
                 return m_rt;
             }
 
@@ -1195,10 +1195,10 @@ public class MgProductSpecCli extends FaiClient {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductSpecSkuDto.Key.TID, tid);
             sendBody.putInt(ProductSpecSkuDto.Key.UNION_PRI_ID, unionPriId);
-            skuNumList.toBuffer(sendBody, ProductSpecSkuDto.Key.SKU_NUM_LIST);
+            skuCodeList.toBuffer(sendBody, ProductSpecSkuDto.Key.SKU_CODE_LIST);
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_SKU_NUM_LIST);
+            sendProtocol.setCmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_SKU_CODE_LIST);
 
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
@@ -1230,11 +1230,11 @@ public class MgProductSpecCli extends FaiClient {
             Ref<Integer> keyRef = new Ref<Integer>();
             Ref<String> valueRef = new Ref<String>();
             m_rt = recvBody.getString(keyRef, valueRef);
-            if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuDto.Key.SKU_NUM_LIST) {
+            if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuDto.Key.SKU_CODE_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
             }
-            existsSkuNumListRef.value = FaiList.parseStringList(valueRef.value);
+            existsSkuCodeListRef.value = FaiList.parseStringList(valueRef.value);
             return m_rt = Errno.OK;
         } finally {
             close();
@@ -1243,9 +1243,9 @@ public class MgProductSpecCli extends FaiClient {
     }
 
     /**
-     * 通过模糊查询skuNum获取匹配到的skuInfo
+     * 通过模糊查询skuCode获取匹配到的skuIdInfo
      */
-    public int searchPdSkuIdInfoListByLikeSkuNum(int aid, int tid, int unionPriId, String skuNum, FaiList<Param> skuInfoList) {
+    public int searchPdSkuIdInfoListBySkuCode(int aid, int tid, int unionPriId, String skuCode, Param condition, FaiList<Param> skuInfoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1254,9 +1254,9 @@ public class MgProductSpecCli extends FaiClient {
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
-            if(Str.isEmpty(skuNum)){
+            if(Str.isEmpty(skuCode)){
                 m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "skuNum error");
+                Log.logErr(m_rt, "skuCode error");
                 return m_rt;
             }
             if(skuInfoList == null){
@@ -1264,15 +1264,19 @@ public class MgProductSpecCli extends FaiClient {
                 Log.logErr(m_rt, "skuInfoList error");
                 return m_rt;
             }
+            if(condition == null){
+                condition = new Param();
+            }
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductSpecSkuDto.Key.TID, tid);
             sendBody.putInt(ProductSpecSkuDto.Key.UNION_PRI_ID, unionPriId);
-            sendBody.putString(ProductSpecSkuDto.Key.SKU_NUM, skuNum);
+            sendBody.putString(ProductSpecSkuDto.Key.SKU_CODE, skuCode);
+            condition.toBuffer(sendBody, ProductSpecSkuDto.Key.CONDITION, ConditionDto.getInfoDto());
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductSpecCmd.ProductSpecSkuCmd.SEARCH_SKU_ID_INFO_LIST_BY_LIKE_SKU_NUM);
+            sendProtocol.setCmd(MgProductSpecCmd.ProductSpecSkuCmd.SEARCH_SKU_ID_INFO_LIST_BY_SKU_CODE);
 
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
@@ -1315,9 +1319,9 @@ public class MgProductSpecCli extends FaiClient {
     }
 
     /**
-     * 获取 skuNum数据状态
+     * 获取 skuCode数据状态
      */
-    public int getSkuNumDataStatus(int aid, int unionPriId, Param dataStatusInfo){
+    public int getSkuCodeDataStatus(int aid, int unionPriId, Param dataStatusInfo){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1334,10 +1338,10 @@ public class MgProductSpecCli extends FaiClient {
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
-            sendBody.putInt(ProductSpecSkuNumDao.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductSpecSkuCodeDao.Key.UNION_PRI_ID, unionPriId);
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductSpecCmd.SkuNumCmd.GET_DATA_STATUS);
+            sendProtocol.setCmd(MgProductSpecCmd.SkuCodeCmd.GET_DATA_STATUS);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);
@@ -1366,7 +1370,7 @@ public class MgProductSpecCli extends FaiClient {
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
             m_rt = dataStatusInfo.fromBuffer(recvBody, keyRef, DataStatus.Dto.getDataStatusDto());
-            if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuNumDao.Key.INFO) {
+            if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuCodeDao.Key.INFO) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
             }
@@ -1380,7 +1384,7 @@ public class MgProductSpecCli extends FaiClient {
     /**
      * 获取全部数据的部分字段
      */
-    public int getSkuNumAllData(int aid, int unionPriId, FaiList<Param> infoList){
+    public int getSkuCodeAllData(int aid, int unionPriId, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1397,10 +1401,10 @@ public class MgProductSpecCli extends FaiClient {
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
-            sendBody.putInt(ProductSpecSkuNumDao.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductSpecSkuCodeDao.Key.UNION_PRI_ID, unionPriId);
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductSpecCmd.SkuNumCmd.GET_ALL_DATA);
+            sendProtocol.setCmd(MgProductSpecCmd.SkuCodeCmd.GET_ALL_DATA);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);
@@ -1428,8 +1432,8 @@ public class MgProductSpecCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductSpecSkuNumDao.getInfoDto());
-            if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuNumDao.Key.INFO_LIST) {
+            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductSpecSkuCodeDao.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuCodeDao.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
             }
@@ -1443,7 +1447,7 @@ public class MgProductSpecCli extends FaiClient {
     /**
      * 直接从db搜索 返回部分字段
      */
-    public int searchSkuNumFromDb(int aid, int unionPriId, SearchArg searchArg, FaiList<Param> infoList){
+    public int searchSkuCodeFromDb(int aid, int unionPriId, SearchArg searchArg, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1465,11 +1469,11 @@ public class MgProductSpecCli extends FaiClient {
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
-            sendBody.putInt(ProductSpecSkuNumDao.Key.UNION_PRI_ID, unionPriId);
-            searchArg.toBuffer(sendBody, ProductSpecSkuNumDao.Key.SEARCH_ARG);
+            sendBody.putInt(ProductSpecSkuCodeDao.Key.UNION_PRI_ID, unionPriId);
+            searchArg.toBuffer(sendBody, ProductSpecSkuCodeDao.Key.SEARCH_ARG);
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductSpecCmd.SkuNumCmd.SEARCH_FROM_DB);
+            sendProtocol.setCmd(MgProductSpecCmd.SkuCodeCmd.SEARCH_FROM_DB);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);
@@ -1497,14 +1501,14 @@ public class MgProductSpecCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductSpecSkuNumDao.getInfoDto());
-            if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuNumDao.Key.INFO_LIST) {
+            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductSpecSkuCodeDao.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuCodeDao.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
             }
             if(searchArg.totalSize != null){
                 recvBody.getInt(keyRef, searchArg.totalSize);
-                if(keyRef.value != ProductSpecSkuNumDao.Key.TOTAL_SIZE){
+                if(keyRef.value != ProductSpecSkuCodeDao.Key.TOTAL_SIZE){
                     m_rt = Errno.CODEC_ERROR;
                     Log.logErr(m_rt, "recv total size null");
                     return m_rt;

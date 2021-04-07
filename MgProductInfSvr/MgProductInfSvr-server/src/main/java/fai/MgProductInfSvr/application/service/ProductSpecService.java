@@ -789,14 +789,14 @@ public class ProductSpecService extends MgProductInfService {
     }
 
     /**
-     * 获取已经存在的 skuNumList
+     * 获取已经存在的 skuCodeList
      * @param tid 创建商品的 tid
      * @param siteId 创建商品的 siteId
      * @param lgId 创建商品的 lgId
      * @param keepPriId1 创建商品的 keepPriId1
-     * @param skuNumList 需要判断的 skuNum 集合
+     * @param skuCodeList 需要判断的 skuCode 集合
      */
-    public int getExistsSkuNumList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<String> skuNumList) throws IOException {
+    public int getExistsSkuCodeList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<String> skuCodeList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -814,13 +814,13 @@ public class ProductSpecService extends MgProductInfService {
             }
             int unionPriId = idRef.value;
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
-            Ref<FaiList<String>> existsSkuNumListRef = new Ref<>();
-            rt = productSpecProc.getExistsSkuNumList(aid, tid, unionPriId, skuNumList, existsSkuNumListRef);
+            Ref<FaiList<String>> existsSkuCodeListRef = new Ref<>();
+            rt = productSpecProc.getExistsSkuCodeList(aid, tid, unionPriId, skuCodeList, existsSkuCodeListRef);
             if(rt != Errno.OK) {
                 return rt;
             }
             FaiBuffer sendBuf = new FaiBuffer(true);
-            sendBuf.putString(ProductSpecDto.Key.SKU_NUM_LIST, existsSkuNumListRef.value.toJson());
+            sendBuf.putString(ProductSpecDto.Key.SKU_CODE_LIST, existsSkuCodeListRef.value.toJson());
             session.write(sendBuf);
         }finally {
             stat.end(rt != Errno.OK, rt);
@@ -830,14 +830,15 @@ public class ProductSpecService extends MgProductInfService {
 
 
     /**
-     * 根据 skuNum 模糊搜索匹配上的skuInfo
+     * 根据 skuCode 模糊搜索匹配上的skuIdInfo
      * @param tid 创建商品的 tid
      * @param siteId 创建商品的 siteId
      * @param lgId 创建商品的 lgId
      * @param keepPriId1 创建商品的 keepPriId1
-     * @param skuNumKeyWord 搜索关键词
+     * @param skuCodeKeyWord 搜索关键词
+     * @param condition 条件参数
      */
-    public int searchPdSkuIdInfoListByLikeSkuNum(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, String skuNumKeyWord) throws IOException {
+    public int searchPdSkuIdInfoListBySkuCode(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, String skuCodeKeyWord, Param condition) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -856,7 +857,7 @@ public class ProductSpecService extends MgProductInfService {
             int unionPriId = idRef.value;
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
             FaiList<Param> pdSkuInfoList = new FaiList<>();
-            rt = productSpecProc.searchPdSkuIdInfoListByLikeSkuNum(aid, tid, unionPriId, skuNumKeyWord, pdSkuInfoList);
+            rt = productSpecProc.searchPdSkuIdInfoListBySkuCode(aid, tid, unionPriId, skuCodeKeyWord, condition, pdSkuInfoList);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -869,7 +870,7 @@ public class ProductSpecService extends MgProductInfService {
             pdSkuInfoList.toBuffer(sendBuf, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecSku.getInfoDto());
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
         }
         return rt;
     }

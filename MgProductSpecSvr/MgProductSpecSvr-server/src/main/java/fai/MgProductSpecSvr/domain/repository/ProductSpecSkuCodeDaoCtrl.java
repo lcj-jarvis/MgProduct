@@ -5,17 +5,17 @@ import fai.comm.util.DaoPool;
 import fai.comm.util.Log;
 import fai.middleground.svrutil.repository.DaoCtrl;
 
-public class ProductSpecSkuNumDaoCtrl  extends DaoCtrl {
-    public ProductSpecSkuNumDaoCtrl(int flow, int aid) {
+public class ProductSpecSkuCodeDaoCtrl extends DaoCtrl {
+    public ProductSpecSkuCodeDaoCtrl(int flow, int aid) {
         super(flow, aid);
     }
 
-    public static ProductSpecSkuNumDaoCtrl getInstance(int flow, int aid) {
+    public static ProductSpecSkuCodeDaoCtrl getInstance(int flow, int aid) {
         if(m_daoProxy == null) {
             Log.logErr("m_daoProxy is not init;");
             return null;
         }
-        return new ProductSpecSkuNumDaoCtrl(flow, aid);
+        return new ProductSpecSkuCodeDaoCtrl(flow, aid);
     }
 
     public Dao getDao(){
@@ -33,5 +33,5 @@ public class ProductSpecSkuNumDaoCtrl  extends DaoCtrl {
     public String getTableName(){ // TODO
         return TABLE_NAME + "_"+ String.format("%04d", aid%1000);
     }
-    private static final String TABLE_NAME = "mgProductSpecSkuNum";
+    private static final String TABLE_NAME = "mgProductSpecSkuCode";
 }

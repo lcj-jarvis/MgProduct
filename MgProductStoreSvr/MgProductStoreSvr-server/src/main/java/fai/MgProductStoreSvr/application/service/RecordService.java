@@ -3,7 +3,7 @@ package fai.MgProductStoreSvr.application.service;
 import fai.MgProductStoreSvr.domain.comm.InOutStoreRecordArgCheck;
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
 import fai.MgProductStoreSvr.domain.comm.PdKey;
-import fai.MgProductStoreSvr.domain.comm.SkuStoreKey;
+import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
 import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordEntity;
 import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordValObj;
 import fai.MgProductStoreSvr.domain.entity.ReportValObj;
@@ -138,11 +138,11 @@ public class RecordService extends StoreService {
              *  Pair.first <===> remainCount
              *  Pair.second <===> count
              */
-            TreeMap<SkuStoreKey, Pair<Integer, Integer>> skuStoreChangeCountMap = new TreeMap<>();
+            TreeMap<SkuBizKey, Pair<Integer, Integer>> skuBizChangeCountMap = new TreeMap<>();
             Set<Integer> pdIdSet = new HashSet<>();
-            Map<SkuStoreKey, PdKey> needCheckSkuStoreKeyPdKeyMap = new HashMap<>();
+            Map<SkuBizKey, PdKey> needCheckSkuStoreKeyPdKeyMap = new HashMap<>();
             Set<Long> skuIdSet = new HashSet<>();
-            Set<SkuStoreKey> needGetChangeCountAfterSkuStoreKeySet = new HashSet<>();
+            Set<SkuBizKey> needGetChangeCountAfterSkuBizKeySet = new HashSet<>();
             for (Param info : infoList) {
                 int unionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, 0);
                 if (unionPriId <= 0) {
@@ -191,12 +191,12 @@ public class RecordService extends StoreService {
 
                 pdIdSet.add(pdId);
                 skuIdSet.add(skuId);
-                SkuStoreKey skuStoreKey = new SkuStoreKey(unionPriId, skuId);
+                SkuBizKey skuBizKey = new SkuBizKey(unionPriId, skuId);
                 if(unionPriId != ownerUnionPriId){
-                    needCheckSkuStoreKeyPdKeyMap.put(skuStoreKey, new PdKey(unionPriId, pdId, rlPdId));
+                    needCheckSkuStoreKeyPdKeyMap.put(skuBizKey, new PdKey(unionPriId, pdId, rlPdId));
                 }
                 info.setInt(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, ownerUnionPriId);
-                Pair<Integer, Integer> pair = skuStoreChangeCountMap.get(skuStoreKey);
+                Pair<Integer, Integer> pair = skuBizChangeCountMap.get(skuBizKey);
                 if(pair == null){
                     pair = new Pair<>(0, 0);
                 }
@@ -213,9 +213,9 @@ public class RecordService extends StoreService {
                 if(Misc.checkBit(flag, InOutStoreRecordValObj.FLag.NOT_CHANGE_COUNT)){
                     pair.second = 0;
                 }
-                skuStoreChangeCountMap.put(skuStoreKey, pair);
+                skuBizChangeCountMap.put(skuBizKey, pair);
                 if(!info.containsKey(InOutStoreRecordEntity.Info.REMAIN_COUNT)){ // 兼容数据迁移
-                    needGetChangeCountAfterSkuStoreKeySet.add(skuStoreKey);
+                    needGetChangeCountAfterSkuBizKeySet.add(skuBizKey);
                 }
             }
             // 事务
@@ -247,14 +247,14 @@ public class RecordService extends StoreService {
                             }
                         }
                         // 批量更新库存
-                        rt = storeSalesSkuProc.batchChangeStore(aid, skuStoreChangeCountMap);
+                        rt = storeSalesSkuProc.batchChangeStore(aid, skuBizChangeCountMap);
                         if (rt != Errno.OK) {
                             return rt;
                         }
 
-                        Map<SkuStoreKey, Param> changeCountAfterSkuStoreInfoMap = new HashMap<>();
+                        Map<SkuBizKey, Param> changeCountAfterSkuStoreInfoMap = new HashMap<>();
                         // 获取更新后的库存量
-                        rt = storeSalesSkuProc.getInfoMap4OutRecordFromDao(aid, needGetChangeCountAfterSkuStoreKeySet, changeCountAfterSkuStoreInfoMap);
+                        rt = storeSalesSkuProc.getInfoMap4OutRecordFromDao(aid, needGetChangeCountAfterSkuBizKeySet, changeCountAfterSkuStoreInfoMap);
                         if (rt != Errno.OK) {
                             return rt;
                         }

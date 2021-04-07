@@ -39,6 +39,7 @@ public class StoreSalesSkuDto {
         g_dtoDef.add(StoreSalesSkuEntity.Info.MW_TOTAL_COST, 21, Var.Type.LONG);
         g_dtoDef.add(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, 22, Var.Type.INT);
         g_dtoDef.add(StoreSalesSkuEntity.Info.HOLDING_ORDER_LIST, 23, getHoldingOrderDef());
+        g_dtoDef.add(StoreSalesSkuEntity.Info.IN_PD_SC_STR_ID_LIST, 24, Var.Type.FAI_LIST);
     }
 
     public static ParamDef getInfoDto() {

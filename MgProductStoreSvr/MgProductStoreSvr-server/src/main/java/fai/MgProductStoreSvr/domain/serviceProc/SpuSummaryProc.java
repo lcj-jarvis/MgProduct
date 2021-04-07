@@ -4,6 +4,7 @@ import fai.MgProductStoreSvr.domain.entity.SpuSummaryEntity;
 import fai.MgProductStoreSvr.domain.repository.SpuSummaryCacheCtrl;
 import fai.MgProductStoreSvr.domain.repository.SpuSummaryDaoCtrl;
 import fai.comm.util.*;
+import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.Calendar;
 import java.util.HashSet;
@@ -15,6 +16,15 @@ public class SpuSummaryProc {
         m_daoCtrl = daoCtrl;
         m_flow = flow;
     }
+
+    public SpuSummaryProc(int flow, int aid, TransactionCtrl transactionCtrl) {
+        m_daoCtrl = SpuSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+        if(m_daoCtrl == null){
+            throw new RuntimeException(String.format("SpuSummaryDaoCtrl init err;flow=%s;aid=%s;", flow, aid));
+        }
+        m_flow = flow;
+    }
+
     public int report4synSPU2SKU(int aid, Map<Integer, Param> pdIdSalesSummaryInfoMap) {
         if(aid <= 0 || pdIdSalesSummaryInfoMap == null || pdIdSalesSummaryInfoMap.isEmpty()){
             Log.logErr("arg error;flow=%d;aid=%s;pdIdSalesSummaryInfoMap=%s;", m_flow, aid, pdIdSalesSummaryInfoMap);

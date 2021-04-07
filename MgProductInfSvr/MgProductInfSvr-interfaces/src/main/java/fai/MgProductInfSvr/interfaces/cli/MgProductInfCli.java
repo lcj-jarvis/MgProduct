@@ -2,10 +2,7 @@ package fai.MgProductInfSvr.interfaces.cli;
 
 import fai.MgProductInfSvr.interfaces.cmd.MgProductInfCmd;
 import fai.MgProductInfSvr.interfaces.dto.*;
-import fai.MgProductInfSvr.interfaces.entity.ProductSpecEntity;
-import fai.MgProductInfSvr.interfaces.entity.ProductStoreEntity;
-import fai.MgProductInfSvr.interfaces.entity.ProductStoreValObj;
-import fai.MgProductInfSvr.interfaces.entity.ProductTempEntity;
+import fai.MgProductInfSvr.interfaces.entity.*;
 import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
@@ -2570,15 +2567,15 @@ public class MgProductInfCli extends FaiClient {
 
 
     /**
-     * 获取已经存在的 skuNumList
+     * 获取已经存在的 skuCodeList
      * @param tid 创建商品的 tid
      * @param siteId 创建商品的 siteId
      * @param lgId 创建商品的 lgId
      * @param keepPriId1 创建商品的 keepPriId1
-     * @param skuNumList 需要判断的 skuNum 集合
-     * @param existsSkuNumListRef 返回存在的 skuNum 集合
+     * @param skuCodeList 需要判断的 skuCode 集合
+     * @param existsSkuCodeListRef 返回存在的 skuCode 集合
      */
-    public int getExistsSkuNumList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<String> skuNumList, Ref<FaiList<String>> existsSkuNumListRef) {
+    public int getExistsSkuCodeList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<String> skuCodeList, Ref<FaiList<String>> existsSkuCodeListRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2587,14 +2584,14 @@ public class MgProductInfCli extends FaiClient {
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
-            if(skuNumList == null){
+            if(skuCodeList == null){
                 m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "skuNumList error");
+                Log.logErr(m_rt, "skuCodeList error");
                 return m_rt;
             }
-            if (existsSkuNumListRef == null) {
+            if (existsSkuCodeListRef == null) {
                 m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "existsSkuNumListRef error");
+                Log.logErr(m_rt, "existsSkuCodeListRef error");
                 return m_rt;
             }
 
@@ -2604,10 +2601,10 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductSpecDto.Key.SITE_ID, siteId);
             sendBody.putInt(ProductSpecDto.Key.LGID, lgId);
             sendBody.putInt(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1);
-            skuNumList.toBuffer(sendBody, ProductSpecDto.Key.SKU_NUM_LIST);
+            skuCodeList.toBuffer(sendBody, ProductSpecDto.Key.SKU_CODE_LIST);
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductInfCmd.ProductSpecSkuCmd.GET_SKU_NUM_LIST);
+            sendProtocol.setCmd(MgProductInfCmd.ProductSpecSkuCmd.GET_SKU_CODE_LIST);
 
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
@@ -2639,11 +2636,11 @@ public class MgProductInfCli extends FaiClient {
             Ref<Integer> keyRef = new Ref<Integer>();
             Ref<String> valRef = new Ref<String>();
             m_rt = recvBody.getString(keyRef, valRef);
-            if (m_rt != Errno.OK || keyRef.value != ProductSpecDto.Key.SKU_NUM_LIST) {
+            if (m_rt != Errno.OK || keyRef.value != ProductSpecDto.Key.SKU_CODE_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
             }
-            existsSkuNumListRef.value = FaiList.parseStringList(valRef.value);
+            existsSkuCodeListRef.value = FaiList.parseStringList(valRef.value);
             return m_rt = Errno.OK;
         } finally {
             close();
@@ -2652,15 +2649,16 @@ public class MgProductInfCli extends FaiClient {
     }
 
     /**
-     * 根据 skuNum 模糊搜索匹配上的skuInfo
+     * 根据 skuCode 模糊搜索匹配上的skuIdInfo
      * @param tid 创建商品的 tid
      * @param siteId 创建商品的 siteId
      * @param lgId 创建商品的 lgId
      * @param keepPriId1 创建商品的 keepPriId1
-     * @param skuNumKeyWord 搜索关键词
+     * @param skuCodeKeyWord 搜索关键词
+     * @param condition 条件(搜索条件/返回结果形式) {@link ProductSpecEntity.Condition}
      * @param skuIdInfoList 匹配上的结果集
      */
-    public int searchPdSkuIdInfoListByLikeSkuNum(int aid, int tid, int siteId, int lgId, int keepPriId1, String skuNumKeyWord, FaiList<Param> skuIdInfoList) {
+    public int searchPdSkuIdInfoListBySkuCode(int aid, int tid, int siteId, int lgId, int keepPriId1, String skuCodeKeyWord, Param condition, FaiList<Param> skuIdInfoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2669,9 +2667,9 @@ public class MgProductInfCli extends FaiClient {
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
-            if(Str.isEmpty(skuNumKeyWord)){
+            if(Str.isEmpty(skuCodeKeyWord)){
                 m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "skuNumKeyWord error");
+                Log.logErr(m_rt, "skuCodeKeyWord error");
                 return m_rt;
             }
             if (skuIdInfoList == null) {
@@ -2686,10 +2684,11 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductSpecDto.Key.SITE_ID, siteId);
             sendBody.putInt(ProductSpecDto.Key.LGID, lgId);
             sendBody.putInt(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1);
-            sendBody.putString(ProductSpecDto.Key.SKU_NUM, skuNumKeyWord);
+            sendBody.putString(ProductSpecDto.Key.SKU_CODE, skuCodeKeyWord);
+            condition.toBuffer(sendBody, ProductSpecDto.Key.CONDITION, ProductSpecDto.Condition.getInfoDto());
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductInfCmd.ProductSpecSkuCmd.SEARCH_SKU_ID_INFO_LIST_BY_LIKE_SKU_NUM);
+            sendProtocol.setCmd(MgProductInfCmd.ProductSpecSkuCmd.SEARCH_SKU_ID_INFO_LIST_BY_SKU_CODE);
 
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
@@ -4143,7 +4142,7 @@ public class MgProductInfCli extends FaiClient {
      * @param lgId 创建商品的lgId
      * @param keepPriId1 创建商品的keepPriId1
      * @param rlPdId 业务商品id
-     * @param combinedInfo 返回商品中台各个服务组合的数据 {@link fai.MgProductInfSvr.interfaces.entity.MgProductEntity.Info}
+     * @param combinedInfo 返回商品中台各个服务组合的数据 {@link MgProductEntity.Info}
      */
     public int getProductFullInfo(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, Param combinedInfo){
         m_rt = Errno.ERROR;
@@ -4208,6 +4207,79 @@ public class MgProductInfCli extends FaiClient {
         } finally {
             close();
             stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    /**
+     * 导入商品数据
+     * @param tid 创建商品的tid
+     * @param siteId 创建商品的siteId
+     * @param lgId 创建商品的lgId
+     * @param keepPriId1 创建商品的keepPriId1
+     * @param productList 商品中台各个服务组合的数据 {@link MgProductEntity.Info}
+     * @param inStoreRecordInfo 入库记录 {@link ProductStoreEntity.InOutStoreRecordInfo}  非必要
+     */
+    public int importProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> productList, Param inStoreRecordInfo){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(productList == null || productList.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "productList error");
+                return m_rt;
+            }
+            if(inStoreRecordInfo == null){
+                inStoreRecordInfo = new Param();
+            }
+
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(MgProductDto.Key.TID, tid);
+            sendBody.putInt(MgProductDto.Key.SITE_ID, siteId);
+            sendBody.putInt(MgProductDto.Key.LGID, lgId);
+            sendBody.putInt(MgProductDto.Key.KEEP_PRIID1, keepPriId1);
+            m_rt = productList.toBuffer(sendBody, MgProductDto.Key.INFO_LIST, MgProductDto.getInfoDto());
+            if(m_rt != Errno.OK){
+                Log.logErr(m_rt, "productList.toBuffer error;productList=%s;", productList);
+                return m_rt;
+            }
+            m_rt = inStoreRecordInfo.toBuffer(sendBody, MgProductDto.Key.IN_OUT_STORE_RECORD_INFO, ProductStoreDto.InOutStoreRecord.getInfoDto());
+            if(m_rt != Errno.OK){
+                Log.logErr(m_rt, "inStoreRecordInfo.toBuffer error;inStoreRecordInfo=%s;", inStoreRecordInfo);
+                return m_rt;
+            }
+
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductInfCmd.Cmd.IMPORT_PRODUCT);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK), m_rt);
         }
     }
 }

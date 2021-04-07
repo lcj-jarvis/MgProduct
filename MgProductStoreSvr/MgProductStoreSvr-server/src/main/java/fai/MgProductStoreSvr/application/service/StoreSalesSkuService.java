@@ -3,7 +3,7 @@ package fai.MgProductStoreSvr.application.service;
 import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
-import fai.MgProductStoreSvr.domain.comm.SkuStoreKey;
+import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
 import fai.MgProductStoreSvr.domain.comm.Utils;
 import fai.MgProductStoreSvr.domain.entity.*;
 import fai.MgProductStoreSvr.domain.repository.*;
@@ -578,7 +578,7 @@ public class StoreSalesSkuService extends StoreService {
                 outStoreRecordInfo.setString(InOutStoreRecordEntity.Info.RL_ORDER_CODE, rlOrderCode);
             }
             TreeMap<Long, Integer> skuIdChangeCountMap = new TreeMap<>(); // 使用 有序map, 避免事务中 批量修改时如果无序 相互锁住 导致死锁
-            Set<SkuStoreKey> skuStoreKeySet = new HashSet<>();
+            Set<SkuBizKey> skuBizKeySet = new HashSet<>();
             FaiList<Integer> pdIdList = new FaiList<>();
             FaiList<Long> skuIdList = new FaiList<>(skuIdCountList.size());
             for (Param info : skuIdCountList) {
@@ -586,7 +586,7 @@ public class StoreSalesSkuService extends StoreService {
                 int count = info.getInt(StoreSalesSkuEntity.Info.COUNT);
                 skuIdList.add(skuId);
                 skuIdChangeCountMap.put(skuId, count);
-                skuStoreKeySet.add(new SkuStoreKey(unionPriId, skuId));
+                skuBizKeySet.add(new SkuBizKey(unionPriId, skuId));
             }
 
             MgProductSpecCli mgProductSpecCli = createMgProductSpecCli(flow);
@@ -640,8 +640,8 @@ public class StoreSalesSkuService extends StoreService {
                         }
 
 
-                        Map<SkuStoreKey, Param> changeCountAfterSkuStoreSalesInfoMap = new HashMap<>();
-                        rt = storeSalesSkuProc.getInfoMap4OutRecordFromDao(aid, skuStoreKeySet, changeCountAfterSkuStoreSalesInfoMap);
+                        Map<SkuBizKey, Param> changeCountAfterSkuStoreSalesInfoMap = new HashMap<>();
+                        rt = storeSalesSkuProc.getInfoMap4OutRecordFromDao(aid, skuBizKeySet, changeCountAfterSkuStoreSalesInfoMap);
                         if (rt != Errno.OK) {
                             return rt;
                         }
@@ -799,9 +799,9 @@ public class StoreSalesSkuService extends StoreService {
              *  Pair.first <===> remainCount
              *  Pair.second <===> count
              */
-            TreeMap<SkuStoreKey, Pair<Integer, Integer>> skuStoreChangeCountMap = new TreeMap<>();
+            TreeMap<SkuBizKey, Pair<Integer, Integer>> skuBizChangeCountMap = new TreeMap<>();
             TreeMap<Long, Integer> skuIdCountMap = new TreeMap<>(); // 使用 有序map, 避免事务中 批量修改时如果无序 相互锁住 导致死锁
-            Set<SkuStoreKey> skuStoreKeySet = new HashSet<>();
+            Set<SkuBizKey> skuBizKeySet = new HashSet<>();
             FaiList<Integer> pdIdList = new FaiList<>();
             FaiList<Long> skuIdList = new FaiList<>(skuIdCountList.size());
             for (Param info : skuIdCountList) {
@@ -809,10 +809,10 @@ public class StoreSalesSkuService extends StoreService {
                 int count = info.getInt(StoreSalesSkuEntity.Info.COUNT);
                 skuIdList.add(skuId);
                 skuIdCountMap.put(skuId, count);
-                SkuStoreKey skuStoreKey = new SkuStoreKey(unionPriId, skuId);
-                skuStoreKeySet.add(skuStoreKey);
+                SkuBizKey skuBizKey = new SkuBizKey(unionPriId, skuId);
+                skuBizKeySet.add(skuBizKey);
                 Pair<Integer, Integer> pair = new Pair<>(count, 0);
-                skuStoreChangeCountMap.put(skuStoreKey, pair);
+                skuBizChangeCountMap.put(skuBizKey, pair);
             }
 
             MgProductSpecCli mgProductSpecCli = createMgProductSpecCli(flow);
@@ -878,10 +878,10 @@ public class StoreSalesSkuService extends StoreService {
                         }
 
                         // 修改库存
-                        rt = storeSalesSkuProc.batchChangeStore(aid, skuStoreChangeCountMap);
+                        rt = storeSalesSkuProc.batchChangeStore(aid, skuBizChangeCountMap);
 
-                        Map<SkuStoreKey, Param> changeCountAfterSkuStoreSalesInfoMap = new HashMap<>();
-                        rt = storeSalesSkuProc.getInfoMap4OutRecordFromDao(aid, skuStoreKeySet, changeCountAfterSkuStoreSalesInfoMap);
+                        Map<SkuBizKey, Param> changeCountAfterSkuStoreSalesInfoMap = new HashMap<>();
+                        rt = storeSalesSkuProc.getInfoMap4OutRecordFromDao(aid, skuBizKeySet, changeCountAfterSkuStoreSalesInfoMap);
                         if (rt != Errno.OK) {
                             return rt;
                         }

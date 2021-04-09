@@ -17,10 +17,7 @@ import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 规格服务相关接口实现
@@ -648,12 +645,22 @@ public class ProductSpecService extends MgProductInfService {
             if(rt != Errno.OK) {
                 return rt;
             }
-            for (Param info : infoList) {
+            Param spuInfo = new Param();
+            for(Iterator<Param> iterator = infoList.iterator();iterator.hasNext();){
+                Param info = iterator.next();
                 info.setInt(fai.MgProductInfSvr.interfaces.entity.ProductSpecEntity.SpecSkuInfo.RL_PD_ID, rlPdId);
+                if(withSpuInfo){
+                    int flag = info.getInt(fai.MgProductInfSvr.interfaces.entity.ProductSpecEntity.SpecSkuInfo.FLAG, 0);
+                    if(Misc.checkBit(flag, fai.MgProductInfSvr.interfaces.entity.ProductSpecValObj.SpecSku.FLag.SPU)){
+                        spuInfo = info;
+                        iterator.remove();
+                    }
+                }
             }
 
             FaiBuffer sendBuf = new FaiBuffer(true);
             infoList.toBuffer(sendBuf, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecSku.getInfoDto());
+            spuInfo.toBuffer(sendBuf, ProductSpecDto.Key.SPU_INFO, ProductSpecDto.SpecSku.getInfoDto());
             session.write(sendBuf);
         }finally {
             stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);

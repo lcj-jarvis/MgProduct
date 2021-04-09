@@ -2362,17 +2362,18 @@ public class MgProductInfCli extends FaiClient {
     }
 
     public int getPdSkuScInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> infoList){
-        return getPdSkuScInfoList(aid, tid, siteId, lgId, keepPriId1, rlPdId, false, infoList);
+        return getPdSkuScInfoList(aid, tid, siteId, lgId, keepPriId1, rlPdId, false, infoList, null);
     }
 
     /**
      * 获取产品规格SKU列表
      * @param rlPdId 商品业务id {@link ProductSpecEntity.SpecSkuInfo#RL_PD_ID}
      * @param withSpuInfo 是否同时获取spu的相关数据，例如商品条码
-     * @param infoList Param 见 {@link ProductSpecEntity.SpecSkuInfo} <br/>
+     * @param rtInfoList Param 见 {@link ProductSpecEntity.SpecSkuInfo} <br/>
+     * @param rtSpuInfo spu信息
      * @return {@link Errno}
      */
-    public int getPdSkuScInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, boolean withSpuInfo, FaiList<Param> infoList) {
+    public int getPdSkuScInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, boolean withSpuInfo, FaiList<Param> rtInfoList, Param rtSpuInfo) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2381,9 +2382,9 @@ public class MgProductInfCli extends FaiClient {
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
-            if (infoList == null) {
+            if (rtInfoList == null) {
                 m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "infoList error");
+                Log.logErr(m_rt, "rtInfoList error");
                 return m_rt;
             }
 
@@ -2427,10 +2428,18 @@ public class MgProductInfCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductSpecDto.SpecSku.getInfoDto());
+            m_rt = rtInfoList.fromBuffer(recvBody, keyRef, ProductSpecDto.SpecSku.getInfoDto());
             if (m_rt != Errno.OK || keyRef.value != ProductSpecDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
+            }
+            if(rtSpuInfo != null){
+                keyRef = new Ref<Integer>();
+                m_rt = rtSpuInfo.fromBuffer(recvBody, keyRef, ProductSpecDto.SpecSku.getInfoDto());
+                if (m_rt != Errno.OK || keyRef.value != ProductSpecDto.Key.SPU_INFO) {
+                    Log.logErr(m_rt, "recv codec err");
+                    return m_rt;
+                }
             }
             return m_rt = Errno.OK;
         } finally {

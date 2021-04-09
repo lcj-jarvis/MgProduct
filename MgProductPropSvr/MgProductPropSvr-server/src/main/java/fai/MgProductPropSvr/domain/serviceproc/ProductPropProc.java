@@ -78,8 +78,8 @@ public class ProductPropProc {
 
 	private int creatAndSetId(int aid, Param info) {
 		int rt;
-		Integer propId = info.getInt(ProductPropEntity.Info.PROP_ID);
-		if(propId == null) {
+		Integer propId = info.getInt(ProductPropEntity.Info.PROP_ID, 0);
+		if(propId <= 0) {
 			propId = m_propDao.buildId(aid, false);
 			if (propId == null) {
 				rt = Errno.ERROR;

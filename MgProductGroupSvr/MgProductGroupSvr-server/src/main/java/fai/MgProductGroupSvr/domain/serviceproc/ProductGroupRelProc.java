@@ -165,8 +165,8 @@ public class ProductGroupRelProc {
 
     private int creatAndSetId(int aid, int unionPriId, Param info) {
         int rt = Errno.OK;
-        Integer rlGroupId = info.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID);
-        if(rlGroupId == null) {
+        Integer rlGroupId = info.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID, 0);
+        if(rlGroupId <= 0) {
             rlGroupId = m_relDao.buildId(aid, unionPriId, false);
             if (rlGroupId == null) {
                 rt = Errno.ERROR;

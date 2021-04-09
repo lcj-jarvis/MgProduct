@@ -62,8 +62,8 @@ public class ProductPropRelProc {
 
 	private int creatAndSetId(int aid, int unionPriId, Param info) {
 		int rt;
-		Integer rlPropId = info.getInt(ProductPropRelEntity.Info.RL_PROP_ID);
-		if(rlPropId == null) {
+		Integer rlPropId = info.getInt(ProductPropRelEntity.Info.RL_PROP_ID, 0);
+		if(rlPropId <= 0) {
 			rlPropId = m_relDao.buildId(aid, unionPriId, false);
 			if (rlPropId == null) {
 				rt = Errno.ERROR;

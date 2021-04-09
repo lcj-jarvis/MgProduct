@@ -66,8 +66,8 @@ public class ProductProc {
 
     private int creatAndSetId(int aid, Param info) {
         int rt;
-        Integer pdId = info.getInt(ProductEntity.Info.PD_ID);
-        if(pdId == null) {
+        Integer pdId = info.getInt(ProductEntity.Info.PD_ID, 0);
+        if(pdId <= 0) {
             pdId = m_dao.buildId(aid, false);
             if (pdId == null) {
                 rt = Errno.ERROR;

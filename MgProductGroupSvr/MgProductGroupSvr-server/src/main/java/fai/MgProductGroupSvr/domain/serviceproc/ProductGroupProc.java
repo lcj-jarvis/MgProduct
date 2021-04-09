@@ -227,8 +227,8 @@ public class ProductGroupProc {
 
     private int creatAndSetId(int aid, Param info) {
         int rt;
-        Integer groupId = info.getInt(ProductGroupEntity.Info.GROUP_ID);
-        if(groupId == null) {
+        Integer groupId = info.getInt(ProductGroupEntity.Info.GROUP_ID, 0);
+        if(groupId <= 0) {
             groupId = m_daoCtrl.buildId(aid, false);
             if (groupId == null) {
                 rt = Errno.ERROR;

@@ -800,6 +800,7 @@ public class MgProductInfHandler extends FaiHandler {
                                   @ArgBodyInteger(MgProductDto.Key.ID) int rlPdId) throws IOException {
         return mgProductInfService.getProductFullInfo(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId);
     }
+    @WrittenCmd
     @Cmd(MgProductInfCmd.Cmd.IMPORT_PRODUCT)
     public int importProduct(final FaiSession session,
                              @ArgFlow final int flow,

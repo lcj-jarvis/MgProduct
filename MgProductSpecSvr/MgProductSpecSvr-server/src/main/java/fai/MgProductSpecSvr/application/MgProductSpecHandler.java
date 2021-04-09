@@ -49,6 +49,7 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
         return m_specTempService.setTpScInfoList(session, flow, aid, unionPriId, tid, recvInfoList);
     }
 
+    @WrittenCmd
     @Cmd(MgProductSpecCmd.SpecTempCmd.DEL_LIST)
     private int delTpScInfoList(final FaiSession session,
                                 @ArgFlow final int flow,

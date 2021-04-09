@@ -6,6 +6,7 @@ import fai.MgProductBasicSvr.interfaces.cli.MgProductBasicCli;
 import fai.MgProductBasicSvr.interfaces.entity.ProductRelEntity;
 import fai.MgProductInfSvr.application.MgProductInfSvr;
 import fai.MgProductInfSvr.domain.comm.BizPriKey;
+import fai.MgProductInfSvr.domain.comm.ProductSpecCheck;
 import fai.MgProductInfSvr.domain.serviceproc.ProductBasicProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductSpecProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductStoreProc;
@@ -17,6 +18,7 @@ import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
+import fai.mgproduct.comm.MgProductErrno;
 import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.service.ServicePub;
@@ -241,15 +243,16 @@ public class MgProductInfService extends ServicePub {
     public int importProduct(FaiSession session, int flow, int aid, int ownerTid, int ownerSiteId, int ownerLgId, int ownerKeepPriId1, FaiList<Param> productList, Param inStoreRecordInfo, boolean useMgProductBasicInfo) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
+        FaiList<Param> errProductList = new FaiList<>();
         try {
             if(Util.isEmptyList(productList)){
                 rt = Errno.ARGS_ERROR;
-                Log.logErr("productList error, ownerTid is not valid;flow=%d;aid=%d;ownerTid=%d;", flow, aid, ownerTid);
+                Log.logErr("productList error;flow=%d;aid=%d;ownerTid=%d;", flow, aid, ownerTid);
                 return rt;
             }
             if(productList.size() > MgProductInfSvr.SVR_OPTION.getImportProductMaxSize()){
                 rt = Errno.SIZE_LIMIT;
-                Log.logErr("productList size limit, ownerTid is not valid;flow=%d;aid=%d;ownerTid=%d;size=%s;", flow, aid, ownerTid, productList.size());
+                Log.logErr("productList size limit;flow=%d;aid=%d;ownerTid=%d;size=%s;", flow, aid, ownerTid, productList.size());
                 return rt;
             }
             if(!FaiValObj.TermId.isValidTid(ownerTid)) {
@@ -266,7 +269,6 @@ public class MgProductInfService extends ServicePub {
             }
             int ownerUnionPriId = idRef.value;
             HashSet<String> skuCodeSet = new HashSet<>();
-            FaiList<Param> errProductList = new FaiList<>();
             // 检查导入的数据，并分开正确的数据和错误的数据
             checkImportProductList(productList, skuCodeSet, errProductList, useMgProductBasicInfo);
 
@@ -284,6 +286,7 @@ public class MgProductInfService extends ServicePub {
             }
             // 组装批量添加的商品基础信息
             FaiList<Param> batchAddBasicInfoList = new FaiList<>(productList.size());
+            FaiList<Integer> rlPdIdList = new FaiList<>();
             for (Param productInfo : productList) {
                 Param basicInfo = productInfo.getParam(MgProductEntity.Info.BASIC);
                 if(!useMgProductBasicInfo){
@@ -292,21 +295,69 @@ public class MgProductInfService extends ServicePub {
                             new Param().setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId)
                                     .setBoolean(ProductRelEntity.Info.INFO_CHECK, false)
                     );
+                    productInfo.setInt(MgProductEntity.Info.RL_PD_ID, rlPdId);
+                    rlPdIdList.add(rlPdId);
                 }else{
                     // TODO 业务方接入商品基础信息到中台时需要删除下面报错同时实现组装逻辑
                     rt = Errno.ARGS_ERROR;
-                    Log.logErr(rt,"args error, ownerTid is not valid;flow=%d;aid=%d;ownerTid=%d;productInfo=%s;", flow, aid, ownerTid, productInfo);
+                    Log.logErr(rt,"args error;flow=%d;aid=%d;ownerTid=%d;productInfo=%s;", flow, aid, ownerTid, productInfo);
                     return rt;
                 }
             }
+
             if(batchAddBasicInfoList.isEmpty()){
+                rt = Errno.ERROR;
+                Log.logErr(rt,"batchAddBasicInfoList empty;flow=%d;aid=%d;ownerTid=%d;", flow, aid, ownerTid);
                 return rt;
             }
-            // 批量添加商品数据
+
             ProductBasicProc productBasicProc = new ProductBasicProc(flow);
+            Set<Integer> alreadyExistsRlPdIdSet = new HashSet<>();
+            if(!rlPdIdList.isEmpty()){
+                FaiList<Param> alreadyExistsList = new FaiList<>();
+                rt = productBasicProc.getRelListByRlIds(aid, ownerUnionPriId, rlPdIdList, alreadyExistsList);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                    Log.logErr(rt, "productBasicProc.getRelListByRlIds err;aid=%s;ownerTid=%s;ownerUnionPriId=%s;rlPdIdList=%s;", aid, ownerTid, ownerUnionPriId, rlPdIdList);
+                    return rt;
+                }
+                alreadyExistsRlPdIdSet = new HashSet<>(alreadyExistsList.size()*4/3+1);
+                for (Param info : alreadyExistsList) {
+                    int alreadyRlPdId = info.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID);
+                    alreadyExistsRlPdIdSet.add(alreadyRlPdId);
+                }
+            }
+            // 移除已经存在的商品
+            if(!alreadyExistsRlPdIdSet.isEmpty()){
+                for(Iterator<Param> iterator = batchAddBasicInfoList.iterator();iterator.hasNext();){
+                    Param info = iterator.next();
+                    if(alreadyExistsRlPdIdSet.contains(info.getInt(ProductRelEntity.Info.RL_PD_ID))){
+                        iterator.remove();
+                    }
+                }
+                for(Iterator<Param> iterator = productList.iterator();iterator.hasNext();){
+                    Param product = iterator.next();
+                    if(alreadyExistsRlPdIdSet.contains(product.getInt(MgProductEntity.Info.RL_PD_ID))){
+                        product.setInt(MgProductEntity.Info.ERRNO, MgProductErrno.Import.REPEAT_IMPORT);
+                        errProductList.add(product);
+                        iterator.remove();
+                    }
+                }
+            }
+
+            if(batchAddBasicInfoList.isEmpty()){
+                rt = Errno.ERROR;
+                Log.logErr(rt,"batchAddBasicInfoList 2 empty;flow=%d;aid=%d;ownerTid=%d;", flow, aid, ownerTid);
+                return rt;
+            }
+
             FaiList<Param> idInfoList = new FaiList<>();
+            // 批量添加商品数据
             rt = productBasicProc.batchAddProductAndRel(aid, ownerTid, ownerUnionPriId, batchAddBasicInfoList, idInfoList);
             if(rt != Errno.OK){
+                for (Param product : productList) {
+                    product.setInt(MgProductEntity.Info.ERRNO, rt);
+                }
+                errProductList.addAll(productList);
                 Log.logErr(rt, "productBasicProc.batchAddProductAndRel err;aid=%s;ownerTid=%s;ownerUnionPriId=%s;batchAddBasicInfoList=%s;", aid, ownerTid, ownerUnionPriId, batchAddBasicInfoList);
                 return rt;
             }
@@ -339,7 +390,7 @@ public class MgProductInfService extends ServicePub {
             }else{
                 // TODO 业务方接入商品基础信息到中台时需要实现
                 rt = Errno.ARGS_ERROR;
-                Log.logErr(rt,"args error, ownerTid is not valid;flow=%d;aid=%d;ownerTid=%d;", flow, aid, ownerTid);
+                Log.logErr(rt,"args error;flow=%d;aid=%d;ownerTid=%d;", flow, aid, ownerTid);
                 return rt;
             }
             Log.logStd("begin;flow=%s;aid=%s;ownerTid=%s;ownerUnionPriId=%s;addedPdIdSet=%s;",flow, aid, ownerTid, ownerUnionPriId, addedPdIdSet);
@@ -416,14 +467,14 @@ public class MgProductInfService extends ServicePub {
                     Map<String, Long> inPdScStrNameListJsonSkuIdMap = pdIdInPdScStrNameListJsonSkuIdMap.get(pdId);
                     Map<Long, FaiList<Integer>> skuIdInPdScStrIdMap = pdIdSkuIdInPdScStrIdMap.get(pdId);
                     if(inPdScStrNameListJsonSkuIdMap == null){
-                        // TODO err
+                        Log.logStd("inPdScStrNameListJsonSkuIdMap empty;flow=%s;aid=%s;productInfo=%s;",flow, aid, productInfo);
                         continue;
                     }
                     for (Param storeSale : storeSales) {
                         FaiList<String> inPdScStrNameList = storeSale.getList(ProductStoreEntity.StoreSalesSkuInfo.IN_PD_SC_STR_NAME_LIST);
                         Long skuId = inPdScStrNameListJsonSkuIdMap.get(inPdScStrNameList.toJson());
                         if(skuId == null){
-                            // TODO err;
+                            Log.logStd("skuId empty;flow=%s;aid=%s;productInfo=%s;inPdScStrNameList=%s;",flow, aid, productInfo, inPdScStrNameList);
                             continue;
                         }
                         FaiList<Integer> inPdScStrIdList = skuIdInPdScStrIdMap.get(skuId);
@@ -465,11 +516,16 @@ public class MgProductInfService extends ServicePub {
                     }
                 }
             }
+            Log.logStd("end;flow=%s;aid=%s;ownerTid=%s;ownerUnionPriId=%s;",flow, aid, ownerTid, ownerUnionPriId);
             rt = Errno.OK;
-            FaiBuffer sendBuf = new FaiBuffer(true);
-            session.write(sendBuf);
         }finally {
-            stat.end((rt != Errno.OK), rt);
+            try {
+                FaiBuffer sendBuf = new FaiBuffer(true);
+                errProductList.toBuffer(sendBuf, MgProductDto.Key.INFO_LIST, MgProductDto.getInfoDto());
+                session.write(rt, sendBuf);
+            }finally {
+                stat.end((rt != Errno.OK), rt);
+            }
         }
         return rt;
     }
@@ -477,20 +533,26 @@ public class MgProductInfService extends ServicePub {
         for(Iterator<Param> iterator = productList.iterator(); iterator.hasNext();){
             Param productInfo = iterator.next();
             FaiList<Param> specSkuList = productInfo.getListNullIsEmpty(MgProductEntity.Info.SPEC_SKU);
+            boolean remove = false;
+            tag:
             for (Param specSkuInfo : specSkuList) {
                 if (existsSkuCodeSet.contains(specSkuInfo.getString(ProductSpecEntity.SpecSkuInfo.SKU_CODE))) {
-                    errProductList.add(productInfo);
-                    iterator.remove();
-                    continue;
+                    productInfo.setInt(MgProductEntity.Info.ERRNO, MgProductErrno.Import.SKU_CODE_ALREADY_EXISTS);
+                    remove = true;
+                    break tag;
                 }
                 FaiList<String> skuCodeList = specSkuInfo.getListNullIsEmpty(ProductSpecEntity.SpecSkuInfo.SKU_CODE_LIST);
                 for (String skuCode : skuCodeList) {
                     if(existsSkuCodeSet.contains(skuCode)){
-                        errProductList.add(productInfo);
-                        iterator.remove();
-                        break;
+                        productInfo.setInt(MgProductEntity.Info.ERRNO, MgProductErrno.Import.SKU_CODE_ALREADY_EXISTS);
+                        remove = true;
+                        break tag;
                     }
                 }
+            }
+            if(remove){
+                errProductList.add(productInfo);
+                iterator.remove();
             }
         }
     }
@@ -500,35 +562,91 @@ public class MgProductInfService extends ServicePub {
             Param basicInfo = productInfo.getParam(MgProductEntity.Info.BASIC);
             if(Str.isEmpty(basicInfo)){
                 errProductList.add(productInfo);
+                productInfo.setInt(MgProductEntity.Info.ERRNO, MgProductErrno.Import.BASIC_IS_EMPTY);
                 iterator.remove();
                 continue;
             }
             if(!useMgProductBasicInfo){
                 int rlPdId = basicInfo.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID, 0);
                 if(rlPdId <= 0){
+                    productInfo.setInt(MgProductEntity.Info.ERRNO, MgProductErrno.Import.BASIC_IS_EMPTY);
                     errProductList.add(productInfo);
                     iterator.remove();
                     continue;
                 }
             }
+            boolean remove = false;
+            FaiList<Param> specList = productInfo.getListNullIsEmpty(MgProductEntity.Info.SPEC);
+            tag:
+            for (Param spec : specList) {
+                String specName = spec.getString(ProductSpecEntity.SpecInfo.NAME);
+                if(!ProductSpecCheck.Spec.checkName(specName)){
+                    productInfo.setInt(MgProductEntity.Info.ERRNO, MgProductErrno.Import.SPEC_NAME_LEN_LIMIT);
+                    remove = true;
+                    break tag;
+                }
+                int flag = spec.getInt(ProductSpecEntity.SpecInfo.FLAG, 0);
+                FaiList<Param> inPdScValList = spec.getListNullIsEmpty(ProductSpecEntity.SpecInfo.IN_PD_SC_VAL_LIST);
+                if(inPdScValList.isEmpty()){
+                    if(!Misc.checkBit(flag, ProductSpecValObj.Spec.FLag.ALLOW_IN_PD_SC_VAL_LIST_IS_EMPTY)){
+                        productInfo.setInt(MgProductEntity.Info.ERRNO, MgProductErrno.Import.IN_PD_SC_VAL_LIST_IS_EMPTY);
+                        remove = true;
+                        break tag;
+                    }
+                }else{
+                    Set<String> valNameSet = new HashSet<>(inPdScValList.size()*4/3+1);
+                    for (Param inPdScVal : inPdScValList) {
+                        String name = inPdScVal.getString(ProductSpecValObj.Spec.InPdScValList.Item.NAME);
+                        if(!ProductSpecCheck.Spec.checkName(name)){
+                            productInfo.setInt(MgProductEntity.Info.ERRNO, MgProductErrno.Import.SPEC_VAL_NAME_LEN_LIMIT);
+                            remove = true;
+                            break tag;
+                        }
+                        if(valNameSet.contains(name)){
+                            productInfo.setInt(MgProductEntity.Info.ERRNO, MgProductErrno.Import.SPEC_VAL_NAME_REPEAT);
+                            remove = true;
+                            break tag;
+                        }
+                        valNameSet.add(name);
+                    }
+                }
+            }
+            if(remove){
+                errProductList.add(productInfo);
+                iterator.remove();
+                continue;
+            }
 
             FaiList<Param> specSkuList = productInfo.getListNullIsEmpty(MgProductEntity.Info.SPEC_SKU);
-            boolean remove = false;
+            remove = false;
             tag:
             for (Param specSkuInfo : specSkuList) {
                 String skuCode = specSkuInfo.getString(ProductSpecEntity.SpecSkuInfo.SKU_CODE);
                 if(skuCodeSet.contains(skuCode)){
+                    productInfo.setInt(MgProductEntity.Info.ERRNO, MgProductErrno.Import.SKU_CODE_ALREADY_EXISTS);
+                    remove = true;
+                    break tag;
+                }
+                if(!ProductSpecCheck.SpecSku.checkSkuCode(skuCode)){
+                    productInfo.setInt(MgProductEntity.Info.ERRNO, MgProductErrno.Import.SKU_CODE_LEN_LIMIT);
                     remove = true;
                     break tag;
                 }
                 skuCodeSet.add(skuCode);
                 FaiList<String> skuCodeList = specSkuInfo.getListNullIsEmpty(ProductSpecEntity.SpecSkuInfo.SKU_CODE_LIST);
                 if(skuCodeList.size() > ProductSpecValObj.SpecSku.Limit.SKU_CODE_MAX_SIZE){
+                    productInfo.setInt(MgProductEntity.Info.ERRNO, MgProductErrno.Import.SKU_CODE_SIZE_LIMIT);
                     remove = true;
                     break tag;
                 }
-                for (String skuCode2 : skuCodeList) {
-                    if(skuCodeSet.contains(skuCode2)){
+                for (String tmpSkuCode : skuCodeList) {
+                    if(skuCodeSet.contains(tmpSkuCode)){
+                        productInfo.setInt(MgProductEntity.Info.ERRNO, MgProductErrno.Import.SKU_CODE_ALREADY_EXISTS);
+                        remove = true;
+                        break tag;
+                    }
+                    if(!ProductSpecCheck.SpecSku.checkSkuCode(tmpSkuCode)){
+                        productInfo.setInt(MgProductEntity.Info.ERRNO, MgProductErrno.Import.SKU_CODE_LEN_LIMIT);
                         remove = true;
                         break tag;
                     }

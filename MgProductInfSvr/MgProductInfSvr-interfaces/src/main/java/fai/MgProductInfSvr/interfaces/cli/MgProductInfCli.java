@@ -4243,6 +4243,10 @@ public class MgProductInfCli extends FaiClient {
         }
     }
 
+    public int importProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> productList, Param inStoreRecordInfo){
+        return importProduct(aid, tid, siteId, lgId, keepPriId1, productList, inStoreRecordInfo, null);
+    }
+
     /**
      * 导入商品数据
      * @param tid 创建商品的tid
@@ -4252,7 +4256,7 @@ public class MgProductInfCli extends FaiClient {
      * @param productList 商品中台各个服务组合的数据 {@link MgProductEntity.Info}
      * @param inStoreRecordInfo 入库记录 {@link ProductStoreEntity.InOutStoreRecordInfo}  非必要
      */
-    public int importProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> productList, Param inStoreRecordInfo){
+    public int importProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> productList, Param inStoreRecordInfo, FaiList<Param> errProductList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -4304,11 +4308,25 @@ public class MgProductInfCli extends FaiClient {
                 Log.logErr(m_rt, "recv err");
                 return m_rt;
             }
-            m_rt = recvProtocol.getResult();
-            if (m_rt != Errno.OK) {
+            int realRt = recvProtocol.getResult();
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
                 return m_rt;
             }
 
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            if(errProductList != null){
+               m_rt = errProductList.fromBuffer(recvBody, keyRef, MgProductDto.getInfoDto());
+                if (m_rt != Errno.OK || keyRef.value != MgProductDto.Key.INFO_LIST) {
+                    Log.logErr(m_rt, "recv codec err");
+                    return m_rt;
+                }
+            }
+            m_rt = realRt;
             return m_rt;
         } finally {
             close();

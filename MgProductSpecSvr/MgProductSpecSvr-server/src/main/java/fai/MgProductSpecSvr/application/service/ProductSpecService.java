@@ -770,11 +770,11 @@ public class ProductSpecService extends ServicePub {
             }
             // 获取skuId 并移除 ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST 字段
             if(inPdScStrNameSet.size() != 0){
-                Ref<Param> nameIdMapRef = new Ref<>();
+                Param nameIdMap = new Param(true);
                 SpecStrDaoCtrl specStrDaoCtrl = SpecStrDaoCtrl.getInstance(flow, aid);
                 try {
                     SpecStrProc specStrProc = new SpecStrProc(specStrDaoCtrl, flow);
-                    rt = specStrProc.getNameIdMapByNames(aid, new FaiList<>(inPdScStrNameSet), nameIdMapRef);
+                    rt = specStrProc.getListWithBatchAdd(aid, new FaiList<>(inPdScStrNameSet), nameIdMap);
                     if(rt != Errno.OK){
                         return rt;
                     }
@@ -782,7 +782,6 @@ public class ProductSpecService extends ServicePub {
                     specStrDaoCtrl.closeDao();
                 }
                 Map<String, Param> inPdScStrIdListJsonInfoMap = new HashMap<>(inPdScStrNameListInfoMap.size()*4/3+1);
-                Param nameIdMap = nameIdMapRef.value;
                 FaiList<String> inPdScStrIdLists = new FaiList<>(inPdScStrNameListInfoMap.size());
                 for (Map.Entry<FaiList<String>, Param> entry : inPdScStrNameListInfoMap.entrySet()) {
                     FaiList<String> inPdScStrNameList = entry.getKey();

@@ -123,7 +123,7 @@ public class ProductSpecSkuCacheCtrl extends CacheCtrl {
 			skuId = Long.parseLong(skuIdStr);
 		}catch (NumberFormatException e){
 		}
-		if(!retainZero && skuId == 0){
+		if(!retainZero && (skuId == null || skuId == 0)){
 			return null;
 		}
 		return skuId;

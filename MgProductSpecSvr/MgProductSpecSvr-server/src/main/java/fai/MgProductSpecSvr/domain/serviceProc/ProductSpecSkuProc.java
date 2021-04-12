@@ -259,7 +259,7 @@ public class ProductSpecSkuProc {
         }
         // 没有就添加
         HashMap<Integer, Long> pdIdSkuIdMap = new HashMap<>();
-        FaiList<Integer> pdIdList = new FaiList<>();
+        FaiList<Integer> pdIdList = new FaiList<>(Arrays.asList(pdId));
         rt = batchGenSkuRepresentSpuInfo(aid, tid, unionPriId, pdIdList, pdIdSkuIdMap);
         if(rt != Errno.OK){
             return rt;

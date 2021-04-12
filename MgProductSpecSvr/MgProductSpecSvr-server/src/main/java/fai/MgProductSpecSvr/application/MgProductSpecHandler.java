@@ -264,6 +264,15 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
         return m_productSpecService.getPdSkuIdInfoList(session, flow, aid, pdIdList, withSpuInfo);
     }
 
+    @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_ONLY_SPU_INFO_LIST)
+    private int getOnlySpuInfoList(final FaiSession session,
+                                   @ArgFlow final int flow,
+                                   @ArgAid final int aid,
+                                   @ArgBodyInteger(ProductSpecSkuDto.Key.TID) final int tid,
+                                   @ArgList(keyMatch = ProductSpecSkuDto.Key.PD_ID_LIST) final FaiList<Integer> pdIdList) throws IOException {
+        return m_productSpecService.getOnlySpuInfoList(session, flow, aid, pdIdList);
+    }
+
     @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_SKU_CODE_LIST)
     private int getExistsSkuCodeList(final FaiSession session,
                                     @ArgFlow final int flow,

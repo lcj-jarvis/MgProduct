@@ -4,10 +4,12 @@ package fai.MgProductSpecSvr.domain.repository;
 import fai.MgProductSpecSvr.domain.comm.Utils;
 import fai.MgProductSpecSvr.domain.entity.ProductSpecSkuEntity;
 import fai.MgProductSpecSvr.interfaces.dto.ProductSpecSkuDto;
-import fai.comm.util.*;
+import fai.comm.util.FaiList;
+import fai.comm.util.Log;
+import fai.comm.util.Param;
+import fai.comm.util.Var;
 
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ProductSpecSkuCacheCtrl extends CacheCtrl {
@@ -91,19 +93,74 @@ public class ProductSpecSkuCacheCtrl extends CacheCtrl {
 		m_cache.expire(pdIdSkuIdRelCacheKey, DIRTY_EXPIRE_SECOND);
 	}
 
+	/**
+	 * 批量获取缓存
+	 * codis集群是支持mget/mset  api中没支持可能是考虑到redisCluster集群不支持这两个命令所以没提供相应的api
+	 */
+	public static Map<Integer, Long> batchGetSkuIdRepresentSpu(int aid, List<Integer> pdIdList, boolean retainZero){
+		if(pdIdList == null || pdIdList.isEmpty()){
+			return new HashMap<>();
+		}
+		pdIdList.removeAll(Collections.singletonList(null)); // 移除所有null值
+		Map<Integer, Long> result = new HashMap<>(pdIdList.size()*4/3+1);
+		for (Integer pdId : pdIdList) {
+			Long skuId = getSkuIdRepresentSpu(aid, pdId, retainZero);
+			if(skuId == null){
+				continue;
+			}
+			result.put(pdId, skuId);
+		}
+		return result; // 保留
+	}
 	public static Long getSkuIdRepresentSpu(int aid, int pdId){
+		return getSkuIdRepresentSpu(aid, pdId, false);
+	}
+	public static Long getSkuIdRepresentSpu(int aid, int pdId, boolean retainZero){
 		String skuIdRepresentSpuCacheKey = getSkuIdRepresentSpuCacheKey(aid, pdId);
 		String skuIdStr = m_cache.get(skuIdRepresentSpuCacheKey);
-		long skuId = Parser.parseLong(skuIdStr, 0);
-		if(skuId == 0){
+		Long skuId = null;
+		try {
+			skuId = Long.parseLong(skuIdStr);
+		}catch (NumberFormatException e){
+		}
+		if(!retainZero && skuId == 0){
 			return null;
 		}
 		return skuId;
 	}
 
+	/**
+	 * 批量设置缓存
+	 * codis集群是支持mget/mset  api中没支持可能是考虑到redisCluster集群不支持这两个命令所以没提供相应的api
+	 */
+	public static boolean batchSetSkuIdRepresentSpu(int aid, Map<Integer, Long> pdIdSkuIdMap){
+		if(pdIdSkuIdMap == null || pdIdSkuIdMap.isEmpty()){
+			return true;
+		}
+		boolean boo  = true;
+		for (Map.Entry<Integer, Long> pdIdSKuIdEntry : pdIdSkuIdMap.entrySet()) {
+			int pdId = pdIdSKuIdEntry.getKey();
+
+			long skuId = pdIdSKuIdEntry.getValue();
+			boo &= setSkuIdRepresentSpu(aid, pdId, skuId);
+		}
+		return boo;
+	}
+
 	public static boolean setSkuIdRepresentSpu(int aid, int pdId, long skuId){
 		String skuIdRepresentSpuCacheKey = getSkuIdRepresentSpuCacheKey(aid, pdId);
 		return m_cache.set(skuIdRepresentSpuCacheKey, String.valueOf(skuId));
+	}
+	public static boolean delSkuIdRepresentSpu(int aid, Set<Integer> needDelPdIdSet) {
+		if(needDelPdIdSet == null || needDelPdIdSet.isEmpty()){
+			return true;
+		}
+		String[] keys = new String[needDelPdIdSet.size()];
+		int idx = 0;
+		for (Integer pdId : needDelPdIdSet) {
+			keys[idx++] = getSkuIdRepresentSpuCacheKey(aid, pdId);
+		}
+		return m_cache.del(keys);
 	}
 
 

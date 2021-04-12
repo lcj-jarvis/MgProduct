@@ -272,6 +272,24 @@ public class ProductSpecProc extends AbstractProductProc {
         }
         return rt;
     }
+
+    /**
+     * 仅获取spu数据
+     */
+    public int getOnlySpuInfoList(int aid, int tid, FaiList<Integer> pdIdList, FaiList<Param> infoList){
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
+            return rt;
+        }
+        rt = m_cli.getOnlySpuInfoList(aid, tid, pdIdList, infoList);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
+            return rt;
+        }
+        return rt;
+    }
     /**
      * 根据 pdId 获取 pdId-skuId 集
      * @param pdIdList

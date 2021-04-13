@@ -770,11 +770,11 @@ public class ProductSpecService extends ServicePub {
             }
             // 获取skuId 并移除 ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST 字段
             if(inPdScStrNameSet.size() != 0){
-                Ref<Param> nameIdMapRef = new Ref<>();
+                Param nameIdMap = new Param(true);
                 SpecStrDaoCtrl specStrDaoCtrl = SpecStrDaoCtrl.getInstance(flow, aid);
                 try {
                     SpecStrProc specStrProc = new SpecStrProc(specStrDaoCtrl, flow);
-                    rt = specStrProc.getNameIdMapByNames(aid, new FaiList<>(inPdScStrNameSet), nameIdMapRef);
+                    rt = specStrProc.getListWithBatchAdd(aid, new FaiList<>(inPdScStrNameSet), nameIdMap);
                     if(rt != Errno.OK){
                         return rt;
                     }
@@ -782,7 +782,6 @@ public class ProductSpecService extends ServicePub {
                     specStrDaoCtrl.closeDao();
                 }
                 Map<String, Param> inPdScStrIdListJsonInfoMap = new HashMap<>(inPdScStrNameListInfoMap.size()*4/3+1);
-                Param nameIdMap = nameIdMapRef.value;
                 FaiList<String> inPdScStrIdLists = new FaiList<>(inPdScStrNameListInfoMap.size());
                 for (Map.Entry<FaiList<String>, Param> entry : inPdScStrNameListInfoMap.entrySet()) {
                     FaiList<String> inPdScStrNameList = entry.getKey();
@@ -1087,7 +1086,42 @@ public class ProductSpecService extends ServicePub {
         }
         return rt;
     }
+    public int getOnlySpuInfoList(FaiSession session, int flow, int aid, FaiList<Integer> pdIdList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || pdIdList == null || pdIdList.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;pdIdList=%s", flow, aid, pdIdList);
+                return rt;
+            }
+            Ref<FaiList<Param>> pdScSkuInfoListRef = new Ref<>();
+            ProductSpecSkuDaoCtrl productSpecSkuDaoCtrl = ProductSpecSkuDaoCtrl.getInstance(flow, aid);
+            try {
+                ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(productSpecSkuDaoCtrl, flow);
+                rt = productSpecSkuProc.getSpuInfoList(aid, pdIdList, pdScSkuInfoListRef);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                    return rt;
+                }
+            }finally {
+                productSpecSkuDaoCtrl.closeDao();
+            }
 
+            FaiList<Param> psScSkuInfoList = pdScSkuInfoListRef.value;
+
+            rt = initPdScSkuCodeList(flow, aid, psScSkuInfoList);
+            if(rt != Errno.OK){
+                Log.logErr(rt,"initPdScSkuSpecStr err;aid=%d;pdIdList=%s;", aid, pdIdList);
+                return rt;
+            }
+
+            sendPdSkuScInfoList(session, psScSkuInfoList);
+            Log.logDbg("flow=%s;aid=%s;pdIdList=%s;", flow, aid, pdIdList);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
 
     /**
      * 获取已经存在的 skuCodeList
@@ -1907,5 +1941,6 @@ public class ProductSpecService extends ServicePub {
             }
         }
     }
+
 
 }

@@ -49,6 +49,7 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
         return m_specTempService.setTpScInfoList(session, flow, aid, unionPriId, tid, recvInfoList);
     }
 
+    @WrittenCmd
     @Cmd(MgProductSpecCmd.SpecTempCmd.DEL_LIST)
     private int delTpScInfoList(final FaiSession session,
                                 @ArgFlow final int flow,
@@ -261,6 +262,15 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
                                    @ArgList(keyMatch = ProductSpecSkuDto.Key.PD_ID_LIST) final FaiList<Integer> pdIdList,
                                    @ArgBodyBoolean(value = ProductSpecSkuDto.Key.WITH_SPU_INFO, useDefault = true) final boolean withSpuInfo) throws IOException {
         return m_productSpecService.getPdSkuIdInfoList(session, flow, aid, pdIdList, withSpuInfo);
+    }
+
+    @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_ONLY_SPU_INFO_LIST)
+    private int getOnlySpuInfoList(final FaiSession session,
+                                   @ArgFlow final int flow,
+                                   @ArgAid final int aid,
+                                   @ArgBodyInteger(ProductSpecSkuDto.Key.TID) final int tid,
+                                   @ArgList(keyMatch = ProductSpecSkuDto.Key.PD_ID_LIST) final FaiList<Integer> pdIdList) throws IOException {
+        return m_productSpecService.getOnlySpuInfoList(session, flow, aid, pdIdList);
     }
 
     @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_SKU_CODE_LIST)

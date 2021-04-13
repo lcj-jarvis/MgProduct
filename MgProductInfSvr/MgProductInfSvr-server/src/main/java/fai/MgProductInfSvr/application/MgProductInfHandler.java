@@ -386,6 +386,18 @@ public class MgProductInfHandler extends FaiHandler {
         return specService.getPdSkuScInfoListBySkuIdList(session, flow, aid, tid, siteId, lgId, keepPriId1, skuIdList);
     }
 
+    @Cmd(MgProductInfCmd.ProductSpecSkuCmd.GET_ONLY_SPU_INFO_LIST)
+    public int getOnlySpuPdSkuScInfoList(final FaiSession session,
+                                             @ArgFlow final int flow,
+                                             @ArgAid final int aid,
+                                             @ArgBodyInteger(ProductSpecDto.Key.TID) int tid,
+                                             @ArgBodyInteger(ProductSpecDto.Key.SITE_ID) int siteId,
+                                             @ArgBodyInteger(ProductSpecDto.Key.LGID) int lgId,
+                                             @ArgBodyInteger(ProductSpecDto.Key.KEEP_PRIID1) int keepPriId1,
+                                             @ArgList(keyMatch = ProductSpecDto.Key.ID_LIST) FaiList<Integer> rlPdIdList) throws IOException {
+        return specService.getOnlySpuPdSkuScInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIdList);
+    }
+
     @Cmd(MgProductInfCmd.ProductSpecSkuCmd.GET_SKU_ID_LIST)
     public int getPdSkuIdInfoList(final FaiSession session,
                                   @ArgFlow final int flow,
@@ -800,6 +812,7 @@ public class MgProductInfHandler extends FaiHandler {
                                   @ArgBodyInteger(MgProductDto.Key.ID) int rlPdId) throws IOException {
         return mgProductInfService.getProductFullInfo(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId);
     }
+    @WrittenCmd
     @Cmd(MgProductInfCmd.Cmd.IMPORT_PRODUCT)
     public int importProduct(final FaiSession session,
                              @ArgFlow final int flow,

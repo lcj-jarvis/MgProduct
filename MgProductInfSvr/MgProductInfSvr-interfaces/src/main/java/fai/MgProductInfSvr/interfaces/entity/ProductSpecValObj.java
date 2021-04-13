@@ -17,10 +17,16 @@ public class ProductSpecValObj {
         public static final class Limit{
             public static final class InPdScValList{
                 public static final int MAX_SIZE = 50; // 最多50个元素
+                public static final class Item{
+                    public static final class Name{
+                        public static final int MIN_LEN = SpecStr.Limit.Name.MIN_LEN; // 最小长度
+                        public static final int MAX_LEN = SpecStr.Limit.Name.MAX_LEN; // 最大长度
+                    }
+                }
             }
             public static final class Name{
-                public static final int MIN_LEN = 1; // 最小长度
-                public static final int MAX_LEN = 100; // 最大长度
+                public static final int MIN_LEN = SpecStr.Limit.Name.MIN_LEN; // 最小长度
+                public static final int MAX_LEN = SpecStr.Limit.Name.MAX_LEN; // 最大长度
             }
         }
         /**
@@ -147,5 +153,12 @@ public class ProductSpecValObj {
             }
         }
     }
-
+    public static final class SpecStr{
+        public static final class Limit{
+            public static final class Name{
+                public static final int MIN_LEN = 1; // 最小长度
+                public static final int MAX_LEN = 100; // 最大长度
+            }
+        }
+    }
 }

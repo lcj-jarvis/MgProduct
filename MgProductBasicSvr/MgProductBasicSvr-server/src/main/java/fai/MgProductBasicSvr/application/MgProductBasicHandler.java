@@ -15,6 +15,7 @@ import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
 import fai.comm.util.FaiList;
 import fai.comm.util.Param;
+import fai.comm.util.ParamUpdater;
 import fai.comm.util.SearchArg;
 import fai.middleground.svrutil.service.MiddleGroundHandler;
 import fai.middleground.svrutil.service.ServiceProxy;
@@ -220,6 +221,30 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                  @ArgBodyBoolean(value = ProductRelDto.Key.SOFT_DEL,
                                  useDefault = true, defaultValue = false) boolean softDel) throws IOException {
         return service.batchDelPdRelBind(session, flow, aid, unionPriId, rlPdIds, softDel);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BasicCmd.SET_SINGLE_PD)
+    public int setSinglePd(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid final int aid,
+                                 @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                                 @ArgBodyInteger(ProductRelDto.Key.RL_PD_ID) Integer rlPdId,
+                                 @ArgParamUpdater(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
+                                 keyMatch = ProductRelDto.Key.UPDATER) ParamUpdater recvUpdater) throws IOException {
+        return service.setSingle(session, flow, aid, unionPriId, rlPdId, recvUpdater);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BasicCmd.SET_PDS)
+    public int setProducts(final FaiSession session,
+                           @ArgFlow final int flow,
+                           @ArgAid final int aid,
+                           @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                           @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
+                           @ArgParamUpdater(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
+                                   keyMatch = ProductRelDto.Key.UPDATER) ParamUpdater recvUpdater) throws IOException {
+        return service.setProducts(session, flow, aid, unionPriId, rlPdIds, recvUpdater);
     }
 
     @Cmd(MgProductBasicCmd.BasicCmd.GET_PD_LIST)

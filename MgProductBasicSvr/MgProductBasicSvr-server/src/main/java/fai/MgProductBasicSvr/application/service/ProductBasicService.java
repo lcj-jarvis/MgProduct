@@ -115,7 +115,7 @@ public class ProductBasicService extends ServicePub {
             try {
                 tc.setAutoCommit(false);
                 ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
-                ProductRelCacheCtrl.setExpire(aid, unionPriId);
+                ProductRelCacheCtrl.InfoCache.setExpire(aid, unionPriId);
                 int delCount = relProc.delProductRel(aid, unionPriId, rlPdIds, softDel);
                 // 删除参数、分类关联数据
                 int delGroupCount = 0;
@@ -133,7 +133,7 @@ public class ProductBasicService extends ServicePub {
                 tc.commit();
 
                 // 删除缓存
-                ProductRelCacheCtrl.delCacheList(aid, unionPriId, rlPdIds);
+                ProductRelCacheCtrl.InfoCache.delCacheList(aid, unionPriId, rlPdIds);
                 ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, -delCount); // 更新数据状态缓存
                 if(!softDel) {
                     // 处理商品分类关联数据缓存
@@ -180,6 +180,7 @@ public class ProductBasicService extends ServicePub {
         Lock lock = LockUtil.getLock(aid);
         lock.lock();
         try {
+            int delPdCount = 0;
             //统一控制事务
             TransactionCtrl tc = new TransactionCtrl();
             FaiList<Integer> pdIdList = new FaiList<Integer>();
@@ -204,46 +205,46 @@ public class ProductBasicService extends ServicePub {
 
                 ProductProc pdProc = new ProductProc(flow, aid, tc);
                 // 删除商品数据
-                int delPdCount = pdProc.deleteProductList(aid, tid, pdIdList, softDel);
+                delPdCount = pdProc.deleteProductList(aid, tid, pdIdList, softDel);
 
                 // 删除参数关联
                 ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
-                int delBindPropCnt = bindPropProc.delPdBindProp(aid, pdIdList);
+                bindPropProc.delPdBindProp(aid, pdIdList);
 
                 // 删除分类关联
                 ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
-                int delBindGroupCnt = bindGroupProc.delPdBindGroupList(aid, pdIdList);
+                bindGroupProc.delPdBindGroupList(aid, pdIdList);
                 commit = true;
                 tc.commit();
-                // 清缓存
-                if(!Util.isEmptyList(delRelInfos)) {
-                    HashSet<Integer> uids = new HashSet<>();
-                    for(Param info : delRelInfos) {
-                        int curUnionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
-                        int curRlPdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
-                        uids.add(curUnionPriId);
-                        // mgProductRel 缓存
-                        ProductRelCacheCtrl.delCache(aid, curUnionPriId, curRlPdId);
-                        // cache: aid+unionPriId+pdId -> rlPdId
-                        ProductRelCacheCtrl.delRlIdRelCache(aid, curUnionPriId, pdIdList);
-                        // 参数关联缓存
-                        ProductBindPropCache.delCache(aid, curUnionPriId, curRlPdId);
-                        // 分类关联缓存
-                        ProductBindGroupCache.delCache(aid, curUnionPriId);
-                    }
-                    // 删除 数据状态dataStatus 缓存
-                    ProductRelCacheCtrl.DataStatusCache.del(aid, uids);
-                    ProductBindPropCache.DataStatusCache.del(aid, uids);
-                    ProductBindGroupCache.DataStatusCache.del(aid, uids);
-                }
-                ProductCacheCtrl.delCacheList(aid, pdIdList);
-                ProductCacheCtrl.DataStatusCache.update(aid, -delPdCount); // 更新数据状态缓存
             }finally {
                 if(!commit){
                     tc.rollback();
                 }
                 tc.closeDao();
             }
+            // 清缓存
+            if(!Util.isEmptyList(delRelInfos)) {
+                HashSet<Integer> uids = new HashSet<>();
+                for(Param info : delRelInfos) {
+                    int curUnionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
+                    int curRlPdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
+                    uids.add(curUnionPriId);
+                    // mgProductRel 缓存
+                    ProductRelCacheCtrl.InfoCache.delCache(aid, curUnionPriId, curRlPdId);
+                    // cache: aid+unionPriId+pdId -> rlPdId
+                    ProductRelCacheCtrl.RlIdRelCache.delCache(aid, curUnionPriId, pdIdList);
+                    // 参数关联缓存
+                    ProductBindPropCache.delCache(aid, curUnionPriId, curRlPdId);
+                    // 分类关联缓存
+                    ProductBindGroupCache.delCache(aid, curUnionPriId);
+                }
+                // 删除 数据状态dataStatus 缓存
+                ProductRelCacheCtrl.DataStatusCache.del(aid, uids);
+                ProductBindPropCache.DataStatusCache.del(aid, uids);
+                ProductBindGroupCache.DataStatusCache.del(aid, uids);
+            }
+            ProductCacheCtrl.InfoCache.delCacheList(aid, pdIdList);
+            ProductCacheCtrl.DataStatusCache.update(aid, -delPdCount); // 更新数据状态缓存
         }finally {
             lock.unlock();
         }
@@ -252,6 +253,153 @@ public class ProductBasicService extends ServicePub {
         FaiBuffer sendBuf = new FaiBuffer(true);
         session.write(sendBuf);
         Log.logStd("delProductList ok;flow=%d;aid=%d;uid=%d;rlPdIds=%s;", flow, aid, unionPriId, rlPdIds);
+
+        return rt;
+    }
+
+    @SuccessRt(value = Errno.OK)
+    public int setSingle(FaiSession session, int flow, int aid, int unionPriId, int rlPdId, ParamUpdater recvUpdater) throws IOException {
+        int rt;
+        if(rlPdId <= 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, rlPdId is not valid;aid=%d;uid=%d;rlPdId=%d;", aid, unionPriId, rlPdId);
+            return rt;
+        }
+        if(recvUpdater == null || recvUpdater.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, recvUpdater is empty;aid=%d;uid=%d;rlPdId=%d;", aid, unionPriId, rlPdId);
+            return rt;
+        }
+        ParamUpdater relUpdate = ProductRelProc.assignUpdate(flow, aid, recvUpdater);
+        ParamUpdater pdUpdate = ProductProc.assignUpdate(flow, aid, recvUpdater);
+        if(relUpdate == null && pdUpdate == null) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, recvUpdater is not valid;aid=%d;uid=%d;rlPdId=%d;", aid, unionPriId, rlPdId);
+            return rt;
+        }
+        Lock lock = LockUtil.getLock(aid);
+        lock.lock();
+        try {
+            int pdId = 0;
+            //统一控制事务
+            TransactionCtrl tc = new TransactionCtrl();
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+                ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+                if(relUpdate != null) {
+                    ProductRelCacheCtrl.InfoCache.setExpire(aid, unionPriId); // 设置过期时间，最大努力的避免脏数据
+                    relProc.setSingle(aid, unionPriId, rlPdId, relUpdate);
+                }
+                if(pdUpdate != null) {
+                    ProductCacheCtrl.InfoCache.setExpire(aid); // 设置过期时间，最大努力的避免脏数据
+                    Param relInfo = relProc.getProductRel(aid, unionPriId, rlPdId);
+                    if(Str.isEmpty(relInfo)) {
+                        rt = Errno.NOT_FOUND;
+                        Log.logErr(rt, "getIdRel isEmpty;flow=%d;aid=%d;uid=%d;rlPdIds=%s;", flow, aid, unionPriId, rlPdId);
+                        return rt;
+                    }
+                    pdId = relInfo.getInt(ProductRelEntity.Info.PD_ID);
+                    ProductProc pdProc = new ProductProc(flow, aid, tc);
+                    pdProc.setSingle(aid, pdId, pdUpdate);
+                }
+                commit = true;
+                tc.commit();
+            } finally {
+                if(!commit){
+                    tc.rollback();
+                }
+                tc.closeDao();
+            }
+            // 处理缓存
+            if(relUpdate != null) {
+                ProductRelCacheCtrl.InfoCache.updateCache(aid, unionPriId, rlPdId, relUpdate);
+            }
+            if(pdUpdate != null) {
+                ProductCacheCtrl.InfoCache.updateCache(aid, pdId, relUpdate);
+            }
+        }finally {
+            lock.unlock();
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("set single ok;flow=%d;aid=%d;uid=%d;rlPdId=%d;", flow, aid, unionPriId, rlPdId);
+
+        return rt;
+    }
+
+    @SuccessRt(value = Errno.OK)
+    public int setProducts(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlPdIds, ParamUpdater recvUpdater) throws IOException {
+        int rt;
+        if(!MgProductCheck.RequestLimit.checkWriteSize(aid, rlPdIds)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, rlPdIds is not valid;aid=%d;uid=%d;", aid, unionPriId);
+            return rt;
+        }
+        if(recvUpdater == null || recvUpdater.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, recvUpdater is empty;aid=%d;uid=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
+            return rt;
+        }
+        ParamUpdater relUpdate = ProductRelProc.assignUpdate(flow, aid, recvUpdater);
+        ParamUpdater pdUpdate = ProductProc.assignUpdate(flow, aid, recvUpdater);
+        if(relUpdate == null && pdUpdate == null) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, recvUpdater is not valid;aid=%d;uid=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
+            return rt;
+        }
+        Lock lock = LockUtil.getLock(aid);
+        lock.lock();
+        try {
+            FaiList<Integer> pdIdList = new FaiList<>();
+            //统一控制事务
+            TransactionCtrl tc = new TransactionCtrl();
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+                ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+                if(relUpdate != null) {
+                    relProc.setPdRels(aid, unionPriId, rlPdIds, relUpdate);
+                }
+                if(pdUpdate != null) {
+                    FaiList<Param> relList = relProc.getProductRelList(aid, unionPriId, rlPdIds);
+                    if(relList == null || relList.isEmpty()) {
+                        rt = Errno.NOT_FOUND;
+                        Log.logErr(rt, "getRelList isEmpty;flow=%d;aid=%d;uid=%d;rlPdIds=%s;", flow, aid, unionPriId, rlPdIds);
+                        return rt;
+                    }
+                    for(Param idRel : relList) {
+                        int pdId = idRel.getInt(ProductRelEntity.Info.PD_ID);
+                        pdIdList.add(pdId);
+                    }
+                    ProductProc pdProc = new ProductProc(flow, aid, tc);
+                    pdProc.setProducts(aid, pdIdList, pdUpdate);
+                }
+                commit = true;
+                tc.commit();
+            } finally {
+                if(!commit){
+                    tc.rollback();
+                }
+                tc.closeDao();
+            }
+            // 处理缓存
+            if(relUpdate != null) {
+                ProductRelCacheCtrl.InfoCache.delCacheList(aid, unionPriId, rlPdIds);
+            }
+            if(pdUpdate != null) {
+                ProductCacheCtrl.InfoCache.delCacheList(aid, pdIdList);
+            }
+        }finally {
+            lock.unlock();
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("set products ok;flow=%d;aid=%d;uid=%d;rlPdIds=%s;", flow, aid, unionPriId, rlPdIds);
 
         return rt;
     }
@@ -396,8 +544,8 @@ public class ProductBasicService extends ServicePub {
                 commit = true;
                 tc.commit();
                 // 更新缓存
-                ProductCacheCtrl.addCache(aid, pdData);
-                ProductRelCacheCtrl.addCache(aid, unionPriId, relData);
+                ProductCacheCtrl.InfoCache.addCache(aid, pdData);
+                ProductRelCacheCtrl.InfoCache.addCache(aid, unionPriId, relData);
                 ProductCacheCtrl.DataStatusCache.update(aid, 1); // 更新数据状态缓存
                 ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, 1); // 更新数据状态缓存
             } finally {
@@ -470,11 +618,11 @@ public class ProductBasicService extends ServicePub {
                 tc.commit();
                 // 更新缓存
                 if(!Util.isEmptyList(pdDataList)) {
-                    ProductCacheCtrl.addCacheList(aid, pdDataList);
+                    ProductCacheCtrl.InfoCache.addCacheList(aid, pdDataList);
                     ProductCacheCtrl.DataStatusCache.update(aid, pdDataList.size()); // 更新数据状态缓存
                 }
                 if(!Util.isEmptyList(relDataList)) {
-                    ProductRelCacheCtrl.addCacheList(aid, unionPriId, relDataList);
+                    ProductRelCacheCtrl.InfoCache.addCacheList(aid, unionPriId, relDataList);
                     ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, relDataList.size()); // 更新数据状态缓存
                 }
             } finally {
@@ -707,7 +855,7 @@ public class ProductBasicService extends ServicePub {
                 commit = true;
                 tc.commit();
                 // 更新缓存
-                ProductRelCacheCtrl.addCache(aid, unionPriId, relData);
+                ProductRelCacheCtrl.InfoCache.addCache(aid, unionPriId, relData);
                 ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, 1); //更新数据状态缓存
             } finally {
                 if(!commit) {
@@ -863,7 +1011,7 @@ public class ProductBasicService extends ServicePub {
                     if(Util.isEmptyList(curList)) {
                         continue;
                     }
-                    ProductRelCacheCtrl.addCacheList(aid, unionPriId, curList);
+                    ProductRelCacheCtrl.InfoCache.addCacheList(aid, unionPriId, curList);
                     ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, curList.size()); // 更新数据状态缓存
                 }
                 // 删除缓存
@@ -1040,7 +1188,7 @@ public class ProductBasicService extends ServicePub {
                     if(!Util.isEmptyList(list)) {
                         continue;
                     }
-                    ProductRelCacheCtrl.addCacheList(aid, unionPriId, list);
+                    ProductRelCacheCtrl.InfoCache.addCacheList(aid, unionPriId, list);
                     ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, list.size()); // 更新数据状态缓存
                 }
             } finally {

@@ -1,5 +1,6 @@
 package fai.MgProductBasicSvr.domain.serviceproc;
 
+import fai.MgProductBasicSvr.domain.common.MgProductCheck;
 import fai.MgProductBasicSvr.domain.entity.ProductEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductValObj;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductCacheCtrl;
@@ -10,6 +11,7 @@ import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
+import java.util.Calendar;
 import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -64,6 +66,63 @@ public class ProductProc {
         return pdIdList;
     }
 
+    public void setSingle(int aid, int pdId, ParamUpdater recvUpdater) {
+        ParamUpdater updater = assignUpdate(m_flow, aid, recvUpdater);
+        if (updater == null || updater.isEmpty()) {
+            return;
+        }
+
+        ParamMatcher matcher = new ParamMatcher(ProductEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
+        updateProduct(aid, matcher, updater);
+    }
+
+    public void setProducts(int aid, FaiList<Integer> pdIds, ParamUpdater recvUpdater) {
+        ParamUpdater updater = assignUpdate(m_flow, aid, recvUpdater);
+        if (updater == null || updater.isEmpty()) {
+            return;
+        }
+
+        ParamMatcher matcher = new ParamMatcher(ProductEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        updateProduct(aid, matcher, updater);
+    }
+
+    public static ParamUpdater assignUpdate(int flow, int aid, ParamUpdater recvUpdater) {
+        int rt;
+        if (recvUpdater == null || recvUpdater.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "updater=null;aid=%d;", flow, aid);
+        }
+        Param recvInfo = recvUpdater.getData();
+        Param data = new Param();
+        String name = recvInfo.getString(ProductEntity.Info.NAME);
+        if (name != null && !MgProductCheck.checkProductName(name)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args error, name not valid;flow=%d;aid=%d;name=%s", flow, aid, name);
+        }
+        data.assign(recvInfo, ProductEntity.Info.NAME);
+        data.assign(recvInfo, ProductEntity.Info.PD_TYPE);
+        data.assign(recvInfo, ProductEntity.Info.IMG_LIST);
+        data.assign(recvInfo, ProductEntity.Info.VIDEO_LIST);
+        data.assign(recvInfo, ProductEntity.Info.KEEP_PROP1);
+        data.assign(recvInfo, ProductEntity.Info.KEEP_PROP2);
+        data.assign(recvInfo, ProductEntity.Info.KEEP_PROP3);
+        data.assign(recvInfo, ProductEntity.Info.KEEP_INT_PROP1);
+        data.assign(recvInfo, ProductEntity.Info.KEEP_INT_PROP2);
+        if(data.isEmpty()) {
+            Log.logDbg("no pd basic field changed;flow=%d;aid=%d;", flow, aid);
+            return null;
+        }
+        // status这个字段因为软删除统一字段，所以和商品业务表一致，目前就是软删除的时候可以改。如果之后其他场景要修改这个字段的话，为避免和业务表修改弄混，需要另外提供接口
+        //data.assign(recvInfo, ProductEntity.Info.STATUS);
+        data.setCalendar(ProductEntity.Info.UPDATE_TIME, Calendar.getInstance());
+
+        ParamUpdater updater = new ParamUpdater(data);
+        updater.add(recvUpdater.getOpList(ProductEntity.Info.FLAG));
+        updater.add(recvUpdater.getOpList(ProductEntity.Info.FLAG1));
+
+        return updater;
+    }
+
     private int creatAndSetId(int aid, Param info) {
         int rt;
         Integer pdId = info.getInt(ProductEntity.Info.PD_ID, 0);
@@ -84,7 +143,7 @@ public class ProductProc {
         return pdId;
     }
 
-    public int updateProduct(int aid, ParamMatcher matcher, ParamUpdater updater) {
+    private int updateProduct(int aid, ParamMatcher matcher, ParamUpdater updater) {
         int rt;
         if(updater == null || updater.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -139,7 +198,7 @@ public class ProductProc {
     }
 
     public Param getProductInfo(int aid, int pdId) {
-        Param info = ProductCacheCtrl.getCacheInfo(aid, pdId);
+        Param info = ProductCacheCtrl.InfoCache.getCacheInfo(aid, pdId);
         if (!Str.isEmpty(info)) {
             return info;
         }
@@ -190,6 +249,7 @@ public class ProductProc {
             searchArg.matcher = new ParamMatcher();
         }
         searchArg.matcher.and(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductEntity.Info.STATUS, ParamMatcher.NE, ProductValObj.Status.DEL);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
         int rt = m_dao.select(searchArg, listRef, selectFields);
@@ -214,7 +274,7 @@ public class ProductProc {
         }
         List<String> pdIdStrs = pdIds.stream().map(String::valueOf).collect(Collectors.toList());
         // 从缓存获取数据
-        FaiList<Param> list = ProductCacheCtrl.getCacheList(aid, pdIdStrs);
+        FaiList<Param> list = ProductCacheCtrl.InfoCache.getCacheList(aid, pdIdStrs);
         if(list == null) {
             list = new FaiList<Param>();
         }
@@ -237,6 +297,7 @@ public class ProductProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductEntity.Info.PD_ID, ParamMatcher.IN, noCacheIds);
+        searchArg.matcher.and(ProductEntity.Info.STATUS, ParamMatcher.NE, ProductValObj.Status.DEL);
         rt = m_dao.select(searchArg, tmpRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             throw new MgException(rt, "get list error;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
@@ -252,7 +313,7 @@ public class ProductProc {
         }
 
         // 添加到缓存
-        ProductCacheCtrl.addCacheList(aid, tmpRef.value);
+        ProductCacheCtrl.InfoCache.addCacheList(aid, tmpRef.value);
 
         return list;
     }

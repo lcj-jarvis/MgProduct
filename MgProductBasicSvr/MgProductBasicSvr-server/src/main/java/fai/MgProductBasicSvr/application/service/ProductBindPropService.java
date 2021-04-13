@@ -1,9 +1,11 @@
 package fai.MgProductBasicSvr.application.service;
 
 import fai.MgProductBasicSvr.domain.common.LockUtil;
+import fai.MgProductBasicSvr.domain.entity.ProductBindGroupEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductBindPropEntity;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductBindPropCache;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductBindPropProc;
+import fai.MgProductBasicSvr.domain.serviceproc.ProductRelProc;
 import fai.MgProductBasicSvr.interfaces.dto.ProductBindPropDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
@@ -80,8 +82,15 @@ public class ProductBindPropService extends ServicePub {
                 ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
                 // 添加数据
                 if(addList != null && !addList.isEmpty()) {
+                    ProductRelProc pdRelProc = new ProductRelProc(flow, aid, tc);
+                    Param pdRelInfo = pdRelProc.getProductRel(aid, unionPriId, rlPdId);
+                    if(Str.isEmpty(pdRelInfo)) {
+                        Log.logErr("pd rel info is not exist;flow=%d;aid=%d;uid=%d;rlPdId=%d;", flow, aid, unionPriId, rlPdId);
+                        return Errno.NOT_FOUND;
+                    }
+                    int pdId = pdRelInfo.getInt(ProductBindGroupEntity.Info.PD_ID);
                     // 目前商品数据还在业务方，这边先设置商品id为0
-                    bindPropProc.addPdBindPropList(aid, unionPriId, rlPdId, 0, addList);
+                    bindPropProc.addPdBindPropList(aid, unionPriId, rlPdId, pdId, addList);
                     addCount += addList.size();
                 }
                 // 删除数据

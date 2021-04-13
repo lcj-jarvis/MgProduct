@@ -39,6 +39,8 @@ public class MgProductBasicCmd {
         public static final int NUM9 = 1009; /** @see BindPropCmd#DEL_BY_VAL_IDS */
         public static final int NUM10 = 1010; /** @see BindPropCmd#DEL_BY_PROP_IDS */
         public static final int NUM11 = 1011; /** @see BindGroupCmd#DEL */
+        public static final int NUM12 = 1012; /** @see BasicCmd#SET_SINGLE_PD */
+        public static final int NUM13 = 1013; /** @see BasicCmd#SET_PDS */
     }
 
     /**
@@ -86,6 +88,8 @@ public class MgProductBasicCmd {
         public static final int BATCH_ADD_REL_BIND = WriteCmdNum.NUM5;
         public static final int BATCH_ADD_PD_AND_REL = WriteCmdNum.NUM6;
         public static final int BATCH_ADD_PDS_REL_BIND = WriteCmdNum.NUM7;
+        public static final int SET_SINGLE_PD = WriteCmdNum.NUM12;
+        public static final int SET_PDS = WriteCmdNum.NUM13;
     }
 
 }

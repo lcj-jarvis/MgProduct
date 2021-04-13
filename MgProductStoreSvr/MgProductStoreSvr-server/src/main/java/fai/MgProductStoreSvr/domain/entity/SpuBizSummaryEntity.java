@@ -73,6 +73,7 @@ public class SpuBizSummaryEntity {
 
     private static String[] MANAGE_VISITOR_KEYS= new String[]{
             Info.PD_ID
+            , Info.RL_PD_ID
             , Info.SALES
             , Info.COUNT
             , Info.REMAIN_COUNT

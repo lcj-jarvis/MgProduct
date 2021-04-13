@@ -84,11 +84,15 @@ public class ProductBindPropService extends ServicePub {
                 if(addList != null && !addList.isEmpty()) {
                     ProductRelProc pdRelProc = new ProductRelProc(flow, aid, tc);
                     Param pdRelInfo = pdRelProc.getProductRel(aid, unionPriId, rlPdId);
-                    if(Str.isEmpty(pdRelInfo)) {
+                    /*if(Str.isEmpty(pdRelInfo)) {
                         Log.logErr("pd rel info is not exist;flow=%d;aid=%d;uid=%d;rlPdId=%d;", flow, aid, unionPriId, rlPdId);
                         return Errno.NOT_FOUND;
                     }
-                    int pdId = pdRelInfo.getInt(ProductBindGroupEntity.Info.PD_ID);
+                    int pdId = pdRelInfo.getInt(ProductBindGroupEntity.Info.PD_ID);*/
+                    int pdId = 0;
+                    if(!Str.isEmpty(pdRelInfo)) {
+                        pdId = pdRelInfo.getInt(ProductBindGroupEntity.Info.PD_ID);
+                    }
                     // 目前商品数据还在业务方，这边先设置商品id为0
                     bindPropProc.addPdBindPropList(aid, unionPriId, rlPdId, pdId, addList);
                     addCount += addList.size();

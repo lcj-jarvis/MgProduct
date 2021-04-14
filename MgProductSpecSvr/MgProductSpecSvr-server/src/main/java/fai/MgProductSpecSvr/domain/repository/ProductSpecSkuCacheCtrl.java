@@ -163,6 +163,9 @@ public class ProductSpecSkuCacheCtrl extends CacheCtrl {
 		return m_cache.del(keys);
 	}
 
+	public static boolean delAllCache(int aid){
+		return m_cache.del(getInfoCacheKey(aid), getPdIdSkuIdRelCacheKey(aid));
+	}
 
 	/**
 	 * 数据缓存
@@ -182,7 +185,7 @@ public class ProductSpecSkuCacheCtrl extends CacheCtrl {
 	 * 代表spu的skuId
 	 */
 	private static String getSkuIdRepresentSpuCacheKey(int aid, int pdId){
-		return CACHE_KEY_PREFIX+":skuIdRepresentSpu-"+aid+"-"+pdId;
+		return wrapCacheVersion(CACHE_KEY_PREFIX+":skuIdRepresentSpu-"+aid+"-"+pdId, aid);
 	}
 
 

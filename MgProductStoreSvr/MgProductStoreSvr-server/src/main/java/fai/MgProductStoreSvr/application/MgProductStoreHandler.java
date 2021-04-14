@@ -11,6 +11,7 @@ import fai.MgProductStoreSvr.interfaces.dto.*;
 import fai.comm.jnetkit.server.ServerConfig;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
+import fai.comm.jnetkit.server.fai.NKDef;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
 import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
@@ -358,6 +359,14 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                       @ArgBodyInteger(SkuSummaryDto.Key.UNION_PRI_ID) final int sourceUnionPriId,
                                       @ArgSearchArg(SkuSummaryDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
         return  m_summaryService.getSkuSummaryInfoList(session, flow, aid, tid, sourceUnionPriId, searchArg);
+    }
+
+    @Cmd(NKDef.Protocol.Cmd.CLEAR_CACHE)
+    @WrittenCmd
+    private int clearCache(final FaiSession session,
+                           @ArgFlow final int flow,
+                           @ArgAid final int aid) throws IOException {
+        return m_storeService.clearAllCache(session, flow, aid);
     }
 
     private StoreService m_storeService = new StoreService();

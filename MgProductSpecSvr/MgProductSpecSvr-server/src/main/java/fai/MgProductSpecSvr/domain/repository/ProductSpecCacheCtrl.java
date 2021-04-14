@@ -96,7 +96,7 @@ public class ProductSpecCacheCtrl extends CacheCtrl {
 
 
 	private static String getCacheKey(int aid, int pdId){
-		return CACHE_KEY_PREFIX+":"+aid+"-"+pdId;
+		return wrapCacheVersion(CACHE_KEY_PREFIX+":"+aid+"-"+pdId, aid);
 	}
 
 	private static final String CACHE_KEY_PREFIX = "MG_productSpec";

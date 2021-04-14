@@ -3,10 +3,7 @@ package fai.MgProductSpecSvr.application.service;
 
 import fai.MgProductSpecSvr.domain.comm.*;
 import fai.MgProductSpecSvr.domain.entity.*;
-import fai.MgProductSpecSvr.domain.repository.ProductSpecDaoCtrl;
-import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuCodeDaoCtrl;
-import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuDaoCtrl;
-import fai.MgProductSpecSvr.domain.repository.SpecStrDaoCtrl;
+import fai.MgProductSpecSvr.domain.repository.*;
 import fai.MgProductSpecSvr.domain.serviceProc.ProductSpecProc;
 import fai.MgProductSpecSvr.domain.serviceProc.ProductSpecSkuCodeProc;
 import fai.MgProductSpecSvr.domain.serviceProc.ProductSpecSkuProc;
@@ -1527,6 +1524,51 @@ public class ProductSpecService extends ServicePub {
         return rt;
     }
 
+    /**
+     * 清除当前aid的所有缓存
+     */
+    public int clearAllCache(FaiSession session, int flow, int aid) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            boolean allOption = true;
+            try {
+                LockUtil.readLock(aid);
+                boolean boo = CacheCtrl.clearCacheVersion(aid);
+                if(!boo){
+                    Log.logErr("CacheCtrl.clearCacheVersion err;flow=%s;aid=%s;", flow, aid);
+                }
+                allOption &= boo;
+                boo = SpecStrCacheCtrl.delAllCache(aid);
+                if(!boo){
+                    Log.logErr("SpecStrCacheCtrl.delAllCache err;flow=%s;aid=%s;", flow, aid);
+                }
+                allOption &= boo;
+                boo = ProductSpecSkuCacheCtrl.delAllCache(aid);
+                if(!boo){
+                    Log.logErr("ProductSpecSkuCacheCtrl.delAllCache err;flow=%s;aid=%s;", flow, aid);
+                }
+                allOption &= boo;
+                boo = ProductSpecSkuCodeCacheCtrl.delAllCache(aid);
+                if(!boo){
+                    Log.logErr("ProductSpecSkuCodeCacheCtrl.delAllCache err;flow=%s;aid=%s;", flow, aid);
+                }
+                allOption &= boo;
+            }finally {
+                LockUtil.unReadLock(aid);
+            }
+
+            if(allOption){
+                rt = Errno.OK;
+            }
+            session.write(rt);
+            Log.logStd("flow=%s;aid=%s;allOption=%s", flow, aid, allOption);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
     private void sendSkuCode(FaiSession session, FaiList<Param> infoList, SearchArg searchArg) throws IOException {
         FaiBuffer sendBuf = new FaiBuffer(true);
         infoList.toBuffer(sendBuf, ProductSpecSkuCodeDao.Key.INFO_LIST, ProductSpecSkuCodeDao.getInfoDto());
@@ -1941,6 +1983,5 @@ public class ProductSpecService extends ServicePub {
             }
         }
     }
-
 
 }

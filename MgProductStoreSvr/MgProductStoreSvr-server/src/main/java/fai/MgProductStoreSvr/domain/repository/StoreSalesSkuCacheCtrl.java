@@ -94,11 +94,11 @@ public class StoreSalesSkuCacheCtrl extends CacheCtrl{
 
 
     public static String getCacheKey(int aid, int unionPriId, int pdId) {
-        return CACHE_KEY_PREFIX + ":" + aid + "-" + unionPriId + "-" + pdId;
+        return wrapCacheVersion(CACHE_KEY_PREFIX + ":" + aid + "-" + unionPriId + "-" + pdId, aid);
     }
 
     public static String getRemainCountCacheKey(int aid, int unionPriId, long skuId){
-        return CACHE_KEY_PREFIX + "_remainCount:" + aid + "-" + unionPriId + "-" + skuId;
+        return wrapCacheVersion(CACHE_KEY_PREFIX + "_remainCount:" + aid + "-" + unionPriId + "-" + skuId, aid);
     }
 
     private static final String CACHE_KEY_PREFIX = "MG_storeSalesSku";

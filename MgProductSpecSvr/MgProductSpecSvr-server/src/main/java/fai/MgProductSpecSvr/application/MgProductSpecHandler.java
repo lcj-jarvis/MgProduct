@@ -7,6 +7,7 @@ import fai.MgProductSpecSvr.interfaces.cmd.MgProductSpecCmd;
 import fai.MgProductSpecSvr.interfaces.dto.*;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
+import fai.comm.jnetkit.server.fai.NKDef;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
 import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
@@ -326,6 +327,14 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
                                  @ArgBodyInteger(SpecStrDto.Key.TID) final int tid,
                                  @ArgList(keyMatch = SpecStrDto.Key.ID_LIST) final FaiList<Integer> strIdList) throws IOException {
         return m_specStrService.getScStrInfoList(session, flow, aid, tid, strIdList);
+    }
+
+    @Cmd(NKDef.Protocol.Cmd.CLEAR_CACHE)
+    @WrittenCmd
+    private int clearCache(final FaiSession session,
+                           @ArgFlow final int flow,
+                           @ArgAid final int aid) throws IOException {
+        return m_productSpecService.clearAllCache(session, flow, aid);
     }
 
 

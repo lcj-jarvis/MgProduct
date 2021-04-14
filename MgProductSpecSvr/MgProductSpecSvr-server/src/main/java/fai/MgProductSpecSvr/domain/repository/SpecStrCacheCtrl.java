@@ -73,7 +73,11 @@ public class SpecStrCacheCtrl extends CacheCtrl {
         return getCacheListByIdStrList(aid, new FaiList<>(ids));
     }
 
-
+    /**
+     * 清除所有缓存
+     * @param aid
+     * @return
+     */
     public static boolean delAllCache(int aid) {
         return m_cache.del(getCacheKey(aid), getNameIdCacheKey(aid));
     }

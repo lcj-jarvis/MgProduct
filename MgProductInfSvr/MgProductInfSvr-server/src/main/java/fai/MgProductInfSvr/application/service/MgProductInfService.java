@@ -308,6 +308,7 @@ public class MgProductInfService extends ServicePub {
             if(batchAddBasicInfoList.isEmpty()){
                 rt = Errno.ERROR;
                 Log.logErr(rt,"batchAddBasicInfoList empty;flow=%d;aid=%d;ownerTid=%d;", flow, aid, ownerTid);
+                Log.logDbg("whalelog;flow=%d;aid=%d;ownerTid=%d;errProductList=%s;", flow, aid, ownerTid, errProductList);
                 return rt;
             }
 
@@ -347,6 +348,7 @@ public class MgProductInfService extends ServicePub {
             if(batchAddBasicInfoList.isEmpty()){
                 rt = Errno.ERROR;
                 Log.logErr(rt,"batchAddBasicInfoList 2 empty;flow=%d;aid=%d;ownerTid=%d;", flow, aid, ownerTid);
+                Log.logDbg("whalelog;flow=%d;aid=%d;ownerTid=%d;errProductList=%s;", flow, aid, ownerTid, errProductList);
                 return rt;
             }
 

@@ -80,6 +80,9 @@ public class ProductSpecSkuCodeCacheCtrl extends CacheCtrl {
         return m_cache.hdel(infoCacheKey, skuIdStrSet.toArray(new String[]{}));
     }
 
+    public static boolean delAllCache(int aid){
+        return m_cache.del(getInfoCacheKey(aid));
+    }
 
     public static String getInfoCacheKey(int aid){
         return CACHE_KEY_PREFIX+":"+aid;
@@ -159,7 +162,7 @@ public class ProductSpecSkuCodeCacheCtrl extends CacheCtrl {
         }
 
         public static String getCacheKey(int aid, int unionPriId) {
-            return CACHE_KEY_PREFIX + "-ds:" + aid + "-" + unionPriId;
+            return wrapCacheVersion(CACHE_KEY_PREFIX + "-ds:" + aid + "-" + unionPriId, aid);
         }
     }
 

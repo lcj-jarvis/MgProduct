@@ -49,6 +49,10 @@ public class SpuSummaryCacheCtrl  extends CacheCtrl{
         return m_cache.expire(cacheKey, DIRTY_EXPIRE_SECOND, DIRTY_EXPIRE_SECOND_RANDOM);
     }
 
+    public static boolean delAllCache(int aid) {
+        return m_cache.del(getCacheKey(aid));
+    }
+
     protected static String getCacheKey(int aid) {
         return CACHE_KEY_PREFIX + ":" + aid;
     }

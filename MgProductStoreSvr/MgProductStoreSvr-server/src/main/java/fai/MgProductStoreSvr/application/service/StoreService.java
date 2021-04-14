@@ -319,6 +319,40 @@ public class StoreService {
     }
 
     /**
+     * 清除当前aid的所有缓存
+     */
+    public int clearAllCache(FaiSession session, int flow, int aid) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            boolean allOption = true;
+            try {
+                LockUtil.lock(aid);
+                boolean boo = CacheCtrl.clearCacheVersion(aid);
+                if(!boo){
+                    Log.logErr("CacheCtrl.clearCacheVersion err;flow=%s;aid=%s;", flow, aid);
+                }
+                allOption &= boo;
+                boo = SpuSummaryCacheCtrl.delAllCache(aid);
+                if(!boo){
+                    Log.logErr("SpuSummaryCacheCtrl.delAllCache err;flow=%s;aid=%s;", flow, aid);
+                }
+                allOption &= boo;
+            }finally {
+                LockUtil.unlock(aid);
+            }
+            if(allOption){
+                rt = Errno.OK;
+            }
+            session.write(rt);
+            Log.logStd("flow=%s;aid=%s;allOption=%s", flow, aid, allOption);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    /**
      * 组装 spu业务库存销售汇总信息
      */
     protected void assemblySpuBizSummaryInfo(Param spuBizSummaryInfo, Param reportInfo, int flag){

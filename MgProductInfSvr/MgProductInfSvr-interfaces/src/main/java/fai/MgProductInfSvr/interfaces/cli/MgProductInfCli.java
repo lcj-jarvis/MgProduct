@@ -4341,6 +4341,8 @@ public class MgProductInfCli extends FaiClient {
      * @param keepPriId1 创建商品的keepPriId1
      * @param productList 商品中台各个服务组合的数据 {@link MgProductEntity.Info}
      * @param inStoreRecordInfo 入库记录 {@link ProductStoreEntity.InOutStoreRecordInfo}  非必要
+     * @param errProductList 返回导入出错的数据，并且每个Param有对应的错误码 {@link MgProductEntity.Info}
+     * @return
      */
     public int importProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> productList, Param inStoreRecordInfo, FaiList<Param> errProductList){
         m_rt = Errno.ERROR;

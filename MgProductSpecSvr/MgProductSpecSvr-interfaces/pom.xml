@@ -35,6 +35,12 @@
             <version>${MgProduct-MgProductComm-ver}</version>
         </dependency>
 
+        <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProductInfUtil</artifactId>
+            <version>${MgProduct-MgProductInfUtil-ver}</version>
+        </dependency>
+
     </dependencies>
 
     <distributionManagement>

@@ -1,15 +1,15 @@
 package fai.MgProductStoreSvr.interfaces.cli;
 
+import fai.MgProductInfUtil.MgProductInternalCli;
 import fai.MgProductStoreSvr.interfaces.cmd.MgProductStoreCmd;
 import fai.MgProductStoreSvr.interfaces.dto.*;
 import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuValObj;
-import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 
-public class MgProductStoreCli extends FaiClient {
+public class MgProductStoreCli extends MgProductInternalCli {
     public MgProductStoreCli(int flow) {
         super(flow, "MgProductStoreCli");
     }

@@ -1,14 +1,14 @@
 package fai.MgProductSpecSvr.interfaces.cli;
 
+import fai.MgProductInfUtil.MgProductInternalCli;
 import fai.MgProductSpecSvr.interfaces.cmd.MgProductSpecCmd;
 import fai.MgProductSpecSvr.interfaces.dto.*;
-import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 
-public class MgProductSpecCli extends FaiClient {
+public class MgProductSpecCli extends MgProductInternalCli {
     public MgProductSpecCli(int flow) {
         super(flow, "MgProductSpecCli");
     }

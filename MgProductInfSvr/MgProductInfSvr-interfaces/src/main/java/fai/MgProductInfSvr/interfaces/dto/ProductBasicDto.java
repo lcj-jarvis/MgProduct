@@ -131,6 +131,7 @@ public class ProductBasicDto {
         public static final int BIND_GROUP_LIST = 18;
         public static final int BIND_GROUP_IDS = 19;
         public static final int DEL_BIND_GROUP_IDS = 20;
+        public static final int UPDATER = 21;
     }
 
 

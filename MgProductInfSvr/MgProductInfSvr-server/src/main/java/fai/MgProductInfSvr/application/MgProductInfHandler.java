@@ -493,6 +493,36 @@ public class MgProductInfHandler extends FaiHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductInfCmd.BasicCmd.SET_SINGLE_PD)
+    public int setSinglePd(final FaiSession session,
+                           @ArgFlow final int flow,
+                           @ArgAid final int aid,
+                           @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
+                           @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
+                           @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
+                           @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
+                           @ArgBodyInteger( ProductBasicDto.Key.RL_PD_ID) Integer rlPdId,
+                           @ArgParam(classDef = ProductBasicDto.class, methodDef = "getProductDto",
+                                   keyMatch = ProductBasicDto.Key.UPDATER) ParamUpdater updater) throws IOException {
+        return basicService.setSinglePd(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, updater);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.BasicCmd.SET_PDS)
+    public int setProducts(final FaiSession session,
+                           @ArgFlow final int flow,
+                           @ArgAid final int aid,
+                           @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
+                           @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
+                           @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
+                           @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
+                           @ArgList(keyMatch = ProductBasicDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
+                           @ArgParam(classDef = ProductBasicDto.class, methodDef = "getProductDto",
+                                   keyMatch = ProductBasicDto.Key.UPDATER) ParamUpdater updater) throws IOException {
+        return basicService.setProducts(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIds, updater);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductInfCmd.BasicCmd.BATCH_DEL_PD_BIND)
     public int batchDelPdRelBind(final FaiSession session,
                                  @ArgFlow final int flow,

@@ -174,6 +174,44 @@ public class ProductBasicProc {
     }
 
     /**
+     * 修改指定商品
+     */
+    public int setSinglePd(int aid, int unionPriId, Integer rlPdId, ParamUpdater updater) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.setSinglePd(aid, unionPriId, rlPdId, updater);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "batchDelPdRelBind error;flow=%d;aid=%d;unionPriId=%d;updater=%s;", m_flow, aid, unionPriId, updater.toJson());
+            return rt;
+        }
+
+        return rt;
+    }
+
+    /**
+     * 修改指定商品
+     */
+    public int setProducts(int aid, int unionPriId, FaiList<Integer> rlPdIds, ParamUpdater updater) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.setProducts(aid, unionPriId, rlPdIds, updater);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "batchDelPdRelBind error;flow=%d;aid=%d;unionPriId=%d;updater=%s;", m_flow, aid, unionPriId, updater.toJson());
+            return rt;
+        }
+
+        return rt;
+    }
+
+    /**
      * 取消 rlPdIds 的商品业务关联
      * @return
      */

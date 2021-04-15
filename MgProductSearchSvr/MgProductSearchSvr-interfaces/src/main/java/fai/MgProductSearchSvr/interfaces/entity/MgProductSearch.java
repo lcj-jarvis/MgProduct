@@ -4,6 +4,7 @@ import fai.MgProductPropSvr.interfaces.entity.ProductPropValEntity;
 import fai.comm.util.*;
 import fai.MgProductBasicSvr.interfaces.entity.*;
 import fai.MgProductStoreSvr.interfaces.entity.*;
+import java.util.Calendar;
 
 public class MgProductSearch {
     public static final class Info {
@@ -68,12 +69,12 @@ public class MgProductSearch {
 
     // 排序指定 table, table 待完善, 需要作为缓存的key，为了节省内存，所以使用缩写
     public enum SearchTableNameEnum{
-        MG_PRODUCT("pd"),    // 对应 mgProduct
-        MG_PRODUCT_REL("pdr"),  // 对应 mgProductRel
-        MG_PRODUCT_BIND_PROP("pbp"),  // 对应 mgProductBindProp
-        MG_PRODUCT_BIND_GROUP("pbg"),  // 对应 mgProductGroupRel
-        MG_PRODUCT_LABLE_REL("plr"), // 对应 mgProductLableRel
-        MG_SPU_BIZ_SUMMARY("sbs");  // 对应 mgSpuBizSummary
+        MG_PRODUCT("pd"),    // 对应 mgProduct， 商品基础表
+        MG_PRODUCT_REL("pdr"),  // 对应 mgProductRel， 商品关系表
+        MG_PRODUCT_BIND_PROP("pbp"),  // 对应 mgProductBindProp，参数值绑定商品关系表
+        MG_PRODUCT_BIND_GROUP("pbg"),  // 对应 mgProductGroupRel，分类绑定商品关系表
+        MG_PRODUCT_LABLE_REL("plr"), // 对应 mgProductLableRel，标签绑定商品关系表
+        MG_SPU_BIZ_SUMMARY("sbs");  // 对应 mgSpuBizSummary，商品 spu 销售汇总表
 
         public String searchTableName;
         private SearchTableNameEnum(String searchTableName) {
@@ -90,8 +91,8 @@ public class MgProductSearch {
     private FaiList<Integer> rlLableIdList;   //  业务商品标签搜索
     private FaiList<Integer> rlPdIdList;      // 业务商品 IdList
     private FaiList<Integer> typeList;       // 商品类型：实物、卡密、酒店
-    private String addTimeBegin;
-    private String addTimeEnd;           // 如果搜索的 创建时间 开始 和 创建时间 结束是相同的，则走 EQ 的逻辑
+    private Calendar addTimeBegin;
+    private Calendar addTimeEnd;           // 如果搜索的 创建时间 开始 和 创建时间 结束是相同的，则走 EQ 的逻辑
     private FaiList<Integer> rlLibIdList;        //  在哪些库搜索，默认是全部库
     private String searchKeyWord;            //  搜索的关键字，会关联商品名称、商品对应的参数
     private boolean enableSearchProductName = false;   // 是否允许搜索商品名称, 默认是 false
@@ -142,8 +143,8 @@ public class MgProductSearch {
         param.setList(Info.SEARCH_PRODUCT_REMARK_KEY_LIST, searchProductRemarkKeyList);
 
         param.setList(Info.RL_PROP_VAL_ID_LIST, rlPropValIdList);  //  根据 参数值 搜索
-        param.setString(Info.ADD_TIME_BEGIN, addTimeBegin);  // 搜索商品  开始录入时间
-        param.setString(Info.ADD_TIME_END, addTimeEnd);      // 搜索商品  结束录入时间
+        param.setCalendar(Info.ADD_TIME_BEGIN, addTimeBegin);  // 搜索商品  开始录入时间
+        param.setCalendar(Info.ADD_TIME_END, addTimeEnd);      // 搜索商品  结束录入时间
         param.setLong(Info.PRICE_BEGIN, priceBegin);     // 搜索商品 开始价格
         param.setLong(Info.PRICE_END, priceEnd);         // 搜索商品  结束价格
         param.setInt(Info.SALES_BEGIN, salesBegin);      // 搜索商品 开始 销量
@@ -181,8 +182,8 @@ public class MgProductSearch {
         this.enableSearchProductRemark = searchParam.getBoolean(Info.ENABLE_SEARCH_PRODUCT_REMARK); // 是否允许搜索商品详情, 默认是 false
         this.searchProductRemarkKeyList = searchParam.getList(Info.SEARCH_PRODUCT_REMARK_KEY_LIST);
         this.rlPropValIdList = searchParam.getList(Info.RL_PROP_VAL_ID_LIST);   // 根据 参数值 搜索
-        this.addTimeBegin = searchParam.getString(Info.ADD_TIME_BEGIN);   // 搜索商品开始 录入时间
-        this.addTimeEnd = searchParam.getString(Info.ADD_TIME_END);       // 搜索商品结束 录入时间
+        this.addTimeBegin = searchParam.getCalendar(Info.ADD_TIME_BEGIN);   // 搜索商品开始 录入时间
+        this.addTimeEnd = searchParam.getCalendar(Info.ADD_TIME_END);       // 搜索商品结束 录入时间
         this.priceBegin = searchParam.getLong(Info.PRICE_BEGIN);          // 搜索商品开始 价格
         this.priceEnd = searchParam.getLong(Info.PRICE_END);              // 搜索商品结束 价格
         this.salesBegin = searchParam.getInt(Info.SALES_BEGIN);           // 搜索商品 开始 销量
@@ -332,15 +333,21 @@ public class MgProductSearch {
         if(paramMatcher == null){
             paramMatcher = new ParamMatcher();
         }
-
         // 从 mgProduct_xxxx 冗余字段查询，商品类型
         if(typeList != null && !typeList.isEmpty()){
-            paramMatcher.and(ProductEntity.Info.PD_TYPE, ParamMatcher.IN, typeList);
+            if(typeList.size() == 1){
+                paramMatcher.and(ProductEntity.Info.PD_TYPE, ParamMatcher.EQ, typeList.get(0));
+            }else{
+                paramMatcher.and(ProductEntity.Info.PD_TYPE, ParamMatcher.IN, typeList);
+            }
         }
-
         // 业务商品idList
         if(rlPdIdList != null && !rlPdIdList.isEmpty()){
-            paramMatcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIdList);
+            if(rlPdIdList.size() == 1){
+                paramMatcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdIdList.get(0));
+            }else{
+                paramMatcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIdList);
+            }
         }
 
         //  商品库
@@ -363,16 +370,16 @@ public class MgProductSearch {
         }
 
         //  商品录入时间
-        if(!Str.isEmpty(addTimeBegin) || !Str.isEmpty(addTimeEnd)){
-            if(Str.equals(addTimeBegin, addTimeEnd)){
+        if(addTimeBegin != null || addTimeEnd != null){
+            if(addTimeBegin != null && addTimeEnd != null && addTimeBegin.getTimeInMillis() == addTimeEnd.getTimeInMillis()){
                 paramMatcher.and(ProductRelEntity.Info.ADD_TIME, ParamMatcher.EQ, addTimeBegin);
             }else{
                 //  创建时间大于
-                if(!Str.isEmpty(addTimeBegin)){
+                if(addTimeBegin != null){
                     paramMatcher.and(ProductRelEntity.Info.ADD_TIME, ParamMatcher.GE, addTimeBegin);
                 }
                 //  创建时间小于
-                if(!Str.isEmpty(addTimeEnd)){
+                if(addTimeEnd != null){
                     paramMatcher.and(ProductRelEntity.Info.ADD_TIME, ParamMatcher.LE, addTimeEnd);
                 }
             }
@@ -596,18 +603,17 @@ public class MgProductSearch {
     }
 
     // 商品创建时间范围
-    public MgProductSearch setAddTime(String addTimeBegin, String addTimeEnd) {
+    public MgProductSearch setAddTime(Calendar addTimeBegin, Calendar addTimeEnd) {
         this.addTimeBegin = addTimeBegin;
         this.addTimeEnd = addTimeEnd;
         return this;
     }
-    public String getAddTimeBegin() {
+    public Calendar getAddTimeBegin() {
         return addTimeBegin;
     }
-    public String getAddTimeEnd() {
+    public Calendar getAddTimeEnd() {
         return addTimeEnd;
     }
-
 
     // 价格范围
     public MgProductSearch setPrice(Long priceBegin, Long priceEnd) {
@@ -703,10 +709,16 @@ public class MgProductSearch {
     }
 
     public String getFirstComparatorTable() {
-        return firstComparatorTable;
+        if(rlPdIdComparatorList == null || rlPdIdComparatorList.isEmpty()){
+            return firstComparatorTable;
+        }
+        return null;
     }
     public String getFirstComparatorKey(){
-        return this.firstComparatorKey;
+        if(rlPdIdComparatorList == null || rlPdIdComparatorList.isEmpty()){
+            return this.firstComparatorKey;
+        }
+        return null;
     }
     public boolean getFirstComparatorKeyOrderByDesc(){
         return this.firstComparatorKeyOrderByDesc;

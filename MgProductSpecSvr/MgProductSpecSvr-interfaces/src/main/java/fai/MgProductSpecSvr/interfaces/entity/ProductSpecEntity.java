@@ -13,6 +13,9 @@ public class ProductSpecEntity {
         public static final String SOURCE_TID = "sourceTid";                        // int 创建产品规格的 项目id
         public static final String SOURCE_UNION_PRI_ID = "sourceUnionPriId";        // int 创建产品规格的 联合主键id
         public static final String SORT = "sort";                                   // int 排序
+        /**
+         * @see ProductSpecValObj.FLag
+         */
         public static final String FLAG = "flag";                                   // int flag
         /**
          * @see ProductSpecValObj.InPdScValList

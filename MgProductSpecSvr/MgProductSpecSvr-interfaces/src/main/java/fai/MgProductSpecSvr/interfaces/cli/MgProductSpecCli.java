@@ -1686,7 +1686,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
                 Log.logErr(m_rt, "specList error");
                 return m_rt;
             }
-            if(Util.isEmptyList(specSkuList)){
+            if(specSkuList == null){
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "specSkuList error");
                 return m_rt;

@@ -37,6 +37,6 @@ public class ProductSpecCheck {
     }
 
     public static void main(String[] args) {
-        System.out.println(Spec.checkName("11"));
+        System.out.println(Spec.checkName("女短袖（多规格产品示例123123）"));
     }
 }

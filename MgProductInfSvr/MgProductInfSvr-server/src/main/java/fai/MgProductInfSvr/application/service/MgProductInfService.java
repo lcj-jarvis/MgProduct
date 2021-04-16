@@ -455,15 +455,16 @@ public class MgProductInfService extends ServicePub {
                         continue;
                     }
                     int pdId = productInfo.getInt(MgProductEntity.Info.PD_ID);
+                    int ownerRlPdId = productInfo.getInt(MgProductEntity.Info.RL_PD_ID);
 
                     Map<Integer, Integer> unionPriIdRlPdIdMap = new HashMap<>();
                     // 先批量绑定关联
                     for (Param storeSale : storeSales) {
                         Integer tid = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.TID, ownerTid);
-                        Integer siteId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.SITE_ID);
-                        Integer lgId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.LGID);
-                        Integer keepPriId1 = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1);
-                        int rlPdId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.RL_PD_ID, ownerKeepPriId1);
+                        Integer siteId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.SITE_ID, ownerSiteId);
+                        Integer lgId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.LGID, ownerLgId);
+                        Integer keepPriId1 = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, ownerKeepPriId1);
+                        int rlPdId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.RL_PD_ID, ownerRlPdId);
                         BizPriKey bizPriKey = new BizPriKey(tid, siteId, lgId, keepPriId1);
                         Integer unionPriId = bizPriKeyMap.get(bizPriKey);
                         if(unionPriId == null){
@@ -520,6 +521,7 @@ public class MgProductInfService extends ServicePub {
                         importSpecInfo.assign(specInfo, ProductSpecEntity.SpecInfo.NAME, fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity.Info.NAME);
                         importSpecInfo.assign(specInfo, ProductSpecEntity.SpecInfo.IN_PD_SC_VAL_LIST, fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity.Info.IN_PD_SC_VAL_LIST);
                         importSpecInfo.assign(specInfo, ProductSpecEntity.SpecInfo.SORT, fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity.Info.SORT);
+                        importSpecInfo.assign(specInfo, ProductSpecEntity.SpecInfo.FLAG, fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity.Info.FLAG);
                         importSpecInfo.setInt(fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity.Info.PD_ID, pdId);
                         importSpecList.add(importSpecInfo);
                     }
@@ -581,6 +583,7 @@ public class MgProductInfService extends ServicePub {
                         Log.logStd("inPdScStrNameListJsonSkuIdMap empty;flow=%s;aid=%s;productInfo=%s;",flow, aid, productInfo);
                         continue;
                     }
+                    Set<String> unionPriIdSkuIdSet = new HashSet<>();
                     for (Param storeSale : storeSales) {
                         FaiList<String> inPdScStrNameList = storeSale.getList(ProductStoreEntity.StoreSalesSkuInfo.IN_PD_SC_STR_NAME_LIST);
                         Long skuId = inPdScStrNameListJsonSkuIdMap.get(inPdScStrNameList.toJson());
@@ -588,14 +591,19 @@ public class MgProductInfService extends ServicePub {
                             Log.logStd("skuId empty;flow=%s;aid=%s;productInfo=%s;inPdScStrNameList=%s;",flow, aid, productInfo, inPdScStrNameList);
                             continue;
                         }
+
                         FaiList<Integer> inPdScStrIdList = skuIdInPdScStrIdMap.get(skuId);
 
                         Integer tid = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.TID, ownerTid);
-                        Integer siteId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.SITE_ID);
-                        Integer lgId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.LGID);
-                        Integer keepPriId1 = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1);
+                        Integer siteId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.SITE_ID, ownerSiteId);
+                        Integer lgId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.LGID, ownerLgId);
+                        Integer keepPriId1 = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, ownerKeepPriId1);
                         Integer unionPriId = bizPriKeyMap.get(new BizPriKey(tid, siteId, lgId, keepPriId1));
 
+                        if(!unionPriIdSkuIdSet.add(unionPriId+"-"+skuId)){
+                            Log.logStd("skuId already;flow=%s;aid=%s;unionPriId=%s;skuId=%s;rlPdId=%s;storeSale=%s;",flow, aid, unionPriId, skuId, rlPdId, storeSale);
+                            continue;
+                        }
 
                         Param importStoreSaleSkuInfo = new Param();
                         importStoreSaleSkuInfo.setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId);

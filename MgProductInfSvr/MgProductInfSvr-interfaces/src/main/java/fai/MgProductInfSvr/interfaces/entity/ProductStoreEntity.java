@@ -1,6 +1,10 @@
 package fai.MgProductInfSvr.interfaces.entity;
 
 
+import fai.comm.util.FaiList;
+
+import java.util.Arrays;
+
 public class ProductStoreEntity {
     /**
      * 库存销售业务sku
@@ -100,6 +104,28 @@ public class ProductStoreEntity {
         public static final String FLAG = "flag";                                   // int flag
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
+
+
+        public static final FaiList<String> MANAGE_FIELDS; // 管理态字段
+        public static final FaiList<String> VISITOR_FIELDS; // 访客态字段
+        static {
+            MANAGE_FIELDS = new FaiList<String>(
+                    Arrays.asList(
+                            MARKET_PRICE
+                            , MIN_PRICE
+                            , MAX_PRICE
+                    )
+            );
+
+            VISITOR_FIELDS = new FaiList<String>(
+                    Arrays.asList(
+                            SALES
+                            , COUNT
+                            , REMAIN_COUNT
+                            , HOLDING_COUNT
+                    )
+            );
+        }
     }
     /**
      * spu 库存销售汇总信息

@@ -5,10 +5,7 @@ import fai.MgProductBasicSvr.domain.common.MgProductCheck;
 import fai.MgProductBasicSvr.domain.entity.ProductBindPropEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductRelEntity;
-import fai.MgProductBasicSvr.domain.repository.cache.ProductBindGroupCache;
-import fai.MgProductBasicSvr.domain.repository.cache.ProductBindPropCache;
-import fai.MgProductBasicSvr.domain.repository.cache.ProductCacheCtrl;
-import fai.MgProductBasicSvr.domain.repository.cache.ProductRelCacheCtrl;
+import fai.MgProductBasicSvr.domain.repository.cache.*;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductDaoCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductRelDaoCtrl;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductBindGroupProc;
@@ -1384,6 +1381,30 @@ public class ProductBasicService extends ServicePub {
         session.write(sendBuf);
         rt = Errno.OK;
         Log.logDbg("search from db ok;flow=%d;aid=%d;unionPriId=%d;size=%d;", flow, aid, unionPriId, list.size());
+
+        return rt;
+    }
+
+    @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
+    public int clearCache(FaiSession session, int flow, int aid) throws IOException {
+        int rt;
+        if(aid <= 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
+            return rt;
+        }
+        Lock lock = LockUtil.getLock(aid);
+        lock.lock();
+        try {
+            CacheCtrl.clearCacheVersion(aid);
+            ProductCacheCtrl.clearAllCache(aid);
+        }finally {
+            lock.unlock();
+        }
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        rt = Errno.OK;
+        Log.logStd("clear cache ok;flow=%d;aid=%d;", flow, aid);
 
         return rt;
     }

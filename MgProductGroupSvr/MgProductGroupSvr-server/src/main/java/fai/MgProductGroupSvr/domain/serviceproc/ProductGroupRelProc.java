@@ -186,7 +186,7 @@ public class ProductGroupRelProc {
 
     private FaiList<Param> getList(int aid, int unionPriId) {
         // 从缓存获取数据
-        FaiList<Param> list = ProductGroupRelCache.getCacheList(aid, unionPriId);
+        FaiList<Param> list = ProductGroupRelCache.InfoCache.getCacheList(aid, unionPriId);
         if(!Util.isEmptyList(list)) {
             return list;
         }
@@ -194,7 +194,7 @@ public class ProductGroupRelProc {
         LockUtil.GroupRelLock.readLock(aid);
         try {
             // check again
-            list = ProductGroupRelCache.getCacheList(aid, unionPriId);
+            list = ProductGroupRelCache.InfoCache.getCacheList(aid, unionPriId);
             if(!Util.isEmptyList(list)) {
                 return list;
             }
@@ -218,7 +218,7 @@ public class ProductGroupRelProc {
                 return listRef.value;
             }
             // 添加到缓存
-            ProductGroupRelCache.addCacheList(aid, unionPriId, list);
+            ProductGroupRelCache.InfoCache.addCacheList(aid, unionPriId, list);
         }finally {
             LockUtil.GroupRelLock.readUnLock(aid);
         }

@@ -9,6 +9,7 @@ import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
 import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
+import fai.comm.netkit.NKDef;
 import fai.comm.util.*;
 import fai.middleground.svrutil.service.ServiceProxy;
 
@@ -857,6 +858,14 @@ public class MgProductInfHandler extends FaiHandler {
                                      classDef = ProductStoreDto.InOutStoreRecord.class, methodDef = "getInfoDto") Param inStoreRecordInfo,
                              @ArgBodyBoolean(value = MgProductDto.Key.USE_BASIC, useDefault = true) boolean useMgProductBasicInfo) throws IOException {
         return mgProductInfService.importProduct(session, flow, aid, tid, siteId, lgId, keepPriId1, productList, inStoreRecordInfo, useMgProductBasicInfo);
+    }
+
+    @WrittenCmd
+    @Cmd(NKDef.Protocol.Cmd.CLEAR_CACHE)
+    public int clearCache(final FaiSession session,
+                          @ArgFlow final int flow,
+                          @ArgAid final int aid) throws IOException {
+        return mgProductInfService.clearCache(session, flow, aid);
     }
 
     /*** 商品分类 start ***/

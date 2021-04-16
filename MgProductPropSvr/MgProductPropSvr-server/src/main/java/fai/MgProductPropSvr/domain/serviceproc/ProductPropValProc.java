@@ -200,7 +200,7 @@ public class ProductPropValProc {
 
 	private FaiList<Param> getList(int aid, int propId) {
 		// 从缓存获取数据
-		FaiList<Param> list = ProductPropValCacheCtrl.getCacheList(aid, propId);
+		FaiList<Param> list = ProductPropValCacheCtrl.InfoCache.getCacheList(aid, propId);
 		if(!Util.isEmptyList(list)) {
 			return list;
 		}
@@ -208,7 +208,7 @@ public class ProductPropValProc {
 		LockUtil.PropValLock.readLock(aid);
 		try {
 			// check again
-			list = ProductPropValCacheCtrl.getCacheList(aid, propId);
+			list = ProductPropValCacheCtrl.InfoCache.getCacheList(aid, propId);
 			if(!Util.isEmptyList(list)) {
 				return list;
 			}
@@ -232,7 +232,7 @@ public class ProductPropValProc {
 				return list;
 			}
 			// 添加到缓存
-			ProductPropValCacheCtrl.addCacheList(aid, propId, list);
+			ProductPropValCacheCtrl.InfoCache.addCacheList(aid, propId, list);
 		}finally {
 			LockUtil.PropValLock.readUnLock(aid);
 		}

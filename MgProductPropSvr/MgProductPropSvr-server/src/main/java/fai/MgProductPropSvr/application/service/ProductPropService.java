@@ -85,7 +85,7 @@ public class ProductPropService extends ServicePub {
 				// 需要新增参数值
 				if(valList != null && !valList.isEmpty()) {
 					ProductPropValProc valProc = new ProductPropValProc(flow, aid, tc);
-					ProductPropValCacheCtrl.setExpire(aid, propId);
+					ProductPropValCacheCtrl.InfoCache.setExpire(aid, propId);
 
 					// 新增
 					valProc.addValList(aid, propId, valList, false);
@@ -97,7 +97,7 @@ public class ProductPropService extends ServicePub {
 				ProductPropCacheCtrl.addCache(aid, propInfo);
 				ProductPropRelCacheCtrl.addCache(aid, unionPriId, libId, relInfo);
 				if(valList != null && !valList.isEmpty()) {
-					ProductPropValCacheCtrl.addCacheListExist(aid, propId, valList);
+					ProductPropValCacheCtrl.InfoCache.addCacheListExist(aid, propId, valList);
 					ProductPropValCacheCtrl.DataStatusCache.update(aid, valList.size(), true);
 				}
 				if(maxSort > 0) {
@@ -341,7 +341,7 @@ public class ProductPropService extends ServicePub {
 				ProductPropCacheCtrl.delCacheList(aid, delPropIdList);
 				ProductPropRelCacheCtrl.delCacheList(aid, unionPriId, libId, rlPropIdList);
 				ProductPropRelCacheCtrl.delSortCache(aid, unionPriId, libId);
-				ProductPropValCacheCtrl.delCacheList(aid, delPropIdList);
+				ProductPropValCacheCtrl.InfoCache.delCacheList(aid, delPropIdList);
 
 				tc.closeDao();
 			}
@@ -480,7 +480,7 @@ public class ProductPropService extends ServicePub {
 			try {
 				tc.setAutoCommit(false);
 				ProductPropValProc valProc = new ProductPropValProc(flow, aid, tc);
-				ProductPropValCacheCtrl.setExpire(aid, propId);
+				ProductPropValCacheCtrl.InfoCache.setExpire(aid, propId);
 				// 修改
 				valProc.setValList(aid, propId, updaterList);
 
@@ -500,7 +500,7 @@ public class ProductPropService extends ServicePub {
 				commit = true;
 				tc.commit();
 				// 清掉参数值缓存
-				ProductPropValCacheCtrl.delCache(aid, propId);
+				ProductPropValCacheCtrl.InfoCache.delCache(aid, propId);
 				ProductPropValCacheCtrl.DataStatusCache.update(aid, addCount, true);
 			}finally {
 				if(!commit) {
@@ -594,6 +594,35 @@ public class ProductPropService extends ServicePub {
 		session.write(sendBuf);
 		rt = Errno.OK;
 		Log.logDbg("search from db ok;flow=%d;aid=%d;size=%d;", flow, aid, list.size());
+
+		return rt;
+	}
+
+	@SuccessRt(value = Errno.OK)
+	public int clearCache(FaiSession session, int flow, int aid) throws IOException {
+		int rt;
+		if(aid <= 0) {
+			rt = Errno.ARGS_ERROR;
+			Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
+			return rt;
+		}
+
+		Lock lock = LockUtil.getLock(aid);
+		lock.lock();
+		try {
+			// 更新缓存数据版本号
+			CacheCtrl.clearCacheVersion(aid);
+
+			// 尽可能删除已失效的缓存数据
+			ProductPropCacheCtrl.delCache(aid);
+			ProductPropValCacheCtrl.DataStatusCache.delCache(aid);
+		}finally {
+			lock.unlock();
+		}
+		FaiBuffer sendBuf = new FaiBuffer(true);
+		session.write(sendBuf);
+		rt = Errno.OK;
+		Log.logStd("clear cache ok;flow=%d;aid=%d;", flow, aid);
 
 		return rt;
 	}

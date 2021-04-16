@@ -76,7 +76,7 @@ public class ProductBindGroupCache extends CacheCtrl {
         }
 
         public static String getCacheKey(int aid, int unionPriId) {
-            return DATA_STATUS_CACHE_KEY + "-" + aid + "-" + unionPriId;
+            return wrapCacheVersion(DATA_STATUS_CACHE_KEY + "-" + aid + "-" + unionPriId, aid);
         }
 
         public static String[] getCacheKeys(int aid, HashSet<Integer> unionPriIds) {
@@ -95,7 +95,7 @@ public class ProductBindGroupCache extends CacheCtrl {
     }
 
     public static String getCacheKey(int aid, int unionPriId) {
-        return CACHE_KEY + "-" + aid + "-" + unionPriId;
+        return wrapCacheVersion(CACHE_KEY + "-" + aid + "-" + unionPriId, aid);
     }
 
     private static final String CACHE_KEY = "MG_productBindGroup";

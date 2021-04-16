@@ -58,7 +58,7 @@ public class ProductBasicEntity {
         public static final String ADD_SID = "addedSid"; // int 录入商品的员工ID
         public static final String LAST_SID = "lastOptManagerSid"; // int 最后操作的管理员ID
         public static final String LAST_UPDATE_TIME = "lastUpdateTime"; // datetime 更新时间
-        public static final String STATUS = "status"; // int datetime 商品状态
+        public static final String STATUS = "status"; // int 商品状态
         public static final String UP_SALE_TIME = "upSaleTime"; // datetime 上架时间
         public static final String RL_FLAG = "rlFlag"; // int
 

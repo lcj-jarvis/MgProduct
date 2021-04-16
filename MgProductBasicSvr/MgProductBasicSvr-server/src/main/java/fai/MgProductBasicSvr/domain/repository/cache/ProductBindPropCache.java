@@ -44,7 +44,7 @@ public class ProductBindPropCache extends CacheCtrl {
     }
 
     public static String getCacheKey(int aid, int unionPriId, int rlPdId) {
-        return CACHE_KEY + "-" + aid + "-" + unionPriId + "-" + rlPdId;
+        return wrapCacheVersion(CACHE_KEY + "-" + aid + "-" + unionPriId + "-" + rlPdId, aid);
     }
 
     /** 数据状态缓存 **/
@@ -82,7 +82,7 @@ public class ProductBindPropCache extends CacheCtrl {
         }
 
         public static String getCacheKey(int aid, int unionPriId) {
-            return DATA_STATUS_CACHE_KEY + "-" + aid + "-" + unionPriId;
+            return wrapCacheVersion(DATA_STATUS_CACHE_KEY + "-" + aid + "-" + unionPriId, aid);
         }
 
         public static String[] getCacheKeys(int aid, HashSet<Integer> unionPriIds) {

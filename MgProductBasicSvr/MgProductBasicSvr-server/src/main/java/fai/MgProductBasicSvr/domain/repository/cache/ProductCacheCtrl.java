@@ -8,6 +8,13 @@ import fai.mgproduct.comm.DataStatus;
 import java.util.List;
 
 public class ProductCacheCtrl extends CacheCtrl {
+    /**
+     * 清空指定aid的所有缓存
+     */
+    public static void clearAllCache(int aid) {
+        InfoCache.delCache(aid);
+        DataStatusCache.delCache(aid);
+    }
 
     /*** 数据缓存 ***/
     public static class InfoCache {
@@ -71,7 +78,7 @@ public class ProductCacheCtrl extends CacheCtrl {
         }
 
         public static String getCacheKey(int aid) {
-            return CACHE_KEY + "-" + aid;
+            return wrapCacheVersion(CACHE_KEY + "-" + aid, aid);
         }
 
         private static final String CACHE_KEY = "MG_product";
@@ -99,12 +106,16 @@ public class ProductCacheCtrl extends CacheCtrl {
             m_cache.updateParam(getCacheKey(aid), updater, ProductDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
         }
 
+        public static void delCache(int aid) {
+            m_cache.del(getCacheKey(aid));
+        }
+
         public static void expire(int aid, int second) {
             m_cache.expire(getCacheKey(aid), second);
         }
 
         public static String getCacheKey(int aid) {
-            return DATA_STATUS_CACHE_KEY + "-" + aid;
+            return wrapCacheVersion(DATA_STATUS_CACHE_KEY + "-" + aid, aid);
         }
 
         private static final String DATA_STATUS_CACHE_KEY = "MG_pdDS";

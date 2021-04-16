@@ -4,6 +4,7 @@ import fai.MgPrimaryKeySvr.interfaces.cli.MgPrimaryKeyCli;
 import fai.MgPrimaryKeySvr.interfaces.entity.MgPrimaryKeyEntity;
 import fai.MgProductBasicSvr.interfaces.cli.MgProductBasicCli;
 import fai.MgProductBasicSvr.interfaces.entity.ProductRelEntity;
+import fai.MgProductGroupSvr.interfaces.cli.MgProductGroupCli;
 import fai.MgProductInfSvr.application.MgProductInfSvr;
 import fai.MgProductInfSvr.domain.comm.BizPriKey;
 import fai.MgProductInfSvr.domain.comm.ProductSpecCheck;
@@ -12,8 +13,11 @@ import fai.MgProductInfSvr.domain.serviceproc.ProductSpecProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductStoreProc;
 import fai.MgProductInfSvr.interfaces.dto.MgProductDto;
 import fai.MgProductInfSvr.interfaces.entity.*;
+import fai.MgProductPropSvr.interfaces.cli.MgProductPropCli;
+import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuValObj;
+import fai.MgProductStoreSvr.interfaces.cli.MgProductStoreCli;
 import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
@@ -142,6 +146,52 @@ public class MgProductInfService extends ServicePub {
         }
         idRef.value = pdRelInfo.getInt(ProductRelEntity.Info.PD_ID);
         return rt;
+    }
+
+    public int clearCache(FaiSession session, int flow, int aid) throws IOException {
+        int returnRt = Errno.OK;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            MgProductBasicCli mgProductBasicCli = FaiCliFactory.createCli(MgProductBasicCli.class, flow);
+            int rt = mgProductBasicCli.nkClearCache(aid);
+            if(rt != Errno.OK) {
+                Log.logErr("basic clear cache error;flow=%d;aid=%d;", flow, aid);
+                returnRt = rt;
+            }
+            MgProductGroupCli mgProductGroupCli = FaiCliFactory.createCli(MgProductGroupCli.class, flow);
+            rt = mgProductGroupCli.nkClearCache(aid);
+            if(rt != Errno.OK) {
+                Log.logErr("group clear cache error;flow=%d;aid=%d;", flow, aid);
+                returnRt = rt;
+            }
+
+            MgProductPropCli mgProductPropCli = FaiCliFactory.createCli(MgProductPropCli.class, flow);
+            rt = mgProductPropCli.nkClearCache(aid);
+            if(rt != Errno.OK) {
+                Log.logErr("prop clear cache error;flow=%d;aid=%d;", flow, aid);
+                returnRt = rt;
+            }
+
+            MgProductSpecCli mgProductSpecCli = FaiCliFactory.createCli(MgProductSpecCli.class, flow);
+            rt = mgProductSpecCli.nkClearCache(aid);
+            if(rt != Errno.OK) {
+                Log.logErr("spec clear cache error;flow=%d;aid=%d;", flow, aid);
+                returnRt = rt;
+            }
+
+            MgProductStoreCli mgProductStoreCli = FaiCliFactory.createCli(MgProductStoreCli.class, flow);
+            rt = mgProductStoreCli.nkClearCache(aid);
+            if(rt != Errno.OK) {
+                Log.logErr("store clear cache error;flow=%d;aid=%d;", flow, aid);
+                returnRt = rt;
+            }
+
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+        }finally {
+            stat.end(returnRt != Errno.OK, returnRt);
+        }
+        return returnRt;
     }
 
     /**

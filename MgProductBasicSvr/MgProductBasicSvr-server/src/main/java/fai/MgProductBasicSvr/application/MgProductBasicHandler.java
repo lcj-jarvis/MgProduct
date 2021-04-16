@@ -13,6 +13,7 @@ import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
 import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
+import fai.comm.netkit.NKDef;
 import fai.comm.util.FaiList;
 import fai.comm.util.Param;
 import fai.comm.util.ParamUpdater;
@@ -366,6 +367,13 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                     @ArgBodyInteger(ProductBindGroupDto.Key.UNION_PRI_ID) int unionPriId,
                                     @ArgSearchArg(ProductBindGroupDto.Key.SEARCH_ARG)SearchArg searchArg) throws IOException {
         return groupBindService.searchBindGroupFromDb(session, flow, aid, unionPriId, searchArg);
+    }
+
+    @Cmd(NKDef.Protocol.Cmd.CLEAR_CACHE)
+    public int clearCache(final FaiSession session,
+                          @ArgFlow final int flow,
+                          @ArgAid final int aid) throws IOException {
+        return service.clearCache(session, flow, aid);
     }
 
     private ProductBasicService service = ServiceProxy.create(new ProductBasicService());

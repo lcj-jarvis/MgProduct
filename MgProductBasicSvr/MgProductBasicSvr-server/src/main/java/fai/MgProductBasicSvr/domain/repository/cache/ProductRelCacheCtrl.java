@@ -78,7 +78,7 @@ public class ProductRelCacheCtrl extends CacheCtrl {
         }
 
         public static String getCacheKey(int aid, int unionPriId) {
-            return CACHE_KEY + "-" + aid + "-" + unionPriId;
+            return wrapCacheVersion(CACHE_KEY + "-" + aid + "-" + unionPriId, aid);
         }
 
         public static String[] getCacheKeys(int aid, HashSet<Integer> unionPriIds) {
@@ -133,7 +133,7 @@ public class ProductRelCacheCtrl extends CacheCtrl {
         }
 
         public static String getCacheKey(int aid, int unionPriId) {
-            return RLID_REL_CACHE_KEY + "-" + aid + "-" + unionPriId;
+            return wrapCacheVersion(RLID_REL_CACHE_KEY + "-" + aid + "-" + unionPriId, aid);
         }
 
         private static final String RLID_REL_CACHE_KEY = "MG_productRlIdRel"; // 商品业务表 id和业务id关系缓存，aid + unionPriId 为 cache key，pdId为hash key，数据只包含rlPdId+pdId+unionPriId
@@ -179,7 +179,7 @@ public class ProductRelCacheCtrl extends CacheCtrl {
         }
 
         public static String getCacheKey(int aid, int unionPriId) {
-            return DATA_STATUS_CACHE_KEY + "-" + aid + "-" + unionPriId;
+            return wrapCacheVersion(DATA_STATUS_CACHE_KEY + "-" + aid + "-" + unionPriId, aid);
         }
 
         public static String[] getCacheKeys(int aid, HashSet<Integer> unionPriIds) {

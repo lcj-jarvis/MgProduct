@@ -6,6 +6,7 @@ import fai.MgProductGroupSvr.domain.entity.ProductGroupEntity;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupRelEntity;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupRelValObj;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupValObj;
+import fai.MgProductGroupSvr.domain.repository.CacheCtrl;
 import fai.MgProductGroupSvr.domain.repository.ProductGroupCache;
 import fai.MgProductGroupSvr.domain.repository.ProductGroupRelCache;
 import fai.MgProductGroupSvr.domain.serviceproc.ProductGroupProc;
@@ -74,7 +75,7 @@ public class ProductGroupService extends ServicePub {
                     transactionCtrl.commit();
                     // 新增缓存
                     ProductGroupCache.addCache(aid, groupInfo);
-                    ProductGroupRelCache.addCache(aid, unionPriId, relInfo);
+                    ProductGroupRelCache.InfoCache.addCache(aid, unionPriId, relInfo);
                     ProductGroupRelCache.SortCache.set(aid, unionPriId, maxSort);
                     ProductGroupRelCache.DataStatusCache.update(aid, unionPriId, 1);
                 }else {
@@ -268,7 +269,7 @@ public class ProductGroupService extends ServicePub {
                 commit = true;
                 // commit之前设置10s过期时间，避免脏数据
                 if(updaterList != null && !updaterList.isEmpty()) {
-                    ProductGroupRelCache.setExpire(aid, unionPriId);
+                    ProductGroupRelCache.InfoCache.setExpire(aid, unionPriId);
                 }
                 if(!groupUpdaterList.isEmpty()) {
                     ProductGroupCache.setExpire(aid);
@@ -278,7 +279,7 @@ public class ProductGroupService extends ServicePub {
                     transactionCtrl.commit();
                     ProductGroupCache.updateCacheList(aid, groupUpdaterList);
                     if(!Util.isEmptyList(updaterList)) {
-                        ProductGroupRelCache.updateCacheList(aid, unionPriId, updaterList);
+                        ProductGroupRelCache.InfoCache.updateCacheList(aid, unionPriId, updaterList);
                         // 修改数据，更新dataStatus 的管理态字段更新时间
                         ProductGroupRelCache.DataStatusCache.update(aid, unionPriId);
                     }
@@ -328,13 +329,13 @@ public class ProductGroupService extends ServicePub {
 
                 commit = true;
                 // commit之前设置10s过期时间，避免脏数据
-                ProductGroupRelCache.setExpire(aid, unionPriId);
+                ProductGroupRelCache.InfoCache.setExpire(aid, unionPriId);
                 ProductGroupCache.setExpire(aid);
             }finally {
                 if(commit) {
                     transactionCtrl.commit();
                     ProductGroupCache.delCacheList(aid, delGroupIdList);
-                    ProductGroupRelCache.delCacheList(aid, unionPriId, rlGroupIdList);
+                    ProductGroupRelCache.InfoCache.delCacheList(aid, unionPriId, rlGroupIdList);
                     ProductGroupRelCache.DataStatusCache.update(aid, unionPriId, rlGroupIdList.size(), false);
                 }else {
                     transactionCtrl.rollback();
@@ -348,6 +349,29 @@ public class ProductGroupService extends ServicePub {
         FaiBuffer sendBuf = new FaiBuffer(true);
         session.write(sendBuf);
         Log.logStd("del ok;flow=%d;aid=%d;unionPriId=%d;ids=%s;", flow, aid, unionPriId, rlGroupIdList);
+        return rt;
+    }
+
+    @SuccessRt(value = Errno.OK)
+    public int clearCache(FaiSession session, int flow, int aid) throws IOException {
+        int rt;
+        if(aid <= 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
+            return rt;
+        }
+        Lock lock = LockUtil.getLock(aid);
+        lock.lock();
+        try {
+            CacheCtrl.clearCacheVersion(aid);
+            ProductGroupCache.delCache(aid);
+        }finally {
+            lock.unlock();
+        }
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("clearCache ok;flow=%d;aid=%d;", flow, aid);
         return rt;
     }
 

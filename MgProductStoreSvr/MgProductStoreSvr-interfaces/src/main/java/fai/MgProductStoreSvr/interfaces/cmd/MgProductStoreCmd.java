@@ -39,6 +39,7 @@ public class MgProductStoreCmd {
 		public static final int NUM13 = 1013;
 		public static final int NUM14 = 1014;
 		public static final int NUM15 = 1015;
+		public static final int NUM16 = 1016;
 	}
 
 	////////////////// cmd对外定义，实际做cmd读写分离 ////////////////////
@@ -68,6 +69,8 @@ public class MgProductStoreCmd {
 		public static final int BATCH_SYN_SPU_TO_SKU = WriteCmdNum.NUM12;
 		public static final int BATCH_REFUND_STORE = WriteCmdNum.NUM14;
 		public static final int IMPORT = WriteCmdNum.NUM15;
+
+		public static final int BATCH_SET_LIST = WriteCmdNum.NUM16;
 	}
 
 	/**

@@ -25,6 +25,9 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
 
+/**
+ * 主要处理 库存销售sku相关 请求
+ */
 public class StoreSalesSkuService extends StoreService {
     /**
      * 刷新库存销售sku信息
@@ -55,15 +58,17 @@ public class StoreSalesSkuService extends StoreService {
                 SkuSummaryProc skuSummaryProc = new SkuSummaryProc(skuSummaryDaoCtrl, flow);
                 StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
 
+                // 查出当前已有的sku
                 Ref<FaiList<Param>> listRef = new Ref<>();
                 rt = storeSalesSkuProc.getListFromDao(aid, unionPriId, pdId, listRef, StoreSalesSkuEntity.Info.SKU_ID);
                 if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                     return rt;
                 }
                 FaiList<Param> storeSalesSkuInfoList = listRef.value;
+
                 Map<Long, Param> skuIdPdScSkuInfoMap = Utils.getMap(pdScSkuInfoList, StoreSalesSkuEntity.Info.SKU_ID);
+                // 筛选出需要删除的sku
                 FaiList<Long> delSkuIdList = new FaiList<>();
-                FaiList<Param> addInfoList = new FaiList<>();
                 for (Param storeSalesSkuInfo : storeSalesSkuInfoList) {
                     Long skuId = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.SKU_ID);
                     Param pdScSkuInfo = skuIdPdScSkuInfoMap.remove(skuId);
@@ -72,7 +77,8 @@ public class StoreSalesSkuService extends StoreService {
                         continue;
                     }
                 }
-
+                // 生成需要添加的sku
+                FaiList<Param> addInfoList = new FaiList<>();
                 for (Map.Entry<Long, Param> skuIdPdScSkuInfoEntry : skuIdPdScSkuInfoMap.entrySet()) {
                     addInfoList.add(new Param()
                             .setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId)
@@ -110,12 +116,14 @@ public class StoreSalesSkuService extends StoreService {
                             return rt;
                         }
                     }
+                    // 当本次刷新没有修改操作就直接返回
                     if(notModify){
                         FaiBuffer sendBuf = new FaiBuffer(true);
                         session.write(sendBuf);
                         Log.logDbg("not modify;flow=%d;aid=%d;unionPriId=%s;pdId=%s;rlPdId=%s;", flow, aid, unionPriId, pdId, rlPdId);
                         return rt = Errno.OK;
                     }
+                    // 同步方式汇总信息
                     rt = reportSummary(aid, new FaiList<>(Arrays.asList(pdId)), ReportValObj.Flag.REPORT_COUNT| ReportValObj.Flag.REPORT_PRICE
                             , null, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
                     if(rt != Errno.OK){
@@ -126,9 +134,11 @@ public class StoreSalesSkuService extends StoreService {
                         transactionCtrl.rollback();
                         return rt;
                     }
+                    // 事务提交前先设置一个较短的过期时间
                     spuBizSummaryProc.setDirtyCacheEx(aid);
                     spuSummaryProc.setDirtyCacheEx(aid);
                     transactionCtrl.commit();
+                    // 提交成功再删除缓存
                     spuBizSummaryProc.deleteDirtyCache(aid);
                     spuSummaryProc.deleteDirtyCache(aid);
                 }
@@ -255,22 +265,26 @@ public class StoreSalesSkuService extends StoreService {
                         return rt;
                     }
                     FaiList<Param> reportInfoList = listRef.value;
-                    Map<Integer, Map<Integer, Param>> unionPriId_pdId_bizSalesSummaryInfoMapMap = new HashMap<>();
-                    Map<Integer, Param> pdIdSalesSummaryInfoMap = new HashMap<>();
-                    Map<Long, Param> skuIdStoreSkuSummaryInfoMap = new HashMap<>();
+                    // 记录spu业务维度的汇总
+                    Map<Integer/*unionPriId*/, Map<Integer/*pdId*/, Param/*spuBizSummary*/>> unionPriId_pdId_spuBizSummaryInfoMapMap = new HashMap<>();
+                    // 记录spu维度的汇总
+                    Map<Integer/*pdId*/, Param/*spuSummary*/> pdIdSpuSummaryInfoMap = new HashMap<>();
+                    // 记录sku维度的汇总
+                    Map<Long/*skuId*/, Param/*skuSummary*/> skuIdSkuSummaryInfoMap = new HashMap<>();
                     for (Param reportInfo : reportInfoList) {
                         int pdId = reportInfo.getInt(StoreSalesSkuEntity.Info.PD_ID);
                         int unionPriId = reportInfo.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
                         long skuId = reportInfo.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                        // 计算spu+业务维度的汇总
                         {
-                            Param spuBizSalesSummaryInfo = new Param();
-                            assemblySpuBizSummaryInfo(spuBizSalesSummaryInfo, reportInfo, ReportValObj.Flag.REPORT_PRICE| ReportValObj.Flag.REPORT_COUNT);
-                            Map<Integer, Param> pdId_bizSalesSummaryInfoMap = unionPriId_pdId_bizSalesSummaryInfoMapMap.get(unionPriId);
-                            if(pdId_bizSalesSummaryInfoMap == null){
-                                pdId_bizSalesSummaryInfoMap = new HashMap<>();
-                                unionPriId_pdId_bizSalesSummaryInfoMapMap.put(unionPriId, pdId_bizSalesSummaryInfoMap);
+                            Param spuBizSummaryInfo = new Param();
+                            assemblySpuBizSummaryInfo(spuBizSummaryInfo, reportInfo, ReportValObj.Flag.REPORT_PRICE| ReportValObj.Flag.REPORT_COUNT);
+                            Map<Integer, Param> pdId_spuBizSummaryInfoMap = unionPriId_pdId_spuBizSummaryInfoMapMap.get(unionPriId);
+                            if(pdId_spuBizSummaryInfoMap == null){
+                                pdId_spuBizSummaryInfoMap = new HashMap<>();
+                                unionPriId_pdId_spuBizSummaryInfoMapMap.put(unionPriId, pdId_spuBizSummaryInfoMap);
                             }
-                            pdId_bizSalesSummaryInfoMap.put(pdId, spuBizSalesSummaryInfo);
+                            pdId_spuBizSummaryInfoMap.put(pdId, spuBizSummaryInfo);
                         }
                         Object bitOrFlagObj = reportInfo.getObject(StoreSalesSkuEntity.ReportInfo.BIT_OR_FLAG);
                         int bigOrFlag = ((BigInteger)bitOrFlagObj).intValue();
@@ -285,12 +299,13 @@ public class StoreSalesSkuService extends StoreService {
                             minPrice = Long.MAX_VALUE;
                             maxPrice = Long.MIN_VALUE;
                         }
+                        // 计算 spu维度的汇总
                         {
-                            Param spuSummaryInfo = pdIdSalesSummaryInfoMap.get(pdId);
+                            Param spuSummaryInfo = pdIdSpuSummaryInfoMap.get(pdId);
                             if(spuSummaryInfo == null){
                                 spuSummaryInfo = new Param();
                                 spuSummaryInfo.setInt(SpuSummaryEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
-                                pdIdSalesSummaryInfoMap.put(pdId, spuSummaryInfo);
+                                pdIdSpuSummaryInfoMap.put(pdId, spuSummaryInfo);
                             }
                             int lastCount = spuSummaryInfo.getInt(SpuSummaryEntity.Info.COUNT, 0);
                             int lastRemainCount = spuSummaryInfo.getInt(SpuSummaryEntity.Info.REMAIN_COUNT, 0);
@@ -303,13 +318,14 @@ public class StoreSalesSkuService extends StoreService {
                             spuSummaryInfo.setLong(SpuSummaryEntity.Info.MAX_PRICE, Math.max(lastMaxPrice, maxPrice));
                             spuSummaryInfo.setLong(SpuSummaryEntity.Info.MIN_PRICE, Math.min(lastMinPrice, minPrice));
                         }
+                        // 计算sku维度的汇总
                         {
-                            Param skuSummaryInfo = skuIdStoreSkuSummaryInfoMap.get(skuId);
+                            Param skuSummaryInfo = skuIdSkuSummaryInfoMap.get(skuId);
                             if(skuSummaryInfo == null){
                                 skuSummaryInfo = new Param();
                                 skuSummaryInfo.setInt(SkuSummaryEntity.Info.PD_ID, pdId);
                                 skuSummaryInfo.setInt(SkuSummaryEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
-                                skuIdStoreSkuSummaryInfoMap.put(skuId, skuSummaryInfo);
+                                skuIdSkuSummaryInfoMap.put(skuId, skuSummaryInfo);
                             }
                             int lastCount = skuSummaryInfo.getInt(SkuSummaryEntity.Info.COUNT, 0);
                             int lastRemainCount = skuSummaryInfo.getInt(SkuSummaryEntity.Info.REMAIN_COUNT, 0);
@@ -324,17 +340,17 @@ public class StoreSalesSkuService extends StoreService {
                         }
                     }
 
-                    rt = spuBizSummaryProc.report4synSPU2SKU(aid, unionPriId_pdId_bizSalesSummaryInfoMapMap);
+                    rt = spuBizSummaryProc.report4synSPU2SKU(aid, unionPriId_pdId_spuBizSummaryInfoMapMap);
                     if(rt != Errno.OK){
                         return rt;
                     }
 
-                    rt = spuSummaryProc.report4synSPU2SKU(aid, pdIdSalesSummaryInfoMap);
+                    rt = spuSummaryProc.report4synSPU2SKU(aid, pdIdSpuSummaryInfoMap);
                     if(rt != Errno.OK){
                         return rt;
                     }
 
-                    rt = skuSummaryProc.report4synSPU2SKU(aid, skuIdStoreSkuSummaryInfoMap);
+                    rt = skuSummaryProc.report4synSPU2SKU(aid, skuIdSkuSummaryInfoMap);
                     if(rt != Errno.OK){
                         return rt;
                     }
@@ -639,7 +655,7 @@ public class StoreSalesSkuService extends StoreService {
                             return rt;
                         }
 
-
+                        // 获取修改后的库存销售sku信息
                         Map<SkuBizKey, Param> changeCountAfterSkuStoreSalesInfoMap = new HashMap<>();
                         rt = storeSalesSkuProc.getInfoMap4OutRecordFromDao(aid, skuBizKeySet, changeCountAfterSkuStoreSalesInfoMap);
                         if (rt != Errno.OK) {
@@ -745,12 +761,13 @@ public class StoreSalesSkuService extends StoreService {
                             Log.logStd("find repeat makeup;aid=%d;unionPriId=%s;rlOrderCode=%s;skuIdCountList=%s", aid, unionPriId, rlOrderCode, skuIdCountList);
                             return rt = Errno.OK;
                         }
+                        // 逻辑删除
                         rt = holdingRecordProc.batchLogicDel(aid, unionPriId, skuIdList, rlOrderCode);
                         if(rt != Errno.OK){
                             return rt;
                         }
                     }
-
+                    // 补偿库存
                     rt = storeSalesSkuProc.batchMakeUpStore(aid, unionPriId, skuIdCountMap, holdingMode);
                     if(rt != Errno.OK){
                         return rt;
@@ -880,6 +897,7 @@ public class StoreSalesSkuService extends StoreService {
                         // 修改库存
                         rt = storeSalesSkuProc.batchChangeStore(aid, skuBizChangeCountMap);
 
+                        // 获取修改库存后的库存销售sku信息
                         Map<SkuBizKey, Param> changeCountAfterSkuStoreSalesInfoMap = new HashMap<>();
                         rt = storeSalesSkuProc.getInfoMap4OutRecordFromDao(aid, skuBizKeySet, changeCountAfterSkuStoreSalesInfoMap);
                         if (rt != Errno.OK) {
@@ -929,8 +947,10 @@ public class StoreSalesSkuService extends StoreService {
             stat.end(rt != Errno.OK, rt);
         }
     }
+
     /**
      * 根据uid和pdId获取库存销售sku信息
+     * @param useSourceFieldList 是否使用源商品的字段数据进行覆盖关联的字段
      */
     public int getSkuStoreSales(FaiSession session, int flow, int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<String> useSourceFieldList) throws IOException {
         int rt = Errno.ERROR;
@@ -952,17 +972,22 @@ public class StoreSalesSkuService extends StoreService {
                     return rt;
                 }
                 list = listRef.value;
+                // 判断是否需要使用 源商品数据进行覆盖关联的数据
                 if(useSourceFieldList != null && !useSourceFieldList.isEmpty()){
                     Set<String> useSourceFieldSet = new HashSet<>(useSourceFieldList);
                     useSourceFieldSet.retainAll(Arrays.asList(StoreSalesSkuEntity.getValidKeys()));
                     if(list.size() > 0 && useSourceFieldSet.size() > 0){
                         useSourceFieldSet.add(StoreSalesSkuEntity.Info.SKU_ID);
+                        // 获取第一个关联的数据，进而获取源业务id
                         Param first = list.get(0);
                         int tmpUnionPriId = first.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+                        // 获取到源业务id
                         int sourceUnionPriId = first.getInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID);
+                        // 当当前查询的不是源业务的数据，就查询出源业务的sku数据进行覆盖
                         if(tmpUnionPriId != sourceUnionPriId){
                             FaiList<Long> skuIdList = Utils.getValList(list, StoreSalesSkuEntity.Info.SKU_ID);
                             listRef = new Ref<>();
+                            // 获取源业务的库存销售sku信息
                             rt = storeSalesSkuProc.getListFromDaoBySkuIdList(aid, sourceUnionPriId, skuIdList, listRef, useSourceFieldSet.toArray(new String[]{}));
                             if(rt != Errno.OK){
                                 if(rt == Errno.NOT_FOUND){
@@ -975,6 +1000,7 @@ public class StoreSalesSkuService extends StoreService {
                                 Long skuId = sourceFieldInfo.getLong(StoreSalesSkuEntity.Info.SKU_ID);
                                 skuIdFiledMap.put(skuId, sourceFieldInfo);
                             }
+                            // 进行覆盖
                             for (Param info : list) {
                                 Long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
                                 Param sourceFieldInfo = skuIdFiledMap.get(skuId);
@@ -1024,16 +1050,21 @@ public class StoreSalesSkuService extends StoreService {
                     return rt;
                 }
                 list = listRef.value;
+                // 判断是否需要使用 源商品数据进行覆盖关联的数据
                 if(useSourceFieldList != null && !useSourceFieldList.isEmpty()){
                     Set<String> useSourceFieldSet = new HashSet<>(useSourceFieldList);
                     useSourceFieldSet.retainAll(Arrays.asList(StoreSalesSkuEntity.getValidKeys()));
                     if(list.size() > 0 && useSourceFieldSet.size() > 0){
                         useSourceFieldSet.add(StoreSalesSkuEntity.Info.SKU_ID);
+                        // 获取第一个关联的数据，进而获取源业务id
                         Param first = list.get(0);
                         int tmpUnionPriId = first.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+                        // 获取到源业务id
                         int sourceUnionPriId = first.getInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID);
+                        // 当当前查询的不是源业务的数据，就查询出源业务的sku数据进行覆盖
                         if(tmpUnionPriId != sourceUnionPriId){
                             listRef = new Ref<>();
+                            // 获取源业务的库存销售sku信息
                             rt = storeSalesSkuProc.getListFromDaoBySkuIdList(aid, sourceUnionPriId, skuIdList, listRef, useSourceFieldSet.toArray(new String[]{}));
                             if(rt != Errno.OK){
                                 if(rt == Errno.NOT_FOUND){
@@ -1046,6 +1077,7 @@ public class StoreSalesSkuService extends StoreService {
                                 Long skuId = sourceFieldInfo.getLong(StoreSalesSkuEntity.Info.SKU_ID);
                                 skuIdFiledMap.put(skuId, sourceFieldInfo);
                             }
+                            // 进行覆盖
                             for (Param info : list) {
                                 Long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
                                 Param sourceFieldInfo = skuIdFiledMap.get(skuId);

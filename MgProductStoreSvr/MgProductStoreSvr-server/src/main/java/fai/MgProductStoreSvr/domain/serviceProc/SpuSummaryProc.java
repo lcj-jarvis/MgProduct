@@ -294,6 +294,8 @@ public class SpuSummaryProc {
 
     private int m_flow;
     private SpuSummaryDaoCtrl m_daoCtrl;
+
+    // 用于记录当前请求中需要操作到缓存key
     private CacheManage cacheManage = new CacheManage();
     private static class CacheManage{
         private Set<Integer> pdIdSet;

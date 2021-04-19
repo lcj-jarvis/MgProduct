@@ -25,6 +25,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * 处理数据汇总请求
+ */
 public class SummaryService extends StoreService {
 
     /**
@@ -70,7 +73,7 @@ public class SummaryService extends StoreService {
 
                 try {
                     LockUtil.lock(aid);
-                    try { // 上报数据 并 删除上报任务
+                    try { // 上报数据
                         transactionCtrl.setAutoCommit(false);
                         rt = spuBizSummaryProc.report(aid, pdId, new FaiList<>(Arrays.asList(bizSalesSummaryInfo)));
                         if(rt != Errno.OK){
@@ -160,17 +163,22 @@ public class SummaryService extends StoreService {
                     return rt;
                 }
                 list = listRef.value;
+                // 判断是否需要使用 源商品数据进行覆盖关联的数据
                 if(useSourceFieldList != null && !useSourceFieldList.isEmpty()) {
                     Set<String> useSourceFieldSet = new HashSet<>(useSourceFieldList);
                     useSourceFieldSet.retainAll(Arrays.asList(SpuBizSummaryEntity.getValidKeys()));
                     if(list.size() > 0 && useSourceFieldSet.size() > 0){
                         useSourceFieldSet.add(SpuBizSummaryEntity.Info.PD_ID);
+                        // 获取第一个关联的数据，进而获取源业务id
                         Param first = list.get(0);
                         int tmpUnionPriId = first.getInt(SpuBizSummaryEntity.Info.UNION_PRI_ID);
+                        // 获取到源业务id
                         int sourceUnionPriId = first.getInt(SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID);
+                        // 当当前查询的不是源业务的数据，就查询出源业务的sku数据进行覆盖
                         if(tmpUnionPriId != sourceUnionPriId){
                             FaiList<Integer> sourcePdIdList = Utils.getValList(list, SpuBizSummaryEntity.Info.PD_ID);
                             listRef = new Ref<>();
+                            // 获取源业务的spu汇总信息
                             rt = spuBizSummaryProc.getInfoListByPdIdList(aid, sourceUnionPriId, sourcePdIdList, listRef);
                             if(rt != Errno.OK){
                                 if(rt == Errno.NOT_FOUND){
@@ -179,6 +187,7 @@ public class SummaryService extends StoreService {
                                 return rt;
                             }
                             Map<Integer, Param> map = Utils.getMap(listRef.value, SpuBizSummaryEntity.Info.PD_ID);
+                            // 进行覆盖
                             for (Param info : list) {
                                 Integer pdId = info.getInt(SpuBizSummaryEntity.Info.PD_ID);
                                 Param sourceInfo = map.get(pdId);

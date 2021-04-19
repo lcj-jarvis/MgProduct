@@ -16,6 +16,9 @@ import java.math.BigInteger;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * 处理既有库存销售sku又有出入库记录的请求
+ */
 public class StoreService {
     /**
      * 库存销售数据汇总上报

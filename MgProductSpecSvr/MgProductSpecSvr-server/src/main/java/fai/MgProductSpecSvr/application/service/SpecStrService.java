@@ -11,6 +11,9 @@ import java.io.IOException;
 
 public class SpecStrService  extends ServicePub {
 
+    /**
+     * 跟据规格字符串id集 获取规格字符串
+     */
     public int getScStrInfoList(FaiSession session, int flow, int aid, int tid, FaiList<Integer> strIdList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);

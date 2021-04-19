@@ -196,8 +196,11 @@ public class StoreSalesSkuProc {
         return rt;
     }
 
-
     public int batchSet(int aid, int unionPriId, int pdId, FaiList<ParamUpdater> updaterList) {
+        return batchSet(aid, Arrays.asList(unionPriId), pdId, updaterList);
+    }
+    
+    public int batchSet(int aid, List<Integer> unionPriIdList, int pdId, FaiList<ParamUpdater> updaterList) {
         if(aid <= 0 || pdId <=0 || updaterList == null || updaterList.isEmpty()){
             Log.logErr("batchSet error;flow=%d;aid=%s;pdId=%s;updaterList=%s;", m_flow, aid, pdId, updaterList);
             return Errno.ARGS_ERROR;
@@ -252,12 +255,15 @@ public class StoreSalesSkuProc {
 
             { // matcher
                 data.setInt(StoreSalesSkuEntity.Info.AID, aid);
-                data.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId);
+                data.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, -1); // 先占好坑位
                 data.setInt(StoreSalesSkuEntity.Info.PD_ID, pdId);
                 data.setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId);
             }
-
-            dataList.add(data);
+            for (int uid : unionPriIdList) {
+                Param clone = data.clone().setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, uid);
+                System.out.println(clone);
+                dataList.add(clone);
+            }
         });
 
         rt = m_daoCtrl.batchUpdate(doBatchUpdater, doBatchMatcher, dataList);
@@ -283,8 +289,10 @@ public class StoreSalesSkuProc {
         int rt = Errno.ERROR;
         Map<Long, Integer> alreadyChangeSkuIdCountMap = new HashMap<>();
         if(!reduceHoldingCount){
+            // 扣除缓存库存
             rt = batchReduceStoreCache(aid, unionPriId, skuIdCountMap, alreadyChangeSkuIdCountMap);
             if(rt != Errno.OK){
+                //扣除失败补偿缓存库存
                 batchRollbackReduceStoreCache(aid, unionPriId, alreadyChangeSkuIdCountMap);
                 return rt;
             }
@@ -293,6 +301,7 @@ public class StoreSalesSkuProc {
         for (Map.Entry<Long, Integer> skuIdCountEntry : skuIdCountMap.entrySet()) {
             long skuId = skuIdCountEntry.getKey();
             int count = skuIdCountEntry.getValue();
+            // 扣除db库存  之所以不做成批量操作，原因是批量操作获取不到更新的数量
             rt = reduceStore(aid, unionPriId, skuId, count, holdingMode, reduceHoldingCount);
             if(rt != Errno.OK){
                 break;
@@ -406,13 +415,17 @@ public class StoreSalesSkuProc {
         matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.EQ, skuId);
         ParamUpdater updater = new ParamUpdater();
         if(!reduceHoldingCount){ // 扣减 剩余库存
+            // remainCount>=count;
             matcher.and(StoreSalesSkuEntity.Info.REMAIN_COUNT, ParamMatcher.GE, count);
+
             updater.add(StoreSalesSkuEntity.Info.REMAIN_COUNT, ParamUpdater.DEC, count);
             if(holdingMode){ // 预扣模式
                 updater.add(StoreSalesSkuEntity.Info.HOLDING_COUNT, ParamUpdater.INC, count);
             }
         }else{ // 扣减 预扣库存
+            // holdingCount>=count;
             matcher.and(StoreSalesSkuEntity.Info.HOLDING_COUNT, ParamMatcher.GE, count);
+
             updater.add(StoreSalesSkuEntity.Info.HOLDING_COUNT, ParamUpdater.DEC, count);
         }
         rt = m_daoCtrl.update(updater, matcher, refRowCount);
@@ -438,11 +451,13 @@ public class StoreSalesSkuProc {
         }
         Map<Long, Integer> alreadyChangeSkuIdCountMap = new HashMap<>();
         int rt = Errno.ERROR;
+        // 批量补偿缓存库存
         batchMakeupStoreCache(aid, unionPriId, skuIdCountMap, alreadyChangeSkuIdCountMap);
 
         for (Map.Entry<Long, Integer> skuIdCountEntry : skuIdCountMap.entrySet()) {
             long skuId = skuIdCountEntry.getKey();
             int count = skuIdCountEntry.getValue();
+            // 补偿db库存
             rt = makeUpStore(aid, unionPriId, skuId, count, holdingMode);
             if(rt != Errno.OK){
                 break;
@@ -700,6 +715,7 @@ public class StoreSalesSkuProc {
         ParamComparator comparator = new ParamComparator();
         comparator.addKey(StoreSalesSkuEntity.Info.UNION_PRI_ID);
         comparator.addKey(StoreSalesSkuEntity.Info.SKU_ID);
+        // 排序下，避免乱序导致mysql死锁
         Collections.sort(dataList, comparator);
         rt = m_daoCtrl.batchUpdate(updater, matcher, dataList);
         if(rt != Errno.OK){
@@ -1064,8 +1080,9 @@ public class StoreSalesSkuProc {
 
     private int m_flow;
     private StoreSalesSkuDaoCtrl m_daoCtrl;
-    private CacheManage cacheManage = new CacheManage();
 
+    //用于记录当前请求中需要操作到缓存key
+    private CacheManage cacheManage = new CacheManage();
     private static class CacheManage{
 
         public CacheManage() {

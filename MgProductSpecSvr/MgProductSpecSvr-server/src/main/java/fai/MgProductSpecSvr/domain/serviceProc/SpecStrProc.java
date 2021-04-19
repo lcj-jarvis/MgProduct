@@ -16,11 +16,9 @@ public class SpecStrProc {
     }
 
     /**
-     * 外部加锁
-     * @param aid
-     * @param nameList
-     * @param nameIdMap
-     * @return
+     * 需要外部加锁
+     * 根据规格字符串获取对应的id, 不存在的话就生成。
+     * @param nameIdMap 规格字符串和对应id的映射
      */
     public int getListWithBatchAdd(int aid, FaiList<String> nameList, Param nameIdMap) {
         if(aid <= 0 || nameList == null || nameList.isEmpty() || nameIdMap == null){

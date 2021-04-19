@@ -17,6 +17,9 @@ import fai.middleground.svrutil.repository.TransactionCtrl;
 import java.io.IOException;
 import java.util.*;
 
+/**
+ * 主要处理出入库相关请求
+ */
 public class RecordService extends StoreService {
     /**
      * 批量同步 出入库记录
@@ -210,7 +213,7 @@ public class RecordService extends StoreService {
                 }
                 pair.first = count;
                 pair.second = count;
-                if(Misc.checkBit(flag, InOutStoreRecordValObj.FLag.NOT_CHANGE_COUNT)){
+                if(Misc.checkBit(flag, InOutStoreRecordValObj.FLag.NOT_CHANGE_COUNT)){ //本次出入库记录不影响总库存
                     pair.second = 0;
                 }
                 skuBizChangeCountMap.put(skuBizKey, pair);

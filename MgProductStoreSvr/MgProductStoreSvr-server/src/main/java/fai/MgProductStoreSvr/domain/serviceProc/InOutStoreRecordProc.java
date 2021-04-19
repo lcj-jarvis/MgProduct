@@ -188,7 +188,8 @@ public class InOutStoreRecordProc {
             int pdId = info.getInt(InOutStoreRecordEntity.Info.PD_ID, 0);
             int rlPdId = info.getInt(InOutStoreRecordEntity.Info.RL_PD_ID, 0);
             int sourceUnionPriId = info.getInt(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, 0);
-            Integer remainCount = info.getInt(InOutStoreRecordEntity.Info.REMAIN_COUNT);
+            Integer remainCount = info.getInt(InOutStoreRecordEntity.Info.REMAIN_COUNT); // 初次初始化库存的时候，直接设置了剩余库存
+
             if(remainCount == null){
                 Param storeSalesSkuInfo = changeCountAfterSkuStoreSalesInfoMap.get(new SkuBizKey(unionPriId, skuId));
                 remainCount = storeSalesSkuInfo.getInt(StoreSalesSkuEntity.Info.REMAIN_COUNT)+storeSalesSkuInfo.getInt(StoreSalesSkuEntity.Info.HOLDING_COUNT);
@@ -227,7 +228,9 @@ public class InOutStoreRecordProc {
             data.setInt(InOutStoreRecordEntity.Info.CHANGE_COUNT, changeCount);
             data.setInt(InOutStoreRecordEntity.Info.REMAIN_COUNT, remainCount);
             if(optType == InOutStoreRecordValObj.OptType.IN){ // 入库操作记录可用库存
+                // 设置可以库存，用于计算成本
                 data.setInt(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, changeCount);
+                // 当有成本价时需要计算到总成本中
                 if(price > 0 && changeCount > 0){
                     long totalCost = changeCount*price;
                     long inMwTotalCost = changeCount*inMwPrice;
@@ -353,8 +356,41 @@ public class InOutStoreRecordProc {
                 needInit = false;
             }
         }
-
-        if(needInit){ // 第一次需要初始化，从最新的入库记录开始计算  兼容是同步过来的历史入库记录的可用库存
+        /* eg:
+         * 还未初始化过
+         *    id    optType     availableCount      changeCount      remainCount
+         *    10        1           5                      5               5
+         *    11        1           5                      5              10
+         *    12        2           0                      8               2
+         *    13        1           6                      6               8
+         * 像上面这种可用库存累加起来和剩余库存不匹配，这种就需要走初始逻辑。即从后往前计算可用库存
+         *    id    optType     availableCount      changeCount      remainCount
+         *    10        1           0                      5               5
+         *    11        1           2                      5              10
+         *    12        2           0                      8               2
+         *    13        1           6                      6               8
+         * 从后往前计算：
+         *  id 为13 的 availableCount 为 6  8(最后一条记录的remainCount)-6 = 2
+         *  id 为11 的 availableCount 为 5  5>2 所以 availableCount需要设置为2
+         *  id < 11 availableCount -> 0
+         * =============================================================================
+         * 初始化过后，就从前往后计算。
+         * 假设这时有个出库操作，changeCount = 5
+         * 那么，从前往后计算可用库存就是：
+         *  id 为11 的 availableCount 由 2->0 (2)
+         *  1d 为13 的 availableCount 由 6->3 (3)
+         *  2+3 = 5
+         * 最后就是
+         *    id    optType     availableCount      changeCount      remainCount
+         *    10        1           0                      5               5
+         *    11        1           0                      5              10
+         *    12        2           0                      8               2
+         *    13        1           3                      6               8
+         *    14        2           0                      5               3
+         * 问题：从前往后怎么找到第一个？
+         *      通过 availableCount>0 and optType=1 order by id asc 这样就可以找到了。
+         */
+        if(needInit){ // 第一次需要初始化，从最新的入库记录开始计算  为了兼容同步过来的历史入库记录的可用库存
             batchSize = 10;
 
             SearchArg searchArg = new SearchArg();

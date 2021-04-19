@@ -261,7 +261,9 @@ public class ProductSpecService extends ServicePub {
         }
         return rt;
     }
-
+    /**
+     * 联合修改，包含添加、删除、修改
+     */
     public int unionSetPdScInfoList(FaiSession session, int flow, int aid, int tid, int unionPriId, int pdId, FaiList<Param> addPdScInfoList,
                                     FaiList<Integer> delPdScIdList, FaiList<ParamUpdater> updaterList) throws IOException {
         int rt = Errno.ERROR;
@@ -312,6 +314,7 @@ public class ProductSpecService extends ServicePub {
                     LockUtil.lock(aid);
                     try {
                         transactionCtrl.setAutoCommit(false);
+                        // 用于判断是否要刷新sku
                         Ref<Boolean> needReFreshSkuRef = new Ref<>(false);
                         if (hasDel) {
                             rt = productSpecProc.batchDel(aid, pdId, delPdScIdList, needReFreshSkuRef);
@@ -344,7 +347,8 @@ public class ProductSpecService extends ServicePub {
                             Log.logErr(rt,"arg 1 error;flow=%s;aid=%s;pdId=%s;addPdScInfoList=%s;delPdScIdList=%s;updaterList=%s;", flow, aid, pdId, addPdScInfoList, delPdScIdList, updaterList);
                             return rt;
                         }
-                        Map<Integer, Integer> idxPdScIdMap = new HashMap<>();
+                        // 记录修改后的商品规格id和它所在的下标
+                        Map<Integer/*index*/, Integer/*pdScId*/> idxPdScIdMap = new HashMap<>();
                         FaiList<FaiList<Integer>> skuList = genSkuList(pdScInfoListRef.value, idxPdScIdMap, ProductSpecSkuValObj.Limit.SINGLE_PRODUCT_MAX_SIZE, ProductSpecSkuValObj.Limit.InPdScValIdSkuList.MAX_SIZE, allowInPdScValListIsEmpty);
                         if (skuList == null) {
                             return rt = Errno.SIZE_LIMIT;
@@ -502,6 +506,9 @@ public class ProductSpecService extends ServicePub {
         return rt;
     }
 
+    /**
+     * 批量删除
+     */
     public int batchDelPdAllSc(FaiSession session, int flow, int aid, int tid, FaiList<Integer> pdIdList, boolean softDel) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
@@ -571,6 +578,9 @@ public class ProductSpecService extends ServicePub {
         return rt;
     }
 
+    /**
+     * 获取某个商品所关联的所有商品规格集
+     */
     public int getPdScInfoList(FaiSession session, int flow, int aid, int unionPriId, int pdId) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
@@ -606,6 +616,9 @@ public class ProductSpecService extends ServicePub {
         return rt;
     }
 
+    /**
+     * 只获取勾选上的商品规格集合
+     */
     public int getPdCheckedScInfoList(FaiSession session, int flow, int aid, int unionPriId, int pdId) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
@@ -713,10 +726,11 @@ public class ProductSpecService extends ServicePub {
                 Log.logErr("arg err;flow=%d;aid=%d;pdId=%s;updaterList=%s", flow, aid, pdId, updaterList);
                 return rt;
             }
-            boolean needGenSpuInfo = false;
+
+            boolean needGenSpuInfo = false; // 是否需要生成spu数据
             ParamUpdater spuUpdater = null;
             Set<String> inPdScStrNameSet = new HashSet<>();
-            Map<FaiList<String>, Param> inPdScStrNameListInfoMap = new HashMap<>();
+            Map<FaiList<String>/*inPdScStrNameList*/, Param/*update.data*/> inPdScStrNameListInfoMap = new HashMap<>();
             for (ParamUpdater updater : updaterList) {
                 Param data = updater.getData();
                 Long skuId = data.getLong(ProductSpecSkuEntity.Info.SKU_ID);
@@ -838,8 +852,7 @@ public class ProductSpecService extends ServicePub {
             }
             FaiList<Param> skuCodeSortList = new FaiList<>();
             HashSet<Long> changeSkuCodeSkuIdSet = new HashSet<>();
-            boolean isFindSpu = false;
-            Map<String, Long> newSkuCodeSkuIdMap = new HashMap<>();
+            Map<String/*skuCode*/, Long/*skuId*/> newSkuCodeSkuIdMap = new HashMap<>();
             FaiList<Long> needDelSkuCodeSkuIdList = new FaiList<>();
             for (int i = updaterList.size() - 1; i >= 0; i--) {
                 ParamUpdater updater = updaterList.get(i);
@@ -859,7 +872,7 @@ public class ProductSpecService extends ServicePub {
                     if(skuCodeList.size() > 0){
                         if(skuCodeList.size() > ProductSpecSkuCodeValObj.Limit.MAX_SIZE){
                             rt = Errno.SIZE_LIMIT;
-                            Log.logErr(rt,"found not exist sku;flow=%s;aid=%s;pdId=%s;updater=%s;isFindSpu=%s;", flow, aid, pdId, updater, isFindSpu);
+                            Log.logErr(rt,"found not exist sku;flow=%s;aid=%s;pdId=%s;updater=%s;", flow, aid, pdId, updater);
                             return rt;
                         }
                         for (int j = 0; j < skuCodeList.size(); j++) {
@@ -867,7 +880,7 @@ public class ProductSpecService extends ServicePub {
                             Long ifAbsent = newSkuCodeSkuIdMap.putIfAbsent(skuCode, skuId);
                             if(ifAbsent != null){
                                 rt = Errno.ALREADY_EXISTED;
-                                Log.logErr(rt,"skuCode repeat;flow=%s;aid=%s;pdId=%s;updater=%s;isFindSpu=%s;skuCode=%s;ifAbsent=%s;", flow, aid, pdId, updater, isFindSpu, skuCode, ifAbsent);
+                                Log.logErr(rt,"skuCode repeat;flow=%s;aid=%s;pdId=%s;updater=%s;skuCode=%s;ifAbsent=%s;", flow, aid, pdId, updater, skuCode, ifAbsent);
                                 return rt;
                             }
                             skuCodeSortList.add(
@@ -968,6 +981,10 @@ public class ProductSpecService extends ServicePub {
         return rt;
     }
 
+    /**
+     * 跟据商品id获取相关的sku信息
+     * @param withSpuInfo 是否顺带获取表示spu的数据
+     */
     public int getPdSkuScInfoList(FaiSession session, int flow, int aid, int unionPriId, int pdId, boolean withSpuInfo) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
@@ -1007,6 +1024,9 @@ public class ProductSpecService extends ServicePub {
         return rt;
     }
 
+    /**
+     * 跟据skuId集获取数据
+     */
     public int getPdSkuScInfoListBySkuIdList(FaiSession session, int flow, int aid, FaiList<Long> skuIdList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
@@ -1046,7 +1066,7 @@ public class ProductSpecService extends ServicePub {
         return rt;
     }
     /**
-     * 获取skuId
+     * 获取skuId信息集
      */
     public int getPdSkuIdInfoList(FaiSession session, int flow, int aid, FaiList<Integer> pdIdList, boolean withSpuInfo) throws IOException {
         int rt = Errno.ERROR;
@@ -1083,6 +1103,10 @@ public class ProductSpecService extends ServicePub {
         }
         return rt;
     }
+
+    /**
+     * 获取只有表示为 spu 的sku数据集
+     */
     public int getOnlySpuInfoList(FaiSession session, int flow, int aid, FaiList<Integer> pdIdList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);

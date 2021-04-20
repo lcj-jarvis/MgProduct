@@ -19,6 +19,7 @@ import fai.comm.mq.exception.MqClientException;
 import fai.comm.mq.message.FaiMqMessage;
 import fai.comm.util.*;
 import fai.mgproduct.comm.MgProductErrno;
+import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
@@ -379,24 +380,27 @@ public class StoreSalesSkuService extends StoreService {
         }
         return rt;
     }
-
-    /**
-     * 修改库存销售sku信息
-     */
     public int setSkuStoreSales(FaiSession session, int flow, int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) throws IOException {
+        return batchSetSkuStoreSales(session, flow, aid, tid, new FaiList<>(Arrays.asList(unionPriId)), pdId, rlPdId, updaterList);
+    }
+    /**
+     * 批量修改库存销售sku信息
+     */
+    public int batchSetSkuStoreSales(FaiSession session, int flow, int aid, int tid, FaiList<Integer> unionPriIdList, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
-            if (aid <= 0 || unionPriId<= 0 || pdId <= 0 || rlPdId <= 0 || updaterList == null || updaterList.isEmpty()) {
+
+            if (aid <= 0 || Util.isEmptyList(unionPriIdList) || pdId <= 0 || rlPdId <= 0 || updaterList == null || updaterList.isEmpty()) {
                 rt = Errno.ARGS_ERROR;
-                Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;pdId=%s;rlPdId=%s;updaterList=%s", flow, aid, unionPriId, pdId, rlPdId, updaterList);
+                Log.logErr("arg err;flow=%d;aid=%d;unionPriIdList=%s;pdId=%s;rlPdId=%s;updaterList=%s", flow, aid, unionPriIdList, pdId, rlPdId, updaterList);
                 return rt;
             }
             FaiList<Long> skuIdList = new FaiList<>();
             for (ParamUpdater updater : updaterList) {
                 Long skuId = updater.getData().getLong(StoreSalesSkuEntity.Info.SKU_ID);
                 if(skuId == null){
-                    Log.logErr("skuId err;flow=%d;aid=%d;unionPriId=%s;pdId=%s;rlPdId=%s;updater=%s", flow, aid, unionPriId, pdId, rlPdId, updater.toJson());
+                    Log.logErr("skuId err;flow=%d;aid=%d;unionPriIdList=%s;pdId=%s;rlPdId=%s;updater=%s", flow, aid, unionPriIdList, pdId, rlPdId, updater.toJson());
                     return Errno.ARGS_ERROR;
                 }
                 skuIdList.add(skuId);
@@ -419,7 +423,7 @@ public class StoreSalesSkuService extends StoreService {
                     LockUtil.lock(aid);
                     try {
                         transactionCtrl.setAutoCommit(false);
-                        rt = storeSalesSkuProc.batchSet(aid, unionPriId, pdId, updaterList);
+                        rt = storeSalesSkuProc.batchSet(aid, unionPriIdList, pdId, updaterList);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -447,7 +451,7 @@ public class StoreSalesSkuService extends StoreService {
             }
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
-            Log.logStd("ok;aid=%s;unionPriId=%s;pdId=%s;rlPdId=%s;",aid, unionPriId, pdId, rlPdId);
+            Log.logStd("ok;aid=%s;unionPriIdList=%s;pdId=%s;rlPdId=%s;",aid, unionPriIdList, pdId, rlPdId);
         }finally {
             stat.end(rt != Errno.OK, rt);
         }

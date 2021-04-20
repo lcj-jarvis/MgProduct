@@ -246,6 +246,71 @@ public class MgProductStoreCli extends MgProductInternalCli {
     }
 
     /**
+     * 修改商品规格库存销售sku
+     */
+    public int batchSetSkuStoreSales(int aid, int tid, FaiList<Integer> uidList, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(Util.isEmptyList(uidList)){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "uidList error");
+                return m_rt;
+            }
+            if(Util.isEmptyList(updaterList)){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "updaterList error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(StoreSalesSkuDto.Key.TID, tid);
+            uidList.toBuffer(sendBody, StoreSalesSkuDto.Key.UID_LIST);
+            sendBody.putInt(StoreSalesSkuDto.Key.PD_ID, pdId);
+            sendBody.putInt(StoreSalesSkuDto.Key.RL_PD_ID, rlPdId);
+            m_rt = updaterList.toBuffer(sendBody, StoreSalesSkuDto.Key.UPDATER_LIST, StoreSalesSkuDto.getInfoDto());
+            if(m_rt != Errno.OK){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "updaterList error;");
+                return m_rt;
+            }
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_SET_LIST);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    /**
      * 批量扣减库存
      * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
      * @param rlOrderCode 业务订单id/code

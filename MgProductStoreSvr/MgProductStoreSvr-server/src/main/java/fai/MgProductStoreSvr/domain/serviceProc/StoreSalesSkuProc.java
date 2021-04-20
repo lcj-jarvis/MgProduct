@@ -213,58 +213,74 @@ public class StoreSalesSkuProc {
         if(maxUpdaterKeys.contains(StoreSalesSkuEntity.Info.PRICE)){
             maxUpdaterKeys.add(StoreSalesSkuEntity.Info.FLAG);
         }
+        maxUpdaterKeys.add(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+
         Ref<FaiList<Param>> listRef = new Ref<>();
-        rt = getListFromDaoByPdIdAndSkuIdList(aid, pdId, skuIdList, listRef, maxUpdaterKeys.toArray(new String[]{}));
+        ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIdList);
+        matcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
+        matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        rt = m_daoCtrl.select(searchArg, listRef, maxUpdaterKeys.toArray(new String[]{}));
         if(rt != Errno.OK){
             return rt;
         }
         rt = Errno.OK;
-        Map<Integer, Param> oldDataMap = Utils.getMap(listRef.value, StoreSalesSkuEntity.Info.SKU_ID);
+        Map<SkuBizKey, Param> oldDataMap = new HashMap<>(listRef.value.size()*4/3+1);
+        for (Param info : listRef.value) {
+            int unionPriId = info.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+            long skuId = info.getInt(StoreSalesSkuEntity.Info.SKU_ID);
+            oldDataMap.put(new SkuBizKey(unionPriId, skuId), info);
+        }
         listRef.value = null; // help gc
-
+        // 移除主键
+        maxUpdaterKeys.remove(StoreSalesSkuEntity.Info.AID);
         maxUpdaterKeys.remove(StoreSalesSkuEntity.Info.SKU_ID);
+        maxUpdaterKeys.remove(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+
+        // prepare updater
         ParamUpdater doBatchUpdater = new ParamUpdater();
         maxUpdaterKeys.forEach(key->{
             doBatchUpdater.getData().setString(key, "?");
         });
         doBatchUpdater.getData().setString(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, "?");
-
+        // prepare matcher
         ParamMatcher doBatchMatcher = new ParamMatcher();
         doBatchMatcher.and(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, "?");
         doBatchMatcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
         doBatchMatcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.EQ, "?");
         doBatchMatcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.EQ, "?");
 
+        // 组成批量更新的数据集
         Calendar now = Calendar.getInstance();
         FaiList<Param> dataList = new FaiList<>(updaterList.size());
-        updaterList.forEach(updater -> {
-            long skuId = updater.getData().getLong(StoreSalesSkuEntity.Info.SKU_ID);
-            Param oldData = oldDataMap.remove(skuId); // help gc
-            Param updatedData = updater.update(oldData, true);
-            Param data = new Param();
-            maxUpdaterKeys.forEach(key->{
-                data.assign(updatedData, key);
+        for (int uid : unionPriIdList) {
+            updaterList.forEach(updater -> {
+                long skuId = updater.getData().getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                Param oldData = oldDataMap.remove(new SkuBizKey(uid, skuId)); // help gc
+                Param updatedData = updater.update(oldData, true);
+                Param data = new Param();
+                { // for prepare updater
+                    maxUpdaterKeys.forEach(key->{
+                        data.assign(updatedData, key);
+                    });
+                    if(data.containsKey(StoreSalesSkuEntity.Info.PRICE)){
+                        int flag = data.getInt(StoreSalesSkuEntity.Info.FLAG, 0);
+                        flag |= StoreSalesSkuValObj.FLag.SETED_PRICE;
+                        data.setInt(StoreSalesSkuEntity.Info.FLAG, flag);
+                    }
+                    data.setCalendar(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, now);
+                }
+                { // for prepare matcher
+                    data.setInt(StoreSalesSkuEntity.Info.AID, aid);
+                    data.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, uid);
+                    data.setInt(StoreSalesSkuEntity.Info.PD_ID, pdId);
+                    data.setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId);
+                }
+                dataList.add(data);
             });
-            if(data.containsKey(StoreSalesSkuEntity.Info.PRICE)){
-                int flag = data.getInt(StoreSalesSkuEntity.Info.FLAG, 0);
-                flag |= StoreSalesSkuValObj.FLag.SETED_PRICE;
-                data.setInt(StoreSalesSkuEntity.Info.FLAG, flag);
-            }
-
-            data.setCalendar(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, now);
-
-            { // matcher
-                data.setInt(StoreSalesSkuEntity.Info.AID, aid);
-                data.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, -1); // 先占好坑位
-                data.setInt(StoreSalesSkuEntity.Info.PD_ID, pdId);
-                data.setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId);
-            }
-            for (int uid : unionPriIdList) {
-                Param clone = data.clone().setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, uid);
-                System.out.println(clone);
-                dataList.add(clone);
-            }
-        });
+        }
 
         rt = m_daoCtrl.batchUpdate(doBatchUpdater, doBatchMatcher, dataList);
         if(rt != Errno.OK) {

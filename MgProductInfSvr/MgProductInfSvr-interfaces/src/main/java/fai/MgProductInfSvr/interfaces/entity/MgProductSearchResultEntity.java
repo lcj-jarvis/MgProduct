@@ -1,4 +1,4 @@
-package fai.MgProductSearchSvr.interfaces.entity;
+package fai.MgProductInfSvr.interfaces.entity;
 
 public class MgProductSearchResultEntity {
     public static final class Info {

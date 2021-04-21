@@ -39,6 +39,12 @@
             <version>${fai-comm-distributedkit-ver}</version>
         </dependency>
 
+        <!-- 中台包 -->
+        <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProductInfSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductInfSvr-interfaces-ver}</version>
+        </dependency>
         <dependency>
             <groupId>MgProduct</groupId>
             <artifactId>MgProductBasicSvr-interfaces</artifactId>
@@ -61,7 +67,6 @@
             <artifactId>MgProductGroupSvr-interfaces</artifactId>
             <version>${MgProduct-MgProductGroupSvr-interfaces-ver}</version>
         </dependency>
-
     </dependencies>
 
     <distributionManagement>

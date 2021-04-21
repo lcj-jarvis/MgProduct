@@ -2,14 +2,13 @@ package fai.MgProductSearchSvr.application;
 
 import java.io.IOException;
 
+import fai.MgProductInfSvr.interfaces.dto.MgProductSearchDto;
 import fai.MgProductSearchSvr.application.service.MgProductSearchService;
 import fai.MgProductSearchSvr.interfaces.cmd.MgProductSearchCmd;
-import fai.MgProductSearchSvr.interfaces.dto.MgProductSearchDto;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
-import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
 import fai.comm.util.*;
 import fai.middleground.svrutil.service.MiddleGroundHandler;
@@ -31,7 +30,7 @@ public class MgProductSearchHandler extends MiddleGroundHandler {
                            @ArgAid final int aid,
                            @ArgBodyInteger(MgProductSearchDto.Key.UNION_PRI_ID) int unionPriId,
                            @ArgBodyInteger(MgProductSearchDto.Key.TID) int tid,
-                           @ArgBodyInteger(MgProductSearchDto.Key.TOTAL_SIZE) int productCount,
+                           @ArgBodyInteger(MgProductSearchDto.Key.PRODUCT_COUNT) int productCount,
                            @ArgBodyString(MgProductSearchDto.Key.SEARCH_PARAM_STRING) String searchParamString) throws IOException {
         return service.searchList(session, flow, aid, unionPriId, tid, productCount, searchParamString);
     }

@@ -20,6 +20,79 @@ public class MgProductInfCli extends FaiClient {
         return init("MgProductInfCli", true);
     }
 
+    /**
+     * 商品中台搜索
+     * @param tid 调用搜索的业务，
+     * @param siteId 调用搜索的siteId
+     * @param lgId 调用搜索的lgId
+     * @param keepPriId1 调用搜索的keepPriId1
+     * @param mgProductSearch 搜索条件
+     * @param searchReult 搜索结果，对应 MgProductSearchResultEntity 实体
+     *
+     */
+    public int mgProductSearch(int aid, int tid, int siteId, int lgId, int keepPriId1, MgProductSearch mgProductSearch, Param searchReult){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            searchReult.clear();
+            // 如果没有筛选条件，返回空数据，防止误调用
+            if(mgProductSearch == null || mgProductSearch.isEmpty()){
+                return Errno.ARGS_ERROR;
+            }
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(MgProductSearchDto.Key.TID, tid);
+            sendBody.putInt(MgProductSearchDto.Key.SITE_ID, siteId);
+            sendBody.putInt(MgProductSearchDto.Key.LGID, lgId);
+            sendBody.putInt(MgProductSearchDto.Key.KEEP_PRIID1, keepPriId1);
+            sendBody.putString(MgProductSearchDto.Key.SEARCH_PARAM_STRING, mgProductSearch.getSearchParam().toJson());
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setAid(aid);
+            sendProtocol.setCmd(MgProductInfCmd.MgProductSearchCmd.SEARCH_LIST);
+            sendProtocol.addEncodeBody(sendBody);
+
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                if (m_rt != Errno.NOT_FOUND) {
+                    Log.logErr(m_rt, "recv result err");
+                }
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            searchReult.fromBuffer(recvBody, keyRef, MgProductSearchDto.getProductSearchDto());
+            if (m_rt != Errno.OK || keyRef.value != MgProductSearchDto.Key.RESULT_INFO) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
     public int getPropList(int aid, int tid, int siteId, int lgId, int keepPriId1, int libId, SearchArg searchArg, FaiList<Param> list) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);

@@ -1,9 +1,7 @@
-package fai.MgProductSearchSvr.interfaces.entity;
+package fai.MgProductInfSvr.interfaces.entity;
 
-import fai.MgProductPropSvr.interfaces.entity.ProductPropValEntity;
 import fai.comm.util.*;
-import fai.MgProductBasicSvr.interfaces.entity.*;
-import fai.MgProductStoreSvr.interfaces.entity.*;
+
 import java.util.Calendar;
 
 public class MgProductSearch {
@@ -117,9 +115,9 @@ public class MgProductSearch {
     private boolean firstComparatorKeyOrderByDesc = false;   // 第一排序字段的顺序, 默认顺序
 
     // 第二的排序，需要选择是否使用
-    private boolean needSecondComparatorSorting = false;   // 是否启动第二字段排序，就是默认 ProductRelEntity.Info.RL_PD_ID 排序
+    private boolean needSecondComparatorSorting = false;   // 是否启动第二字段排序，就是默认 ProductBasicEntity.ProductInfo.RL_PD_ID 排序
     private String secondComparatorTable = SearchTableNameEnum.MG_PRODUCT.searchTableName;   // 第二排序字段
-    private String secondComparatorKey = ProductRelEntity.Info.RL_PD_ID;                  // 第二排序字段，业务商品id，能够确定唯一的排序, 相当于创建时间排序了
+    private String secondComparatorKey = ProductBasicEntity.ProductInfo.RL_PD_ID;                  // 第二排序字段，业务商品id，能够确定唯一的排序, 相当于创建时间排序了
     private boolean secondComparatorKeyOrderByDesc = false;   // 第二排序字段的顺序, 默认顺序
 
     private int start = 0; // 搜索的开始位置
@@ -254,7 +252,7 @@ public class MgProductSearch {
             ParamComparator paramComparator = getParamComparator();
             String comparatorTable = getFirstComparatorTable();
             String firstComparatorKey = getFirstComparatorKey();
-            if(!paramComparator.isEmpty() && MgProductSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.searchTableName.equals(comparatorTable) && SpuBizSummaryEntity.VISITOR_FIELDS.contains(firstComparatorKey)){
+            if(!paramComparator.isEmpty() && MgProductSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.searchTableName.equals(comparatorTable) && ProductStoreEntity.SpuBizSummaryInfo.VISITOR_FIELDS.contains(firstComparatorKey)){
                 isOnlySearchManageData = false;
             }
             return isOnlySearchManageData;
@@ -294,12 +292,12 @@ public class MgProductSearch {
         }
         if(!Str.isEmpty(searchKeyWord) && enableSearchProductProp && keyWordSearchInPropIdList != null && !keyWordSearchInPropIdList.isEmpty()){
             if(keyWordSearchInPropIdList.size() == 1){
-                paramMatcher.and(ProductPropValEntity.Info.PROP_ID, ParamMatcher.EQ, keyWordSearchInPropIdList.get(0));
+                paramMatcher.and(ProductPropEntity.PropValInfo.PROP_ID, ParamMatcher.EQ, keyWordSearchInPropIdList.get(0));
             }else{
-                paramMatcher.and(ProductPropValEntity.Info.PROP_ID, ParamMatcher.IN, keyWordSearchInPropIdList);
+                paramMatcher.and(ProductPropEntity.PropValInfo.PROP_ID, ParamMatcher.IN, keyWordSearchInPropIdList);
             }
             // 对参数值进行 like 搜索
-            paramMatcher.and(ProductPropValEntity.Info.VAL, ParamMatcher.LK, searchKeyWord);
+            paramMatcher.and(ProductPropEntity.PropValInfo.VAL, ParamMatcher.LK, searchKeyWord);
         }
         return paramMatcher;
     }
@@ -311,7 +309,7 @@ public class MgProductSearch {
         }
         if(!Str.isEmpty(searchKeyWord) && enableSearchProductRemark){
             //  商品名称, 名称 like 查询
-            paramMatcher.and(ProductEntity.Info.NAME, ParamMatcher.LK, searchKeyWord);
+            paramMatcher.and(ProductBasicEntity.ProductInfo.NAME, ParamMatcher.LK, searchKeyWord);
         }
         return paramMatcher;
     }
@@ -323,7 +321,7 @@ public class MgProductSearch {
         }
         if(!Str.isEmpty(searchKeyWord) && enableSearchProductName){
             //  商品名称, 名称 like 查询
-            paramMatcher.and(ProductEntity.Info.NAME, ParamMatcher.LK, searchKeyWord);
+            paramMatcher.and(ProductBasicEntity.ProductInfo.NAME, ParamMatcher.LK, searchKeyWord);
         }
         return paramMatcher;
     }
@@ -336,51 +334,51 @@ public class MgProductSearch {
         // 从 mgProduct_xxxx 冗余字段查询，商品类型
         if(typeList != null && !typeList.isEmpty()){
             if(typeList.size() == 1){
-                paramMatcher.and(ProductEntity.Info.PD_TYPE, ParamMatcher.EQ, typeList.get(0));
+                paramMatcher.and(ProductBasicEntity.ProductInfo.PD_TYPE, ParamMatcher.EQ, typeList.get(0));
             }else{
-                paramMatcher.and(ProductEntity.Info.PD_TYPE, ParamMatcher.IN, typeList);
+                paramMatcher.and(ProductBasicEntity.ProductInfo.PD_TYPE, ParamMatcher.IN, typeList);
             }
         }
         // 业务商品idList
         if(rlPdIdList != null && !rlPdIdList.isEmpty()){
             if(rlPdIdList.size() == 1){
-                paramMatcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdIdList.get(0));
+                paramMatcher.and(ProductBasicEntity.ProductInfo.RL_PD_ID, ParamMatcher.EQ, rlPdIdList.get(0));
             }else{
-                paramMatcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIdList);
+                paramMatcher.and(ProductBasicEntity.ProductInfo.RL_PD_ID, ParamMatcher.IN, rlPdIdList);
             }
         }
 
         //  商品库
         if(rlLibIdList != null && !rlLibIdList.isEmpty()){
             if(rlLibIdList.size() == 1){
-                paramMatcher.and(ProductRelEntity.Info.RL_LIB_ID, ParamMatcher.EQ, rlLibIdList.get(0));
+                paramMatcher.and(ProductBasicEntity.ProductInfo.RL_LIB_ID, ParamMatcher.EQ, rlLibIdList.get(0));
             }else{
-                paramMatcher.and(ProductRelEntity.Info.RL_LIB_ID, ParamMatcher.IN, rlLibIdList);
+                paramMatcher.and(ProductBasicEntity.ProductInfo.RL_LIB_ID, ParamMatcher.IN, rlLibIdList);
             }
         }
 
         // 上架或者下架的
         if (upSalesStatus == UpSalesStatusEnum.UP_AND_DOWN_SALES.upSalesStatus){
             FaiList<Integer> statusList = new FaiList<Integer>();
-            statusList.add(ProductRelValObj.Status.UP);
-            statusList.add(ProductRelValObj.Status.DOWN);
-            paramMatcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.IN, statusList);
+            statusList.add(ProductBasicValObj.ProductRelValObj.Status.UP);
+            statusList.add(ProductBasicValObj.ProductRelValObj.Status.DOWN);
+            paramMatcher.and(ProductBasicEntity.ProductInfo.STATUS, ParamMatcher.IN, statusList);
         }else if(upSalesStatus != UpSalesStatusEnum.ALL.upSalesStatus){   //  非全部的
-            paramMatcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.EQ, upSalesStatus);
+            paramMatcher.and(ProductBasicEntity.ProductInfo.STATUS, ParamMatcher.EQ, upSalesStatus);
         }
 
         //  商品录入时间
         if(addTimeBegin != null || addTimeEnd != null){
             if(addTimeBegin != null && addTimeEnd != null && addTimeBegin.getTimeInMillis() == addTimeEnd.getTimeInMillis()){
-                paramMatcher.and(ProductRelEntity.Info.ADD_TIME, ParamMatcher.EQ, addTimeBegin);
+                paramMatcher.and(ProductBasicEntity.ProductInfo.ADD_TIME, ParamMatcher.EQ, addTimeBegin);
             }else{
                 //  创建时间大于
                 if(addTimeBegin != null){
-                    paramMatcher.and(ProductRelEntity.Info.ADD_TIME, ParamMatcher.GE, addTimeBegin);
+                    paramMatcher.and(ProductBasicEntity.ProductInfo.ADD_TIME, ParamMatcher.GE, addTimeBegin);
                 }
                 //  创建时间小于
                 if(addTimeEnd != null){
-                    paramMatcher.and(ProductRelEntity.Info.ADD_TIME, ParamMatcher.LE, addTimeEnd);
+                    paramMatcher.and(ProductBasicEntity.ProductInfo.ADD_TIME, ParamMatcher.LE, addTimeEnd);
                 }
             }
         }
@@ -394,9 +392,9 @@ public class MgProductSearch {
         }
         if(rlPropValIdList != null && !rlPropValIdList.isEmpty()){
             if(rlPropValIdList.size() == 1){
-                paramMatcher.and(ProductBindPropEntity.Info.PROP_VAL_ID, ParamMatcher.EQ, rlPropValIdList.get(0));
+                paramMatcher.and(ProductBasicEntity.BindPropInfo.PROP_VAL_ID, ParamMatcher.EQ, rlPropValIdList.get(0));
             }else{
-                paramMatcher.and(ProductBindPropEntity.Info.PROP_VAL_ID, ParamMatcher.IN, rlPropValIdList);
+                paramMatcher.and(ProductBasicEntity.BindPropInfo.PROP_VAL_ID, ParamMatcher.IN, rlPropValIdList);
             }
         }
         return paramMatcher;
@@ -410,9 +408,9 @@ public class MgProductSearch {
         // 业务商品分类
         if(rlGroupIdList != null && !rlGroupIdList.isEmpty()){
             if(rlGroupIdList.size() == 1){
-                paramMatcher.and(ProductBindGroupEntity.Info.RL_GROUP_ID, ParamMatcher.EQ, rlGroupIdList.get(0));
+                paramMatcher.and(ProductBasicEntity.BindGroupInfo.RL_GROUP_ID, ParamMatcher.EQ, rlGroupIdList.get(0));
             }else{
-                paramMatcher.and(ProductBindGroupEntity.Info.RL_GROUP_ID, ParamMatcher.IN, rlGroupIdList);
+                paramMatcher.and(ProductBasicEntity.BindGroupInfo.RL_GROUP_ID, ParamMatcher.IN, rlGroupIdList);
             }
         }
         return paramMatcher;
@@ -442,13 +440,13 @@ public class MgProductSearch {
         // 商品销量
         if(salesBegin != null || salesEnd != null){
             if(salesBegin != null && salesEnd != null && salesBegin.intValue() == salesEnd.intValue()){
-                paramMatcher.and(SpuBizSummaryEntity.Info.SALES, ParamMatcher.EQ, salesBegin);
+                paramMatcher.and(ProductStoreEntity.SpuBizSummaryInfo.SALES, ParamMatcher.EQ, salesBegin);
             }else{
                 if(salesBegin != null){
-                    paramMatcher.and(SpuBizSummaryEntity.Info.SALES, ParamMatcher.GE, salesBegin);
+                    paramMatcher.and(ProductStoreEntity.SpuBizSummaryInfo.SALES, ParamMatcher.GE, salesBegin);
                 }
                 if(salesEnd != null){
-                    paramMatcher.and(SpuBizSummaryEntity.Info.SALES, ParamMatcher.LE, salesEnd);
+                    paramMatcher.and(ProductStoreEntity.SpuBizSummaryInfo.SALES, ParamMatcher.LE, salesEnd);
                 }
             }
         }
@@ -456,13 +454,13 @@ public class MgProductSearch {
         // 商品库存
         if(remainCountBegin != null || remainCountEnd != null){
             if(remainCountBegin != null && remainCountEnd != null && remainCountBegin.intValue() == remainCountEnd.intValue()){
-                paramMatcher.and(SpuBizSummaryEntity.Info.REMAIN_COUNT, ParamMatcher.EQ, remainCountBegin);
+                paramMatcher.and(ProductStoreEntity.SpuBizSummaryInfo.REMAIN_COUNT, ParamMatcher.EQ, remainCountBegin);
             }else{
                 if(remainCountBegin != null){
-                    paramMatcher.and(SpuBizSummaryEntity.Info.REMAIN_COUNT, ParamMatcher.GE, remainCountBegin);
+                    paramMatcher.and(ProductStoreEntity.SpuBizSummaryInfo.REMAIN_COUNT, ParamMatcher.GE, remainCountBegin);
                 }
                 if(remainCountEnd != null){
-                    paramMatcher.and(SpuBizSummaryEntity.Info.REMAIN_COUNT, ParamMatcher.LE, remainCountEnd);
+                    paramMatcher.and(ProductStoreEntity.SpuBizSummaryInfo.REMAIN_COUNT, ParamMatcher.LE, remainCountEnd);
                 }
             }
         }
@@ -470,27 +468,27 @@ public class MgProductSearch {
         if(priceBegin != null || priceEnd != null){
             if(priceBegin != null && priceEnd != null){
                 if(priceBegin.longValue() == priceEnd.longValue()){
-                    paramMatcher.and(SpuBizSummaryEntity.Info.MIN_PRICE, ParamMatcher.EQ, priceBegin);
-                    paramMatcher.and(SpuBizSummaryEntity.Info.MAX_PRICE, ParamMatcher.EQ, priceBegin);
+                    paramMatcher.and(ProductStoreEntity.SpuBizSummaryInfo.MIN_PRICE, ParamMatcher.EQ, priceBegin);
+                    paramMatcher.and(ProductStoreEntity.SpuBizSummaryInfo.MAX_PRICE, ParamMatcher.EQ, priceBegin);
                 }else{
                     ParamMatcher priceMatcher = new ParamMatcher();
                     ParamMatcher minPriceMatcher = new ParamMatcher();
-                    minPriceMatcher.and(SpuBizSummaryEntity.Info.MIN_PRICE, ParamMatcher.GE, priceBegin);
-                    minPriceMatcher.and(SpuBizSummaryEntity.Info.MIN_PRICE, ParamMatcher.LE, priceEnd);
+                    minPriceMatcher.and(ProductStoreEntity.SpuBizSummaryInfo.MIN_PRICE, ParamMatcher.GE, priceBegin);
+                    minPriceMatcher.and(ProductStoreEntity.SpuBizSummaryInfo.MIN_PRICE, ParamMatcher.LE, priceEnd);
                     priceMatcher.or(minPriceMatcher);
 
                     ParamMatcher maxPriceMatcher = new ParamMatcher();
-                    maxPriceMatcher.and(SpuBizSummaryEntity.Info.MAX_PRICE, ParamMatcher.GE, priceBegin);
-                    maxPriceMatcher.and(SpuBizSummaryEntity.Info.MAX_PRICE, ParamMatcher.LE, priceEnd);
+                    maxPriceMatcher.and(ProductStoreEntity.SpuBizSummaryInfo.MAX_PRICE, ParamMatcher.GE, priceBegin);
+                    maxPriceMatcher.and(ProductStoreEntity.SpuBizSummaryInfo.MAX_PRICE, ParamMatcher.LE, priceEnd);
                     priceMatcher.or(maxPriceMatcher);
                     paramMatcher.and(priceMatcher);
                 }
             }else{
                 if(priceBegin != null){
-                    paramMatcher.and(SpuBizSummaryEntity.Info.MIN_PRICE, ParamMatcher.GE, priceBegin);
+                    paramMatcher.and(ProductStoreEntity.SpuBizSummaryInfo.MIN_PRICE, ParamMatcher.GE, priceBegin);
                 }
                 if(priceEnd != null){
-                    paramMatcher.and(SpuBizSummaryEntity.Info.MAX_PRICE, ParamMatcher.LE, priceEnd);
+                    paramMatcher.and(ProductStoreEntity.SpuBizSummaryInfo.MAX_PRICE, ParamMatcher.LE, priceEnd);
                 }
             }
         }
@@ -661,7 +659,7 @@ public class MgProductSearch {
         ParamComparator paramComparator = new ParamComparator();
         // 商品idList 排序，设置了这个排序，其他设置的排序就无效了
         if(rlPdIdComparatorList != null && !rlPdIdComparatorList.isEmpty()){
-            paramComparator.addKey(ProductRelEntity.Info.RL_PD_ID, rlPdIdComparatorList);
+            paramComparator.addKey(ProductBasicEntity.ProductInfo.RL_PD_ID, rlPdIdComparatorList);
             // 第二排序
             if(needSecondComparatorSorting){
                 paramComparator.addKey(secondComparatorKey, secondComparatorKeyOrderByDesc);
@@ -679,7 +677,7 @@ public class MgProductSearch {
         return paramComparator;
     }
 
-    // 设置一个排序后，支持是否开启默认的第二个能够确认 唯一 排序字：secondComparatorKey = ProductRelEntity.Info.RL_PD_ID，相当于创建时间排序
+    // 设置一个排序后，支持是否开启默认的第二个能够确认 唯一 排序字：secondComparatorKey = ProductBasicEntity.ProductInfo.RL_PD_ID，相当于创建时间排序
     public MgProductSearch setComparator(Pair<SearchTableNameEnum, String> comparatorTableAndKey, boolean desc){
         return setComparator(comparatorTableAndKey, desc, false, false);
     }

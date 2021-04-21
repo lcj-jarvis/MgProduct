@@ -20,6 +20,18 @@ public class MgProductInfHandler extends FaiHandler {
         super(server);
     }
 
+    @Cmd(MgProductInfCmd.MgProductSearchCmd.SEARCH_LIST)
+    public int searchList(final FaiSession session,
+                           @ArgFlow final int flow,
+                           @ArgAid final int aid,
+                           @ArgBodyInteger(MgProductSearchDto.Key.TID) int tid,
+                           @ArgBodyInteger(MgProductSearchDto.Key.SITE_ID) int siteId,
+                           @ArgBodyInteger(MgProductSearchDto.Key.LGID) int lgId,
+                           @ArgBodyInteger(MgProductSearchDto.Key.KEEP_PRIID1) int keepPriId1,
+                           @ArgBodyString(MgProductSearchDto.Key.SEARCH_PARAM_STRING) String searchParamString) throws IOException {
+        return searchService.searchList(session, flow, aid, tid, siteId, lgId, keepPriId1, searchParamString);
+    }
+
     @Cmd(MgProductInfCmd.PropCmd.GET_LIST)
     public int getPropList(final FaiSession session,
                            @ArgFlow final int flow,
@@ -926,6 +938,7 @@ public class MgProductInfHandler extends FaiHandler {
 
     MgProductInfService mgProductInfService = new MgProductInfService();
 
+    ProductSearchService searchService = new ProductSearchService();
     ProductBasicService basicService = new ProductBasicService();
     ProductPropService propService = new ProductPropService();
     ProductSpecService specService = new ProductSpecService();

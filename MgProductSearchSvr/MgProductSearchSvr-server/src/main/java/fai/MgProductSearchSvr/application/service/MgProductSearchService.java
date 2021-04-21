@@ -1,14 +1,14 @@
 package fai.MgProductSearchSvr.application.service;
 
 import fai.MgProductBasicSvr.interfaces.cli.MgProductBasicCli;
+import fai.MgProductInfSvr.interfaces.dto.MgProductSearchDto;
+import fai.MgProductInfSvr.interfaces.entity.MgProductSearch;
+import fai.MgProductInfSvr.interfaces.entity.MgProductSearchResultEntity;
 import fai.MgProductSearchSvr.application.MgProductSearchSvr;
 import fai.MgProductBasicSvr.interfaces.entity.*;
 import fai.MgProductGroupSvr.interfaces.cli.MgProductGroupCli;
 import fai.MgProductPropSvr.interfaces.cli.MgProductPropCli;
 import fai.MgProductStoreSvr.interfaces.cli.MgProductStoreCli;
-import fai.MgProductSearchSvr.interfaces.dto.MgProductSearchDto;
-import fai.MgProductSearchSvr.interfaces.entity.MgProductSearch;
-import fai.MgProductSearchSvr.interfaces.entity.*;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;

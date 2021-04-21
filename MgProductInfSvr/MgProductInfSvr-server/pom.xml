@@ -29,6 +29,12 @@
 
         <dependency>
             <groupId>MgProduct</groupId>
+            <artifactId>MgProductSearchSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductSearchSvr-interfaces-ver}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>MgProduct</groupId>
             <artifactId>MgProductInfSvr-interfaces</artifactId>
             <version>${MgProduct-MgProductInfSvr-interfaces-ver}</version>
         </dependency>

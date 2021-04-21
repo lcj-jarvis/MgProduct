@@ -1,9 +1,8 @@
 package fai.MgProductSearchSvr.interfaces.cli;
 
+import fai.MgProductInfSvr.interfaces.dto.MgProductSearchDto;
 import fai.MgProductSearchSvr.interfaces.cmd.MgProductSearchCmd;
-import fai.MgProductSearchSvr.interfaces.dto.MgProductSearchDto;
-import fai.MgProductSearchSvr.interfaces.entity.MgProductSearch;
-import fai.MgProductSearchSvr.interfaces.entity.MgProductSearchResultEntity;
+import fai.MgProductInfSvr.interfaces.entity.MgProductSearchResultEntity;
 import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
@@ -23,21 +22,21 @@ public class MgProductSearchCli extends FaiClient {
     }
 
 
-    public int searchList(int aid, int tid, int unionPriId, int productCount, MgProductSearch mgProductSearch, Param searchReult, Ref<Integer> totalSize){
+    public int searchList(int aid, int tid, int unionPriId, int productCount, String searchParamString, Param searchReult){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
             searchReult.clear();
-            // 如果没有筛选条件，返回空数据，防止误调用
-            if(mgProductSearch == null || mgProductSearch.isEmpty()){
+            // 如果没有筛选条件，返回空数据，防止误调用  包括 {} 这个判断
+            if(Str.isEmpty(searchParamString) || searchParamString.length() == 2){
                 return Errno.ARGS_ERROR;
             }
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(MgProductSearchDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(MgProductSearchDto.Key.TID, tid);
-            sendBody.putInt(MgProductSearchDto.Key.TOTAL_SIZE, productCount);
-            sendBody.putString(MgProductSearchDto.Key.SEARCH_PARAM_STRING, mgProductSearch.getSearchParam().toJson());
+            sendBody.putInt(MgProductSearchDto.Key.PRODUCT_COUNT, productCount);
+            sendBody.putString(MgProductSearchDto.Key.SEARCH_PARAM_STRING, searchParamString);
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setAid(aid);
             sendProtocol.setCmd(MgProductSearchCmd.SearchCmd.SEARCH_LIST);
@@ -76,10 +75,6 @@ public class MgProductSearchCli extends FaiClient {
             if (m_rt != Errno.OK || keyRef.value != MgProductSearchDto.Key.RESULT_INFO) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
-            }
-            // recv total size
-            if (totalSize != null) {
-                totalSize.value = searchReult.getInt(MgProductSearchResultEntity.Info.TOTAL);
             }
             m_rt = Errno.OK;
             return m_rt;

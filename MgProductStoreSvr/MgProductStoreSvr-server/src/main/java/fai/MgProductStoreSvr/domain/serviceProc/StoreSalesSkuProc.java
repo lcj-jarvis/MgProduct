@@ -31,26 +31,27 @@ public class StoreSalesSkuProc {
         m_flow = flow;
     }
 
-    public int batchAdd(int aid, Integer pdId, FaiList<Param> infoList) {
-        if(aid <= 0 || (pdId != null && pdId <= 0) || infoList == null || infoList.isEmpty()){
-            Log.logErr("batchAdd arg error;flow=%d;aid=%s;pdId=%s;infoList=%s;", m_flow, aid, pdId, infoList);
+    public int batchAdd(int aid, Integer argPdId, FaiList<Param> infoList) {
+        if(aid <= 0 || (argPdId != null && argPdId <= 0) || infoList == null || infoList.isEmpty()){
+            Log.logErr("arg error;flow=%d;aid=%s;argPdId=%s;infoList=%s;", m_flow, aid, argPdId, infoList);
             return Errno.ARGS_ERROR;
         }
         FaiList<Param> dataList = new FaiList<>(infoList.size());
         Calendar now = Calendar.getInstance();
+        Set<Integer> addPdIdList = new HashSet<>();
         for (Param info : infoList) {
             Param data = new Param();
             data.setInt(StoreSalesSkuEntity.Info.AID, aid);
             data.assign(info, StoreSalesSkuEntity.Info.UNION_PRI_ID);
             data.assign(info, StoreSalesSkuEntity.Info.RL_PD_ID);
             data.assign(info, StoreSalesSkuEntity.Info.SKU_ID);
+            Integer pdId = info.getInt(StoreSalesSkuEntity.Info.PD_ID);
+            pdId = pdId == null ? argPdId : pdId;
             if(pdId == null){
-                pdId = info.getInt(StoreSalesSkuEntity.Info.PD_ID);
-                if(pdId == null || pdId <= 0){
-                    Log.logStd("batchAdd pdId arg error;flow=%d;aid=%s;pdId=%s;info=%s;", m_flow, aid, pdId, info);
-                    return Errno.ARGS_ERROR;
-                }
+                Log.logStd("pdId arg error;flow=%d;aid=%s;pdId=%s;info=%s;", m_flow, aid, pdId, info);
+                return Errno.ARGS_ERROR;
             }
+            addPdIdList.add(pdId);
             data.setInt(StoreSalesSkuEntity.Info.PD_ID, pdId);
             data.assign(info, StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID);
             data.assign(info, StoreSalesSkuEntity.Info.SKU_TYPE);
@@ -79,12 +80,12 @@ public class StoreSalesSkuProc {
         }
 
         int rt = m_daoCtrl.batchInsert(dataList, null, true);
-        Log.logStd("batchAdd ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
+        Log.logStd("ok;flow=%d;aid=%d;addPdIdList=%s;", m_flow, aid, addPdIdList);
         return rt;
     }
     public int batchSynchronousSPU2SKU(int aid, Map<Integer, Map<Long, Param>> unionPriId_skuId_salesStoreDataMapMap, Set<String> maxUpdateFieldSet) {
         if(aid <= 0 || unionPriId_skuId_salesStoreDataMapMap == null || unionPriId_skuId_salesStoreDataMapMap.isEmpty() || maxUpdateFieldSet == null || maxUpdateFieldSet.isEmpty()){
-            Log.logErr("batchSynchronous arg error;flow=%d;aid=%s;unionPriId_skuId_salesStoreDataMapMap=%s;maxUpdateFieldSet=%s;", m_flow, aid, unionPriId_skuId_salesStoreDataMapMap, maxUpdateFieldSet);
+            Log.logErr("arg error;flow=%d;aid=%s;unionPriId_skuId_salesStoreDataMapMap=%s;maxUpdateFieldSet=%s;", m_flow, aid, unionPriId_skuId_salesStoreDataMapMap, maxUpdateFieldSet);
             return Errno.ARGS_ERROR;
         }
         Set<String> maxGetFieldSet = new HashSet<>(maxUpdateFieldSet);
@@ -132,7 +133,7 @@ public class StoreSalesSkuProc {
                 batchMatcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.EQ, "?");
                 rt = m_daoCtrl.batchUpdate(batchUpdater, batchMatcher, batchUpdateDataList);
                 if(rt != Errno.OK){
-                    Log.logStd(rt, "m_daoCtrl batchUpdate err;flow=%s;aid=%s;batchUpdateDataList=%s;", m_flow, aid, batchUpdateDataList);
+                    Log.logStd(rt, "dao.batchUpdate err;flow=%s;aid=%s;batchUpdateDataList=%s;", m_flow, aid, batchUpdateDataList);
                     return rt;
                 }
             }
@@ -156,7 +157,7 @@ public class StoreSalesSkuProc {
                 }
                 rt = m_daoCtrl.batchInsert(addDataList, null, true);
                 if(rt != Errno.OK){
-                    Log.logStd(rt, "m_daoCtrl batchInsert err;flow=%s;aid=%s;addDataList=%s;", m_flow, aid, addDataList);
+                    Log.logStd(rt, "dao.batchInsert err;flow=%s;aid=%s;addDataList=%s;", m_flow, aid, addDataList);
                     return rt;
                 }
             }
@@ -168,7 +169,7 @@ public class StoreSalesSkuProc {
     }
     public int batchDel(int aid, int pdId, FaiList<Long> delSkuIdList) {
         if(aid <= 0 || pdId <= 0 || delSkuIdList == null || delSkuIdList.isEmpty()){
-            Log.logErr("batchAdd error;flow=%d;aid=%s;pdId=%s;delSkuIdList=%s;", m_flow, aid, pdId, delSkuIdList);
+            Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;delSkuIdList=%s;", m_flow, aid, pdId, delSkuIdList);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -178,10 +179,10 @@ public class StoreSalesSkuProc {
 
         rt = m_daoCtrl.delete(matcher);
         if(rt != Errno.OK){
-            Log.logStd(rt, "delete err;flow=%s;aid=%s;pdId=%s;delSkuIdList=%s;", m_flow, aid, pdId, delSkuIdList);
+            Log.logStd(rt, "dao.delete err;flow=%s;aid=%s;pdId=%s;delSkuIdList=%s;", m_flow, aid, pdId, delSkuIdList);
             return rt;
         }
-        Log.logStd("batchDel ok;flow=%d;aid=%d;pdId=%s;delSkuIdList=%s;", m_flow, aid, pdId, delSkuIdList);
+        Log.logStd("ok;flow=%d;aid=%d;pdId=%s;delSkuIdList=%s;", m_flow, aid, pdId, delSkuIdList);
         return rt;
     }
     public int batchDel(int aid, FaiList<Integer> pdIdList) {
@@ -189,7 +190,7 @@ public class StoreSalesSkuProc {
         matcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
         int rt = m_daoCtrl.delete(matcher);
         if(rt != Errno.OK){
-            Log.logStd(rt, "delete err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
+            Log.logStd(rt, "dao.delete err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
             return rt;
         }
         Log.logStd("ok;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
@@ -202,7 +203,7 @@ public class StoreSalesSkuProc {
     
     public int batchSet(int aid, List<Integer> unionPriIdList, int pdId, FaiList<ParamUpdater> updaterList) {
         if(aid <= 0 || pdId <=0 || updaterList == null || updaterList.isEmpty()){
-            Log.logErr("batchSet error;flow=%d;aid=%s;pdId=%s;updaterList=%s;", m_flow, aid, pdId, updaterList);
+            Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;updaterList=%s;", m_flow, aid, pdId, updaterList);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -224,6 +225,7 @@ public class StoreSalesSkuProc {
         searchArg.matcher = matcher;
         rt = m_daoCtrl.select(searchArg, listRef, maxUpdaterKeys.toArray(new String[]{}));
         if(rt != Errno.OK){
+            Log.logErr(rt,"dao.select error;flow=%d;aid=%s;unionPriIdList=%s;skuIdList=%s;", m_flow, aid, unionPriIdList, skuIdList);
             return rt;
         }
         rt = Errno.OK;
@@ -284,11 +286,11 @@ public class StoreSalesSkuProc {
 
         rt = m_daoCtrl.batchUpdate(doBatchUpdater, doBatchMatcher, dataList);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "batchSet error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
+            Log.logErr(rt, "dao.batchUpdate error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
             return rt;
         }
         Log.logDbg("flow=%d;aid=%d;pdId=%s;doBatchUpdater.json=%s;dataList=%s;",  m_flow, aid, pdId, doBatchUpdater, dataList);
-        Log.logStd("batchSet ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
+        Log.logStd("ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
         return rt;
     }
 
@@ -299,7 +301,7 @@ public class StoreSalesSkuProc {
      */
     public int batchReduceStore(int aid, int unionPriId, TreeMap<Long, Integer> skuIdCountMap, boolean holdingMode, boolean reduceHoldingCount) {
         if(skuIdCountMap == null || skuIdCountMap.isEmpty()){
-            Log.logErr("batchReduceStore arg;flow=%d;aid=%s;unionPriId=%s;skuIdCountMap=%s;", m_flow, aid, unionPriId, skuIdCountMap);
+            Log.logErr("arg error;flow=%d;aid=%s;unionPriId=%s;skuIdCountMap=%s;", m_flow, aid, unionPriId, skuIdCountMap);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -326,7 +328,7 @@ public class StoreSalesSkuProc {
         if(rt !=Errno.OK){
             return rt;
         }
-        Log.logStd("batchReduceStore ok;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+        Log.logStd("ok;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
         return rt;
     }
     /**
@@ -421,7 +423,7 @@ public class StoreSalesSkuProc {
      */
     public int reduceStore(int aid, int unionPriId, long skuId, int count, boolean holdingMode, boolean reduceHoldingCount) {
         if(aid <= 0 || unionPriId <= 0 || skuId <=0 || count <= 0){
-            Log.logErr("reduceStore arg;flow=%d;aid=%s;unionPriId=%s;skuId=%s;count=%s;", m_flow, aid, unionPriId, skuId, count);
+            Log.logErr("arg error;flow=%d;aid=%s;unionPriId=%s;skuId=%s;count=%s;", m_flow, aid, unionPriId, skuId, count);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -453,7 +455,7 @@ public class StoreSalesSkuProc {
             Log.logStd("store shortage;matcher=%s", matcher.toJson());
             return MgProductErrno.Store.SHORTAGE;
         }
-        Log.logStd("reduceStore ok;flow=%d;aid=%s;unionPriId=%s;skuId=%s;count=%s;holdingMode=%s;reduceHoldingCount=%s;", m_flow, aid, unionPriId, skuId, count, holdingMode, reduceHoldingCount);
+        Log.logStd("ok;flow=%d;aid=%s;unionPriId=%s;skuId=%s;count=%s;holdingMode=%s;reduceHoldingCount=%s;", m_flow, aid, unionPriId, skuId, count, holdingMode, reduceHoldingCount);
         return rt;
     }
 
@@ -462,7 +464,7 @@ public class StoreSalesSkuProc {
      */
     public int batchMakeUpStore(int aid, int unionPriId, TreeMap<Long, Integer> skuIdCountMap, boolean holdingMode) {
         if(skuIdCountMap == null || skuIdCountMap.isEmpty()){
-            Log.logErr("batchMakeUpStore arg;flow=%d;aid=%s;unionPriId=%s;skuIdCountMap=%s;", m_flow, aid, unionPriId, skuIdCountMap);
+            Log.logErr("arg error;flow=%d;aid=%s;unionPriId=%s;skuIdCountMap=%s;", m_flow, aid, unionPriId, skuIdCountMap);
             return Errno.ARGS_ERROR;
         }
         Map<Long, Integer> alreadyChangeSkuIdCountMap = new HashMap<>();
@@ -482,7 +484,7 @@ public class StoreSalesSkuProc {
         if(rt != Errno.OK){
             return rt;
         }
-        Log.logStd("batchMakeUpStore ok;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+        Log.logStd("ok;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
         return rt;
     }
 
@@ -510,7 +512,7 @@ public class StoreSalesSkuProc {
      */
     public int makeUpStore(int aid, int unionPriId, long skuId, int count, boolean holdingMode) {
         if(aid <= 0 || unionPriId <= 0 || skuId <=0 || count <= 0){
-            Log.logErr("makeUpStore arg;flow=%d;aid=%s;unionPriId=%s;skuId=%s;count=%s;", m_flow, aid, unionPriId, skuId, count);
+            Log.logErr("arg error;flow=%d;aid=%s;unionPriId=%s;skuId=%s;count=%s;", m_flow, aid, unionPriId, skuId, count);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
@@ -533,7 +535,7 @@ public class StoreSalesSkuProc {
             Log.logStd("store err;matcher=%s", matcher.toJson());
             return Errno.ERROR;
         }
-        Log.logStd("makeUpStore ok;flow=%d;aid=%s;unionPriId=%s;skuId=%s;count=%s;", m_flow, aid, unionPriId, skuId, count);
+        Log.logStd("ok;flow=%d;aid=%s;unionPriId=%s;skuId=%s;count=%s;", m_flow, aid, unionPriId, skuId, count);
         return rt;
     }
 
@@ -546,7 +548,7 @@ public class StoreSalesSkuProc {
      */
     public int checkAndAdd(int aid, int ownerUnionPriId, Map<SkuBizKey, PdKey> needCheckSkuStoreKeyPdKeyMap) {
         if(needCheckSkuStoreKeyPdKeyMap == null || needCheckSkuStoreKeyPdKeyMap.isEmpty()){
-            Log.logErr("checkAndAdd arg error;flow=%s;aid=%s;ownerUnionPriId=%s;needCheckSkuStoreKeyPdKeyMap=%s;", m_flow, aid, ownerUnionPriId, needCheckSkuStoreKeyPdKeyMap);
+            Log.logErr("arg error;flow=%s;aid=%s;ownerUnionPriId=%s;needCheckSkuStoreKeyPdKeyMap=%s;", m_flow, aid, ownerUnionPriId, needCheckSkuStoreKeyPdKeyMap);
             return Errno.ARGS_ERROR;
         }
         Map<Integer, Set<Long>> uidSkuIdSetMap = new HashMap<>();
@@ -607,7 +609,7 @@ public class StoreSalesSkuProc {
      */
     public int batchChangeStore(int aid, TreeMap<SkuBizKey, Pair<Integer, Integer>>  skuBizChangeCountMap) {
         if(aid <= 0 || skuBizChangeCountMap == null || skuBizChangeCountMap.isEmpty()){
-            Log.logErr("batchChangeStore arg error;flow=%s;aid=%s;skuBizChangeCountMap=%s;", m_flow, aid, skuBizChangeCountMap);
+            Log.logErr("arg error;flow=%s;aid=%s;skuBizChangeCountMap=%s;", m_flow, aid, skuBizChangeCountMap);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.OK;
@@ -735,7 +737,7 @@ public class StoreSalesSkuProc {
         Collections.sort(dataList, comparator);
         rt = m_daoCtrl.batchUpdate(updater, matcher, dataList);
         if(rt != Errno.OK){
-            Log.logErr(rt, "batchSet error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
+            Log.logErr(rt, "dao.batchUpdate error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
             return rt;
         }
         Log.logStd("ok!;flow=%s;aid=%s;", m_flow, aid);
@@ -760,7 +762,7 @@ public class StoreSalesSkuProc {
             return rt;
         }
 
-        Log.logStd(rt,"getListFromDao ok;flow=%d;aid=%s;pdId=%s;skuIdList=%s;", m_flow, aid, pdId, skuIdList);
+        Log.logStd(rt,"ok;flow=%d;aid=%s;pdId=%s;skuIdList=%s;", m_flow, aid, pdId, skuIdList);
         return rt;
     }
 
@@ -781,7 +783,7 @@ public class StoreSalesSkuProc {
             return rt;
         }
 
-        Log.logStd(rt,"getListFromDao ok;flow=%d;aid=%d;unionPriId=%s;pdId=%s;", m_flow, aid, unionPriId, pdId);
+        Log.logStd(rt,"ok;flow=%d;aid=%d;unionPriId=%s;pdId=%s;", m_flow, aid, unionPriId, pdId);
         return rt;
     }
 
@@ -843,7 +845,7 @@ public class StoreSalesSkuProc {
             return rt;
         }
 
-        Log.logStd(rt,"getInfoListFromDao ok;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;", m_flow, aid, unionPriId, skuIdList);
+        Log.logStd(rt,"ok;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;", m_flow, aid, unionPriId, skuIdList);
         return rt;
     }
     private int getListFromDaoBySkuIdAndUnionPriIdList(int aid, long skuId, FaiList<Integer> unionPriIdList, Ref<FaiList<Param>> listRef) {
@@ -859,7 +861,7 @@ public class StoreSalesSkuProc {
             Log.logStd("dao.select error;flow=%d;aid=%s;skuId=%s;unionPriIdList=%s;", m_flow, aid, skuId, unionPriIdList);
             return rt;
         }
-        Log.logStd(rt,"getListBySkuIdAndUnionPriId ok;flow=%d;aid=%d;skuId=%s;unionPriIdList=%s;", m_flow, aid, skuId, unionPriIdList);
+        Log.logStd(rt,"ok;flow=%d;aid=%d;skuId=%s;unionPriIdList=%s;", m_flow, aid, skuId, unionPriIdList);
         return rt;
     }
 
@@ -880,7 +882,7 @@ public class StoreSalesSkuProc {
             Log.logStd("dao.select error;flow=%d;aid=%s;searchArg.matcher.toJson=%s;", m_flow, aid, searchArg.matcher.toJson());
             return rt;
         }
-        Log.logDbg(rt,"getReportList ok;flow=%d;aid=%d;searchArg.matcher.toJson=%s;", m_flow, aid, searchArg.matcher.toJson());
+        Log.logDbg(rt,"ok;flow=%d;aid=%d;searchArg.matcher.toJson=%s;", m_flow, aid, searchArg.matcher.toJson());
         return rt;
     }
     public int getReportListBySkuIdList(int aid, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef){
@@ -903,7 +905,7 @@ public class StoreSalesSkuProc {
             return rt;
         }
         initReportInfoList(listRef.value);
-        Log.logDbg(rt,"getReportList ok;flow=%d;aid=%d;skuIdList=%s;", m_flow, aid, skuIdList);
+        Log.logDbg(rt,"ok;flow=%d;aid=%d;skuIdList=%s;", m_flow, aid, skuIdList);
         return rt;
     }
     public int getReportList4synSPU2SKU(int aid, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef){
@@ -928,7 +930,7 @@ public class StoreSalesSkuProc {
             return rt;
         }
         initReportInfoList(listRef.value);
-        Log.logDbg(rt,"getReportList ok;flow=%d;aid=%d;skuIdList=%s;", m_flow, aid, skuIdList);
+        Log.logDbg(rt,"ok;flow=%d;aid=%d;skuIdList=%s;", m_flow, aid, skuIdList);
         return rt;
     }
     public int getReportListByPdIdList(int aid, FaiList<Integer> pdIdList, Ref<FaiList<Param>> listRef){
@@ -952,7 +954,7 @@ public class StoreSalesSkuProc {
             return rt;
         }
         initReportInfoList(listRef.value);
-        Log.logDbg(rt,"getReportList ok;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
+        Log.logDbg(rt,"ok;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
         return rt;
     }
     public int getReportInfo(int aid, int pdId, int unionPriId, Ref<Param> infoRef){
@@ -979,7 +981,7 @@ public class StoreSalesSkuProc {
             infoRef.value = listRef.value.get(0);
         }
         initReportInfo(infoRef.value);
-        Log.logDbg(rt,"getReportInfo ok;flow=%d;aid=%d;pdId=%s;unionPriId=%s;", m_flow, aid, pdId, unionPriId);
+        Log.logDbg(rt,"ok;flow=%d;aid=%d;pdId=%s;unionPriId=%s;", m_flow, aid, pdId, unionPriId);
         return rt;
     }
     public int getReportInfo(int aid, long skuId, Ref<Param> infoRef) {
@@ -1000,7 +1002,7 @@ public class StoreSalesSkuProc {
             infoRef.value = listRef.value.get(0);
         }
         initReportInfo(infoRef.value);
-        Log.logDbg(rt,"getReportInfo ok;flow=%d;aid=%d;skuId=%s;", m_flow, aid, skuId);
+        Log.logDbg(rt,"ok;flow=%d;aid=%d;skuId=%s;", m_flow, aid, skuId);
         return rt;
     }
     private void initReportInfoList(FaiList<Param> list){
@@ -1058,7 +1060,7 @@ public class StoreSalesSkuProc {
         if(rt != Errno.OK){
             return rt;
         }
-        Log.logDbg(rt,"getListBySkuIdAndUnionPriId ok;flow=%d;aid=%d;skuId=%s;unionPriIdList=%s;", m_flow, aid, skuId, unionPriIdList);
+        Log.logDbg(rt,"ok;flow=%d;aid=%d;skuId=%s;unionPriIdList=%s;", m_flow, aid, skuId, unionPriIdList);
         return rt;
     }
 
@@ -1080,7 +1082,7 @@ public class StoreSalesSkuProc {
         }
         //StoreSalesSkuCacheCtrl.setCacheList(aid, unionPriId, pdId, listRef.value);
 
-        Log.logDbg(rt,"getList ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
+        Log.logDbg(rt,"ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
         return rt;
     }
 

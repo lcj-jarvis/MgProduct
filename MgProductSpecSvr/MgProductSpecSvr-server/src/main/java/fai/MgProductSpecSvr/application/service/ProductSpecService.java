@@ -329,7 +329,10 @@ public class ProductSpecService extends ServicePub {
                             }
                         }
                         if (hasSet) {
-                            productSpecProc.batchSet(aid, pdId, updaterList, needReFreshSkuRef);
+                            rt = productSpecProc.batchSet(aid, pdId, updaterList, needReFreshSkuRef);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
                         }
                         Ref<FaiList<Param>> pdScInfoListRef = new Ref<>();
                         rt = productSpecProc.getListFromDaoByPdScIdList(aid, pdId, null, pdScInfoListRef);

@@ -161,6 +161,15 @@ public class ProductStoreEntity {
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
     }
 
+    /**
+     * 库存数量变化信息
+     */
+    public static final class SkuCountChangeInfo {
+        public static final String SKU_ID = "skuId";                                // long skuId
+        public static final String ITEM_ID = "itemId";                              // int 订单项id
+        public static final String COUNT = "count";                                 // int 数量
+    }
+
     public static final class HoldingRecordInfo{
         public static final String AID = "aid";                                     // int 企业aid
         public static final String TID = "tid";                                     // int 项目id

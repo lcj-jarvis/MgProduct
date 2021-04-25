@@ -3109,7 +3109,7 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 批量扣减库存
-     * @param skuIdCountList    [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
+     * @param skuIdCountList    [{ skuId: 122, itemId: 11, count:12},{ skuId: 142, itemId: 15, count:2}] count > 0
      * @param rlOrderCode       业务订单id/code
      * @param reduceMode        扣减模式 {@link ProductStoreValObj.StoreSalesSku.ReduceMode}
      * @param expireTimeSeconds 扣减模式 - 预扣 下 步骤1 -> 步骤2 过程超时时间，单位s；这个值基本比订单超时时间值大
@@ -3135,7 +3135,7 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductStoreDto.Key.SITE_ID, siteId);
             sendBody.putInt(ProductStoreDto.Key.LGID, lgId);
             sendBody.putInt(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1);
-            skuIdCountList.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.StoreSalesSku.getInfoDto());
+            skuIdCountList.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.SkuCountChange.getInfoDto());
             sendBody.putString(ProductStoreDto.Key.RL_ORDER_CODE, rlOrderCode);
             sendBody.putInt(ProductStoreDto.Key.REDUCE_MODE, reduceMode);
             sendBody.putInt(ProductStoreDto.Key.EXPIRE_TIME_SECONDS, expireTimeSeconds);
@@ -3176,7 +3176,7 @@ public class MgProductInfCli extends FaiClient {
     /**
      * 批量扣除锁住的库存
      * 预扣模式 {@link ProductStoreValObj.StoreSalesSku.ReduceMode#HOLDING} 步骤2
-     * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
+     * @param skuIdCountList [{ skuId: 122, itemId: 11, count:12},{ skuId: 142, itemId: 15, count:2}] count > 0
      * @param rlOrderCode 业务订单id/code
      * @param outStoreRecordInfo 出库记录 见 {@link ProductStoreEntity.InOutStoreRecordInfo}
      * @return {@link Errno} 和 {@link MgProductErrno}
@@ -3207,7 +3207,7 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductStoreDto.Key.SITE_ID, siteId);
             sendBody.putInt(ProductStoreDto.Key.LGID, lgId);
             sendBody.putInt(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1);
-            m_rt = skuIdCountList.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.StoreSalesSku.getInfoDto());
+            m_rt = skuIdCountList.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.SkuCountChange.getInfoDto());
             if(m_rt != Errno.OK){
                 return m_rt;
             }
@@ -3263,7 +3263,7 @@ public class MgProductInfCli extends FaiClient {
 
     /**
      * 批量补偿库存
-     * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
+     * @param skuIdCountList [{ skuId: 122, itemId: 11, count:12},{ skuId: 142, itemId: 15, count:2}] count > 0
      * @param rlOrderCode 业务订单id/code
      * @param reduceMode
      *      扣减模式 {@link ProductStoreValObj.StoreSalesSku.ReduceMode}
@@ -3289,7 +3289,7 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductStoreDto.Key.SITE_ID, siteId);
             sendBody.putInt(ProductStoreDto.Key.LGID, lgId);
             sendBody.putInt(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1);
-            m_rt = skuIdCountList.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.StoreSalesSku.getInfoDto());
+            m_rt = skuIdCountList.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.SkuCountChange.getInfoDto());
             if(m_rt != Errno.OK){
                 return m_rt;
             }
@@ -3357,7 +3357,7 @@ public class MgProductInfCli extends FaiClient {
             sendBody.putInt(ProductStoreDto.Key.SITE_ID, siteId);
             sendBody.putInt(ProductStoreDto.Key.LGID, lgId);
             sendBody.putInt(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1);
-            m_rt = skuIdCountList.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.StoreSalesSku.getInfoDto());
+            m_rt = skuIdCountList.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.SkuCountChange.getInfoDto());
             if(m_rt != Errno.OK){
                 return m_rt;
             }

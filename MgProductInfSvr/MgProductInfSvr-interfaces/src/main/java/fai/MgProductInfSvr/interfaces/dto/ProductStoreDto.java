@@ -165,6 +165,21 @@ public class ProductStoreDto {
         }
     }
 
+    /**
+     * 库存变化dto，例如下单扣减啥的
+     */
+    public static final class SkuCountChange {
+        private static ParamDef g_infoDtoDef = new ParamDef();
+        static {
+            g_infoDtoDef.add(ProductStoreEntity.SkuCountChangeInfo.SKU_ID, 3, Var.Type.LONG);
+            g_infoDtoDef.add(ProductStoreEntity.SkuCountChangeInfo.ITEM_ID, 7, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.SkuCountChangeInfo.COUNT, 8, Var.Type.INT);
+        }
+        public static ParamDef getInfoDto() {
+            return g_infoDtoDef;
+        }
+    }
+
     public static class Key {
         public static final int TID = 1;
         public static final int SITE_ID = 2;

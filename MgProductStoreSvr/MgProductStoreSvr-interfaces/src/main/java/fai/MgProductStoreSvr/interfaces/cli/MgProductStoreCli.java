@@ -332,7 +332,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(StoreSalesSkuDto.Key.TID, tid);
             sendBody.putInt(StoreSalesSkuDto.Key.UNION_PRI_ID, unionPriId);
-            skuIdCountList.toBuffer(sendBody, StoreSalesSkuDto.Key.SKU_ID_COUNT_LIST, StoreSalesSkuDto.getInfoDto());
+            skuIdCountList.toBuffer(sendBody, StoreSalesSkuDto.Key.SKU_ID_COUNT_LIST, SkuCountChangeDto.getInfoDto());
             sendBody.putString(StoreSalesSkuDto.Key.RL_ORDER_CODE, rlOrderCode);
             sendBody.putInt(StoreSalesSkuDto.Key.REDUCE_MODE, reduceMode);
             sendBody.putInt(StoreSalesSkuDto.Key.EXPIRE_TIME_SECONDS, expireTimeSeconds);
@@ -389,7 +389,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(StoreSalesSkuDto.Key.TID, tid);
             sendBody.putInt(StoreSalesSkuDto.Key.UNION_PRI_ID, unionPriId);
-            skuIdCountList.toBuffer(sendBody, StoreSalesSkuDto.Key.SKU_ID_COUNT_LIST, StoreSalesSkuDto.getInfoDto());
+            skuIdCountList.toBuffer(sendBody, StoreSalesSkuDto.Key.SKU_ID_COUNT_LIST, SkuCountChangeDto.getInfoDto());
             sendBody.putString(StoreSalesSkuDto.Key.RL_ORDER_CODE, rlOrderCode);
             outStoreRecordInfo.toBuffer(sendBody, StoreSalesSkuDto.Key.IN_OUT_STORE_RECORD_INFO, InOutStoreRecordDto.getInfoDto());
 
@@ -457,7 +457,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(StoreSalesSkuDto.Key.UNION_PRI_ID, unionPriId);
-            skuIdCountList.toBuffer(sendBody, StoreSalesSkuDto.Key.SKU_ID_COUNT_LIST, StoreSalesSkuDto.getInfoDto());
+            skuIdCountList.toBuffer(sendBody, StoreSalesSkuDto.Key.SKU_ID_COUNT_LIST, SkuCountChangeDto.getInfoDto());
             sendBody.putString(StoreSalesSkuDto.Key.RL_ORDER_CODE, rlOrderCode);
             sendBody.putInt(StoreSalesSkuDto.Key.REDUCE_MODE, reduceMode);
 
@@ -508,7 +508,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(StoreSalesSkuDto.Key.TID, tid);
             sendBody.putInt(StoreSalesSkuDto.Key.UNION_PRI_ID, unionPriId);
-            skuIdCountList.toBuffer(sendBody, StoreSalesSkuDto.Key.SKU_ID_COUNT_LIST, StoreSalesSkuDto.getInfoDto());
+            skuIdCountList.toBuffer(sendBody, StoreSalesSkuDto.Key.SKU_ID_COUNT_LIST, SkuCountChangeDto.getInfoDto());
             sendBody.putString(StoreSalesSkuDto.Key.RL_REFUND_ID, rlRefundId);
             inStoreRecordInfo.toBuffer(sendBody, StoreSalesSkuDto.Key.IN_OUT_STORE_RECORD_INFO, InOutStoreRecordDto.getInfoDto());
 

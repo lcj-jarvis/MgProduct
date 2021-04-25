@@ -1,14 +1,12 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
+import fai.MgProductStoreSvr.domain.comm.RecordKey;
 import fai.MgProductStoreSvr.domain.comm.Utils;
 import fai.MgProductStoreSvr.domain.entity.HoldingRecordEntity;
 import fai.MgProductStoreSvr.domain.repository.HoldingRecordDaoCtrl;
 import fai.comm.util.*;
 
-import java.util.Calendar;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class HoldingRecordProc {
     public HoldingRecordProc(HoldingRecordDaoCtrl daoCtrl, int flow) {
@@ -61,9 +59,9 @@ public class HoldingRecordProc {
         Log.logStd("ok;flow=%d;aid=%d;", m_flow, aid);
         return rt;
     }
-    public int batchAdd(int aid, int unionPriId, Map<Long, Integer> skuIdCountMap, String rlOrderCode, int expireTimeSeconds) {
-        if(aid <= 0 || unionPriId <= 0 || skuIdCountMap == null || Str.isEmpty(rlOrderCode) || expireTimeSeconds < 0){
-            Log.logErr("add error;flow=%d;aid=%d;unionPriId=%s;skuIdCountMap=%s;rlOrderCode=%s;expireTimeSeconds=%s", m_flow, aid, unionPriId, skuIdCountMap, rlOrderCode, expireTimeSeconds);
+    public int batchAdd(int aid, int unionPriId, TreeMap<RecordKey, Integer> recordCountMap, String rlOrderCode, int expireTimeSeconds) {
+        if(aid <= 0 || unionPriId <= 0 || recordCountMap == null || Str.isEmpty(rlOrderCode) || expireTimeSeconds < 0){
+            Log.logErr("add error;flow=%d;aid=%d;unionPriId=%s;recordCountMap=%s;rlOrderCode=%s;expireTimeSeconds=%s", m_flow, aid, unionPriId, recordCountMap, rlOrderCode, expireTimeSeconds);
             return Errno.ARGS_ERROR;
         }
         Calendar now = Calendar.getInstance();
@@ -71,13 +69,14 @@ public class HoldingRecordProc {
         if(expireTimeSeconds == 0){
             expireTime.set(Calendar.YEAR, 9999); // 不过期
         }
-        FaiList<Param> dataList = new FaiList<>(skuIdCountMap.size());
-        skuIdCountMap.forEach((skuId, count)->{
+        FaiList<Param> dataList = new FaiList<>(recordCountMap.size());
+        recordCountMap.forEach((recordKey, count)->{
             Param data = new Param();
             data.setInt(HoldingRecordEntity.Info.AID, aid);
             data.setInt(HoldingRecordEntity.Info.UNION_PRI_ID, unionPriId);
-            data.setLong(HoldingRecordEntity.Info.SKU_ID, skuId);
+            data.setLong(HoldingRecordEntity.Info.SKU_ID, recordKey.skuId);
             data.setString(HoldingRecordEntity.Info.RL_ORDER_CODE, rlOrderCode);
+            data.setInt(HoldingRecordEntity.Info.ITEM_ID, recordKey.itemId);
             data.setInt(HoldingRecordEntity.Info.COUNT, count);
             data.setCalendar(HoldingRecordEntity.Info.EXPIRE_TIME, expireTime);
             data.setCalendar(HoldingRecordEntity.Info.SYS_CREATE_TIME, now);
@@ -86,12 +85,48 @@ public class HoldingRecordProc {
 
         int rt = m_daoCtrl.batchInsert(dataList, null, true);
         if(rt != Errno.OK){
-            Log.logErr(rt,"batchAdd error;flow=%d;aid=%d;unionPriId=%s;skuIdCountMap=%s;rlOrderCode=%s;expireTimeSeconds=%s", m_flow, aid, unionPriId, skuIdCountMap, rlOrderCode, expireTimeSeconds);
+            Log.logErr(rt,"batchAdd error;flow=%d;aid=%d;unionPriId=%s;recordCountMap=%s;rlOrderCode=%s;expireTimeSeconds=%s", m_flow, aid, unionPriId, recordCountMap, rlOrderCode, expireTimeSeconds);
         }
-        Log.logStd("ok;flow=%d;aid=%d;unionPriId=%s;skuIdCountMap=%s;rlOrderCode=%s;expireTimeSeconds=%s", m_flow, aid, unionPriId, skuIdCountMap, rlOrderCode, expireTimeSeconds);
+        Log.logStd("ok;flow=%d;aid=%d;unionPriId=%s;recordCountMap=%s;rlOrderCode=%s;expireTimeSeconds=%s", m_flow, aid, unionPriId, recordCountMap, rlOrderCode, expireTimeSeconds);
         return rt;
     }
+    public int batchLogicDel(int aid, int unionPriId, TreeMap<RecordKey, Integer> recordCountMap, String rlOrderCode){
+        if(aid <= 0 || unionPriId <= 0 || recordCountMap == null || recordCountMap.isEmpty() || Str.isEmpty(rlOrderCode)){
+            Log.logErr("batchLogicDel error;flow=%d;aid=%d;unionPriId=%s;recordCountMap=%s;rlOrderCode=%s;", m_flow, aid, unionPriId, recordCountMap, rlOrderCode);
+            return Errno.ARGS_ERROR;
+        }
 
+        FaiList<Param> batchDataList = new FaiList<>();
+        for (RecordKey recordKey : recordCountMap.keySet()) {
+            Param data = new Param();
+            // updater field
+            data.setBoolean(HoldingRecordEntity.Info.ALREADY_DEL, true);
+            // matcher field
+            data.setInt(HoldingRecordEntity.Info.AID, aid);
+            data.setInt(HoldingRecordEntity.Info.UNION_PRI_ID, unionPriId);
+            data.setLong(HoldingRecordEntity.Info.SKU_ID, recordKey.skuId);
+            data.setString(HoldingRecordEntity.Info.RL_ORDER_CODE, rlOrderCode);
+            data.setInt(HoldingRecordEntity.Info.ITEM_ID, recordKey.itemId);
+
+            batchDataList.add(data);
+        }
+        ParamUpdater batchUpdater = new ParamUpdater();
+        batchUpdater.getData().setString(HoldingRecordEntity.Info.ALREADY_DEL, "?");
+
+        ParamMatcher batchMatcher = new ParamMatcher(HoldingRecordEntity.Info.AID, ParamMatcher.EQ, "?");
+        batchMatcher.and(HoldingRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
+        batchMatcher.and(HoldingRecordEntity.Info.SKU_ID, ParamMatcher.EQ, "?");
+        batchMatcher.and(HoldingRecordEntity.Info.RL_ORDER_CODE, ParamMatcher.EQ, "?");
+        batchMatcher.and(HoldingRecordEntity.Info.ITEM_ID, ParamMatcher.EQ, "?");
+
+        int rt = m_daoCtrl.batchUpdate(batchUpdater, batchMatcher, batchDataList);
+        if(rt != Errno.OK){
+            Log.logErr(rt,"dao update error;flow=%d;aid=%d;unionPriId=%s;batchDataList=%s;", m_flow, aid, unionPriId, batchDataList);
+            return rt;
+        }
+        Log.logStd("ok;flow=%d;aid=%d;unionPriId=%s;recordCountMap=%s;rlOrderCode=%s;", m_flow, aid, unionPriId, recordCountMap, rlOrderCode);
+        return rt;
+    }
     // 逻辑删除
     public int batchLogicDel(int aid, int unionPriId, FaiList<Long> skuIdList, String rlOrderCode){
         if(aid <= 0 || unionPriId <= 0 || skuIdList == null || skuIdList.isEmpty() || Str.isEmpty(rlOrderCode)){

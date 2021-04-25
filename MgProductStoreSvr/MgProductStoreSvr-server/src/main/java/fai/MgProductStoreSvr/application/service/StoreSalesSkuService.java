@@ -3,6 +3,7 @@ package fai.MgProductStoreSvr.application.service;
 import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
+import fai.MgProductStoreSvr.domain.comm.RecordKey;
 import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
 import fai.MgProductStoreSvr.domain.comm.Utils;
 import fai.MgProductStoreSvr.domain.entity.*;
@@ -11,6 +12,7 @@ import fai.MgProductStoreSvr.domain.serviceProc.*;
 import fai.MgProductStoreSvr.interfaces.conf.MqConfig;
 import fai.MgProductStoreSvr.interfaces.dto.HoldingRecordDto;
 import fai.MgProductStoreSvr.interfaces.dto.StoreSalesSkuDto;
+import fai.MgProductStoreSvr.interfaces.entity.SkuCountChangeEntity;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.mq.api.MqFactory;
 import fai.comm.mq.api.Producer;
@@ -468,15 +470,20 @@ public class StoreSalesSkuService extends StoreService {
         try {
             if (aid <= 0 || unionPriId<= 0 || skuIdCountList == null || skuIdCountList.isEmpty() || Str.isEmpty(rlOrderCode) || reduceMode <= 0 || expireTimeSeconds < 0) {
                 rt = Errno.ARGS_ERROR;
-                Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;skuIdCountList=%s;rlOrderCode=%s;reduceMode=%s;expireTimeSeconds=%s;", flow, aid, unionPriId, skuIdCountList, rlOrderCode, reduceMode, expireTimeSeconds);
+                Log.logErr(rt,"arg err;flow=%d;aid=%d;unionPriId=%s;skuIdCountList=%s;rlOrderCode=%s;reduceMode=%s;expireTimeSeconds=%s;", flow, aid, unionPriId, skuIdCountList, rlOrderCode, reduceMode, expireTimeSeconds);
                 return rt;
             }
+            System.out.println(skuIdCountList);
             TreeMap<Long, Integer> skuIdCountMap = new TreeMap<>(); // 使用 有序map, 避免事务中 批量修改时如果无序 相互锁住 导致死锁
+            TreeMap<RecordKey, Integer> recordCountMap = new TreeMap<>();
             FaiList<Long> skuIdList = new FaiList<>(skuIdCountList.size());
             for (Param info : skuIdCountList) {
-                long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
-                int count = info.getInt(StoreSalesSkuEntity.Info.COUNT);
+                long skuId = info.getLong(SkuCountChangeEntity.Info.SKU_ID);
+                int itemId = info.getInt(SkuCountChangeEntity.Info.ITEM_ID, 0);
+                int count = info.getInt(SkuCountChangeEntity.Info.COUNT);
                 skuIdList.add(skuId);
+                recordCountMap.put(new RecordKey(skuId, itemId), count);
+                count += skuIdCountMap.getOrDefault(skuId, 0);
                 skuIdCountMap.put(skuId, count);
             }
             boolean holdingMode = reduceMode == StoreSalesSkuValObj.ReduceMode.HOLDING;
@@ -503,7 +510,7 @@ public class StoreSalesSkuService extends StoreService {
                 try {
                     transactionCtrl.setAutoCommit(false);
                     if(holdingMode){ // 生成预扣记录
-                        rt = checkHoldingRecordExists(holdingRecordProc, aid, unionPriId, skuIdList, rlOrderCode, skuIdCountMap, true, false);
+                        rt = checkHoldingRecordExists(holdingRecordProc, aid, unionPriId, skuIdList, rlOrderCode, skuIdCountMap, recordCountMap, true, false);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -513,7 +520,7 @@ public class StoreSalesSkuService extends StoreService {
                             session.write(sendBuf);
                             return rt = Errno.OK;
                         }
-                        rt = holdingRecordProc.batchAdd(aid, unionPriId, skuIdCountMap, rlOrderCode, expireTimeSeconds);
+                        rt = holdingRecordProc.batchAdd(aid, unionPriId, recordCountMap, rlOrderCode, expireTimeSeconds);
                     }else { // 生成库存订单关联记录
                         rt = storeOrderRecordProc.batchAdd(aid, unionPriId, skuIdCountMap, rlOrderCode);
                     }
@@ -550,7 +557,7 @@ public class StoreSalesSkuService extends StoreService {
     /**
      * 检测是否存在预扣记录
      */
-    private int checkHoldingRecordExists(HoldingRecordProc holdingRecordProc, int aid, int unionPriId, FaiList<Long> skuIdList, String rlOrderCode, Map<Long, Integer> skuIdCountMap, boolean notJudgeDel, boolean isMakeup){
+    private int checkHoldingRecordExists(HoldingRecordProc holdingRecordProc, int aid, int unionPriId, FaiList<Long> skuIdList, String rlOrderCode, Map<Long, Integer> skuIdCountMap, TreeMap<RecordKey, Integer> recordCountMap, boolean notJudgeDel, boolean isMakeup){
         int rt = Errno.ERROR;
         Ref<FaiList<Param>> listRef = new Ref<>();
         rt = holdingRecordProc.getListFromDao(aid, unionPriId, skuIdList, rlOrderCode, listRef);
@@ -562,12 +569,27 @@ public class StoreSalesSkuService extends StoreService {
                 return rt;
             }
         }
+        boolean useOld = true;
         for (Param info : listRef.value) {
             boolean alreadyDel = info.getBoolean(HoldingRecordEntity.Info.ALREADY_DEL);
             if(notJudgeDel || alreadyDel){ // 不判断删除 或者 已经删除
-                Long skuId = info.getLong(HoldingRecordEntity.Info.SKU_ID);
+                long skuId = info.getLong(HoldingRecordEntity.Info.SKU_ID);
+                int itemId = 0;
                 Integer recordCount = info.getInt(HoldingRecordEntity.Info.COUNT);
-                Integer count = skuIdCountMap.remove(skuId);
+                Integer count = null;
+                if(useOld){
+                    count = skuIdCountMap.remove(skuId);
+                }else{
+                    itemId = info.getInt(HoldingRecordEntity.Info.ITEM_ID);
+                    count = recordCountMap.remove(new RecordKey(skuId, itemId));
+                    if(count != null){
+                        int totalCount = skuIdCountMap.get(skuId);
+                        totalCount = totalCount - count;
+                        if(totalCount == 0){
+                            skuIdCountMap.remove(skuId);
+                        }
+                    }
+                }
                 if(!recordCount.equals(count)){
                     if(!isMakeup){
                         rt = MgProductErrno.Store.REPEAT_REDUCE_COUNT_DIF;
@@ -598,15 +620,21 @@ public class StoreSalesSkuService extends StoreService {
                 outStoreRecordInfo.setString(InOutStoreRecordEntity.Info.RL_ORDER_CODE, rlOrderCode);
             }
             TreeMap<Long, Integer> skuIdChangeCountMap = new TreeMap<>(); // 使用 有序map, 避免事务中 批量修改时如果无序 相互锁住 导致死锁
+            TreeMap<RecordKey, Integer> recordCountMap = new TreeMap<>();
             Set<SkuBizKey> skuBizKeySet = new HashSet<>();
             FaiList<Integer> pdIdList = new FaiList<>();
             FaiList<Long> skuIdList = new FaiList<>(skuIdCountList.size());
             for (Param info : skuIdCountList) {
-                long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
-                int count = info.getInt(StoreSalesSkuEntity.Info.COUNT);
+                long skuId = info.getLong(SkuCountChangeEntity.Info.SKU_ID);
+                int itemId = info.getInt(SkuCountChangeEntity.Info.ITEM_ID, 0);
+                int count = info.getInt(SkuCountChangeEntity.Info.COUNT);
                 skuIdList.add(skuId);
-                skuIdChangeCountMap.put(skuId, count);
                 skuBizKeySet.add(new SkuBizKey(unionPriId, skuId));
+
+                recordCountMap.put(new RecordKey(skuId, itemId), count);
+
+                count += skuIdChangeCountMap.getOrDefault(skuId, 0);
+                skuIdChangeCountMap.put(skuId, count);
             }
 
             MgProductSpecCli mgProductSpecCli = createMgProductSpecCli(flow);
@@ -635,7 +663,7 @@ public class StoreSalesSkuService extends StoreService {
                     LockUtil.lock(aid);
                     try {
                         transactionCtrl.setAutoCommit(false);
-                        rt = checkHoldingRecordExists(holdingRecordProc, aid, unionPriId, skuIdList, rlOrderCode, skuIdChangeCountMap, false, false);
+                        rt = checkHoldingRecordExists(holdingRecordProc, aid, unionPriId, skuIdList, rlOrderCode, skuIdChangeCountMap, recordCountMap, false, false);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -723,11 +751,15 @@ public class StoreSalesSkuService extends StoreService {
             }
 
             TreeMap<Long, Integer> skuIdCountMap = new TreeMap<>(); // 使用 有序map, 避免事务中 批量修改时如果无序 相互锁住 导致死锁
+            TreeMap<RecordKey, Integer> recordCountMap = new TreeMap<>();
             FaiList<Long> skuIdList = new FaiList<>(skuIdCountList.size());
             for (Param info : skuIdCountList) {
-                long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
-                int count = info.getInt(StoreSalesSkuEntity.Info.COUNT);
+                long skuId = info.getLong(SkuCountChangeEntity.Info.SKU_ID);
+                int itemId = info.getInt(SkuCountChangeEntity.Info.ITEM_ID, 0);
+                int count = info.getInt(SkuCountChangeEntity.Info.COUNT);
                 skuIdList.add(skuId);
+                recordCountMap.put(new RecordKey(skuId, itemId), count);
+                count += skuIdCountMap.getOrDefault(skuId, 0);
                 skuIdCountMap.put(skuId, count);
             }
 
@@ -755,7 +787,7 @@ public class StoreSalesSkuService extends StoreService {
                 try {
                     transactionCtrl.setAutoCommit(false);
                     if(holdingMode){
-                        rt = checkHoldingRecordExists(holdingRecordProc, aid, unionPriId, skuIdList, rlOrderCode, skuIdCountMap, false, true);
+                        rt = checkHoldingRecordExists(holdingRecordProc, aid, unionPriId, skuIdList, rlOrderCode, skuIdCountMap, recordCountMap, false, true);
                         if(rt != Errno.OK){
                             return rt;
                         }

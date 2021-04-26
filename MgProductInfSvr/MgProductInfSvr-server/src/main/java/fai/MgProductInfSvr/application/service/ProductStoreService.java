@@ -233,6 +233,48 @@ public class ProductStoreService extends MgProductInfService {
     }
 
     /**
+     * 管理态调用 <br/>
+     * 刷新 rlOrderCode 的预扣记录。<br/>
+     * 根据 allHoldingRecordList 和已有的预扣尽量进行对比， <br/>
+     * 如果都有，则对比数量，数量不一致，就多退少补。  <br/>
+     * 如果 holdingRecordList中有 db中没有 就生成预扣记录，并进行预扣库存.  <br/>
+     * 如果 holdingRecordList中没有 db中有 就删除db中的预扣记录，并进行补偿库存。 <br/>
+     * @param rlOrderCode 业务订单id/code
+     * @param allHoldingRecordList 当前订单的所有预扣记录 [{ skuId: 122, itemId: 11, count:12},{ skuId: 142, itemId: 21, count:2}] count > 0
+     */
+    public int refreshHoldingRecordOfRlOrderCode(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, String rlOrderCode, FaiList<Param> allHoldingRecordList) throws IOException  {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            ProductStoreProc productStoreProc = new ProductStoreProc(flow);
+            rt = productStoreProc.refreshHoldingRecordOfRlOrderCode(aid, unionPriId, rlOrderCode, allHoldingRecordList);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    /**
      * 退库存，会生成入库记录
      * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
      * @param rlRefundId 退款id

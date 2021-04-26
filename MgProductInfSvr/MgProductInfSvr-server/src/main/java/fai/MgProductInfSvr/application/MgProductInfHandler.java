@@ -659,6 +659,21 @@ public class MgProductInfHandler extends FaiHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductInfCmd.StoreSalesSkuCmd.REFRESH_HOLDING_RECORD_OF_RL_ORDER_CODE)
+    public int refreshHoldingRecordOfRlOrderCode(final FaiSession session,
+                                                 @ArgFlow final int flow,
+                                                 @ArgAid final int aid,
+                                                 @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
+                                                 @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
+                                                 @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
+                                                 @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
+                                                 @ArgBodyString(ProductStoreDto.Key.RL_ORDER_CODE) String rlOrderCode,
+                                                 @ArgList(classDef = ProductStoreDto.SkuCountChange.class, methodDef = "getInfoDto",
+                                                         keyMatch = ProductStoreDto.Key.INFO_LIST) FaiList<Param> skuIdCountList) throws IOException {
+        return storeService.refreshHoldingRecordOfRlOrderCode(session, flow, aid, tid, siteId, lgId, keepPriId1, rlOrderCode, skuIdCountList);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductInfCmd.StoreSalesSkuCmd.BATCH_REFUND_STORE)
     public int batchRefundStore(final FaiSession session,
                                 @ArgFlow final int flow,

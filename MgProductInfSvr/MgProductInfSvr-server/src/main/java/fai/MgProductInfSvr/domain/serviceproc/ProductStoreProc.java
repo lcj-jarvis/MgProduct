@@ -157,6 +157,31 @@ public class ProductStoreProc extends AbstractProductProc{
     }
 
     /**
+     * 管理态调用 <br/>
+     * 刷新 rlOrderCode 的预扣记录。<br/>
+     * 根据 allHoldingRecordList 和已有的预扣尽量进行对比， <br/>
+     * 如果都有，则对比数量，数量不一致，就多退少补。  <br/>
+     * 如果 holdingRecordList中有 db中没有 就生成预扣记录，并进行预扣库存.  <br/>
+     * 如果 holdingRecordList中没有 db中有 就删除db中的预扣记录，并进行补偿库存。 <br/>
+     * @param rlOrderCode 业务订单id/code
+     * @param allHoldingRecordList 当前订单的所有预扣记录 [{ skuId: 122, itemId: 11, count:12},{ skuId: 142, itemId: 21, count:2}] count > 0
+     */
+    public int refreshHoldingRecordOfRlOrderCode(int aid, int unionPriId, String rlOrderCode, FaiList<Param> allHoldingRecordList) {
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.refreshHoldingRecordOfRlOrderCode(aid, unionPriId, rlOrderCode, allHoldingRecordList);
+        if (rt != Errno.OK) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;allHoldingRecordList=%s;rlOrderCode=%s;", m_flow, aid, unionPriId, allHoldingRecordList, rlOrderCode);
+            return rt;
+        }
+        return rt;
+    }
+
+    /**
      * 退库存，会生成入库记录
      * @param unionPriId
      * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0

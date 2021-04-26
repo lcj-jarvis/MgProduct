@@ -170,6 +170,18 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.REFRESH_HOLDING_RECORD_OF_RL_ORDER_CODE)
+    private int refreshHoldingRecordOfRlOrderCode(final FaiSession session,
+                                                  @ArgFlow final int flow,
+                                                  @ArgAid final int aid,
+                                                  @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
+                                                  @ArgList(classDef = SkuCountChangeDto.class, methodDef = "getInfoDto", keyMatch = StoreSalesSkuDto.Key.SKU_ID_COUNT_LIST)
+                                                          FaiList<Param> holdingRecordList,
+                                                  @ArgBodyString(StoreSalesSkuDto.Key.RL_ORDER_CODE) final String rlOrderCode) throws IOException {
+        return m_storeSalesSkuService.refreshHoldingRecordOfRlOrderCode(session, flow, aid, unionPriId, rlOrderCode, holdingRecordList);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_REFUND_STORE)
     private int batchRefundStore(final FaiSession session,
                                  @ArgFlow final int flow,

@@ -569,8 +569,43 @@ public class StoreSalesSkuService extends StoreService {
                 return rt;
             }
         }
+        FaiList<Param> list = listRef.value;
+        System.out.println("list="+list);
+        Map<Long, Set<RecordKey>> skuIdRecordKeysMap = new HashMap<>();
         boolean useOld = true;
-        for (Param info : listRef.value) {
+        if(useOld){
+            Map<Long, Integer> combineSkuIdCount = new HashMap<>();
+            for (Param info : list) {
+                long skuId = info.getLong(HoldingRecordEntity.Info.SKU_ID);
+                int count = info.getInt(HoldingRecordEntity.Info.COUNT);
+                Integer combineCount = combineSkuIdCount.getOrDefault(skuId, 0);
+                combineCount+=count;
+                combineSkuIdCount.put(skuId, combineCount);
+            }
+            FaiList<Param> combineList = new FaiList<>(combineSkuIdCount.size());
+            for (Param info : list) {
+                long skuId = info.getLong(HoldingRecordEntity.Info.SKU_ID);
+                boolean alreadyDel = info.getBoolean(HoldingRecordEntity.Info.ALREADY_DEL);
+                Integer count = combineSkuIdCount.remove(skuId);
+                if(count != null){
+                    combineList.add(
+                            new Param()
+                                    .setLong(HoldingRecordEntity.Info.SKU_ID, skuId)
+                                    .setBoolean(HoldingRecordEntity.Info.ALREADY_DEL, alreadyDel)
+                                    .setInt(HoldingRecordEntity.Info.COUNT, count)
+                    );
+                }
+            }
+            list = combineList;
+
+            for (RecordKey recordKey : recordCountMap.keySet()) {
+                Set<RecordKey> recordKeys = skuIdRecordKeysMap.getOrDefault(recordKey.skuId, new HashSet<>());
+                recordKeys.add(recordKey);
+                skuIdRecordKeysMap.put(recordKey.skuId, recordKeys);
+            }
+        }
+        System.out.println("skuIdRecordKeysMap="+skuIdRecordKeysMap);
+        for (Param info : list) {
             boolean alreadyDel = info.getBoolean(HoldingRecordEntity.Info.ALREADY_DEL);
             if(notJudgeDel || alreadyDel){ // 不判断删除 或者 已经删除
                 long skuId = info.getLong(HoldingRecordEntity.Info.SKU_ID);
@@ -579,6 +614,10 @@ public class StoreSalesSkuService extends StoreService {
                 Integer count = null;
                 if(useOld){
                     count = skuIdCountMap.remove(skuId);
+                    Set<RecordKey> recordKeys = skuIdRecordKeysMap.get(skuId);
+                    for (RecordKey recordKey : recordKeys) {
+                        recordCountMap.remove(recordKey);
+                    }
                 }else{
                     itemId = info.getInt(HoldingRecordEntity.Info.ITEM_ID);
                     count = recordCountMap.remove(new RecordKey(skuId, itemId));
@@ -601,6 +640,7 @@ public class StoreSalesSkuService extends StoreService {
                 }
             }
         }
+        System.out.println("skuIdCountMap="+skuIdCountMap);
         return rt = Errno.OK;
     }
 
@@ -829,6 +869,197 @@ public class StoreSalesSkuService extends StoreService {
             stat.end(rt != Errno.OK, rt);
         }
         return rt;
+    }
+
+    /**
+     * 管理态调用 <br/>
+     * 刷新 rlOrderCode 的预扣记录。<br/>
+     * 根据 allHoldingRecordList 和已有的预扣尽量进行对比，
+     * 如果都有，则对比数量，数量不一致，就多退少补。
+     * 如果 holdingRecordList中有 db中没有 就生成预扣记录，并进行预扣库存
+     * 如果 holdingRecordList中没有 db中有 就删除db中的预扣记录，并进行补偿库存。
+     * @param rlOrderCode 订单id/code 等
+     * @param allHoldingRecordList 当前订单的所有预扣记录 [{ skuId: 122, itemId: 11, count:12},{ skuId: 142, itemId: 21, count:2}] count > 0
+     */
+    public int refreshHoldingRecordOfRlOrderCode(FaiSession session, int flow, int aid, int unionPriId, String rlOrderCode, FaiList<Param> allHoldingRecordList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || unionPriId<= 0 || Str.isEmpty(rlOrderCode) || Util.isEmptyList(allHoldingRecordList)){
+                rt = Errno.ARGS_ERROR;
+                Log.logErr(rt, "arg err;flow=%d;aid=%d;unionPriId=%s;rlOrderCode=%s;allHoldingRecordList=%s;", flow, aid, unionPriId, rlOrderCode, allHoldingRecordList);
+                return rt;
+            }
+            Map<RecordKey, Integer> recordCountMap = new HashMap<>();
+            FaiList<Long> skuIdList = new FaiList<>();
+            for (Param info : allHoldingRecordList) {
+                long skuId = info.getLong(SkuCountChangeEntity.Info.SKU_ID);
+                int itemId = info.getInt(SkuCountChangeEntity.Info.ITEM_ID, 0);
+                int count = info.getInt(SkuCountChangeEntity.Info.COUNT);
+                recordCountMap.put(new RecordKey(skuId, itemId), count);
+                skuIdList.add(skuId);
+            }
+            int reduceMode = StoreSalesSkuValObj.ReduceMode.HOLDING;
+            boolean holdingMode = reduceMode == StoreSalesSkuValObj.ReduceMode.HOLDING;
+            TransactionCtrl transactionCtrl = new TransactionCtrl();
+            try {
+                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, transactionCtrl);
+                HoldingRecordProc holdingRecordProc = new HoldingRecordProc(flow, aid, transactionCtrl);
+                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, transactionCtrl);
+                SpuSummaryProc spuSummaryProc = new SpuSummaryProc(flow, aid, transactionCtrl);
+                SkuSummaryProc skuSummaryProc = new SkuSummaryProc(flow, aid, transactionCtrl);
+
+                LockUtil.lock(aid);
+                try {
+                    Ref<FaiList<Param>> listRef = new Ref<>();
+                    rt = holdingRecordProc.getListFromDao(aid, unionPriId, skuIdList, rlOrderCode, listRef);
+                    if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                        return rt;
+                    }
+                    Set<RecordKey> delRecord = new HashSet<>();
+                    Map<RecordKey, Integer> updateRecordMap = new HashMap<>();
+                    TreeMap<RecordKey, Integer> addRecordMap = new TreeMap<>();
+                    Map<Long, Integer> skuCountMap = new HashMap();
+                    rt = splitRecordCountToAddOrDelOrSet(recordCountMap, listRef.value, delRecord, updateRecordMap, addRecordMap, skuCountMap);
+                    if(rt != Errno.OK){
+                        return rt;
+                    }
+                    TreeMap<Long, Integer> reduceMap = new TreeMap<>();
+                    TreeMap<Long, Integer> makeupMap = new TreeMap<>();
+                    skuCountMap.forEach((skuId, count)->{
+                        if(count > 0){
+                            reduceMap.put(skuId, count);
+                        }else if(count < 0){
+                            makeupMap.put(skuId, -count);
+                        }
+                    });
+                    try {
+                        transactionCtrl.setAutoCommit(false);
+                        if(!addRecordMap.isEmpty()){
+                            rt = holdingRecordProc.batchAdd(aid, unionPriId, addRecordMap, rlOrderCode, 0);
+                            if(rt != Errno.OK){
+                                return rt;
+                            }
+                        }
+                        if(!delRecord.isEmpty()){
+                            rt = holdingRecordProc.batchDel(aid, unionPriId, delRecord, rlOrderCode);
+                            if(rt != Errno.OK){
+                                return rt;
+                            }
+                        }
+                        if(!updateRecordMap.isEmpty()){
+                            rt = holdingRecordProc.batchSet(aid, unionPriId, rlOrderCode, updateRecordMap);
+                            if(rt != Errno.OK){
+                                return rt;
+                            }
+                        }
+
+                        if(!reduceMap.isEmpty()){
+                            rt = storeSalesSkuProc.batchReduceStore(aid, unionPriId, reduceMap, holdingMode, false);
+                            if(rt != Errno.OK){
+                                return rt;
+                            }
+                        }
+                        if(!makeupMap.isEmpty()){
+                            rt = storeSalesSkuProc.batchMakeUpStore(aid, unionPriId, makeupMap, holdingMode);
+                            if(rt != Errno.OK){
+                                return rt;
+                            }
+                        }
+                    }finally {
+                        if(rt != Errno.OK){
+                            transactionCtrl.rollback();
+                            storeSalesSkuProc.deleteRemainCountDirtyCache(aid);
+                            return rt;
+                        }
+                        transactionCtrl.commit();
+                    }
+                }finally {
+                    LockUtil.unlock(aid);
+                }
+                Ref<FaiList<Param>> listRef = new Ref<>();
+                rt = storeSalesSkuProc.getListFromDaoBySkuIdList(aid, unionPriId, skuIdList, listRef, StoreSalesSkuEntity.Info.PD_ID);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+                FaiList<Integer> pdIdList = Utils.getValList(listRef.value, StoreSalesSkuEntity.Info.PD_ID);
+                try {
+                    transactionCtrl.setAutoCommit(false);
+                    rt = reportSummary(aid, pdIdList, ReportValObj.Flag.REPORT_COUNT,
+                            skuIdList, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
+                    if(rt != Errno.OK){
+                        return rt;
+                    }
+                }finally {
+                    if(rt != Errno.OK){
+                        transactionCtrl.rollback();
+                        return rt;
+                    }
+                    spuBizSummaryProc.setDirtyCacheEx(aid);
+                    spuSummaryProc.setDirtyCacheEx(aid);
+                    transactionCtrl.commit();
+                    spuBizSummaryProc.deleteDirtyCache(aid);
+                    spuSummaryProc.deleteDirtyCache(aid);
+                }
+            }finally {
+                transactionCtrl.closeDao();
+            }
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("ok;flow=%s;aid=%s;unionPriId=%s;rlOrderCode=%s;recordCountMap=%s;", flow, aid, unionPriId, rlOrderCode, recordCountMap);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * 遍历 oldRecordList 解析出那些记录是要添加、那些是要修改、那些是要删除
+     * @param recordCountMap 新数据
+     * @param oldRecordList 旧数据
+     * @param delRecord 删除的记录
+     * @param updateRecordMap 更新的记录
+     * @param addRecordMap 添加的记录
+     * @param skuCountMap 变化的数量
+     */
+    private int splitRecordCountToAddOrDelOrSet(Map<RecordKey, Integer> recordCountMap, FaiList<Param> oldRecordList, Set<RecordKey> delRecord, Map<RecordKey, Integer> updateRecordMap, Map<RecordKey, Integer> addRecordMap, Map<Long, Integer> skuCountMap) {
+        int rt = Errno.NOT_FOUND;
+        for (Param info : oldRecordList) {
+            long skuId = info.getLong(HoldingRecordEntity.Info.SKU_ID);
+            int itemId = info.getInt(HoldingRecordEntity.Info.ITEM_ID);
+            int count = info.getInt(HoldingRecordEntity.Info.COUNT);
+            boolean alreadyDel = info.getBoolean(HoldingRecordEntity.Info.ALREADY_DEL);
+            RecordKey recordKey = new RecordKey(skuId, itemId);
+            Integer newCount = recordCountMap.remove(recordKey);
+            int changeCount = -count;
+            if(newCount == null){
+                if(alreadyDel){
+                    continue;
+                }
+                delRecord.add(recordKey);
+            }else{
+                if(alreadyDel){
+                    Log.logErr(rt,"alreadyDel;info=%s;", info);
+                    return rt;
+                }
+                changeCount += newCount;
+            }
+            if(changeCount == 0){
+                continue;
+            }
+            int skuCount = skuCountMap.getOrDefault(skuId, 0);
+            skuCount += changeCount;
+            skuCountMap.put(skuId, skuCount);
+        }
+        recordCountMap.forEach((recordKey, count)->{
+            long skuId = recordKey.skuId;
+            int itemId = recordKey.itemId;
+            addRecordMap.put(new RecordKey(skuId, itemId), count);
+            int skuCount = skuCountMap.getOrDefault(skuId, 0);
+            skuCount += count;
+            skuCountMap.put(skuId, skuCount);
+        });
+        return rt = Errno.OK;
     }
 
     /**
@@ -1223,7 +1454,7 @@ public class StoreSalesSkuService extends StoreService {
             HoldingRecordDaoCtrl holdingRecordDaoCtrl = HoldingRecordDaoCtrl.getInstance(flow, aid);
             try {
                 HoldingRecordProc holdingRecordProc = new HoldingRecordProc(holdingRecordDaoCtrl, flow);
-                rt = holdingRecordProc.getNotDelListFromDao(aid, unionPriId, skuIdList, listRef);
+                rt = holdingRecordProc.getNotDelListFromDao(aid, unionPriId, skuIdList, null, listRef);
                 if(rt != Errno.OK){
                     return rt;
                 }

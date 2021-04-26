@@ -78,7 +78,6 @@ public class StoreService {
         }
         return rt;
     }
-
     /**
      * 上报 spu“业务”库存销售汇总数据 汇总到 spu库存销售汇总
      */

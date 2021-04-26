@@ -312,7 +312,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
 
     /**
      * 批量扣减库存
-     * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
+     * @param skuIdCountList [{ skuId: 122, itemId: 11, count:12},{ skuId: 142, itemId: 21, count:2}] count > 0
      * @param rlOrderCode 业务订单id/code
      * @param reduceMode
      * 扣减模式 {@link StoreSalesSkuValObj.ReduceMode}
@@ -371,7 +371,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
     /**
      * 批量扣减预扣库存
      * 预扣模式 {@link StoreSalesSkuValObj.ReduceMode#HOLDING} 步骤2
-     * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
+     * @param skuIdCountList [{ skuId: 122, itemId: 11, count:12},{ skuId: 142, itemId: 21, count:2}] count > 0
      * @param rlOrderCode 业务订单id/code
      * @param outStoreRecordInfo 出库记录
      * @return
@@ -439,7 +439,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
     /**
      * 批量补偿库存，不需要生成入库记录
      * @param unionPriId
-     * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
+     * @param skuIdCountList [{ skuId: 122, itemId: 11, count:12},{ skuId: 142, itemId: 21, count:2}] count > 0
      * @param rlOrderCode 业务订单id/code
      * @param reduceMode
      * 扣减模式 {@link StoreSalesSkuValObj.ReduceMode}
@@ -463,6 +463,59 @@ public class MgProductStoreCli extends MgProductInternalCli {
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_MAKE_UP_STORE);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK), m_rt);
+        }
+    }
+
+    /**
+     * 管理态调用 <br/>
+     * 刷新 rlOrderCode 的预扣记录。<br/>
+     * 根据 allHoldingRecordList 和已有的预扣尽量进行对比， <br/>
+     * 如果都有，则对比数量，数量不一致，就多退少补。  <br/>
+     * 如果 holdingRecordList中有 db中没有 就生成预扣记录，并进行预扣库存.  <br/>
+     * 如果 holdingRecordList中没有 db中有 就删除db中的预扣记录，并进行补偿库存。 <br/>
+     * @param rlOrderCode 业务订单id/code
+     * @param allHoldingRecordList 当前订单的所有预扣记录 [{ skuId: 122, itemId: 11, count:12},{ skuId: 142, itemId: 21, count:2}] count > 0
+     */
+    public int refreshHoldingRecordOfRlOrderCode(int aid, int unionPriId, String rlOrderCode, FaiList<Param> allHoldingRecordList){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0 || unionPriId == 0 || allHoldingRecordList == null || allHoldingRecordList.isEmpty() || Str.isEmpty(rlOrderCode)) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;aid=%s;unionPriId=%s;allHoldingRecordList=%s;rlOrderCode=%s;", aid, unionPriId, allHoldingRecordList, rlOrderCode);
+                return m_rt;
+            }
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(StoreSalesSkuDto.Key.UNION_PRI_ID, unionPriId);
+            allHoldingRecordList.toBuffer(sendBody, StoreSalesSkuDto.Key.SKU_ID_COUNT_LIST, SkuCountChangeDto.getInfoDto());
+            sendBody.putString(StoreSalesSkuDto.Key.RL_ORDER_CODE, rlOrderCode);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.REFRESH_HOLDING_RECORD_OF_RL_ORDER_CODE);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);

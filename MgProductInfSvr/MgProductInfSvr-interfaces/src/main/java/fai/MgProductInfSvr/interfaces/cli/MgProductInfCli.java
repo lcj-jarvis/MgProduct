@@ -3,6 +3,7 @@ package fai.MgProductInfSvr.interfaces.cli;
 import fai.MgProductInfSvr.interfaces.cmd.MgProductInfCmd;
 import fai.MgProductInfSvr.interfaces.dto.*;
 import fai.MgProductInfSvr.interfaces.entity.*;
+import fai.MgProductInfSvr.interfaces.utils.MgProductSearch;
 import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
@@ -27,16 +28,23 @@ public class MgProductInfCli extends FaiClient {
      * @param lgId 调用搜索的lgId
      * @param keepPriId1 调用搜索的keepPriId1
      * @param mgProductSearch 搜索条件
-     * @param searchReult 搜索结果，对应 MgProductSearchResultEntity 实体
+     * @param searchResult 搜索结果，对应 MgProductSearchResult 实体
      *
      */
-    public int mgProductSearch(int aid, int tid, int siteId, int lgId, int keepPriId1, MgProductSearch mgProductSearch, Param searchReult){
+    public int mgProductSearch(int aid, int tid, int siteId, int lgId, int keepPriId1, MgProductSearch mgProductSearch, Param searchResult){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
-            searchReult.clear();
+            if(searchResult == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "searchResult == null error");
+                return Errno.ARGS_ERROR;
+            }
+            searchResult.clear();
             // 如果没有筛选条件，返回空数据，防止误调用
             if(mgProductSearch == null || mgProductSearch.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "mgProductSearch == null error");
                 return Errno.ARGS_ERROR;
             }
             // send
@@ -80,7 +88,7 @@ public class MgProductInfCli extends FaiClient {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
-            searchReult.fromBuffer(recvBody, keyRef, MgProductSearchDto.getProductSearchDto());
+            searchResult.fromBuffer(recvBody, keyRef, MgProductSearchDto.getProductSearchDto());
             if (m_rt != Errno.OK || keyRef.value != MgProductSearchDto.Key.RESULT_INFO) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;

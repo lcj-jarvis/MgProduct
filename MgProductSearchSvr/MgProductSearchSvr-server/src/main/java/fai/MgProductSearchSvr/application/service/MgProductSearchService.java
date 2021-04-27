@@ -2,8 +2,8 @@ package fai.MgProductSearchSvr.application.service;
 
 import fai.MgProductBasicSvr.interfaces.cli.MgProductBasicCli;
 import fai.MgProductInfSvr.interfaces.dto.MgProductSearchDto;
-import fai.MgProductInfSvr.interfaces.entity.MgProductSearch;
-import fai.MgProductInfSvr.interfaces.entity.MgProductSearchResultEntity;
+import fai.MgProductInfSvr.interfaces.utils.MgProductSearch;
+import fai.MgProductInfSvr.interfaces.utils.MgProductSearchResult;
 import fai.MgProductSearchSvr.application.MgProductSearchSvr;
 import fai.MgProductBasicSvr.interfaces.entity.*;
 import fai.MgProductGroupSvr.interfaces.cli.MgProductGroupCli;
@@ -57,8 +57,8 @@ public class MgProductSearchService {
             long resultManageCacheTime = 0L;
             long resultVistorCacheTime = 0L;
             if(!Str.isEmpty(resultCacheInfo)){
-                resultManageCacheTime = resultCacheInfo.getLong(MgProductSearchResultEntity.Info.MANAGE_DATA_CACHE_TIME, 0L);
-                resultVistorCacheTime = resultCacheInfo.getLong(MgProductSearchResultEntity.Info.VISTOR_DATA_CACHE_TIME, 0L);
+                resultManageCacheTime = resultCacheInfo.getLong(MgProductSearchResult.Info.MANAGE_DATA_CACHE_TIME, 0L);
+                resultVistorCacheTime = resultCacheInfo.getLong(MgProductSearchResult.Info.VISTOR_DATA_CACHE_TIME, 0L);
             }
             //Log.logDbg("searchParamString=%s;resultCacheKey=%s;resultCacheInfo=%s;", searchParamString, resultCacheKey, resultCacheInfo == null ? "null" : resultCacheInfo.toJson());
 
@@ -249,13 +249,13 @@ public class MgProductSearchService {
                 }
                 resultCacheInfo = new Param();
                 resultManageCacheTime = (resultManageCacheTime < manageDataMaxChangeTime.value) ? manageDataMaxChangeTime.value : resultManageCacheTime;  // 管理态变更的缓存时间
-                resultCacheInfo.setLong(MgProductSearchResultEntity.Info.MANAGE_DATA_CACHE_TIME, resultManageCacheTime);
+                resultCacheInfo.setLong(MgProductSearchResult.Info.MANAGE_DATA_CACHE_TIME, resultManageCacheTime);
 
                 resultVistorCacheTime = (resultVistorCacheTime < vistorDataMaxChangeTime.value) ? vistorDataMaxChangeTime.value : resultVistorCacheTime;
                 resultVistorCacheTime = (resultVistorCacheTime < resultManageCacheTime) ? resultManageCacheTime : resultVistorCacheTime;                  // 访客态变更的缓存时间
 
-                resultCacheInfo.setLong(MgProductSearchResultEntity.Info.VISTOR_DATA_CACHE_TIME, (resultVistorCacheTime < vistorDataMaxChangeTime.value) ? vistorDataMaxChangeTime.value : resultVistorCacheTime);
-                resultCacheInfo.setInt(MgProductSearchResultEntity.Info.TOTAL, resultList.size());  // 去重后，得到总的条数
+                resultCacheInfo.setLong(MgProductSearchResult.Info.VISTOR_DATA_CACHE_TIME, (resultVistorCacheTime < vistorDataMaxChangeTime.value) ? vistorDataMaxChangeTime.value : resultVistorCacheTime);
+                resultCacheInfo.setInt(MgProductSearchResult.Info.TOTAL, resultList.size());  // 去重后，得到总的条数
 
                 // 分页
                 SearchArg searchArg = new SearchArg();
@@ -276,7 +276,7 @@ public class MgProductSearchService {
                 //Log.logDbg("getSearchResult  3333,lastSearchTable=%s;resultList=%s;includeRlPdIdResultList=%s;", lastSearchTable, resultList, includeRlPdIdResultList);
                 // 排重，并且由 Param 转换为 idList
                 FaiList<Integer> idList = toIdList(resultList, ProductRelEntity.Info.RL_PD_ID);
-                resultCacheInfo.setList(MgProductSearchResultEntity.Info.ID_LIST, idList);
+                resultCacheInfo.setList(MgProductSearchResult.Info.ID_LIST, idList);
 
                 // 搜索结果进入缓存
                 m_result_cache.del(resultCacheKey);

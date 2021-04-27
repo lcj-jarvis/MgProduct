@@ -1,5 +1,9 @@
-package fai.MgProductInfSvr.interfaces.entity;
+package fai.MgProductInfSvr.interfaces.utils;
 
+import fai.MgProductInfSvr.interfaces.entity.ProductBasicEntity;
+import fai.MgProductInfSvr.interfaces.entity.ProductBasicValObj;
+import fai.MgProductInfSvr.interfaces.entity.ProductPropEntity;
+import fai.MgProductInfSvr.interfaces.entity.ProductStoreEntity;
 import fai.comm.util.*;
 
 import java.util.Calendar;

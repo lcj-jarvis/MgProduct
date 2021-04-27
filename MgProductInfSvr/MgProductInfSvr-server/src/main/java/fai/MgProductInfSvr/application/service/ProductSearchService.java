@@ -30,13 +30,13 @@ public class ProductSearchService extends MgProductInfService {
 
             MgProductSearchCli mgProductSearchCli = createSearchCli(flow);
             int productCount = 100;    // 可以发包拿数据，然后根据商品的数据 走不同的 集群，待实现
-            Param searchReult = new Param();
-            rt = mgProductSearchCli.searchList(aid, tid, unionPriId, productCount, searchParamString, searchReult);
+            Param searchResult = new Param();
+            rt = mgProductSearchCli.searchList(aid, tid, unionPriId, productCount, searchParamString, searchResult);
             if(rt != Errno.OK) {
                 return rt;
             }
             FaiBuffer sendBuf = new FaiBuffer(true);
-            searchReult.toBuffer(sendBuf, MgProductSearchDto.Key.RESULT_INFO, MgProductSearchDto.getProductSearchDto());
+            searchResult.toBuffer(sendBuf, MgProductSearchDto.Key.RESULT_INFO, MgProductSearchDto.getProductSearchDto());
             session.write(sendBuf);
         }finally {
             stat.end(rt != Errno.OK, rt);

@@ -2,16 +2,16 @@ package fai.MgProductInfSvr.interfaces.dto;
 
 import fai.comm.util.ParamDef;
 import fai.comm.util.Var;
-import fai.MgProductInfSvr.interfaces.entity.MgProductSearchResultEntity;
+import fai.MgProductInfSvr.interfaces.utils.MgProductSearchResult;
 
 public class MgProductSearchDto {
 
     private static ParamDef g_productSearchDtoDef = new ParamDef();
     static{
-        g_productSearchDtoDef.add(MgProductSearchResultEntity.Info.ID_LIST, 0, Var.Type.FAI_LIST);
-        g_productSearchDtoDef.add(MgProductSearchResultEntity.Info.TOTAL, 1, Var.Type.INT);
-        g_productSearchDtoDef.add(MgProductSearchResultEntity.Info.MANAGE_DATA_CACHE_TIME, 2, Var.Type.LONG);
-        g_productSearchDtoDef.add(MgProductSearchResultEntity.Info.VISTOR_DATA_CACHE_TIME, 3, Var.Type.LONG);
+        g_productSearchDtoDef.add(MgProductSearchResult.Info.ID_LIST, 0, Var.Type.FAI_LIST);
+        g_productSearchDtoDef.add(MgProductSearchResult.Info.TOTAL, 1, Var.Type.INT);
+        g_productSearchDtoDef.add(MgProductSearchResult.Info.MANAGE_DATA_CACHE_TIME, 2, Var.Type.LONG);
+        g_productSearchDtoDef.add(MgProductSearchResult.Info.VISTOR_DATA_CACHE_TIME, 3, Var.Type.LONG);
     }
     public static ParamDef getProductSearchDto() {
         return g_productSearchDtoDef;

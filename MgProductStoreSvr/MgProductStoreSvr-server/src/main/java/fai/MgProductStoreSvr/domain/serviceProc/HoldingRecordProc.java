@@ -115,12 +115,17 @@ public class HoldingRecordProc {
             ParamMatcher matcher = commMatcher.clone();
             matcher.and(HoldingRecordEntity.Info.SKU_ID, ParamMatcher.EQ, recordKey.skuId);
             matcher.and(HoldingRecordEntity.Info.ITEM_ID, ParamMatcher.EQ, recordKey.itemId);
-            int rt = m_daoCtrl.delete(matcher);
+            Ref<Integer> countRef = new Ref<>();
+            int rt = m_daoCtrl.delete(matcher, countRef);
             if(rt != Errno.OK){
                 Log.logErr(rt,"dao delete error;flow=%d;aid=%d;matcher=%s;", m_flow, aid, matcher);
                 return rt;
             }
+            if(countRef.value != 1){
+                Log.logStd("may be abnormal;flow=%d;aid=%d;unionPriId=%s;matcher=%s;countRef.value=%s", m_flow, aid, unionPriId, matcher.toJson(), countRef.value);
+            }
         }
+        Log.logStd("ok;flow=%d;aid=%d;unionPriId=%s;rlOrderCode=%s;recordSet=%s", m_flow, aid, unionPriId,rlOrderCode , recordSet);
         return Errno.OK;
     }
 

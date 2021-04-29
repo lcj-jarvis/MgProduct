@@ -54,13 +54,29 @@ public class ProductSpecDto {
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SKU_ID, 2, Var.Type.LONG);
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SORT, 3, Var.Type.INT);
             //g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SOURCE_TID, 4, Var.Type.INT);
-            g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SKU_NUM, 5, Var.Type.STRING);
+            g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SKU_CODE, 5, Var.Type.STRING);
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_ID_LIST, 6, Var.Type.FAI_LIST);
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_NAME_LIST, 7, Var.Type.FAI_LIST);
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.FLAG, 8, Var.Type.INT);
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SYS_CREATE_TIME, 9);
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SYS_UPDATE_TIME, 10);
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.STATUS, 11, Var.Type.INT);
+            g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SKU_CODE_LIST, 12, Var.Type.FAI_LIST);
+            g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SPU, 13, Var.Type.BOOLEAN);
+        }
+        public static ParamDef getInfoDto() {
+            return g_dtoDef;
+        }
+    }
+
+    /**
+     * 条件 DTO
+     */
+    public static final class Condition {
+        private static ParamDef g_dtoDef = new ParamDef();
+        static {
+            g_dtoDef.add(ProductSpecEntity.Condition.FUZZY, 0, Var.Type.BOOLEAN);
+            g_dtoDef.add(ProductSpecEntity.Condition.RETURN_FULL_INFO, 1, Var.Type.BOOLEAN);
         }
         public static ParamDef getInfoDto() {
             return g_dtoDef;
@@ -133,6 +149,11 @@ public class ProductSpecDto {
         public static final int ID_LIST = 8;
         public static final int RL_TP_SC_ID = 9;
         public static final int ONLY_GET_CHECKED = 10;
+        public static final int SKU_CODE_LIST = 11;
+        public static final int SKU_CODE = 12;
+        public static final int CONDITION = 13;
+        public static final int WITH_SPU_INFO = 14;
+        public static final int SPU_INFO = 15;
     }
 
 }

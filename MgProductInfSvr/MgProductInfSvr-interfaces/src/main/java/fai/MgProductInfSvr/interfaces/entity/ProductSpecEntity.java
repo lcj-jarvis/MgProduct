@@ -15,6 +15,9 @@ public class ProductSpecEntity {
         public static final String PD_SC_ID = "pdScId";                             // int 商品规格 id
         public static final String SOURCE_TID = "sourceTid";                        // int 创建产品规格的 项目id
         public static final String SORT = "sort";                                   // int 排序
+        /**
+         * @see ProductSpecValObj.Spec.FLag
+         */
         public static final String FLAG = "flag";                                   // int flag
         /**
          * @see ProductSpecValObj.Spec.InPdScValList
@@ -32,7 +35,7 @@ public class ProductSpecEntity {
         public static final String SKU_ID = "skuId";                                // bigInt SKU id（aid下自增），系统对内, 也做排序
         public static final String SORT = "sort";                                   // int 排序
         public static final String SOURCE_TID = "sourceTid";                        // int 创建规格的 项目id
-        public static final String SKU_NUM = "skuNum";                              // TODO
+        public static final String SKU_CODE = "skuCode";                              // TODO
         /**
          * 每个元素值:
          * @see SpecStrInfo#SC_STR_ID
@@ -42,11 +45,28 @@ public class ProductSpecEntity {
          * 每个元素值:
          * @see SpecStrInfo#NAME
          */
-        public static final String IN_PD_SC_STR_NAME_LIST = "inPdScStrNameList"; // 规格值 name FaiList<String>, 支持最大 15 种规格
+        public static final String IN_PD_SC_STR_NAME_LIST = "inPdScStrNameList";    // 规格值 name FaiList<String>, 支持最大 15 种规格
+        /**
+         * @see ProductSpecValObj.SpecSku.FLag
+         */
         public static final String FLAG = "flag";                                   // int flag
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
         public static final String STATUS = "status";                               // tinyint 状态
+        /**
+         * 每个元素值:
+         * @see SkuCodeInfo#SKU_CODE
+         */
+        public static final String SKU_CODE_LIST = "skuCodeList";                   // sku编码集合FaiList<String>，最大支持10个
+
+        public static final String SPU = "spu";                                     // boolean 临时数据，更新spu数据的时候使用
+    }
+    /**
+     * 条件
+     */
+    public static final class Condition {
+        public static final String FUZZY = "fuzzy";                                 // boolean 模糊搜索
+        public static final String RETURN_FULL_INFO = "returnFullInfo";             // boolean 返回全部信息
     }
 
     /**
@@ -107,6 +127,17 @@ public class ProductSpecEntity {
         public static final String FLAG = "flag";                                   // int flag
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
+    }
+
+    /**
+     * 不对外暴露
+     * 条码
+     */
+    private static final class SkuCodeInfo {
+        public static final String SKU_CODE = "skuCode";                            // String 条码 值
+        public static final String AID = "aid";                                     // int 企业aid
+        public static final String UNION_PRI_ID = "unionPriId";                     // int 创建商品的unionPriId
+        public static final String SKU_ID = "skuId";                                // long SKU id
     }
 
 }

@@ -13,8 +13,10 @@ import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
 import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
+import fai.comm.netkit.NKDef;
 import fai.comm.util.FaiList;
 import fai.comm.util.Param;
+import fai.comm.util.ParamUpdater;
 import fai.comm.util.SearchArg;
 import fai.middleground.svrutil.service.MiddleGroundHandler;
 import fai.middleground.svrutil.service.ServiceProxy;
@@ -222,6 +224,39 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
         return service.batchDelPdRelBind(session, flow, aid, unionPriId, rlPdIds, softDel);
     }
 
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BasicCmd.SET_SINGLE_PD)
+    public int setSinglePd(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid final int aid,
+                                 @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                                 @ArgBodyInteger(ProductRelDto.Key.RL_PD_ID) Integer rlPdId,
+                                 @ArgParamUpdater(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
+                                 keyMatch = ProductRelDto.Key.UPDATER) ParamUpdater recvUpdater) throws IOException {
+        return service.setSingle(session, flow, aid, unionPriId, rlPdId, recvUpdater);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BasicCmd.SET_PDS)
+    public int setProducts(final FaiSession session,
+                           @ArgFlow final int flow,
+                           @ArgAid final int aid,
+                           @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                           @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
+                           @ArgParamUpdater(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
+                                   keyMatch = ProductRelDto.Key.UPDATER) ParamUpdater recvUpdater) throws IOException {
+        return service.setProducts(session, flow, aid, unionPriId, rlPdIds, recvUpdater);
+    }
+
+    @Cmd(MgProductBasicCmd.BasicCmd.GET_PD_LIST)
+    public int getProductList(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid int aid,
+                              @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                              @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
+        return service.getProductList(session, flow, aid, unionPriId, rlPdIds);
+    }
+
     @Cmd(MgProductBasicCmd.BasicCmd.PD_DATA_STATUS)
     public int getPdDataStatus(final FaiSession session,
                                      @ArgFlow final int flow,
@@ -290,6 +325,16 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
         return groupBindService.setPdBindGroup(session, flow, aid, unionPriId, rlPdId, addGroupIds, delGroupIds);
     }
 
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BindGroupCmd.DEL)
+    public int delPdBindGroup(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid int aid,
+                              @ArgBodyInteger(ProductBindGroupDto.Key.UNION_PRI_ID) int unionPriId,
+                              @ArgList(keyMatch = ProductBindGroupDto.Key.RL_GROUP_IDS) FaiList<Integer> delGroupIds) throws IOException {
+        return groupBindService.delBindGroupList(session, flow, aid, unionPriId, delGroupIds);
+    }
+
     @Cmd(MgProductBasicCmd.BindGroupCmd.GET_PD_BY_GROUP)
     public int getRlPdByRlGroupId(final FaiSession session,
                                   @ArgFlow final int flow,
@@ -322,6 +367,13 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                     @ArgBodyInteger(ProductBindGroupDto.Key.UNION_PRI_ID) int unionPriId,
                                     @ArgSearchArg(ProductBindGroupDto.Key.SEARCH_ARG)SearchArg searchArg) throws IOException {
         return groupBindService.searchBindGroupFromDb(session, flow, aid, unionPriId, searchArg);
+    }
+
+    @Cmd(NKDef.Protocol.Cmd.CLEAR_CACHE)
+    public int clearCache(final FaiSession session,
+                          @ArgFlow final int flow,
+                          @ArgAid final int aid) throws IOException {
+        return service.clearCache(session, flow, aid);
     }
 
     private ProductBasicService service = ServiceProxy.create(new ProductBasicService());

@@ -9,16 +9,15 @@ import fai.MgProductInfSvr.interfaces.entity.ProductBasicEntity;
 import fai.MgProductInfSvr.interfaces.entity.ProductTempEntity;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
+import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuValObj;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecValObj;
+import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 规格服务相关接口实现
@@ -495,9 +494,25 @@ public class ProductSpecService extends MgProductInfService {
             if(rt != Errno.OK) {
                 return rt;
             }
+            FaiList<Param> storeSalesSkuList = new FaiList<>(pdScSkuInfoList.size());
+            for (Param productSpuInfo : pdScSkuInfoList) {
+                long skuId = productSpuInfo.getLong(ProductSpecSkuEntity.Info.SKU_ID);
+                int skuFlag = productSpuInfo.getInt(ProductSpecSkuEntity.Info.FLAG);
+                int flag = 0;
+                if(Misc.checkBit(skuFlag, ProductSpecSkuValObj.FLag.SPU)){
+                    // flag |= StoreSalesSkuValObj.FLag.SPU;
+                    // 暂时先跳过表示为spu的sku数据的刷新
+                    continue;
+                }
+                storeSalesSkuList.add(
+                        new Param()
+                        .setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId)
+                        .setInt(StoreSalesSkuEntity.Info.FLAG, flag)
+                );
+            }
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-            rt = productStoreProc.refreshSkuStoreSales(aid, tid, unionPriId, pdId, rlPdId, pdScSkuInfoList);
+            rt = productStoreProc.refreshSkuStoreSales(aid, tid, unionPriId, pdId, rlPdId, storeSalesSkuList);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -598,7 +613,7 @@ public class ProductSpecService extends MgProductInfService {
     /**
      * 获取产品规格SKU列表
      */
-    public int getPdSkuScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId) throws IOException {
+    public int getPdSkuScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, boolean withSpuInfo) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -626,16 +641,26 @@ public class ProductSpecService extends MgProductInfService {
 
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
             FaiList<Param> infoList = new FaiList<Param>();
-            rt = productSpecProc.getPdSkuScInfoList(aid, tid, unionPriId, pdId, infoList);
+            rt = productSpecProc.getPdSkuScInfoList(aid, tid, unionPriId, pdId, withSpuInfo, infoList);
             if(rt != Errno.OK) {
                 return rt;
             }
-            for (Param info : infoList) {
+            Param spuInfo = new Param();
+            for(Iterator<Param> iterator = infoList.iterator();iterator.hasNext();){
+                Param info = iterator.next();
                 info.setInt(fai.MgProductInfSvr.interfaces.entity.ProductSpecEntity.SpecSkuInfo.RL_PD_ID, rlPdId);
+                if(withSpuInfo){
+                    int flag = info.getInt(fai.MgProductInfSvr.interfaces.entity.ProductSpecEntity.SpecSkuInfo.FLAG, 0);
+                    if(Misc.checkBit(flag, fai.MgProductInfSvr.interfaces.entity.ProductSpecValObj.SpecSku.FLag.SPU)){
+                        spuInfo = info;
+                        iterator.remove();
+                    }
+                }
             }
 
             FaiBuffer sendBuf = new FaiBuffer(true);
             infoList.toBuffer(sendBuf, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecSku.getInfoDto());
+            spuInfo.toBuffer(sendBuf, ProductSpecDto.Key.SPU_INFO, ProductSpecDto.SpecSku.getInfoDto());
             session.write(sendBuf);
         }finally {
             stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
@@ -670,24 +695,10 @@ public class ProductSpecService extends MgProductInfService {
             if(rt != Errno.OK) {
                 return rt;
             }
-            Set<Integer> pdIdSet = new HashSet<>();
-            for (Param info : infoList) {
-                pdIdSet.add(info.getInt(ProductSpecEntity.Info.PD_ID));
-            }
-            ProductBasicProc productBasicProc = new ProductBasicProc(flow);
-            FaiList<Param> relList = new FaiList<>();
-            rt = productBasicProc.getReducedRelsByPdIds(aid, unionPriId, new FaiList<>(pdIdSet), relList);
-            if(rt != Errno.OK){
+
+            rt = assemblePdSkuInfoList(flow, aid, unionPriId, infoList);
+            if(rt != Errno.OK) {
                 return rt;
-            }
-            Map<Integer, Integer> pdIdRlPdIdMap = new HashMap<>(relList.size()*4/3+1);
-            for (Param info : relList) {
-                pdIdRlPdIdMap.put(info.getInt(ProductRelEntity.Info.PD_ID), info.getInt(ProductRelEntity.Info.RL_PD_ID));
-            }
-            for (Param info : infoList) {
-                int pdId = info.getInt(ProductSpecEntity.Info.PD_ID);
-                Integer rlPdId = pdIdRlPdIdMap.get(pdId);
-                info.setInt(fai.MgProductInfSvr.interfaces.entity.ProductSpecEntity.SpecSkuInfo.RL_PD_ID, rlPdId);
             }
 
             FaiBuffer sendBuf = new FaiBuffer(true);
@@ -700,9 +711,10 @@ public class ProductSpecService extends MgProductInfService {
     }
 
     /**
-     * 根据 rlPdIdList 获取 rlPdId-skuId 集
+     * 获取只有表示为spu的商品sku数据。 <br/>
+     * 例如：商品条码信息
      */
-    public int getPdSkuIdInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList) throws IOException {
+    public int getOnlySpuPdSkuScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -730,15 +742,15 @@ public class ProductSpecService extends MgProductInfService {
             Map<Integer, Integer> pdIdRlPdIdMap = new HashMap<>(list.size()*4/3+1);
             FaiList<Integer> pdIdList = new FaiList<>();
             for (Param info : list) {
-                int pdId = info.getInt(ProductBasicEntity.ProductRelInfo.PD_ID);
-                int rlPdId = info.getInt(ProductBasicEntity.ProductRelInfo.RL_PD_ID);
+                int pdId = info.getInt(ProductBasicEntity.ProductInfo.PD_ID);
+                int rlPdId = info.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID);
                 pdIdRlPdIdMap.put(pdId, rlPdId);
                 pdIdList.add(pdId);
             }
 
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
             FaiList<Param> infoList = new FaiList<Param>();
-            rt = productSpecProc.getPdSkuIdInfoList(aid, tid, pdIdList, infoList);
+            rt = productSpecProc.getOnlySpuInfoList(aid, tid, pdIdList, infoList);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -750,6 +762,178 @@ public class ProductSpecService extends MgProductInfService {
 
             FaiBuffer sendBuf = new FaiBuffer(true);
             infoList.toBuffer(sendBuf, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecSku.getInfoDto());
+            session.write(sendBuf);
+        }finally {
+            stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
+        }
+        return rt;
+    }
+
+    /**
+     * 组装pdSkuInfo
+     */
+    private int assemblePdSkuInfoList(int flow, int aid, int unionPriId, FaiList<Param> infoList) {
+        if(infoList.isEmpty()){
+            return Errno.OK;
+        }
+        int rt;
+        Set<Integer> pdIdSet = OptMisc.getValSet(infoList, ProductSpecSkuEntity.Info.PD_ID);
+        ProductBasicProc productBasicProc = new ProductBasicProc(flow);
+        FaiList<Param> relList = new FaiList<>();
+        rt = productBasicProc.getReducedRelsByPdIds(aid, unionPriId, new FaiList<>(pdIdSet), relList);
+        if(rt != Errno.OK){
+            return rt;
+        }
+        Map<Integer, Integer> pdIdRlPdIdMap = new HashMap<>(relList.size()*4/3+1);
+        for (Param info : relList) {
+            pdIdRlPdIdMap.put(info.getInt(ProductRelEntity.Info.PD_ID), info.getInt(ProductRelEntity.Info.RL_PD_ID));
+        }
+        for (Param info : infoList) {
+            int pdId = info.getInt(ProductSpecEntity.Info.PD_ID);
+            Integer rlPdId = pdIdRlPdIdMap.get(pdId);
+            info.setInt(fai.MgProductInfSvr.interfaces.entity.ProductSpecEntity.SpecSkuInfo.RL_PD_ID, rlPdId);
+        }
+        return rt;
+    }
+
+    /**
+     * 根据 rlPdIdList 获取 rlPdId-skuId 集
+     */
+    public int getPdSkuIdInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, boolean withSpuInfo) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            // 获取pdId
+            ProductBasicProc productBasicProc = new ProductBasicProc(flow);
+            FaiList<Param> list = new FaiList<>();
+            rt = productBasicProc.getRelListByRlIds(aid, unionPriId, rlPdIdList, list);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            Map<Integer, Integer> pdIdRlPdIdMap = new HashMap<>(list.size()*4/3+1);
+            FaiList<Integer> pdIdList = new FaiList<>();
+            for (Param info : list) {
+                int pdId = info.getInt(ProductBasicEntity.ProductInfo.PD_ID);
+                int rlPdId = info.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID);
+                pdIdRlPdIdMap.put(pdId, rlPdId);
+                pdIdList.add(pdId);
+            }
+
+            ProductSpecProc productSpecProc = new ProductSpecProc(flow);
+            FaiList<Param> infoList = new FaiList<Param>();
+            rt = productSpecProc.getPdSkuIdInfoList(aid, tid, pdIdList, withSpuInfo, infoList);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            for (Param info : infoList) {
+                Integer pdId = info.getInt(ProductSpecSkuEntity.Info.PD_ID);
+                Integer rlPdId = pdIdRlPdIdMap.get(pdId);
+                info.setInt(fai.MgProductInfSvr.interfaces.entity.ProductSpecEntity.SpecInfo.RL_PD_ID, rlPdId);
+            }
+
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            infoList.toBuffer(sendBuf, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecSku.getInfoDto());
+            session.write(sendBuf);
+        }finally {
+            stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
+        }
+        return rt;
+    }
+
+    /**
+     * 获取已经存在的 skuCodeList
+     * @param tid 创建商品的 tid
+     * @param siteId 创建商品的 siteId
+     * @param lgId 创建商品的 lgId
+     * @param keepPriId1 创建商品的 keepPriId1
+     * @param skuCodeList 需要判断的 skuCode 集合
+     */
+    public int getExistsSkuCodeList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<String> skuCodeList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+            ProductSpecProc productSpecProc = new ProductSpecProc(flow);
+            Ref<FaiList<String>> existsSkuCodeListRef = new Ref<>();
+            rt = productSpecProc.getExistsSkuCodeList(aid, tid, unionPriId, skuCodeList, existsSkuCodeListRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            sendBuf.putString(ProductSpecDto.Key.SKU_CODE_LIST, existsSkuCodeListRef.value.toJson());
+            session.write(sendBuf);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+
+    /**
+     * 根据 skuCode 模糊搜索匹配上的skuIdInfo
+     * @param tid 创建商品的 tid
+     * @param siteId 创建商品的 siteId
+     * @param lgId 创建商品的 lgId
+     * @param keepPriId1 创建商品的 keepPriId1
+     * @param skuCodeKeyWord 搜索关键词
+     * @param condition 条件参数
+     */
+    public int searchPdSkuIdInfoListBySkuCode(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, String skuCodeKeyWord, Param condition) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+            ProductSpecProc productSpecProc = new ProductSpecProc(flow);
+            FaiList<Param> pdSkuInfoList = new FaiList<>();
+            rt = productSpecProc.searchPdSkuIdInfoListBySkuCode(aid, tid, unionPriId, skuCodeKeyWord, condition, pdSkuInfoList);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            rt = assemblePdSkuInfoList(flow, aid, unionPriId, pdSkuInfoList);
+            if(rt != Errno.OK){
+                return rt;
+            }
+
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            pdSkuInfoList.toBuffer(sendBuf, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecSku.getInfoDto());
             session.write(sendBuf);
         }finally {
             stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);

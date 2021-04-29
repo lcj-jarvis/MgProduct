@@ -11,7 +11,7 @@ public class ProductSpecSkuEntity {
         public static final String SORT = "sort";                                   // int 排序
         public static final String SOURCE_TID = "sourceTid";                        // int 创建规格的 项目id
         public static final String SOURCE_UNION_PRI_ID = "sourceUnionPriId";        // int 创建产品规格的 联合主键id
-        public static final String SKU_NUM = "skuNum";                              // String
+        public static final String SKU_CODE = "skuCode";                            // String
         /**
          * 每个元素值:
          * @see SpecStrEntity.Info#SC_STR_ID
@@ -21,10 +21,17 @@ public class ProductSpecSkuEntity {
          * 每个元素值:
          * @see SpecStrEntity.Info#NAME
          */
-        public static final String IN_PD_SC_STR_NAME_LIST = "inPdScStrNameList"; // 规格值 name FaiList<String>, 支持最大 15 种规格
+        public static final String IN_PD_SC_STR_NAME_LIST = "inPdScStrNameList";    // 规格值 name FaiList<String>, 支持最大 15 种规格
         public static final String FLAG = "flag";                                   // int flag
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
-        public static final String STATUS = "status";                               // tinyint 状态
+        public static final String STATUS = "status";                               // byte 状态
+        /**
+         * 每个元素值:
+         * @see ProductSpecSkuCodeEntity.Info#SKU_CODE
+         */
+        public static final String SKU_CODE_LIST = "skuCodeList";                   // sku编码集合FaiList<String>，最大支持10个
+
+        public static final String SPU = "spu";                                     // boolean 零时数据不入库
     }
 }

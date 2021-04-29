@@ -7,12 +7,22 @@ import fai.MgProductStoreSvr.domain.repository.DataType;
 import fai.MgProductStoreSvr.domain.repository.SpuBizSummaryCacheCtrl;
 import fai.MgProductStoreSvr.domain.repository.SpuBizSummaryDaoCtrl;
 import fai.comm.util.*;
+import fai.mgproduct.comm.Util;
+import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.*;
 
 public class SpuBizSummaryProc {
     public SpuBizSummaryProc(SpuBizSummaryDaoCtrl daoCtrl, int flow) {
         m_daoCtrl = daoCtrl;
+        m_flow = flow;
+    }
+
+    public SpuBizSummaryProc(int flow, int aid, TransactionCtrl transactionCtrl) {
+        m_daoCtrl = SpuBizSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+        if(m_daoCtrl == null){
+            throw new RuntimeException(String.format("SpuBizSummaryDaoCtrl init err;flow=%s;aid=%s;", flow, aid));
+        }
         m_flow = flow;
     }
 
@@ -320,6 +330,58 @@ public class SpuBizSummaryProc {
                     "min( if("+SpuBizSummaryEntity.Info.FLAG+"&"+ SpuBizSummaryValObj.FLag.SETED_PRICE+"="+ SpuBizSummaryValObj.FLag.SETED_PRICE+","+ SpuBizSummaryEntity.Info.MIN_PRICE+"," + Long.MAX_VALUE + ") ) as "+ SpuBizSummaryEntity.ReportInfo.MIN_PRICE+", " +
                     "max(" + SpuBizSummaryEntity.Info.MAX_PRICE + ") as "+ SpuBizSummaryEntity.ReportInfo.MAX_PRICE+" ";
 
+
+    public int batchAdd(int aid, int unionPriId, FaiList<Param> infoList){
+        int rt = Errno.ARGS_ERROR;
+        if(aid <= 0 || unionPriId <= 0 || Util.isEmptyList(infoList)){
+            Log.logErr(rt, "arg error;flow=%s;aid=%s;unionPriId=%s;infoList=%s;", m_flow, aid, unionPriId, infoList);
+            return rt;
+        }
+        FaiList<Param> addList = new FaiList<>(infoList.size());
+        Calendar now = Calendar.getInstance();
+        for (Param info : infoList) {
+            Param data = new Param();
+            data.setInt(SpuBizSummaryEntity.Info.AID, aid);
+            data.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, unionPriId);
+            data.setInt(SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID, unionPriId);
+            data.assign(info, SpuBizSummaryEntity.Info.PD_ID);
+            data.assign(info, SpuBizSummaryEntity.Info.RL_PD_ID);
+            data.assign(info, SpuBizSummaryEntity.Info.PRICE_TYPE);
+            data.assign(info, SpuBizSummaryEntity.Info.MODE_TYPE);
+            data.assign(info, SpuBizSummaryEntity.Info.MARKET_PRICE);
+            data.assign(info, SpuBizSummaryEntity.Info.MIN_PRICE);
+            data.assign(info, SpuBizSummaryEntity.Info.MAX_PRICE);
+            data.assign(info, SpuBizSummaryEntity.Info.VIRTUAL_SALES);
+            data.assign(info, SpuBizSummaryEntity.Info.SALES);
+            data.assign(info, SpuBizSummaryEntity.Info.COUNT);
+            data.assign(info, SpuBizSummaryEntity.Info.REMAIN_COUNT);
+            data.assign(info, SpuBizSummaryEntity.Info.HOLDING_COUNT);
+            data.assign(info, SpuBizSummaryEntity.Info.DISTRIBUTE_LIST);
+            data.setCalendar(SpuBizSummaryEntity.Info.SYS_CREATE_TIME, now);
+            data.setCalendar(SpuBizSummaryEntity.Info.SYS_UPDATE_TIME, now);
+            addList.add(data);
+        }
+        rt = m_daoCtrl.batchInsert(addList);
+        if(rt != Errno.OK){
+            Log.logErr(rt, "arg error;flow=%s;aid=%s;unionPriId=%s;addList=%s", m_flow, aid, unionPriId, addList);
+            return rt;
+        }
+        Log.logStd("ok;flow=%s;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+        return rt;
+    }
+
+    public int batchSet(int aid, int unionPriId, FaiList<ParamUpdater> updaterList){
+        int rt = Errno.ARGS_ERROR;
+        if(aid <= 0 || unionPriId <= 0 || Util.isEmptyList(updaterList)){
+            Log.logErr(rt, "arg error;flow=%s;aid=%s;unionPriId=%s;updaterList=%s;", m_flow, aid, unionPriId, updaterList);
+            return rt;
+        }
+
+        //TODO
+
+        Log.logStd("ok;flow=%s;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+        return rt;
+    }
 
     public int batchDel(int aid, FaiList<Integer> pdIdList) {
         ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);

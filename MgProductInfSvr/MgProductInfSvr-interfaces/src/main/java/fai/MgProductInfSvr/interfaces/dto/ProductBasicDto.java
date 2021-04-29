@@ -12,16 +12,16 @@ public class ProductBasicDto {
     /*** 商品数据 ***/
     private static ParamDef g_productDef = new ParamDef();
     static {
-        g_productDef.add(ProductBasicEntity.ProductRelInfo.AID, 0);
-        g_productDef.add(ProductBasicEntity.ProductRelInfo.RL_PD_ID, 1);
-        g_productDef.add(ProductBasicEntity.ProductRelInfo.RL_LIB_ID, 2);
-        g_productDef.add(ProductBasicEntity.ProductRelInfo.ADD_TIME, 3);
-        g_productDef.add(ProductBasicEntity.ProductRelInfo.ADD_SID, 4);
-        g_productDef.add(ProductBasicEntity.ProductRelInfo.LAST_SID, 5);
-        g_productDef.add(ProductBasicEntity.ProductRelInfo.LAST_UPDATE_TIME, 6);
-        g_productDef.add(ProductBasicEntity.ProductRelInfo.STATUS, 7);
-        g_productDef.add(ProductBasicEntity.ProductRelInfo.UP_SALE_TIME, 8);
-        g_productDef.add(ProductBasicEntity.ProductRelInfo.FLAG, 9);
+        g_productDef.add(ProductBasicEntity.ProductInfo.AID, 0);
+        g_productDef.add(ProductBasicEntity.ProductInfo.RL_PD_ID, 1);
+        g_productDef.add(ProductBasicEntity.ProductInfo.RL_LIB_ID, 2);
+        g_productDef.add(ProductBasicEntity.ProductInfo.ADD_TIME, 3);
+        g_productDef.add(ProductBasicEntity.ProductInfo.ADD_SID, 4);
+        g_productDef.add(ProductBasicEntity.ProductInfo.LAST_SID, 5);
+        g_productDef.add(ProductBasicEntity.ProductInfo.LAST_UPDATE_TIME, 6);
+        g_productDef.add(ProductBasicEntity.ProductInfo.STATUS, 7);
+        g_productDef.add(ProductBasicEntity.ProductInfo.UP_SALE_TIME, 8);
+        g_productDef.add(ProductBasicEntity.ProductInfo.RL_FLAG, 9);
 
         g_productDef.add(ProductBasicEntity.ProductInfo.PD_ID, 10);
         g_productDef.add(ProductBasicEntity.ProductInfo.SOURCE_TID, 11);
@@ -50,27 +50,27 @@ public class ProductBasicDto {
     private static ParamDef g_productRelDef = new ParamDef();
 
     static {
-        g_productRelDef.add(ProductBasicEntity.ProductRelInfo.AID, 0);
-        g_productRelDef.add(ProductBasicEntity.ProductRelInfo.RL_PD_ID, 1);
-        g_productRelDef.add(ProductBasicEntity.ProductRelInfo.PD_ID, 2);
-        g_productRelDef.add(ProductBasicEntity.ProductRelInfo.RL_LIB_ID, 3);
-        g_productRelDef.add(ProductBasicEntity.ProductRelInfo.SOURCE_TID, 4);
-        g_productRelDef.add(ProductBasicEntity.ProductRelInfo.ADD_TIME, 5);
-        g_productRelDef.add(ProductBasicEntity.ProductRelInfo.ADD_SID, 6);
-        g_productRelDef.add(ProductBasicEntity.ProductRelInfo.LAST_SID, 7);
-        g_productRelDef.add(ProductBasicEntity.ProductRelInfo.LAST_UPDATE_TIME, 8);
-        g_productRelDef.add(ProductBasicEntity.ProductRelInfo.STATUS, 9);
-        g_productRelDef.add(ProductBasicEntity.ProductRelInfo.UP_SALE_TIME, 10);
-        g_productRelDef.add(ProductBasicEntity.ProductRelInfo.FLAG, 11);
-        g_productRelDef.add(ProductBasicEntity.ProductRelInfo.CREATE_TIME, 12);
-        g_productRelDef.add(ProductBasicEntity.ProductRelInfo.UPDATE_TIME, 13);
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.AID, 0);
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.RL_PD_ID, 1);
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.PD_ID, 2);
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.RL_LIB_ID, 3);
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.SOURCE_TID, 4);
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.ADD_TIME, 5);
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.ADD_SID, 6);
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.LAST_SID, 7);
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.LAST_UPDATE_TIME, 8);
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.STATUS, 9);
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.UP_SALE_TIME, 10);
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.FLAG, 11);
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.CREATE_TIME, 12);
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.UPDATE_TIME, 13);
 
-        g_productRelDef.add(ProductBasicEntity.ProductRelInfo.SITE_ID, 14);
-        g_productRelDef.add(ProductBasicEntity.ProductRelInfo.LGID, 15);
-        g_productRelDef.add(ProductBasicEntity.ProductRelInfo.KEEP_PRI_ID1, 16);
-        g_productRelDef.add(ProductBasicEntity.ProductRelInfo.TID, 17);
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.SITE_ID, 14);
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.LGID, 15);
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.KEEP_PRI_ID1, 16);
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.TID, 17);
 
-        g_productRelDef.add(ProductBasicEntity.ProductRelInfo.PD_TYPE, 18);
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.PD_TYPE, 18);
     }
 
     public static ParamDef getProductRelDto() {
@@ -83,7 +83,6 @@ public class ProductBasicDto {
         g_bindPropValDef.add(ProductBasicEntity.BindPropInfo.PROP_VAL_ID, 0);
         g_bindPropValDef.add(ProductBasicEntity.BindPropInfo.RL_PROP_ID, 1);
     }
-
     public static ParamDef getBindPropDto(FaiList<Integer> propIds) {
         ParamDef def = new ParamDef();
         int bufKey = 0;
@@ -96,6 +95,19 @@ public class ProductBasicDto {
 
     public static ParamDef getBindPropValDto() {
         return g_bindPropValDef;
+    }
+
+    /*** 商品设置的分类 ***/
+    private static ParamDef g_bindGroupDef = new ParamDef();
+    static {
+        g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.AID, 0);
+        g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.RL_GROUP_ID, 1);
+        g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.RL_PD_ID, 2);
+        g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.PD_ID, 3);
+        g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.CREATE_TIME, 4);
+    }
+    public static ParamDef getBindGroupDto() {
+        return g_bindGroupDef;
     }
 
     public static class Key {
@@ -115,6 +127,11 @@ public class ProductBasicDto {
         public static final int PD_REL_INFO = 14;
         public static final int PD_BIND_INFO = 15;
         public static final int SOFT_DEL = 16;
+        public static final int PD_LIST = 17;
+        public static final int BIND_GROUP_LIST = 18;
+        public static final int BIND_GROUP_IDS = 19;
+        public static final int DEL_BIND_GROUP_IDS = 20;
+        public static final int UPDATER = 21;
     }
 
 

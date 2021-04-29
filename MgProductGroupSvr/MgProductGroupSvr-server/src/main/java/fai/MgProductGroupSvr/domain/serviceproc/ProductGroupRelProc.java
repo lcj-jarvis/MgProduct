@@ -32,14 +32,12 @@ public class ProductGroupRelProc {
         int count = getCount(aid, unionPriId);
         if(count >= ProductGroupRelValObj.Limit.COUNT_MAX) {
             rt = Errno.COUNT_LIMIT;
-            Log.logErr(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductGroupRelValObj.Limit.COUNT_MAX);
-            return rt;
+            throw new MgException(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductGroupRelValObj.Limit.COUNT_MAX);
         }
         int rlGroupId = creatAndSetId(aid, unionPriId, info);
         rt = m_relDao.insert(info);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "batch insert group rel error;flow=%d;aid=%d;", m_flow, aid);
-            return rt;
+            throw new MgException(rt, "batch insert group rel error;flow=%d;aid=%d;", m_flow, aid);
         }
 
         return rlGroupId;
@@ -167,8 +165,8 @@ public class ProductGroupRelProc {
 
     private int creatAndSetId(int aid, int unionPriId, Param info) {
         int rt = Errno.OK;
-        Integer rlGroupId = info.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID);
-        if(rlGroupId == null) {
+        Integer rlGroupId = info.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID, 0);
+        if(rlGroupId <= 0) {
             rlGroupId = m_relDao.buildId(aid, unionPriId, false);
             if (rlGroupId == null) {
                 rt = Errno.ERROR;
@@ -188,7 +186,7 @@ public class ProductGroupRelProc {
 
     private FaiList<Param> getList(int aid, int unionPriId) {
         // 从缓存获取数据
-        FaiList<Param> list = ProductGroupRelCache.getCacheList(aid, unionPriId);
+        FaiList<Param> list = ProductGroupRelCache.InfoCache.getCacheList(aid, unionPriId);
         if(!Util.isEmptyList(list)) {
             return list;
         }
@@ -196,7 +194,7 @@ public class ProductGroupRelProc {
         LockUtil.GroupRelLock.readLock(aid);
         try {
             // check again
-            list = ProductGroupRelCache.getCacheList(aid, unionPriId);
+            list = ProductGroupRelCache.InfoCache.getCacheList(aid, unionPriId);
             if(!Util.isEmptyList(list)) {
                 return list;
             }
@@ -220,7 +218,7 @@ public class ProductGroupRelProc {
                 return listRef.value;
             }
             // 添加到缓存
-            ProductGroupRelCache.addCacheList(aid, unionPriId, list);
+            ProductGroupRelCache.InfoCache.addCacheList(aid, unionPriId, list);
         }finally {
             LockUtil.GroupRelLock.readUnLock(aid);
         }
@@ -258,7 +256,7 @@ public class ProductGroupRelProc {
     public int getMaxSort(int aid, int unionPriId) {
         String sortCache = ProductGroupRelCache.SortCache.get(aid, unionPriId);
         if(!Str.isEmpty(sortCache)) {
-            return Parser.parseInt(sortCache, ProductGroupValObj.Default.SORT);
+            return Parser.parseInt(sortCache, ProductGroupRelValObj.Default.SORT);
         }
 
         // db中获取
@@ -273,11 +271,11 @@ public class ProductGroupRelProc {
         if (listRef.value == null || listRef.value.isEmpty()) {
             rt = Errno.NOT_FOUND;
             Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
-            return ProductGroupValObj.Default.SORT;
+            return ProductGroupRelValObj.Default.SORT;
         }
 
         Param info = listRef.value.get(0);
-        int sort = info.getInt(ProductGroupRelEntity.Info.SORT, ProductGroupValObj.Default.SORT);
+        int sort = info.getInt(ProductGroupRelEntity.Info.SORT, ProductGroupRelValObj.Default.SORT);
         // 添加到缓存
         ProductGroupRelCache.SortCache.set(aid, unionPriId, sort);
         return sort;

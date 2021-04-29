@@ -11,6 +11,10 @@ public class ProductPropCacheCtrl extends CacheCtrl {
 		return m_cache.hgetAllFaiList(cacheKey, ProductPropDto.Key.INFO, ProductPropDto.getCacheInfoDto());
 	}
 
+	public static void delCache(int aid) {
+		m_cache.del(getCacheKey(aid));
+	}
+
 	public static void delCacheList(int aid, FaiList<Integer> propIds) {
 		if(propIds == null || propIds.isEmpty()) {
 			return;
@@ -69,7 +73,7 @@ public class ProductPropCacheCtrl extends CacheCtrl {
 	}
 
 	public static String getCacheKey(int aid) {
-		return CACHE_KEY + "-" + aid;
+		return wrapCacheVersion(CACHE_KEY + "-" + aid, aid);
 	}
 
 	private static final int EXPIRE_SECOND = 10;

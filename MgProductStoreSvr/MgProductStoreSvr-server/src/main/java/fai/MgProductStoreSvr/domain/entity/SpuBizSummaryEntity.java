@@ -37,6 +37,7 @@ public class SpuBizSummaryEntity {
             , Info.MAX_PRICE
             , Info.VIRTUAL_SALES
             , Info.SALES
+            , Info.DISTRIBUTE_LIST
     };
     /**
      * 支持批量更新的字段
@@ -72,6 +73,7 @@ public class SpuBizSummaryEntity {
 
     private static String[] MANAGE_VISITOR_KEYS= new String[]{
             Info.PD_ID
+            , Info.RL_PD_ID
             , Info.SALES
             , Info.COUNT
             , Info.REMAIN_COUNT

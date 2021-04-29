@@ -8,6 +8,7 @@ import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
 import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
+import fai.comm.netkit.NKDef;
 import fai.comm.util.*;
 import fai.middleground.svrutil.service.MiddleGroundHandler;
 import fai.middleground.svrutil.service.ServiceProxy;
@@ -83,6 +84,13 @@ public class MgProductGroupHandler extends MiddleGroundHandler {
 							@ArgBodyInteger(ProductGroupRelDto.Key.UNION_PRI_ID) int unionPriId,
 							@ArgList(keyMatch = ProductGroupRelDto.Key.RL_GROUP_IDS) FaiList<Integer> rlGroupIds) throws IOException {
 		return groupService.delGroupList(session, flow, aid, unionPriId, rlGroupIds);
+	}
+
+	@Cmd(NKDef.Protocol.Cmd.CLEAR_CACHE)
+	public int clearCache(final FaiSession session,
+						  @ArgFlow final int flow,
+						  @ArgAid int aid) throws IOException {
+		return groupService.clearCache(session, flow, aid);
 	}
 	
 	ProductGroupService groupService = ServiceProxy.create(new ProductGroupService());

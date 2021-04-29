@@ -80,6 +80,7 @@ public class SpecTempService extends ServicePub {
                 SpecTempBizRelProc specTempBizRelProc = new SpecTempBizRelProc(specTempBizRelDaoCtrl, flow);
                 try {
                     LockUtil.lock(aid);
+                    // 判断规格模板是否已经存在
                     Ref<Integer> countRef = new Ref<>();
                     rt = specTempBizRelProc.getCount(aid, unionPriId, rlLibIdList, countRef);
                     if(rt != Errno.OK){
@@ -90,6 +91,7 @@ public class SpecTempService extends ServicePub {
                         Log.logErr(rt, "rlLibId existed rlLibIdList=%s;", rlLibIdList);
                         return rt;
                     }
+                    // 不存在就开始添加
                     try {
                         transactionCtrl.setAutoCommit(false);
                         FaiList<Integer> rtIdList = new FaiList<>();
@@ -508,6 +510,7 @@ public class SpecTempService extends ServicePub {
         }finally {
             specStrDaoCtrl.closeDao();
         }
+        // 将规格值替换成对应的id
         for (Param specTempDetailInfo : specTempDetailList) {
             String tmpName = (String)specTempDetailInfo.remove(TMP_NAME_KEY);
             Integer scStrId = nameIdMap.getInt(tmpName);
@@ -745,6 +748,7 @@ public class SpecTempService extends ServicePub {
             }finally {
                 specStrDaoCtrl.closeDao();
             }
+            // 初始化，通过规格字符串id 填充规格字符串
             Map<Object, Param> specStrMap = Utils.getMap(listRef.value, SpecStrEntity.Info.SC_STR_ID);
             for (Param specTempDetailInfo : specTempDetailList) {
                 Integer scStrId = specTempDetailInfo.getInt(SpecTempDetailEntity.Info.SC_STR_ID);

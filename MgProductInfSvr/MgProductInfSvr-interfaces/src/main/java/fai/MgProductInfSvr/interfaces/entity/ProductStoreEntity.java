@@ -1,6 +1,10 @@
 package fai.MgProductInfSvr.interfaces.entity;
 
 
+import fai.comm.util.FaiList;
+
+import java.util.Arrays;
+
 public class ProductStoreEntity {
     /**
      * 库存销售业务sku
@@ -26,6 +30,9 @@ public class ProductStoreEntity {
         public static final String MAX_AMOUNT = "maxAmount";                        // int 限购量
         public static final String DURATION = "duration";                           // double 预约时长
         public static final String VIRTUAL_COUNT = "virtualCount";                  // int 虚拟库存
+        /**
+         * @see ProductStoreValObj.StoreSalesSku.FLag
+         */
         public static final String FLAG = "flag";                                   // int flag
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // Calendar 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // Calendar 修改时间
@@ -47,6 +54,9 @@ public class ProductStoreEntity {
         public static final String IN_OUT_STORE_REC_ID = "ioStoreRecId";            // int 出入库存记录id
         public static final String OWNER_RL_PD_ID = "ownerRlPdId";                  // int 该商品所属者的商品业务id
         public static final String RL_PD_ID = "rlPdId";                             // int 商品业务 id
+        /**
+         * @see ProductStoreValObj.InOutStoreRecord.OptType
+         */
         public static final String OPT_TYPE = "optType";                            // int 出/入库操作？（或者其他操作状态）
         public static final String C_TYPE = "cType";                                // int 总部出入库方式
         public static final String S_TYPE = "sType";                                // int 门店出入库方式
@@ -58,6 +68,9 @@ public class ProductStoreEntity {
         public static final String OPT_SID = "optSid";                              // int 操作员工 id
         public static final String HEAD_SID = "headSid";                            // int 加减库存负责人 id
         public static final String OPT_TIME = "optTime";                            // datetime 进/出库时间
+        /**
+         * @see ProductStoreValObj.InOutStoreRecord.FLag
+         */
         public static final String FLAG = "flag";                                   // int flag
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
@@ -91,6 +104,28 @@ public class ProductStoreEntity {
         public static final String FLAG = "flag";                                   // int flag
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
+
+
+        public static final FaiList<String> MANAGE_FIELDS; // 管理态字段
+        public static final FaiList<String> VISITOR_FIELDS; // 访客态字段
+        static {
+            MANAGE_FIELDS = new FaiList<String>(
+                    Arrays.asList(
+                            MARKET_PRICE
+                            , MIN_PRICE
+                            , MAX_PRICE
+                    )
+            );
+
+            VISITOR_FIELDS = new FaiList<String>(
+                    Arrays.asList(
+                            SALES
+                            , COUNT
+                            , REMAIN_COUNT
+                            , HOLDING_COUNT
+                    )
+            );
+        }
     }
     /**
      * spu 库存销售汇总信息
@@ -124,6 +159,15 @@ public class ProductStoreEntity {
 
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
+    }
+
+    /**
+     * 库存数量变化信息
+     */
+    public static final class SkuCountChangeInfo {
+        public static final String SKU_ID = "skuId";                                // long skuId
+        public static final String ITEM_ID = "itemId";                              // int 订单项id
+        public static final String COUNT = "count";                                 // int 数量
     }
 
     public static final class HoldingRecordInfo{

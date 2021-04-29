@@ -240,14 +240,14 @@ public class ProductSpecProc extends AbstractProductProc {
     /**
      * 获取产品规格列表
      */
-    public int getPdSkuScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<Param> infoList) {
+    public int getPdSkuScInfoList(int aid, int tid, int unionPriId, int pdId, boolean withSpuInfo, FaiList<Param> infoList) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.getPdSkuScInfoList(aid, tid, unionPriId, pdId, infoList);
+        rt = m_cli.getPdSkuScInfoList(aid, tid, unionPriId, pdId, withSpuInfo, infoList);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
@@ -272,20 +272,73 @@ public class ProductSpecProc extends AbstractProductProc {
         }
         return rt;
     }
+
+    /**
+     * 仅获取spu数据
+     */
+    public int getOnlySpuInfoList(int aid, int tid, FaiList<Integer> pdIdList, FaiList<Param> infoList){
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
+            return rt;
+        }
+        rt = m_cli.getOnlySpuInfoList(aid, tid, pdIdList, infoList);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
+            return rt;
+        }
+        return rt;
+    }
     /**
      * 根据 pdId 获取 pdId-skuId 集
      * @param pdIdList
+     * @param withSpuInfo
      */
-    public int getPdSkuIdInfoList(int aid, int tid, FaiList<Integer> pdIdList, FaiList<Param> list) {
+    public int getPdSkuIdInfoList(int aid, int tid, FaiList<Integer> pdIdList, boolean withSpuInfo, FaiList<Param> list) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
-        rt = m_cli.getPdSkuIdInfoList(aid, tid, pdIdList, list);
+        rt = m_cli.getPdSkuIdInfoList(aid, tid, pdIdList, withSpuInfo, list);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        return rt;
+    }
+    /**
+     * 获取已经存在的 skuCodeList
+     */
+    public int getExistsSkuCodeList(int aid, int tid, int unionPriId, FaiList<String> skuCodeList, Ref<FaiList<String>> existsSkuCodeListRef)  {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;unionPriId=%s;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.getExistsSkuCodeList(aid, tid, unionPriId, skuCodeList, existsSkuCodeListRef);
+        if(rt != Errno.OK) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%s;skuCodeList=%s;", m_flow, aid, unionPriId, skuCodeList);
+            return rt;
+        }
+        return rt;
+    }
+    /**
+     * 通过模糊查询skuCode获取匹配到的skuIdInfo
+     */
+    public int searchPdSkuIdInfoListBySkuCode(int aid, int tid, int unionPriId, String skuCode, Param condition, FaiList<Param> skuInfoList) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;unionPriId=%s;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.searchPdSkuIdInfoListBySkuCode(aid, tid, unionPriId, skuCode, condition, skuInfoList);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%s;skuCode=%s;", m_flow, aid, unionPriId, skuCode);
             return rt;
         }
         return rt;
@@ -320,6 +373,26 @@ public class ProductSpecProc extends AbstractProductProc {
         rt = m_cli.getScStrInfoList(aid, tid, strIdList, list);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;strIdList=%s;", m_flow, aid, strIdList);
+            return rt;
+        }
+        return rt;
+    }
+    /**
+     * 导入商品规格和sku信息
+     * @param specList 商品规格 集合
+     * @param specSkuList 商品规格sku 集合
+     * @param skuIdInfoList 需要返回的skuId信息集合 不是全部
+     */
+    public int importPdScWithSku(int aid, int tid, int unionPriId, FaiList<Param> specList, FaiList<Param> specSkuList, FaiList<Param> skuIdInfoList){
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        rt = m_cli.importPdScWithSku(aid, tid, unionPriId, specList, specSkuList, skuIdInfoList);
+        if(rt != Errno.OK) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;specList=%s;specSkuList=%s;", m_flow, aid, specList, specSkuList);
             return rt;
         }
         return rt;

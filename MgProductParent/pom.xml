@@ -57,8 +57,12 @@
             <repository_url>http://maven.faidev.cc/repository/maven-snapshots/</repository_url>
             <!--中台-->
             <fai-comm-middleground-ver>1.0.0-SNAPSHOT</fai-comm-middleground-ver>
+            <fai-middleground-infutil-ver>1.0.0-SNAPSHOT</fai-middleground-infutil-ver>
             <fai-middleground-svrutil-ver>1.0.0-SNAPSHOT</fai-middleground-svrutil-ver>
+
+            <MgProduct-MgProductInfSvr-interfaces-ver>1.0.0-SNAPSHOT</MgProduct-MgProductInfSvr-interfaces-ver>
             <MgCommon-MgPrimaryKeySvr-interfaces-ver>1.0.0-SNAPSHOT</MgCommon-MgPrimaryKeySvr-interfaces-ver>
+            <MgProduct-MgProductInfSvr-interfaces-ver>1.0.0-SNAPSHOT</MgProduct-MgProductInfSvr-interfaces-ver>
             <MgProduct-MgProductPropSvr-interfaces-ver>1.0.0-SNAPSHOT</MgProduct-MgProductPropSvr-interfaces-ver>
             <MgProduct-MgProductSearchSvr-interfaces-ver>1.0.0-SNAPSHOT</MgProduct-MgProductSearchSvr-interfaces-ver>
             <MgProduct-MgProductBasicSvr-interfaces-ver>1.0.0-SNAPSHOT</MgProduct-MgProductBasicSvr-interfaces-ver>
@@ -66,6 +70,7 @@
             <MgProduct-MgProductStoreSvr-interfaces-ver>1.0.0-SNAPSHOT</MgProduct-MgProductStoreSvr-interfaces-ver>
             <MgProduct-MgProductGroupSvr-interfaces-ver>1.0.0-SNAPSHOT</MgProduct-MgProductGroupSvr-interfaces-ver>
             <MgProduct-MgProductComm-ver>1.0.0-SNAPSHOT</MgProduct-MgProductComm-ver>
+            <MgProduct-MgProductInfUtil-ver>1.0.0-SNAPSHOT</MgProduct-MgProductInfUtil-ver>
         </properties>
     </profile>
 
@@ -80,12 +85,14 @@
                 <fai-comm-middleground-ver>1.0.0</fai-comm-middleground-ver>
                 <fai-middleground-svrutil-ver>1.0.0</fai-middleground-svrutil-ver>
                 <MgCommon-MgPrimaryKeySvr-interfaces-ver>1.0.0</MgCommon-MgPrimaryKeySvr-interfaces-ver>
+                <MgProduct-MgProductInfSvr-interfaces-ver>1.0.0</MgProduct-MgProductInfSvr-interfaces-ver>
                 <MgProduct-MgProductPropSvr-interfaces-ver>1.0.0</MgProduct-MgProductPropSvr-interfaces-ver>
                 <MgProduct-MgProductBasicSvr-interfaces-ver>1.0.0</MgProduct-MgProductBasicSvr-interfaces-ver>
                 <MgProduct-MgProductSpecSvr-interfaces-ver>1.0.0</MgProduct-MgProductSpecSvr-interfaces-ver>
                 <MgProduct-MgProductStoreSvr-interfaces-ver>1.0.0</MgProduct-MgProductStoreSvr-interfaces-ver>
                 <MgProduct-MgProductGroupSvr-interfaces-ver>1.0.0</MgProduct-MgProductGroupSvr-interfaces-ver>
                 <MgProduct-MgProductComm-ver>1.0.0</MgProduct-MgProductComm-ver>
+                <fai-middleground-infutil-ver>1.0.0</fai-middleground-infutil-ver>
             </properties>
         </profile>
     </profiles>

@@ -55,7 +55,7 @@ public class SpecStrCacheCtrl extends CacheCtrl {
         try {
             return m_cache.hmget(getCacheKey(aid), SpecStrDto.Key.INFO, SpecStrDto.getInfoDto(), idStrList);
         } catch (Exception e) {
-            Log.logErr(e);
+            Log.logErr(e,"cacheKey=%s;idStrList=%s;",getCacheKey(aid), idStrList);
         }
         return null;
     }
@@ -68,11 +68,16 @@ public class SpecStrCacheCtrl extends CacheCtrl {
         if(ids == null){
             return null;
         }
+        // 移除所有null值
         ids.removeAll(Collections.singletonList(null));
         return getCacheListByIdStrList(aid, new FaiList<>(ids));
     }
 
-
+    /**
+     * 清除所有缓存
+     * @param aid
+     * @return
+     */
     public static boolean delAllCache(int aid) {
         return m_cache.del(getCacheKey(aid), getNameIdCacheKey(aid));
     }

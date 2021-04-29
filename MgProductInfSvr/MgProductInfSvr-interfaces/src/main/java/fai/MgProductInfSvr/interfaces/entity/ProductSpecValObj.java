@@ -17,6 +17,16 @@ public class ProductSpecValObj {
         public static final class Limit{
             public static final class InPdScValList{
                 public static final int MAX_SIZE = 50; // 最多50个元素
+                public static final class Item{
+                    public static final class Name{
+                        public static final int MIN_LEN = SpecStr.Limit.Name.MIN_LEN; // 最小长度
+                        public static final int MAX_LEN = SpecStr.Limit.Name.MAX_LEN; // 最大长度
+                    }
+                }
+            }
+            public static final class Name{
+                public static final int MIN_LEN = SpecStr.Limit.Name.MIN_LEN; // 最小长度
+                public static final int MAX_LEN = SpecStr.Limit.Name.MAX_LEN; // 最大长度
             }
         }
         /**
@@ -37,6 +47,7 @@ public class ProductSpecValObj {
          * 标志位
          */
         public static final class FLag{
+            @Deprecated
             public static final int ALL = 0x1; // 是否是全部规格 - 用于兼容商品从无规格过渡到有规格
             public static final int IN_PD_SC_VAL_LIST_CHECKED = 0x2; // InPdScValList是否有勾选 for 查询
             public static final int ALLOW_IN_PD_SC_VAL_LIST_IS_EMPTY= 0x4;  //允许 inPdScValList 是否为空
@@ -62,6 +73,12 @@ public class ProductSpecValObj {
         public static final class Limit {
             // 单个产品下sku数量的最大限制
             public static final int SINGLE_PRODUCT_MAX_SIZE = 10000;
+            // 条码最多数量
+            public static final int SKU_CODE_MAX_SIZE = 10;
+            public static final class SkuCode {
+                public static final int MIN_LEN = 1; // 最小长度
+                public static final int MAX_LEN = 32; // 最大长度
+            }
         }
 
         /**
@@ -76,8 +93,10 @@ public class ProductSpecValObj {
          * 标志位
          */
         public static final class FLag{
+            public static final int SPU = 0x1; // 是否是spu数据
             public static final int ALLOW_EMPTY = 0x2; // 允许是空规格值组合的sku
         }
+
     }
     /**
      * 规格模板
@@ -91,7 +110,6 @@ public class ProductSpecValObj {
                 public static final int MIN_LEN = 1; // 最小长度
                 public static final int MAX_LEN = 100; // 最大长度
             }
-
         }
         public final class Flag{
 
@@ -135,5 +153,12 @@ public class ProductSpecValObj {
             }
         }
     }
-
+    public static final class SpecStr{
+        public static final class Limit{
+            public static final class Name{
+                public static final int MIN_LEN = 1; // 最小长度
+                public static final int MAX_LEN = 100; // 最大长度
+            }
+        }
+    }
 }

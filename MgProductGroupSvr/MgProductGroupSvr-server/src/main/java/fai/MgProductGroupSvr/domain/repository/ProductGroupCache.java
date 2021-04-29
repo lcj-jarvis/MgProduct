@@ -26,6 +26,10 @@ public class ProductGroupCache extends CacheCtrl {
         m_cache.hdel(cacheKey, propIdStrs);
     }
 
+    public static void delCache(int aid) {
+        m_cache.del(getCacheKey(aid));
+    }
+
     public static void updateCacheList(int aid, FaiList<ParamUpdater> updaterList) {
         if(updaterList == null || updaterList.isEmpty()) {
             return;
@@ -64,7 +68,7 @@ public class ProductGroupCache extends CacheCtrl {
     }
 
     public static String getCacheKey(int aid) {
-        return CACHE_KEY + "-" + aid;
+        return wrapCacheVersion(CACHE_KEY + "-" + aid, aid);
     }
 
     private static final int EXPIRE_SECOND = 10;

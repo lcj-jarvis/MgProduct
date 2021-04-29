@@ -75,7 +75,7 @@ public class ProductStoreService extends MgProductInfService {
                 Log.logDbg("whalelog inPdScStrNameInfoMap=%s", inPdScStrNameInfoMap);
                 ProductSpecProc productSpecProc = new ProductSpecProc(flow);
                 FaiList<Param> infoList = new FaiList<Param>();
-                rt = productSpecProc.getPdSkuScInfoList(aid, tid, unionPriId, pdId, infoList);
+                rt = productSpecProc.getPdSkuScInfoList(aid, tid, unionPriId, pdId, false, infoList);
                 if(rt != Errno.OK) {
                     return rt;
                 }
@@ -220,6 +220,48 @@ public class ProductStoreService extends MgProductInfService {
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
             rt = productStoreProc.batchMakeUpStore(aid, unionPriId, skuIdCountList, rlOrderCode, reduceMode);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * 管理态调用 <br/>
+     * 刷新 rlOrderCode 的预扣记录。<br/>
+     * 根据 allHoldingRecordList 和已有的预扣尽量进行对比， <br/>
+     * 如果都有，则对比数量，数量不一致，就多退少补。  <br/>
+     * 如果 holdingRecordList中有 db中没有 就生成预扣记录，并进行预扣库存.  <br/>
+     * 如果 holdingRecordList中没有 db中有 就删除db中的预扣记录，并进行补偿库存。 <br/>
+     * @param rlOrderCode 业务订单id/code
+     * @param allHoldingRecordList 当前订单的所有预扣记录 [{ skuId: 122, itemId: 11, count:12},{ skuId: 142, itemId: 21, count:2}] count > 0
+     */
+    public int refreshHoldingRecordOfRlOrderCode(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, String rlOrderCode, FaiList<Param> allHoldingRecordList) throws IOException  {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            ProductStoreProc productStoreProc = new ProductStoreProc(flow);
+            rt = productStoreProc.refreshHoldingRecordOfRlOrderCode(aid, unionPriId, rlOrderCode, allHoldingRecordList);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -675,7 +717,7 @@ public class ProductStoreService extends MgProductInfService {
                     Integer ownerRlPdId = ownerRlPdId_inPdScStrNameSkuIdMapEntry.getKey();
                     Integer ownerPdId = ownerRlPdIdPdIdMap.get(ownerRlPdId);
                     FaiList<Param> pdSkuScInfoList = new FaiList<Param>();
-                    rt = productSpecProc.getPdSkuScInfoList(aid, ownerTid, ownerUnionPriId, ownerPdId, pdSkuScInfoList);
+                    rt = productSpecProc.getPdSkuScInfoList(aid, ownerTid, ownerUnionPriId, ownerPdId, false, pdSkuScInfoList);
                     if(rt != Errno.OK) {
                         return rt;
                     }
@@ -927,7 +969,7 @@ public class ProductStoreService extends MgProductInfService {
             if(rt != Errno.OK) {
                 return rt;
             }
-            FaiList<Integer> pdIdList = OptMisc.getValList(pdInfoList, ProductBasicEntity.ProductRelInfo.PD_ID);
+            FaiList<Integer> pdIdList = OptMisc.getValList(pdInfoList, ProductBasicEntity.ProductInfo.PD_ID);
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
             FaiList<Param> infoList = new FaiList<Param>();
@@ -994,7 +1036,7 @@ public class ProductStoreService extends MgProductInfService {
             if(rt != Errno.OK){
                 return rt;
             }
-            FaiList<Integer> pdIdList = OptMisc.getValList(list, ProductBasicEntity.ProductRelInfo.PD_ID);
+            FaiList<Integer> pdIdList = OptMisc.getValList(list, ProductBasicEntity.ProductInfo.PD_ID);
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
             FaiList<Param> infoList = new FaiList<Param>();
@@ -1042,8 +1084,8 @@ public class ProductStoreService extends MgProductInfService {
             Map<Integer, Integer> pdIdRlPdIdMap = new HashMap<>(list.size()*4/3+1);
             FaiList<Integer> pdIdList = new FaiList<>(list.size());
             list.forEach(info->{
-                Integer rlPdId = info.getInt(ProductBasicEntity.ProductRelInfo.RL_PD_ID);
-                Integer pdId = info.getInt(ProductBasicEntity.ProductRelInfo.PD_ID);
+                Integer rlPdId = info.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID);
+                Integer pdId = info.getInt(ProductBasicEntity.ProductInfo.PD_ID);
                 pdIdRlPdIdMap.put(pdId, rlPdId);
                 pdIdList.add(pdId);
             });
@@ -1124,8 +1166,8 @@ public class ProductStoreService extends MgProductInfService {
                     pdIdRlPdIdMap = new HashMap<>(list.size()*4/3+1);
                     Map<Integer, Integer> rlPdIdPdIdMap = new HashMap<>(list.size()*4/3+1);
                     for (Param relInfo : list) {
-                        Integer pdId = relInfo.getInt(ProductBasicEntity.ProductRelInfo.PD_ID);
-                        Integer rlPdId = relInfo.getInt(ProductBasicEntity.ProductRelInfo.RL_PD_ID);
+                        Integer pdId = relInfo.getInt(ProductBasicEntity.ProductInfo.PD_ID);
+                        Integer rlPdId = relInfo.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID);
                         pdIdRlPdIdMap.put(pdId, rlPdId);
                         rlPdIdPdIdMap.put(rlPdId, pdId);
                     }
@@ -1171,8 +1213,8 @@ public class ProductStoreService extends MgProductInfService {
                     }
                     pdIdRlPdIdMap = new HashMap<>(reducedRels.size()*4/3+1);
                     for (Param reducedRel : reducedRels) {
-                        Integer rlPdId = reducedRel.getInt(ProductBasicEntity.ProductRelInfo.RL_PD_ID);
-                        Integer pdId = reducedRel.getInt(ProductBasicEntity.ProductRelInfo.PD_ID);
+                        Integer rlPdId = reducedRel.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID);
+                        Integer pdId = reducedRel.getInt(ProductBasicEntity.ProductInfo.PD_ID);
                         pdIdRlPdIdMap.put(pdId, rlPdId);
                     }
                 }
@@ -1279,7 +1321,7 @@ public class ProductStoreService extends MgProductInfService {
                 Integer pdId = pdIdBindPdRelListEntry.getKey();
                 FaiList<Param> bindPdRelList = pdIdBindPdRelListEntry.getValue();
                 for (Param bindPdRelInfo : bindPdRelList) {
-                    BizPriKey bizPriKey = (BizPriKey)bindPdRelInfo.remove(ProductBasicEntity.ProductRelInfo.UNION_PRI_ID);
+                    BizPriKey bizPriKey = (BizPriKey)bindPdRelInfo.remove(ProductBasicEntity.ProductInfo.UNION_PRI_ID);
                     Integer unionPriId = bizPriKeyUnionPriIdMap.get(bizPriKey);
                     bindPdRelInfo.setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId);
                     bindPdRelInfo.setBoolean(ProductRelEntity.Info.INFO_CHECK, false);
@@ -1422,15 +1464,15 @@ public class ProductStoreService extends MgProductInfService {
             }
             FaiList<Integer> pdIdList = new FaiList<>();
             for (Param info : list) {
-                Integer rlPdId = info.getInt(ProductBasicEntity.ProductRelInfo.RL_PD_ID);
-                Integer pdId = info.getInt(ProductBasicEntity.ProductRelInfo.PD_ID);
+                Integer rlPdId = info.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID);
+                Integer pdId = info.getInt(ProductBasicEntity.ProductInfo.PD_ID);
                 pdIdList.add(pdId);
                 ownerRlPdIdPdIdMap.put(rlPdId, pdId);
             }
             // 获取pdId-skuId
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
             list = new FaiList<>();
-            rt = productSpecProc.getPdSkuIdInfoList(aid, ownerTid, pdIdList, list);
+            rt = productSpecProc.getPdSkuIdInfoList(aid, ownerTid, pdIdList, false, list);
             if(rt != Errno.OK){
                 Log.logErr(rt, "getPdSkuIdInfoList err;flow=%s;aid=%s;pdIdList=%s;", flow, aid, pdIdList);
                 return rt;

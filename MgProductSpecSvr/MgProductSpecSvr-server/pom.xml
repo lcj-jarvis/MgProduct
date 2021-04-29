@@ -25,6 +25,11 @@
             <artifactId>MgProductSpecSvr-interfaces</artifactId>
             <version>${MgProduct-MgProductSpecSvr-interfaces-ver}</version>
         </dependency>
+        <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProductComm</artifactId>
+            <version>${MgProduct-MgProductComm-ver}</version>
+        </dependency>
 
         <dependency>
             <groupId>fai-comm-jnetkit</groupId>

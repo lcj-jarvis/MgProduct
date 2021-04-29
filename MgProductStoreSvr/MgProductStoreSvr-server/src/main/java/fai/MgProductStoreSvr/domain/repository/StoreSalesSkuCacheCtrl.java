@@ -1,9 +1,12 @@
 package fai.MgProductStoreSvr.domain.repository;
 
-import fai.MgProductStoreSvr.domain.comm.SkuStoreKey;
+import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
 import fai.MgProductStoreSvr.interfaces.dto.StoreSalesSkuDto;
 import fai.comm.cache.redis.client.RedisClient;
-import fai.comm.util.*;
+import fai.comm.util.Errno;
+import fai.comm.util.FaiList;
+import fai.comm.util.Param;
+import fai.comm.util.Parser;
 
 import java.util.Arrays;
 import java.util.Set;
@@ -74,15 +77,15 @@ public class StoreSalesSkuCacheCtrl extends CacheCtrl{
         boolean boo = m_cache.del(remainCountCacheKey);
         return boo;
     }
-    public static boolean delRemainCount(int aid, Set<SkuStoreKey> SkuStoreKeySet) {
-        if(SkuStoreKeySet.isEmpty()){
+    public static boolean delRemainCount(int aid, Set<SkuBizKey> skuBizKeySet) {
+        if(skuBizKeySet.isEmpty()){
             return true;
         }
-        String[] keys = new String[SkuStoreKeySet.size()];
+        String[] keys = new String[skuBizKeySet.size()];
         int i = 0;
-        for (SkuStoreKey skuStoreKey : SkuStoreKeySet) {
-            int unionPriId = skuStoreKey.unionPriId;
-            long skuId  = skuStoreKey.skuId;
+        for (SkuBizKey skuBizKey : skuBizKeySet) {
+            int unionPriId = skuBizKey.unionPriId;
+            long skuId  = skuBizKey.skuId;
             keys[i++] = getRemainCountCacheKey(aid, unionPriId, skuId);
         }
         boolean boo = m_cache.del(keys);
@@ -91,11 +94,11 @@ public class StoreSalesSkuCacheCtrl extends CacheCtrl{
 
 
     public static String getCacheKey(int aid, int unionPriId, int pdId) {
-        return CACHE_KEY_PREFIX + ":" + aid + "-" + unionPriId + "-" + pdId;
+        return wrapCacheVersion(CACHE_KEY_PREFIX + ":" + aid + "-" + unionPriId + "-" + pdId, aid);
     }
 
     public static String getRemainCountCacheKey(int aid, int unionPriId, long skuId){
-        return CACHE_KEY_PREFIX + "_remainCount:" + aid + "-" + unionPriId + "-" + skuId;
+        return wrapCacheVersion(CACHE_KEY_PREFIX + "_remainCount:" + aid + "-" + unionPriId + "-" + skuId, aid);
     }
 
     private static final String CACHE_KEY_PREFIX = "MG_storeSalesSku";

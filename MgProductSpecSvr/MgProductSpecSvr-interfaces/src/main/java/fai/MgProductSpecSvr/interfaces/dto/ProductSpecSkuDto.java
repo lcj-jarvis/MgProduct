@@ -12,7 +12,7 @@ public class ProductSpecSkuDto {
         g_dtoDef.add(ProductSpecSkuEntity.Info.SKU_ID, 2, Var.Type.LONG);
         g_dtoDef.add(ProductSpecSkuEntity.Info.SORT, 3, Var.Type.INT);
         g_dtoDef.add(ProductSpecSkuEntity.Info.SOURCE_TID, 4, Var.Type.INT);
-        g_dtoDef.add(ProductSpecSkuEntity.Info.SKU_NUM, 5, Var.Type.STRING);
+        g_dtoDef.add(ProductSpecSkuEntity.Info.SKU_CODE, 5, Var.Type.STRING);
         g_dtoDef.add(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, 6, Var.Type.FAI_LIST);
         g_dtoDef.add(ProductSpecSkuEntity.Info.IN_PD_SC_STR_NAME_LIST, 7, Var.Type.FAI_LIST);
         g_dtoDef.add(ProductSpecSkuEntity.Info.FLAG, 8, Var.Type.INT);
@@ -20,6 +20,8 @@ public class ProductSpecSkuDto {
         g_dtoDef.add(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME, 10);
         g_dtoDef.add(ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID, 11, Var.Type.INT);
         g_dtoDef.add(ProductSpecSkuEntity.Info.STATUS, 12, Var.Type.INT);
+        g_dtoDef.add(ProductSpecSkuEntity.Info.SKU_CODE_LIST, 13, Var.Type.FAI_LIST);
+        g_dtoDef.add(ProductSpecSkuEntity.Info.SPU, 14, Var.Type.BOOLEAN);
     }
     public static ParamDef getInfoDto() {
         return g_dtoDef;
@@ -37,6 +39,10 @@ public class ProductSpecSkuDto {
         public static final int ID = 8;
         public static final int ID_LIST = 9;
         public static final int PD_ID_LIST = 10;
+        public static final int SKU_CODE_LIST = 11;
+        public static final int SKU_CODE = 12;
+        public static final int CONDITION = 13;
+        public static final int WITH_SPU_INFO = 14;
     }
 
     /**
@@ -51,7 +57,7 @@ public class ProductSpecSkuDto {
             g_cacheDtoDef.add(ProductSpecSkuEntity.Info.SKU_ID, 2, Var.Type.LONG);
             g_cacheDtoDef.add(ProductSpecSkuEntity.Info.SORT, 3, Var.Type.INT);
             g_cacheDtoDef.add(ProductSpecSkuEntity.Info.SOURCE_TID, 4, Var.Type.INT);
-            g_cacheDtoDef.add(ProductSpecSkuEntity.Info.SKU_NUM, 5, Var.Type.STRING);
+            g_cacheDtoDef.add(ProductSpecSkuEntity.Info.SKU_CODE, 5, Var.Type.STRING);
             g_cacheDtoDef.add(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, 6, Var.Type.FAI_LIST);
             g_cacheDtoDef.add(ProductSpecSkuEntity.Info.FLAG, 8, Var.Type.INT);
             g_cacheDtoDef.add(ProductSpecSkuEntity.Info.SYS_CREATE_TIME, 9);

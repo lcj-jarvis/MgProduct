@@ -2,20 +2,23 @@ package fai.MgProductStoreSvr.application.service;
 
 import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
+import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
 import fai.MgProductStoreSvr.domain.entity.*;
 import fai.MgProductStoreSvr.domain.repository.*;
 import fai.MgProductStoreSvr.domain.serviceProc.*;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
+import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * 处理既有库存销售sku又有出入库记录的请求
+ */
 public class StoreService {
     /**
      * 库存销售数据汇总上报
@@ -75,7 +78,6 @@ public class StoreService {
         }
         return rt;
     }
-
     /**
      * 上报 spu“业务”库存销售汇总数据 汇总到 spu库存销售汇总
      */
@@ -200,6 +202,157 @@ public class StoreService {
         return rt;
     }
 
+    /**
+     *  导入数据
+     */
+    public int importStoreSales(FaiSession session, int flow, int aid, int sourceTid, int sourceUnionPriId, FaiList<Param> storeSaleSkuList, Param inStoreRecordInfo) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || sourceTid<=0 || sourceUnionPriId <= 0|| Util.isEmptyList(storeSaleSkuList) || Str.isEmpty(inStoreRecordInfo)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;sourceUnionPriId=%s;storeSaleSkuList=%s;inStoreRecordInfo=%s;", flow, aid, sourceUnionPriId, storeSaleSkuList, inStoreRecordInfo);
+                return rt;
+            }
+            // 初始化入库记录
+            Set<Integer> pdIdSet = new HashSet<>();
+            Set<Long> skuIdSet = new HashSet<>();
+            Set<SkuBizKey> skuBizKeySet = new HashSet<>();
+            FaiList<Param> inStoreRecordList = new FaiList<>();
+            for (Param storeSaleSku : storeSaleSkuList) {
+                int count = storeSaleSku.getInt(StoreSalesSkuEntity.Info.COUNT, 0);
+                storeSaleSku.setInt(StoreSalesSkuEntity.Info.COUNT, count);
+                storeSaleSku.setInt(StoreSalesSkuEntity.Info.REMAIN_COUNT, count);
+                long skuId = storeSaleSku.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                int pdId = storeSaleSku.getInt(StoreSalesSkuEntity.Info.PD_ID);
+                int rlPdId = storeSaleSku.getInt(StoreSalesSkuEntity.Info.RL_PD_ID);
+                int unionPriId = storeSaleSku.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+                FaiList<Integer> inPdScStrIdList = (FaiList<Integer>)storeSaleSku.remove(fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity.Info.IN_PD_SC_STR_ID_LIST);
+                skuBizKeySet.add(new SkuBizKey(unionPriId, skuId));
+                pdIdSet.add(pdId);
+                skuIdSet.add(skuId);
+
+                Param addInStoreRecordInfo = inStoreRecordInfo.clone();
+                addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, unionPriId);
+                addInStoreRecordInfo.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
+                addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.PD_ID, pdId);
+                addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
+                addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
+                addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.OPT_TYPE, InOutStoreRecordValObj.OptType.IN);
+                addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.CHANGE_COUNT, count);
+                addInStoreRecordInfo.setList(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList);
+                inStoreRecordList.add(addInStoreRecordInfo);
+            }
+
+            // 事务
+            TransactionCtrl transactionCtrl = new TransactionCtrl();
+            try {
+                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, transactionCtrl);
+                InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(flow, aid, transactionCtrl);
+                SpuSummaryProc spuSummaryProc = new SpuSummaryProc(flow, aid, transactionCtrl);
+                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, transactionCtrl);
+                SkuSummaryProc skuSummaryProc = new SkuSummaryProc(flow, aid, transactionCtrl);
+
+                try {
+                    LockUtil.lock(aid);
+                    try {
+                        transactionCtrl.setAutoCommit(false);
+                        rt = storeSalesSkuProc.batchAdd(aid, null, storeSaleSkuList);
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
+                        Map<SkuBizKey, Param> skuBizSkuStoreSalesInfoMap = new HashMap<>();
+                        rt = storeSalesSkuProc.getInfoMap4OutRecordFromDao(aid, skuBizKeySet, skuBizSkuStoreSalesInfoMap);
+                        if (rt != Errno.OK) {
+                            return rt;
+                        }
+                        // 添加入入库记录
+                        rt = inOutStoreRecordProc.batchAdd(aid, inStoreRecordList, skuBizSkuStoreSalesInfoMap);
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
+
+                        // 更新总成本
+                        rt = storeSalesSkuProc.batchUpdateTotalCost(aid, skuBizSkuStoreSalesInfoMap);
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
+                    }finally {
+                        if(rt != Errno.OK){
+                            inOutStoreRecordProc.clearIdBuilderCache(aid);
+                            transactionCtrl.rollback();
+                            return rt;
+                        }
+                        transactionCtrl.commit();
+                    }
+                }finally {
+                    LockUtil.unlock(aid);
+                }
+
+                try {
+                    transactionCtrl.setAutoCommit(false);
+                    rt = reportSummary(aid, new FaiList<>(pdIdSet), ReportValObj.Flag.REPORT_COUNT|ReportValObj.Flag.REPORT_PRICE,
+                            new FaiList<>(skuIdSet), storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
+                    if(rt != Errno.OK){
+                        return rt;
+                    }
+                }finally {
+                    if(rt != Errno.OK){
+                        transactionCtrl.rollback();
+                        return rt;
+                    }
+                    spuBizSummaryProc.setDirtyCacheEx(aid);
+                    spuSummaryProc.setDirtyCacheEx(aid);
+                    transactionCtrl.commit();
+                    spuBizSummaryProc.deleteDirtyCache(aid);
+                    spuSummaryProc.deleteDirtyCache(aid);
+                }
+
+            }finally {
+                transactionCtrl.closeDao();
+            }
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("ok;flow=%s;aid=%s;pdIdSet=%s;skuIdSet=%s;", flow, aid, pdIdSet, skuIdSet);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * 清除当前aid的所有缓存
+     */
+    public int clearAllCache(FaiSession session, int flow, int aid) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            boolean allOption = true;
+            try {
+                LockUtil.lock(aid);
+                boolean boo = CacheCtrl.clearCacheVersion(aid);
+                if(!boo){
+                    Log.logErr("CacheCtrl.clearCacheVersion err;flow=%s;aid=%s;", flow, aid);
+                }
+                allOption &= boo;
+                boo = SpuSummaryCacheCtrl.delAllCache(aid);
+                if(!boo){
+                    Log.logErr("SpuSummaryCacheCtrl.delAllCache err;flow=%s;aid=%s;", flow, aid);
+                }
+                allOption &= boo;
+            }finally {
+                LockUtil.unlock(aid);
+            }
+            if(allOption){
+                rt = Errno.OK;
+            }
+            session.write(rt);
+            Log.logStd("flow=%s;aid=%s;allOption=%s", flow, aid, allOption);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
 
     /**
      * 组装 spu业务库存销售汇总信息

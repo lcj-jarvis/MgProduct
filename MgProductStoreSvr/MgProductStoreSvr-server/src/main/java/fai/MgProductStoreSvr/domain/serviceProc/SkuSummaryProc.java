@@ -3,6 +3,7 @@ package fai.MgProductStoreSvr.domain.serviceProc;
 import fai.MgProductStoreSvr.domain.entity.SkuSummaryEntity;
 import fai.MgProductStoreSvr.domain.repository.SkuSummaryDaoCtrl;
 import fai.comm.util.*;
+import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.Calendar;
 import java.util.HashMap;
@@ -11,6 +12,14 @@ import java.util.Map;
 public class SkuSummaryProc {
     public SkuSummaryProc(SkuSummaryDaoCtrl daoCtrl, int flow) {
         m_daoCtrl = daoCtrl;
+        m_flow = flow;
+    }
+
+    public SkuSummaryProc(int flow, int aid, TransactionCtrl transactionCtrl) {
+        m_daoCtrl = SkuSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+        if(m_daoCtrl == null){
+            throw new RuntimeException(String.format("SkuSummaryDaoCtrl init err;flow=%s;aid=%s;", flow, aid));
+        }
         m_flow = flow;
     }
 

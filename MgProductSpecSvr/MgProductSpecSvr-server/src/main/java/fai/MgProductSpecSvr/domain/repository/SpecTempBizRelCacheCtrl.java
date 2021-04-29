@@ -46,11 +46,11 @@ public class SpecTempBizRelCacheCtrl extends CacheCtrl {
 	 * 关联id 缓存key
 	 */
 	private static String getRlTpScIdCacheKey(int aid, int unionPriId){
-		return CACHE_KEY_PREFIX+"-rlTpScId:"+aid+"-"+unionPriId;
+		return wrapCacheVersion(CACHE_KEY_PREFIX+"-rlTpScId:"+aid+"-"+unionPriId, aid);
 	}
 
 	private static String getCacheKey(int aid, int unionPriId){
-		return CACHE_KEY_PREFIX+":"+aid+"-"+unionPriId;
+		return wrapCacheVersion(CACHE_KEY_PREFIX+":"+aid+"-"+unionPriId, aid);
 	}
 
 	private static final String CACHE_KEY_PREFIX = "MG_specTempBizRel";

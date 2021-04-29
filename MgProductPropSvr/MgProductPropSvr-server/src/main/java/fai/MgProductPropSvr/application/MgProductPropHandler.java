@@ -9,6 +9,7 @@ import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
 import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
+import fai.comm.netkit.NKDef;
 import fai.comm.util.*;
 import fai.middleground.svrutil.service.MiddleGroundHandler;
 import fai.middleground.svrutil.service.ServiceProxy;
@@ -134,5 +135,11 @@ public class MgProductPropHandler extends MiddleGroundHandler {
 		return service.searchPropValFromDb(session, flow, aid, searchArg);
 	}
 
+	@Cmd(NKDef.Protocol.Cmd.CLEAR_CACHE)
+	public int clearCache(final FaiSession session,
+								   @ArgFlow int flow,
+								   @ArgAid final int aid) throws IOException {
+		return service.clearCache(session, flow, aid);
+	}
 	private ProductPropService service = ServiceProxy.create(new ProductPropService());
 }

@@ -95,11 +95,11 @@ public class SpuBizSummaryCacheCtrl extends CacheCtrl{
         return m_cache.expire(cacheKey, DIRTY_EXPIRE_SECOND, DIRTY_EXPIRE_SECOND_RANDOM);
     }
     protected static String getTotalCacheKey(int aid, int unionPriId){
-        return CACHE_KEY_PREFIX + "-count:" + aid + "-" + unionPriId;
+        return wrapCacheVersion(CACHE_KEY_PREFIX + "-count:" + aid + "-" + unionPriId, aid);
     }
 
     protected static String getCacheKey(int aid, int unionPriId) {
-        return CACHE_KEY_PREFIX + ":" + aid + "-" + unionPriId;
+        return wrapCacheVersion(CACHE_KEY_PREFIX + ":" + aid + "-" + unionPriId, aid);
     }
 
     /**
@@ -133,7 +133,7 @@ public class SpuBizSummaryCacheCtrl extends CacheCtrl{
          * 访客态数据最后一次修改时间key
          */
         protected static String getLastUpdateTimeCacheKey(DataType dataType, int aid, int unionPriId){
-            return CACHE_KEY_PREFIX + "-"+dataType.getLabel()+":"+ aid + "-" + unionPriId;
+            return wrapCacheVersion(CACHE_KEY_PREFIX + "-"+dataType.getLabel()+":"+ aid + "-" + unionPriId, aid);
         }
 
     }

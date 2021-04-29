@@ -44,7 +44,7 @@ public class ProductBindPropCache extends CacheCtrl {
     }
 
     public static String getCacheKey(int aid, int unionPriId, int rlPdId) {
-        return CACHE_KEY + "-" + aid + "-" + unionPriId + "-" + rlPdId;
+        return wrapCacheVersion(CACHE_KEY + "-" + aid + "-" + unionPriId + "-" + rlPdId, aid);
     }
 
     /** 数据状态缓存 **/
@@ -69,12 +69,32 @@ public class ProductBindPropCache extends CacheCtrl {
             m_cache.updateParam(getCacheKey(aid, unionPriId), updater, ProductBindPropDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
         }
 
+        public static void del(int aid, HashSet<Integer> unionPriIds) {
+            String[] cacheKeys = getCacheKeys(aid, unionPriIds);
+            if(cacheKeys == null) {
+                return;
+            }
+            m_cache.del(cacheKeys);
+        }
+
         public static void expire(int aid, int unionPriId, int second) {
             m_cache.expire(getCacheKey(aid, unionPriId), second);
         }
 
         public static String getCacheKey(int aid, int unionPriId) {
-            return DATA_STATUS_CACHE_KEY + "-" + aid + "-" + unionPriId;
+            return wrapCacheVersion(DATA_STATUS_CACHE_KEY + "-" + aid + "-" + unionPriId, aid);
+        }
+
+        public static String[] getCacheKeys(int aid, HashSet<Integer> unionPriIds) {
+            if(unionPriIds == null || unionPriIds.isEmpty()) {
+                return null;
+            }
+            String[] keys = new String[unionPriIds.size()];
+            int index = 0;
+            for(int unionPriId : unionPriIds) {
+                keys[index++] = getCacheKey(aid, unionPriId);
+            }
+            return keys;
         }
 
         private static final String DATA_STATUS_CACHE_KEY = "MG_pdBindPropDS";

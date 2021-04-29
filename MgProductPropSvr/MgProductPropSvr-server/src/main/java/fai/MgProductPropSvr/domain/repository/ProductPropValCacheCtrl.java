@@ -7,64 +7,66 @@ import fai.mgproduct.comm.DataStatus;
 
 public class ProductPropValCacheCtrl extends CacheCtrl {
 
-	public static FaiList<Param> getCacheList(int aid, int propId) {
-		String cacheKey = getCacheKey(aid, propId);
-		return m_cache.hgetAllFaiList(cacheKey, ProductPropValDto.Key.INFO, ProductPropValDto.getCacheInfoDto());
-	}
-
-	public static void addCacheListExist(int aid, int propId, FaiList<Param> list) {
-		if(list == null || list.isEmpty()) {
-			return;
+	public static class InfoCache {
+		public static FaiList<Param> getCacheList(int aid, int propId) {
+			String cacheKey = getCacheKey(aid, propId);
+			return m_cache.hgetAllFaiList(cacheKey, ProductPropValDto.Key.INFO, ProductPropValDto.getCacheInfoDto());
 		}
-		if(!exists(aid, propId)) {
-			return;
+
+		public static void addCacheListExist(int aid, int propId, FaiList<Param> list) {
+			if(list == null || list.isEmpty()) {
+				return;
+			}
+			if(!exists(aid, propId)) {
+				return;
+			}
+			addCacheList(aid, propId, list);
 		}
-		addCacheList(aid, propId, list);
-	}
 
-	public static void addCacheList(int aid, int propId, FaiList<Param> list) {
-		if(list == null || list.isEmpty()) {
-			return;
+		public static void addCacheList(int aid, int propId, FaiList<Param> list) {
+			if(list == null || list.isEmpty()) {
+				return;
+			}
+			String cacheKey = getCacheKey(aid, propId);
+			m_cache.hmsetFaiList(cacheKey, ProductPropValEntity.Info.PROP_VAL_ID, Var.Type.INT, list, ProductPropValDto.Key.INFO, ProductPropValDto.getCacheInfoDto());
 		}
-		String cacheKey = getCacheKey(aid, propId);
-		m_cache.hmsetFaiList(cacheKey, ProductPropValEntity.Info.PROP_VAL_ID, Var.Type.INT, list, ProductPropValDto.Key.INFO, ProductPropValDto.getCacheInfoDto());
-	}
 
-	public static void delCache(int aid, int propId) {
-		String cacheKey = getCacheKey(aid, propId);
-		if(!m_cache.exists(cacheKey)) {
-			return;
+		public static void delCache(int aid, int propId) {
+			String cacheKey = getCacheKey(aid, propId);
+			if(!m_cache.exists(cacheKey)) {
+				return;
+			}
+			m_cache.del(cacheKey);
 		}
-		m_cache.del(cacheKey);
-	}
 
-	public static void delCacheList(int aid, FaiList<Integer> propIds) {
-		if(propIds == null || propIds.isEmpty()) {
-			return;
+		public static void delCacheList(int aid, FaiList<Integer> propIds) {
+			if(propIds == null || propIds.isEmpty()) {
+				return;
+			}
+			String[] cacheKeys = new String[propIds.size()];
+			for(int i = 0; i < propIds.size(); i++) {
+				cacheKeys[i] = getCacheKey(aid, propIds.get(i));
+			}
+			m_cache.del(cacheKeys);
 		}
-		String[] cacheKeys = new String[propIds.size()];
-		for(int i = 0; i < propIds.size(); i++) {
-			cacheKeys[i] = getCacheKey(aid, propIds.get(i));
+
+		public static boolean exists(int aid, int propId) {
+			String cacheKey = getCacheKey(aid, propId);
+			return m_cache.exists(cacheKey);
 		}
-		m_cache.del(cacheKeys);
-	}
 
-	public static boolean exists(int aid, int propId) {
-		String cacheKey = getCacheKey(aid, propId);
-		return m_cache.exists(cacheKey);
-	}
+		public static void setExpire(int aid, int propId) {
+			String cacheKey = getCacheKey(aid, propId);
+			m_cache.expire(cacheKey, EXPIRE_SECOND);
+		}
 
-	public static void setExpire(int aid, int propId) {
-		String cacheKey = getCacheKey(aid, propId);
-		m_cache.expire(cacheKey, EXPIRE_SECOND);
-	}
+		public static String getCacheKey(int aid, int propId) {
+			return wrapCacheVersion(CACHE_KEY + "-" + aid + "-" + propId, aid);
+		}
 
-	public static String getCacheKey(int aid, int propId) {
-		return CACHE_KEY + "-" + aid + "-" + propId;
+		private static final String CACHE_KEY = "MG_productPropVal";
 	}
-
 	private static final int EXPIRE_SECOND = 10;
-	private static final String CACHE_KEY = "MG_productPropVal";
 
 	/** 数据状态缓存 **/
 	public static class DataStatusCache {
@@ -102,12 +104,16 @@ public class ProductPropValCacheCtrl extends CacheCtrl {
 			m_cache.updateParam(getCacheKey(aid), updater, ProductPropValDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
 		}
 
+		public static void delCache(int aid) {
+			m_cache.del(getCacheKey(aid));
+		}
+
 		public static void expire(int aid, int second) {
 			m_cache.expire(getCacheKey(aid), second);
 		}
 
 		public static String getCacheKey(int aid) {
-			return DATA_STATUS_CACHE_KEY + "-" + aid;
+			return wrapCacheVersion(DATA_STATUS_CACHE_KEY + "-" + aid, aid);
 		}
 		private static final String DATA_STATUS_CACHE_KEY = "MG_pdPropValDS";
 	}

@@ -9,6 +9,7 @@ import fai.mgproduct.comm.DataStatus;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
+import java.util.Calendar;
 import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -32,21 +33,7 @@ public class ProductRelProc {
             rt = Errno.COUNT_LIMIT;
             throw new MgException(rt, "over limit;flow=%d;aid=%d;uid=%d;count=%d;limit=%d;", m_flow, aid, unionPriId, count, ProductRelValObj.Limit.COUNT_MAX);
         }
-        Integer rlPdId = relData.getInt(ProductRelEntity.Info.RL_PD_ID);
-        if(rlPdId == null) {
-            rlPdId = m_dao.buildId(aid, unionPriId, false);
-            if (rlPdId == null) {
-                rt = Errno.ERROR;
-                throw new MgException(rt, "rlPdId build error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
-            }
-        }else {
-            rlPdId = m_dao.updateId(aid, unionPriId, rlPdId, false);
-            if (rlPdId == null) {
-                rt = Errno.ERROR;
-                throw new MgException(rt, "rlPdId update error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
-            }
-        }
-        relData.setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId);
+        int rlPdId = createAndSetRlPdId(aid, unionPriId, relData);
         rt = m_dao.insert(relData);
         if(rt != Errno.OK) {
             throw new MgException(rt, "insert product rel error;flow=%d;aid=%d;uid=%d;relData=%s;", m_flow, aid, unionPriId, relData);
@@ -80,21 +67,7 @@ public class ProductRelProc {
                 throw new MgException(rt, "over limit;flow=%d;aid=%d;uid=%d;count=%d;limit=%d;", m_flow, aid, unionPriId, count, ProductRelValObj.Limit.COUNT_MAX);
             }
 
-            Integer rlPdId = relData.getInt(ProductRelEntity.Info.RL_PD_ID);
-            if(rlPdId == null) {
-                rlPdId = m_dao.buildId(aid, unionPriId, false);
-                if (rlPdId == null) {
-                    rt = Errno.ERROR;
-                    throw new MgException(rt, "rlPdId build error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
-                }
-            }else {
-                rlPdId = m_dao.updateId(aid, unionPriId, rlPdId, false);
-                if (rlPdId == null) {
-                    rt = Errno.ERROR;
-                    throw new MgException(rt, "rlPdId update error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
-                }
-            }
-            relData.setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId);
+            int rlPdId = createAndSetRlPdId(aid, unionPriId, relData);
             rlPdIds.add(rlPdId);
         }
 
@@ -174,7 +147,56 @@ public class ProductRelProc {
         return listRef.value;
     }
 
-    public int updatePdRel(int aid, ParamMatcher matcher, ParamUpdater updater) {
+    public void setSingle(int aid, int unionPriId, Integer rlPdId, ParamUpdater recvUpdater) {
+        ParamUpdater updater = assignUpdate(m_flow, aid, recvUpdater);
+        if (updater == null || updater.isEmpty()) {
+            return;
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
+
+        updatePdRel(aid, matcher, updater);
+    }
+
+    public void setPdRels(int aid, int unionPriId, FaiList<Integer> rlPdIds, ParamUpdater recvUpdater) {
+        ParamUpdater updater = assignUpdate(m_flow, aid, recvUpdater);
+        if (updater == null || updater.isEmpty()) {
+            return;
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
+
+        updatePdRel(aid, matcher, updater);
+    }
+
+    public static ParamUpdater assignUpdate(int flow, int aid, ParamUpdater recvUpdater) {
+        int rt;
+        if (recvUpdater == null || recvUpdater.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "updater=null;aid=%d;", flow, aid);
+        }
+        Param recvInfo = recvUpdater.getData();
+
+        Param data = new Param();
+        data.assign(recvInfo, ProductRelEntity.Info.PD_TYPE);
+        data.assign(recvInfo, ProductRelEntity.Info.LAST_SID);
+        data.assign(recvInfo, ProductRelEntity.Info.LAST_UPDATE_TIME);
+        data.assign(recvInfo, ProductRelEntity.Info.STATUS);
+        data.assign(recvInfo, ProductRelEntity.Info.UP_SALE_TIME);
+        if(data.isEmpty()) {
+            Log.logDbg("no pd rel field changed;flow=%d;aid=%d;", flow, aid);
+            return null;
+        }
+        Calendar now = Calendar.getInstance();
+        data.setCalendar(ProductRelEntity.Info.LAST_UPDATE_TIME, now);
+        data.setCalendar(ProductRelEntity.Info.UPDATE_TIME, now);
+
+        ParamUpdater updater = new ParamUpdater(data);
+        updater.add(recvUpdater.getOpList(ProductRelEntity.Info.FLAG));
+        return updater;
+    }
+
+    private int updatePdRel(int aid, ParamMatcher matcher, ParamUpdater updater) {
         int rt;
         if(updater == null || updater.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -199,7 +221,7 @@ public class ProductRelProc {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "args err;flow=%d;aid=%d;uid=%d;rlPdId=%s", m_flow, aid, unionPriId, rlPdId);
         }
-        Param info = ProductRelCacheCtrl.getCacheInfo(aid, unionPriId, rlPdId);
+        Param info = ProductRelCacheCtrl.InfoCache.getCacheInfo(aid, unionPriId, rlPdId);
         if (!Str.isEmpty(info)) {
             return info;
         }
@@ -232,7 +254,7 @@ public class ProductRelProc {
             throw new MgException(rt, "get error, pdIds is empty;aid=%d;pdIds=%s;", aid, pdIds);
         }
         // 从缓存获取数据
-        FaiList<Param> list = ProductRelCacheCtrl.getRlIdRelCacheList(aid, unionPriId, pdIds);
+        FaiList<Param> list = ProductRelCacheCtrl.RlIdRelCache.getCacheList(aid, unionPriId, pdIds);
         if(list == null) {
             list = new FaiList<Param>();
         }
@@ -256,6 +278,7 @@ public class ProductRelProc {
         searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, noCacheIds);
+        searchArg.matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.NE, ProductRelValObj.Status.DEL);
         //只查aid+pdId+unionPriId+rlPdId
         rt = m_dao.select(searchArg, tmpRef, ProductRelEntity.Info.AID, ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
@@ -264,7 +287,7 @@ public class ProductRelProc {
         if(tmpRef.value != null && !tmpRef.value.isEmpty()) {
             list.addAll(tmpRef.value);
             // 添加到缓存
-            ProductRelCacheCtrl.addRlIdRelCacheList(aid, unionPriId, tmpRef.value);
+            ProductRelCacheCtrl.RlIdRelCache.addCacheList(aid, unionPriId, tmpRef.value);
         }
 
         if (list.isEmpty()) {
@@ -281,6 +304,7 @@ public class ProductRelProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        searchArg.matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.NE, ProductRelValObj.Status.DEL);
         Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
         //只查aid+pdId+unionPriId+rlPdId
         int rt = m_dao.select(searchArg, listRef, ProductRelEntity.Info.AID, ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID);
@@ -329,6 +353,7 @@ public class ProductRelProc {
         }
         searchArg.matcher.and(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        searchArg.matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.NE, ProductRelValObj.Status.DEL);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
         int rt = m_dao.select(searchArg, listRef, selectFields);
@@ -358,6 +383,26 @@ public class ProductRelProc {
         return countRef.value;
     }
 
+    private int createAndSetRlPdId(int aid, int unionPriId, Param relData) {
+        int rt;
+        Integer rlPdId = relData.getInt(ProductRelEntity.Info.RL_PD_ID, 0);
+        if(rlPdId <= 0) {
+            rlPdId = m_dao.buildId(aid, unionPriId, false);
+            if (rlPdId == null) {
+                rt = Errno.ERROR;
+                throw new MgException(rt, "rlPdId build error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
+            }
+        }else {
+            rlPdId = m_dao.updateId(aid, unionPriId, rlPdId, false);
+            if (rlPdId == null) {
+                rt = Errno.ERROR;
+                throw new MgException(rt, "rlPdId update error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
+            }
+        }
+        relData.setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId);
+        return rlPdId;
+    }
+
     private FaiList<Param> getList(int aid, int unionPriId, HashSet<Integer> rlPdIds) {
         int rt;
         if(rlPdIds == null || rlPdIds.isEmpty()) {
@@ -366,7 +411,7 @@ public class ProductRelProc {
         }
         List<String> rlPdIdStrs = rlPdIds.stream().map(String::valueOf).collect(Collectors.toList());
         // 从缓存获取数据
-        FaiList<Param> list = ProductRelCacheCtrl.getCacheList(aid, unionPriId, rlPdIdStrs);
+        FaiList<Param> list = ProductRelCacheCtrl.InfoCache.getCacheList(aid, unionPriId, rlPdIdStrs);
         if(list == null) {
             list = new FaiList<Param>();
         }
@@ -390,6 +435,7 @@ public class ProductRelProc {
         searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         searchArg.matcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.IN, noCacheIds);
+        searchArg.matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.NE, ProductRelValObj.Status.DEL);
         rt = m_dao.select(searchArg, tmpRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             throw new MgException(rt, "get list error;aid=%d;uid=%d;rlPdId=%d;", aid, unionPriId, rlPdIds);
@@ -404,7 +450,7 @@ public class ProductRelProc {
         }
 
         // 添加到缓存
-        ProductRelCacheCtrl.addCacheList(aid, unionPriId, tmpRef.value);
+        ProductRelCacheCtrl.InfoCache.addCacheList(aid, unionPriId, tmpRef.value);
 
         return list;
     }

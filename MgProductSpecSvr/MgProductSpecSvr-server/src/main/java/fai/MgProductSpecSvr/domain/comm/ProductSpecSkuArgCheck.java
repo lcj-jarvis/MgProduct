@@ -8,13 +8,13 @@ import fai.MgProductSpecSvr.domain.entity.ProductSpecSkuValObj;
 public class ProductSpecSkuArgCheck {
 
     /**
-     * 校验skuNum
+     * 校验skuCode
      */
-    public static boolean isValidSkuNum(String skuNum) {
-        if(skuNum == null){
+    public static boolean isValidSkuCode(String skuCode) {
+        if(skuCode == null){
             return false;
         }
-        int length = skuNum.length();
-        return length >= ProductSpecSkuValObj.Limit.SkuNum.MIN_LEN && length <= ProductSpecSkuValObj.Limit.SkuNum.MAX_LEN;
+        int length = skuCode.length();
+        return length >= ProductSpecSkuValObj.Limit.SkuCode.MIN_LEN && length <= ProductSpecSkuValObj.Limit.SkuCode.MAX_LEN;
     }
 }

@@ -86,14 +86,31 @@ public class ProductBindPropProc {
         int rt;
         if(matcher == null || matcher.isEmpty()) {
             rt = Errno.ARGS_ERROR;
-            throw new MgException(rt, "args error, matcher is empty;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
+            throw new MgException(rt, "args error, matcher is empty;flow=%d;aid=%d;matcher=%s;", m_flow, aid, matcher.toJson());
         }
         Ref<Integer> refRowCount = new Ref<>();
         matcher.and(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         rt = m_bindPropDao.delete(matcher, refRowCount);
         if(rt != Errno.OK) {
-            throw new MgException(rt, "del info error;flow=%d;aid=%d;rlPropId=%d;delPropValIds=%d;", m_flow, aid);
+            throw new MgException(rt, "del info error;flow=%d;aid=%d;matcher=%s;", m_flow, aid, matcher.toJson());
+        }
+
+        return refRowCount.value;
+    }
+
+    public int delPdBindProp(int aid, FaiList<Integer> pdIds) {
+        int rt;
+        if(Util.isEmptyList(pdIds)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "del error, pdIds is empty;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
+        }
+        Ref<Integer> refRowCount = new Ref<>();
+        ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductBindPropEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        rt = m_bindPropDao.delete(matcher, refRowCount);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "del info error;flow=%d;aid=%d;sql=%s;", m_flow, aid, matcher.toJson());
         }
 
         return refRowCount.value;

@@ -15,6 +15,20 @@ public class ProductBasicProc {
         }
     }
 
+    public int getProductList(int aid, int unionPriId, FaiList<Integer> rlPdIds, FaiList<Param> list) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.getProductList(aid, unionPriId, rlPdIds, list);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            Log.logErr(rt, "getProductList error;flow=%d;aid=%d;uid=%d;rlPdIds=%s;", m_flow, aid, unionPriId, rlPdIds);
+        }
+        return rt;
+    }
+
     public int getPdBindPropInfo(int aid, int tid, int unionPriId, int rlPdId, FaiList<Param> bindPropList) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
@@ -153,6 +167,44 @@ public class ProductBasicProc {
         rt = m_cli.batchBindProductRel(aid, tid, bindRlPdInfo, infoList, rlPdIdsRef);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batchBindProductRel error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
+            return rt;
+        }
+
+        return rt;
+    }
+
+    /**
+     * 修改指定商品
+     */
+    public int setSinglePd(int aid, int unionPriId, Integer rlPdId, ParamUpdater updater) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.setSinglePd(aid, unionPriId, rlPdId, updater);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "batchDelPdRelBind error;flow=%d;aid=%d;unionPriId=%d;updater=%s;", m_flow, aid, unionPriId, updater.toJson());
+            return rt;
+        }
+
+        return rt;
+    }
+
+    /**
+     * 修改指定商品
+     */
+    public int setProducts(int aid, int unionPriId, FaiList<Integer> rlPdIds, ParamUpdater updater) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.setProducts(aid, unionPriId, rlPdIds, updater);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "batchDelPdRelBind error;flow=%d;aid=%d;unionPriId=%d;updater=%s;", m_flow, aid, unionPriId, updater.toJson());
             return rt;
         }
 
@@ -312,7 +364,55 @@ public class ProductBasicProc {
         }
         rt = m_cli.batchBindProductsRel(aid, tid, list);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "batchAddProductAndRel error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
+            Log.logErr(rt, "batchBindProductsRel error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
+            return rt;
+        }
+
+        return rt;
+    }
+
+    public int getPdBindGroups(int aid, int unionPriId, FaiList<Integer> rlPdIds, FaiList<Param> list) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.getPdBindGroup(aid, unionPriId, rlPdIds, list);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            Log.logErr(rt, "getPdBindGroup error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+
+        return rt;
+    }
+
+    public int setPdBindGroup(int aid, int unionPriId, int rlPdId, FaiList<Integer> addGroupIds, FaiList<Integer> delGroupIds) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.setPdBindGroup(aid, unionPriId, rlPdId, addGroupIds, delGroupIds);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "setPdBindGroup error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+
+        return rt;
+    }
+
+    public int delPdBindGroup(int aid, int unionPriId, FaiList<Integer> rlGroupIds) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.delPdBindGroup(aid, unionPriId, rlGroupIds);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "delPdBindGroup error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
             return rt;
         }
 

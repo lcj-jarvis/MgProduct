@@ -157,8 +157,8 @@ public class ProductBasicService extends MgProductInfService {
             int unionPriId = idRef.value;
 
             FaiList<Integer> rlPdIds = new FaiList<Integer>();
-            ProductBasicProc basicService = new ProductBasicProc(flow);
-            rt = basicService.getRlPdByPropVal(aid, tid, unionPriId, proIdsAndValIds, rlPdIds);
+            ProductBasicProc basicProc = new ProductBasicProc(flow);
+            rt = basicProc.getRlPdByPropVal(aid, tid, unionPriId, proIdsAndValIds, rlPdIds);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -166,6 +166,49 @@ public class ProductBasicService extends MgProductInfService {
             FaiBuffer sendBuf = new FaiBuffer(true);
             rlPdIds.toBuffer(sendBuf, ProductBasicDto.Key.RL_PD_IDS);
             session.write(sendBuf);
+            Log.logDbg("get ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * 获取商品数据（商品表+业务表）
+     */
+    public int getProductList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+            if(rlPdIds == null || rlPdIds.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr(rt, "args error, rlPdIds is empty;flow=%d;aid=%d;", flow, aid);
+                return rt;
+            }
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            FaiList<Param> list = new FaiList<>();
+            ProductBasicProc basicProc = new ProductBasicProc(flow);
+            rt = basicProc.getProductList(aid, unionPriId, rlPdIds, list);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            list.toBuffer(sendBuf, ProductBasicDto.Key.PD_LIST, ProductBasicDto.getProductDto());
+            session.write(sendBuf);
+            Log.logDbg("get ok;flow=%d;aid=%d;unionPriId=%d;rlPdIds=%s;", flow, aid, unionPriId, rlPdIds);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }
@@ -245,22 +288,22 @@ public class ProductBasicService extends MgProductInfService {
             }
             int unionPriId = idRef.value;
 
-            Integer bindRlPdId = bindRlPdInfo.getInt(ProductBasicEntity.ProductRelInfo.RL_PD_ID);
+            Integer bindRlPdId = bindRlPdInfo.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID);
             if(bindRlPdId == null) {
                 rt = Errno.ARGS_ERROR;
                 Log.logErr(rt, "args error, bindRlPdId is not exist;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
                 return rt;
             }
 
-            int bindTid = bindRlPdInfo.getInt(ProductBasicEntity.ProductRelInfo.TID, 0);
+            int bindTid = bindRlPdInfo.getInt(ProductBasicEntity.ProductInfo.TID, 0);
             if(!FaiValObj.TermId.isValidTid(bindTid)) {
                 rt = Errno.ARGS_ERROR;
                 Log.logErr("args error, bindTid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, bindTid);
                 return rt;
             }
-            int bindSiteId = bindRlPdInfo.getInt(ProductBasicEntity.ProductRelInfo.SITE_ID, 0);
-            int bindLgid = bindRlPdInfo.getInt(ProductBasicEntity.ProductRelInfo.LGID, 0);
-            int bindKeepPriId1 = bindRlPdInfo.getInt(ProductBasicEntity.ProductRelInfo.KEEP_PRI_ID1, 0);
+            int bindSiteId = bindRlPdInfo.getInt(ProductBasicEntity.ProductInfo.SITE_ID, 0);
+            int bindLgid = bindRlPdInfo.getInt(ProductBasicEntity.ProductInfo.LGID, 0);
+            int bindKeepPriId1 = bindRlPdInfo.getInt(ProductBasicEntity.ProductInfo.KEEP_PRI_ID1, 0);
             Ref<Integer> bindIdRef = new Ref<Integer>();
             rt = getUnionPriId(flow, aid, bindTid, bindSiteId, bindLgid, bindKeepPriId1, bindIdRef);
             if(rt != Errno.OK) {
@@ -269,8 +312,8 @@ public class ProductBasicService extends MgProductInfService {
             int bindUnionPriId = bindIdRef.value;
             // 重组 bindRlPdInfo
             bindRlPdInfo.clear();
-            bindRlPdInfo.setInt(ProductBasicEntity.ProductRelInfo.UNION_PRI_ID, bindUnionPriId);
-            bindRlPdInfo.setInt(ProductBasicEntity.ProductRelInfo.RL_PD_ID, bindRlPdId);
+            bindRlPdInfo.setInt(ProductBasicEntity.ProductInfo.UNION_PRI_ID, bindUnionPriId);
+            bindRlPdInfo.setInt(ProductBasicEntity.ProductInfo.RL_PD_ID, bindRlPdId);
 
             ProductBasicProc basicService = new ProductBasicProc(flow);
             Ref<Integer> rlPdIdRef = new Ref<Integer>();
@@ -307,28 +350,28 @@ public class ProductBasicService extends MgProductInfService {
                 return rt;
             }
 
-            Integer bindRlPdId = bindRlPdInfo.getInt(ProductBasicEntity.ProductRelInfo.RL_PD_ID);
+            Integer bindRlPdId = bindRlPdInfo.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID);
             if(bindRlPdId == null) {
                 rt = Errno.ARGS_ERROR;
                 Log.logErr(rt, "args error, bindRlPdId is not exist;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
                 return rt;
             }
 
-            int bindTid = bindRlPdInfo.getInt(ProductBasicEntity.ProductRelInfo.TID, 0);
+            int bindTid = bindRlPdInfo.getInt(ProductBasicEntity.ProductInfo.TID, 0);
             if(!FaiValObj.TermId.isValidTid(bindTid)) {
                 rt = Errno.ARGS_ERROR;
                 Log.logErr("args error, bindTid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, bindTid);
                 return rt;
             }
-            int bindSiteId = bindRlPdInfo.getInt(ProductBasicEntity.ProductRelInfo.SITE_ID, 0);
-            int bindLgid = bindRlPdInfo.getInt(ProductBasicEntity.ProductRelInfo.LGID, 0);
-            int bindKeepPriId1 = bindRlPdInfo.getInt(ProductBasicEntity.ProductRelInfo.KEEP_PRI_ID1, 0);
+            int bindSiteId = bindRlPdInfo.getInt(ProductBasicEntity.ProductInfo.SITE_ID, 0);
+            int bindLgid = bindRlPdInfo.getInt(ProductBasicEntity.ProductInfo.LGID, 0);
+            int bindKeepPriId1 = bindRlPdInfo.getInt(ProductBasicEntity.ProductInfo.KEEP_PRI_ID1, 0);
 
             FaiList<Param> searchArgList = new FaiList<Param>();
             for (Param info : infoList) {
-                Integer siteId = info.getInt(ProductBasicEntity.ProductRelInfo.SITE_ID, 0);
-                Integer lgId = info.getInt(ProductBasicEntity.ProductRelInfo.LGID, 0);
-                Integer keepPriId1 = info.getInt(ProductBasicEntity.ProductRelInfo.KEEP_PRI_ID1, 0);
+                Integer siteId = info.getInt(ProductBasicEntity.ProductInfo.SITE_ID, 0);
+                Integer lgId = info.getInt(ProductBasicEntity.ProductInfo.LGID, 0);
+                Integer keepPriId1 = info.getInt(ProductBasicEntity.ProductInfo.KEEP_PRI_ID1, 0);
                 searchArgList.add(new Param().setInt(MgPrimaryKeyEntity.Info.TID, tid)
                                 .setInt(MgPrimaryKeyEntity.Info.SITE_ID, siteId)
                                 .setInt(MgPrimaryKeyEntity.Info.LGID, lgId)
@@ -355,10 +398,10 @@ public class ProductBasicService extends MgProductInfService {
                 primaryKeyMap.put(resTid + "-" + siteId + "-" + lgId + "-" + keepPriId1, unionPriId);
             }
             for (Param info : infoList) {
-                Integer siteId = info.getInt(ProductBasicEntity.ProductRelInfo.SITE_ID, 0);
-                Integer lgId = info.getInt(ProductBasicEntity.ProductRelInfo.LGID, 0);
-                Integer keepPriId1 = info.getInt(ProductBasicEntity.ProductRelInfo.KEEP_PRI_ID1, 0);
-                info.setInt(ProductBasicEntity.ProductRelInfo.UNION_PRI_ID, primaryKeyMap.get(tid + "-" + siteId + "-" + lgId + "-" + keepPriId1));
+                Integer siteId = info.getInt(ProductBasicEntity.ProductInfo.SITE_ID, 0);
+                Integer lgId = info.getInt(ProductBasicEntity.ProductInfo.LGID, 0);
+                Integer keepPriId1 = info.getInt(ProductBasicEntity.ProductInfo.KEEP_PRI_ID1, 0);
+                info.setInt(ProductBasicEntity.ProductInfo.UNION_PRI_ID, primaryKeyMap.get(tid + "-" + siteId + "-" + lgId + "-" + keepPriId1));
             }
 
             Integer bindUnionPriId = primaryKeyMap.get(bindTid + "-" + bindSiteId + "-" + bindLgid + "-" + bindKeepPriId1);
@@ -370,8 +413,8 @@ public class ProductBasicService extends MgProductInfService {
 
             // 重组 bindRlPdInfo
             bindRlPdInfo.clear();
-            bindRlPdInfo.setInt(ProductBasicEntity.ProductRelInfo.UNION_PRI_ID, bindUnionPriId);
-            bindRlPdInfo.setInt(ProductBasicEntity.ProductRelInfo.RL_PD_ID, bindRlPdId);
+            bindRlPdInfo.setInt(ProductBasicEntity.ProductInfo.UNION_PRI_ID, bindUnionPriId);
+            bindRlPdInfo.setInt(ProductBasicEntity.ProductInfo.RL_PD_ID, bindRlPdId);
 
             ProductBasicProc basicService = new ProductBasicProc(flow);
             Ref<FaiList<Integer>> rlPdIdsRef = new Ref<FaiList<Integer>>();
@@ -388,6 +431,83 @@ public class ProductBasicService extends MgProductInfService {
             rlPdIds.toBuffer(sendBuf, ProductBasicDto.Key.RL_PD_IDS);
             session.write(sendBuf);
             Log.logStd("batch bind ok;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * 修改单个商品数据
+     */
+    public int setSinglePd(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, Integer rlPdId, ParamUpdater updater) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+            if(rlPdId < 0) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr(rt, "args error, rlPdId < 0;flow=%d;aid=%d;rlPdIds=%d;", flow, aid, rlPdId);
+                return rt;
+            }
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            ProductBasicProc basicService = new ProductBasicProc(flow);
+            rt = basicService.setSinglePd(aid, unionPriId, rlPdId, updater);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("set pd ok;flow=%d;aid=%d;tid=%d;rlPdId=%s;", flow, aid, tid, rlPdId);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    public int setProducts(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, ParamUpdater updater) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+            if(rlPdIds == null || rlPdIds.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr(rt, "args error, rlPdIds is empty;flow=%d;aid=%d;", flow, aid);
+                return rt;
+            }
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            ProductBasicProc basicService = new ProductBasicProc(flow);
+            rt = basicService.setProducts(aid, unionPriId, rlPdIds, updater);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("set pds ok;flow=%d;aid=%d;tid=%d;rlPdIds=%s;", flow, aid, tid, rlPdIds);
         }finally {
             stat.end(rt != Errno.OK, rt);
         }
@@ -470,7 +590,7 @@ public class ProductBasicService extends MgProductInfService {
                 Log.logErr(rt, "batchDelProduct err;aid=%s;tid=%s;uid=%d;rlPdIds=%s;", aid, tid, unionPriId, rlPdIds);
                 return rt;
             }
-            FaiList<Integer> pdIdList = OptMisc.getValList(list, ProductBasicEntity.ProductRelInfo.PD_ID);
+            FaiList<Integer> pdIdList = OptMisc.getValList(list, ProductBasicEntity.ProductInfo.PD_ID);
             StringBuilder msg = new StringBuilder();
             msg.append(String.format("del products start;flow=%d;aid=%d;tid=%d;rlPdIds=%s;pdIdList=%s;", flow, aid, tid, rlPdIds, pdIdList));
             Log.logStdCusLen(msg.length(), msg.toString());// 输出全日志
@@ -498,6 +618,76 @@ public class ProductBasicService extends MgProductInfService {
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
             Log.logStd("del products ok;flow=%d;aid=%d;tid=%d;softDel=%s;pdIdList=%s;", flow, aid, tid, softDel, pdIdList);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    public int getPdBindGroupList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            FaiList<Param> list = new FaiList<>();
+            ProductBasicProc basicService = new ProductBasicProc(flow);
+            rt = basicService.getPdBindGroups(aid, unionPriId, rlPdIds, list);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            list.toBuffer(sendBuf, ProductBasicDto.Key.BIND_GROUP_LIST, ProductBasicDto.getBindGroupDto());
+            session.write(sendBuf);
+            Log.logDbg("get ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+
+    public int setPdBindGroup(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Integer> addGroupIds, FaiList<Integer> delGroupIds) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            ProductBasicProc basicService = new ProductBasicProc(flow);
+            rt = basicService.setPdBindGroup(aid, unionPriId, rlPdId, addGroupIds, delGroupIds);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("set ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
         }finally {
             stat.end(rt != Errno.OK, rt);
         }

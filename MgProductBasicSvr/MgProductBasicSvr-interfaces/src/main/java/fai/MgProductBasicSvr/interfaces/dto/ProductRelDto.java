@@ -106,5 +106,6 @@ public class ProductRelDto {
         public static final int TOTAL_SIZE = 11;
         public static final int SEARCH_ARG = 12;
         public static final int SOFT_DEL = 13;
+        public static final int UPDATER = 14;
     }
 }

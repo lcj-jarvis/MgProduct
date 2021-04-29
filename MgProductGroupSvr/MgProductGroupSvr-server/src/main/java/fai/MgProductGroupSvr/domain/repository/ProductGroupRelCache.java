@@ -8,74 +8,77 @@ import fai.mgproduct.comm.DataStatus;
 import java.util.Calendar;
 
 public class ProductGroupRelCache extends CacheCtrl {
-    public static FaiList<Param> getCacheList(int aid, int unionPriId) {
-        String cacheKey = getCacheKey(aid, unionPriId);
-        return m_cache.hgetAllFaiList(cacheKey, ProductGroupRelDto.Key.INFO, ProductGroupRelDto.getInfoDto());
-    }
 
-    public static void addCache(int aid, int uninoId, Param info) {
-        if(Str.isEmpty(info)) {
-            return;
+    public static class InfoCache {
+        public static FaiList<Param> getCacheList(int aid, int unionPriId) {
+            String cacheKey = getCacheKey(aid, unionPriId);
+            return m_cache.hgetAllFaiList(cacheKey, ProductGroupRelDto.Key.INFO, ProductGroupRelDto.getInfoDto());
         }
-        String cacheKey = getCacheKey(aid, uninoId);
-        int rlGroupId = info.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID, 0);
-        m_cache.hsetParam(true, cacheKey, String.valueOf(rlGroupId), info, ProductGroupRelDto.Key.INFO, ProductGroupRelDto.getInfoDto());
-    }
 
-    public static void addCacheList(int aid, int uninoId, FaiList<Param> list) {
-        if(list == null || list.isEmpty()) {
-            return;
-        }
-        String cacheKey = getCacheKey(aid, uninoId);
-        m_cache.hmsetFaiList(cacheKey, ProductGroupRelEntity.Info.RL_GROUP_ID, Var.Type.INT, list, ProductGroupRelDto.Key.INFO, ProductGroupRelDto.getInfoDto());
-    }
-
-    public static void delCacheList(int aid, int uninoId, FaiList<Integer> rlGroupIds) {
-        if(rlGroupIds == null || rlGroupIds.isEmpty()) {
-            return;
-        }
-        String cacheKey = getCacheKey(aid, uninoId);
-        if(!m_cache.exists(cacheKey)) {
-            return;
-        }
-        String[] rlGroupIdStrs = new String[rlGroupIds.size()];
-        for(int i = 0; i < rlGroupIds.size(); i++) {
-            rlGroupIdStrs[i] = String.valueOf(rlGroupIds.get(i));
-        }
-        m_cache.hdel(cacheKey, rlGroupIdStrs);
-    }
-
-    public static void updateCacheList(int aid, int uninoId, FaiList<ParamUpdater> updaterList) {
-        if(updaterList == null || updaterList.isEmpty()) {
-            return;
-        }
-        String cacheKey = getCacheKey(aid, uninoId);
-        if(!m_cache.exists(cacheKey)) {
-            return;
-        }
-        for(ParamUpdater updater : updaterList) {
-            Param info = updater.getData();
+        public static void addCache(int aid, int uninoId, Param info) {
+            if(Str.isEmpty(info)) {
+                return;
+            }
+            String cacheKey = getCacheKey(aid, uninoId);
             int rlGroupId = info.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID, 0);
-            m_cache.hsetParam(cacheKey, String.valueOf(rlGroupId), updater, ProductGroupRelDto.Key.INFO, ProductGroupRelDto.getInfoDto());
+            m_cache.hsetParam(true, cacheKey, String.valueOf(rlGroupId), info, ProductGroupRelDto.Key.INFO, ProductGroupRelDto.getInfoDto());
         }
-    }
 
-    public static boolean exists(int aid, int uninoId) {
-        String cacheKey = getCacheKey(aid, uninoId);
-        return m_cache.exists(cacheKey);
-    }
+        public static void addCacheList(int aid, int uninoId, FaiList<Param> list) {
+            if(list == null || list.isEmpty()) {
+                return;
+            }
+            String cacheKey = getCacheKey(aid, uninoId);
+            m_cache.hmsetFaiList(cacheKey, ProductGroupRelEntity.Info.RL_GROUP_ID, Var.Type.INT, list, ProductGroupRelDto.Key.INFO, ProductGroupRelDto.getInfoDto());
+        }
 
-    public static void setExpire(int aid, int uninoId) {
-        String cacheKey = getCacheKey(aid, uninoId);
-        m_cache.expire(cacheKey, EXPIRE_SECOND);
-    }
+        public static void delCacheList(int aid, int uninoId, FaiList<Integer> rlGroupIds) {
+            if(rlGroupIds == null || rlGroupIds.isEmpty()) {
+                return;
+            }
+            String cacheKey = getCacheKey(aid, uninoId);
+            if(!m_cache.exists(cacheKey)) {
+                return;
+            }
+            String[] rlGroupIdStrs = new String[rlGroupIds.size()];
+            for(int i = 0; i < rlGroupIds.size(); i++) {
+                rlGroupIdStrs[i] = String.valueOf(rlGroupIds.get(i));
+            }
+            m_cache.hdel(cacheKey, rlGroupIdStrs);
+        }
 
-    public static String getCacheKey(int aid, int unionPriId) {
-        return CACHE_KEY + "-" + aid + "-" + unionPriId;
-    }
+        public static void updateCacheList(int aid, int uninoId, FaiList<ParamUpdater> updaterList) {
+            if(updaterList == null || updaterList.isEmpty()) {
+                return;
+            }
+            String cacheKey = getCacheKey(aid, uninoId);
+            if(!m_cache.exists(cacheKey)) {
+                return;
+            }
+            for(ParamUpdater updater : updaterList) {
+                Param info = updater.getData();
+                int rlGroupId = info.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID, 0);
+                m_cache.hsetParam(cacheKey, String.valueOf(rlGroupId), updater, ProductGroupRelDto.Key.INFO, ProductGroupRelDto.getInfoDto());
+            }
+        }
 
+        public static boolean exists(int aid, int uninoId) {
+            String cacheKey = getCacheKey(aid, uninoId);
+            return m_cache.exists(cacheKey);
+        }
+
+        public static void setExpire(int aid, int uninoId) {
+            String cacheKey = getCacheKey(aid, uninoId);
+            m_cache.expire(cacheKey, EXPIRE_SECOND);
+        }
+
+        public static String getCacheKey(int aid, int unionPriId) {
+            return wrapCacheVersion(CACHE_KEY + "-" + aid + "-" + unionPriId, aid);
+        }
+
+        private static final String CACHE_KEY = "MG_productGroupRel";
+    }
     private static final int EXPIRE_SECOND = 10;
-    private static final String CACHE_KEY = "MG_productGroupRel";
 
     /*** sort 字段的 cache ***/
     public static class SortCache {
@@ -104,7 +107,7 @@ public class ProductGroupRelCache extends CacheCtrl {
         }
 
         public static String getCacheKey(int aid, int unionPriId) {
-            return SORT_CACHE_KEY + "-" + aid + "-" + unionPriId;
+            return wrapCacheVersion(SORT_CACHE_KEY + "-" + aid + "-" + unionPriId, aid);
         }
         private static final String SORT_CACHE_KEY = "MG_productGroupRelSort";
     }
@@ -146,7 +149,7 @@ public class ProductGroupRelCache extends CacheCtrl {
         }
 
         public static String getCacheKey(int aid, int unionPriId) {
-            return DATA_STATUS_CACHE_KEY + "-" + aid + "-" + unionPriId;
+            return wrapCacheVersion(DATA_STATUS_CACHE_KEY + "-" + aid + "-" + unionPriId, aid);
         }
 
         private static final String DATA_STATUS_CACHE_KEY = "MG_pdGroupRelDS";

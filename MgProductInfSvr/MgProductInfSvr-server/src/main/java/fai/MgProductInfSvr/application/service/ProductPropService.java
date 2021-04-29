@@ -20,7 +20,7 @@ public class ProductPropService extends MgProductInfService {
         try {
             if(!FaiValObj.TermId.isValidTid(tid)) {
                 rt = Errno.ARGS_ERROR;
-                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                Log.logErr(rt, "args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
                 return rt;
             }
 

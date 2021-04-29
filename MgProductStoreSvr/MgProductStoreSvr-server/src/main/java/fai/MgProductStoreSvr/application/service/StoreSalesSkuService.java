@@ -3,7 +3,8 @@ package fai.MgProductStoreSvr.application.service;
 import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
-import fai.MgProductStoreSvr.domain.comm.SkuStoreKey;
+import fai.MgProductStoreSvr.domain.comm.RecordKey;
+import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
 import fai.MgProductStoreSvr.domain.comm.Utils;
 import fai.MgProductStoreSvr.domain.entity.*;
 import fai.MgProductStoreSvr.domain.repository.*;
@@ -11,6 +12,7 @@ import fai.MgProductStoreSvr.domain.serviceProc.*;
 import fai.MgProductStoreSvr.interfaces.conf.MqConfig;
 import fai.MgProductStoreSvr.interfaces.dto.HoldingRecordDto;
 import fai.MgProductStoreSvr.interfaces.dto.StoreSalesSkuDto;
+import fai.MgProductStoreSvr.interfaces.entity.SkuCountChangeEntity;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.mq.api.MqFactory;
 import fai.comm.mq.api.Producer;
@@ -19,12 +21,16 @@ import fai.comm.mq.exception.MqClientException;
 import fai.comm.mq.message.FaiMqMessage;
 import fai.comm.util.*;
 import fai.mgproduct.comm.MgProductErrno;
+import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
 
+/**
+ * 主要处理 库存销售sku相关 请求
+ */
 public class StoreSalesSkuService extends StoreService {
     /**
      * 刷新库存销售sku信息
@@ -55,15 +61,17 @@ public class StoreSalesSkuService extends StoreService {
                 SkuSummaryProc skuSummaryProc = new SkuSummaryProc(skuSummaryDaoCtrl, flow);
                 StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
 
+                // 查出当前已有的sku
                 Ref<FaiList<Param>> listRef = new Ref<>();
                 rt = storeSalesSkuProc.getListFromDao(aid, unionPriId, pdId, listRef, StoreSalesSkuEntity.Info.SKU_ID);
                 if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                     return rt;
                 }
                 FaiList<Param> storeSalesSkuInfoList = listRef.value;
+
                 Map<Long, Param> skuIdPdScSkuInfoMap = Utils.getMap(pdScSkuInfoList, StoreSalesSkuEntity.Info.SKU_ID);
+                // 筛选出需要删除的sku
                 FaiList<Long> delSkuIdList = new FaiList<>();
-                FaiList<Param> addInfoList = new FaiList<>();
                 for (Param storeSalesSkuInfo : storeSalesSkuInfoList) {
                     Long skuId = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.SKU_ID);
                     Param pdScSkuInfo = skuIdPdScSkuInfoMap.remove(skuId);
@@ -72,7 +80,8 @@ public class StoreSalesSkuService extends StoreService {
                         continue;
                     }
                 }
-
+                // 生成需要添加的sku
+                FaiList<Param> addInfoList = new FaiList<>();
                 for (Map.Entry<Long, Param> skuIdPdScSkuInfoEntry : skuIdPdScSkuInfoMap.entrySet()) {
                     addInfoList.add(new Param()
                             .setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId)
@@ -110,12 +119,14 @@ public class StoreSalesSkuService extends StoreService {
                             return rt;
                         }
                     }
+                    // 当本次刷新没有修改操作就直接返回
                     if(notModify){
                         FaiBuffer sendBuf = new FaiBuffer(true);
                         session.write(sendBuf);
                         Log.logDbg("not modify;flow=%d;aid=%d;unionPriId=%s;pdId=%s;rlPdId=%s;", flow, aid, unionPriId, pdId, rlPdId);
                         return rt = Errno.OK;
                     }
+                    // 同步方式汇总信息
                     rt = reportSummary(aid, new FaiList<>(Arrays.asList(pdId)), ReportValObj.Flag.REPORT_COUNT| ReportValObj.Flag.REPORT_PRICE
                             , null, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
                     if(rt != Errno.OK){
@@ -126,9 +137,11 @@ public class StoreSalesSkuService extends StoreService {
                         transactionCtrl.rollback();
                         return rt;
                     }
+                    // 事务提交前先设置一个较短的过期时间
                     spuBizSummaryProc.setDirtyCacheEx(aid);
                     spuSummaryProc.setDirtyCacheEx(aid);
                     transactionCtrl.commit();
+                    // 提交成功再删除缓存
                     spuBizSummaryProc.deleteDirtyCache(aid);
                     spuSummaryProc.deleteDirtyCache(aid);
                 }
@@ -255,22 +268,26 @@ public class StoreSalesSkuService extends StoreService {
                         return rt;
                     }
                     FaiList<Param> reportInfoList = listRef.value;
-                    Map<Integer, Map<Integer, Param>> unionPriId_pdId_bizSalesSummaryInfoMapMap = new HashMap<>();
-                    Map<Integer, Param> pdIdSalesSummaryInfoMap = new HashMap<>();
-                    Map<Long, Param> skuIdStoreSkuSummaryInfoMap = new HashMap<>();
+                    // 记录spu业务维度的汇总
+                    Map<Integer/*unionPriId*/, Map<Integer/*pdId*/, Param/*spuBizSummary*/>> unionPriId_pdId_spuBizSummaryInfoMapMap = new HashMap<>();
+                    // 记录spu维度的汇总
+                    Map<Integer/*pdId*/, Param/*spuSummary*/> pdIdSpuSummaryInfoMap = new HashMap<>();
+                    // 记录sku维度的汇总
+                    Map<Long/*skuId*/, Param/*skuSummary*/> skuIdSkuSummaryInfoMap = new HashMap<>();
                     for (Param reportInfo : reportInfoList) {
                         int pdId = reportInfo.getInt(StoreSalesSkuEntity.Info.PD_ID);
                         int unionPriId = reportInfo.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
                         long skuId = reportInfo.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                        // 计算spu+业务维度的汇总
                         {
-                            Param spuBizSalesSummaryInfo = new Param();
-                            assemblySpuBizSummaryInfo(spuBizSalesSummaryInfo, reportInfo, ReportValObj.Flag.REPORT_PRICE| ReportValObj.Flag.REPORT_COUNT);
-                            Map<Integer, Param> pdId_bizSalesSummaryInfoMap = unionPriId_pdId_bizSalesSummaryInfoMapMap.get(unionPriId);
-                            if(pdId_bizSalesSummaryInfoMap == null){
-                                pdId_bizSalesSummaryInfoMap = new HashMap<>();
-                                unionPriId_pdId_bizSalesSummaryInfoMapMap.put(unionPriId, pdId_bizSalesSummaryInfoMap);
+                            Param spuBizSummaryInfo = new Param();
+                            assemblySpuBizSummaryInfo(spuBizSummaryInfo, reportInfo, ReportValObj.Flag.REPORT_PRICE| ReportValObj.Flag.REPORT_COUNT);
+                            Map<Integer, Param> pdId_spuBizSummaryInfoMap = unionPriId_pdId_spuBizSummaryInfoMapMap.get(unionPriId);
+                            if(pdId_spuBizSummaryInfoMap == null){
+                                pdId_spuBizSummaryInfoMap = new HashMap<>();
+                                unionPriId_pdId_spuBizSummaryInfoMapMap.put(unionPriId, pdId_spuBizSummaryInfoMap);
                             }
-                            pdId_bizSalesSummaryInfoMap.put(pdId, spuBizSalesSummaryInfo);
+                            pdId_spuBizSummaryInfoMap.put(pdId, spuBizSummaryInfo);
                         }
                         Object bitOrFlagObj = reportInfo.getObject(StoreSalesSkuEntity.ReportInfo.BIT_OR_FLAG);
                         int bigOrFlag = ((BigInteger)bitOrFlagObj).intValue();
@@ -285,12 +302,13 @@ public class StoreSalesSkuService extends StoreService {
                             minPrice = Long.MAX_VALUE;
                             maxPrice = Long.MIN_VALUE;
                         }
+                        // 计算 spu维度的汇总
                         {
-                            Param spuSummaryInfo = pdIdSalesSummaryInfoMap.get(pdId);
+                            Param spuSummaryInfo = pdIdSpuSummaryInfoMap.get(pdId);
                             if(spuSummaryInfo == null){
                                 spuSummaryInfo = new Param();
                                 spuSummaryInfo.setInt(SpuSummaryEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
-                                pdIdSalesSummaryInfoMap.put(pdId, spuSummaryInfo);
+                                pdIdSpuSummaryInfoMap.put(pdId, spuSummaryInfo);
                             }
                             int lastCount = spuSummaryInfo.getInt(SpuSummaryEntity.Info.COUNT, 0);
                             int lastRemainCount = spuSummaryInfo.getInt(SpuSummaryEntity.Info.REMAIN_COUNT, 0);
@@ -303,13 +321,14 @@ public class StoreSalesSkuService extends StoreService {
                             spuSummaryInfo.setLong(SpuSummaryEntity.Info.MAX_PRICE, Math.max(lastMaxPrice, maxPrice));
                             spuSummaryInfo.setLong(SpuSummaryEntity.Info.MIN_PRICE, Math.min(lastMinPrice, minPrice));
                         }
+                        // 计算sku维度的汇总
                         {
-                            Param skuSummaryInfo = skuIdStoreSkuSummaryInfoMap.get(skuId);
+                            Param skuSummaryInfo = skuIdSkuSummaryInfoMap.get(skuId);
                             if(skuSummaryInfo == null){
                                 skuSummaryInfo = new Param();
                                 skuSummaryInfo.setInt(SkuSummaryEntity.Info.PD_ID, pdId);
                                 skuSummaryInfo.setInt(SkuSummaryEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
-                                skuIdStoreSkuSummaryInfoMap.put(skuId, skuSummaryInfo);
+                                skuIdSkuSummaryInfoMap.put(skuId, skuSummaryInfo);
                             }
                             int lastCount = skuSummaryInfo.getInt(SkuSummaryEntity.Info.COUNT, 0);
                             int lastRemainCount = skuSummaryInfo.getInt(SkuSummaryEntity.Info.REMAIN_COUNT, 0);
@@ -324,17 +343,17 @@ public class StoreSalesSkuService extends StoreService {
                         }
                     }
 
-                    rt = spuBizSummaryProc.report4synSPU2SKU(aid, unionPriId_pdId_bizSalesSummaryInfoMapMap);
+                    rt = spuBizSummaryProc.report4synSPU2SKU(aid, unionPriId_pdId_spuBizSummaryInfoMapMap);
                     if(rt != Errno.OK){
                         return rt;
                     }
 
-                    rt = spuSummaryProc.report4synSPU2SKU(aid, pdIdSalesSummaryInfoMap);
+                    rt = spuSummaryProc.report4synSPU2SKU(aid, pdIdSpuSummaryInfoMap);
                     if(rt != Errno.OK){
                         return rt;
                     }
 
-                    rt = skuSummaryProc.report4synSPU2SKU(aid, skuIdStoreSkuSummaryInfoMap);
+                    rt = skuSummaryProc.report4synSPU2SKU(aid, skuIdSkuSummaryInfoMap);
                     if(rt != Errno.OK){
                         return rt;
                     }
@@ -363,24 +382,27 @@ public class StoreSalesSkuService extends StoreService {
         }
         return rt;
     }
-
-    /**
-     * 修改库存销售sku信息
-     */
     public int setSkuStoreSales(FaiSession session, int flow, int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) throws IOException {
+        return batchSetSkuStoreSales(session, flow, aid, tid, new FaiList<>(Arrays.asList(unionPriId)), pdId, rlPdId, updaterList);
+    }
+    /**
+     * 批量修改库存销售sku信息
+     */
+    public int batchSetSkuStoreSales(FaiSession session, int flow, int aid, int tid, FaiList<Integer> unionPriIdList, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
-            if (aid <= 0 || unionPriId<= 0 || pdId <= 0 || rlPdId <= 0 || updaterList == null || updaterList.isEmpty()) {
+
+            if (aid <= 0 || Util.isEmptyList(unionPriIdList) || pdId <= 0 || rlPdId <= 0 || updaterList == null || updaterList.isEmpty()) {
                 rt = Errno.ARGS_ERROR;
-                Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;pdId=%s;rlPdId=%s;updaterList=%s", flow, aid, unionPriId, pdId, rlPdId, updaterList);
+                Log.logErr("arg err;flow=%d;aid=%d;unionPriIdList=%s;pdId=%s;rlPdId=%s;updaterList=%s", flow, aid, unionPriIdList, pdId, rlPdId, updaterList);
                 return rt;
             }
             FaiList<Long> skuIdList = new FaiList<>();
             for (ParamUpdater updater : updaterList) {
                 Long skuId = updater.getData().getLong(StoreSalesSkuEntity.Info.SKU_ID);
                 if(skuId == null){
-                    Log.logErr("skuId err;flow=%d;aid=%d;unionPriId=%s;pdId=%s;rlPdId=%s;updater=%s", flow, aid, unionPriId, pdId, rlPdId, updater.toJson());
+                    Log.logErr("skuId err;flow=%d;aid=%d;unionPriIdList=%s;pdId=%s;rlPdId=%s;updater=%s", flow, aid, unionPriIdList, pdId, rlPdId, updater.toJson());
                     return Errno.ARGS_ERROR;
                 }
                 skuIdList.add(skuId);
@@ -403,7 +425,7 @@ public class StoreSalesSkuService extends StoreService {
                     LockUtil.lock(aid);
                     try {
                         transactionCtrl.setAutoCommit(false);
-                        rt = storeSalesSkuProc.batchSet(aid, unionPriId, pdId, updaterList);
+                        rt = storeSalesSkuProc.batchSet(aid, unionPriIdList, pdId, updaterList);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -431,7 +453,7 @@ public class StoreSalesSkuService extends StoreService {
             }
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
-            Log.logStd("ok;aid=%s;unionPriId=%s;pdId=%s;rlPdId=%s;",aid, unionPriId, pdId, rlPdId);
+            Log.logStd("ok;aid=%s;unionPriIdList=%s;pdId=%s;rlPdId=%s;",aid, unionPriIdList, pdId, rlPdId);
         }finally {
             stat.end(rt != Errno.OK, rt);
         }
@@ -448,15 +470,20 @@ public class StoreSalesSkuService extends StoreService {
         try {
             if (aid <= 0 || unionPriId<= 0 || skuIdCountList == null || skuIdCountList.isEmpty() || Str.isEmpty(rlOrderCode) || reduceMode <= 0 || expireTimeSeconds < 0) {
                 rt = Errno.ARGS_ERROR;
-                Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;skuIdCountList=%s;rlOrderCode=%s;reduceMode=%s;expireTimeSeconds=%s;", flow, aid, unionPriId, skuIdCountList, rlOrderCode, reduceMode, expireTimeSeconds);
+                Log.logErr(rt,"arg err;flow=%d;aid=%d;unionPriId=%s;skuIdCountList=%s;rlOrderCode=%s;reduceMode=%s;expireTimeSeconds=%s;", flow, aid, unionPriId, skuIdCountList, rlOrderCode, reduceMode, expireTimeSeconds);
                 return rt;
             }
+            System.out.println(skuIdCountList);
             TreeMap<Long, Integer> skuIdCountMap = new TreeMap<>(); // 使用 有序map, 避免事务中 批量修改时如果无序 相互锁住 导致死锁
+            TreeMap<RecordKey, Integer> recordCountMap = new TreeMap<>();
             FaiList<Long> skuIdList = new FaiList<>(skuIdCountList.size());
             for (Param info : skuIdCountList) {
-                long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
-                int count = info.getInt(StoreSalesSkuEntity.Info.COUNT);
+                long skuId = info.getLong(SkuCountChangeEntity.Info.SKU_ID);
+                int itemId = info.getInt(SkuCountChangeEntity.Info.ITEM_ID, 0);
+                int count = info.getInt(SkuCountChangeEntity.Info.COUNT);
                 skuIdList.add(skuId);
+                recordCountMap.put(new RecordKey(skuId, itemId), count);
+                count += skuIdCountMap.getOrDefault(skuId, 0);
                 skuIdCountMap.put(skuId, count);
             }
             boolean holdingMode = reduceMode == StoreSalesSkuValObj.ReduceMode.HOLDING;
@@ -483,7 +510,7 @@ public class StoreSalesSkuService extends StoreService {
                 try {
                     transactionCtrl.setAutoCommit(false);
                     if(holdingMode){ // 生成预扣记录
-                        rt = checkHoldingRecordExists(holdingRecordProc, aid, unionPriId, skuIdList, rlOrderCode, skuIdCountMap, true, false);
+                        rt = checkHoldingRecordExists(holdingRecordProc, aid, unionPriId, skuIdList, rlOrderCode, skuIdCountMap, recordCountMap, true, false);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -493,7 +520,7 @@ public class StoreSalesSkuService extends StoreService {
                             session.write(sendBuf);
                             return rt = Errno.OK;
                         }
-                        rt = holdingRecordProc.batchAdd(aid, unionPriId, skuIdCountMap, rlOrderCode, expireTimeSeconds);
+                        rt = holdingRecordProc.batchAdd(aid, unionPriId, recordCountMap, rlOrderCode, expireTimeSeconds);
                     }else { // 生成库存订单关联记录
                         rt = storeOrderRecordProc.batchAdd(aid, unionPriId, skuIdCountMap, rlOrderCode);
                     }
@@ -530,7 +557,7 @@ public class StoreSalesSkuService extends StoreService {
     /**
      * 检测是否存在预扣记录
      */
-    private int checkHoldingRecordExists(HoldingRecordProc holdingRecordProc, int aid, int unionPriId, FaiList<Long> skuIdList, String rlOrderCode, Map<Long, Integer> skuIdCountMap, boolean notJudgeDel, boolean isMakeup){
+    private int checkHoldingRecordExists(HoldingRecordProc holdingRecordProc, int aid, int unionPriId, FaiList<Long> skuIdList, String rlOrderCode, Map<Long, Integer> skuIdCountMap, TreeMap<RecordKey, Integer> recordCountMap, boolean notJudgeDel, boolean isMakeup){
         int rt = Errno.ERROR;
         Ref<FaiList<Param>> listRef = new Ref<>();
         rt = holdingRecordProc.getListFromDao(aid, unionPriId, skuIdList, rlOrderCode, listRef);
@@ -542,12 +569,66 @@ public class StoreSalesSkuService extends StoreService {
                 return rt;
             }
         }
-        for (Param info : listRef.value) {
+        FaiList<Param> list = listRef.value;
+        System.out.println("list="+list);
+        Map<Long, Set<RecordKey>> skuIdRecordKeysMap = new HashMap<>();
+        boolean useOld = true;
+        if(useOld){
+            Map<Long, Integer> combineSkuIdCount = new HashMap<>();
+            for (Param info : list) {
+                long skuId = info.getLong(HoldingRecordEntity.Info.SKU_ID);
+                int count = info.getInt(HoldingRecordEntity.Info.COUNT);
+                Integer combineCount = combineSkuIdCount.getOrDefault(skuId, 0);
+                combineCount+=count;
+                combineSkuIdCount.put(skuId, combineCount);
+            }
+            FaiList<Param> combineList = new FaiList<>(combineSkuIdCount.size());
+            for (Param info : list) {
+                long skuId = info.getLong(HoldingRecordEntity.Info.SKU_ID);
+                boolean alreadyDel = info.getBoolean(HoldingRecordEntity.Info.ALREADY_DEL);
+                Integer count = combineSkuIdCount.remove(skuId);
+                if(count != null){
+                    combineList.add(
+                            new Param()
+                                    .setLong(HoldingRecordEntity.Info.SKU_ID, skuId)
+                                    .setBoolean(HoldingRecordEntity.Info.ALREADY_DEL, alreadyDel)
+                                    .setInt(HoldingRecordEntity.Info.COUNT, count)
+                    );
+                }
+            }
+            list = combineList;
+
+            for (RecordKey recordKey : recordCountMap.keySet()) {
+                Set<RecordKey> recordKeys = skuIdRecordKeysMap.getOrDefault(recordKey.skuId, new HashSet<>());
+                recordKeys.add(recordKey);
+                skuIdRecordKeysMap.put(recordKey.skuId, recordKeys);
+            }
+        }
+        System.out.println("skuIdRecordKeysMap="+skuIdRecordKeysMap);
+        for (Param info : list) {
             boolean alreadyDel = info.getBoolean(HoldingRecordEntity.Info.ALREADY_DEL);
             if(notJudgeDel || alreadyDel){ // 不判断删除 或者 已经删除
-                Long skuId = info.getLong(HoldingRecordEntity.Info.SKU_ID);
+                long skuId = info.getLong(HoldingRecordEntity.Info.SKU_ID);
+                int itemId = 0;
                 Integer recordCount = info.getInt(HoldingRecordEntity.Info.COUNT);
-                Integer count = skuIdCountMap.remove(skuId);
+                Integer count = null;
+                if(useOld){
+                    count = skuIdCountMap.remove(skuId);
+                    Set<RecordKey> recordKeys = skuIdRecordKeysMap.get(skuId);
+                    for (RecordKey recordKey : recordKeys) {
+                        recordCountMap.remove(recordKey);
+                    }
+                }else{
+                    itemId = info.getInt(HoldingRecordEntity.Info.ITEM_ID);
+                    count = recordCountMap.remove(new RecordKey(skuId, itemId));
+                    if(count != null){
+                        int totalCount = skuIdCountMap.get(skuId);
+                        totalCount = totalCount - count;
+                        if(totalCount == 0){
+                            skuIdCountMap.remove(skuId);
+                        }
+                    }
+                }
                 if(!recordCount.equals(count)){
                     if(!isMakeup){
                         rt = MgProductErrno.Store.REPEAT_REDUCE_COUNT_DIF;
@@ -559,6 +640,7 @@ public class StoreSalesSkuService extends StoreService {
                 }
             }
         }
+        System.out.println("skuIdCountMap="+skuIdCountMap);
         return rt = Errno.OK;
     }
 
@@ -578,15 +660,21 @@ public class StoreSalesSkuService extends StoreService {
                 outStoreRecordInfo.setString(InOutStoreRecordEntity.Info.RL_ORDER_CODE, rlOrderCode);
             }
             TreeMap<Long, Integer> skuIdChangeCountMap = new TreeMap<>(); // 使用 有序map, 避免事务中 批量修改时如果无序 相互锁住 导致死锁
-            Set<SkuStoreKey> skuStoreKeySet = new HashSet<>();
+            TreeMap<RecordKey, Integer> recordCountMap = new TreeMap<>();
+            Set<SkuBizKey> skuBizKeySet = new HashSet<>();
             FaiList<Integer> pdIdList = new FaiList<>();
             FaiList<Long> skuIdList = new FaiList<>(skuIdCountList.size());
             for (Param info : skuIdCountList) {
-                long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
-                int count = info.getInt(StoreSalesSkuEntity.Info.COUNT);
+                long skuId = info.getLong(SkuCountChangeEntity.Info.SKU_ID);
+                int itemId = info.getInt(SkuCountChangeEntity.Info.ITEM_ID, 0);
+                int count = info.getInt(SkuCountChangeEntity.Info.COUNT);
                 skuIdList.add(skuId);
+                skuBizKeySet.add(new SkuBizKey(unionPriId, skuId));
+
+                recordCountMap.put(new RecordKey(skuId, itemId), count);
+
+                count += skuIdChangeCountMap.getOrDefault(skuId, 0);
                 skuIdChangeCountMap.put(skuId, count);
-                skuStoreKeySet.add(new SkuStoreKey(unionPriId, skuId));
             }
 
             MgProductSpecCli mgProductSpecCli = createMgProductSpecCli(flow);
@@ -615,7 +703,7 @@ public class StoreSalesSkuService extends StoreService {
                     LockUtil.lock(aid);
                     try {
                         transactionCtrl.setAutoCommit(false);
-                        rt = checkHoldingRecordExists(holdingRecordProc, aid, unionPriId, skuIdList, rlOrderCode, skuIdChangeCountMap, false, false);
+                        rt = checkHoldingRecordExists(holdingRecordProc, aid, unionPriId, skuIdList, rlOrderCode, skuIdChangeCountMap, recordCountMap, false, false);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -639,9 +727,9 @@ public class StoreSalesSkuService extends StoreService {
                             return rt;
                         }
 
-
-                        Map<SkuStoreKey, Param> changeCountAfterSkuStoreSalesInfoMap = new HashMap<>();
-                        rt = storeSalesSkuProc.getInfoMap4OutRecordFromDao(aid, skuStoreKeySet, changeCountAfterSkuStoreSalesInfoMap);
+                        // 获取修改后的库存销售sku信息
+                        Map<SkuBizKey, Param> changeCountAfterSkuStoreSalesInfoMap = new HashMap<>();
+                        rt = storeSalesSkuProc.getInfoMap4OutRecordFromDao(aid, skuBizKeySet, changeCountAfterSkuStoreSalesInfoMap);
                         if (rt != Errno.OK) {
                             return rt;
                         }
@@ -703,11 +791,15 @@ public class StoreSalesSkuService extends StoreService {
             }
 
             TreeMap<Long, Integer> skuIdCountMap = new TreeMap<>(); // 使用 有序map, 避免事务中 批量修改时如果无序 相互锁住 导致死锁
+            TreeMap<RecordKey, Integer> recordCountMap = new TreeMap<>();
             FaiList<Long> skuIdList = new FaiList<>(skuIdCountList.size());
             for (Param info : skuIdCountList) {
-                long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
-                int count = info.getInt(StoreSalesSkuEntity.Info.COUNT);
+                long skuId = info.getLong(SkuCountChangeEntity.Info.SKU_ID);
+                int itemId = info.getInt(SkuCountChangeEntity.Info.ITEM_ID, 0);
+                int count = info.getInt(SkuCountChangeEntity.Info.COUNT);
                 skuIdList.add(skuId);
+                recordCountMap.put(new RecordKey(skuId, itemId), count);
+                count += skuIdCountMap.getOrDefault(skuId, 0);
                 skuIdCountMap.put(skuId, count);
             }
 
@@ -735,7 +827,7 @@ public class StoreSalesSkuService extends StoreService {
                 try {
                     transactionCtrl.setAutoCommit(false);
                     if(holdingMode){
-                        rt = checkHoldingRecordExists(holdingRecordProc, aid, unionPriId, skuIdList, rlOrderCode, skuIdCountMap, false, true);
+                        rt = checkHoldingRecordExists(holdingRecordProc, aid, unionPriId, skuIdList, rlOrderCode, skuIdCountMap, recordCountMap, false, true);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -745,12 +837,13 @@ public class StoreSalesSkuService extends StoreService {
                             Log.logStd("find repeat makeup;aid=%d;unionPriId=%s;rlOrderCode=%s;skuIdCountList=%s", aid, unionPriId, rlOrderCode, skuIdCountList);
                             return rt = Errno.OK;
                         }
+                        // 逻辑删除
                         rt = holdingRecordProc.batchLogicDel(aid, unionPriId, skuIdList, rlOrderCode);
                         if(rt != Errno.OK){
                             return rt;
                         }
                     }
-
+                    // 补偿库存
                     rt = storeSalesSkuProc.batchMakeUpStore(aid, unionPriId, skuIdCountMap, holdingMode);
                     if(rt != Errno.OK){
                         return rt;
@@ -779,6 +872,197 @@ public class StoreSalesSkuService extends StoreService {
     }
 
     /**
+     * 管理态调用 <br/>
+     * 刷新 rlOrderCode 的预扣记录。<br/>
+     * 根据 allHoldingRecordList 和已有的预扣尽量进行对比，
+     * 如果都有，则对比数量，数量不一致，就多退少补。
+     * 如果 holdingRecordList中有 db中没有 就生成预扣记录，并进行预扣库存
+     * 如果 holdingRecordList中没有 db中有 就删除db中的预扣记录，并进行补偿库存。
+     * @param rlOrderCode 订单id/code 等
+     * @param allHoldingRecordList 当前订单的所有预扣记录 [{ skuId: 122, itemId: 11, count:12},{ skuId: 142, itemId: 21, count:2}] count > 0
+     */
+    public int refreshHoldingRecordOfRlOrderCode(FaiSession session, int flow, int aid, int unionPriId, String rlOrderCode, FaiList<Param> allHoldingRecordList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || unionPriId<= 0 || Str.isEmpty(rlOrderCode) || Util.isEmptyList(allHoldingRecordList)){
+                rt = Errno.ARGS_ERROR;
+                Log.logErr(rt, "arg err;flow=%d;aid=%d;unionPriId=%s;rlOrderCode=%s;allHoldingRecordList=%s;", flow, aid, unionPriId, rlOrderCode, allHoldingRecordList);
+                return rt;
+            }
+            Map<RecordKey, Integer> recordCountMap = new HashMap<>();
+            FaiList<Long> skuIdList = new FaiList<>();
+            for (Param info : allHoldingRecordList) {
+                long skuId = info.getLong(SkuCountChangeEntity.Info.SKU_ID);
+                int itemId = info.getInt(SkuCountChangeEntity.Info.ITEM_ID, 0);
+                int count = info.getInt(SkuCountChangeEntity.Info.COUNT);
+                recordCountMap.put(new RecordKey(skuId, itemId), count);
+                skuIdList.add(skuId);
+            }
+            int reduceMode = StoreSalesSkuValObj.ReduceMode.HOLDING;
+            boolean holdingMode = reduceMode == StoreSalesSkuValObj.ReduceMode.HOLDING;
+            TransactionCtrl transactionCtrl = new TransactionCtrl();
+            try {
+                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, transactionCtrl);
+                HoldingRecordProc holdingRecordProc = new HoldingRecordProc(flow, aid, transactionCtrl);
+                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, transactionCtrl);
+                SpuSummaryProc spuSummaryProc = new SpuSummaryProc(flow, aid, transactionCtrl);
+                SkuSummaryProc skuSummaryProc = new SkuSummaryProc(flow, aid, transactionCtrl);
+
+                LockUtil.lock(aid);
+                try {
+                    Ref<FaiList<Param>> listRef = new Ref<>();
+                    rt = holdingRecordProc.getListFromDao(aid, unionPriId, skuIdList, rlOrderCode, listRef);
+                    if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                        return rt;
+                    }
+                    Set<RecordKey> delRecord = new HashSet<>();
+                    Map<RecordKey, Integer> updateRecordMap = new HashMap<>();
+                    TreeMap<RecordKey, Integer> addRecordMap = new TreeMap<>();
+                    Map<Long, Integer> skuCountMap = new HashMap();
+                    rt = splitRecordCountToAddOrDelOrSet(recordCountMap, listRef.value, delRecord, updateRecordMap, addRecordMap, skuCountMap);
+                    if(rt != Errno.OK){
+                        return rt;
+                    }
+                    TreeMap<Long, Integer> reduceMap = new TreeMap<>();
+                    TreeMap<Long, Integer> makeupMap = new TreeMap<>();
+                    skuCountMap.forEach((skuId, count)->{
+                        if(count > 0){
+                            reduceMap.put(skuId, count);
+                        }else if(count < 0){
+                            makeupMap.put(skuId, -count);
+                        }
+                    });
+                    try {
+                        transactionCtrl.setAutoCommit(false);
+                        if(!addRecordMap.isEmpty()){
+                            rt = holdingRecordProc.batchAdd(aid, unionPriId, addRecordMap, rlOrderCode, 0);
+                            if(rt != Errno.OK){
+                                return rt;
+                            }
+                        }
+                        if(!delRecord.isEmpty()){
+                            rt = holdingRecordProc.batchDel(aid, unionPriId, delRecord, rlOrderCode);
+                            if(rt != Errno.OK){
+                                return rt;
+                            }
+                        }
+                        if(!updateRecordMap.isEmpty()){
+                            rt = holdingRecordProc.batchSet(aid, unionPriId, rlOrderCode, updateRecordMap);
+                            if(rt != Errno.OK){
+                                return rt;
+                            }
+                        }
+
+                        if(!reduceMap.isEmpty()){
+                            rt = storeSalesSkuProc.batchReduceStore(aid, unionPriId, reduceMap, holdingMode, false);
+                            if(rt != Errno.OK){
+                                return rt;
+                            }
+                        }
+                        if(!makeupMap.isEmpty()){
+                            rt = storeSalesSkuProc.batchMakeUpStore(aid, unionPriId, makeupMap, holdingMode);
+                            if(rt != Errno.OK){
+                                return rt;
+                            }
+                        }
+                    }finally {
+                        if(rt != Errno.OK){
+                            transactionCtrl.rollback();
+                            storeSalesSkuProc.deleteRemainCountDirtyCache(aid);
+                            return rt;
+                        }
+                        transactionCtrl.commit();
+                    }
+                }finally {
+                    LockUtil.unlock(aid);
+                }
+                Ref<FaiList<Param>> listRef = new Ref<>();
+                rt = storeSalesSkuProc.getListFromDaoBySkuIdList(aid, unionPriId, skuIdList, listRef, StoreSalesSkuEntity.Info.PD_ID);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+                FaiList<Integer> pdIdList = Utils.getValList(listRef.value, StoreSalesSkuEntity.Info.PD_ID);
+                try {
+                    transactionCtrl.setAutoCommit(false);
+                    rt = reportSummary(aid, pdIdList, ReportValObj.Flag.REPORT_COUNT,
+                            skuIdList, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
+                    if(rt != Errno.OK){
+                        return rt;
+                    }
+                }finally {
+                    if(rt != Errno.OK){
+                        transactionCtrl.rollback();
+                        return rt;
+                    }
+                    spuBizSummaryProc.setDirtyCacheEx(aid);
+                    spuSummaryProc.setDirtyCacheEx(aid);
+                    transactionCtrl.commit();
+                    spuBizSummaryProc.deleteDirtyCache(aid);
+                    spuSummaryProc.deleteDirtyCache(aid);
+                }
+            }finally {
+                transactionCtrl.closeDao();
+            }
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("ok;flow=%s;aid=%s;unionPriId=%s;rlOrderCode=%s;recordCountMap=%s;", flow, aid, unionPriId, rlOrderCode, recordCountMap);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * 遍历 oldRecordList 解析出那些记录是要添加、那些是要修改、那些是要删除
+     * @param recordCountMap 新数据
+     * @param oldRecordList 旧数据
+     * @param delRecord 删除的记录
+     * @param updateRecordMap 更新的记录
+     * @param addRecordMap 添加的记录
+     * @param skuCountMap 变化的数量
+     */
+    private int splitRecordCountToAddOrDelOrSet(Map<RecordKey, Integer> recordCountMap, FaiList<Param> oldRecordList, Set<RecordKey> delRecord, Map<RecordKey, Integer> updateRecordMap, Map<RecordKey, Integer> addRecordMap, Map<Long, Integer> skuCountMap) {
+        int rt = Errno.NOT_FOUND;
+        for (Param info : oldRecordList) {
+            long skuId = info.getLong(HoldingRecordEntity.Info.SKU_ID);
+            int itemId = info.getInt(HoldingRecordEntity.Info.ITEM_ID);
+            int count = info.getInt(HoldingRecordEntity.Info.COUNT);
+            boolean alreadyDel = info.getBoolean(HoldingRecordEntity.Info.ALREADY_DEL);
+            RecordKey recordKey = new RecordKey(skuId, itemId);
+            Integer newCount = recordCountMap.remove(recordKey);
+            int changeCount = -count;
+            if(newCount == null){
+                if(alreadyDel){
+                    continue;
+                }
+                delRecord.add(recordKey);
+            }else{
+                if(alreadyDel){
+                    Log.logErr(rt,"alreadyDel;info=%s;", info);
+                    return rt;
+                }
+                changeCount += newCount;
+            }
+            if(changeCount == 0){
+                continue;
+            }
+            int skuCount = skuCountMap.getOrDefault(skuId, 0);
+            skuCount += changeCount;
+            skuCountMap.put(skuId, skuCount);
+        }
+        recordCountMap.forEach((recordKey, count)->{
+            long skuId = recordKey.skuId;
+            int itemId = recordKey.itemId;
+            addRecordMap.put(new RecordKey(skuId, itemId), count);
+            int skuCount = skuCountMap.getOrDefault(skuId, 0);
+            skuCount += count;
+            skuCountMap.put(skuId, skuCount);
+        });
+        return rt = Errno.OK;
+    }
+
+    /**
      * 批量退库存，需要生成入库记录
      */
     public int batchRefundStore(FaiSession session, int flow, int aid, int tid, int unionPriId, FaiList<Param> skuIdCountList, String rlRefundId, Param inStoreRecordInfo) throws IOException {
@@ -799,9 +1083,9 @@ public class StoreSalesSkuService extends StoreService {
              *  Pair.first <===> remainCount
              *  Pair.second <===> count
              */
-            TreeMap<SkuStoreKey, Pair<Integer, Integer>> skuStoreChangeCountMap = new TreeMap<>();
+            TreeMap<SkuBizKey, Pair<Integer, Integer>> skuBizChangeCountMap = new TreeMap<>();
             TreeMap<Long, Integer> skuIdCountMap = new TreeMap<>(); // 使用 有序map, 避免事务中 批量修改时如果无序 相互锁住 导致死锁
-            Set<SkuStoreKey> skuStoreKeySet = new HashSet<>();
+            Set<SkuBizKey> skuBizKeySet = new HashSet<>();
             FaiList<Integer> pdIdList = new FaiList<>();
             FaiList<Long> skuIdList = new FaiList<>(skuIdCountList.size());
             for (Param info : skuIdCountList) {
@@ -809,10 +1093,10 @@ public class StoreSalesSkuService extends StoreService {
                 int count = info.getInt(StoreSalesSkuEntity.Info.COUNT);
                 skuIdList.add(skuId);
                 skuIdCountMap.put(skuId, count);
-                SkuStoreKey skuStoreKey = new SkuStoreKey(unionPriId, skuId);
-                skuStoreKeySet.add(skuStoreKey);
+                SkuBizKey skuBizKey = new SkuBizKey(unionPriId, skuId);
+                skuBizKeySet.add(skuBizKey);
                 Pair<Integer, Integer> pair = new Pair<>(count, 0);
-                skuStoreChangeCountMap.put(skuStoreKey, pair);
+                skuBizChangeCountMap.put(skuBizKey, pair);
             }
 
             MgProductSpecCli mgProductSpecCli = createMgProductSpecCli(flow);
@@ -878,10 +1162,11 @@ public class StoreSalesSkuService extends StoreService {
                         }
 
                         // 修改库存
-                        rt = storeSalesSkuProc.batchChangeStore(aid, skuStoreChangeCountMap);
+                        rt = storeSalesSkuProc.batchChangeStore(aid, skuBizChangeCountMap);
 
-                        Map<SkuStoreKey, Param> changeCountAfterSkuStoreSalesInfoMap = new HashMap<>();
-                        rt = storeSalesSkuProc.getInfoMap4OutRecordFromDao(aid, skuStoreKeySet, changeCountAfterSkuStoreSalesInfoMap);
+                        // 获取修改库存后的库存销售sku信息
+                        Map<SkuBizKey, Param> changeCountAfterSkuStoreSalesInfoMap = new HashMap<>();
+                        rt = storeSalesSkuProc.getInfoMap4OutRecordFromDao(aid, skuBizKeySet, changeCountAfterSkuStoreSalesInfoMap);
                         if (rt != Errno.OK) {
                             return rt;
                         }
@@ -929,8 +1214,10 @@ public class StoreSalesSkuService extends StoreService {
             stat.end(rt != Errno.OK, rt);
         }
     }
+
     /**
      * 根据uid和pdId获取库存销售sku信息
+     * @param useSourceFieldList 是否使用源商品的字段数据进行覆盖关联的字段
      */
     public int getSkuStoreSales(FaiSession session, int flow, int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<String> useSourceFieldList) throws IOException {
         int rt = Errno.ERROR;
@@ -952,17 +1239,22 @@ public class StoreSalesSkuService extends StoreService {
                     return rt;
                 }
                 list = listRef.value;
+                // 判断是否需要使用 源商品数据进行覆盖关联的数据
                 if(useSourceFieldList != null && !useSourceFieldList.isEmpty()){
                     Set<String> useSourceFieldSet = new HashSet<>(useSourceFieldList);
                     useSourceFieldSet.retainAll(Arrays.asList(StoreSalesSkuEntity.getValidKeys()));
                     if(list.size() > 0 && useSourceFieldSet.size() > 0){
                         useSourceFieldSet.add(StoreSalesSkuEntity.Info.SKU_ID);
+                        // 获取第一个关联的数据，进而获取源业务id
                         Param first = list.get(0);
                         int tmpUnionPriId = first.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+                        // 获取到源业务id
                         int sourceUnionPriId = first.getInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID);
+                        // 当当前查询的不是源业务的数据，就查询出源业务的sku数据进行覆盖
                         if(tmpUnionPriId != sourceUnionPriId){
                             FaiList<Long> skuIdList = Utils.getValList(list, StoreSalesSkuEntity.Info.SKU_ID);
                             listRef = new Ref<>();
+                            // 获取源业务的库存销售sku信息
                             rt = storeSalesSkuProc.getListFromDaoBySkuIdList(aid, sourceUnionPriId, skuIdList, listRef, useSourceFieldSet.toArray(new String[]{}));
                             if(rt != Errno.OK){
                                 if(rt == Errno.NOT_FOUND){
@@ -975,6 +1267,7 @@ public class StoreSalesSkuService extends StoreService {
                                 Long skuId = sourceFieldInfo.getLong(StoreSalesSkuEntity.Info.SKU_ID);
                                 skuIdFiledMap.put(skuId, sourceFieldInfo);
                             }
+                            // 进行覆盖
                             for (Param info : list) {
                                 Long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
                                 Param sourceFieldInfo = skuIdFiledMap.get(skuId);
@@ -1024,16 +1317,21 @@ public class StoreSalesSkuService extends StoreService {
                     return rt;
                 }
                 list = listRef.value;
+                // 判断是否需要使用 源商品数据进行覆盖关联的数据
                 if(useSourceFieldList != null && !useSourceFieldList.isEmpty()){
                     Set<String> useSourceFieldSet = new HashSet<>(useSourceFieldList);
                     useSourceFieldSet.retainAll(Arrays.asList(StoreSalesSkuEntity.getValidKeys()));
                     if(list.size() > 0 && useSourceFieldSet.size() > 0){
                         useSourceFieldSet.add(StoreSalesSkuEntity.Info.SKU_ID);
+                        // 获取第一个关联的数据，进而获取源业务id
                         Param first = list.get(0);
                         int tmpUnionPriId = first.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+                        // 获取到源业务id
                         int sourceUnionPriId = first.getInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID);
+                        // 当当前查询的不是源业务的数据，就查询出源业务的sku数据进行覆盖
                         if(tmpUnionPriId != sourceUnionPriId){
                             listRef = new Ref<>();
+                            // 获取源业务的库存销售sku信息
                             rt = storeSalesSkuProc.getListFromDaoBySkuIdList(aid, sourceUnionPriId, skuIdList, listRef, useSourceFieldSet.toArray(new String[]{}));
                             if(rt != Errno.OK){
                                 if(rt == Errno.NOT_FOUND){
@@ -1046,6 +1344,7 @@ public class StoreSalesSkuService extends StoreService {
                                 Long skuId = sourceFieldInfo.getLong(StoreSalesSkuEntity.Info.SKU_ID);
                                 skuIdFiledMap.put(skuId, sourceFieldInfo);
                             }
+                            // 进行覆盖
                             for (Param info : list) {
                                 Long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
                                 Param sourceFieldInfo = skuIdFiledMap.get(skuId);
@@ -1155,7 +1454,7 @@ public class StoreSalesSkuService extends StoreService {
             HoldingRecordDaoCtrl holdingRecordDaoCtrl = HoldingRecordDaoCtrl.getInstance(flow, aid);
             try {
                 HoldingRecordProc holdingRecordProc = new HoldingRecordProc(holdingRecordDaoCtrl, flow);
-                rt = holdingRecordProc.getNotDelListFromDao(aid, unionPriId, skuIdList, listRef);
+                rt = holdingRecordProc.getNotDelListFromDao(aid, unionPriId, skuIdList, null, listRef);
                 if(rt != Errno.OK){
                     return rt;
                 }

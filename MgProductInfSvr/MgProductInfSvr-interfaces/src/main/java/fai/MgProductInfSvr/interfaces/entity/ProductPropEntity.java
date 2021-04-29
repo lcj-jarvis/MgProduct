@@ -22,6 +22,7 @@ public class ProductPropEntity {
 
     public static class PropValInfo {
         public static final String AID = "aid"; // int 企业id
+        public static final String PROP_ID = "propId"; // int 参数id
         public static final String RL_PROP_ID = "rlPropId"; // int 参数业务id
         public static final String PROP_VAL_ID = "propValId"; // int 参数值id
         public static final String VAL = "val"; // varchar(100) 参数值

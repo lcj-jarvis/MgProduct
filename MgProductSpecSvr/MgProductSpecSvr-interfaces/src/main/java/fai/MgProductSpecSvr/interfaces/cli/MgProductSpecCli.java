@@ -1,12 +1,14 @@
 package fai.MgProductSpecSvr.interfaces.cli;
 
+import fai.MgProductInfUtil.MgProductInternalCli;
 import fai.MgProductSpecSvr.interfaces.cmd.MgProductSpecCmd;
 import fai.MgProductSpecSvr.interfaces.dto.*;
-import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
+import fai.mgproduct.comm.DataStatus;
+import fai.mgproduct.comm.Util;
 
-public class MgProductSpecCli extends FaiClient {
+public class MgProductSpecCli extends MgProductInternalCli {
     public MgProductSpecCli(int flow) {
         super(flow, "MgProductSpecCli");
     }
@@ -889,9 +891,80 @@ public class MgProductSpecCli extends FaiClient {
     }
 
     /**
+     * 批量生成代表spu的sku数据
+     */
+    public int batchGenSkuRepresentSpuInfo(int aid, int tid, int unionPriId, FaiList<Integer> pdIdList, FaiList<Param> rtSkuIdInfoList) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(Util.isEmptyList(pdIdList)){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "pdIdList error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductSpecSkuDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductSpecSkuDto.Key.TID, tid);
+            pdIdList.toBuffer(sendBody, ProductSpecSkuDto.Key.PD_ID_LIST);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductSpecCmd.ProductSpecSkuCmd.BATCH_GEN_SPU);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            if(rtSkuIdInfoList != null){
+                m_rt = rtSkuIdInfoList.fromBuffer(recvBody, keyRef, ProductSpecSkuDto.getInfoDto());
+                if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuDto.Key.INFO_LIST) {
+                    Log.logErr(m_rt, "recv codec err");
+                    return m_rt;
+                }
+            }
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+    public int getPdSkuScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<Param> infoList) {
+        return getPdSkuScInfoList(aid, tid, unionPriId, pdId, false, infoList);
+    }
+    /**
      * 获取产品规格SKU列表
      */
-    public int getPdSkuScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<Param> infoList) {
+    public int getPdSkuScInfoList(int aid, int tid, int unionPriId, int pdId, boolean withSpuInfo, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -911,6 +984,7 @@ public class MgProductSpecCli extends FaiClient {
             sendBody.putInt(ProductSpecSkuDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(ProductSpecSkuDto.Key.TID, tid);
             sendBody.putInt(ProductSpecSkuDto.Key.PD_ID, pdId);
+            sendBody.putBoolean(ProductSpecSkuDto.Key.WITH_SPU_INFO, withSpuInfo);
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_LIST);
@@ -1025,11 +1099,7 @@ public class MgProductSpecCli extends FaiClient {
             stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
         }
     }
-
-    /**
-     * 获取 pdId-skuId 信息集
-     */
-    public int getPdSkuIdInfoList(int aid, int tid, FaiList<Integer> pdIdList, FaiList<Param> infoList) {
+    public int getOnlySpuInfoList(int aid, int tid, FaiList<Integer> pdIdList, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1053,6 +1123,81 @@ public class MgProductSpecCli extends FaiClient {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductSpecSkuDto.Key.TID, tid);
             pdIdList.toBuffer(sendBody, ProductSpecSkuDto.Key.PD_ID_LIST);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_ONLY_SPU_INFO_LIST);
+
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductSpecSkuDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            return m_rt = Errno.OK;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    public int getPdSkuIdInfoList(int aid, int tid, FaiList<Integer> pdIdList, FaiList<Param> list) {
+        return getPdSkuIdInfoList(aid, tid, pdIdList, false, list);
+    }
+    /**
+     * 获取 pdId-skuId 信息集
+     */
+    public int getPdSkuIdInfoList(int aid, int tid, FaiList<Integer> pdIdList, boolean withSpuInfo, FaiList<Param> infoList) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(pdIdList == null || pdIdList.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "pdIdList error");
+                return m_rt;
+            }
+            if(infoList == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "infoList error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductSpecSkuDto.Key.TID, tid);
+            pdIdList.toBuffer(sendBody, ProductSpecSkuDto.Key.PD_ID_LIST);
+            sendBody.putBoolean(ProductSpecSkuDto.Key.WITH_SPU_INFO, withSpuInfo);
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_SKU_ID_INFO_LIST_BY_PD_ID_LIST);
@@ -1089,6 +1234,359 @@ public class MgProductSpecCli extends FaiClient {
             if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
+            }
+            return m_rt = Errno.OK;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    /**
+     * 获取已经存在的 skuCodeList
+     */
+    public int getExistsSkuCodeList(int aid, int tid, int unionPriId, FaiList<String> skuCodeList, Ref<FaiList<String>> existsSkuCodeListRef) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(skuCodeList == null || skuCodeList.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "skuCodeList error");
+                return m_rt;
+            }
+            if(existsSkuCodeListRef == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "existsSkuCodeListRef error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductSpecSkuDto.Key.TID, tid);
+            sendBody.putInt(ProductSpecSkuDto.Key.UNION_PRI_ID, unionPriId);
+            skuCodeList.toBuffer(sendBody, ProductSpecSkuDto.Key.SKU_CODE_LIST);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_SKU_CODE_LIST);
+
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            Ref<String> valueRef = new Ref<String>();
+            m_rt = recvBody.getString(keyRef, valueRef);
+            if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuDto.Key.SKU_CODE_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            existsSkuCodeListRef.value = FaiList.parseStringList(valueRef.value);
+            return m_rt = Errno.OK;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    /**
+     * 通过模糊查询skuCode获取匹配到的skuIdInfo
+     */
+    public int searchPdSkuIdInfoListBySkuCode(int aid, int tid, int unionPriId, String skuCode, Param condition, FaiList<Param> skuInfoList) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(Str.isEmpty(skuCode)){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "skuCode error");
+                return m_rt;
+            }
+            if(skuInfoList == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "skuInfoList error");
+                return m_rt;
+            }
+            if(condition == null){
+                condition = new Param();
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductSpecSkuDto.Key.TID, tid);
+            sendBody.putInt(ProductSpecSkuDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putString(ProductSpecSkuDto.Key.SKU_CODE, skuCode);
+            condition.toBuffer(sendBody, ProductSpecSkuDto.Key.CONDITION, ConditionDto.getInfoDto());
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductSpecCmd.ProductSpecSkuCmd.SEARCH_SKU_ID_INFO_LIST_BY_SKU_CODE);
+
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = skuInfoList.fromBuffer(recvBody, keyRef, ProductSpecSkuDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            return m_rt = Errno.OK;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    /**
+     * 获取 skuCode数据状态
+     */
+    public int getSkuCodeDataStatus(int aid, int unionPriId, Param dataStatusInfo){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(dataStatusInfo == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "dataStatusInfo error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductSpecSkuCodeDao.Key.UNION_PRI_ID, unionPriId);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductSpecCmd.SkuCodeCmd.GET_DATA_STATUS);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = dataStatusInfo.fromBuffer(recvBody, keyRef, DataStatus.Dto.getDataStatusDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuCodeDao.Key.INFO) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            return m_rt = Errno.OK;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    /**
+     * 获取全部数据的部分字段
+     */
+    public int getSkuCodeAllData(int aid, int unionPriId, FaiList<Param> infoList){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(infoList == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "infoList error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductSpecSkuCodeDao.Key.UNION_PRI_ID, unionPriId);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductSpecCmd.SkuCodeCmd.GET_ALL_DATA);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductSpecSkuCodeDao.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuCodeDao.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            return m_rt = Errno.OK;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    /**
+     * 直接从db搜索 返回部分字段
+     */
+    public int searchSkuCodeFromDb(int aid, int unionPriId, SearchArg searchArg, FaiList<Param> infoList){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "aid error");
+                return m_rt;
+            }
+            if(searchArg == null || searchArg.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "searchArg error");
+                return m_rt;
+            }
+            if(infoList == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "infoList error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductSpecSkuCodeDao.Key.UNION_PRI_ID, unionPriId);
+            searchArg.toBuffer(sendBody, ProductSpecSkuCodeDao.Key.SEARCH_ARG);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductSpecCmd.SkuCodeCmd.SEARCH_FROM_DB);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductSpecSkuCodeDao.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuCodeDao.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            if(searchArg.totalSize != null){
+                recvBody.getInt(keyRef, searchArg.totalSize);
+                if(keyRef.value != ProductSpecSkuCodeDao.Key.TOTAL_SIZE){
+                    m_rt = Errno.CODEC_ERROR;
+                    Log.logErr(m_rt, "recv total size null");
+                    return m_rt;
+                }
             }
             return m_rt = Errno.OK;
         } finally {
@@ -1166,5 +1664,83 @@ public class MgProductSpecCli extends FaiClient {
             close();
             stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
         }
+    }
+
+    /**
+     * 导入商品规格和sku信息
+     * @param specList 商品规格 集合
+     * @param specSkuList 商品规格sku 集合
+     * @param skuIdInfoList 需要返回的skuId信息集合 不是全部
+     */
+    public int importPdScWithSku(int aid, int tid, int unionPriId, FaiList<Param> specList, FaiList<Param> specSkuList, FaiList<Param> skuIdInfoList){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid <= 0 || unionPriId <= 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;aid=%s;unionPriId=%s", aid, unionPriId);
+                return m_rt;
+            }
+            if(Util.isEmptyList(specList)){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "specList error");
+                return m_rt;
+            }
+            if(specSkuList == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "specSkuList error");
+                return m_rt;
+            }
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductSpecDto.Key.TID, tid);
+            sendBody.putInt(ProductSpecDto.Key.UNION_PRI_ID, unionPriId);
+            specList.toBuffer(sendBody, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.getInfoDto());
+            specSkuList.toBuffer(sendBody, ProductSpecDto.Key.SKU_INFO_LIST, ProductSpecSkuDto.getInfoDto());
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductSpecCmd.ProductSpecCmd.IMPORT_PD_SC_WITH_SKU);
+
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            if(skuIdInfoList == null){
+                skuIdInfoList = new FaiList<Param>();
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = skuIdInfoList.fromBuffer(recvBody, keyRef, ProductSpecSkuDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK), m_rt);
+        }
+        return m_rt;
     }
 }

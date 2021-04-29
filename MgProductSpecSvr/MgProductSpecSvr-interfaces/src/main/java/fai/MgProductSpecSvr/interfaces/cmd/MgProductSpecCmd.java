@@ -15,6 +15,12 @@ public class MgProductSpecCmd {
 		public static final int NUM9 = 5009;
 		public static final int NUM10 = 5010;
 		public static final int NUM11 = 5011;
+		public static final int NUM12 = 5012;
+		public static final int NUM13 = 5013;
+		public static final int NUM14 = 5014;
+		public static final int NUM15 = 5015;
+		public static final int NUM16 = 5016;
+		public static final int NUM17 = 5017;
 	}
 
 
@@ -31,6 +37,9 @@ public class MgProductSpecCmd {
 		public static final int NUM9 = 1008;
 		public static final int NUM10 = 1009;
 		public static final int NUM11 = 1011;
+		public static final int NUM12 = 1012;
+		public static final int NUM13 = 1013;
+		public static final int NUM14 = 1014;
 	}
 
 	////////////////// cmd对外定义，实际做cmd读写分离 ////////////////////
@@ -71,6 +80,7 @@ public class MgProductSpecCmd {
 		public static final int UNION_SET = WriteCmdNum.NUM8;
 		public static final int BATCH_DEL_PD_ALL_SC = WriteCmdNum.NUM10;
 		public static final int BATCH_SYN_SPU_TO_SKU = WriteCmdNum.NUM11;
+		public static final int IMPORT_PD_SC_WITH_SKU = WriteCmdNum.NUM12;
 	}
 
 	/**
@@ -80,10 +90,22 @@ public class MgProductSpecCmd {
 		public static final int GET_LIST = ReadCmdNum.NUM8;
 		public static final int GET_SKU_ID_INFO_LIST_BY_PD_ID_LIST = ReadCmdNum.NUM9;
 		public static final int GET_LIST_BY_SKU_ID_LIST = ReadCmdNum.NUM10;
+		public static final int GET_ONLY_SPU_INFO_LIST = ReadCmdNum.NUM17;
+
+		public static final int GET_SKU_CODE_LIST = ReadCmdNum.NUM12;
+		public static final int SEARCH_SKU_ID_INFO_LIST_BY_SKU_CODE = ReadCmdNum.NUM13;
 
 		public static final int SET_LIST = WriteCmdNum.NUM9;
+		public static final int BATCH_GEN_SPU = WriteCmdNum.NUM13;
+	}
+	public static class SkuCodeCmd{
+		public static final int GET_DATA_STATUS = ReadCmdNum.NUM14;
+		public static final int GET_ALL_DATA = ReadCmdNum.NUM15;
+		public static final int SEARCH_FROM_DB = ReadCmdNum.NUM16;
 
-    }
+
+		public static final int DELETE_BY_PD_ID_LIST = WriteCmdNum.NUM14;
+	}
 
 	/**
 	 * 规格字符串

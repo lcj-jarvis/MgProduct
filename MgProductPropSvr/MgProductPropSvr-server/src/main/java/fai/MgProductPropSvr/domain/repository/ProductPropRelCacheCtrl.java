@@ -74,7 +74,7 @@ public class ProductPropRelCacheCtrl extends CacheCtrl {
 	}
 
 	public static String getCacheKey(int aid, int unionPriId, int libId) {
-		return CACHE_KEY + "-" + aid + "-" + unionPriId + "-" + libId;
+		return wrapCacheVersion(CACHE_KEY + "-" + aid + "-" + unionPriId + "-" + libId, aid);
 	}
 
 	public static void setSortCache(int aid, int unionPriId, int libId, int sort) {

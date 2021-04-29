@@ -9,8 +9,7 @@ import fai.comm.util.Log;
 import fai.comm.util.Param;
 import fai.comm.util.Var;
 
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ProductSpecSkuCacheCtrl extends CacheCtrl {
@@ -95,6 +94,80 @@ public class ProductSpecSkuCacheCtrl extends CacheCtrl {
 	}
 
 	/**
+	 * 批量获取缓存
+	 * codis集群是支持mget/mset  api中没支持可能是考虑到redisCluster集群不支持这两个命令所以没提供相应的api
+	 */
+	public static Map<Integer, Long> batchGetSkuIdRepresentSpu(int aid, List<Integer> pdIdList, boolean retainZero){
+		if(pdIdList == null || pdIdList.isEmpty()){
+			return new HashMap<>();
+		}
+		pdIdList.removeAll(Collections.singletonList(null)); // 移除所有null值
+		Map<Integer, Long> result = new HashMap<>(pdIdList.size()*4/3+1);
+		for (Integer pdId : pdIdList) {
+			Long skuId = getSkuIdRepresentSpu(aid, pdId, retainZero);
+			if(skuId == null){
+				continue;
+			}
+			result.put(pdId, skuId);
+		}
+		return result; // 保留
+	}
+	public static Long getSkuIdRepresentSpu(int aid, int pdId){
+		return getSkuIdRepresentSpu(aid, pdId, false);
+	}
+	public static Long getSkuIdRepresentSpu(int aid, int pdId, boolean retainZero){
+		String skuIdRepresentSpuCacheKey = getSkuIdRepresentSpuCacheKey(aid, pdId);
+		String skuIdStr = m_cache.get(skuIdRepresentSpuCacheKey);
+		Long skuId = null;
+		try {
+			skuId = Long.parseLong(skuIdStr);
+		}catch (NumberFormatException e){
+		}
+		if(!retainZero && (skuId == null || skuId == 0)){
+			return null;
+		}
+		return skuId;
+	}
+
+	/**
+	 * 批量设置缓存
+	 * codis集群是支持mget/mset  api中没支持可能是考虑到redisCluster集群不支持这两个命令所以没提供相应的api
+	 */
+	public static boolean batchSetSkuIdRepresentSpu(int aid, Map<Integer, Long> pdIdSkuIdMap){
+		if(pdIdSkuIdMap == null || pdIdSkuIdMap.isEmpty()){
+			return true;
+		}
+		boolean boo  = true;
+		for (Map.Entry<Integer, Long> pdIdSKuIdEntry : pdIdSkuIdMap.entrySet()) {
+			int pdId = pdIdSKuIdEntry.getKey();
+
+			long skuId = pdIdSKuIdEntry.getValue();
+			boo &= setSkuIdRepresentSpu(aid, pdId, skuId);
+		}
+		return boo;
+	}
+
+	public static boolean setSkuIdRepresentSpu(int aid, int pdId, long skuId){
+		String skuIdRepresentSpuCacheKey = getSkuIdRepresentSpuCacheKey(aid, pdId);
+		return m_cache.set(skuIdRepresentSpuCacheKey, String.valueOf(skuId));
+	}
+	public static boolean delSkuIdRepresentSpu(int aid, Set<Integer> needDelPdIdSet) {
+		if(needDelPdIdSet == null || needDelPdIdSet.isEmpty()){
+			return true;
+		}
+		String[] keys = new String[needDelPdIdSet.size()];
+		int idx = 0;
+		for (Integer pdId : needDelPdIdSet) {
+			keys[idx++] = getSkuIdRepresentSpuCacheKey(aid, pdId);
+		}
+		return m_cache.del(keys);
+	}
+
+	public static boolean delAllCache(int aid){
+		return m_cache.del(getInfoCacheKey(aid), getPdIdSkuIdRelCacheKey(aid));
+	}
+
+	/**
 	 * 数据缓存
 	 */
 	private static String getInfoCacheKey(int aid){
@@ -108,9 +181,14 @@ public class ProductSpecSkuCacheCtrl extends CacheCtrl {
 		return CACHE_KEY_PREFIX+":pdIdSkuIdRel-"+aid;
 	}
 
+	/**
+	 * 代表spu的skuId
+	 */
+	private static String getSkuIdRepresentSpuCacheKey(int aid, int pdId){
+		return wrapCacheVersion(CACHE_KEY_PREFIX+":skuIdRepresentSpu-"+aid+"-"+pdId, aid);
+	}
+
 
 	private static final String CACHE_KEY_PREFIX = "MG_productSpecSku";
-
-
 
 }

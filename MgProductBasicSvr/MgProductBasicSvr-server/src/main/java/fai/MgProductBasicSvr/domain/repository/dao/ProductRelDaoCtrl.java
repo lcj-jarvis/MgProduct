@@ -57,6 +57,18 @@ public class ProductRelDaoCtrl extends DaoCtrl {
         return m_idBuilder.update(aid, unionPriId, id, m_dao, needLock);
     }
 
+    public void restoreMaxId(int flow, boolean needLock) {
+        m_idBuilder.restoreMaxId(aid, flow, getTableName(), m_dao, needLock);
+    }
+
+    public Integer getId(int aid) {
+        int rt = openDao();
+        if(rt != Errno.OK) {
+            return null;
+        }
+        return m_idBuilder.get(aid, m_dao);
+    }
+
     public static void init(DaoPool daoPool, RedisCacheManager cache) {
         m_daoPool = daoPool;
         m_idBuilder = new IdBuilderWrapper(idBuilderConfig, cache);

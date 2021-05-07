@@ -48,6 +48,7 @@ public class ProductRelProc {
             throw new MgException(rt, "args err, infoList is empty;flow=%d;aid=%d;relDataList=%s;", m_flow, aid, relDataList);
         }
 
+        int maxId = m_dao.getId(aid);
         FaiList<Integer> rlPdIds = new FaiList<Integer>();
         for(Param relData : relDataList) {
             if(!Str.isEmpty(pdInfo)) {
@@ -67,7 +68,7 @@ public class ProductRelProc {
                 throw new MgException(rt, "over limit;flow=%d;aid=%d;uid=%d;count=%d;limit=%d;", m_flow, aid, unionPriId, count, ProductRelValObj.Limit.COUNT_MAX);
             }
 
-            int rlPdId = createAndSetRlPdId(aid, unionPriId, relData);
+            int rlPdId = relData.getInt(ProductRelEntity.Info.RL_PD_ID, ++maxId);
             rlPdIds.add(rlPdId);
         }
 
@@ -75,6 +76,7 @@ public class ProductRelProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "batch insert product rel error;flow=%d;aid=%d;", m_flow, aid);
         }
+        m_dao.restoreMaxId(m_flow, false);
         return rlPdIds;
     }
 

@@ -37,6 +37,18 @@ public class ProductDaoCtrl extends DaoCtrl {
         return new ProductDaoCtrl(flow, aid);
     }
 
+    public void restoreMaxId(int flow, boolean needLock) {
+        m_idBuilder.restoreMaxId(aid, flow, getTableName(), m_dao, needLock);
+    }
+
+    public Integer getId(int aid) {
+        int rt = openDao();
+        if(rt != Errno.OK) {
+            return null;
+        }
+        return m_idBuilder.get(aid, m_dao);
+    }
+
     public Integer buildId(int aid, boolean needLock) {
         int rt = openDao();
         if(rt != Errno.OK) {

@@ -29,6 +29,22 @@ public class ProductSpecDaoCtrl extends DaoCtrl {
 		return new ProductSpecDaoCtrl(flow, aid);
 	}
 
+	public Integer getId(){
+		int rt = openDao();
+		if(rt != Errno.OK){
+			return null;
+		}
+		Integer id = m_idBuilder.get(aid, m_dao);
+		return id;
+	}
+	public Integer updateId(Integer id){
+		int rt = openDao();
+		if(rt != Errno.OK){
+			return null;
+		}
+		return m_idBuilder.update(aid, id, m_dao, false);
+	}
+
 	public Integer buildId(){
 		return buildId(false);
 	}

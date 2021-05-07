@@ -217,10 +217,13 @@ public class SummaryService extends StoreService {
     /**
      * 根据pdId 获取所关联的 spu 业务库存销售汇总信息
      */
-    public int getSpuBizSummaryInfoListByPdId(FaiSession session, int flow, int aid, int tid, int pdId) throws IOException {
+    public int getSpuBizSummaryInfoListByPdId(FaiSession session, int flow, int aid, int tid, int pdId, FaiList<Integer> uidList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
+            if(uidList.isEmpty()){
+                uidList = null;
+            }
             if (aid <= 0 || pdId <= 0) {
                 rt = Errno.ARGS_ERROR;
                 Log.logErr("arg err;flow=%d;aid=%d;pdId=%s;", flow, aid, pdId);
@@ -230,7 +233,7 @@ public class SummaryService extends StoreService {
             SpuBizSummaryDaoCtrl spuBizSummaryDaoCtrl = SpuBizSummaryDaoCtrl.getInstance(flow, aid);
             try {
                 SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(spuBizSummaryDaoCtrl, flow);
-                rt = spuBizSummaryProc.getInfoListByUnionPriIdListFromDao(aid, null, pdId, listRef);
+                rt = spuBizSummaryProc.getInfoListByUnionPriIdListFromDao(aid, uidList, pdId, listRef);
                 if(rt != Errno.OK){
                     return rt;
                 }
@@ -248,10 +251,13 @@ public class SummaryService extends StoreService {
     /**
      * 根据pdIdList 获取所关联的 spu 业务库存销售汇总信息
      */
-    public int getSpuBizSummaryInfoListByPdIdList(FaiSession session, int flow, int aid, int tid, FaiList<Integer> pdIdList) throws IOException {
+    public int getSpuBizSummaryInfoListByPdIdList(FaiSession session, int flow, int aid, int tid, FaiList<Integer> pdIdList, FaiList<Integer> uidList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
+            if(uidList.isEmpty()){
+                uidList = null;
+            }
             if (aid <= 0 || pdIdList == null || pdIdList.isEmpty()) {
                 rt = Errno.ARGS_ERROR;
                 Log.logErr("arg err;flow=%d;aid=%d;pdIdList=%s;", flow, aid, pdIdList);
@@ -261,7 +267,7 @@ public class SummaryService extends StoreService {
             SpuBizSummaryDaoCtrl spuBizSummaryDaoCtrl = SpuBizSummaryDaoCtrl.getInstance(flow, aid);
             try {
                 SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(spuBizSummaryDaoCtrl, flow);
-                rt = spuBizSummaryProc.getInfoListByUnionPriIdListFromDao(aid, null, pdIdList, listRef);
+                rt = spuBizSummaryProc.getInfoListByUnionPriIdListFromDao(aid, uidList, pdIdList, listRef);
                 if(rt != Errno.OK){
                     return rt;
                 }

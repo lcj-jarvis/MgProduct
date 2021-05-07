@@ -243,7 +243,6 @@ public class StoreService {
                 addInStoreRecordInfo.setList(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList);
                 inStoreRecordList.add(addInStoreRecordInfo);
             }
-
             // 事务
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
@@ -271,7 +270,6 @@ public class StoreService {
                         if(rt != Errno.OK){
                             return rt;
                         }
-
                         // 更新总成本
                         rt = storeSalesSkuProc.batchUpdateTotalCost(aid, skuBizSkuStoreSalesInfoMap);
                         if(rt != Errno.OK){
@@ -288,7 +286,6 @@ public class StoreService {
                 }finally {
                     LockUtil.unlock(aid);
                 }
-
                 try {
                     transactionCtrl.setAutoCommit(false);
                     rt = reportSummary(aid, new FaiList<>(pdIdSet), ReportValObj.Flag.REPORT_COUNT|ReportValObj.Flag.REPORT_PRICE,
@@ -307,7 +304,6 @@ public class StoreService {
                     spuBizSummaryProc.deleteDirtyCache(aid);
                     spuSummaryProc.deleteDirtyCache(aid);
                 }
-
             }finally {
                 transactionCtrl.closeDao();
             }

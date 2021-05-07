@@ -748,6 +748,156 @@ public class MgProductStoreCli extends MgProductInternalCli {
     }
 
     /**
+     * 根据 unionPriIdList 和 pdIdList 获取商品规格库存销售sku
+     */
+    public int batchGetSkuStoreSalesByUidAndPdId(int aid, int tid, FaiList<Integer> unionPriIdList, FaiList<Integer> pdIdList, FaiList<Param> infoList){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(unionPriIdList == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "unionPriIdList error");
+                return m_rt;
+            }
+            if(pdIdList == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "pdIdList error");
+                return m_rt;
+            }
+            if(infoList == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "infoList error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(StoreSalesSkuDto.Key.TID, tid);
+            unionPriIdList.toBuffer(sendBody, StoreSalesSkuDto.Key.UID_LIST);
+            pdIdList.toBuffer(sendBody, StoreSalesSkuDto.Key.ID_LIST);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_GET_BY_UID_AND_PD_ID);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = infoList.fromBuffer(recvBody, keyRef, StoreSalesSkuDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != StoreSalesSkuDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            return m_rt = Errno.OK;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    /**
+     * 根据 unionPriIdList 和 skuIdList 获取商品规格库存销售sku
+     */
+    public int batchGetSkuStoreSalesByUidAndSkuId(int aid, int tid, FaiList<Integer> unionPriIdList, FaiList<Long> skuIdList, FaiList<Param> infoList){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(unionPriIdList == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "unionPriIdList error");
+                return m_rt;
+            }
+            if(skuIdList == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "skuIdList error");
+                return m_rt;
+            }
+            if(infoList == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "infoList error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(StoreSalesSkuDto.Key.TID, tid);
+            unionPriIdList.toBuffer(sendBody, StoreSalesSkuDto.Key.UID_LIST);
+            skuIdList.toBuffer(sendBody, StoreSalesSkuDto.Key.ID_LIST);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_GET_BY_UID_AND_SKU_ID);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = infoList.fromBuffer(recvBody, keyRef, StoreSalesSkuDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != StoreSalesSkuDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            return m_rt = Errno.OK;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    /**
      * 根据 skuId 和 unionPriIdList 获取商品规格库存销售sku
      */
     public int getStoreSalesBySkuIdList(int aid, int tid, int unionPirId, FaiList<Long> skuIdList, FaiList<Param> infoList, FaiList<String> useSourceFieldList){
@@ -1078,6 +1228,13 @@ public class MgProductStoreCli extends MgProductInternalCli {
      * 根据pdId 获取所关联的 spu 业务库存销售汇总信息
      */
     public int getAllSpuBizSummaryInfoListByPdId(int aid, int tid, int pdId, FaiList<Param> infoList){
+       return getSpuBizSummaryInfoListByPdIdAndUidList(aid, tid, null, pdId, infoList);
+    }
+
+    /**
+     * 根据pdId和unionPriIdList获取匹配上的数据
+     */
+    public int getSpuBizSummaryInfoListByPdIdAndUidList(int aid, int tid, FaiList<Integer> uidList, int pdId, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1091,11 +1248,20 @@ public class MgProductStoreCli extends MgProductInternalCli {
                 Log.logErr(m_rt, "infoList error");
                 return m_rt;
             }
+            if(uidList != null && uidList.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "uidList error");
+                return m_rt;
+            }
+            if(uidList == null){
+                uidList = new FaiList<Integer>();
+            }
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(SpuBizSummaryDto.Key.TID, tid);
             sendBody.putInt(SpuBizSummaryDto.Key.PD_ID, pdId);
+            uidList.toBuffer(sendBody, SpuBizSummaryDto.Key.UID_LIST);
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductStoreCmd.SpuBizSummaryCmd.GET_LIST_BY_PD_ID);
@@ -1137,11 +1303,13 @@ public class MgProductStoreCli extends MgProductInternalCli {
             stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
         }
     }
-
+    public int getAllSpuBizSummaryInfoListByPdIdList(int aid, int tid, FaiList<Integer> pdIdList, FaiList<Param> infoList){
+        return getSpuBizSummaryInfoListByPdIdListAndUidList(aid, tid, null, pdIdList, infoList);
+    }
     /**
      * 根据pdIdList 获取所关联的 spu 业务库存销售汇总信息
      */
-    public int getAllSpuBizSummaryInfoListByPdIdList(int aid, int tid, FaiList<Integer> pdIdList, FaiList<Param> infoList){
+    public int getSpuBizSummaryInfoListByPdIdListAndUidList(int aid, int tid, FaiList<Integer> uidList, FaiList<Integer> pdIdList, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1155,11 +1323,20 @@ public class MgProductStoreCli extends MgProductInternalCli {
                 Log.logErr(m_rt, "infoList error");
                 return m_rt;
             }
+            if(uidList != null && uidList.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "uidList error");
+                return m_rt;
+            }
+            if(uidList == null){
+                uidList = new FaiList<Integer>();
+            }
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(SpuBizSummaryDto.Key.TID, tid);
             pdIdList.toBuffer(sendBody, SpuBizSummaryDto.Key.ID_LIST);
+            uidList.toBuffer(sendBody, SpuBizSummaryDto.Key.UID_LIST);
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductStoreCmd.SpuBizSummaryCmd.GET_LIST_BY_PD_ID_LIST);

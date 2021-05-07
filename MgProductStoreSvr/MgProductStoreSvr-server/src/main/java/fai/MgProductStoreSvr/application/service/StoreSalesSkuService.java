@@ -473,7 +473,6 @@ public class StoreSalesSkuService extends StoreService {
                 Log.logErr(rt,"arg err;flow=%d;aid=%d;unionPriId=%s;skuIdCountList=%s;rlOrderCode=%s;reduceMode=%s;expireTimeSeconds=%s;", flow, aid, unionPriId, skuIdCountList, rlOrderCode, reduceMode, expireTimeSeconds);
                 return rt;
             }
-            System.out.println(skuIdCountList);
             TreeMap<Long, Integer> skuIdCountMap = new TreeMap<>(); // 使用 有序map, 避免事务中 批量修改时如果无序 相互锁住 导致死锁
             TreeMap<RecordKey, Integer> recordCountMap = new TreeMap<>();
             FaiList<Long> skuIdList = new FaiList<>(skuIdCountList.size());
@@ -570,7 +569,6 @@ public class StoreSalesSkuService extends StoreService {
             }
         }
         FaiList<Param> list = listRef.value;
-        System.out.println("list="+list);
         Map<Long, Set<RecordKey>> skuIdRecordKeysMap = new HashMap<>();
         boolean useOld = true;
         if(useOld){
@@ -604,7 +602,6 @@ public class StoreSalesSkuService extends StoreService {
                 skuIdRecordKeysMap.put(recordKey.skuId, recordKeys);
             }
         }
-        System.out.println("skuIdRecordKeysMap="+skuIdRecordKeysMap);
         for (Param info : list) {
             boolean alreadyDel = info.getBoolean(HoldingRecordEntity.Info.ALREADY_DEL);
             if(notJudgeDel || alreadyDel){ // 不判断删除 或者 已经删除
@@ -640,7 +637,6 @@ public class StoreSalesSkuService extends StoreService {
                 }
             }
         }
-        System.out.println("skuIdCountMap="+skuIdCountMap);
         return rt = Errno.OK;
     }
 
@@ -1234,7 +1230,7 @@ public class StoreSalesSkuService extends StoreService {
             try {
                 StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
                 Ref<FaiList<Param>> listRef = new Ref<>();
-                rt = storeSalesSkuProc.getList(aid, unionPriId, pdId, listRef);
+                rt = storeSalesSkuProc.getListFromDao(aid, unionPriId, pdId, listRef);;
                 if(rt != Errno.OK){
                     return rt;
                 }
@@ -1387,7 +1383,7 @@ public class StoreSalesSkuService extends StoreService {
             StoreSalesSkuDaoCtrl storeSalesSkuDaoCtrl = StoreSalesSkuDaoCtrl.getInstance(flow, aid);
             try {
                 StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
-                rt = storeSalesSkuProc.getListBySkuIdAndUnionPriIdList(aid, skuId, unionPriIdList, listRef);
+                rt = storeSalesSkuProc.getListFromDao(aid, unionPriIdList, new FaiList<>(Arrays.asList(skuId)), listRef);
                 if(rt != Errno.OK){
                     return rt;
                 }
@@ -1418,7 +1414,7 @@ public class StoreSalesSkuService extends StoreService {
             StoreSalesSkuDaoCtrl storeSalesSkuDaoCtrl = StoreSalesSkuDaoCtrl.getInstance(flow, aid);
             try {
                 StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
-                rt = storeSalesSkuProc.getListByPdId(aid, pdId, listRef);
+                rt = storeSalesSkuProc.getListFromDaoByPdIdListAndUidList(aid, new FaiList<>(Arrays.asList(pdId)), null, listRef);
                 if(rt != Errno.OK){
                     return rt;
                 }
@@ -1432,6 +1428,72 @@ public class StoreSalesSkuService extends StoreService {
         }
         return rt;
     }
+    /**
+     * 批量获取数据
+     * @param uidList 联合主键id
+     * @param pdIdList 商品id
+     */
+    public int batchGetSkuStoreSalesByUidAndPdId(FaiSession session, int flow, int aid, FaiList<Integer> uidList, FaiList<Integer> pdIdList)throws IOException{
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || Util.isEmptyList(uidList) || Util.isEmptyList(pdIdList)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;uidList=%s;pdIdList=%s;", flow, aid, uidList, pdIdList);
+                return rt;
+            }
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            StoreSalesSkuDaoCtrl storeSalesSkuDaoCtrl = StoreSalesSkuDaoCtrl.getInstance(flow, aid);
+            try {
+                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
+                rt = storeSalesSkuProc.getListFromDaoByPdIdListAndUidList(aid, pdIdList, uidList, listRef);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+            }finally {
+                storeSalesSkuDaoCtrl.closeDao();
+            }
+            sendPdScSkuSalesStore(session, listRef.value);
+            Log.logDbg("ok;aid=%d;uidList=%s;pdIdList=%s;", aid, uidList, pdIdList);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+    /**
+     * 批量获取数据
+     * @param uidList 联合主键id
+     * @param skuIdList skuId
+     */
+    public int batchGetSkuStoreSalesByUidAndSkuId(FaiSession session, int flow, int aid, FaiList<Integer> uidList, FaiList<Long> skuIdList)throws IOException{
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || Util.isEmptyList(uidList) || Util.isEmptyList(skuIdList)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;uidList=%s;skuIdList=%s;", flow, aid, uidList, skuIdList);
+                return rt;
+            }
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            StoreSalesSkuDaoCtrl storeSalesSkuDaoCtrl = StoreSalesSkuDaoCtrl.getInstance(flow, aid);
+            try {
+                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
+                rt = storeSalesSkuProc.getListFromDao(aid, uidList, skuIdList, listRef);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+            }finally {
+                storeSalesSkuDaoCtrl.closeDao();
+            }
+            sendPdScSkuSalesStore(session, listRef.value);
+            Log.logDbg("ok;aid=%d;uidList=%s;skuIdList=%s;", aid, uidList, skuIdList);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+
+
     private void sendPdScSkuSalesStore(FaiSession session, FaiList<Param> infoList) throws IOException {
         FaiBuffer sendBuf = new FaiBuffer(true);
         infoList.toBuffer(sendBuf, StoreSalesSkuDto.Key.INFO_LIST, StoreSalesSkuDto.getInfoDto());

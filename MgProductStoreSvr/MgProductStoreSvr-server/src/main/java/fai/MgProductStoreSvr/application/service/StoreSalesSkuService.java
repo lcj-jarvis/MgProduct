@@ -570,7 +570,7 @@ public class StoreSalesSkuService extends StoreService {
         }
         FaiList<Param> list = listRef.value;
         Map<Long, Set<RecordKey>> skuIdRecordKeysMap = new HashMap<>();
-        boolean useOld = true;
+        boolean useOld = false;
         if(useOld){
             Map<Long, Integer> combineSkuIdCount = new HashMap<>();
             for (Param info : list) {

@@ -1,12 +1,10 @@
 package fai.MgProductBasicSvr.domain.repository.dao;
 
+import fai.MgProductBasicSvr.domain.entity.ProductEntity;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.distributedkit.idBuilder.domain.IdBuilderConfig;
 import fai.comm.distributedkit.idBuilder.wrapper.IdBuilderWrapper;
-import fai.comm.util.Dao;
-import fai.comm.util.DaoPool;
-import fai.comm.util.Errno;
-import fai.comm.util.Log;
+import fai.comm.util.*;
 import fai.middleground.svrutil.repository.DaoCtrl;
 
 public class ProductDaoCtrl extends DaoCtrl {
@@ -35,6 +33,35 @@ public class ProductDaoCtrl extends DaoCtrl {
             return null;
         }
         return new ProductDaoCtrl(flow, aid);
+    }
+
+    public Integer restoreMaxId(int aid, boolean needLock) {
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
+        Dao.SelectArg sltArg = new Dao.SelectArg();
+        sltArg.table = getTableName();
+        sltArg.searchArg = searchArg;
+        sltArg.field = "max(" + ProductEntity.Info.PD_ID + ") as maxId";
+        int rt = openDao();
+        if(rt != Errno.OK) {
+            return null;
+        }
+        Param maxInfo = m_dao.selectFirst(sltArg);
+        if(Str.isEmpty(maxInfo)){
+            rt = Errno.DAO_ERROR;
+            Log.logErr(rt, "select db err;");
+            return null;
+        }
+        int maxId = maxInfo.getInt("maxId");
+        return updateId(aid, maxId, needLock);
+    }
+
+    public Integer getId(int aid) {
+        int rt = openDao();
+        if(rt != Errno.OK) {
+            return null;
+        }
+        return m_idBuilder.get(aid, m_dao);
     }
 
     public Integer buildId(int aid, boolean needLock) {

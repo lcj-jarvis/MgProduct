@@ -54,8 +54,13 @@ public class ProductProc {
             throw new MgException(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductValObj.Limit.COUNT_MAX);
         }
         FaiList<Integer> pdIdList = new FaiList<>();
+        int maxId = m_dao.getId(aid);
         for(Param pdData : pdDataList) {
-            int pdId = creatAndSetId(aid, pdData);
+            int pdId = pdData.getInt(ProductEntity.Info.PD_ID, ++maxId);
+            if(pdId > maxId) {
+                maxId = pdId;
+            }
+            pdData.setInt(ProductEntity.Info.PD_ID, pdId);
             pdIdList.add(pdId);
         }
 
@@ -63,6 +68,7 @@ public class ProductProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "insert product error;flow=%d;aid=%d;", m_flow, aid);
         }
+        m_dao.updateId(aid, maxId, false);
         return pdIdList;
     }
 

@@ -68,6 +68,9 @@ public class ProductRelProc {
             }
 
             int rlPdId = relData.getInt(ProductRelEntity.Info.RL_PD_ID, ++maxId);
+            if(rlPdId > maxId) {
+                maxId = rlPdId;
+            }
             rlPdIds.add(rlPdId);
         }
 
@@ -75,7 +78,7 @@ public class ProductRelProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "batch insert product rel error;flow=%d;aid=%d;", m_flow, aid);
         }
-        m_dao.restoreMaxId(aid, unionPriId, false);
+        m_dao.updateId(aid, unionPriId, maxId, false);
         return rlPdIds;
     }
 

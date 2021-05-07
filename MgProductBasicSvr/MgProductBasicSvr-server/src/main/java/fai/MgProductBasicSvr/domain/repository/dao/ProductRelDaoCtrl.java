@@ -1,12 +1,11 @@
 package fai.MgProductBasicSvr.domain.repository.dao;
 
+import fai.MgProductBasicSvr.domain.entity.ProductRelEntity;
+import fai.MgProductBasicSvr.domain.entity.ProductRelValObj;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.distributedkit.idBuilder.domain.IdBuilderConfig;
 import fai.comm.distributedkit.idBuilder.wrapper.IdBuilderWrapper;
-import fai.comm.util.Dao;
-import fai.comm.util.DaoPool;
-import fai.comm.util.Errno;
-import fai.comm.util.Log;
+import fai.comm.util.*;
 import fai.middleground.svrutil.repository.DaoCtrl;
 
 public class ProductRelDaoCtrl extends DaoCtrl {
@@ -57,16 +56,34 @@ public class ProductRelDaoCtrl extends DaoCtrl {
         return m_idBuilder.update(aid, unionPriId, id, m_dao, needLock);
     }
 
-    public void restoreMaxId(int flow, boolean needLock) {
-        m_idBuilder.restoreMaxId(aid, flow, getTableName(), m_dao, needLock);
-    }
-
-    public Integer getId(int aid) {
+    public Integer restoreMaxId(int aid, int unionPriId, boolean needLock) {
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        Dao.SelectArg sltArg = new Dao.SelectArg();
+        sltArg.table = getTableName();
+        sltArg.searchArg = searchArg;
+        sltArg.field = "max(" + ProductRelEntity.Info.RL_PD_ID + ") as maxId";
         int rt = openDao();
         if(rt != Errno.OK) {
             return null;
         }
-        return m_idBuilder.get(aid, m_dao);
+        Param maxInfo = m_dao.selectFirst(sltArg);
+        if(Str.isEmpty(maxInfo)){
+            rt = Errno.DAO_ERROR;
+            Log.logErr(rt, "select db err;");
+            return null;
+        }
+        int maxId = maxInfo.getInt("maxId");
+        return updateId(aid, unionPriId, maxId, needLock);
+    }
+
+    public Integer getId(int aid, int unionPriId) {
+        int rt = openDao();
+        if(rt != Errno.OK) {
+            return null;
+        }
+        return m_idBuilder.get(aid, unionPriId, m_dao);
     }
 
     public static void init(DaoPool daoPool, RedisCacheManager cache) {

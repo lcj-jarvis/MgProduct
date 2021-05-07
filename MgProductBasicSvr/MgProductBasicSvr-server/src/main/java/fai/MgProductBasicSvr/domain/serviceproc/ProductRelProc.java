@@ -41,14 +41,20 @@ public class ProductRelProc {
         return rlPdId;
     }
 
-    public FaiList<Integer> batchAddProductRel(int aid, Param pdInfo, FaiList<Param> relDataList) {
+    public FaiList<Integer> batchAddProductRel(int aid, int unionPriId, Param pdInfo, FaiList<Param> relDataList) {
         int rt;
         if(relDataList == null || relDataList.isEmpty()) {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "args err, infoList is empty;flow=%d;aid=%d;relDataList=%s;", m_flow, aid, relDataList);
         }
 
-        int maxId = m_dao.getId(aid);
+        int count = getPdRelCount(aid, unionPriId);
+        if(count >= ProductRelValObj.Limit.COUNT_MAX) {
+            rt = Errno.COUNT_LIMIT;
+            throw new MgException(rt, "over limit;flow=%d;aid=%d;uid=%d;count=%d;limit=%d;", m_flow, aid, unionPriId, count, ProductRelValObj.Limit.COUNT_MAX);
+        }
+
+        int maxId = m_dao.getId(aid, unionPriId);
         FaiList<Integer> rlPdIds = new FaiList<Integer>();
         for(Param relData : relDataList) {
             if(!Str.isEmpty(pdInfo)) {
@@ -61,13 +67,6 @@ public class ProductRelProc {
                 throw new MgException(rt, "args error, pdId is null;flow=%d;aid=%d;uid=%d;", m_flow, aid);
             }
 
-            int unionPriId = relData.getInt(ProductRelEntity.Info.UNION_PRI_ID);
-            int count = getPdRelCount(aid, unionPriId);
-            if(count >= ProductRelValObj.Limit.COUNT_MAX) {
-                rt = Errno.COUNT_LIMIT;
-                throw new MgException(rt, "over limit;flow=%d;aid=%d;uid=%d;count=%d;limit=%d;", m_flow, aid, unionPriId, count, ProductRelValObj.Limit.COUNT_MAX);
-            }
-
             int rlPdId = relData.getInt(ProductRelEntity.Info.RL_PD_ID, ++maxId);
             rlPdIds.add(rlPdId);
         }
@@ -76,7 +75,7 @@ public class ProductRelProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "batch insert product rel error;flow=%d;aid=%d;", m_flow, aid);
         }
-        m_dao.restoreMaxId(m_flow, false);
+        m_dao.restoreMaxId(aid, unionPriId, false);
         return rlPdIds;
     }
 

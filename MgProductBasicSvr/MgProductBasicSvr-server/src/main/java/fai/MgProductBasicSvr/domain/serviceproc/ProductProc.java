@@ -65,7 +65,7 @@ public class ProductProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "insert product error;flow=%d;aid=%d;", m_flow, aid);
         }
-        m_dao.restoreMaxId(m_flow, false);
+        m_dao.restoreMaxId(aid, false);
         return pdIdList;
     }
 

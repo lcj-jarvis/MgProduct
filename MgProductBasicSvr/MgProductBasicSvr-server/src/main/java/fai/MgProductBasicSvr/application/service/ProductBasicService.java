@@ -1179,7 +1179,7 @@ public class ProductBasicService extends ServicePub {
                 // 新增商品业务关系
                 for(Integer unionPriId : unionPriIds) {
                     FaiList<Param> list = listOfUid.get(unionPriId);
-                    if(!Util.isEmptyList(list)) {
+                    if(Util.isEmptyList(list)) {
                         continue;
                     }
                     relProc.batchAddProductRel(aid, unionPriId, null, list);

@@ -26,7 +26,21 @@ public class ProductSpecSkuDaoCtrl extends DaoCtrl {
 		}
 		return new ProductSpecSkuDaoCtrl(flow, aid);
 	}
-
+	public Long getId(){
+		int rt = openDao();
+		if(rt != Errno.OK){
+			return null;
+		}
+		Integer id = m_idBuilder.get(aid, m_dao);
+		return new Long(id);
+	}
+	public Integer updateId(Long id){
+		int rt = openDao();
+		if(rt != Errno.OK){
+			return null;
+		}
+		return m_idBuilder.update(aid, id.intValue(), m_dao, false);
+	}
 	public Long buildId(){
 		return buildId(false);
 	}

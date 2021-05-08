@@ -232,6 +232,26 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
         return m_storeSalesSkuService.getStoreSalesBySkuIdAndUIdList(session, flow, aid, skuId, unionPriIdList);
     }
 
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_GET_BY_UID_AND_PD_ID)
+    private int batchGetSkuStoreSalesByUidAndPdId(final FaiSession session,
+                                                  @ArgFlow final int flow,
+                                                  @ArgAid final int aid,
+                                                  @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
+                                                  @ArgList(keyMatch = StoreSalesSkuDto.Key.UID_LIST) FaiList<Integer> unionPriIdList,
+                                                  @ArgList(keyMatch = StoreSalesSkuDto.Key.ID_LIST) FaiList<Integer> pdIdList) throws IOException {
+        return m_storeSalesSkuService.batchGetSkuStoreSalesByUidAndPdId(session, flow, aid, unionPriIdList, pdIdList);
+    }
+
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_GET_BY_UID_AND_SKU_ID)
+    private int batchGetSkuStoreSalesByUidAndSkuId(final FaiSession session,
+                                                  @ArgFlow final int flow,
+                                                  @ArgAid final int aid,
+                                                  @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
+                                                  @ArgList(keyMatch = StoreSalesSkuDto.Key.UID_LIST) FaiList<Integer> unionPriIdList,
+                                                  @ArgList(keyMatch = StoreSalesSkuDto.Key.ID_LIST) FaiList<Long> skuIdList) throws IOException {
+        return m_storeSalesSkuService.batchGetSkuStoreSalesByUidAndSkuId(session, flow, aid, unionPriIdList, skuIdList);
+    }
+
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.GET_LIST_BY_PD_ID)
     private int getSkuStoreSalesByPdId(final FaiSession session,
                                        @ArgFlow final int flow,
@@ -281,8 +301,9 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                                @ArgFlow final int flow,
                                                @ArgAid final int aid,
                                                @ArgBodyInteger(SpuBizSummaryDto.Key.TID) final int tid,
-                                               @ArgBodyInteger(SpuBizSummaryDto.Key.PD_ID) final int pdId) throws IOException {
-        return m_summaryService.getSpuBizSummaryInfoListByPdId(session, flow, aid, tid, pdId);
+                                               @ArgBodyInteger(SpuBizSummaryDto.Key.PD_ID) final int pdId,
+                                               @ArgList(keyMatch = SpuBizSummaryDto.Key.UID_LIST, useDefault = true) FaiList<Integer> uidList) throws IOException {
+        return m_summaryService.getSpuBizSummaryInfoListByPdId(session, flow, aid, tid, pdId, uidList);
     }
 
     @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.GET_LIST_BY_PD_ID_LIST)
@@ -290,8 +311,9 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                                    @ArgFlow final int flow,
                                                    @ArgAid final int aid,
                                                    @ArgBodyInteger(SpuBizSummaryDto.Key.TID) final int tid,
-                                                   @ArgList(keyMatch = SpuBizSummaryDto.Key.ID_LIST) final FaiList<Integer> pdIdList) throws IOException {
-        return m_summaryService.getSpuBizSummaryInfoListByPdIdList(session, flow, aid, tid, pdIdList);
+                                                   @ArgList(keyMatch = SpuBizSummaryDto.Key.ID_LIST) final FaiList<Integer> pdIdList,
+                                                   @ArgList(keyMatch = SpuBizSummaryDto.Key.UID_LIST, useDefault = true) FaiList<Integer> uidList) throws IOException {
+        return m_summaryService.getSpuBizSummaryInfoListByPdIdList(session, flow, aid, tid, pdIdList, uidList);
     }
 
     @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.GET_LIST)

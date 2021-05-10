@@ -26,7 +26,7 @@
         <fai-web-inf-arch-ver>1.0.0</fai-web-inf-arch-ver>
         <fai-web-kit-arch-ver>1.0.0</fai-web-kit-arch-ver>
         <fai-comm-util-arch-ver>1.0.0</fai-comm-util-arch-ver>
-        <fai-comm-distributedkit-ver>1.2.0</fai-comm-distributedkit-ver>
+        <fai-comm-distributedkit-ver>1.4.0</fai-comm-distributedkit-ver>
         <fai-comm-netkit-ver>1.0.0</fai-comm-netkit-ver>
         <fai-comm-config-ver>1.0.0</fai-comm-config-ver>
         <fai-comm-mq-ver>1.0.1</fai-comm-mq-ver>

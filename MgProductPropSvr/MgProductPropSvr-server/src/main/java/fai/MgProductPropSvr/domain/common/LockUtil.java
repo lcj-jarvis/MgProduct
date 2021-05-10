@@ -1,7 +1,7 @@
 package fai.MgProductPropSvr.domain.common;
 
 import fai.comm.cache.redis.RedisCacheManager;
-import fai.comm.distributedkit.lock.PosDistributedLockPool;
+import fai.comm.distributedkit.lock.SimpleDistributedLock;
 import fai.comm.distributedkit.lock.support.FaiLockGenerator;
 
 import java.util.concurrent.TimeUnit;
@@ -9,12 +9,12 @@ import java.util.concurrent.locks.Lock;
 
 public class LockUtil {
 
-	public static void init(RedisCacheManager cache, int lockLease, int readLockLength) {
+	public static void init(RedisCacheManager cache, int lockLease) {
 		m_lockGenerator = new FaiLockGenerator(cache);
 		m_lockLease = lockLease;
-		PropLock.init(cache, lockLease, readLockLength);
-		PropRelLock.init(cache, lockLease, readLockLength);
-		PropValLock.init(cache, lockLease, readLockLength);
+		PropLock.init(cache, lockLease);
+		PropRelLock.init(cache, lockLease);
+		PropValLock.init(cache, lockLease);
 	}
 
 	public static Lock getLock(int aid) {
@@ -35,10 +35,10 @@ public class LockUtil {
 			m_readLock.unlock(aid);
 		}
 
-		public static void init(RedisCacheManager cache, int lockLease, int readLockLength) {
-			m_readLock = new PosDistributedLockPool(cache, READ_LOCK_TYPE, readLockLength, readLockLength*2, lockLease, TimeUnit.MILLISECONDS, m_retryLockTime);
+		public static void init(RedisCacheManager cache, int lockLease) {
+			m_readLock = new SimpleDistributedLock(cache, READ_LOCK_TYPE, lockLease, m_retryLockTime);
 		}
-		private static PosDistributedLockPool m_readLock;
+		private static SimpleDistributedLock m_readLock;
 
 		private static String READ_LOCK_TYPE = "PDPROP_READ_LOCK";
 	}
@@ -52,10 +52,10 @@ public class LockUtil {
 			m_readLock.unlock(aid);
 		}
 
-		public static void init(RedisCacheManager cache, int lockLease, int readLockLength) {
-			m_readLock = new PosDistributedLockPool(cache, READ_LOCK_TYPE, readLockLength, readLockLength*2, lockLease, TimeUnit.MILLISECONDS, m_retryLockTime);
+		public static void init(RedisCacheManager cache, int lockLease) {
+			m_readLock = new SimpleDistributedLock(cache, READ_LOCK_TYPE, lockLease, m_retryLockTime);
 		}
-		private static PosDistributedLockPool m_readLock;
+		private static SimpleDistributedLock m_readLock;
 
 		private static String READ_LOCK_TYPE = "PDPROPREL_READ_LOCK";
 	}
@@ -69,10 +69,10 @@ public class LockUtil {
 			m_readLock.unlock(aid);
 		}
 
-		public static void init(RedisCacheManager cache, int lockLease, int readLockLength) {
-			m_readLock = new PosDistributedLockPool(cache, READ_LOCK_TYPE, readLockLength, readLockLength*2, lockLease, TimeUnit.MILLISECONDS, m_retryLockTime);
+		public static void init(RedisCacheManager cache, int lockLease) {
+			m_readLock = new SimpleDistributedLock(cache, READ_LOCK_TYPE, lockLease, m_retryLockTime);
 		}
-		private static PosDistributedLockPool m_readLock;
+		private static SimpleDistributedLock m_readLock;
 
 		private static String READ_LOCK_TYPE = "PDPROPVAL_READ_LOCK";
 	}

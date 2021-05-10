@@ -37,6 +37,11 @@ public class ProductSpecSkuProc {
         FaiList<Param> dataList = new FaiList<>();
         Calendar now = Calendar.getInstance();
         FaiList<Long> skuIdList = new FaiList();
+        Long skuId = m_daoCtrl.getId();
+        if(skuId == null){
+            Log.logErr("skuId err;flow=%d;aid=%s;skuId=%s;", m_flow, aid, skuId);
+            return Errno.ERROR;
+        }
         for (Map.Entry<Integer, FaiList<Param>> pdIdInfoListEntry : pdIdPdScSkuListMap.entrySet()) {
             Integer pdId = pdIdInfoListEntry.getKey();
             List<Param> infoList = pdIdInfoListEntry.getValue();
@@ -52,15 +57,12 @@ public class ProductSpecSkuProc {
                }
                 pdIdInPdScStrIdListJsonSkuIdMap.put(pdId, inPdScStrIdListJsonSkuIdMap);
             }
+
             for (Param info : infoList) {
                 Param data = new Param();
                 data.setInt(ProductSpecSkuEntity.Info.AID, aid);
                 data.setInt(ProductSpecSkuEntity.Info.PD_ID, pdId);
-                Long skuId = m_daoCtrl.buildId();
-                if(skuId == null){
-                    Log.logErr("arg error 2;flow=%d;aid=%s;skuId=%s;info=%s;", m_flow, aid, skuId, info);
-                    return Errno.ERROR;
-                }
+                skuId++;
                 skuIdList.add(skuId);
                 data.setLong(ProductSpecSkuEntity.Info.SKU_ID, skuId);
                 data.assign(info, ProductSpecSkuEntity.Info.SORT);
@@ -87,11 +89,17 @@ public class ProductSpecSkuProc {
                     inPdScStrIdListJsonSkuIdMap.put(inPdScStrIdListJson, skuId);
                 }
             }
-            cacheManage.addNeedDelCachedPdId(aid, pdId);
+
         }
+        cacheManage.addNeedDelCachedPdIdSet(aid, pdIdPdScSkuListMap.keySet());
         cacheManage.addNeedDelCachedSkuIdList(aid, skuIdList);
         if(skuIdListRef != null){
             skuIdListRef.value = skuIdList;
+        }
+        if(m_daoCtrl.updateId(skuId) == null){
+            rt = Errno.ERROR;
+            Log.logErr(rt, "dao.updateId error;flow=%d;aid=%s;skuId=%s;", m_flow, aid, skuId);
+            return rt;
         }
         rt = m_daoCtrl.batchInsert(dataList, null);
         if(rt != Errno.OK) {

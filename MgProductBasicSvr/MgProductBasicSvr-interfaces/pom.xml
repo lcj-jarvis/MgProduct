@@ -22,6 +22,12 @@
         </dependency>
 
         <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProductInfUtil</artifactId>
+            <version>${MgProduct-MgProductInfUtil-ver}</version>
+        </dependency>
+
+        <dependency>
             <groupId>fai-comm-util-arch</groupId>
             <artifactId>fai-comm-util-arch</artifactId>
             <version>${fai-comm-util-arch-ver}</version>

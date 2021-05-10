@@ -12,6 +12,7 @@ import fai.MgProductStoreSvr.domain.repository.StoreSalesSkuCacheCtrl;
 import fai.MgProductStoreSvr.domain.repository.StoreSalesSkuDaoCtrl;
 import fai.comm.util.*;
 import fai.mgproduct.comm.MgProductErrno;
+import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.*;
@@ -743,48 +744,59 @@ public class StoreSalesSkuProc {
         Log.logStd("ok!;flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
-    public int getListFromDaoByPdIdAndSkuIdList(int aid, int pdId, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef, String ... fields){
-        if(aid <= 0 || pdId <=0 || (skuIdList != null && skuIdList.isEmpty()) || listRef == null){
-            Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;skuIdList=%s;listRef=%s;fields=%s", m_flow, aid, pdId, skuIdList, listRef, fields);
+
+    public int getListFromDao(int aid, FaiList<Integer> uidList, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef, String ... fields){
+        if(aid <= 0 || Util.isEmptyList(skuIdList) || Util.isEmptyList(uidList) || listRef == null){
+            Log.logErr("arg error;flow=%d;aid=%s;uidList=%s;uidList=%s;listRef=%s;fields=%s", m_flow, aid, uidList, uidList, listRef, fields);
             return Errno.ARGS_ERROR;
         }
-        int rt = Errno.ERROR;
-        ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
-        if(skuIdList != null){
-            matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
-        }
         SearchArg searchArg = new SearchArg();
-        searchArg.matcher = matcher;
-        rt = m_daoCtrl.select(searchArg, listRef, fields);
+        searchArg.matcher = new ParamMatcher();
+        searchArg.matcher.and(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.IN, uidList);
+        searchArg.matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
+        int rt = m_daoCtrl.select(searchArg, listRef, fields);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
-            Log.logErr(rt,"dao.select error;flow=%d;aid=%s;pdId=%s;skuIdList=%s", m_flow, aid, pdId, skuIdList);
+            Log.logStd("dao.select error;flow=%d;aid=%s;skuIdList=%s;uidList=%s;", m_flow, aid, skuIdList, uidList);
             return rt;
         }
-
-        Log.logStd(rt,"ok;flow=%d;aid=%s;pdId=%s;skuIdList=%s;", m_flow, aid, pdId, skuIdList);
+        Log.logStd(rt,"ok;flow=%d;aid=%d;skuIdList=%s;uidList=%s;", m_flow, aid, skuIdList, uidList);
         return rt;
     }
 
     public int getListFromDao(int aid, int unionPriId, int pdId, Ref<FaiList<Param>> listRef, String ... fields){
-        if(aid <= 0 || unionPriId <=0 || pdId <=0 || listRef == null){
-            Log.logErr("arg error;flow=%d;aid=%s;unionPriId=%s;pdId=%s;listRef=%s;fields=%s", m_flow, aid, unionPriId, pdId, listRef, fields);
+        return getListFromDaoByPdIdListAndUidList(aid, new FaiList<>(Arrays.asList(pdId)), new FaiList<>(Arrays.asList(unionPriId)), listRef, fields);
+    }
+
+    public int getListFromDaoByPdIdListAndUidList(int aid, FaiList<Integer> pdIdList, FaiList<Integer> uidList, Ref<FaiList<Param>> listRef, String ... fields){
+        if(aid <= 0 || Util.isEmptyList(pdIdList) || (uidList != null && uidList.isEmpty()) || listRef == null){
+            Log.logErr("arg error;flow=%d;aid=%s;pdIdList=%s;uidList=%s;listRef=%s;fields=%s", m_flow, aid, pdIdList, uidList, listRef, fields);
             return Errno.ARGS_ERROR;
         }
         int rt = Errno.ERROR;
         ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        matcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
+        matcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        if(uidList != null){
+            matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.IN, uidList);
+        }
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
         rt = m_daoCtrl.select(searchArg, listRef, fields);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
-            Log.logStd("dao.select error;flow=%d;aid=%s;unionPriId=%s;pdId=%s;", m_flow, aid, unionPriId, pdId);
+            Log.logStd("dao.select error;flow=%d;aid=%s;pdIdList=%s;uidList=%s;", m_flow, aid, pdIdList, uidList);
             return rt;
         }
 
-        Log.logStd(rt,"ok;flow=%d;aid=%d;unionPriId=%s;pdId=%s;", m_flow, aid, unionPriId, pdId);
+        Log.logStd(rt,"ok;flow=%d;aid=%d;pdIdList=%s;uidList=%s;", m_flow, aid, pdIdList, uidList);
         return rt;
+    }
+
+    public int getListFromDaoBySkuIdList(int aid, int unionPriId, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef, String ... fields){
+        if(skuIdList == null || skuIdList.isEmpty() || listRef == null){
+            Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;skuIdList=%s;listRef=%s;fields=%s", m_flow, aid, unionPriId, skuIdList, listRef, fields);
+            return Errno.ARGS_ERROR;
+        }
+        return getListFromDao(aid, new FaiList<>(Arrays.asList(unionPriId)), skuIdList, listRef, fields);
     }
 
     public int getInfoMap4OutRecordFromDao(int aid, Set<SkuBizKey> skuBizKeySet, Map<SkuBizKey, Param> skuCountAndTotalCostMap) {
@@ -827,43 +839,6 @@ public class StoreSalesSkuProc {
 
         return Errno.OK;
     }
-    public int getListFromDaoBySkuIdList(int aid, int unionPriId, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef, String ... fields){
-        if(skuIdList == null || skuIdList.isEmpty() || listRef == null){
-            Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;skuIdList=%s;listRef=%s;fields=%s", m_flow, aid, unionPriId, skuIdList, listRef, fields);
-            return Errno.ARGS_ERROR;
-        }
-        int rt = Errno.ERROR;
-        ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
-
-        SearchArg searchArg = new SearchArg();
-        searchArg.matcher = matcher;
-        rt = m_daoCtrl.select(searchArg, listRef, fields);
-        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
-            Log.logStd("dao.select error;flow=%d;aid=%s;unionPriId=%s;skuIdList=%s;", m_flow, aid, unionPriId, skuIdList);
-            return rt;
-        }
-
-        Log.logStd(rt,"ok;flow=%d;aid=%d;unionPriId=%s;skuIdList=%s;", m_flow, aid, unionPriId, skuIdList);
-        return rt;
-    }
-    private int getListFromDaoBySkuIdAndUnionPriIdList(int aid, long skuId, FaiList<Integer> unionPriIdList, Ref<FaiList<Param>> listRef) {
-        SearchArg searchArg = new SearchArg();
-        searchArg.matcher = new ParamMatcher();
-        searchArg.matcher.and(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
-        searchArg.matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.EQ, skuId);
-        if(unionPriIdList != null){
-            searchArg.matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIdList);
-        }
-        int rt = m_daoCtrl.select(searchArg, listRef);
-        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
-            Log.logStd("dao.select error;flow=%d;aid=%s;skuId=%s;unionPriIdList=%s;", m_flow, aid, skuId, unionPriIdList);
-            return rt;
-        }
-        Log.logStd(rt,"ok;flow=%d;aid=%d;skuId=%s;unionPriIdList=%s;", m_flow, aid, skuId, unionPriIdList);
-        return rt;
-    }
 
     /**
      * 查询skuBiz汇总数据
@@ -885,6 +860,9 @@ public class StoreSalesSkuProc {
         Log.logDbg(rt,"ok;flow=%d;aid=%d;searchArg.matcher.toJson=%s;", m_flow, aid, searchArg.matcher.toJson());
         return rt;
     }
+
+
+    //========================== 用于汇总 ↓↓↓ ===================================//
     public int getReportListBySkuIdList(int aid, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef){
         if(aid <= 0 || skuIdList == null || skuIdList.isEmpty() || listRef == null){
             Log.logErr("arg error;flow=%d;aid=%s;skuIdList=%s;listRef=%s;", m_flow, aid, skuIdList, listRef);
@@ -1028,63 +1006,7 @@ public class StoreSalesSkuProc {
             + ", sum(" + StoreSalesSkuEntity.Info.MW_TOTAL_COST + ") as " + StoreSalesSkuEntity.ReportInfo.SUM_MW_TOTAL_COST
             + ", bit_or(" + StoreSalesSkuEntity.Info.FLAG + ") as " + StoreSalesSkuEntity.ReportInfo.BIT_OR_FLAG
             ;
-
-    public int getList(int aid, int unionPriId, int pdId, Ref<FaiList<Param>> listRef){
-        if(aid <= 0 || unionPriId <=0 || pdId <= 0 || listRef == null){
-            Log.logStd("arg error;flow=%d;aid=%s;unionPriId=%s;pdId=%s;listRef=%s;", m_flow, aid, unionPriId, pdId, listRef);
-            return Errno.ARGS_ERROR;
-        }
-        int rt = Errno.ERROR;
-
-        /*FaiList<Param> cacheList = StoreSalesSkuCacheCtrl.getCacheList(aid, unionPriId, pdId);
-        if(cacheList != null){
-            listRef.value = cacheList;
-            return Errno.OK;
-        }*/
-        rt = getListFromDao(aid, unionPriId, pdId, listRef);
-        if(rt != Errno.OK){
-            return rt;
-        }
-        //StoreSalesSkuCacheCtrl.setCacheList(aid, unionPriId, pdId, listRef.value);
-
-        Log.logDbg(rt,"getList ok;flow=%d;aid=%d;unionPriId=%s;pdId=%s;", m_flow, aid, unionPriId, pdId);
-        return rt;
-    }
-    public int getListBySkuIdAndUnionPriIdList(int aid, long skuId, FaiList<Integer> unionPriIdList, Ref<FaiList<Param>> listRef) {
-        if(aid <= 0 || skuId <=0 || (unionPriIdList != null && unionPriIdList.isEmpty()) || listRef == null){
-            Log.logErr("arg error;flow=%d;aid=%s;skuId=%s;unionPriIdList=%s;;listRef=%s;", m_flow, aid, skuId, unionPriIdList, listRef);
-            return Errno.ARGS_ERROR;
-        }
-        int rt = Errno.ERROR;
-        rt = getListFromDaoBySkuIdAndUnionPriIdList(aid, skuId, unionPriIdList, listRef);
-        if(rt != Errno.OK){
-            return rt;
-        }
-        Log.logDbg(rt,"ok;flow=%d;aid=%d;skuId=%s;unionPriIdList=%s;", m_flow, aid, skuId, unionPriIdList);
-        return rt;
-    }
-
-    public int getListByPdId(int aid, int pdId, Ref<FaiList<Param>> listRef){
-        if(aid <= 0 || pdId <= 0 || listRef == null){
-            Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;listRef=%s;", m_flow, aid, pdId, listRef);
-            return Errno.ARGS_ERROR;
-        }
-        int rt = Errno.ERROR;
-
-        /*FaiList<Param> cacheList = StoreSalesSkuCacheCtrl.getCacheList(aid, unionPriId, pdId);
-        if(cacheList != null){
-            listRef.value = cacheList;
-            return Errno.OK;
-        }*/
-        rt = getListFromDaoByPdIdAndSkuIdList(aid, pdId, null, listRef);
-        if(rt != Errno.OK){
-            return rt;
-        }
-        //StoreSalesSkuCacheCtrl.setCacheList(aid, unionPriId, pdId, listRef.value);
-
-        Log.logDbg(rt,"ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
-        return rt;
-    }
+    //========================== 用于汇总 ↑↑↑ ===================================//
 
     public boolean deleteDirtyCache(int aid) {
         return cacheManage.deleteDirtyCache(aid);

@@ -145,6 +145,7 @@ public class ProductStoreDto {
         }
     }
 
+
     public static final class HoldingRecord{
         private static ParamDef g_infoDtoDef = new ParamDef();
         static {

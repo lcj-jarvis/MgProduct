@@ -175,7 +175,7 @@ public class InOutStoreRecordProc {
             idRef.value = ioStoreRecId;
         }
         String number = InOutStoreRecordValObj.Number.genNumber(yyMMdd, ioStoreRecId);
-
+        FaiList<Param> dataList = new FaiList<>();
         for (Param info : infoList) {
             int unionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, 0);
             long skuId = info.getLong(InOutStoreRecordEntity.Info.SKU_ID, 0L);
@@ -303,12 +303,12 @@ public class InOutStoreRecordProc {
                     storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, mwTotalCost);
                 }
             }
-
-            rt = m_daoCtrl.insert(data);
-            if(rt != Errno.OK){
-                Log.logErr("dao insert err;flow=%s;aid=%s;unionPriId=%s;skuId=%s;data=%s", m_flow, aid,unionPriId, skuId, data);
-                return rt;
-            }
+            dataList.add(data);
+        }
+        rt = m_daoCtrl.batchInsert(dataList, null, false); // 暂时不设置为null
+        if(rt != Errno.OK){
+            Log.logErr("dao insert err;flow=%s;aid=%s;dataList=%s", m_flow, aid, dataList);
+            return rt;
         }
         Log.logStd("ok;flow=%s;aid=%s;", m_flow, aid);
         return rt;

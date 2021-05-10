@@ -19,6 +19,7 @@ import fai.comm.util.*;
 import fai.comm.middleground.FaiValObj;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
+import fai.middleground.infutil.MgConfPool;
 import fai.middleground.svrutil.annotation.SuccessRt;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 import fai.middleground.svrutil.service.ServicePub;
@@ -103,7 +104,6 @@ public class ProductBasicService extends ServicePub {
             Log.logErr("args error rlPdIds is empty;flow=%d;aid=%d;rlPdIds=%s;", flow, aid, rlPdIds);
             return rt;
         }
-
         Lock lock = LockUtil.getLock(aid);
         lock.lock();
         try {
@@ -118,9 +118,11 @@ public class ProductBasicService extends ServicePub {
                 int delGroupCount = 0;
                 int delPropCount = 0;
                 if(!softDel) {
-                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
-                    ProductBindGroupCache.setExpire(aid, unionPriId);
-                    delGroupCount = bindGroupProc.delPdBindGroupList(aid, unionPriId, rlPdIds);
+                    if(useProductGroup()) {
+                        ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                        ProductBindGroupCache.setExpire(aid, unionPriId);
+                        delGroupCount = bindGroupProc.delPdBindGroupList(aid, unionPriId, rlPdIds);
+                    }
 
                     ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
                     ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
@@ -174,6 +176,7 @@ public class ProductBasicService extends ServicePub {
             Log.logErr("args error, rlPdIds is empty;flow=%d;aid=%d;rlPdIds=%s;", flow, aid, rlPdIds);
             return rt;
         }
+boolean useProductGroup = useProductGroup();
         Lock lock = LockUtil.getLock(aid);
         lock.lock();
         try {
@@ -208,9 +211,11 @@ public class ProductBasicService extends ServicePub {
                 ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
                 bindPropProc.delPdBindProp(aid, pdIdList);
 
-                // 删除分类关联
-                ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
-                bindGroupProc.delPdBindGroupList(aid, pdIdList);
+                if(useProductGroup()) {
+                    // 删除分类关联
+                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                    bindGroupProc.delPdBindGroupList(aid, pdIdList);
+                }
                 commit = true;
                 tc.commit();
             }finally {
@@ -609,7 +614,7 @@ public class ProductBasicService extends ServicePub {
                 }
                 // 新增业务关系
                 ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
-                relProc.batchAddProductRel(aid, null, relDataList);
+                relProc.batchAddProductRel(aid, unionPriId, null, relDataList);
 
                 commit = true;
                 tc.commit();
@@ -909,7 +914,6 @@ public class ProductBasicService extends ServicePub {
             return rt;
         }
 
-        FaiList<Param> relDataList = new FaiList<Param>();
         HashMap<Integer, FaiList<Param>> listOfUid = new HashMap<>();
         for(Param info : infoList) {
             // 是否需要校验数据，初步接入中台，一些非必要数据可能存在需要添加空数据场景
@@ -967,7 +971,6 @@ public class ProductBasicService extends ServicePub {
             relData.assign(info, ProductRelEntity.Info.UP_SALE_TIME);
             relData.assign(info, ProductRelEntity.Info.FLAG);
 
-            relDataList.add(relData);
             FaiList<Param> curUidList = listOfUid.get(unionPriId);
             if(curUidList == null) {
                 curUidList = new FaiList<>();
@@ -999,7 +1002,14 @@ public class ProductBasicService extends ServicePub {
                 }
 
                 // 新增商品业务关系
-                rlPdIds = relProc.batchAddProductRel(aid, bindRel, relDataList);
+                for(Integer unionPriId : unionPriIds) {
+                    FaiList<Param> curList = listOfUid.get(unionPriId);
+                    if(Util.isEmptyList(curList)) {
+                        continue;
+                    }
+                    FaiList<Integer> tmpRlIds = relProc.batchAddProductRel(aid, unionPriId, bindRel, curList);
+                    rlPdIds.addAll(tmpRlIds);
+                }
 
                 commit = true;
                 tc.commit();
@@ -1063,7 +1073,6 @@ public class ProductBasicService extends ServicePub {
         // 根据要绑定的pdId集合，获取对应已绑定的unionPriId
         HashMap<Integer, FaiList<Integer>> pdRels = getBoundUniPriIds(flow, aid, bindPdIds);
 
-        FaiList<Param> relDataList = new FaiList<Param>();
         HashMap<Integer, FaiList<Param>> listOfUid = new HashMap<>();
         for(Param recvInfo : recvList) {
             Integer pdId = recvInfo.getInt(ProductRelEntity.Info.PD_ID);
@@ -1146,7 +1155,6 @@ public class ProductBasicService extends ServicePub {
                 relData.assign(info, ProductRelEntity.Info.FLAG);
                 relData.assign(info, ProductRelEntity.Info.PD_TYPE);
 
-                relDataList.add(relData);
                 FaiList<Param> curUidList = listOfUid.get(unionPriId);
                 if(curUidList == null) {
                     curUidList = new FaiList<>();
@@ -1155,7 +1163,7 @@ public class ProductBasicService extends ServicePub {
                 curUidList.add(relData);
             }
         }
-        if(relDataList.isEmpty()) {
+        if(listOfUid.isEmpty()) {
             rt = Errno.OK;
             Log.logDbg("need bind rel data is empty;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
             FaiBuffer sendBuf = new FaiBuffer(true);
@@ -1172,10 +1180,15 @@ public class ProductBasicService extends ServicePub {
             try {
                 tc.setAutoCommit(false);
 
-                // 先校验商品数据是否存在
                 ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
                 // 新增商品业务关系
-                relProc.batchAddProductRel(aid, null, relDataList);
+                for(Integer unionPriId : unionPriIds) {
+                    FaiList<Param> list = listOfUid.get(unionPriId);
+                    if(Util.isEmptyList(list)) {
+                        continue;
+                    }
+                    relProc.batchAddProductRel(aid, unionPriId, null, list);
+                }
 
                 commit = true;
                 tc.commit();
@@ -1407,6 +1420,15 @@ public class ProductBasicService extends ServicePub {
         Log.logStd("clear cache ok;flow=%d;aid=%d;", flow, aid);
 
         return rt;
+    }
+
+    public static boolean useProductGroup() {
+        Param mgSwitch = MgConfPool.getEnvConf("mgSwitch");
+        if(Str.isEmpty(mgSwitch)) {
+            return false;
+        }
+        boolean useProductGroup = mgSwitch.getBoolean("useProductGroup", false);
+        return useProductGroup;
     }
 
     private HashMap<Integer, FaiList<Integer>> getBoundUniPriIds(int flow, int aid, FaiList<Integer> pdIds) {

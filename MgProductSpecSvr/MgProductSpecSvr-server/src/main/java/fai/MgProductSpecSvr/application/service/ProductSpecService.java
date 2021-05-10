@@ -1515,7 +1515,6 @@ public class ProductSpecService extends ServicePub {
                         }
                     }finally {
                         if(rt != Errno.OK){
-                            transactionCtrl.rollback();
                             productSpecProc.clearIdBuilderCache(aid);
                             productSpecSkuProc.clearIdBuilderCache(aid);
                             transactionCtrl.rollback();

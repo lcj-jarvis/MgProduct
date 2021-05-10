@@ -33,6 +33,11 @@ public class ProductSpecProc {
         }
         FaiList<Param> dataList = new FaiList<>();
         Calendar now = Calendar.getInstance();
+        Integer pdScId = m_daoCtrl.getId();
+        if(pdScId == null){
+            Log.logErr("pdScId error;flow=%d;aid=%s;tpScId=%s;", m_flow, aid, pdScId);
+            return Errno.ERROR;
+        }
         for (Map.Entry<Integer, List<Param>> pdIdSpecListEntry : pdIdSpecListMap.entrySet()) {
             Integer pdId = pdIdSpecListEntry.getKey();
             List<Param> infoList = pdIdSpecListEntry.getValue();
@@ -45,11 +50,7 @@ public class ProductSpecProc {
                 data.setInt(ProductSpecEntity.Info.AID, aid);
                 data.setInt(ProductSpecEntity.Info.PD_ID, pdId);
                 data.assign( info, ProductSpecEntity.Info.SC_STR_ID);
-                Integer pdScId = m_daoCtrl.buildId();
-                if(pdScId == null){
-                    Log.logErr("batchAdd arg error;flow=%d;aid=%s;tpScId=%s;info=%s;", m_flow, aid, pdScId, info);
-                    return Errno.ERROR;
-                }
+                pdScId++;
                 data.setInt(ProductSpecEntity.Info.PD_SC_ID, pdScId);
                 data.assign( info, ProductSpecEntity.Info.SOURCE_TID);
                 data.assign( info, ProductSpecEntity.Info.SOURCE_UNION_PRI_ID);
@@ -72,7 +73,12 @@ public class ProductSpecProc {
                 data.setCalendar(ProductSpecEntity.Info.SYS_UPDATE_TIME, now);
                 dataList.add(data);
             }
-            cacheManage.addNeedDelCachedPdId(aid, pdId);
+        }
+        cacheManage.addNeedDelCachedPdIdSet(aid, pdIdSpecListMap.keySet());
+        if(m_daoCtrl.updateId(pdScId) == null){
+            rt = Errno.ERROR;
+            Log.logErr(rt, "dao.updateId error;flow=%d;aid=%s;pdScId=%s;", m_flow, aid, pdScId);
+            return rt;
         }
         rt = m_daoCtrl.batchInsert(dataList, null);
         if(rt != Errno.OK) {

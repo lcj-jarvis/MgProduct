@@ -19,6 +19,7 @@ import fai.comm.util.*;
 import fai.comm.middleground.FaiValObj;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
+import fai.middleground.infutil.MgConfPool;
 import fai.middleground.svrutil.annotation.SuccessRt;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 import fai.middleground.svrutil.service.ServicePub;
@@ -103,7 +104,6 @@ public class ProductBasicService extends ServicePub {
             Log.logErr("args error rlPdIds is empty;flow=%d;aid=%d;rlPdIds=%s;", flow, aid, rlPdIds);
             return rt;
         }
-
         Lock lock = LockUtil.getLock(aid);
         lock.lock();
         try {
@@ -118,9 +118,11 @@ public class ProductBasicService extends ServicePub {
                 int delGroupCount = 0;
                 int delPropCount = 0;
                 if(!softDel) {
-                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
-                    ProductBindGroupCache.setExpire(aid, unionPriId);
-                    delGroupCount = bindGroupProc.delPdBindGroupList(aid, unionPriId, rlPdIds);
+                    if(useProductGroup()) {
+                        ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                        ProductBindGroupCache.setExpire(aid, unionPriId);
+                        delGroupCount = bindGroupProc.delPdBindGroupList(aid, unionPriId, rlPdIds);
+                    }
 
                     ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
                     ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
@@ -174,6 +176,7 @@ public class ProductBasicService extends ServicePub {
             Log.logErr("args error, rlPdIds is empty;flow=%d;aid=%d;rlPdIds=%s;", flow, aid, rlPdIds);
             return rt;
         }
+boolean useProductGroup = useProductGroup();
         Lock lock = LockUtil.getLock(aid);
         lock.lock();
         try {
@@ -208,9 +211,11 @@ public class ProductBasicService extends ServicePub {
                 ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
                 bindPropProc.delPdBindProp(aid, pdIdList);
 
-                // 删除分类关联
-                ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
-                bindGroupProc.delPdBindGroupList(aid, pdIdList);
+                if(useProductGroup()) {
+                    // 删除分类关联
+                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                    bindGroupProc.delPdBindGroupList(aid, pdIdList);
+                }
                 commit = true;
                 tc.commit();
             }finally {
@@ -1415,6 +1420,15 @@ public class ProductBasicService extends ServicePub {
         Log.logStd("clear cache ok;flow=%d;aid=%d;", flow, aid);
 
         return rt;
+    }
+
+    public static boolean useProductGroup() {
+        Param mgSwitch = MgConfPool.getEnvConf("mgSwitch");
+        if(Str.isEmpty(mgSwitch)) {
+            return false;
+        }
+        boolean useProductGroup = mgSwitch.getBoolean("useProductGroup", false);
+        return useProductGroup;
     }
 
     private HashMap<Integer, FaiList<Integer>> getBoundUniPriIds(int flow, int aid, FaiList<Integer> pdIds) {

@@ -6,6 +6,7 @@ import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
+import fai.middleground.infutil.MgConfPool;
 
 public class MgProductGroupCli extends FaiClient {
     public MgProductGroupCli(int flow) {
@@ -20,10 +21,22 @@ public class MgProductGroupCli extends FaiClient {
         return init("MgProductGroupCli", true);
     }
 
+    public static boolean useProductGroup() {
+        Param mgSwitch = MgConfPool.getEnvConf("mgSwitch");
+        if(Str.isEmpty(mgSwitch)) {
+            return false;
+        }
+        boolean useProductGroup = mgSwitch.getBoolean("useProductGroup", false);
+        return useProductGroup;
+    }
+
     /**
      * 新增商品数据，并添加与当前unionPriId的关联
      */
     public int addProductGroup(int aid, int tid, int unionPriId, Param info, Ref<Integer> groupIdRef, Ref<Integer> rlGroupIdRef) {
+        if(!useProductGroup()) {
+            return Errno.OK;
+        }
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -96,6 +109,9 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int getGroupList(int aid, int unionPriId, SearchArg searchArg, FaiList<Param> list) {
+        if(!useProductGroup()) {
+            return Errno.OK;
+        }
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -162,6 +178,9 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int setGroupList(int aid, int unionPriId, FaiList<ParamUpdater> updaterList) {
+        if(!useProductGroup()) {
+            return Errno.OK;
+        }
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -211,6 +230,9 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int delGroupList(int aid, int unionPriId, FaiList<Integer> idList) {
+        if(!useProductGroup()) {
+            return Errno.OK;
+        }
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -260,6 +282,9 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int getGroupRelDataStatus(int aid, int unionPriId, Param statusInfo) {
+        if(!useProductGroup()) {
+            return Errno.OK;
+        }
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -315,6 +340,9 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int searchGroupRelFromDb(int aid, int unionPriId, SearchArg searchArg, FaiList<Param> list) {
+        if(!useProductGroup()) {
+            return Errno.OK;
+        }
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -381,6 +409,9 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int getAllGroupRel(int aid, int unionPriId, FaiList<Param> list) {
+        if(!useProductGroup()) {
+            return Errno.OK;
+        }
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {

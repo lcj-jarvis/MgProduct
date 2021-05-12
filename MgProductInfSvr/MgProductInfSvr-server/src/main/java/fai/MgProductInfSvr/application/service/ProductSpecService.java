@@ -645,18 +645,14 @@ public class ProductSpecService extends MgProductInfService {
             if(rt != Errno.OK) {
                 return rt;
             }
+            int getSize = infoList.size();
             Param spuInfo = new Param();
             for(Iterator<Param> iterator = infoList.iterator();iterator.hasNext();){
                 Param info = iterator.next();
                 info.setInt(fai.MgProductInfSvr.interfaces.entity.ProductSpecEntity.SpecSkuInfo.RL_PD_ID, rlPdId);
-                if(withSpuInfo){
-                    int flag = info.getInt(fai.MgProductInfSvr.interfaces.entity.ProductSpecEntity.SpecSkuInfo.FLAG, 0);
-                    if(Misc.checkBit(flag, fai.MgProductInfSvr.interfaces.entity.ProductSpecValObj.SpecSku.FLag.SPU)){
-                        spuInfo = info;
-                        iterator.remove();
-                    }
-                }
             }
+            int returnSize = infoList.size();
+            Log.logStd("get sku;flow=%d;aid=%d;getSize=%d;returnSize=%d;pdId=%d;uid=%d;rlPdId=%d;withSpuInfo=%d;", flow, aid, getSize, returnSize, pdId, unionPriId, rlPdId, withSpuInfo);
 
             FaiBuffer sendBuf = new FaiBuffer(true);
             infoList.toBuffer(sendBuf, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecSku.getInfoDto());

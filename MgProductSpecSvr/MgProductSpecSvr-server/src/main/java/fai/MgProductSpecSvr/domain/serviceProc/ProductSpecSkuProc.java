@@ -683,6 +683,9 @@ public class ProductSpecSkuProc {
             Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;", m_flow, aid, pdId);
             return Errno.ARGS_ERROR;
         }
+        boolean fromCache = true;
+        Integer getSize = null;
+        Integer returnSize = null;
         int rt = Errno.ERROR;
         try {
             FaiList<Param> cacheList = ProductSpecSkuCacheCtrl.getListByPdId(aid, pdId);
@@ -698,7 +701,7 @@ public class ProductSpecSkuProc {
                     listRef.value = cacheList;
                     return Errno.OK;
                 }
-
+                fromCache = false;
                 rt = getListFromDao(aid, pdId, true, null, listRef);
                 if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                     return rt;
@@ -708,6 +711,9 @@ public class ProductSpecSkuProc {
                 LockUtil.unReadLock(aid);
             }
         }finally {
+            if(listRef.value != null) {
+                getSize = listRef.value.size();
+            }
             if(!withSpuInfo){ // 不需要获取spu数据就移除掉
                 for(Iterator<Param> iterator = listRef.value.iterator(); iterator.hasNext();){
                     Param info = iterator.next();
@@ -717,7 +723,12 @@ public class ProductSpecSkuProc {
                     }
                 }
             }
+            if(listRef.value != null) {
+                returnSize = listRef.value.size();
+            }
+            Log.logStd("get sku;flow=%d;aid=%d;fromCache=%s;getSize=%s;returnSize=%s;", m_flow, aid, fromCache, getSize, returnSize);
         }
+
         return rt;
     }
     public int getList(int aid, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef, String ... fields){

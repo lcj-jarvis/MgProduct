@@ -1157,25 +1157,22 @@ public class MgProductStoreCli extends MgProductInternalCli {
     /**
      * 获取出入库存记录
      */
-    public int getInOutStoreRecordInfoList(int aid, int tid, int unionPriId, boolean isSource, SearchArg searchArg, FaiList<Param> infoList){
+    public int getInOutStoreRecordInfoList(int aid, SearchArg searchArg, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
-            if (aid == 0 || tid == 0 || searchArg == null || searchArg.isEmpty() || infoList == null) {
+            if (aid == 0 || searchArg == null || searchArg.isEmpty() || infoList == null) {
                 m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "args error;aid=%s;tid=%s;searchArg=%s;infoList=%s;", aid, tid, searchArg, infoList);
+                Log.logErr(m_rt, "args error;aid=%s;searchArg=%s;infoList=%s;", aid, searchArg, infoList);
                 return m_rt;
             }
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
-            sendBody.putInt(InOutStoreRecordDto.Key.TID, tid);
-            sendBody.putInt(InOutStoreRecordDto.Key.UNION_PRI_ID, unionPriId);
-            sendBody.putBoolean(InOutStoreRecordDto.Key.IS_SOURCE, isSource);
             searchArg.toBuffer(sendBody, InOutStoreRecordDto.Key.SEARCH_ARG);
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductStoreCmd.InOutStoreRecordCmd.GET_LIST);
+            sendProtocol.setCmd(MgProductStoreCmd.InOutStoreRecordCmd.NEW_GET_LIST);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);
@@ -1205,6 +1202,70 @@ public class MgProductStoreCli extends MgProductInternalCli {
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
             m_rt = infoList.fromBuffer(recvBody, keyRef, InOutStoreRecordDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != InOutStoreRecordDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            if(searchArg.totalSize != null){
+                recvBody.getInt(keyRef, searchArg.totalSize);
+                if(keyRef.value != InOutStoreRecordDto.Key.TOTAL_SIZE){
+                    m_rt = Errno.CODEC_ERROR;
+                    Log.logErr(m_rt, "recv total size null");
+                    return m_rt;
+                }
+            }
+            return m_rt = Errno.OK;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK), m_rt);
+        }
+    }
+
+    public int getInOutStoreSumList(int aid, SearchArg searchArg, FaiList<Param> infoList){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0 || searchArg == null || searchArg.isEmpty() || infoList == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;aid=%s;searchArg=%s;infoList=%s;", aid, searchArg, infoList);
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            searchArg.toBuffer(sendBody, InOutStoreRecordDto.Key.SEARCH_ARG);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.InOutStoreRecordCmd.GET_SUM_LIST);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = infoList.fromBuffer(recvBody, keyRef, InOutStoreRecordDto.getSumInfoDto());
             if (m_rt != Errno.OK || keyRef.value != InOutStoreRecordDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;

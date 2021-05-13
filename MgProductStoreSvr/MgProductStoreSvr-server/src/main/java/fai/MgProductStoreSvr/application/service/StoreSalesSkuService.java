@@ -685,14 +685,13 @@ public class StoreSalesSkuService extends StoreService {
             // 事务
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
-                InOutStoreRecordDaoCtrl inOutStoreRecordDaoCtrl = InOutStoreRecordDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
                 StoreSalesSkuDaoCtrl storeSalesSkuDaoCtrl = StoreSalesSkuDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
                 HoldingRecordDaoCtrl holdingRecordDaoCtrl = HoldingRecordDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                if(!transactionCtrl.checkRegistered(inOutStoreRecordDaoCtrl, storeSalesSkuDaoCtrl, holdingRecordDaoCtrl)){
+                if(!transactionCtrl.checkRegistered(storeSalesSkuDaoCtrl, holdingRecordDaoCtrl)){
                     return rt = Errno.ERROR;
                 }
 
-                InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(inOutStoreRecordDaoCtrl, flow);
+                InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(flow, aid, transactionCtrl);
                 StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
                 HoldingRecordProc holdingRecordProc = new HoldingRecordProc(holdingRecordDaoCtrl, flow);
                 try {
@@ -1107,14 +1106,13 @@ public class StoreSalesSkuService extends StoreService {
             // 事务
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
-                InOutStoreRecordDaoCtrl inOutStoreRecordDaoCtrl = InOutStoreRecordDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
                 StoreSalesSkuDaoCtrl storeSalesSkuDaoCtrl = StoreSalesSkuDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
                 RefundRecordDaoCtrl refundRecordDaoCtrl = RefundRecordDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                if(!transactionCtrl.checkRegistered(inOutStoreRecordDaoCtrl, storeSalesSkuDaoCtrl, refundRecordDaoCtrl)){
+                if(!transactionCtrl.checkRegistered(storeSalesSkuDaoCtrl, refundRecordDaoCtrl)){
                     return rt = Errno.ERROR;
                 }
 
-                InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(inOutStoreRecordDaoCtrl, flow);
+                InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(flow, aid, transactionCtrl);
                 StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
                 RefundRecordProc refundRecordProc = new RefundRecordProc(refundRecordDaoCtrl, flow);
                 try {

@@ -1,6 +1,7 @@
 package fai.MgProductStoreSvr.interfaces.dto;
 
 import fai.MgProductStoreSvr.interfaces.entity.InOutStoreRecordEntity;
+import fai.MgProductStoreSvr.interfaces.entity.InOutStoreSumEntity;
 import fai.comm.util.ParamDef;
 import fai.comm.util.Var;
 
@@ -36,6 +37,28 @@ public class InOutStoreRecordDto {
 
     public static ParamDef getInfoDto() {
         return g_dtoDef;
+    }
+
+    /*** inout store summary dto ***/
+    private static ParamDef g_sumDtoDef = new ParamDef();
+    static {
+        g_sumDtoDef.add(InOutStoreSumEntity.Info.AID, 0, Var.Type.INT);
+        g_sumDtoDef.add(InOutStoreSumEntity.Info.UNION_PRI_ID, 1, Var.Type.INT);
+        g_sumDtoDef.add(InOutStoreSumEntity.Info.IN_OUT_STORE_REC_ID, 2, Var.Type.INT);
+        g_sumDtoDef.add(InOutStoreSumEntity.Info.OPT_TYPE, 3, Var.Type.INT);
+        g_sumDtoDef.add(InOutStoreSumEntity.Info.C_TYPE, 4, Var.Type.INT);
+        g_sumDtoDef.add(InOutStoreSumEntity.Info.S_TYPE, 5, Var.Type.INT);
+        g_sumDtoDef.add(InOutStoreSumEntity.Info.PRICE, 6, Var.Type.LONG);
+        g_sumDtoDef.add(InOutStoreSumEntity.Info.NUMBER, 7, Var.Type.STRING);
+        g_sumDtoDef.add(InOutStoreSumEntity.Info.OPT_SID, 8, Var.Type.INT);
+        g_sumDtoDef.add(InOutStoreSumEntity.Info.OPT_TIME, 9);
+        g_sumDtoDef.add(InOutStoreSumEntity.Info.REMARK, 10, Var.Type.STRING);
+        g_sumDtoDef.add(InOutStoreSumEntity.Info.MW_PRICE, 11, Var.Type.LONG);
+        g_sumDtoDef.add(InOutStoreSumEntity.Info.SYS_UPDATE_TIME, 12);
+        g_sumDtoDef.add(InOutStoreSumEntity.Info.SYS_CREATE_TIME, 13);
+    }
+    public static ParamDef getSumInfoDto() {
+        return g_sumDtoDef;
     }
 
     public static class Key extends CommDtoKey{

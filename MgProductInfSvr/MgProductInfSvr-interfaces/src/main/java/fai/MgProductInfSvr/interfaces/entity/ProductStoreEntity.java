@@ -82,6 +82,32 @@ public class ProductStoreEntity {
     }
 
     /**
+     * 出入库记录汇总
+     */
+    public class InOutStoreSumInfo {
+        public static final String AID = "aid";                                     // int 企业aid
+        public static final String TID = "tid";                                     // int 项目id
+        public static final String SITE_ID = "siteId";                              // int 站点id
+        public static final String LGID = "lgId";                                   // int 多语言id
+        public static final String KEEP_PRI_ID1 = "keepPriId1";                     // int 保留主键id1
+        public static final String IN_OUT_STORE_REC_ID = "ioStoreRecId";            // int 出入库存记录id
+        /**
+         * @see ProductStoreValObj.InOutStoreRecord.OptType
+         */
+        public static final String OPT_TYPE = "optType";                            // int 出/入库操作？（或者其他操作状态）
+        public static final String C_TYPE = "cType";                                // int 总部出入库方式
+        public static final String S_TYPE = "sType";                                // int 门店出入库方式
+        public static final String PRICE = "price";                                 // long 入库：采购总价（成本价） |  出库：先进先出方式计算的成本价
+        public static final String MW_PRICE = "mwPrice";                            // long 出库：移动加权计算的成本价
+        public static final String NUMBER = "number";                               // String 单号（天时间+4位以上顺序数字：如2010120001）
+        public static final String OPT_SID = "optSid";                              // int 操作员工 id
+        public static final String OPT_TIME = "optTime";                            // datetime 进/出库时间
+        public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
+        public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
+        public static final String REMARK = "remark";                               // String 备注
+    }
+
+    /**
      * spu 业务库存销售汇总信息
      */
     public static final class SpuBizSummaryInfo {

@@ -53,6 +53,7 @@ public class MgProductInfCmd {
         public static final int NUM31 = 5031; /**@see ProductSpecSkuCmd#GET_ONLY_SPU_INFO_LIST*/
 
         public static final int NUM32 = 5032; /**@see MgProductSearchCmd#SEARCH_LIST*/
+        public static final int NUM33 = 5033; /**@see InOutStoreRecordCmd#GET_SUM_LIST*/
     }
 
     // 1000 到 5000 的范围
@@ -234,8 +235,10 @@ public class MgProductInfCmd {
      * 出入库存记录 相关 cmd
      */
     public static class InOutStoreRecordCmd {
-        public static final int ADD_LIST = WriteCmdNum.NUM26;
         public static final int GET_LIST = ReadCmdNum.NUM19;
+        public static final int GET_SUM_LIST = ReadCmdNum.NUM33;
+
+        public static final int ADD_LIST = WriteCmdNum.NUM26;
     }
 
     /**

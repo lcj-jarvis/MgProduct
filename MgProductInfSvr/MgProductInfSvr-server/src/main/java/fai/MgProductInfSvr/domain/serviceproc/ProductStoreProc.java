@@ -315,21 +315,38 @@ public class ProductStoreProc extends AbstractProductProc{
     /**
      * 获取出入库存记录
      */
-    public int getInOutStoreRecordInfoList(int aid, int tid, int unionPriId, boolean isSource, SearchArg searchArg, FaiList<Param> infoList) {
+    public int getInOutStoreRecordInfoList(int aid, SearchArg searchArg, FaiList<Param> infoList) {
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
-        rt = m_cli.getInOutStoreRecordInfoList(aid, tid, unionPriId, isSource, searchArg, infoList);
+        rt = m_cli.getInOutStoreRecordInfoList(aid, searchArg, infoList);
         if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%s;isSource=%s;searchArg=%s;", m_flow, aid, unionPriId, isSource, getSearchArgInfo(searchArg));
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;searchArg=%s;", m_flow, aid, getSearchArgInfo(searchArg));
             return rt;
         }
         return rt;
     }
 
+    /**
+     * 获取出入库存记录
+     */
+    public int getInOutStoreSumList(int aid, SearchArg searchArg, FaiList<Param> infoList) {
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        rt = m_cli.getInOutStoreSumList(aid, searchArg, infoList);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;searchArg=%s;", m_flow, aid, getSearchArgInfo(searchArg));
+            return rt;
+        }
+        return rt;
+    }
 
     /**
      * 批量删除商品所有库存销售相关信息

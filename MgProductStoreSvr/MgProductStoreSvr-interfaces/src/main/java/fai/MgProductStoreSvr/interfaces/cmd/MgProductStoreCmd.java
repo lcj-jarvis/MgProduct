@@ -21,6 +21,8 @@ public class MgProductStoreCmd {
 		public static final int NUM14 = 5014;
 		public static final int NUM15 = 5015;
 		public static final int NUM16 = 5016;
+		public static final int NUM17 = 5017;
+		public static final int NUM18 = 5018;
 	}
 
 
@@ -84,6 +86,8 @@ public class MgProductStoreCmd {
 	 */
 	public static class InOutStoreRecordCmd {
 		public static final int GET_LIST = ReadCmdNum.NUM6;
+		public static final int GET_SUM_LIST = ReadCmdNum.NUM17;
+		public static final int NEW_GET_LIST = ReadCmdNum.NUM18;
 
 		public static final int ADD_LIST = WriteCmdNum.NUM5;
 		public static final int BATCH_SYN_RECORD = WriteCmdNum.NUM13;

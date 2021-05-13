@@ -8,6 +8,8 @@ import fai.MgProductInfSvr.interfaces.entity.ProductSpecEntity;
 import fai.MgProductInfSvr.interfaces.entity.ProductStoreEntity;
 import fai.MgProductInfSvr.interfaces.entity.ProductStoreValObj;
 import fai.MgProductInfSvr.interfaces.entity.ProductTempEntity;
+import fai.MgProductInfSvr.interfaces.utils.InOutStoreSearch;
+import fai.MgProductInfSvr.interfaces.utils.MgProductArg;
 import fai.comm.util.*;
 import fai.mgproduct.comm.MgProductErrno;
 
@@ -1440,4 +1442,160 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
         }
     }
     /**----------------------------------------------   商品商品规格接口 + 库存接口结束   ----------------------------------------------*/
+
+
+    /**----------------------------------------------   优化start   ----------------------------------------------**/
+    /**
+     * 替换原有的 addInOutStoreRecordInfoList 方法
+     * 添加库存出入库记录
+     * @param mgProductArg
+     *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *                 .setAddList(addList) // 必填，要添加的出入库记录详见addList说明
+     *                 .build();
+     * addList说明： 出入库记录集合 Param 见 {@link ProductStoreEntity.InOutStoreRecordInfo} <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#SITE_ID} 必填  <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#LGID} 必填  <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#KEEP_PRI_ID1} 必填  <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#SKU_ID} 或者 {@link ProductStoreEntity.InOutStoreRecordInfo#IN_PD_SC_STR_NAME_LIST} 必填其一  <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#RL_PD_ID} 必填  <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#OWNER_RL_PD_ID} 必填  <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#OPT_TYPE} 必填  <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#CHANGE_COUNT} 必填  <br/>
+     * @return {@link Errno}
+     */
+    public int addInOutStoreRecordInfoList(MgProductArg mgProductArg) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            int aid  = mgProductArg.getAid();
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            FaiList<Param> infoList = mgProductArg.getAddList();
+            if (infoList == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "infoList error");
+                return m_rt;
+            }
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            // packaging send data
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductStoreDto.Key.TID, tid), new Pair(ProductStoreDto.Key.SITE_ID, siteId), new Pair(ProductStoreDto.Key.LGID, lgId), new Pair(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1));
+            m_rt = infoList.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.InOutStoreRecord.getInfoDto());
+            if(m_rt != Errno.OK){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "infoList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;", aid, tid, siteId, lgId, keepPriId1);
+                return m_rt;
+            }
+            // send and recv
+            sendAndRecv(aid, MgProductInfCmd.InOutStoreRecordCmd.ADD_LIST, sendBody, false, false);
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK), m_rt);
+        }
+    }
+
+    /**
+     * 查询出入库记录
+     * @param mgProductArg
+     *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *                 .setIsBiz(true) // 选填，默认为false，详见isBiz说明
+     *                 .build();
+     * isBiz说明: 是否是 查询 业务（主键）+sku 维度 <br/>
+     *              例：<br/>
+     *              isBiz：false 悦客-查询所有门店的数据 <br/>
+     *              isBiz：true 悦客-查询指定门店的数据 <br/>
+     * @param search 查询条件
+     * 分页限制：100 <br/>
+     * 默认按创建时间降序
+     * @param list 出入库记录集合 Param
+     *             详情数据实体见 {@link ProductStoreEntity.InOutStoreRecordInfo} <br/>
+     *             汇总数据实体见 {@link ProductStoreEntity.InOutStoreSumInfo} <br/>
+     * @return {@link Errno}
+     */
+    public int searchInOutStoreRecordList(MgProductArg mgProductArg, InOutStoreSearch search, FaiList<Param> list){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            int aid = mgProductArg.getAid();
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "aid error");
+                return m_rt;
+            }
+            if(search == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "search is null");
+                return m_rt;
+            }
+            SearchArg searchArg = search.getSearchArg();
+            if(searchArg == null || searchArg.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "get searchArg error");
+                return m_rt;
+            }
+            if(list == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "list error");
+                return m_rt;
+            }
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            FaiList<Param> unionPriIds = search.getUnionPriIds();
+            if(unionPriIds == null) {
+                unionPriIds = new FaiList<Param>();
+            }
+            // packaging send data
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductStoreDto.Key.TID, tid),
+                    new Pair(ProductStoreDto.Key.SITE_ID, siteId),
+                    new Pair(ProductStoreDto.Key.LGID, lgId),
+                    new Pair(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1));
+
+            int cmd = 0;
+            InOutStoreSearch.SearchType searchType = search.getSearchType();
+            if(InOutStoreSearch.SearchType.InOutStoreRecord.equals(searchType)) {
+                cmd = MgProductInfCmd.InOutStoreRecordCmd.GET_LIST;
+                sendBody.putBoolean(ProductStoreDto.Key.IS_BIZ, mgProductArg.getIsBiz());
+            }else {
+                cmd = MgProductInfCmd.InOutStoreRecordCmd.GET_SUM_LIST;
+            }
+
+            searchArg.toBuffer(sendBody, ProductStoreDto.Key.SEARCH_ARG);
+            unionPriIds.toBuffer(sendBody, ProductStoreDto.Key.PRI_IDS, ProductStoreDto.PrimaryKey.getInfoDto());
+
+
+            // send and recv
+            FaiBuffer recvBody = sendAndRecv(aid, cmd, sendBody, true);
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = list.fromBuffer(recvBody, keyRef, ProductStoreDto.InOutStoreRecord.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductStoreDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            if(search.totalSize != null){
+                recvBody.getInt(keyRef, search.totalSize);
+                if(keyRef.value != ProductStoreDto.Key.TOTAL_SIZE){
+                    m_rt = Errno.CODEC_ERROR;
+                    Log.logErr(m_rt, "recv total size null");
+                    return m_rt;
+                }
+            }
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
 }

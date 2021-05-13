@@ -761,8 +761,24 @@ public class MgProductInfHandler extends FaiHandler {
                                               @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
                                               @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
                                               @ArgBodyBoolean(value = ProductStoreDto.Key.IS_BIZ, useDefault = true) boolean isBiz,
-                                              @ArgSearchArg(ProductStoreDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
-        return storeService.searchInOutStoreRecordInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, isBiz, searchArg);
+                                              @ArgSearchArg(ProductStoreDto.Key.SEARCH_ARG) SearchArg searchArg,
+                                              @ArgList(classDef = ProductStoreDto.PrimaryKey.class, methodDef = "getInfoDto",
+                                                      keyMatch = ProductStoreDto.Key.PRI_IDS, useDefault = true)FaiList<Param> primaryKeys) throws IOException {
+        return storeService.searchInOutStoreRecordInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, isBiz, searchArg, primaryKeys);
+    }
+
+    @Cmd(MgProductInfCmd.InOutStoreRecordCmd.GET_SUM_LIST)
+    public int searchInOutStoreSumList(final FaiSession session,
+                                              @ArgFlow final int flow,
+                                              @ArgAid final int aid,
+                                              @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
+                                              @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
+                                              @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
+                                              @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
+                                              @ArgSearchArg(ProductStoreDto.Key.SEARCH_ARG) SearchArg searchArg,
+                                              @ArgList(classDef = ProductStoreDto.PrimaryKey.class, methodDef = "getInfoDto",
+                                                      keyMatch = ProductStoreDto.Key.PRI_IDS, useDefault = true)FaiList<Param> primaryKeys) throws IOException {
+        return storeService.searchInOutStoreSumList(session, flow, aid, tid, siteId, lgId, keepPriId1, searchArg, primaryKeys);
     }
 
     @Cmd(MgProductInfCmd.SpuBizSummaryCmd.GET_ALL_BIZ_LIST_BY_PD_ID)

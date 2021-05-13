@@ -294,7 +294,21 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                             @ArgSearchArg(InOutStoreRecordDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
         return m_recordService.getInOutStoreRecordInfoList(session, flow, aid, tid, unionPriId, isSource, searchArg);
     }
+    @Cmd(MgProductStoreCmd.InOutStoreRecordCmd.NEW_GET_LIST)
+    private int newGetInOutStoreRecordInfoList(final FaiSession session,
+                                            @ArgFlow final int flow,
+                                            @ArgAid final int aid,
+                                            @ArgSearchArg(InOutStoreRecordDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
+        return m_recordService.newGetInOutStoreRecordInfoList(session, flow, aid, searchArg);
+    }
 
+    @Cmd(MgProductStoreCmd.InOutStoreRecordCmd.GET_SUM_LIST)
+    private int getInOutStoreSumList(final FaiSession session,
+                                     @ArgFlow final int flow,
+                                     @ArgAid final int aid,
+                                     @ArgSearchArg(InOutStoreRecordDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
+        return m_recordService.getInOutStoreSumList(session, flow, aid, searchArg);
+    }
 
     @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.GET_LIST_BY_PD_ID)
     private int getSpuBizSummaryInfoListByPdId(final FaiSession session,

@@ -652,7 +652,7 @@ public class ProductSpecService extends MgProductInfService {
                 info.setInt(fai.MgProductInfSvr.interfaces.entity.ProductSpecEntity.SpecSkuInfo.RL_PD_ID, rlPdId);
             }
             int returnSize = infoList.size();
-            Log.logStd("get sku;flow=%d;aid=%d;getSize=%d;returnSize=%d;pdId=%d;uid=%d;rlPdId=%d;withSpuInfo=%d;", flow, aid, getSize, returnSize, pdId, unionPriId, rlPdId, withSpuInfo);
+            Log.logStd("get sku;flow=%d;aid=%d;getSize=%s;returnSize=%s;pdId=%s;uid=%s;rlPdId=%s;withSpuInfo=%s;", flow, aid, getSize, returnSize, pdId, unionPriId, rlPdId, withSpuInfo);
 
             FaiBuffer sendBuf = new FaiBuffer(true);
             infoList.toBuffer(sendBuf, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecSku.getInfoDto());

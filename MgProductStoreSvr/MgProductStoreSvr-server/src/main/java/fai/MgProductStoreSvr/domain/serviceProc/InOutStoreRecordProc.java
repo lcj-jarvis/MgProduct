@@ -321,22 +321,25 @@ public class InOutStoreRecordProc {
             if(sumInfo == null) {
                 sumInfo = new Param();
                 summaryMap.put(unionPriId, sumInfo);
+                sumInfo.setInt(InOutStoreSumEntity.Info.AID, aid);
                 sumInfo.setInt(InOutStoreSumEntity.Info.UNION_PRI_ID, unionPriId);
                 sumInfo.setString(InOutStoreSumEntity.Info.NUMBER, number);
                 sumInfo.setInt(InOutStoreSumEntity.Info.IN_OUT_STORE_REC_ID, ioStoreRecId);
                 sumInfo.assign(data, InOutStoreSumEntity.Info.OPT_TYPE);
                 sumInfo.assign(data, InOutStoreSumEntity.Info.S_TYPE);
-                sumInfo.assign(data, InOutStoreSumEntity.Info.S_TYPE);
+                sumInfo.assign(data, InOutStoreSumEntity.Info.C_TYPE);
                 sumInfo.assign(data, InOutStoreSumEntity.Info.REMARK);
                 sumInfo.assign(data, InOutStoreSumEntity.Info.OPT_SID);
                 sumInfo.assign(data, InOutStoreSumEntity.Info.OPT_TIME);
+                sumInfo.setCalendar(InOutStoreSumEntity.Info.SYS_CREATE_TIME, now);
+                sumInfo.setCalendar(InOutStoreSumEntity.Info.SYS_UPDATE_TIME, now);
             }
             // 计算总价：单价 * 变动库存
             long fifoPrice = data.getLong(InOutStoreRecordEntity.Info.PRICE);
             long sumFifoPrice = sumInfo.getLong(InOutStoreSumEntity.Info.PRICE, 0L);
             sumInfo.setLong(InOutStoreSumEntity.Info.PRICE, fifoPrice * changeCount + sumFifoPrice);
 
-            long mwPrice = data.getLong(InOutStoreRecordEntity.Info.MW_PRICE);
+            long mwPrice = data.getLong(InOutStoreRecordEntity.Info.MW_PRICE, 0L);
             long sumMwPrice = sumInfo.getLong(InOutStoreSumEntity.Info.MW_PRICE, 0L);
             sumInfo.setLong(InOutStoreSumEntity.Info.MW_PRICE, mwPrice * changeCount + sumMwPrice);
         }

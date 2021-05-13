@@ -650,6 +650,14 @@ public class ProductSpecService extends MgProductInfService {
             for(Iterator<Param> iterator = infoList.iterator();iterator.hasNext();){
                 Param info = iterator.next();
                 info.setInt(fai.MgProductInfSvr.interfaces.entity.ProductSpecEntity.SpecSkuInfo.RL_PD_ID, rlPdId);
+                // 把spu数据放到spuInfo对象中
+                if(withSpuInfo){
+                    int flag = info.getInt(fai.MgProductInfSvr.interfaces.entity.ProductSpecEntity.SpecSkuInfo.FLAG, 0);
+                    if(Misc.checkBit(flag, fai.MgProductInfSvr.interfaces.entity.ProductSpecValObj.SpecSku.FLag.SPU)){
+                        spuInfo = info;
+                        iterator.remove();
+                    }
+                }
             }
             int returnSize = infoList.size();
             Log.logStd("get sku;flow=%d;aid=%d;getSize=%s;returnSize=%s;pdId=%s;uid=%s;rlPdId=%s;withSpuInfo=%s;", flow, aid, getSize, returnSize, pdId, unionPriId, rlPdId, withSpuInfo);

@@ -24,7 +24,7 @@ public class InOutStoreSearch {
     private int siteId;
     private int lgId;
     private int keepPriId1;
-    private FaiList<Param> unionPriIds; // tid+siteId+lgId+keepPriId1 的集合
+    private FaiList<Param> primaryKeys; // tid+siteId+lgId+keepPriId1 的集合
 
     public int getAid() {
         return aid;
@@ -46,8 +46,8 @@ public class InOutStoreSearch {
         return keepPriId1;
     }
 
-    public FaiList<Param> getUnionPriIds() {
-        return unionPriIds;
+    public FaiList<Param> getPrimaryKeys() {
+        return primaryKeys;
     }
 
     public SearchType getSearchType() {
@@ -66,11 +66,18 @@ public class InOutStoreSearch {
     }
 
     // 搜索多个指定业务维度 aid + unionPriIds(tid+siteId+lgId+keepPriId1 的集合)
-    public InOutStoreSearch(int aid, FaiList<Param> unionPriIds, SearchType searchType) {
+    public InOutStoreSearch(int aid, FaiList<Param> primaryKeys, SearchType searchType) {
         this.aid = aid;
-        this.unionPriIds = unionPriIds;
+        this.primaryKeys = primaryKeys;
         this.searchType = searchType;
         createMatcher();
+    }
+
+    // 操作类型
+    public InOutStoreSearch setOptType(int opyType) {
+        String key = SearchType.InOutStoreSum.equals(searchType) ? ProductStoreEntity.InOutStoreSumInfo.OPT_TYPE : ProductStoreEntity.InOutStoreRecordInfo.OPT_TYPE;
+        matcher.and(key, ParamMatcher.EQ, opyType);
+        return this;
     }
 
     // 操作时间

@@ -1510,9 +1510,7 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
      *              例：<br/>
      *              isBiz：false 悦客-查询所有门店的数据 <br/>
      *              isBiz：true 悦客-查询指定门店的数据 <br/>
-     * @param search 查询条件
-     * 分页限制：100 <br/>
-     * 默认按创建时间降序
+     * @param search 查询条件 使用详见 https://train.faisco.biz/bP7CIQh 中 InOutStoreSearch说明
      * @param list 出入库记录集合 Param
      *             详情数据实体见 {@link ProductStoreEntity.InOutStoreRecordInfo} <br/>
      *             汇总数据实体见 {@link ProductStoreEntity.InOutStoreSumInfo} <br/>
@@ -1548,7 +1546,7 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
             int siteId = mgProductArg.getSiteId();
             int lgId = mgProductArg.getLgId();
             int keepPriId1 = mgProductArg.getKeepPriId1();
-            FaiList<Param> unionPriIds = search.getUnionPriIds();
+            FaiList<Param> unionPriIds = search.getPrimaryKeys();
             if(unionPriIds == null) {
                 unionPriIds = new FaiList<Param>();
             }

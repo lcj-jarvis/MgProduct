@@ -13,6 +13,7 @@ import fai.MgProductSpecSvr.interfaces.entity.SpecStrEntity;
 import fai.MgProductStoreSvr.interfaces.entity.*;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
+import fai.comm.middleground.MgErrno;
 import fai.comm.util.*;
 
 import java.io.IOException;
@@ -186,7 +187,7 @@ public class ProductStoreService extends MgProductInfService {
             sendBuf.putInt(ProductStoreDto.Key.IN_OUT_STORE_RECORD_ID, ioStoreRecordIdRef.value);
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end(rt != Errno.OK && rt < MgErrno.MIN_VALUE, rt);
         }
         return rt;
     }
@@ -227,7 +228,7 @@ public class ProductStoreService extends MgProductInfService {
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end(rt != Errno.OK && rt < MgErrno.MIN_VALUE, rt);
         }
         return rt;
     }
@@ -308,7 +309,7 @@ public class ProductStoreService extends MgProductInfService {
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }
         return rt;
     }
@@ -771,7 +772,7 @@ public class ProductStoreService extends MgProductInfService {
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end(rt != Errno.OK && rt < MgErrno.MIN_VALUE, rt);
         }
         return rt;
     }

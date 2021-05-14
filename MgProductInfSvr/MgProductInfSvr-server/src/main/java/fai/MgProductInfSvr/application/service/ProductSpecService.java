@@ -14,6 +14,7 @@ import fai.MgProductSpecSvr.interfaces.entity.ProductSpecValObj;
 import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
+import fai.comm.middleground.MgErrno;
 import fai.comm.util.*;
 
 import java.io.IOException;
@@ -157,7 +158,7 @@ public class ProductSpecService extends MgProductInfService {
             infoList.toBuffer(sendBuf, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecTemp.getInfoDto());
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND && rt < MgErrno.MIN_VALUE, rt);
         }
         return rt;
     }
@@ -191,7 +192,7 @@ public class ProductSpecService extends MgProductInfService {
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end(rt != Errno.OK && rt < MgErrno.MIN_VALUE, rt);
         }
         return rt;
     }

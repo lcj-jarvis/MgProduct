@@ -147,6 +147,24 @@ public class InOutStoreSearch {
         return this;
     }
 
+    // 商品业务skuId
+    public InOutStoreSearch setSkuIds(FaiList<Long> skuIds) {
+        if(skuIds == null || skuIds.isEmpty()) {
+            Log.logErr("skuIds is null;aid=%d;tid=%d;siteId=%d;lgId=%d;keepPriId1=%d;", aid, tid, siteId, lgId, keepPriId1);
+            return null;
+        }
+        if(SearchType.InOutStoreSum.equals(searchType)) {
+            Log.logErr("search arg error;searchType is InOutStoreSum;aid=%d;tid=%d;siteId=%d;lgId=%d;keepPriId1=%d;", aid, tid, siteId, lgId, keepPriId1);
+            return null;
+        }
+        if(skuIds.size() == 1) {
+            matcher.and(ProductStoreEntity.InOutStoreRecordInfo.SKU_ID, ParamMatcher.EQ, skuIds.get(0));
+        }else {
+            matcher.and(ProductStoreEntity.InOutStoreRecordInfo.SKU_ID, ParamMatcher.IN, skuIds);
+        }
+        return this;
+    }
+
     public SearchArg getSearchArg() {
         if(this.searchArg == null) {
             this.searchArg = new SearchArg();

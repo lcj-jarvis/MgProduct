@@ -102,6 +102,15 @@ public class InOutStoreSearch {
         matcher.and(key, ParamMatcher.IN, cTypes);
         return this;
     }
+    public InOutStoreSearch setStype(FaiList<Integer> sTypes) {
+        String key = SearchType.InOutStoreSum.equals(searchType) ? ProductStoreEntity.InOutStoreSumInfo.S_TYPE : ProductStoreEntity.InOutStoreRecordInfo.S_TYPE;
+        if(sTypes.size() == 1) {
+            matcher.and(key, ParamMatcher.EQ, sTypes.get(0));
+            return this;
+        }
+        matcher.and(key, ParamMatcher.IN, sTypes);
+        return this;
+    }
 
     // 单号
     public InOutStoreSearch setNumber(String number) {
@@ -147,7 +156,7 @@ public class InOutStoreSearch {
         return this;
     }
 
-    // 商品业务skuId
+    // 商品skuId
     public InOutStoreSearch setSkuIds(FaiList<Long> skuIds) {
         if(skuIds == null || skuIds.isEmpty()) {
             Log.logErr("skuIds is null;aid=%d;tid=%d;siteId=%d;lgId=%d;keepPriId1=%d;", aid, tid, siteId, lgId, keepPriId1);

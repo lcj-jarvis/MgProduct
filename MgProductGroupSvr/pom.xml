@@ -6,14 +6,14 @@
 
     <groupId>MgProduct</groupId>
     <artifactId>MgProductGroupSvr</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <packaging>pom</packaging>
 
     <!--版本控制-->
     <parent>
         <groupId>MgProduct</groupId>
         <artifactId>MgProductParent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.0.0</version>
     </parent>
     <modules>
         <module>MgProductGroupSvr-server</module>

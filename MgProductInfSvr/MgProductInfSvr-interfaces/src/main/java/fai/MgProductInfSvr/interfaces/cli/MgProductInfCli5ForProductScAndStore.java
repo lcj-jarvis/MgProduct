@@ -1549,6 +1549,16 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
             FaiList<Param> unionPriIds = search.getPrimaryKeys();
             if(unionPriIds == null) {
                 unionPriIds = new FaiList<Param>();
+                int searchTid = search.getTid();
+                int searchSiteId = search.getSiteId();
+                int searchLgid = search.getLgId();
+                int searchKeep = search.getKeepPriId1();
+                Param info = new Param()
+                        .setInt(ProductStoreEntity.StoreSalesSkuInfo.TID, searchTid)
+                        .setInt(ProductStoreEntity.StoreSalesSkuInfo.SITE_ID, searchSiteId)
+                        .setInt(ProductStoreEntity.StoreSalesSkuInfo.LGID, searchLgid)
+                        .setInt(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, searchKeep);
+                unionPriIds.add(info);
             }
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductStoreDto.Key.TID, tid),

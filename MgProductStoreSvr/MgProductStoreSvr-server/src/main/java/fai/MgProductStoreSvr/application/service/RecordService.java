@@ -398,6 +398,48 @@ public class RecordService extends StoreService {
         return rt;
     }
 
+    public int batchResetCostPrice(FaiSession session, int flow, int aid, int rlPdId, long costPrice, Calendar optTime, FaiList<Param> infoList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || rlPdId <= 0|| infoList == null || infoList.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;rlPdId=%s;infoList=%s;", flow, aid, rlPdId, infoList);
+                return rt;
+            }
+
+            // 事务
+            TransactionCtrl tc = new TransactionCtrl();
+            try {
+                InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(flow, aid, tc);
+                tc.setAutoCommit(false);
+                boolean commit = false;
+                try {
+                    rt = inOutStoreRecordProc.batchResetCostPrice(aid, rlPdId, costPrice, infoList, optTime);
+                    if(rt != Errno.OK) {
+                        return rt;
+                    }
+                    commit = true;
+                    tc.commit();
+                }finally {
+                    if(!commit) {
+                        tc.rollback();
+                    }
+                }
+            }finally {
+                tc.closeDao();
+            }
+
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("ok;;aid=%d;rlPdId=%s;optTime=%s", aid, rlPdId, optTime);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+
+        return rt;
+    }
+
     private void sendInOutRecord(FaiSession session, SearchArg searchArg, Ref<FaiList<Param>> listRef) throws IOException {
         FaiList<Param> infoList = listRef.value;
         FaiBuffer sendBuf = new FaiBuffer(true);

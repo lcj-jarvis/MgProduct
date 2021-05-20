@@ -13,6 +13,8 @@ import fai.MgProductInfSvr.interfaces.utils.MgProductArg;
 import fai.comm.util.*;
 import fai.mgproduct.comm.MgProductErrno;
 
+import java.util.Calendar;
+
 public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForProductTpSc{
     public MgProductInfCli5ForProductScAndStore(int flow) {
         super(flow);
@@ -1029,6 +1031,7 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
      * @param ownerKeepPriId1 创建商品的 keepPriId1
      * @param recordInfoList 出入库记录集 Param见 {@link ProductTempEntity.StoreRecordInfo}
      */
+    @Deprecated
     public int synInOutStoreRecord(int aid, int ownerTid, int ownerSiteId, int ownerLgId, int ownerKeepPriId1, FaiList<Param> recordInfoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
@@ -1606,4 +1609,78 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
         }
     }
 
+    /**
+     * 重置指定商品 在 指定操作时间之前的入库成本
+     * @param mgProductArg
+     *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *                 .setRlPdId(rlPdId) // 必填，要重置成本的商品业务id
+     *                 .setPrice(costPrice) // 必填，重置成本操作要设置的成本价
+     *                 .setOptTime(optTime) // 必填，指定操作时间，操作时间小于该时间的才进行重置成本
+     *                 .setSkuList(infoList) // 必填，要重置的数据 详见infoList说明
+     *                 .build();
+     * infoList说明： 指定要要重置的数据集合 Param 见 {@link ProductStoreEntity.InOutStoreRecordInfo} <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#TID} 必填  <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#SITE_ID} 必填  <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#LGID} 必填  <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#KEEP_PRI_ID1} 必填  <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#SKU_ID} 必填 <br/>
+     * @return
+     */
+    public int batchResetCostPrice(MgProductArg mgProductArg) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            int aid  = mgProductArg.getAid();
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            FaiList<Param> infoList = mgProductArg.getSkuList();
+            if (infoList == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "infoList error");
+                return m_rt;
+            }
+            int rlPdId = mgProductArg.getRlPdId();
+            if(rlPdId <= 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "rlPdId error");
+                return m_rt;
+            }
+            long costPrice = mgProductArg.getCostPrice();
+            if(costPrice <= 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "costPrice error");
+                return m_rt;
+            }
+            Calendar optTime = mgProductArg.getOptTime();
+            if(optTime == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "optTime error");
+                return m_rt;
+            }
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            // packaging send data
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductStoreDto.Key.TID, tid), new Pair(ProductStoreDto.Key.SITE_ID, siteId), new Pair(ProductStoreDto.Key.LGID, lgId), new Pair(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductStoreDto.Key.RL_PD_ID, rlPdId);
+            sendBody.putLong(ProductStoreDto.Key.PRICE, costPrice);
+            sendBody.putCalendar(ProductStoreDto.Key.OPT_TIME, optTime);
+            m_rt = infoList.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.InOutStoreRecord.getInfoDto());
+            if(m_rt != Errno.OK){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "infoList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;", aid, tid, siteId, lgId, keepPriId1);
+                return m_rt;
+            }
+            // send and recv
+            sendAndRecv(aid, MgProductInfCmd.InOutStoreRecordCmd.BATCH_RESET_PRICE, sendBody, false, false);
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK), m_rt);
+        }
+    }
 }

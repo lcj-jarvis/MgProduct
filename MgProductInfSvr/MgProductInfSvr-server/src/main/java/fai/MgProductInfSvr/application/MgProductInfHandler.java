@@ -14,6 +14,7 @@ import fai.comm.util.*;
 import fai.middleground.svrutil.service.ServiceProxy;
 
 import java.io.IOException;
+import java.util.Calendar;
 
 public class MgProductInfHandler extends FaiHandler {
     public MgProductInfHandler(FaiServer server) {
@@ -752,6 +753,24 @@ public class MgProductInfHandler extends FaiHandler {
                                    keyMatch = ProductStoreDto.Key.INFO_LIST) FaiList<Param> infoList) throws IOException {
         return storeService.addInOutStoreRecordInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, infoList);
     }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.InOutStoreRecordCmd.BATCH_RESET_PRICE)
+    public int batchResetCostPrice(final FaiSession session,
+                                   @ArgFlow final int flow,
+                                   @ArgAid final int aid,
+                                   @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
+                                   @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
+                                   @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
+                                   @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
+                                   @ArgBodyInteger(ProductStoreDto.Key.RL_PD_ID) int rlPdId,
+                                   @ArgBodyLong(ProductStoreDto.Key.PRICE) long costPrice,
+                                   @ArgBodyCalendar(ProductStoreDto.Key.OPT_TIME) Calendar optTime,
+                                   @ArgList(classDef = ProductStoreDto.InOutStoreRecord.class, methodDef = "getInfoDto",
+                                           keyMatch = ProductStoreDto.Key.INFO_LIST) FaiList<Param> infoList) throws IOException {
+        return storeService.batchResetCostPrice(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, costPrice, optTime, infoList);
+    }
+
     @Cmd(MgProductInfCmd.InOutStoreRecordCmd.GET_LIST)
     public int searchInOutStoreRecordInfoList(final FaiSession session,
                                               @ArgFlow final int flow,

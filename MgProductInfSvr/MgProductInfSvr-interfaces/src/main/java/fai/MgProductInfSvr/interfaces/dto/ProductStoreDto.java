@@ -218,5 +218,7 @@ public class ProductStoreDto {
         public static final int IN_OUT_STORE_RECORD_ID = 20;
         public static final int RL_REFUND_ID = 21;
         public static final int PRI_IDS = 22;
+        public static final int PRICE = 23;
+        public static final int OPT_TIME = 24;
     }
 }

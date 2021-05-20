@@ -9,6 +9,8 @@ import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 
+import java.util.Calendar;
+
 public class MgProductStoreCli extends MgProductInternalCli {
     public MgProductStoreCli(int flow) {
         super(flow, "MgProductStoreCli");
@@ -1279,6 +1281,59 @@ public class MgProductStoreCli extends MgProductInternalCli {
                 }
             }
             return m_rt = Errno.OK;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK), m_rt);
+        }
+    }
+
+    /**
+     * 批量重置指定产品 + 指定sku + 指定入库时间之前的入库采购成本
+     */
+    public int batchResetCostPrice(int aid, int rlPdId, long costPrice, Calendar optTime, FaiList<Param> infoList){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0 || rlPdId == 0 || infoList == null || infoList.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;aid=%s;rlPdId=%s;infoList=%s;", aid, rlPdId, infoList);
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(InOutStoreRecordDto.Key.RL_PD_ID, rlPdId);
+            sendBody.putLong(InOutStoreRecordDto.Key.PRICE, costPrice);
+            sendBody.putCalendar(InOutStoreRecordDto.Key.OPT_TIME, optTime);
+            m_rt = infoList.toBuffer(sendBody, InOutStoreRecordDto.Key.INFO_LIST, InOutStoreRecordDto.getInfoDto());
+            if(m_rt != Errno.OK){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "infoList error;");
+                return m_rt;
+            }
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.InOutStoreRecordCmd.BATCH_RESET_PRICE);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+            return m_rt;
         } finally {
             close();
             stat.end((m_rt != Errno.OK), m_rt);

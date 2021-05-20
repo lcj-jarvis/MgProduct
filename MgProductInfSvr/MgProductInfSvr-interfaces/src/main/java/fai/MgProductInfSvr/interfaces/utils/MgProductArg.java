@@ -3,6 +3,8 @@ package fai.MgProductInfSvr.interfaces.utils;
 import fai.comm.util.FaiList;
 import fai.comm.util.Param;
 
+import java.util.Calendar;
+
 public class MgProductArg {
 
     private int aid;
@@ -13,6 +15,10 @@ public class MgProductArg {
 
     private FaiList<Param> addList;
     private boolean isBiz;
+    private int rlPdId;
+    private Calendar optTime;
+    private long costPrice;
+    private FaiList<Param> skuList;
 
     private MgProductArg(Builder builder) {
         this.aid = builder.aid;
@@ -23,6 +29,10 @@ public class MgProductArg {
 
         this.addList = builder.addList;
         this.isBiz = builder.isBiz;
+        this.rlPdId = builder.rlPdId;
+        this.optTime = builder.optTime;
+        this.costPrice = builder.costPrice;
+        this.skuList = builder.skuList;
     }
 
     public int getAid() {
@@ -49,26 +59,71 @@ public class MgProductArg {
         return addList;
     }
 
+    public FaiList<Param> getSkuList() {
+        return skuList;
+    }
+
     public boolean getIsBiz() {
         return isBiz;
     }
 
-    public static class Builder {
-        private int aid;
-        private int tid;
-        private int siteId;
-        private int lgId;
-        private int keepPriId1;
+    public int getRlPdId() {
+        return rlPdId;
+    }
 
-        private FaiList<Param> addList;
-        private boolean isBiz;
+    public Calendar getOptTime() {
+        return optTime;
+    }
 
+    public long getCostPrice() {
+        return costPrice;
+    }
+
+    private static class TopBuilder {
+        protected int aid;
+        protected int tid;
+        protected int siteId;
+        protected int lgId;
+        protected int keepPriId1;
+
+        protected FaiList<Param> addList;
+    }
+
+    private static class BasicBuilder extends TopBuilder {
+        protected int rlPdId;
+    }
+
+    private static class GroupBuilder extends BasicBuilder {
+    }
+
+    private static class PropBuilder extends GroupBuilder {
+    }
+
+    private static class SpecBuilder extends PropBuilder {
+        protected FaiList<Param> skuList;
+    }
+
+    private static class StoreBuilder extends SpecBuilder {
+        protected Calendar optTime;
+        protected boolean isBiz;
+        protected long costPrice;
+    }
+
+    public static class Builder extends StoreBuilder {
         public Builder (int aid, int tid, int siteId, int lgId, int keepPriId1) {
             this.aid = aid;
             this.tid = tid;
             this.siteId = siteId;
             this.lgId = lgId;
             this.keepPriId1 = keepPriId1;
+        }
+
+        public Builder setSkuList(FaiList<Param> skuList) {
+            if(skuList == null || skuList.isEmpty()) {
+                throw new RuntimeException();
+            }
+            this.skuList = skuList;
+            return this;
         }
 
         public Builder setAddList(FaiList<Param> addList) {
@@ -81,6 +136,21 @@ public class MgProductArg {
 
         public Builder setIsBiz(boolean isBiz) {
             this.isBiz = isBiz;
+            return this;
+        }
+
+        public Builder setRlPdId(int rlPdId) {
+            this.rlPdId = rlPdId;
+            return this;
+        }
+
+        public Builder setCostPrice(long costPrice) {
+            this.costPrice = costPrice;
+            return this;
+        }
+
+        public Builder setOptTime(Calendar optTime) {
+            this.optTime = optTime;
             return this;
         }
 

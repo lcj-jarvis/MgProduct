@@ -778,6 +778,112 @@ public class ProductStoreService extends MgProductInfService {
     }
 
     /**
+     * 重置指定操作时间之前的入库成本
+     * @param aid
+     * @param ownerTid 创建商品的tid
+     * @param ownerSiteId 创建商品的 siteId (如:悦客总店的 siteId)
+     * @param ownerLgId 创建商品的 ownerLgId (如:悦客总店的 ownerLgId)
+     * @param ownerKeepPriId1 创建商品的 ownerKeepPriId1 (如:悦客总店的 ownerKeepPriId1)
+     * @param rlPdId 商品业务id
+     * @param costPrice 要重置的成本价
+     * @param optTime 指定操作时间之前的数据
+     * @param infoList skuId+tid+siteId+lgId+keepPriId1
+     * @return
+     * @throws IOException
+     */
+    public int batchResetCostPrice(FaiSession session, int flow, int aid, int ownerTid, int ownerSiteId, int ownerLgId, int ownerKeepPriId1, int rlPdId, long costPrice, Calendar optTime, FaiList<Param> infoList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try{
+            if (!FaiValObj.TermId.isValidTid(ownerTid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, ownerTid);
+                return rt;
+            }
+            if(infoList == null || infoList.isEmpty()){
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, infoList is not valid;flow=%d;aid=%d;ownerTid=%d;infoList=%s;", flow, aid, ownerTid, infoList);
+                return rt;
+            }
+            if(optTime == null){
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, optTime is null;flow=%d;aid=%d;ownerTid=%d;", flow, aid, ownerTid);
+                return rt;
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, ownerTid, ownerSiteId, ownerLgId, ownerKeepPriId1, idRef);
+            if (rt != Errno.OK) {
+                return rt;
+            }
+            int ownerUnionPriId = idRef.value;
+
+            // tid+siteId+lgId+keepPriId1 -> unionPriId
+            Map<BizPriKey, Integer> bizPriKeyUnionPriIdMap = new HashMap<>();
+            FaiList<Param> searchArgList = new FaiList<>();
+            for (int i = 0; i < infoList.size(); i++) {
+                Param info = infoList.get(i);
+                Integer tid = info.getInt(ProductStoreEntity.InOutStoreRecordInfo.TID);
+                Integer siteId = info.getInt(ProductStoreEntity.InOutStoreRecordInfo.SITE_ID);
+                Integer lgId = info.getInt(ProductStoreEntity.InOutStoreRecordInfo.LGID);
+                Integer keepPriId1 = info.getInt(ProductStoreEntity.InOutStoreRecordInfo.KEEP_PRI_ID1);
+                Integer skuId = info.getInt(ProductStoreEntity.InOutStoreRecordInfo.SKU_ID);
+                if(tid == null || siteId == null || lgId == null || keepPriId1 == null || skuId == null) {
+                    rt = Errno.ARGS_ERROR;
+                    Log.logErr("args error, info miss field;flow=%d;aid=%d;ownerTid=%d;info=%s;", flow, aid, ownerTid, info);
+                    return rt;
+                }
+                BizPriKey bizPriKey = new BizPriKey(tid, siteId, lgId, keepPriId1);
+                if(!bizPriKeyUnionPriIdMap.containsKey(bizPriKey)){
+                    bizPriKeyUnionPriIdMap.put(bizPriKey, null);
+                    searchArgList.add(
+                            new Param().setInt(MgPrimaryKeyEntity.Info.TID, tid)
+                                    .setInt(MgPrimaryKeyEntity.Info.SITE_ID, siteId)
+                                    .setInt(MgPrimaryKeyEntity.Info.LGID, lgId)
+                                    .setInt(MgPrimaryKeyEntity.Info.KEEP_PRI_ID1, keepPriId1)
+                    );
+                }
+            }
+            // 获取联合主键
+            FaiList<Param> primaryKeyList = new FaiList<>();
+            rt = getPrimaryKeyList(flow, aid, searchArgList, primaryKeyList);
+            if(rt != Errno.OK){
+                return rt;
+            }
+            for (Param primaryKeyInfo : primaryKeyList) {
+                int tid = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.TID);
+                int siteId = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.SITE_ID);
+                int lgId = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.LGID);
+                int keepPriId1 = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.KEEP_PRI_ID1);
+                int unionPriId = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.UNION_PRI_ID);
+                bizPriKeyUnionPriIdMap.put(new BizPriKey(tid, siteId, lgId, keepPriId1), unionPriId);
+            }
+
+            for (Param info : infoList) {
+                int tid = info.getInt(ProductStoreEntity.InOutStoreRecordInfo.TID);
+                int siteId = info.getInt(ProductStoreEntity.InOutStoreRecordInfo.SITE_ID);
+                int lgId = info.getInt(ProductStoreEntity.InOutStoreRecordInfo.LGID);
+                int keepPriId1 = info.getInt(ProductStoreEntity.InOutStoreRecordInfo.KEEP_PRI_ID1);
+                int unionPriId = bizPriKeyUnionPriIdMap.get(new BizPriKey(tid, siteId, lgId, keepPriId1));
+                info.setInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, unionPriId);
+            }
+
+            ProductStoreProc productStoreProc = new ProductStoreProc(flow);
+            rt = productStoreProc.batchResetCostPrice(aid, rlPdId, costPrice, optTime, infoList);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("reset ok;aid=%d;ownerUnionPriId=%d;rlPdId=%d;price=%s;optTime=%s;", aid, ownerUnionPriId, rlPdId, costPrice, optTime);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    /**
      * 查询出入库存记录
      */
     public int searchInOutStoreRecordInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, boolean isBiz, SearchArg searchArg, FaiList<Param> primaryKeys)  throws IOException {
@@ -812,7 +918,11 @@ public class ProductStoreService extends MgProductInfService {
                     unionPriIds.add(curUnionPriId);
                 }
 
-                searchArg.matcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+                if(isSource) {
+                    searchArg.matcher.and(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+                }else {
+                    searchArg.matcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+                }
             }else {
                 if(isSource) {
                     searchArg.matcher.and(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
@@ -1288,7 +1398,15 @@ public class ProductStoreService extends MgProductInfService {
                                 FaiList<Integer> tmpRlPdIdList = (FaiList<Integer>)value;
                                 FaiList<Integer> pdIdList = new FaiList<>(tmpRlPdIdList.size());
                                 for (Integer rlPdId : tmpRlPdIdList) {
-                                    pdIdList.add(rlPdIdPdIdMap.get(rlPdId));
+                                    Integer pdId = rlPdIdPdIdMap.get(rlPdId);
+                                    if(pdId == null) {
+                                        continue;
+                                    }
+                                    pdIdList.add(pdId);
+                                }
+                                if(pdIdList.isEmpty()) {
+                                    Log.logDbg("all rlPdIds not existed;unionPriId=%s;searchArg.matcher=%s", aid, unionPriId, searchArg.matcher.toJson());
+                                    return Errno.OK;
                                 }
                                 cond.value = pdIdList;
                             }

@@ -11,4 +11,6 @@ public class CommDtoKey {
     public static final int UPDATER_LIST = 7;
     public static final int ID_LIST = 8;
     public static final int SOFT_DEL = 9;
+    public static final int PRICE = 10;
+    public static final int OPT_TIME = 11;
 }

@@ -29,7 +29,65 @@ public class InOutStoreRecordProc {
         m_flow = flow;
     }
 
-    //同步批量增加
+    public int batchResetCostPrice(int aid, int rlPdId, long costPrice, FaiList<Param> infoList, Calendar optTime) {
+        int rt;
+        if(aid <= 0 || infoList == null || infoList.isEmpty() || optTime == null){
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "arg error;flow=%d;aid=%s;infoList=%s;optTime=%s;", m_flow, aid, infoList, optTime);
+            return rt;
+        }
+        // 调用必须开启事务
+        if(m_daoCtrl.isAutoCommit()) {
+            rt = Errno.DAO_ERROR;
+            Log.logErr(rt, "dao have to set autoCommit false;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        Calendar now = Calendar.getInstance();
+        FaiList<Param> dataList = new FaiList<>();
+        for(Param info : infoList) {
+            int unionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, 0);
+            long skuId = info.getLong(InOutStoreRecordEntity.Info.SKU_ID, 0L);
+            if(unionPriId == 0 || skuId == 0){
+                rt = Errno.ARGS_ERROR;
+                Log.logStd(rt, "arg error;flow=%d;aid=%s;info=%s;", m_flow, aid, info);
+                return rt;
+            }
+            Param data = new Param();
+            data.setLong(InOutStoreRecordEntity.Info.PRICE, costPrice);
+            data.setCalendar(InOutStoreRecordEntity.Info.SYS_UPDATE_TIME, now);
+
+            data.setInt(InOutStoreRecordEntity.Info.AID, aid);
+            data.setInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, unionPriId);
+            data.setCalendar(InOutStoreRecordEntity.Info.OPT_TIME, optTime);
+            data.setInt(InOutStoreRecordEntity.Info.OPT_TYPE, InOutStoreRecordValObj.OptType.IN);
+            data.setInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
+            data.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
+            dataList.add(data);
+        }
+        ParamMatcher doBatchMatcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(InOutStoreRecordEntity.Info.OPT_TIME, ParamMatcher.LT, "?");
+        doBatchMatcher.and(InOutStoreRecordEntity.Info.OPT_TYPE, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(InOutStoreRecordEntity.Info.RL_PD_ID, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(InOutStoreRecordEntity.Info.SKU_ID, ParamMatcher.EQ, "?");
+
+        Param item = new Param();
+        ParamUpdater doBatchUpdater = new ParamUpdater(item);
+        item.setString(InOutStoreRecordEntity.Info.PRICE, "?");
+        item.setString(InOutStoreRecordEntity.Info.SYS_UPDATE_TIME, "?");
+
+        rt = m_daoCtrl.doBatchUpdate(doBatchUpdater, doBatchMatcher, dataList, true);
+        if(rt != Errno.OK){
+            Log.logErr("doBatchUpdate err;flow=%s;aid=%s;dataList=%s", m_flow, aid, dataList);
+            return rt;
+        }
+
+        Log.logStd("ok;flow=%s;aid=%s;rlPdId=%s;optTime=%s;infoList=%s;", m_flow, aid, rlPdId, optTime, infoList);
+        return rt;
+    }
+
+    //同步批量增加，门店通同步数据用，废弃
+    @Deprecated
     public int synBatchAdd(int aid, int sourceTid, Set<Integer> unionPriIdSet, Set<Long> skuIdSet, FaiList<Param> dataList) {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ ,aid);
@@ -166,7 +224,7 @@ public class InOutStoreRecordProc {
         }
         // 调用必须开启事务
         if(m_daoCtrl.isAutoCommit() || m_sumDaoCtrl.isAutoCommit()) {
-            Log.logErr("dao have to set autoCommit false;flow=%d;aid=%d;", m_flow, aid);
+            Log.logErr("dao and sumDao have to set autoCommit false;flow=%d;aid=%d;", m_flow, aid);
             return Errno.DAO_ERROR;
         }
 

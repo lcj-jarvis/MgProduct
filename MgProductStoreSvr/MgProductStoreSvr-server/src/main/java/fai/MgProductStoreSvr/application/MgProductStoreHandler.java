@@ -22,6 +22,7 @@ import fai.comm.util.*;
 import fai.middleground.svrutil.service.MiddleGroundHandler;
 
 import java.io.IOException;
+import java.util.Calendar;
 
 public class MgProductStoreHandler extends MiddleGroundHandler {
     public MgProductStoreHandler(FaiServer server) {
@@ -282,6 +283,19 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                             @ArgList(classDef = InOutStoreRecordDto.class, methodDef = "getInfoDto", keyMatch = InOutStoreRecordDto.Key.INFO_LIST)
                                                     FaiList<Param> infoList) throws IOException {
         return m_recordService.addInOutStoreRecordInfoList(session, flow, aid, tid, unionPriId, infoList);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.InOutStoreRecordCmd.BATCH_RESET_PRICE)
+    private int batchResetCostPrice(final FaiSession session,
+                                    @ArgFlow final int flow,
+                                    @ArgAid final int aid,
+                                    @ArgBodyInteger(InOutStoreRecordDto.Key.RL_PD_ID) final int rlPdId,
+                                    @ArgBodyLong(InOutStoreRecordDto.Key.PRICE) final long costPrice,
+                                    @ArgBodyCalendar(InOutStoreRecordDto.Key.OPT_TIME)Calendar optTime,
+                                    @ArgList(classDef = InOutStoreRecordDto.class, methodDef = "getInfoDto", keyMatch = InOutStoreRecordDto.Key.INFO_LIST)
+                                                FaiList<Param> infoList) throws IOException {
+        return m_recordService.batchResetCostPrice(session, flow, aid, rlPdId, costPrice, optTime, infoList);
     }
 
     @Cmd(MgProductStoreCmd.InOutStoreRecordCmd.GET_LIST)

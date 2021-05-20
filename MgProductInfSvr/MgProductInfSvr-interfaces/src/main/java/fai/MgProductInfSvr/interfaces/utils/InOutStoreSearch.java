@@ -115,7 +115,7 @@ public class InOutStoreSearch {
     // 单号
     public InOutStoreSearch setNumber(String number) {
         String key = SearchType.InOutStoreSum.equals(searchType) ? ProductStoreEntity.InOutStoreSumInfo.NUMBER : ProductStoreEntity.InOutStoreRecordInfo.NUMBER;
-        matcher.and(key, ParamMatcher.EQ, number);
+        matcher.and(key, ParamMatcher.LK, number);
         return this;
     }
 

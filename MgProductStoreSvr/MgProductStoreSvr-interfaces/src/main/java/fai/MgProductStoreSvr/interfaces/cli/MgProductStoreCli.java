@@ -1290,7 +1290,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
     /**
      * 批量重置指定产品 + 指定sku + 指定入库时间之前的入库采购成本
      */
-    public int batchResetCostPrice(int aid, int rlPdId, long costPrice, Calendar optTime, FaiList<Param> infoList){
+    public int batchResetCostPrice(int aid, int rlPdId, Calendar optTime, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1303,7 +1303,6 @@ public class MgProductStoreCli extends MgProductInternalCli {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(InOutStoreRecordDto.Key.RL_PD_ID, rlPdId);
-            sendBody.putLong(InOutStoreRecordDto.Key.PRICE, costPrice);
             sendBody.putCalendar(InOutStoreRecordDto.Key.OPT_TIME, optTime);
             m_rt = infoList.toBuffer(sendBody, InOutStoreRecordDto.Key.INFO_LIST, InOutStoreRecordDto.getInfoDto());
             if(m_rt != Errno.OK){

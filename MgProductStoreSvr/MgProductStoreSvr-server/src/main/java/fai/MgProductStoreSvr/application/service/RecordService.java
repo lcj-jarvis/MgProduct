@@ -1,9 +1,6 @@
 package fai.MgProductStoreSvr.application.service;
 
-import fai.MgProductStoreSvr.domain.comm.InOutStoreRecordArgCheck;
-import fai.MgProductStoreSvr.domain.comm.LockUtil;
-import fai.MgProductStoreSvr.domain.comm.PdKey;
-import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
+import fai.MgProductStoreSvr.domain.comm.*;
 import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordEntity;
 import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordValObj;
 import fai.MgProductStoreSvr.domain.entity.InOutStoreSumEntity;
@@ -11,6 +8,7 @@ import fai.MgProductStoreSvr.domain.entity.ReportValObj;
 import fai.MgProductStoreSvr.domain.repository.*;
 import fai.MgProductStoreSvr.domain.serviceProc.*;
 import fai.MgProductStoreSvr.interfaces.dto.InOutStoreRecordDto;
+import fai.MgProductStoreSvr.interfaces.entity.SkuCountChangeEntity;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
 import fai.mgproduct.comm.Util;
@@ -398,7 +396,7 @@ public class RecordService extends StoreService {
         return rt;
     }
 
-    public int batchResetCostPrice(FaiSession session, int flow, int aid, int rlPdId, long costPrice, Calendar optTime, FaiList<Param> infoList) throws IOException {
+    public int batchResetCostPrice(FaiSession session, int flow, int aid, int rlPdId, Calendar optTime, FaiList<Param> infoList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -408,26 +406,73 @@ public class RecordService extends StoreService {
                 return rt;
             }
 
-            // 事务
-            TransactionCtrl tc = new TransactionCtrl();
+            Set<SkuBizKey> skuBizKeySet = new HashSet<>();
+            Set<Long> skuIdSet = new HashSet<>();
+            for (Param info : infoList) {
+                long skuId = info.getLong(InOutStoreRecordEntity.Info.SKU_ID);
+                int unionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, 0);
+                skuBizKeySet.add(new SkuBizKey(unionPriId, skuId));
+                skuIdSet.add(skuId);
+            }
+
+            LockUtil.lock(aid);
             try {
-                InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(flow, aid, tc);
-                tc.setAutoCommit(false);
-                boolean commit = false;
+                // 事务
+                TransactionCtrl tc = new TransactionCtrl();
                 try {
-                    rt = inOutStoreRecordProc.batchResetCostPrice(aid, rlPdId, costPrice, infoList, optTime);
-                    if(rt != Errno.OK) {
-                        return rt;
+                    boolean needSyncSkuPrice = false;
+                    InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(flow, aid, tc);
+                    StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, tc);
+                    SkuSummaryProc skuSummaryProc = new SkuSummaryProc(flow, aid, tc);
+                    tc.setAutoCommit(false);
+                    try {
+                        Map<SkuBizKey, Param> changeCountAfterSkuStoreInfoMap = new HashMap<>();
+                        // 获取更新后的库存量
+                        rt = storeSalesSkuProc.getInfoMap4OutRecordFromDao(aid, skuBizKeySet, changeCountAfterSkuStoreInfoMap);
+                        if (rt != Errno.OK) {
+                            return rt;
+                        }
+                        rt = inOutStoreRecordProc.batchResetCostPrice(aid, rlPdId, infoList, optTime, changeCountAfterSkuStoreInfoMap);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+                        needSyncSkuPrice = !changeCountAfterSkuStoreInfoMap.isEmpty();
+                        if(needSyncSkuPrice) {
+                            // 更新总成本
+                            rt = storeSalesSkuProc.batchUpdateTotalCost(aid, changeCountAfterSkuStoreInfoMap);
+                            if(rt != Errno.OK){
+                                return rt;
+                            }
+                        }
+                        tc.commit();
+                    }finally {
+                        if(rt != Errno.OK) {
+                            tc.rollback();
+                            return rt;
+                        }
                     }
-                    commit = true;
-                    tc.commit();
+                    // 更新sku汇总成本， 一定要上面的事务提交了再更新
+                    if(needSyncSkuPrice) {
+                        try {
+                            tc.setAutoCommit(false);
+                            rt = reportSummary(aid, new FaiList<>(), ReportValObj.Flag.REPORT_PRICE,
+                                    new FaiList<>(skuIdSet), storeSalesSkuProc, null, null, skuSummaryProc);
+                            if(rt != Errno.OK){
+                                return rt;
+                            }
+                        }finally {
+                            if(rt != Errno.OK){
+                                tc.rollback();
+                                return rt;
+                            }
+                            tc.commit();
+                        }
+                    }
                 }finally {
-                    if(!commit) {
-                        tc.rollback();
-                    }
+                    tc.closeDao();
                 }
             }finally {
-                tc.closeDao();
+                LockUtil.unlock(aid);
             }
 
             FaiBuffer sendBuf = new FaiBuffer(true);

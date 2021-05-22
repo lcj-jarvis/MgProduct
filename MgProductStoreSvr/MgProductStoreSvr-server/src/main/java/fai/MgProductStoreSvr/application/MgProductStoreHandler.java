@@ -291,11 +291,10 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                     @ArgFlow final int flow,
                                     @ArgAid final int aid,
                                     @ArgBodyInteger(InOutStoreRecordDto.Key.RL_PD_ID) final int rlPdId,
-                                    @ArgBodyLong(InOutStoreRecordDto.Key.PRICE) final long costPrice,
                                     @ArgBodyCalendar(InOutStoreRecordDto.Key.OPT_TIME)Calendar optTime,
                                     @ArgList(classDef = InOutStoreRecordDto.class, methodDef = "getInfoDto", keyMatch = InOutStoreRecordDto.Key.INFO_LIST)
                                                 FaiList<Param> infoList) throws IOException {
-        return m_recordService.batchResetCostPrice(session, flow, aid, rlPdId, costPrice, optTime, infoList);
+        return m_recordService.batchResetCostPrice(session, flow, aid, rlPdId, optTime, infoList);
     }
 
     @Cmd(MgProductStoreCmd.InOutStoreRecordCmd.GET_LIST)

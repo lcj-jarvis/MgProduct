@@ -29,7 +29,7 @@ public class InOutStoreRecordProc {
         m_flow = flow;
     }
 
-    public int batchResetCostPrice(int aid, int rlPdId, long costPrice, FaiList<Param> infoList, Calendar optTime) {
+    public int batchResetCostPrice(int aid, int rlPdId, FaiList<Param> infoList, Calendar optTime, Map<SkuBizKey, Param> changeCountAfterSkuStoreInfoMap) {
         int rt;
         if(aid <= 0 || infoList == null || infoList.isEmpty() || optTime == null){
             rt = Errno.ARGS_ERROR;
@@ -47,7 +47,8 @@ public class InOutStoreRecordProc {
         for(Param info : infoList) {
             int unionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, 0);
             long skuId = info.getLong(InOutStoreRecordEntity.Info.SKU_ID, 0L);
-            if(unionPriId == 0 || skuId == 0){
+            long costPrice = info.getLong(InOutStoreRecordEntity.Info.PRICE, 0L);
+            if(unionPriId == 0 || skuId == 0 || costPrice < 0){
                 rt = Errno.ARGS_ERROR;
                 Log.logStd(rt, "arg error;flow=%d;aid=%s;info=%s;", m_flow, aid, info);
                 return rt;
@@ -59,17 +60,31 @@ public class InOutStoreRecordProc {
             data.setInt(InOutStoreRecordEntity.Info.AID, aid);
             data.setInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, unionPriId);
             data.setCalendar(InOutStoreRecordEntity.Info.OPT_TIME, optTime);
-            data.setInt(InOutStoreRecordEntity.Info.OPT_TYPE, InOutStoreRecordValObj.OptType.IN);
             data.setInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
             data.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
+            data.setLong(InOutStoreRecordEntity.Info.PRICE+"match", 0L);// 这里加多一个match是为了和update需要 所设置的price区分开，不然构建批量修改会报错
             dataList.add(data);
+            Ref<Integer> countRef = new Ref<>();
+            rt = getAvailableCount(aid, unionPriId, skuId, rlPdId, optTime, countRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            // 计算需要更新的成本
+            int changeCount = countRef.value;
+            long totalCost = changeCount*costPrice;
+            long inMwTotalCost = changeCount*costPrice;
+            Param storeSalesSkuInfo = changeCountAfterSkuStoreInfoMap.get(new SkuBizKey(unionPriId, skuId));
+            long fifoTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, 0L);
+            long mwTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, 0L);
+            storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, fifoTotalCost + totalCost);
+            storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, mwTotalCost + inMwTotalCost);
         }
         ParamMatcher doBatchMatcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, "?");
         doBatchMatcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
         doBatchMatcher.and(InOutStoreRecordEntity.Info.OPT_TIME, ParamMatcher.LT, "?");
-        doBatchMatcher.and(InOutStoreRecordEntity.Info.OPT_TYPE, ParamMatcher.EQ, "?");
         doBatchMatcher.and(InOutStoreRecordEntity.Info.RL_PD_ID, ParamMatcher.EQ, "?");
         doBatchMatcher.and(InOutStoreRecordEntity.Info.SKU_ID, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(InOutStoreRecordEntity.Info.PRICE, ParamMatcher.EQ, "?");
 
         Param item = new Param();
         ParamUpdater doBatchUpdater = new ParamUpdater(item);
@@ -83,6 +98,31 @@ public class InOutStoreRecordProc {
         }
 
         Log.logStd("ok;flow=%s;aid=%s;rlPdId=%s;optTime=%s;infoList=%s;", m_flow, aid, rlPdId, optTime, infoList);
+        return rt;
+    }
+
+    private int getAvailableCount(int aid, int unionPriId, long skuId, int rlPdId, Calendar optTime, Ref<Integer> countRef) {
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        searchArg.matcher.and(InOutStoreRecordEntity.Info.SKU_ID, ParamMatcher.EQ, skuId);
+        searchArg.matcher.and(InOutStoreRecordEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
+        searchArg.matcher.and(InOutStoreRecordEntity.Info.OPT_TIME, ParamMatcher.LT, optTime);
+        searchArg.matcher.and(InOutStoreRecordEntity.Info.PRICE, ParamMatcher.EQ, 0);
+
+        Ref<Param> resultRef = new Ref<>();
+        String sumField = "sum(" + InOutStoreRecordEntity.Info.AVAILABLE_COUNT + ") as sum";
+        int rt = m_daoCtrl.selectFirst(searchArg, resultRef, new String[]{sumField});
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "select sum availableCount error;flow=%d;match=%s;", m_flow, searchArg.matcher.toJson());
+            return rt;
+        }
+        Param result = resultRef.value;
+        if(Str.isEmpty(result)) {
+            countRef.value = 0;
+            return rt;
+        }
+        countRef.value = result.getInt("sum");
         return rt;
     }
 

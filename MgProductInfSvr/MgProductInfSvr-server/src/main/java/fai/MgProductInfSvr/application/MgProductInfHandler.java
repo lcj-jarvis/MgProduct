@@ -764,11 +764,10 @@ public class MgProductInfHandler extends FaiHandler {
                                    @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
                                    @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
                                    @ArgBodyInteger(ProductStoreDto.Key.RL_PD_ID) int rlPdId,
-                                   @ArgBodyLong(ProductStoreDto.Key.PRICE) long costPrice,
                                    @ArgBodyCalendar(ProductStoreDto.Key.OPT_TIME) Calendar optTime,
                                    @ArgList(classDef = ProductStoreDto.InOutStoreRecord.class, methodDef = "getInfoDto",
                                            keyMatch = ProductStoreDto.Key.INFO_LIST) FaiList<Param> infoList) throws IOException {
-        return storeService.batchResetCostPrice(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, costPrice, optTime, infoList);
+        return storeService.batchResetCostPrice(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, optTime, infoList);
     }
 
     @Cmd(MgProductInfCmd.InOutStoreRecordCmd.GET_LIST)

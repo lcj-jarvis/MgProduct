@@ -317,16 +317,16 @@ public class ProductStoreProc extends AbstractProductProc{
     /**
      * 重置指定操作时间之前的入库成本
      */
-    public int batchResetCostPrice(int aid, int rlPdId, long costPrice, Calendar optTime, FaiList<Param> infoList) {
+    public int batchResetCostPrice(int aid, int rlPdId, Calendar optTime, FaiList<Param> infoList) {
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
-        rt = m_cli.batchResetCostPrice(aid, rlPdId, costPrice, optTime, infoList);
+        rt = m_cli.batchResetCostPrice(aid, rlPdId, optTime, infoList);
         if (rt != Errno.OK) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;rlPdId=%s;costPrice=%s;list=%s;", m_flow, aid, rlPdId, costPrice, infoList);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;rlPdId=%s;list=%s;", m_flow, aid, rlPdId, infoList);
             return rt;
         }
         return rt;

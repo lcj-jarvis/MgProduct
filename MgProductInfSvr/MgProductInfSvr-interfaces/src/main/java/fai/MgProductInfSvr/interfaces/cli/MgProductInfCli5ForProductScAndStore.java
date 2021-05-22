@@ -1614,7 +1614,6 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
      *                 .setRlPdId(rlPdId) // 必填，要重置成本的商品业务id
-     *                 .setPrice(costPrice) // 必填，重置成本操作要设置的成本价
      *                 .setOptTime(optTime) // 必填，指定操作时间，操作时间小于该时间的才进行重置成本
      *                 .setSkuList(infoList) // 必填，要重置的数据 详见infoList说明
      *                 .build();
@@ -1624,6 +1623,7 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
      *      {@link ProductStoreEntity.InOutStoreRecordInfo#LGID} 必填  <br/>
      *      {@link ProductStoreEntity.InOutStoreRecordInfo#KEEP_PRI_ID1} 必填  <br/>
      *      {@link ProductStoreEntity.InOutStoreRecordInfo#SKU_ID} 必填 <br/>
+     *      {@link ProductStoreEntity.InOutStoreRecordInfo#PRICE} 必填 <br/>
      * @return
      */
     public int batchResetCostPrice(MgProductArg mgProductArg) {
@@ -1648,12 +1648,6 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
                 Log.logErr(m_rt, "rlPdId error");
                 return m_rt;
             }
-            long costPrice = mgProductArg.getCostPrice();
-            if(costPrice <= 0) {
-                m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "costPrice error");
-                return m_rt;
-            }
             Calendar optTime = mgProductArg.getOptTime();
             if(optTime == null) {
                 m_rt = Errno.ARGS_ERROR;
@@ -1667,7 +1661,6 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductStoreDto.Key.TID, tid), new Pair(ProductStoreDto.Key.SITE_ID, siteId), new Pair(ProductStoreDto.Key.LGID, lgId), new Pair(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1));
             sendBody.putInt(ProductStoreDto.Key.RL_PD_ID, rlPdId);
-            sendBody.putLong(ProductStoreDto.Key.PRICE, costPrice);
             sendBody.putCalendar(ProductStoreDto.Key.OPT_TIME, optTime);
             m_rt = infoList.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.InOutStoreRecord.getInfoDto());
             if(m_rt != Errno.OK){

@@ -785,13 +785,12 @@ public class ProductStoreService extends MgProductInfService {
      * @param ownerLgId 创建商品的 ownerLgId (如:悦客总店的 ownerLgId)
      * @param ownerKeepPriId1 创建商品的 ownerKeepPriId1 (如:悦客总店的 ownerKeepPriId1)
      * @param rlPdId 商品业务id
-     * @param costPrice 要重置的成本价
      * @param optTime 指定操作时间之前的数据
-     * @param infoList skuId+tid+siteId+lgId+keepPriId1
+     * @param infoList skuId+tid+siteId+lgId+keepPriId1+costPrice(要重置的成本价)
      * @return
      * @throws IOException
      */
-    public int batchResetCostPrice(FaiSession session, int flow, int aid, int ownerTid, int ownerSiteId, int ownerLgId, int ownerKeepPriId1, int rlPdId, long costPrice, Calendar optTime, FaiList<Param> infoList) throws IOException {
+    public int batchResetCostPrice(FaiSession session, int flow, int aid, int ownerTid, int ownerSiteId, int ownerLgId, int ownerKeepPriId1, int rlPdId, Calendar optTime, FaiList<Param> infoList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try{
@@ -870,13 +869,13 @@ public class ProductStoreService extends MgProductInfService {
             }
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-            rt = productStoreProc.batchResetCostPrice(aid, rlPdId, costPrice, optTime, infoList);
+            rt = productStoreProc.batchResetCostPrice(aid, rlPdId, optTime, infoList);
             if(rt != Errno.OK) {
                 return rt;
             }
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
-            Log.logStd("reset ok;aid=%d;ownerUnionPriId=%d;rlPdId=%d;price=%s;optTime=%s;", aid, ownerUnionPriId, rlPdId, costPrice, optTime);
+            Log.logStd("reset ok;aid=%d;ownerUnionPriId=%d;rlPdId=%d;optTime=%s;", aid, ownerUnionPriId, rlPdId, Parser.parseString(optTime));
         }finally {
             stat.end(rt != Errno.OK, rt);
         }

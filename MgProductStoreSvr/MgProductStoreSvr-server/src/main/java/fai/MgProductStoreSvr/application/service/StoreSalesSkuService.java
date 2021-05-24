@@ -886,14 +886,13 @@ public class StoreSalesSkuService extends StoreService {
                 return rt;
             }
             Map<RecordKey, Integer> recordCountMap = new HashMap<>();
-            FaiList<Long> skuIdList = new FaiList<>();
             for (Param info : allHoldingRecordList) {
                 long skuId = info.getLong(SkuCountChangeEntity.Info.SKU_ID);
                 int itemId = info.getInt(SkuCountChangeEntity.Info.ITEM_ID, 0);
                 int count = info.getInt(SkuCountChangeEntity.Info.COUNT);
                 recordCountMap.put(new RecordKey(skuId, itemId), count);
-                skuIdList.add(skuId);
             }
+            FaiList<Long> updateSkuIdList = new FaiList<>();
             int reduceMode = StoreSalesSkuValObj.ReduceMode.HOLDING;
             boolean holdingMode = reduceMode == StoreSalesSkuValObj.ReduceMode.HOLDING;
             TransactionCtrl transactionCtrl = new TransactionCtrl();
@@ -907,7 +906,7 @@ public class StoreSalesSkuService extends StoreService {
                 LockUtil.lock(aid);
                 try {
                     Ref<FaiList<Param>> listRef = new Ref<>();
-                    rt = holdingRecordProc.getListFromDao(aid, unionPriId, skuIdList, rlOrderCode, listRef);
+                    rt = holdingRecordProc.getListFromDao(aid, unionPriId, null, rlOrderCode, listRef);
                     if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                         return rt;
                     }
@@ -922,6 +921,7 @@ public class StoreSalesSkuService extends StoreService {
                     TreeMap<Long, Integer> reduceMap = new TreeMap<>();
                     TreeMap<Long, Integer> makeupMap = new TreeMap<>();
                     skuCountMap.forEach((skuId, count)->{
+                        updateSkuIdList.add(skuId);
                         if(count > 0){
                             reduceMap.put(skuId, count);
                         }else if(count < 0){
@@ -973,7 +973,7 @@ public class StoreSalesSkuService extends StoreService {
                     LockUtil.unlock(aid);
                 }
                 Ref<FaiList<Param>> listRef = new Ref<>();
-                rt = storeSalesSkuProc.getListFromDaoBySkuIdList(aid, unionPriId, skuIdList, listRef, StoreSalesSkuEntity.Info.PD_ID);
+                rt = storeSalesSkuProc.getListFromDaoBySkuIdList(aid, unionPriId, updateSkuIdList, listRef, StoreSalesSkuEntity.Info.PD_ID);
                 if(rt != Errno.OK){
                     return rt;
                 }
@@ -981,7 +981,7 @@ public class StoreSalesSkuService extends StoreService {
                 try {
                     transactionCtrl.setAutoCommit(false);
                     rt = reportSummary(aid, pdIdList, ReportValObj.Flag.REPORT_COUNT,
-                            skuIdList, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
+                            updateSkuIdList, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
                     if(rt != Errno.OK){
                         return rt;
                     }

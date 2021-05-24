@@ -104,6 +104,25 @@ public class MgProductInfHandler extends FaiHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductInfCmd.PropCmd.UNION_SET_PROP_LIST)
+    public int unionSetPropList(final FaiSession session,
+                                @ArgFlow final int flow,
+                                @ArgAid final int aid,
+                                @ArgBodyInteger(ProductPropDto.Key.TID) int tid,
+                                @ArgBodyInteger(ProductPropDto.Key.SITE_ID) int siteId,
+                                @ArgBodyInteger(ProductPropDto.Key.LGID) int lgId,
+                                @ArgBodyInteger(ProductPropDto.Key.KEEP_PRIID1) int keepPriId1,
+                                @ArgBodyInteger(ProductPropDto.Key.LIB_ID) int libId,
+                                @ArgList(classDef = ProductPropDto.class, methodDef = "getPropInfoDto",
+                                        keyMatch = ProductPropDto.Key.ADD_LIST) FaiList<Param> addList,
+                                @ArgList(classDef = ProductPropDto.class, methodDef = "getPropInfoDto",
+                                        keyMatch = ProductPropDto.Key.UPDATER_LIST)FaiList<ParamUpdater> updaterList,
+                                @ArgList(keyMatch = ProductPropDto.Key.DEL_LIST)FaiList<Integer> delList
+                                ) throws IOException {
+        return propService.unionSetPropList(session, flow, aid, tid, siteId, lgId, keepPriId1, libId, addList, updaterList, delList);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductInfCmd.PropCmd.ADD_WITH_VAL)
     public int addPropInfoWithVal(final FaiSession session,
                                   @ArgFlow final int flow,

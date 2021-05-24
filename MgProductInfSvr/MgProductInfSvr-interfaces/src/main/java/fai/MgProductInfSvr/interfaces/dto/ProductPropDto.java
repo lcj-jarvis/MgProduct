@@ -63,6 +63,9 @@ public class ProductPropDto {
         public static final int PROP_INFO = 13;
         public static final int UPDATER = 14;
         public static final int VAL_IDS = 15;
+        public static final int DEL_LIST = 16;
+        public static final int ADD_LIST = 17;
+        public static final int UPDATER_LIST = 18;
     }
 
 }

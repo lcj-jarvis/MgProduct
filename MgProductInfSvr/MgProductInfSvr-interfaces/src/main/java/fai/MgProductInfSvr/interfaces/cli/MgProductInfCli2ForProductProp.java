@@ -241,6 +241,85 @@ public class MgProductInfCli2ForProductProp extends MgProductInfCli1ForProductBa
         }
     }
 
+    /**
+     * 合并 商品参数 增删改 接口
+     * @param addList 添加数据
+     * @param updaterList 修改数据
+     * @param delList 删除数据
+     * @param idsRef 添加成功后返回的id
+     * @return rt
+     */
+    public int unionSetPropList(int aid, int tid, int siteId, int lgId, int keepPriId1, int libId, FaiList<Param> addList, FaiList<ParamUpdater> updaterList, FaiList<Integer> delList, Ref<FaiList<Integer>> idsRef) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductPropDto.Key.TID, tid), new Pair(ProductPropDto.Key.SITE_ID, siteId), new Pair(ProductPropDto.Key.LGID, lgId), new Pair(ProductPropDto.Key.KEEP_PRIID1, keepPriId1), new Pair(ProductPropDto.Key.LIB_ID, libId));
+            if (addList != null) {
+                if (addList.isEmpty()) {
+                    m_rt = Errno.ARGS_ERROR;
+                    Log.logErr(m_rt, "addList is empty;");
+                    return m_rt;
+                }
+                m_rt = addList.toBuffer(sendBody, ProductPropDto.Key.ADD_LIST, ProductPropDto.getPropInfoDto());
+                if (m_rt != Errno.OK) {
+                    m_rt = Errno.ARGS_ERROR;
+                    Log.logErr(m_rt, "addList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;libId=%s;", aid, tid, siteId, lgId, keepPriId1, libId);
+                    return m_rt;
+                }
+            }
+            if (updaterList != null) {
+                if (updaterList.isEmpty()) {
+                    m_rt = Errno.ARGS_ERROR;
+                    Log.logErr("updaterList is empty");
+                    return m_rt;
+                }
+                m_rt = updaterList.toBuffer(sendBody, ProductPropDto.Key.UPDATER_LIST, ProductPropDto.getPropInfoDto());
+                if (m_rt != Errno.OK) {
+                    m_rt = Errno.ARGS_ERROR;
+                    Log.logErr(m_rt, "updaterList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;libId=%s;", aid, tid, siteId, lgId, keepPriId1, libId);
+                    return m_rt;
+                }
+            }
+            if (delList != null) {
+                if (delList.isEmpty()) {
+                    m_rt = Errno.ARGS_ERROR;
+                    Log.logErr("delList is empty");
+                    return m_rt;
+                }
+                m_rt = delList.toBuffer(sendBody, ProductPropDto.Key.DEL_LIST);
+                if (m_rt != Errno.OK) {
+                    m_rt = Errno.ARGS_ERROR;
+                    Log.logErr(m_rt, "delList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;libId=%s;", aid, tid, siteId, lgId, keepPriId1, libId);
+                    return m_rt;
+                }
+            }
+            boolean idsRefNotNull = (idsRef != null);
+            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.PropCmd.UNION_SET_PROP_LIST, sendBody, false, idsRefNotNull);
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+            if (idsRefNotNull) {
+                Ref<Integer> keyRef = new Ref<Integer>();
+                FaiList<Integer> propIds = new FaiList<Integer>();
+                m_rt = propIds.fromBuffer(recvBody, keyRef);
+                if (m_rt != Errno.OK || keyRef.value != ProductPropDto.Key.RL_PROP_IDS) {
+                    Log.logErr(m_rt, "recv rlPropIds codec err");
+                    return m_rt;
+                }
+                idsRef.value = propIds;
+            }
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
     // 根据 libId、propInfo、propValList， 增加 参数 以及 批量增加这个参数 所有的参数值
     public int addPropInfoWithVal(int aid, int tid, int siteId, int lgId, int keepPriId1, int libId, Param propInfo, FaiList<Param> propValList) {
         return addPropInfoWithVal(aid, tid, siteId, lgId, keepPriId1, libId, propInfo, propValList, null);

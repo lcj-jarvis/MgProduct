@@ -104,6 +104,7 @@ public class MgProductInfCmd {
         public static final int NUM36 = 1036; /**@see BasicCmd#SET_PDS */
         public static final int NUM37 = 1037; /**@see StoreSalesSkuCmd#REFRESH_HOLDING_RECORD_OF_RL_ORDER_CODE */
         public static final int NUM38 = 1038; /**@see InOutStoreRecordCmd#BATCH_RESET_PRICE */
+        public static final int NUM39 = 1039; /**@see PropCmd#UNION_SET_PROP_LIST */
     }
 
 
@@ -127,6 +128,7 @@ public class MgProductInfCmd {
         public static final int ADD_WITH_VAL = WriteCmdNum.NUM4;
         public static final int SET_WITH_VAL = WriteCmdNum.NUM5;
         public static final int BATCH_SET_VAL = WriteCmdNum.NUM6;
+        public static final int UNION_SET_PROP_LIST = WriteCmdNum.NUM39;
     }
 
     public static class BasicCmd {

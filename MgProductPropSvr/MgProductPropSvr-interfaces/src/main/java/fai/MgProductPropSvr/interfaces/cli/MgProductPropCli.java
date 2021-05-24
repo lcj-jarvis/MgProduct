@@ -326,6 +326,90 @@ public class MgProductPropCli extends FaiClient {
         }
     }
 
+    public int unionSetPropList(int aid, int tid, int unionPriId, int libId, FaiList<Param> addList, FaiList<ParamUpdater> updaterList, FaiList<Integer> delList, Ref<FaiList<Integer>> idsRef) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args err");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductPropDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductPropDto.Key.TID, tid);
+            sendBody.putInt(ProductPropDto.Key.LIB_ID, libId);
+            if (addList != null) {
+                m_rt = addList.toBuffer(sendBody, ProductPropDto.Key.INFO_LIST, ProductPropDto.getInfoDto());
+                if (m_rt != Errno.OK) {
+                    m_rt = Errno.ARGS_ERROR;
+                    Log.logErr(m_rt, "addList error");
+                    return m_rt;
+                }
+            }
+            if (updaterList != null) {
+                m_rt = updaterList.toBuffer(sendBody, ProductPropDto.Key.UPDATERLIST, ProductPropDto.getInfoDto());
+                if (m_rt != Errno.OK) {
+                    m_rt = Errno.ARGS_ERROR;
+                    Log.logErr(m_rt, "updaterList error");
+                    return m_rt;
+                }
+            }
+            if (delList != null) {
+                m_rt =  delList.toBuffer(sendBody, ProductPropDto.Key.RL_PROP_IDS);
+                Log.logErr(m_rt, "delList error");
+                return m_rt;
+            }
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setAid(aid);
+            sendProtocol.setCmd(MgProductPropCmd.PropCmd.UNION_SET);
+            sendProtocol.addEncodeBody(sendBody);
+
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            if (addList != null) {
+                Ref<Integer> keyRef = new Ref<Integer>();
+                FaiList<Integer> rlPropIds = new FaiList<Integer>();
+                m_rt = rlPropIds.fromBuffer(recvBody, keyRef);
+                if (m_rt != Errno.OK || keyRef.value != ProductPropDto.Key.RL_PROP_IDS) {
+                    Log.logErr(m_rt, "recv rlPropIds codec err");
+                    return m_rt;
+                }
+                idsRef.value = rlPropIds;
+            }
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
     public int getPropValList(int aid, int tid, int unionPriId, int libId, FaiList<Integer> rlPropIds, FaiList<Param> list) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);

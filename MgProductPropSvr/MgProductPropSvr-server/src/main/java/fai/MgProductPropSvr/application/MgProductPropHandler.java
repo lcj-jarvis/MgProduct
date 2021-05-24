@@ -86,6 +86,22 @@ public class MgProductPropHandler extends MiddleGroundHandler {
 		return service.delPropInfoList(session, flow, aid, unionPriId, tid, libId, rlPropIdList);
 	}
 
+	@WrittenCmd
+	@Cmd(MgProductPropCmd.PropCmd.UNION_SET)
+	public int unionSetPropList(final FaiSession session,
+								@ArgFlow final int flow,
+								@ArgAid final int aid,
+								@ArgBodyInteger(ProductPropDto.Key.UNION_PRI_ID) int unionPriId,
+								@ArgBodyInteger(ProductPropDto.Key.TID) int tid,
+								@ArgBodyInteger(ProductPropDto.Key.LIB_ID) int libId,
+								@ArgList(classDef = ProductPropDto.class, methodDef = "getInfoDto",
+										keyMatch = ProductPropDto.Key.INFO_LIST) FaiList<Param> addList,
+								@ArgList(classDef = ProductPropDto.class, methodDef = "getInfoDto",
+										keyMatch = ProductPropDto.Key.UPDATERLIST) FaiList<ParamUpdater> updaterList,
+								@ArgList(keyMatch = ProductPropDto.Key.RL_PROP_IDS) FaiList<Integer> delList) throws IOException{
+		return service.unionSetPropList(session, flow, aid, unionPriId, tid, libId, addList, updaterList, delList);
+	}
+
 	@Cmd(MgProductPropCmd.PropValCmd.GET_LIST)
 	public int getPropValList(final FaiSession session,
 							  @ArgFlow final int flow,

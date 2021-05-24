@@ -396,6 +396,24 @@ public class RecordService extends StoreService {
         return rt;
     }
 
+    /**
+     * 重置出入库成本价
+     * 逻辑：
+     *      1.查出指定时间之前，成本价为0(这里是保证是重置未设置成本价的数据，且只能重置一次，这些价格为0的数据应该是连续的，中间不会夹杂成本价不为0的数据)
+     *        入库操作剩余的库存 availableCount
+     *      2.修改指定时间之前，指定商品，指定sku，成本价为0的出入库成本单价
+     *          这里因为是 第一次入库 ~ 指定时间 的成本价都设为同一个值，所以这期间的出库成本，不管是先进先出，还是移动加权，算出来都应该和入库成本是一样的
+     *      3.更新商品规格库存销售 sku 表 mgStoreSaleSKU_0xxx 的现有库存成本 (availableCount*price)
+     *      4.异步更新sku汇总表 mgSkuSummary_0xxx 的现有库存成本
+     * @param session
+     * @param flow
+     * @param aid
+     * @param rlPdId
+     * @param optTime
+     * @param infoList
+     * @return
+     * @throws IOException
+     */
     public int batchResetCostPrice(FaiSession session, int flow, int aid, int rlPdId, Calendar optTime, FaiList<Param> infoList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
@@ -427,7 +445,7 @@ public class RecordService extends StoreService {
                     tc.setAutoCommit(false);
                     try {
                         Map<SkuBizKey, Param> changeCountAfterSkuStoreInfoMap = new HashMap<>();
-                        // 获取更新后的库存量
+                        // 获取库存量
                         rt = storeSalesSkuProc.getInfoMap4OutRecordFromDao(aid, skuBizKeySet, changeCountAfterSkuStoreInfoMap);
                         if (rt != Errno.OK) {
                             return rt;
@@ -477,7 +495,7 @@ public class RecordService extends StoreService {
 
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
-            Log.logStd("ok;;aid=%d;rlPdId=%s;optTime=%s", aid, rlPdId, optTime);
+            Log.logStd("ok;;aid=%d;rlPdId=%s;optTime=%s", aid, rlPdId, Parser.parseString(optTime));
         }finally {
             stat.end(rt != Errno.OK, rt);
         }

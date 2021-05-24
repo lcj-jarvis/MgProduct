@@ -62,7 +62,9 @@ public class InOutStoreRecordProc {
             data.setCalendar(InOutStoreRecordEntity.Info.OPT_TIME, optTime);
             data.setInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
             data.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
-            data.setLong(InOutStoreRecordEntity.Info.PRICE+"match", 0L);// 这里加多一个match是为了和update需要 所设置的price区分开，不然构建批量修改会报错
+            // 这里加多一个match是为了和update需要 所设置的price区分开，不然构建批量修改会报错
+            // 只修改price不为0的数据，主要原因是保证是重置未设置成本价的数据，且只能重置一次
+            data.setLong(InOutStoreRecordEntity.Info.PRICE+"match", 0L);
             dataList.add(data);
             Ref<Integer> countRef = new Ref<>();
             rt = getAvailableCount(aid, unionPriId, skuId, rlPdId, optTime, countRef);
@@ -97,7 +99,7 @@ public class InOutStoreRecordProc {
             return rt;
         }
 
-        Log.logStd("ok;flow=%s;aid=%s;rlPdId=%s;optTime=%s;infoList=%s;", m_flow, aid, rlPdId, optTime, infoList);
+        Log.logStd("ok;flow=%s;aid=%s;rlPdId=%s;optTime=%s;infoList=%s;", m_flow, aid, rlPdId, Parser.parseString(optTime), infoList);
         return rt;
     }
 

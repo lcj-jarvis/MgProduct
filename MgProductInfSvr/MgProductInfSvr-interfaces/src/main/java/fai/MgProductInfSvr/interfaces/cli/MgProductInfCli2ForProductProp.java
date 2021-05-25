@@ -259,44 +259,32 @@ public class MgProductInfCli2ForProductProp extends MgProductInfCli1ForProductBa
                 return m_rt;
             }
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductPropDto.Key.TID, tid), new Pair(ProductPropDto.Key.SITE_ID, siteId), new Pair(ProductPropDto.Key.LGID, lgId), new Pair(ProductPropDto.Key.KEEP_PRIID1, keepPriId1), new Pair(ProductPropDto.Key.LIB_ID, libId));
-            if (addList != null) {
-                if (addList.isEmpty()) {
-                    m_rt = Errno.ARGS_ERROR;
-                    Log.logErr(m_rt, "addList is empty;");
-                    return m_rt;
-                }
-                m_rt = addList.toBuffer(sendBody, ProductPropDto.Key.ADD_LIST, ProductPropDto.getPropInfoDto());
-                if (m_rt != Errno.OK) {
-                    m_rt = Errno.ARGS_ERROR;
-                    Log.logErr(m_rt, "addList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;libId=%s;", aid, tid, siteId, lgId, keepPriId1, libId);
-                    return m_rt;
-                }
+            if (addList == null) {
+                addList = new FaiList<Param>();
             }
-            if (updaterList != null) {
-                if (updaterList.isEmpty()) {
-                    m_rt = Errno.ARGS_ERROR;
-                    Log.logErr("updaterList is empty");
-                    return m_rt;
-                }
-                m_rt = updaterList.toBuffer(sendBody, ProductPropDto.Key.UPDATER_LIST, ProductPropDto.getPropInfoDto());
-                if (m_rt != Errno.OK) {
-                    m_rt = Errno.ARGS_ERROR;
-                    Log.logErr(m_rt, "updaterList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;libId=%s;", aid, tid, siteId, lgId, keepPriId1, libId);
-                    return m_rt;
-                }
+            m_rt = addList.toBuffer(sendBody, ProductPropDto.Key.ADD_LIST, ProductPropDto.getPropInfoDto());
+            if (m_rt != Errno.OK) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "addList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;libId=%s;", aid, tid, siteId, lgId, keepPriId1, libId);
+                return m_rt;
             }
-            if (delList != null) {
-                if (delList.isEmpty()) {
-                    m_rt = Errno.ARGS_ERROR;
-                    Log.logErr("delList is empty");
-                    return m_rt;
-                }
-                m_rt = delList.toBuffer(sendBody, ProductPropDto.Key.DEL_LIST);
-                if (m_rt != Errno.OK) {
-                    m_rt = Errno.ARGS_ERROR;
-                    Log.logErr(m_rt, "delList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;libId=%s;", aid, tid, siteId, lgId, keepPriId1, libId);
-                    return m_rt;
-                }
+            if (updaterList == null) {
+                updaterList = new FaiList<ParamUpdater>();
+            }
+            m_rt = updaterList.toBuffer(sendBody, ProductPropDto.Key.UPDATER_LIST, ProductPropDto.getPropInfoDto());
+            if (m_rt != Errno.OK) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "updaterList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;libId=%s;", aid, tid, siteId, lgId, keepPriId1, libId);
+                return m_rt;
+            }
+            if (delList == null) {
+                delList = new FaiList<Integer>();
+            }
+            m_rt = delList.toBuffer(sendBody, ProductPropDto.Key.DEL_LIST);
+            if (m_rt != Errno.OK) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "delList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;libId=%s;", aid, tid, siteId, lgId, keepPriId1, libId);
+                return m_rt;
             }
             boolean idsRefNotNull = (idsRef != null);
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.PropCmd.UNION_SET_PROP_LIST, sendBody, false, idsRefNotNull);

@@ -1,11 +1,13 @@
 package fai.MgProductInfSvr.application.service;
 
+import fai.MgPrimaryKeySvr.interfaces.cli.MgPrimaryKeyCli;
 import fai.MgProductInfSvr.domain.serviceproc.ProductBasicProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductPropProc;
 import fai.MgProductInfSvr.interfaces.dto.ProductPropDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
+import fai.middleground.svrutil.exception.MgException;
 import org.apache.tools.ant.taskdefs.condition.Os;
 
 import java.io.IOException;
@@ -305,11 +307,28 @@ public class ProductPropService extends MgProductInfService {
             }
             int unionPriId = idRef.value;
 
+            ProductPropProc propProc = new ProductPropProc(flow);
+            // 删除参数
+            if (delList != null && !delList.isEmpty()) {
+                rt = propProc.delPropList(aid, tid, unionPriId, libId, delList);
+                if (rt != Errno.OK) {
+                    return rt;
+                }
+            }
+            // 修改参数
+            if (updaterList != null && !updaterList.isEmpty()) {
+                rt = propProc.setPropList(aid, tid, unionPriId, libId, updaterList);
+                if (rt != Errno.OK) {
+                    return rt;
+                }
+            }
+            // 添加参数
             Ref<FaiList<Integer>> idsRef = new Ref<FaiList<Integer>>();
-            ProductPropProc productPropProc = new ProductPropProc(flow);
-            rt = productPropProc.unionSetPropList(aid, tid, unionPriId, libId, addList, updaterList, delList, idsRef);
-            if (rt != Errno.OK) {
-                return rt;
+            if (addList != null && !addList.isEmpty()) {
+                rt = propProc.addPropList(aid, tid, unionPriId, libId, addList, idsRef);
+                if (rt != Errno.OK) {
+                    return rt;
+                }
             }
             FaiList<Integer> rlPropIds = idsRef.value;
 

@@ -86,6 +86,24 @@ public class ProductStoreProc extends AbstractProductProc{
     }
 
     /**
+     * 修改sku库存销售信息
+     */
+    public int batchSetSkuStoreSales(int aid, int tid, FaiList<Integer> unionPriIds, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) {
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return rt;
+        }
+        rt = m_cli.batchSetSkuStoreSales(aid, tid, unionPriIds, pdId, rlPdId, updaterList);
+        if (rt != Errno.OK) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriIds=%s;rlPdId=%s;", m_flow, aid, unionPriIds, rlPdId);
+            return rt;
+        }
+        return rt;
+    }
+
+    /**
      * 批量扣减库存
      * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0
      * @param rlOrderCode 业务订单id/code

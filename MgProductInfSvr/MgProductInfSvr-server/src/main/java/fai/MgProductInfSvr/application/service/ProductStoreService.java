@@ -109,6 +109,97 @@ public class ProductStoreService extends MgProductInfService {
         return rt;
     }
 
+    public int batchSetSkuStoreSales(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> primaryKeys, int rlPdId, FaiList<ParamUpdater> updaterList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+            if(updaterList == null || updaterList.isEmpty()){
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, updaterList is err;flow=%d;aid=%d;updaterList=%s;", flow, aid, updaterList);
+                return rt;
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            FaiList<Param> list = new FaiList<>();
+            rt = getPrimaryKeyList(flow, aid, primaryKeys, list);
+            if(rt != Errno.OK){
+                return rt;
+            }
+            Map<Integer, BizPriKey> unionPriIdBizPriKeyMap = toUnionPriIdBizPriKeyMap(list);
+
+            // 获取pdId
+            idRef.value = null;
+            rt = getPdId(flow, aid, tid, unionPriId, rlPdId, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int pdId = idRef.value;
+
+            Map<FaiList<String>, Param> inPdScStrNameInfoMap = new HashMap<>();
+            for (ParamUpdater updater : updaterList) {
+                Param data = updater.getData();
+                Long skuId = data.getLong(ProductStoreEntity.StoreSalesSkuInfo.SKU_ID);
+                if(skuId == null){
+                    FaiList<String> inPdScStrNameList = data.getList(ProductStoreEntity.StoreSalesSkuInfo.IN_PD_SC_STR_NAME_LIST);
+                    if(inPdScStrNameList == null){
+                        return rt = Errno.ARGS_ERROR;
+                    }
+                    Collections.sort(inPdScStrNameList);
+                    inPdScStrNameInfoMap.put(inPdScStrNameList, data);
+                }
+            }
+            if(inPdScStrNameInfoMap.size() > 0){
+                Log.logDbg("whalelog  updaterList=%s", updaterList);
+                Log.logDbg("whalelog inPdScStrNameInfoMap=%s", inPdScStrNameInfoMap);
+                ProductSpecProc productSpecProc = new ProductSpecProc(flow);
+                FaiList<Param> infoList = new FaiList<Param>();
+                rt = productSpecProc.getPdSkuScInfoList(aid, tid, unionPriId, pdId, false, infoList);
+                if(rt != Errno.OK) {
+                    return rt;
+                }
+                Log.logDbg("whalelog infoList=%s", infoList);
+                for (Param info : infoList) {
+                    FaiList<String> inPdScStrNameList = info.getList(ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_NAME_LIST);
+                    Collections.sort(inPdScStrNameList);
+                    Param data = inPdScStrNameInfoMap.remove(inPdScStrNameList);
+                    if(data == null){
+                        continue;
+                    }
+                    data.assign(info, ProductSpecEntity.SpecSkuInfo.SKU_ID, ProductStoreEntity.StoreSalesSkuInfo.SKU_ID);
+                }
+                if(inPdScStrNameInfoMap.size() > 0){
+                    Log.logErr("args error, updaterList is err;flow=%d;aid=%d;tid=%d;inPdScStrNameInfoMap=%s;", flow, aid, tid, inPdScStrNameInfoMap);
+                    return rt = Errno.ARGS_ERROR;
+                }
+            }
+
+            ProductStoreProc productStoreProc = new ProductStoreProc(flow);
+            rt = productStoreProc.batchSetSkuStoreSales(aid, tid, new FaiList<>(unionPriIdBizPriKeyMap.keySet()), pdId, rlPdId, updaterList);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+
     /**
      * 批量扣减库存
      * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0

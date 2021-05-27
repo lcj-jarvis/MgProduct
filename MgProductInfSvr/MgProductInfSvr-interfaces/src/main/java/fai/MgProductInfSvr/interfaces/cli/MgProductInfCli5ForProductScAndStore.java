@@ -1,6 +1,7 @@
 package fai.MgProductInfSvr.interfaces.cli;
 
 import fai.MgProductInfSvr.interfaces.cmd.MgProductInfCmd;
+import fai.MgProductInfSvr.interfaces.dto.MgProductDto;
 import fai.MgProductInfSvr.interfaces.dto.ProductSpecDto;
 import fai.MgProductInfSvr.interfaces.dto.ProductStoreDto;
 import fai.MgProductInfSvr.interfaces.dto.ProductTempDto;
@@ -8,6 +9,7 @@ import fai.MgProductInfSvr.interfaces.entity.ProductSpecEntity;
 import fai.MgProductInfSvr.interfaces.entity.ProductStoreEntity;
 import fai.MgProductInfSvr.interfaces.entity.ProductStoreValObj;
 import fai.MgProductInfSvr.interfaces.entity.ProductTempEntity;
+import fai.MgProductInfSvr.interfaces.utils.MgProductArg;
 import fai.comm.util.*;
 import fai.mgproduct.comm.MgProductErrno;
 
@@ -1440,4 +1442,67 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
         }
     }
     /**----------------------------------------------   商品商品规格接口 + 库存接口结束   ----------------------------------------------*/
+
+    /**
+     * 修改 sku 库存销售信息
+     * @param mgProductArg
+     * MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPirId1)
+     *                 .setPrimaryList(primaryList) // 要修改数据的主键id集合
+     *                 .setRlPdId(rlPdId) //商品业务id {@link ProductStoreEntity.StoreSalesSkuInfo#RL_PD_ID}
+     *                 .setUpdaterList(updaterList) //{@link ProductStoreEntity.StoreSalesSkuInfo#SKU_ID} 或者 {@link ProductStoreEntity.StoreSalesSkuInfo#IN_PD_SC_STR_NAME_LIST} 两个必须要有一个 <br/>
+     *                 .build();
+     * @return
+     */
+    public int batchSetSkuStoreSales(MgProductArg mgProductArg) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            int aid= mgProductArg.getAid();
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            FaiList<ParamUpdater> updaterList = mgProductArg.getUpdaterList();
+            if (updaterList == null || updaterList.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "infoList error");
+                return m_rt;
+            }
+
+            FaiList<Param> primaryKeys = mgProductArg.getPrimaryKeys();
+            if (primaryKeys == null || primaryKeys.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "infoList error");
+                return m_rt;
+            }
+
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            int rlPdId = mgProductArg.getRlPdId();
+            // packaging send data
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductStoreDto.Key.TID, tid), new Pair(ProductStoreDto.Key.SITE_ID, siteId), new Pair(ProductStoreDto.Key.LGID, lgId), new Pair(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductStoreDto.Key.RL_PD_ID, rlPdId);
+            m_rt = primaryKeys.toBuffer(sendBody, ProductStoreDto.Key.PRIMARY_KEYS, MgProductDto.getPrimaryKeyDto());
+            if(m_rt != Errno.OK){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "updaterList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;rlPdId=%s;", aid, tid, siteId, lgId, keepPriId1, rlPdId);
+                return m_rt;
+            }
+            m_rt = updaterList.toBuffer(sendBody, ProductStoreDto.Key.UPDATER_LIST, ProductStoreDto.StoreSalesSku.getInfoDto());
+            if(m_rt != Errno.OK){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "updaterList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;rlPdId=%s;", aid, tid, siteId, lgId, keepPriId1, rlPdId);
+                return m_rt;
+            }
+            // send and recv
+            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.StoreSalesSkuCmd.BATCH_SET_LIST, sendBody, false, false);
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
 }

@@ -466,14 +466,14 @@ public class ProductPropService extends ServicePub {
 
 				// 处理addList
 				if (addList != null && !addList.isEmpty()) {
-					maxSort = addPropList(flow, aid, unionPriId, tid, libId, tc, addList, propList, propRelList, maxSort, rlPropIds);
+					maxSort = addPropList(flow, aid, unionPriId, tid, libId, tc, addList, propList, propRelList, rlPropIds);
 				}
 
 				commit = true;
 				tc.commit();
 
 				// 处理缓存
-				if (delList != null) {
+				if (delList != null && !delList.isEmpty()) {
 					int delCount = delPropIdList == null ? 0 : delPropIdList.size();
 					ProductPropValCacheCtrl.DataStatusCache.update(aid, delCount, false);
 					ProductPropCacheCtrl.delCacheList(aid, delPropIdList);
@@ -482,14 +482,14 @@ public class ProductPropService extends ServicePub {
 					ProductPropValCacheCtrl.InfoCache.delCacheList(aid, delPropIdList);
 				}
 
-				if (updaterList != null) {
+				if (updaterList != null && !updaterList.isEmpty()) {
 					ProductPropRelCacheCtrl.setExpire(aid, unionPriId, libId);
 					// 更新缓存
 					ProductPropCacheCtrl.updateCacheList(aid, propUpdaterList);
 					ProductPropRelCacheCtrl.updateCacheList(aid, unionPriId, libId, updaterList);
 				}
 
-				if (addList != null) {
+				if (addList != null && !addList.isEmpty()) {
 					ProductPropCacheCtrl.setExpire(aid);
 					ProductPropRelCacheCtrl.setExpire(aid, unionPriId, libId);
 					ProductPropCacheCtrl.addCacheList(aid, propList);
@@ -736,10 +736,10 @@ public class ProductPropService extends ServicePub {
 		return rt;
 	}
 
-	private int addPropList(int flow, int aid, int unionPriId, int tid, int libId, TransactionCtrl tc, FaiList<Param> addList, FaiList<Param> propList, FaiList<Param> propRelList, int maxSort, FaiList<Integer> rlPropIds) {
+	private int addPropList(int flow, int aid, int unionPriId, int tid, int libId, TransactionCtrl tc, FaiList<Param> addList, FaiList<Param> propList, FaiList<Param> propRelList, FaiList<Integer> rlPropIds) {
 		int rt;
 		ProductPropRelProc propRelProc = new ProductPropRelProc(flow, aid, tc);
-		maxSort = propRelProc.getMaxSort(aid, unionPriId, libId);
+		int maxSort = propRelProc.getMaxSort(aid, unionPriId, libId);
 		if(maxSort < 0) {
 			rt = Errno.ERROR;
 			throw new MgException(rt, "getMaxSort error;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);

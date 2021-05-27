@@ -93,15 +93,14 @@ public class ProductGroupService extends MgProductInfService {
 
     @SuccessRt(value = Errno.OK)
     public int unionSetGroupList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, Param addInfo, FaiList<ParamUpdater> updaterList, FaiList<Integer> delList) throws IOException {
-        Integer rlGroupId = null;
         // 获取unionPriId
         int unionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
         ProductGroupProc groupProc = new ProductGroupProc(flow);
 
-        //groupProc.unionSetGroupList(aid, unionPriId, addInfo, updaterList, delList);
+        int rlGroupId = groupProc.unionSetGroupList(aid, tid, unionPriId, addInfo, updaterList, delList);
 
         FaiBuffer sendBuf = new FaiBuffer(true);
-        if (rlGroupId != null) {
+        if (rlGroupId != 0) {
             sendBuf.putInt(ProductGroupDto.Key.RL_GROUP_ID, rlGroupId);
         }
         session.write(sendBuf);

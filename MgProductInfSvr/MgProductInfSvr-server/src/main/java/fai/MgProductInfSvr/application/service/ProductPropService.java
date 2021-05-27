@@ -300,35 +300,18 @@ public class ProductPropService extends MgProductInfService {
                 return rt;
             }
             // 获取unionPriId
-            Ref<Integer> idRef = new Ref<Integer>();
+            Ref<Integer> idRef = new Ref<>();
             rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
             int unionPriId = idRef.value;
 
-            ProductPropProc propProc = new ProductPropProc(flow);
-            // 删除参数
-            if (delList != null && !delList.isEmpty()) {
-                rt = propProc.delPropList(aid, tid, unionPriId, libId, delList);
-                if (rt != Errno.OK) {
-                    return rt;
-                }
-            }
-            // 修改参数
-            if (updaterList != null && !updaterList.isEmpty()) {
-                rt = propProc.setPropList(aid, tid, unionPriId, libId, updaterList);
-                if (rt != Errno.OK) {
-                    return rt;
-                }
-            }
-            // 添加参数
-            Ref<FaiList<Integer>> idsRef = new Ref<FaiList<Integer>>();
-            if (addList != null && !addList.isEmpty()) {
-                rt = propProc.addPropList(aid, tid, unionPriId, libId, addList, idsRef);
-                if (rt != Errno.OK) {
-                    return rt;
-                }
+            Ref<FaiList<Integer>> idsRef = new Ref<>();
+            ProductPropProc productPropProc = new ProductPropProc(flow);
+            rt = productPropProc.unionSetPropList(aid, tid, unionPriId, libId, addList, updaterList, delList, idsRef);
+            if (rt != Errno.OK) {
+                return rt;
             }
             FaiList<Integer> rlPropIds = idsRef.value;
 
@@ -344,6 +327,7 @@ public class ProductPropService extends MgProductInfService {
         }
         return rt;
     }
+
 
     /**
      * 根据商品参数业务id，获取商品参数值列表

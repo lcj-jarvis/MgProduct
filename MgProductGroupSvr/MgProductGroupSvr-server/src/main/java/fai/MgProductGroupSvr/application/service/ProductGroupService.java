@@ -367,12 +367,12 @@ public class ProductGroupService extends ServicePub {
             Param groupInfo = new Param();
             Param relInfo = new Param();
             FaiList<Integer> delGroupIdList = null;
-            FaiList<ParamUpdater> groupUpdaterList = new FaiList<ParamUpdater>();
+            FaiList<ParamUpdater> groupUpdaterList = new FaiList<>();
             ProductGroupProc groupProc = new ProductGroupProc(flow, aid, tc);
             ProductGroupRelProc relProc = new ProductGroupRelProc(flow, aid, tc);
             try {
                 // 删除
-                if (delList != null && !delList.isEmpty()) {
+                if (!Util.isEmptyList(delList)) {
                     // 先获取要删除的分类id
                     delGroupIdList = relProc.getIdsByRlIds(aid, unionPriId, delList);
 
@@ -384,7 +384,7 @@ public class ProductGroupService extends ServicePub {
                 }
 
                 // 修改
-                if (updaterList != null && !updaterList.isEmpty()) {
+                if (!Util.isEmptyList(updaterList)) {
                     // 修改分类业务关系表
                     relProc.setGroupRelList(aid, unionPriId, updaterList, groupUpdaterList);
                     // 修改分类表
@@ -394,7 +394,7 @@ public class ProductGroupService extends ServicePub {
                 }
 
                 // 添加
-                if (addInfo != null && !addInfo.isEmpty()) {
+                if (!Str.isEmpty(addInfo)) {
                     maxSort = addGroup(flow, aid, unionPriId, tid, addInfo, tc, groupInfo, relInfo, rlGroupId);
                 }
 
@@ -408,27 +408,43 @@ public class ProductGroupService extends ServicePub {
                 }
                 tc.closeDao();
             }
-            // 新增缓存
-            ProductGroupCache.addCache(aid, groupInfo);
-            ProductGroupRelCache.InfoCache.addCache(aid, unionPriId, relInfo);
-            ProductGroupRelCache.SortCache.set(aid, unionPriId, maxSort);
-            ProductGroupRelCache.DataStatusCache.update(aid, unionPriId, 1);
+            // 处理缓存
+            if (!Util.isEmptyList(delList)) {
+                // 设置过期时间
+                ProductGroupCache.setExpire(aid);
+                ProductGroupRelCache.InfoCache.setExpire(aid, unionPriId);
+                ProductGroupCache.delCacheList(aid, delGroupIdList);
+                ProductGroupRelCache.InfoCache.delCacheList(aid, unionPriId, delList);
+                ProductGroupRelCache.DataStatusCache.update(aid, unionPriId, delList.size(), false);
+            }
 
-            ProductGroupRelCache.InfoCache.setExpire(aid, unionPriId);
-            ProductGroupCache.setExpire(aid);
+            if (!Util.isEmptyList(updaterList)) {
+                // 设置过期时间
+                ProductGroupCache.setExpire(aid);
+                ProductGroupCache.updateCacheList(aid, groupUpdaterList);
+                if(!Util.isEmptyList(updaterList)) {
+                    ProductGroupRelCache.InfoCache.setExpire(aid, unionPriId);
+                    ProductGroupRelCache.InfoCache.updateCacheList(aid, unionPriId, updaterList);
+                    // 修改数据，更新dataStatus 的管理态字段更新时间
+                    ProductGroupRelCache.DataStatusCache.update(aid, unionPriId);
+                }
+            }
 
-            ProductGroupCache.updateCacheList(aid, groupUpdaterList);
-            if(!Util.isEmptyList(updaterList)) {
-                ProductGroupRelCache.InfoCache.updateCacheList(aid, unionPriId, updaterList);
-                // 修改数据，更新dataStatus 的管理态字段更新时间
-                ProductGroupRelCache.DataStatusCache.update(aid, unionPriId);
+            if (!Str.isEmpty(addInfo)) {
+                // 设置过期时间
+                ProductGroupCache.setExpire(aid);
+                ProductGroupRelCache.InfoCache.setExpire(aid, unionPriId);
+                ProductGroupCache.addCache(aid, groupInfo);
+                ProductGroupRelCache.InfoCache.addCache(aid, unionPriId, relInfo);
+                ProductGroupRelCache.SortCache.set(aid, unionPriId, maxSort);
+                ProductGroupRelCache.DataStatusCache.update(aid, unionPriId, 1);
             }
         } finally {
             lock.unlock();
         }
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
-        if (addInfo != null && !addInfo.isEmpty()) {
+        if (!Str.isEmpty(addInfo)) {
             sendBuf.putInt(ProductGroupRelDto.Key.RL_GROUP_ID, rlGroupId.get(0));
         }
         session.write(sendBuf);

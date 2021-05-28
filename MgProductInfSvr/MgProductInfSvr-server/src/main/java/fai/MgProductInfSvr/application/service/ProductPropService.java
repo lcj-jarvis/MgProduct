@@ -1,14 +1,11 @@
 package fai.MgProductInfSvr.application.service;
 
-import fai.MgPrimaryKeySvr.interfaces.cli.MgPrimaryKeyCli;
 import fai.MgProductInfSvr.domain.serviceproc.ProductBasicProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductPropProc;
 import fai.MgProductInfSvr.interfaces.dto.ProductPropDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
-import fai.middleground.svrutil.exception.MgException;
-import org.apache.tools.ant.taskdefs.condition.Os;
 
 import java.io.IOException;
 

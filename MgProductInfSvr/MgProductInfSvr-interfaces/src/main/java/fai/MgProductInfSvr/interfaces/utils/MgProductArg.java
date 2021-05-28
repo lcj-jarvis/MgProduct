@@ -101,7 +101,6 @@ public class MgProductArg {
 
         protected FaiList<Param> addList;
         protected FaiList<Param> primaryKeys;
-        protected FaiList<Param> addList;
         protected FaiList<ParamUpdater> updaterList;
     }
 

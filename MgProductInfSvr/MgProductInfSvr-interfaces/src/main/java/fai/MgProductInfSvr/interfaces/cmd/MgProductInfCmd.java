@@ -104,7 +104,9 @@ public class MgProductInfCmd {
         public static final int NUM36 = 1036; /**@see BasicCmd#SET_PDS */
         public static final int NUM37 = 1037; /**@see StoreSalesSkuCmd#REFRESH_HOLDING_RECORD_OF_RL_ORDER_CODE */
         public static final int NUM38 = 1038; /**@see InOutStoreRecordCmd#BATCH_RESET_PRICE */
-        public static final int NUM39 = 1039; /**@see StoreSalesSkuCmd#BATCH_SET_LIST */
+        public static final int NUM39 = 1039; /**@see PropCmd#UNION_SET_PROP_LIST */
+        public static final int NUM40 = 1040; /**@see GroupCmd#UNION_SET_GROUP_LIST */
+        public static final int NUM41 = 1041; /**@see StoreSalesSkuCmd#BATCH_SET_LIST */
     }
 
 
@@ -128,6 +130,7 @@ public class MgProductInfCmd {
         public static final int ADD_WITH_VAL = WriteCmdNum.NUM4;
         public static final int SET_WITH_VAL = WriteCmdNum.NUM5;
         public static final int BATCH_SET_VAL = WriteCmdNum.NUM6;
+        public static final int UNION_SET_PROP_LIST = WriteCmdNum.NUM39;
     }
 
     public static class BasicCmd {
@@ -157,6 +160,7 @@ public class MgProductInfCmd {
         public static final int ADD_GROUP = WriteCmdNum.NUM30;
         public static final int DEL_GROUP_LIST = WriteCmdNum.NUM31;
         public static final int SET_GROUP_LIST = WriteCmdNum.NUM32;
+        public static final int UNION_SET_GROUP_LIST = WriteCmdNum.NUM40;
     }
 
     /**
@@ -231,7 +235,7 @@ public class MgProductInfCmd {
         public static final int BATCH_MAKE_UP_STORE = WriteCmdNum.NUM25;
         public static final int BATCH_REFUND_STORE = WriteCmdNum.NUM29;
         public static final int REFRESH_HOLDING_RECORD_OF_RL_ORDER_CODE = WriteCmdNum.NUM37;
-        public static final int BATCH_SET_LIST = WriteCmdNum.NUM39;
+        public static final int BATCH_SET_LIST = WriteCmdNum.NUM41;
     }
 
     /**

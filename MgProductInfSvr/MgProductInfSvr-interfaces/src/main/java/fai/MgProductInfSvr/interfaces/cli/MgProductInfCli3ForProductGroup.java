@@ -193,6 +193,50 @@ public class MgProductInfCli3ForProductGroup extends MgProductInfCli2ForProductP
         }
     }
 
+    public int unionSetGroupList(int aid, int tid, int siteId, int lgId, int keepPriId1, Param addInfo, FaiList<ParamUpdater> updaterList, FaiList<Integer> delList, Ref<Integer> rlGroupIdRef) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            // packaging send data
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductGroupDto.Key.TID, tid), new Pair(ProductGroupDto.Key.SITE_ID, siteId), new Pair(ProductGroupDto.Key.LGID, lgId), new Pair(ProductGroupDto.Key.KEEP_PRIID1, keepPriId1));
+            if (addInfo == null) {
+                addInfo = new Param();
+            }
+            addInfo.toBuffer(sendBody, ProductGroupDto.Key.INFO, ProductGroupDto.getPdGroupDto());
+            if (updaterList == null) {
+                updaterList = new FaiList<ParamUpdater>();
+            }
+            updaterList.toBuffer(sendBody, ProductGroupDto.Key.UPDATERLIST, ProductGroupDto.getPdGroupDto());
+            if (delList == null) {
+                delList = new FaiList<Integer>();
+            }
+            delList.toBuffer(sendBody, ProductGroupDto.Key.RL_GROUP_IDS);
+            // send and recv
+            boolean rlGroupIdRefNotNull = (rlGroupIdRef != null);
+            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.GroupCmd.UNION_SET_GROUP_LIST, sendBody, false, rlGroupIdRefNotNull);
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+            if (rlGroupIdRefNotNull) {
+                Ref<Integer> keyRef = new Ref<Integer>();
+                m_rt = recvBody.getInt(keyRef, rlGroupIdRef);
+                if (m_rt != Errno.OK || keyRef.value != ProductGroupDto.Key.RL_GROUP_ID) {
+                    Log.logErr(m_rt, "recv rlGroupId codec err");
+                    return m_rt;
+                }
+            }
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
     /**
      * 设置商品绑定的分类数据(新增和删除)
      * @param rlPdId        商品业务id

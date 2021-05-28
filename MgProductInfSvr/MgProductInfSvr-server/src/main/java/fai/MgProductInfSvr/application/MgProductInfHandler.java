@@ -104,6 +104,25 @@ public class MgProductInfHandler extends FaiHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductInfCmd.PropCmd.UNION_SET_PROP_LIST)
+    public int unionSetPropList(final FaiSession session,
+                                @ArgFlow final int flow,
+                                @ArgAid final int aid,
+                                @ArgBodyInteger(ProductPropDto.Key.TID) int tid,
+                                @ArgBodyInteger(ProductPropDto.Key.SITE_ID) int siteId,
+                                @ArgBodyInteger(ProductPropDto.Key.LGID) int lgId,
+                                @ArgBodyInteger(ProductPropDto.Key.KEEP_PRIID1) int keepPriId1,
+                                @ArgBodyInteger(ProductPropDto.Key.LIB_ID) int libId,
+                                @ArgList(classDef = ProductPropDto.class, methodDef = "getPropInfoDto",
+                                        keyMatch = ProductPropDto.Key.ADD_LIST) FaiList<Param> addList,
+                                @ArgList(classDef = ProductPropDto.class, methodDef = "getPropInfoDto",
+                                        keyMatch = ProductPropDto.Key.UPDATER_LIST)FaiList<ParamUpdater> updaterList,
+                                @ArgList(keyMatch = ProductPropDto.Key.DEL_LIST)FaiList<Integer> delList
+                                ) throws IOException {
+        return propService.unionSetPropList(session, flow, aid, tid, siteId, lgId, keepPriId1, libId, addList, updaterList, delList);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductInfCmd.PropCmd.ADD_WITH_VAL)
     public int addPropInfoWithVal(final FaiSession session,
                                   @ArgFlow final int flow,
@@ -985,6 +1004,23 @@ public class MgProductInfHandler extends FaiHandler {
                               @ArgBodyInteger(ProductGroupDto.Key.KEEP_PRIID1) int keepPriId1,
                               @ArgList(keyMatch = ProductGroupDto.Key.RL_GROUP_IDS) FaiList<Integer> rlGroupIds) throws IOException {
         return groupService.delPdGroupList(session, flow, aid, tid, siteId, lgid, keepPriId1, rlGroupIds);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.GroupCmd.UNION_SET_GROUP_LIST)
+    public int unionSetGroupList(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid final int aid,
+                                 @ArgBodyInteger(ProductGroupDto.Key.TID) int tid,
+                                 @ArgBodyInteger(ProductGroupDto.Key.SITE_ID) int siteId,
+                                 @ArgBodyInteger(ProductGroupDto.Key.LGID) int lgid,
+                                 @ArgBodyInteger(ProductGroupDto.Key.KEEP_PRIID1) int keepPriId1,
+                                 @ArgParam(keyMatch = ProductGroupDto.Key.INFO, methodDef = "getPdGroupDto",
+                                         classDef = ProductGroupDto.class) Param addInfo,
+                                 @ArgList(keyMatch = ProductGroupDto.Key.UPDATERLIST, methodDef = "getPdGroupDto",
+                                         classDef = ProductGroupDto.class) FaiList<ParamUpdater> updaterList,
+                                 @ArgList(keyMatch = ProductGroupDto.Key.RL_GROUP_IDS) FaiList<Integer> delList) throws IOException{
+        return groupService.unionSetGroupList(session, flow, aid, tid, siteId, lgid, keepPriId1, addInfo, updaterList, delList);
     }
 
     @WrittenCmd

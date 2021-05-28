@@ -2,6 +2,7 @@ package fai.MgProductInfSvr.interfaces.utils;
 
 import fai.comm.util.FaiList;
 import fai.comm.util.Param;
+import fai.comm.util.ParamUpdater;
 
 import java.util.Calendar;
 
@@ -12,6 +13,7 @@ public class MgProductArg {
     private int siteId;
     private int lgId;
     private int keepPriId1;
+    private FaiList<Param> primaryKeys;
 
     private FaiList<Param> addList;
     private boolean isBiz;
@@ -19,6 +21,7 @@ public class MgProductArg {
     private Calendar optTime;
     private long costPrice;
     private FaiList<Param> skuList;
+    private FaiList<ParamUpdater> updaterList;
 
     private MgProductArg(Builder builder) {
         this.aid = builder.aid;
@@ -27,6 +30,8 @@ public class MgProductArg {
         this.lgId = builder.lgId;
         this.keepPriId1 = builder.keepPriId1;
 
+        this.primaryKeys = builder.primaryKeys;
+        this.updaterList = builder.updaterList;
         this.addList = builder.addList;
         this.isBiz = builder.isBiz;
         this.rlPdId = builder.rlPdId;
@@ -53,6 +58,14 @@ public class MgProductArg {
 
     public int getKeepPriId1() {
         return keepPriId1;
+    }
+
+    public FaiList<Param> getPrimaryKeys() {
+        return primaryKeys;
+    }
+
+    public FaiList<ParamUpdater> getUpdaterList() {
+        return updaterList;
     }
 
     public FaiList<Param> getAddList() {
@@ -87,6 +100,9 @@ public class MgProductArg {
         protected int keepPriId1;
 
         protected FaiList<Param> addList;
+        protected FaiList<Param> primaryKeys;
+        protected FaiList<Param> addList;
+        protected FaiList<ParamUpdater> updaterList;
     }
 
     private static class BasicBuilder extends TopBuilder {
@@ -116,6 +132,22 @@ public class MgProductArg {
             this.siteId = siteId;
             this.lgId = lgId;
             this.keepPriId1 = keepPriId1;
+        }
+
+        public Builder setPrimaryList(FaiList<Param> primaryKeys) {
+            if(primaryKeys == null || primaryKeys.isEmpty()) {
+                throw new RuntimeException();
+            }
+            this.primaryKeys = primaryKeys;
+            return this;
+        }
+
+        public Builder setUpdaterList(FaiList<ParamUpdater> updaterList) {
+            if(updaterList == null || updaterList.isEmpty()) {
+                throw new RuntimeException();
+            }
+            this.updaterList = updaterList;
+            return this;
         }
 
         public Builder setSkuList(FaiList<Param> skuList) {

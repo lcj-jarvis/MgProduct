@@ -17,6 +17,17 @@ public class MgProductDto {
         return g_infoDtoDef;
     }
 
+    public static ParamDef g_primaryKeyDef = new ParamDef();
+    static {
+        g_primaryKeyDef.add(MgProductEntity.Info.TID, 0, Var.Type.INT);
+        g_primaryKeyDef.add(MgProductEntity.Info.SITE_ID, 1, Var.Type.INT);
+        g_primaryKeyDef.add(MgProductEntity.Info.LGID, 2, Var.Type.INT);
+        g_primaryKeyDef.add(MgProductEntity.Info.KEEP_PRI_ID1, 3, Var.Type.INT);
+    }
+    public static ParamDef getPrimaryKeyDto() {
+        return g_primaryKeyDef;
+    }
+
     public static class Key {
         public static final int TID  = 1;
         public static final int SITE_ID  = 2;

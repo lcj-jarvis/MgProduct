@@ -220,5 +220,6 @@ public class ProductStoreDto {
         public static final int PRI_IDS = 22;
         public static final int PRICE = 23;
         public static final int OPT_TIME = 24;
+        public static final int PRIMARY_KEYS = 25;
     }
 }

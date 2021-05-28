@@ -626,6 +626,24 @@ public class MgProductInfHandler extends FaiHandler {
                                             keyMatch = ProductStoreDto.Key.UPDATER_LIST) FaiList<ParamUpdater> updaterList) throws IOException {
         return storeService.setSkuStoreSales(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, updaterList);
     }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.StoreSalesSkuCmd.BATCH_SET_LIST)
+    public int batchSetSkuStoreSales(final FaiSession session,
+                                @ArgFlow final int flow,
+                                @ArgAid final int aid,
+                                @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
+                                @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
+                                @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
+                                @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
+                                @ArgBodyInteger(ProductStoreDto.Key.RL_PD_ID) int rlPdId,
+                                @ArgList(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
+                                        keyMatch = ProductStoreDto.Key.PRIMARY_KEYS) FaiList<Param> primaryKeys,
+                                @ArgList(classDef = ProductStoreDto.StoreSalesSku.class, methodDef = "getInfoDto",
+                                        keyMatch = ProductStoreDto.Key.UPDATER_LIST) FaiList<ParamUpdater> updaterList) throws IOException {
+        return storeService.batchSetSkuStoreSales(session, flow, aid, tid, siteId, lgId, keepPriId1, primaryKeys, rlPdId, updaterList);
+    }
+
     @WrittenCmd
     @Cmd(MgProductInfCmd.StoreSalesSkuCmd.BATCH_REDUCE_STORE)
     public int batchReducePdSkuStore(final FaiSession session,

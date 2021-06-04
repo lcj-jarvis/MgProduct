@@ -1378,7 +1378,7 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
-            if(allHoldingRecordList == null || allHoldingRecordList.isEmpty()){
+            if(allHoldingRecordList == null){
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "arg allHoldingRecordList error");
                 return m_rt;

@@ -880,7 +880,7 @@ public class StoreSalesSkuService extends StoreService {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
-            if (aid <= 0 || unionPriId<= 0 || Str.isEmpty(rlOrderCode) || Util.isEmptyList(allHoldingRecordList)){
+            if (aid <= 0 || unionPriId<= 0 || Str.isEmpty(rlOrderCode) || allHoldingRecordList == null){
                 rt = Errno.ARGS_ERROR;
                 Log.logErr(rt, "arg err;flow=%d;aid=%d;unionPriId=%s;rlOrderCode=%s;allHoldingRecordList=%s;", flow, aid, unionPriId, rlOrderCode, allHoldingRecordList);
                 return rt;

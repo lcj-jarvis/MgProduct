@@ -505,7 +505,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
-            if (aid == 0 || unionPriId == 0 || allHoldingRecordList == null || allHoldingRecordList.isEmpty() || Str.isEmpty(rlOrderCode)) {
+            if (aid == 0 || unionPriId == 0 || allHoldingRecordList == null || Str.isEmpty(rlOrderCode)) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error;aid=%s;unionPriId=%s;allHoldingRecordList=%s;rlOrderCode=%s;", aid, unionPriId, allHoldingRecordList, rlOrderCode);
                 return m_rt;

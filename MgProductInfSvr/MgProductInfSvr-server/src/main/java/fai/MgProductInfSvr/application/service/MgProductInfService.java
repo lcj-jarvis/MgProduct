@@ -18,6 +18,8 @@ import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuValObj;
 import fai.MgProductStoreSvr.interfaces.cli.MgProductStoreCli;
+import fai.MgProductStoreSvr.interfaces.entity.SkuSummaryEntity;
+import fai.MgProductStoreSvr.interfaces.entity.SpuBizSummaryEntity;
 import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
@@ -29,6 +31,7 @@ import fai.middleground.svrutil.service.ServicePub;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 维护接口服务各个service共用的方法
@@ -273,6 +276,249 @@ public class MgProductInfService extends ServicePub {
             rt = Errno.OK;
             FaiBuffer sendBuf = new FaiBuffer(true);
             productInfo.toBuffer(sendBuf, MgProductDto.Key.INFO, MgProductDto.getInfoDto());
+            session.write(sendBuf);
+        }finally {
+            stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
+        }
+        return rt;
+    }
+
+    public int getProductList4Adm(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, Param combined) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            ProductBasicProc productBasicProc = new ProductBasicProc(flow);
+
+            // 1 获取商品关联信息
+            FaiList<Param> pdRelInfos = new FaiList<>();
+            rt = productBasicProc.getRelListByRlIds(aid, unionPriId, rlPdIds, pdRelInfos);
+            if(rt != Errno.OK){
+                return rt;
+            }
+            FaiList<Integer> pdIds = new FaiList<>();
+            for(int i = 0; i < pdRelInfos.size(); i++) {
+                Param info = pdRelInfos.get(i);
+                pdIds.add(info.getInt(ProductBasicEntity.ProductInfo.PD_ID));
+            }
+            boolean getSpec = combined.getBoolean(MgProductEntity.Info.SPEC, false);
+            boolean getSpecSku = combined.getBoolean(MgProductEntity.Info.SPEC_SKU, false);
+            boolean getStoreSales = combined.getBoolean(MgProductEntity.Info.STORE_SALES, false);
+            // 2 获取商品基础信息
+            // 3 ... 获取商品参数啥的 ... ↓
+            // 3.1 获取规格相关
+            ProductSpecProc productSpecProc = new ProductSpecProc(flow);
+            // 获取商品规格
+            Map<Integer, List<Param>> pdScInfoMap = new HashMap<>();
+            if(getSpec) {
+                FaiList<Param> pdScInfoList = new FaiList<>();
+                rt = productSpecProc.getPdScInfoList4Adm(aid, unionPriId, pdIds, false, pdScInfoList);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                    return rt;
+                }
+                pdScInfoMap = pdScInfoList.stream().collect(Collectors.groupingBy(info->info.getInt(ProductSpecEntity.SpecInfo.PD_ID)));
+            }
+
+            // 获取商品规格sku
+            Map<Integer, List<Param>> pdScSkuInfoMap = new HashMap<>();
+            if(getSpecSku) {
+                FaiList<Param> pdScSkuInfoList = new FaiList<>();
+                rt = productSpecProc.getPdSkuInfoList4Adm(aid, tid, pdIds, true, pdScSkuInfoList);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                    return rt;
+                }
+                pdScSkuInfoMap = pdScSkuInfoList.stream().collect(Collectors.groupingBy(info->info.getInt(ProductSpecSkuEntity.Info.PD_ID)));
+            }
+
+            // 3.2 获取销售库存相关
+            Map<Integer, List<Param>> pdScSkuSalesStoreInfoMap = new HashMap<>();
+            if(getStoreSales) {
+                FaiList<Param> pdScSkuSalesStoreInfoList = new FaiList<>();
+                ProductStoreProc productStoreProc = new ProductStoreProc(flow);
+                rt = productStoreProc.getStoreSalesByPdIdsAndUIdList(aid, tid, pdIds, new FaiList<>(Arrays.asList(unionPriId)), pdScSkuSalesStoreInfoList);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                    return rt;
+                }
+                pdScSkuSalesStoreInfoMap = pdScSkuSalesStoreInfoList.stream().collect(Collectors.groupingBy(info->info.getInt(StoreSalesSkuEntity.Info.PD_ID)));
+            }
+
+            FaiList<Param> list = new FaiList<>();
+            for(int i = 0; i < pdRelInfos.size(); i++) {
+                Param productInfo = pdRelInfos.get(i);
+                Integer pdId = productInfo.getInt(ProductBasicEntity.ProductInfo.PD_ID);
+                Param info = new Param();
+                info.setParam(MgProductEntity.Info.BASIC, pdRelInfos.get(i));
+                if(getSpec) {
+                    FaiList<Param> specList = new FaiList<>();
+                    if(pdScInfoMap.containsKey(pdId)) {
+                        specList.addAll(pdScInfoMap.get(pdId));
+                    }
+                    info.setList(MgProductEntity.Info.SPEC, specList);
+                }
+                if(getSpecSku) {
+                    FaiList<Param> specSkuList = new FaiList<>();
+                    if(pdScSkuInfoMap.containsKey(pdId)) {
+                        specSkuList.addAll(pdScSkuInfoMap.get(pdId));
+                    }
+                    info.setList(MgProductEntity.Info.SPEC_SKU, specSkuList);
+                }
+                if(getStoreSales) {
+                    FaiList<Param> storeSalesList = new FaiList<>();
+                    if(pdScSkuSalesStoreInfoMap.containsKey(pdId)) {
+                        storeSalesList.addAll(pdScSkuSalesStoreInfoMap.get(pdId));
+                    }
+                    info.setList(MgProductEntity.Info.STORE_SALES, storeSalesList);
+                }
+                list.add(info);
+            }
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            list.toBuffer(sendBuf, MgProductDto.Key.INFO, MgProductDto.getInfoDto());
+            session.write(sendBuf);
+        }finally {
+            stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
+        }
+        return rt;
+    }
+
+    public int getProductSummary4Adm(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, Param getKeys) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            ProductBasicProc productBasicProc = new ProductBasicProc(flow);
+
+            // 1 获取商品关联信息
+            FaiList<Param> pdRelInfos = new FaiList<>();
+            rt = productBasicProc.getRelListByRlIds(aid, unionPriId, rlPdIds, pdRelInfos);
+            if(rt != Errno.OK){
+                return rt;
+            }
+            FaiList<Integer> pdIds = new FaiList<>();
+            for(int i = 0; i < pdRelInfos.size(); i++) {
+                Param info = pdRelInfos.get(i);
+                pdIds.add(info.getInt(ProductBasicEntity.ProductInfo.PD_ID));
+            }
+            boolean getSpec = getKeys.getBoolean(MgProductEntity.Info.SPEC, false);
+            boolean getSpecSku = getKeys.getBoolean(MgProductEntity.Info.SPEC_SKU, false);
+            boolean getStoreSales = getKeys.getBoolean(MgProductEntity.Info.STORE_SALES, false);
+            boolean getSpuSales = getKeys.getBoolean(MgProductEntity.Info.SPU_SALES, false);
+            // 2 获取商品基础信息
+            // 3 ... 获取商品参数啥的 ... ↓
+            // 3.1 获取规格相关
+            ProductSpecProc productSpecProc = new ProductSpecProc(flow);
+            // 获取商品规格
+            Map<Integer, List<Param>> pdScInfoMap = new HashMap<>();
+            if(getSpec) {
+                FaiList<Param> pdScInfoList = new FaiList<>();
+                rt = productSpecProc.getPdScInfoList4Adm(aid, unionPriId, pdIds, false, pdScInfoList);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                    return rt;
+                }
+                pdScInfoMap = pdScInfoList.stream().collect(Collectors.groupingBy(info->info.getInt(ProductSpecEntity.SpecInfo.PD_ID)));
+            }
+            // 获取商品规格sku
+            Map<Integer, List<Param>> pdScSkuInfoMap = new HashMap<>();
+            if(getSpecSku) {
+                FaiList<Param> pdScSkuInfoList = new FaiList<>();
+                rt = productSpecProc.getPdSkuInfoList4Adm(aid, tid, pdIds, true, pdScSkuInfoList);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                    return rt;
+                }
+                pdScSkuInfoMap = pdScSkuInfoList.stream().collect(Collectors.groupingBy(info->info.getInt(ProductSpecSkuEntity.Info.PD_ID)));
+            }
+
+            // 3.2 获取销售库存相关
+            ProductStoreProc productStoreProc = new ProductStoreProc(flow);
+            // 3.2.1 sku销售库存相关
+            Map<Integer, List<Param>> pdScSkuSalesStoreInfoMap = new HashMap<>();
+            if(getStoreSales) {
+                FaiList<Param> pdScSkuSalesStoreInfoList = new FaiList<>();
+                SearchArg searchArg = new SearchArg();
+                searchArg.matcher = new ParamMatcher(SkuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+                rt = productStoreProc.getSkuSummaryInfoList(aid, tid, unionPriId, searchArg, pdScSkuSalesStoreInfoList, false);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                    return rt;
+                }
+                pdScSkuSalesStoreInfoMap = pdScSkuSalesStoreInfoList.stream().collect(Collectors.groupingBy(info->info.getInt(StoreSalesSkuEntity.Info.PD_ID)));
+            }
+            // 3.2.2 spu销售库存相关
+            Map<Integer, List<Param>> spuSalesStoreInfoMap = new HashMap<>();
+            if(getSpuSales) {
+                FaiList<Param> spuSalesStoreInfoList = new FaiList<>();
+                rt = productStoreProc.getSpuSummaryInfoList(aid, tid, unionPriId, pdIds, spuSalesStoreInfoList);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                    return rt;
+                }
+                spuSalesStoreInfoMap = spuSalesStoreInfoList.stream().collect(Collectors.groupingBy(info->info.getInt(SpuBizSummaryEntity.Info.PD_ID)));
+            }
+
+            // 组装数据
+            FaiList<Param> list = new FaiList<>();
+            for(int i = 0; i < pdRelInfos.size(); i++) {
+                Param productInfo = pdRelInfos.get(i);
+                Integer pdId = productInfo.getInt(ProductBasicEntity.ProductInfo.PD_ID);
+                Param info = new Param();
+                info.setParam(MgProductEntity.Info.BASIC, pdRelInfos.get(i));
+                if(getSpec) {
+                    FaiList<Param> specList = new FaiList<>();
+                    if(pdScInfoMap.containsKey(pdId)) {
+                        specList.addAll(pdScInfoMap.get(pdId));
+                    }
+                    info.setList(MgProductEntity.Info.SPEC, specList);
+                }
+                if(getSpecSku) {
+                    FaiList<Param> specSkuList = new FaiList<>();
+                    if(pdScSkuInfoMap.containsKey(pdId)) {
+                        specSkuList.addAll(pdScSkuInfoMap.get(pdId));
+                    }
+                    info.setList(MgProductEntity.Info.SPEC_SKU, specSkuList);
+                }
+                if(getStoreSales) {
+                    FaiList<Param> storeSalesList = new FaiList<>();
+                    if(pdScSkuSalesStoreInfoMap.containsKey(pdId)) {
+                        storeSalesList.addAll(pdScSkuSalesStoreInfoMap.get(pdId));
+                    }
+                    info.setList(MgProductEntity.Info.STORE_SALES, storeSalesList);
+                }
+                if(getSpuSales) {
+                    FaiList<Param> spuSalesList = new FaiList<>();
+                    if(spuSalesStoreInfoMap.containsKey(pdId)) {
+                        spuSalesList.addAll(spuSalesStoreInfoMap.get(pdId));
+                    }
+                    info.setList(MgProductEntity.Info.SPU_SALES, spuSalesList);
+                }
+                list.add(info);
+            }
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            list.toBuffer(sendBuf, MgProductDto.Key.INFO, MgProductDto.getSummaryInfoDto());
             session.write(sendBuf);
         }finally {
             stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);

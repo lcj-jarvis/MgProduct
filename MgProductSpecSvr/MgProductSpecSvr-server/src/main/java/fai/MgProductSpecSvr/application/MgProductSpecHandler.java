@@ -210,6 +210,17 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
         return m_productSpecService.getPdCheckedScInfoList(session, flow, aid, unionPriId, pdId);
     }
 
+    @Cmd(MgProductSpecCmd.ProductSpecCmd.GET_LIST_4ADM)
+    private int getPdScInfoList4Adm(final FaiSession session,
+                                    @ArgFlow final int flow,
+                                    @ArgAid final int aid,
+                                    @ArgBodyInteger(ProductSpecDto.Key.UNION_PRI_ID) final int unionPriId,
+                                    @ArgList(keyMatch = ProductSpecDto.Key.PD_ID_LIST) FaiList<Integer> pdIds,
+                                    @ArgBodyBoolean(value = ProductSpecDto.Key.ONLY_CHECKED,
+                                    useDefault = true, defaultValue = false) boolean onlyChecked) throws IOException {
+        return m_productSpecService.getPdScInfoList4Adm(session, flow, aid, unionPriId, pdIds, onlyChecked);
+    }
+
     @WrittenCmd
     @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.SET_LIST)
     private int setPdSkuScInfoList(final FaiSession session,
@@ -263,6 +274,15 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
                                    @ArgList(keyMatch = ProductSpecSkuDto.Key.PD_ID_LIST) final FaiList<Integer> pdIdList,
                                    @ArgBodyBoolean(value = ProductSpecSkuDto.Key.WITH_SPU_INFO, useDefault = true) final boolean withSpuInfo) throws IOException {
         return m_productSpecService.getPdSkuIdInfoList(session, flow, aid, pdIdList, withSpuInfo);
+    }
+
+    @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_LIST_4ADM)
+    private int getPdSkuInfoList4Adm(final FaiSession session,
+                                   @ArgFlow final int flow,
+                                   @ArgAid final int aid,
+                                   @ArgList(keyMatch = ProductSpecSkuDto.Key.PD_ID_LIST) final FaiList<Integer> pdIdList,
+                                   @ArgBodyBoolean(value = ProductSpecSkuDto.Key.WITH_SPU_INFO, useDefault = true) final boolean withSpuInfo) throws IOException {
+        return m_productSpecService.getPdSkuInfoList4Adm(session, flow, aid, pdIdList, withSpuInfo);
     }
 
     @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.GET_ONLY_SPU_INFO_LIST)

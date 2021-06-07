@@ -7,6 +7,7 @@ import fai.MgProductInfSvr.interfaces.dto.ProductBasicDto;
 import fai.MgProductInfSvr.interfaces.dto.ProductStoreDto;
 import fai.MgProductInfSvr.interfaces.entity.MgProductEntity;
 import fai.MgProductInfSvr.interfaces.entity.ProductStoreEntity;
+import fai.MgProductInfSvr.interfaces.utils.MgProductArg;
 import fai.MgProductInfSvr.interfaces.utils.MgProductSearch;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
@@ -512,4 +513,115 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
         }
     }
     /**----------------------------------------------   商品信息接口结束   ----------------------------------------------*/
+
+    /**  优化start **/
+    /**
+     * 获取的商品指定组合信息
+     */
+    public int getProductList4Adm(MgProductArg mgProductArg, FaiList<Param> list){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            int aid = mgProductArg.getAid();
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if (list == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "list is null");
+                return m_rt;
+            }
+            FaiList<Integer> rlPdIds = mgProductArg.getRlPdIds();
+            if (rlPdIds == null || rlPdIds.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "rlPdIds is empty");
+                return m_rt;
+            }
+            Param combined = mgProductArg.getCombined();
+            if(combined == null) {
+                combined = new Param();
+            }
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            // packaging send data
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(MgProductDto.Key.TID, tid), new Pair(MgProductDto.Key.SITE_ID, siteId), new Pair(MgProductDto.Key.LGID, lgId), new Pair(MgProductDto.Key.KEEP_PRIID1, keepPriId1));
+            rlPdIds.toBuffer(sendBody, MgProductDto.Key.RL_PD_IDS);
+            combined.toBuffer(sendBody, MgProductDto.Key.COMBINED, MgProductDto.getCombinedInfoDto());
+            // send and recv
+            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.Cmd.GET_FULL_LIST_4ADM, sendBody, true);
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = list.fromBuffer(recvBody, keyRef, MgProductDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != MgProductDto.Key.INFO) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    /**
+     * 获取的商品指定组合汇总信息(例：门店通总店维度获取数据)
+     */
+    public int getProductSummaryList4Adm(MgProductArg mgProductArg, FaiList<Param> list){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            int aid = mgProductArg.getAid();
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if (list == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "list is null");
+                return m_rt;
+            }
+            FaiList<Integer> rlPdIds = mgProductArg.getRlPdIds();
+            if (rlPdIds == null || rlPdIds.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "rlPdIds is empty");
+                return m_rt;
+            }
+            Param combined = mgProductArg.getCombined();
+            if(combined == null) {
+                combined = new Param();
+            }
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            // packaging send data
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(MgProductDto.Key.TID, tid), new Pair(MgProductDto.Key.SITE_ID, siteId), new Pair(MgProductDto.Key.LGID, lgId), new Pair(MgProductDto.Key.KEEP_PRIID1, keepPriId1));
+            rlPdIds.toBuffer(sendBody, MgProductDto.Key.RL_PD_IDS);
+            combined.toBuffer(sendBody, MgProductDto.Key.COMBINED, MgProductDto.getCombinedInfoDto());
+            // send and recv
+            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.Cmd.GET_SUM_LIST_4ADM, sendBody, true);
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = list.fromBuffer(recvBody, keyRef, MgProductDto.getSummaryInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != MgProductDto.Key.INFO) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
 }

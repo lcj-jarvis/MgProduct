@@ -278,6 +278,24 @@ public class ProductStoreProc extends AbstractProductProc{
     }
 
     /**
+     * 根据 prIdList 和 unionPriIdList 获取sku库存销售信息
+     */
+    public int getStoreSalesByPdIdsAndUIdList(int aid, int tid, FaiList<Integer> pdIds, FaiList<Integer> unionPriIdList, FaiList infoList) {
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;skuId=%s;unionPriIdList=%s;", m_flow, aid, pdIds, unionPriIdList);
+            return rt;
+        }
+        rt = m_cli.batchGetSkuStoreSalesByUidAndPdId(aid, tid, pdIds, unionPriIdList, infoList);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;skuId=%s;unionPriIdList=%s;", m_flow, aid, pdIds, unionPriIdList);
+            return rt;
+        }
+        return rt;
+    }
+
+    /**
      * 根据 pdId 获取商品规格库存销售sku
      */
     public int getSkuStoreSalesByPdId(int aid, int tid, int pdId, FaiList infoList) {

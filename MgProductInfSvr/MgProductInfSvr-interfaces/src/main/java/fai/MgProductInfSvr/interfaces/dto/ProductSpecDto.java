@@ -37,6 +37,8 @@ public class ProductSpecDto {
             g_dtoDef.add(ProductSpecEntity.SpecInfo.IN_PD_SC_VAL_LIST, 8, getInPdScValListDtoDef(), Var.Type.FAI_LIST);
             g_dtoDef.add(ProductSpecEntity.SpecInfo.SYS_CREATE_TIME, 9);
             g_dtoDef.add(ProductSpecEntity.SpecInfo.SYS_UPDATE_TIME, 10);
+            g_dtoDef.add(ProductSpecEntity.SpecInfo.SYS_UPDATE_TIME, 10);
+            g_dtoDef.add(ProductSpecEntity.SpecInfo.PD_ID, 11);
         }
 
         public static ParamDef getInfoDto() {

@@ -54,6 +54,8 @@ public class MgProductInfCmd {
 
         public static final int NUM32 = 5032; /**@see MgProductSearchCmd#SEARCH_LIST*/
         public static final int NUM33 = 5033; /**@see InOutStoreRecordCmd#GET_SUM_LIST*/
+        public static final int NUM34 = 5034; /**@see Cmd#GET_FULL_LIST_4ADM */
+        public static final int NUM35 = 5035; /**@see Cmd#GET_SUM_LIST_4ADM */
     }
 
     // 1000 到 5000 的范围
@@ -293,6 +295,9 @@ public class MgProductInfCmd {
      */
     public static class Cmd{
         public static final int GET_FULL_INFO = ReadCmdNum.NUM21;
+        public static final int GET_FULL_LIST_4ADM = ReadCmdNum.NUM34;
+        public static final int GET_SUM_LIST_4ADM = ReadCmdNum.NUM35;
+
         public static final int IMPORT_PRODUCT = WriteCmdNum.NUM34;
     }
 }

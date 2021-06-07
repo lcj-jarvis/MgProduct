@@ -221,6 +221,24 @@ public class ProductSpecProc extends AbstractProductProc {
     }
 
     /**
+     * 获取产品规格列表 for 管理态
+     */
+    public int getPdScInfoList4Adm(int aid, int unionPriId, FaiList<Integer> pdIds, boolean onlyGetChecked, FaiList<Param> infoList) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;unionPriId=%d;pdIds=%s;", m_flow, aid, unionPriId, pdIds);
+            return rt;
+        }
+        rt = m_cli.getPdScInfoList4Adm(aid, unionPriId, pdIds, onlyGetChecked, infoList);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;pdIds=%s", m_flow, aid, unionPriId, pdIds);
+            return rt;
+        }
+        return rt;
+    }
+
+    /**
      * 获取产品规格SKU列表
      */
     public int setPdSkuScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<ParamUpdater> updaterList) {
@@ -303,6 +321,26 @@ public class ProductSpecProc extends AbstractProductProc {
             return rt;
         }
         rt = m_cli.getPdSkuIdInfoList(aid, tid, pdIdList, withSpuInfo, list);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        return rt;
+    }
+
+    /**
+     * 根据 pdId 获取 pdId-skuId 集
+     * @param pdIdList
+     * @param withSpuInfo
+     */
+    public int getPdSkuInfoList4Adm(int aid, int tid, FaiList<Integer> pdIdList, boolean withSpuInfo, FaiList<Param> list) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        rt = m_cli.getPdSkuInfoList4Adm(aid, tid, pdIdList, withSpuInfo, list);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;", m_flow, aid);
             return rt;

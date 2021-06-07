@@ -440,6 +440,26 @@ public class ProductSpecProc {
         Log.logStd(rt,"ok;flow=%s;aid=%s;pdId=%s;pdScIdList=%s;",m_flow, aid, pdId, pdScIdList);
         return rt;
     }
+
+    public int getListFromDao(int aid, FaiList<Integer> pdIds, Ref<FaiList<Param>> listRef, String ... fields) {
+        if(pdIds == null || pdIds.isEmpty()) {
+            Log.logErr("select pdIds is empty;flow=%s;aid=%s;pdIds=%s;",m_flow, aid, pdIds);
+            return Errno.ARGS_ERROR;
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductSpecEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductSpecEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        int rt = m_daoCtrl.select(searchArg, listRef, fields);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            Log.logErr(rt, "dao.select error;flow=%d;aid=%s;pdIds=%s;", m_flow, aid, pdIds);
+            return rt;
+        }
+        initDBInfoList(listRef.value);
+        Log.logStd(rt,"ok;flow=%s;aid=%s;pdIds=%s;",m_flow, aid, pdIds);
+        return rt;
+    }
+
     private void initDBInfoList(FaiList<Param> infoList){
         if(infoList == null || infoList.isEmpty()){
             return;

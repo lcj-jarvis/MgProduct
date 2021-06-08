@@ -286,10 +286,14 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 return m_rt;
             }
             if (addInfo == null) {
-                addInfo = new Param();
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;addInfo is empty");
+                return m_rt;
             }
             if (inOutStoreRecordInfo == null) {
-                inOutStoreRecordInfo = new Param();
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;inOutStoreRecordInfo is empty");
+                return m_rt;
             }
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));

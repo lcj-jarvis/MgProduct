@@ -153,7 +153,7 @@ public class MgProductInfCmd {
         public static final int SET_PD_BIND_GROUP = WriteCmdNum.NUM33;
         public static final int SET_SINGLE_PD = WriteCmdNum.NUM35;
         public static final int SET_PDS = WriteCmdNum.NUM36;
-        public static final int UNION_SET_LIST = WriteCmdNum.NUM42;
+        public static final int ADD_PD_INFO = WriteCmdNum.NUM42;
     }
 
     public static class GroupCmd {

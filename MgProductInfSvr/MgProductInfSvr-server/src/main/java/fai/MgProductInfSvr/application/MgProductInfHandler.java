@@ -497,8 +497,8 @@ public class MgProductInfHandler extends FaiHandler {
     }
 
     @WrittenCmd
-    @Cmd(MgProductInfCmd.BasicCmd.UNION_SET_LIST)
-    public int unionSetProductList(final FaiSession session,
+    @Cmd(MgProductInfCmd.BasicCmd.ADD_PD_INFO)
+    public int addProductInfo(final FaiSession session,
                                    @ArgFlow final int flow,
                                    @ArgAid final int aid,
                                    @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
@@ -509,7 +509,7 @@ public class MgProductInfHandler extends FaiHandler {
                                            keyMatch = ProductBasicDto.Key.UNION_INFO) Param addInfo,
                                    @ArgParam(keyMatch = MgProductDto.Key.IN_OUT_STORE_RECORD_INFO,
                                            classDef = ProductStoreDto.InOutStoreRecord.class, methodDef = "getInfoDto") Param inStoreRecordInfo) throws IOException {
-        return basicService.unionSetProductList(session, flow, aid, tid, siteId, lgId, keepPriId1, addInfo, inStoreRecordInfo);
+        return basicService.addProductInfo(session, flow, aid, tid, siteId, lgId, keepPriId1, addInfo, inStoreRecordInfo);
     }
 
     @WrittenCmd

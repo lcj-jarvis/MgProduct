@@ -273,7 +273,10 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
         }
     }
 
-    public int unionSetProductList(int aid, int tid, int siteId, int lgId, int keepPriId1, Param addInfo, Param inOutStoreRecordInfo, Ref<Integer> rlPdIdRef) {
+    /**
+     * 新增商品数据、同时添加规格、库存数据以及参数和分类绑定
+     */
+    public int addProductInfo(int aid, int tid, int siteId, int lgId, int keepPriId1, Param addInfo, Param inOutStoreRecordInfo, Ref<Integer> rlPdIdRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -302,7 +305,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             }
             // send and recv
             boolean rlPdIdRefNotNull = (rlPdIdRef != null);
-            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.UNION_SET_LIST, sendBody, false, rlPdIdRefNotNull);
+            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.ADD_PD_INFO, sendBody, false, rlPdIdRefNotNull);
             if (m_rt != Errno.OK) {
                 return m_rt;
             }

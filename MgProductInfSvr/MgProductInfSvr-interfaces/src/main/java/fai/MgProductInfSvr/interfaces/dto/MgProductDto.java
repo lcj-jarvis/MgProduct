@@ -12,6 +12,7 @@ public class MgProductDto {
         g_infoDtoDef.add(MgProductEntity.Info.SPEC_SKU, 2, ProductSpecDto.SpecSku.getInfoDto(), Var.Type.FAI_LIST);
         g_infoDtoDef.add(MgProductEntity.Info.STORE_SALES, 3, ProductStoreDto.StoreSalesSku.getInfoDto(), Var.Type.FAI_LIST);
         g_infoDtoDef.add(MgProductEntity.Info.ERRNO, 4, Var.Type.INT);
+        g_infoDtoDef.add(MgProductEntity.Info.SPU_SALES, 5, ProductStoreDto.SpuBizSummary.getInfoDto(), Var.Type.FAI_LIST);
     }
     public static ParamDef getInfoDto() {
         return g_infoDtoDef;

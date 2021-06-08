@@ -20,6 +20,7 @@ import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuValObj;
 import fai.MgProductStoreSvr.interfaces.cli.MgProductStoreCli;
 import fai.MgProductStoreSvr.interfaces.entity.SkuSummaryEntity;
 import fai.MgProductStoreSvr.interfaces.entity.SpuBizSummaryEntity;
+import fai.MgProductStoreSvr.interfaces.entity.SpuSummaryEntity;
 import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
@@ -317,6 +318,7 @@ public class MgProductInfService extends ServicePub {
             boolean getSpec = combined.getBoolean(MgProductEntity.Info.SPEC, false);
             boolean getSpecSku = combined.getBoolean(MgProductEntity.Info.SPEC_SKU, false);
             boolean getStoreSales = combined.getBoolean(MgProductEntity.Info.STORE_SALES, false);
+            boolean getSpuSales = combined.getBoolean(MgProductEntity.Info.SPU_SALES, false);
             // 2 获取商品基础信息
             // 3 ... 获取商品参数啥的 ... ↓
             // 3.1 获取规格相关
@@ -344,15 +346,25 @@ public class MgProductInfService extends ServicePub {
             }
 
             // 3.2 获取销售库存相关
+            ProductStoreProc productStoreProc = new ProductStoreProc(flow);
             Map<Integer, List<Param>> pdScSkuSalesStoreInfoMap = new HashMap<>();
             if(getStoreSales) {
                 FaiList<Param> pdScSkuSalesStoreInfoList = new FaiList<>();
-                ProductStoreProc productStoreProc = new ProductStoreProc(flow);
                 rt = productStoreProc.getStoreSalesByPdIdsAndUIdList(aid, tid, pdIds, new FaiList<>(Arrays.asList(unionPriId)), pdScSkuSalesStoreInfoList);
                 if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                     return rt;
                 }
                 pdScSkuSalesStoreInfoMap = pdScSkuSalesStoreInfoList.stream().collect(Collectors.groupingBy(info->info.getInt(StoreSalesSkuEntity.Info.PD_ID)));
+            }
+            // 3.2.2 spu销售库存相关
+            Map<Integer, List<Param>> spuSalesStoreInfoMap = new HashMap<>();
+            if(getSpuSales) {
+                FaiList<Param> spuSalesStoreInfoList = new FaiList<>();
+                rt = productStoreProc.getSpuBizSummaryInfoListByPdIdList(aid, tid, unionPriId, pdIds, spuSalesStoreInfoList, null);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                    return rt;
+                }
+                spuSalesStoreInfoMap = spuSalesStoreInfoList.stream().collect(Collectors.groupingBy(info->info.getInt(SpuBizSummaryEntity.Info.PD_ID)));
             }
 
             FaiList<Param> list = new FaiList<>();
@@ -381,6 +393,13 @@ public class MgProductInfService extends ServicePub {
                         storeSalesList.addAll(pdScSkuSalesStoreInfoMap.get(pdId));
                     }
                     info.setList(MgProductEntity.Info.STORE_SALES, storeSalesList);
+                }
+                if(getSpuSales) {
+                    FaiList<Param> spuSalesList = new FaiList<>();
+                    if(spuSalesStoreInfoMap.containsKey(pdId)) {
+                        spuSalesList.addAll(spuSalesStoreInfoMap.get(pdId));
+                    }
+                    info.setList(MgProductEntity.Info.SPU_SALES, spuSalesList);
                 }
                 list.add(info);
             }
@@ -476,7 +495,7 @@ public class MgProductInfService extends ServicePub {
                 if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                     return rt;
                 }
-                spuSalesStoreInfoMap = spuSalesStoreInfoList.stream().collect(Collectors.groupingBy(info->info.getInt(SpuBizSummaryEntity.Info.PD_ID)));
+                spuSalesStoreInfoMap = spuSalesStoreInfoList.stream().collect(Collectors.groupingBy(info->info.getInt(SpuSummaryEntity.Info.PD_ID)));
             }
 
             // 组装数据

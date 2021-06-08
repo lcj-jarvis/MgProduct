@@ -569,7 +569,7 @@ public class ProductSpecSkuProc {
                 matcher.and(ProductSpecSkuEntity.Info.FLAG, ParamMatcher.LAND_NE, ProductSpecSkuValObj.FLag.SPU, ProductSpecSkuValObj.FLag.SPU);
             }
         }
-        matcher.and(ProductSpecSkuEntity.Info.STATUS, ParamMatcher.EQ, ProductSpecSkuValObj.Status.DEFAULT);
+        //matcher.and(ProductSpecSkuEntity.Info.STATUS, ParamMatcher.EQ, ProductSpecSkuValObj.Status.DEFAULT);
         searchArg.matcher = matcher;
         int rt = m_daoCtrl.select(searchArg, pdScSkuInfoListRef, onlyNeedFields);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
@@ -689,7 +689,7 @@ public class ProductSpecSkuProc {
         int rt = Errno.ERROR;
         try {
             FaiList<Param> cacheList = ProductSpecSkuCacheCtrl.getListByPdId(aid, pdId);
-            if(cacheList != null){
+            if(cacheList != null && !cacheList.isEmpty()){
                 listRef.value = cacheList;
                 return Errno.OK;
             }
@@ -697,7 +697,7 @@ public class ProductSpecSkuProc {
                 LockUtil.readLock(aid);
                 // double check
                 cacheList = ProductSpecSkuCacheCtrl.getListByPdId(aid, pdId);
-                if(cacheList != null){
+                if(cacheList != null && !cacheList.isEmpty()){
                     listRef.value = cacheList;
                     return Errno.OK;
                 }
@@ -793,22 +793,22 @@ public class ProductSpecSkuProc {
      */
     public int getSpuInfoList(int aid, FaiList<Integer> pdIdList, Ref<FaiList<Param>> pdScSkuInfoListRef) {
         FaiList<Long> skuIdList = new FaiList<>();
-        Set<Integer> pdIdSet = new HashSet<>(pdIdList);
-        getSpuInfoListFromCache(aid, pdIdList, skuIdList, pdIdSet);
-        if(!pdIdSet.isEmpty()){
+        Set<Integer> noCachePdIds = new HashSet<>(pdIdList);
+        getSpuInfoListFromCache(aid, pdIdList, skuIdList, noCachePdIds);
+        if(!noCachePdIds.isEmpty()){
             try {
                 LockUtil.readLock(aid);
-                getSpuInfoListFromCache(aid, pdIdList, skuIdList, pdIdSet);
-                if(!pdIdSet.isEmpty()){
+                getSpuInfoListFromCache(aid, pdIdList, skuIdList, noCachePdIds);
+                if(!noCachePdIds.isEmpty()){
                     ParamMatcher matcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
-                    matcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.IN, new FaiList<>(pdIdSet));
+                    matcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.IN, new FaiList<>(noCachePdIds));
                     matcher.and(ProductSpecSkuEntity.Info.FLAG, ParamMatcher.LAND, ProductSpecSkuValObj.FLag.SPU, ProductSpecSkuValObj.FLag.SPU);
                     SearchArg searchArg = new SearchArg();
                     searchArg.matcher = matcher;
                     Ref<FaiList<Param>> listRef = new Ref<>();
                     int rt = m_daoCtrl.select(searchArg, listRef, ProductSpecSkuEntity.Info.PD_ID, ProductSpecSkuEntity.Info.SKU_ID);
                     if(rt != Errno.OK &&rt != Errno.NOT_FOUND){
-                        Log.logErr(rt, "error;flow=%d;aid=%s;pdIdSet=%s;", m_flow, aid, pdIdSet);
+                        Log.logErr(rt, "error;flow=%d;aid=%s;pdIdSet=%s;", m_flow, aid, noCachePdIds);
                         return rt;
                     }
                     Map<Integer, Long> map = new HashMap<>(listRef.value.size()*4/3+1);
@@ -817,9 +817,9 @@ public class ProductSpecSkuProc {
                         long skuId = info.getLong(ProductSpecSkuEntity.Info.SKU_ID);
                         map.put(pdId, skuId);
                         skuIdList.add(skuId);
-                        pdIdSet.remove(pdId);
+                        noCachePdIds.remove(pdId);
                     }
-                    for (Integer pdId : pdIdSet) {
+                    for (Integer pdId : noCachePdIds) {
                         map.put(pdId, 0L);
                     }
                     ProductSpecSkuCacheCtrl.batchSetSkuIdRepresentSpu(aid, map);
@@ -836,13 +836,13 @@ public class ProductSpecSkuProc {
         return getList(aid, skuIdList, pdScSkuInfoListRef);
     }
 
-    private void getSpuInfoListFromCache(int aid, FaiList<Integer> pdIdList, FaiList<Long> skuIdList, Set<Integer> pdIdSet) {
+    private void getSpuInfoListFromCache(int aid, FaiList<Integer> pdIdList, FaiList<Long> skuIdList, Set<Integer> noCachePdIds) {
         Map<Integer, Long> pdIdSkuIdMap = ProductSpecSkuCacheCtrl.batchGetSkuIdRepresentSpu(aid, pdIdList, true);
         pdIdSkuIdMap.forEach((pdId, skuId)->{
             if(skuId != 0){
                 skuIdList.add(skuId);
             }
-            pdIdSet.remove(pdId);
+            noCachePdIds.remove(pdId);
             Log.logDbg("aid=%s;pdId=%s;skuId=%s", aid, pdId, skuId);
         });
     }

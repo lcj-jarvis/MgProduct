@@ -667,6 +667,63 @@ public class ProductSpecService extends ServicePub {
     }
 
     /**
+     * 根据商品idList获取商品规格集合，管理态调用
+     */
+    public int getPdScInfoList4Adm(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> pdIds, boolean onlyGetChecked) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || Util.isEmptyList(pdIds) || unionPriId <= 0) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;pdIds=%s;", flow, aid, pdIds);
+                return rt;
+            }
+            // 查db的，不能pdIds的数量不能过多
+            if(pdIds.size() > 100) {
+                rt = Errno.LEN_LIMIT;
+                Log.logErr("pdIds size more than 100;flow=%d;aid=%d;pdIds=%s;", flow, aid, pdIds);
+                return rt;
+            }
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            ProductSpecDaoCtrl productSpecDaoCtrl = ProductSpecDaoCtrl.getInstance(flow, aid);
+            try {
+                ProductSpecProc productSpecProc = new ProductSpecProc(productSpecDaoCtrl, flow);
+                rt = productSpecProc.getListFromDao(aid, pdIds, listRef);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+            }finally {
+                productSpecDaoCtrl.closeDao();
+            }
+
+            FaiList<Param> pdScInfoList = listRef.value;
+            // 筛选勾选的数据
+            if(onlyGetChecked) {
+                pdScInfoList.forEach(pdSpInfo->{
+                    FaiList<Param> inPdScValList = pdSpInfo.getListNullIsEmpty(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST);
+                    for (int i = inPdScValList.size() - 1; i >= 0; i--) {
+                        Param inpdscValInfo = inPdScValList.get(i);
+                        if(!inpdscValInfo.getBoolean(ProductSpecValObj.InPdScValList.Item.CHECK, false)){
+                            inPdScValList.remove(i);
+                        }
+                    }
+                });
+            }
+
+            rt = initPdScSpecStr(flow, aid, pdScInfoList);
+            if(rt != Errno.OK){
+                Log.logErr(rt,"initPdScSpecStr err;aid=%d;pdIds=%s;", aid, pdIds);
+                return rt;
+            }
+            sendPdScInfoList(session, pdScInfoList);
+            Log.logDbg("ok;flow=%d;aid=%d;pdId=%s;", flow, aid, pdIds);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+
+    /**
      * 批量生成代表spu的sku数据
      */
     public int batchGenSkuRepresentSpuInfo(FaiSession session, int flow, int aid, int tid, int unionPriId, FaiList<Integer> pdIdList) throws IOException {
@@ -1099,6 +1156,55 @@ public class ProductSpecService extends ServicePub {
                 productSpecSkuDaoCtrl.closeDao();
             }
             FaiList<Param> psScSkuInfoList = pdScSkuInfoListRef.value;
+            sendPdSkuScInfoList(session, psScSkuInfoList);
+            Log.logDbg("flow=%s;aid=%s;pdIdList=%s;", flow, aid, pdIdList);
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * 根据pdId集合 获取skuId信息集，查db，管理态用
+     */
+    public int getPdSkuInfoList4Adm(FaiSession session, int flow, int aid, FaiList<Integer> pdIdList, boolean withSpuInfo) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || pdIdList == null || pdIdList.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;pdIdList=%s", flow, aid, pdIdList);
+                return rt;
+            }
+            Ref<FaiList<Param>> pdScSkuInfoListRef = new Ref<>();
+            ProductSpecSkuDaoCtrl productSpecSkuDaoCtrl = ProductSpecSkuDaoCtrl.getInstance(flow, aid);
+            try {
+                ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(productSpecSkuDaoCtrl, flow);
+                String[] fields = {ProductSpecSkuEntity.Info.PD_ID, ProductSpecSkuEntity.Info.SKU_ID, ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, ProductSpecSkuEntity.Info.SKU_CODE};
+                if(withSpuInfo){
+                    ArrayList<String> tmp = new ArrayList<>(Arrays.asList(fields));
+                    tmp.add(ProductSpecSkuEntity.Info.FLAG);
+                    fields = tmp.toArray(fields);
+                }
+                Log.logDbg("whalelog  withSpuInfo=%s;fields=%s", withSpuInfo, fields);
+                rt = productSpecSkuProc.getListFromDaoByPdIdList(aid, pdIdList, withSpuInfo, pdScSkuInfoListRef, fields);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+            }finally {
+                productSpecSkuDaoCtrl.closeDao();
+            }
+            FaiList<Param> psScSkuInfoList = pdScSkuInfoListRef.value;
+            rt = initPdScSkuSpecStr(flow, aid, psScSkuInfoList);
+            if(rt != Errno.OK){
+                Log.logErr(rt,"initPdScSkuSpecStr err;aid=%d;pdIdList=%s;", aid, pdIdList);
+                return rt;
+            }
+            rt = initPdScSkuCodeList(flow, aid, psScSkuInfoList);
+            if(rt != Errno.OK){
+                Log.logErr(rt,"initPdScSkuCodeList err;aid=%d;pdIdList=%s;", aid, pdIdList);
+                return rt;
+            }
             sendPdSkuScInfoList(session, psScSkuInfoList);
             Log.logDbg("flow=%s;aid=%s;pdIdList=%s;", flow, aid, pdIdList);
         }finally {

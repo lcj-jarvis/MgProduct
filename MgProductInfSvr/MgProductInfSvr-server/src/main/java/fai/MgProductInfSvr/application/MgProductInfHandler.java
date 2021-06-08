@@ -957,6 +957,35 @@ public class MgProductInfHandler extends FaiHandler {
                                   @ArgBodyInteger(MgProductDto.Key.ID) int rlPdId) throws IOException {
         return mgProductInfService.getProductFullInfo(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId);
     }
+
+    @Cmd(MgProductInfCmd.Cmd.GET_FULL_LIST_4ADM)
+    public int getProductList4Adm(final FaiSession session,
+                                  @ArgFlow final int flow,
+                                  @ArgAid final int aid,
+                                  @ArgBodyInteger(MgProductDto.Key.TID) int tid,
+                                  @ArgBodyInteger(MgProductDto.Key.SITE_ID) int siteId,
+                                  @ArgBodyInteger(MgProductDto.Key.LGID) int lgId,
+                                  @ArgBodyInteger(MgProductDto.Key.KEEP_PRIID1) int keepPriId1,
+                                  @ArgList(keyMatch = MgProductDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
+                                  @ArgParam(keyMatch = MgProductDto.Key.COMBINED,
+                                  classDef = MgProductDto.class, methodDef = "getCombinedInfoDto") Param combined) throws IOException {
+        return mgProductInfService.getProductList4Adm(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIds, combined);
+    }
+
+    @Cmd(MgProductInfCmd.Cmd.GET_SUM_LIST_4ADM)
+    public int getProductSummary4Adm(final FaiSession session,
+                                  @ArgFlow final int flow,
+                                  @ArgAid final int aid,
+                                  @ArgBodyInteger(MgProductDto.Key.TID) int tid,
+                                  @ArgBodyInteger(MgProductDto.Key.SITE_ID) int siteId,
+                                  @ArgBodyInteger(MgProductDto.Key.LGID) int lgId,
+                                  @ArgBodyInteger(MgProductDto.Key.KEEP_PRIID1) int keepPriId1,
+                                  @ArgList(keyMatch = MgProductDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
+                                  @ArgParam(keyMatch = MgProductDto.Key.COMBINED,
+                                          classDef = MgProductDto.class, methodDef = "getCombinedInfoDto") Param combined) throws IOException {
+        return mgProductInfService.getProductSummary4Adm(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIds, combined);
+    }
+
     @WrittenCmd
     @Cmd(MgProductInfCmd.Cmd.IMPORT_PRODUCT)
     public int importProduct(final FaiSession session,

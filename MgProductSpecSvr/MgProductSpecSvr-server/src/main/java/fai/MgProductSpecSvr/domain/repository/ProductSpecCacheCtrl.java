@@ -37,41 +37,6 @@ public class ProductSpecCacheCtrl extends CacheCtrl {
 		return m_cache.del(keys);
 	}
 
-	/**
-	 * 移除缓存
-	 */
-	public static boolean delCache(int aid, int pdId){
-		if(!m_cache.exists(getCacheKey(aid, pdId))){
-			return true;
-		}
-		return m_cache.del(getCacheKey(aid, pdId));
-	}
-
-	public static boolean hasCache(int aid, int pdId){
-		return m_cache.exists(getCacheKey(aid, pdId));
-	}
-
-	public static Param getPdScInfo(int aid, int pdId, int pdScId){
-		return m_cache.hgetParam(getCacheKey(aid, pdId), pdScId, ProductSpecDto.Key.INFO, ProductSpecDto.CacheDto.getCacheDto());
-	}
-	public static FaiList<Param> getPdScList(int aid, int pdId, FaiList<Integer> pdScIdList){
-		if(pdScIdList == null || pdScIdList.isEmpty()){
-			return null;
-		}
-		if(!m_cache.exists(getCacheKey(aid, pdId))){
-			return null;
-		}
-		FaiList<String> psScIdStrList = new FaiList<>(pdScIdList.size());
-		pdScIdList.forEach(pdScId ->{
-			psScIdStrList.add(String.valueOf(pdScId));
-		});
-		try {
-			return m_cache.hmget(getCacheKey(aid, pdId), ProductSpecDto.Key.INFO, ProductSpecDto.CacheDto.getCacheDto(), psScIdStrList);
-		} catch (Exception e) {
-			Log.logErr(e);
-		}
-		return null;
-	}
 	public static FaiList<Param> getPdScList(int aid, int pdId){
 		if(!m_cache.exists(getCacheKey(aid, pdId))){
 			return null;

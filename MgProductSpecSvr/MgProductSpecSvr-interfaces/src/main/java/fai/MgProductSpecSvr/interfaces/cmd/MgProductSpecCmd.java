@@ -21,6 +21,8 @@ public class MgProductSpecCmd {
 		public static final int NUM15 = 5015;
 		public static final int NUM16 = 5016;
 		public static final int NUM17 = 5017;
+		public static final int NUM18 = 5018;
+		public static final int NUM19 = 5019;
 	}
 
 
@@ -75,6 +77,7 @@ public class MgProductSpecCmd {
 		public static final int GET_INFO = ReadCmdNum.NUM5;
 		public static final int GET_LIST = ReadCmdNum.NUM6;
 		public static final int GET_CHECKED_LIST = ReadCmdNum.NUM7;
+		public static final int GET_LIST_4ADM = ReadCmdNum.NUM18;
 
 		public static final int IMPORT = WriteCmdNum.NUM7;
 		public static final int UNION_SET = WriteCmdNum.NUM8;
@@ -91,6 +94,7 @@ public class MgProductSpecCmd {
 		public static final int GET_SKU_ID_INFO_LIST_BY_PD_ID_LIST = ReadCmdNum.NUM9;
 		public static final int GET_LIST_BY_SKU_ID_LIST = ReadCmdNum.NUM10;
 		public static final int GET_ONLY_SPU_INFO_LIST = ReadCmdNum.NUM17;
+		public static final int GET_LIST_4ADM = ReadCmdNum.NUM19;
 
 		public static final int GET_SKU_CODE_LIST = ReadCmdNum.NUM12;
 		public static final int SEARCH_SKU_ID_INFO_LIST_BY_SKU_CODE = ReadCmdNum.NUM13;

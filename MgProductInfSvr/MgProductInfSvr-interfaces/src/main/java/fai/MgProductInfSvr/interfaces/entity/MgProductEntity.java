@@ -19,6 +19,9 @@ public class MgProductEntity {
         /** @see ProductStoreEntity.StoreSalesSkuInfo */
         public static final String STORE_SALES = "storeSales";              // FaiList<Param> 库存销售
 
+        /** @see ProductStoreEntity.StoreSalesSkuInfo */
+        public static final String SPU_SALES = "spuSales";                  // FaiList<Param> spu库存销售
+
         /**
          * @see fai.mgproduct.comm.MgProductErrno
          */

@@ -138,6 +138,26 @@ public class InOutStoreSearch {
         return this;
     }
 
+    // 业务订单号
+    public InOutStoreSearch setOrderCode(String orderCode) {
+        if(SearchType.InOutStoreSum.equals(searchType)) {
+            Log.logErr("search arg error;searchType is InOutStoreSum;aid=%d;tid=%d;siteId=%d;lgId=%d;keepPriId1=%d;", aid, tid, siteId, lgId, keepPriId1);
+            return null;
+        }
+        matcher.and(ProductStoreEntity.InOutStoreRecordInfo.RL_ORDER_CODE, ParamMatcher.EQ, orderCode);
+        return this;
+    }
+
+    // 业务退款编号
+    public InOutStoreSearch setRefundId(String rlRefundId) {
+        if(SearchType.InOutStoreSum.equals(searchType)) {
+            Log.logErr("search arg error;searchType is InOutStoreSum;aid=%d;tid=%d;siteId=%d;lgId=%d;keepPriId1=%d;", aid, tid, siteId, lgId, keepPriId1);
+            return null;
+        }
+        matcher.and(ProductStoreEntity.InOutStoreRecordInfo.RL_REFUND_ID, ParamMatcher.EQ, rlRefundId);
+        return this;
+    }
+
     // 商品业务id
     public InOutStoreSearch setRlPdIds(FaiList<Integer> rlPdIds) {
         if(rlPdIds == null || rlPdIds.isEmpty()) {

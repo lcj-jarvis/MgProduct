@@ -107,6 +107,7 @@ public class MgProductInfCmd {
         public static final int NUM39 = 1039; /**@see PropCmd#UNION_SET_PROP_LIST */
         public static final int NUM40 = 1040; /**@see GroupCmd#UNION_SET_GROUP_LIST */
         public static final int NUM41 = 1041; /**@see StoreSalesSkuCmd#BATCH_SET_LIST */
+        public static final int NUM42 = 1042; /**@see BasicCmd#UNION_SET_LIST */
     }
 
 
@@ -150,6 +151,7 @@ public class MgProductInfCmd {
         public static final int SET_PD_BIND_GROUP = WriteCmdNum.NUM33;
         public static final int SET_SINGLE_PD = WriteCmdNum.NUM35;
         public static final int SET_PDS = WriteCmdNum.NUM36;
+        public static final int UNION_SET_LIST = WriteCmdNum.NUM42;
     }
 
     public static class GroupCmd {

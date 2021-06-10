@@ -274,6 +274,61 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
     }
 
     /**
+     * 新增商品数据、同时添加规格、库存数据以及参数和分类绑定
+     */
+    public int addProductInfo(int aid, int tid, int siteId, int lgId, int keepPriId1, Param addInfo, Param inOutStoreRecordInfo, Ref<Integer> rlPdIdRef) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if (addInfo == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;addInfo is empty");
+                return m_rt;
+            }
+            if (inOutStoreRecordInfo == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;inOutStoreRecordInfo is empty");
+                return m_rt;
+            }
+            // packaging send data
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
+            m_rt = addInfo.toBuffer(sendBody, ProductBasicDto.Key.UNION_INFO, ProductBasicDto.getUnionProductDef());
+            if(m_rt != Errno.OK){
+                Log.logErr(m_rt, "addInfo.toBuffer error;addInfo=%s;", addInfo);
+                return m_rt;
+            }
+            m_rt = inOutStoreRecordInfo.toBuffer(sendBody, MgProductDto.Key.IN_OUT_STORE_RECORD_INFO, ProductStoreDto.InOutStoreRecord.getInfoDto());
+            if(m_rt != Errno.OK){
+                Log.logErr(m_rt, "inStoreRecordInfo.toBuffer error;inStoreRecordInfo=%s;", inOutStoreRecordInfo);
+                return m_rt;
+            }
+            // send and recv
+            boolean rlPdIdRefNotNull = (rlPdIdRef != null);
+            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.ADD_PD_INFO, sendBody, false, rlPdIdRefNotNull);
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+            if (rlPdIdRefNotNull) {
+                Ref<Integer> keyRef = new Ref<Integer>();
+                m_rt = recvBody.getInt(keyRef, rlPdIdRef);
+                if (m_rt != Errno.OK || keyRef.value != ProductBasicDto.Key.RL_PD_ID) {
+                    Log.logErr(m_rt, "recv rlPdIdRef codec err");
+                    return m_rt;
+                }
+            }
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    /**
      * 新增商品业务关联
      */
     public int bindProductRel(int aid, int tid, int siteId, int lgId, int keepPriId1, Param bindRlPdInfo, Param info, Ref<Integer> rlPdIdRef) {

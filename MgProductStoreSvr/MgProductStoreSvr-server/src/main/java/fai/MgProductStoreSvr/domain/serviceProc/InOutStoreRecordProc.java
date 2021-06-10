@@ -398,6 +398,7 @@ public class InOutStoreRecordProc {
                 // 当有成本价时需要计算到总成本中
                 if(price > 0 && changeCount > 0){
                     long totalCost = changeCount*price;
+                    data.setLong(InOutStoreRecordEntity.Info.TOTAL_PRICE, totalCost);
                     long inMwTotalCost = changeCount*inMwPrice;
                     Param storeSalesSkuInfo = changeCountAfterSkuStoreSalesInfoMap.get(new SkuBizKey(unionPriId, skuId));
                     long fifoTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, 0L);
@@ -491,7 +492,7 @@ public class InOutStoreRecordProc {
                 sumInfo.setCalendar(InOutStoreSumEntity.Info.SYS_UPDATE_TIME, now);
             }
             // 计算总价：单价 * 变动库存
-            long totalFifoPrice = data.getLong(InOutStoreRecordEntity.Info.TOTAL_PRICE);
+            long totalFifoPrice = data.getLong(InOutStoreRecordEntity.Info.TOTAL_PRICE, 0L);
             long sumFifoPrice = sumInfo.getLong(InOutStoreSumEntity.Info.PRICE, 0L);
             sumInfo.setLong(InOutStoreSumEntity.Info.PRICE, totalFifoPrice + sumFifoPrice);
 

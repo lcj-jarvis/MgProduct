@@ -34,6 +34,7 @@ public class StoreSalesSkuEntity {
         ////////////////////////////// 临时字段 ↓↓↓ ////////////////////////////////////////
         public static final String HOLDING_ORDER_LIST = "holdingOrderList";         // 预扣状态的预扣记录集
         public static final String IN_PD_SC_STR_ID_LIST = "inPdScStrIdList";        // 规格值 FaiList<Integer>
+        public static final String COST_PRICE = "costPrice";                        // long 商品成本单价，商品导入用，不入库存销售信息库
         ////////////////////////////// 临时字段 ↑↑↑ ////////////////////////////////////////
     }
 

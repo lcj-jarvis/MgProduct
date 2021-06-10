@@ -38,6 +38,7 @@ public class InOutStoreRecordValObj {
      */
     public static final class FLag{
         public static final int NOT_CHANGE_COUNT = 0x1;   // 不改变总库存 - 退货入库等，有入库记录只更新remainCount不更新count
+        public static final int RESET_PRICE = 0x2;   // 重置过成本
     }
 
     /**

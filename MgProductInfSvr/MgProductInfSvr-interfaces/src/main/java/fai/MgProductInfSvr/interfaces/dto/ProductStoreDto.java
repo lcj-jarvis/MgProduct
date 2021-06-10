@@ -49,6 +49,7 @@ public class ProductStoreDto {
             g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.SITE_ID, 24, Var.Type.INT);
             g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.LGID, 25, Var.Type.INT);
             g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, 26, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.COST_PRICE, 27, Var.Type.LONG);
         }
         public static ParamDef getInfoDto() {
             return g_infoDtoDef;
@@ -85,6 +86,8 @@ public class ProductStoreDto {
             g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.RL_ORDER_CODE, 24, Var.Type.STRING);
             g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.RL_REFUND_ID, 25, Var.Type.STRING);
             g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.MW_PRICE, 26, Var.Type.LONG);
+            g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.TOTAL_PRICE, 27, Var.Type.LONG);
+            g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.MW_TOTAL_PRICE, 28, Var.Type.LONG);
 
         }
         public static ParamDef getInfoDto() {

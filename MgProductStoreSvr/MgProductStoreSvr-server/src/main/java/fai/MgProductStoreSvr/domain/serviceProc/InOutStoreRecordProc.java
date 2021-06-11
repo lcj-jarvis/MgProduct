@@ -387,6 +387,9 @@ public class InOutStoreRecordProc {
             data.setInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, ioStoreRecId);
             data.setInt(InOutStoreRecordEntity.Info.OPT_TYPE, optType);
             data.setInt(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
+            // 默认为0
+            data.setLong(InOutStoreRecordEntity.Info.TOTAL_PRICE, 0L);
+            data.setLong(InOutStoreRecordEntity.Info.MW_TOTAL_PRICE, 0L);
 
             data.assign(info, InOutStoreRecordEntity.Info.C_TYPE);
             data.assign(info, InOutStoreRecordEntity.Info.S_TYPE);

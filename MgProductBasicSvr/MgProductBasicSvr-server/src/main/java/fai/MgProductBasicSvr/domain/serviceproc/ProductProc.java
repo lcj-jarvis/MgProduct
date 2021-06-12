@@ -303,7 +303,7 @@ public class ProductProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductEntity.Info.PD_ID, ParamMatcher.IN, noCacheIds);
-        searchArg.matcher.and(ProductEntity.Info.STATUS, ParamMatcher.NE, ProductValObj.Status.DEL);
+        //searchArg.matcher.and(ProductEntity.Info.STATUS, ParamMatcher.NE, ProductValObj.Status.DEL);
         rt = m_dao.select(searchArg, tmpRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             throw new MgException(rt, "get list error;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);

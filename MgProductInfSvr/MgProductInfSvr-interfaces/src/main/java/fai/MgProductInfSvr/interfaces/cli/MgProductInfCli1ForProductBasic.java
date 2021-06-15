@@ -297,7 +297,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             }
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
-            m_rt = addInfo.toBuffer(sendBody, ProductBasicDto.Key.UNION_INFO, ProductBasicDto.getUnionProductDef());
+            m_rt = addInfo.toBuffer(sendBody, ProductBasicDto.Key.UNION_INFO, MgProductDto.getUnionProductDef());
             if(m_rt != Errno.OK){
                 Log.logErr(m_rt, "addInfo.toBuffer error;addInfo=%s;", addInfo);
                 return m_rt;
@@ -454,6 +454,35 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
         }
     }
 
+    /**
+     *  修改商品信息 包括 规格和库存服务
+     */
+    public int setProductInfo(int aid, int tid, int siteId, int lgId, int keepPriId1, Integer rlPdId, ParamUpdater updater) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if (updater == null || updater.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr("arg error;updater is empty");
+                return m_rt;
+            }
+            // packaging send data
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductBasicDto.Key.RL_PD_ID, rlPdId);
+            updater.toBuffer(sendBody, ProductBasicDto.Key.UPDATER, MgProductDto.getSetProductDef());
+            // send and recv
+            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.SET_PD_INFO, sendBody, false, false);
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
 
     /**
      * 批量修改商品，每个商品的改动都是一样的

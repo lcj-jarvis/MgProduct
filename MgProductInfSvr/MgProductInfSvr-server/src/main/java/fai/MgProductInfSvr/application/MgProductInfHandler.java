@@ -505,7 +505,7 @@ public class MgProductInfHandler extends FaiHandler {
                                    @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
                                    @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
                                    @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
-                                   @ArgParam(classDef = ProductBasicDto.class, methodDef = "getUnionProductDef",
+                                   @ArgParam(classDef = MgProductDto.class, methodDef = "getUnionProductDef",
                                            keyMatch = ProductBasicDto.Key.UNION_INFO) Param addInfo,
                                    @ArgParam(keyMatch = MgProductDto.Key.IN_OUT_STORE_RECORD_INFO,
                                            classDef = ProductStoreDto.InOutStoreRecord.class, methodDef = "getInfoDto") Param inStoreRecordInfo) throws IOException {
@@ -551,9 +551,24 @@ public class MgProductInfHandler extends FaiHandler {
                            @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
                            @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
                            @ArgBodyInteger( ProductBasicDto.Key.RL_PD_ID) Integer rlPdId,
-                           @ArgParam(classDef = ProductBasicDto.class, methodDef = "getProductDto",
+                           @ArgParamUpdater(classDef = ProductBasicDto.class, methodDef = "getProductDto",
                                    keyMatch = ProductBasicDto.Key.UPDATER) ParamUpdater updater) throws IOException {
         return basicService.setSinglePd(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, updater);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.BasicCmd.SET_PD_INFO)
+    public int setProductInfo(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid final int aid,
+                              @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
+                              @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
+                              @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
+                              @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
+                              @ArgBodyInteger( ProductBasicDto.Key.RL_PD_ID) Integer rlPdId,
+                              @ArgParamUpdater(classDef = MgProductDto.class, methodDef = "getSetProductDef",
+                                      keyMatch = ProductBasicDto.Key.UPDATER) ParamUpdater updater) throws IOException {
+        return basicService.setProductInfo(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, updater);
     }
 
     @WrittenCmd
@@ -566,7 +581,7 @@ public class MgProductInfHandler extends FaiHandler {
                            @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
                            @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
                            @ArgList(keyMatch = ProductBasicDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
-                           @ArgParam(classDef = ProductBasicDto.class, methodDef = "getProductDto",
+                           @ArgParamUpdater(classDef = ProductBasicDto.class, methodDef = "getProductDto",
                                    keyMatch = ProductBasicDto.Key.UPDATER) ParamUpdater updater) throws IOException {
         return basicService.setProducts(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIds, updater);
     }

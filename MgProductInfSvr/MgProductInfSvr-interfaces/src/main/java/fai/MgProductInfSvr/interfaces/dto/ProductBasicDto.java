@@ -1,6 +1,5 @@
 package fai.MgProductInfSvr.interfaces.dto;
 
-import fai.MgProductInfSvr.interfaces.entity.MgProductEntity;
 import fai.MgProductInfSvr.interfaces.entity.ProductBasicEntity;
 import fai.comm.util.FaiList;
 import fai.comm.util.ParamDef;
@@ -46,6 +45,12 @@ public class ProductBasicDto {
         g_productDef.add(ProductBasicEntity.ProductInfo.RL_GROUP_IDS, 28);
         g_productDef.add(ProductBasicEntity.ProductInfo.RL_PROP_IDS, 29);
         g_productDef.add(ProductBasicEntity.ProductInfo.PROP_VAL_IDS, 30);
+
+        /* 修改使用 */
+        g_productDef.add(ProductBasicEntity.BindGroupInfo.DEL_RL_GROUP_IDS, 31, Var.Type.FAI_LIST);
+        g_productDef.add(ProductBasicEntity.BindGroupInfo.ADD_RL_GROUP_IDS, 32, Var.Type.FAI_LIST);
+        g_productDef.add(ProductBasicEntity.BindPropInfo.ADD_PROP_LIST, 33, ProductPropDto.getPropValInfoDto(), Var.Type.FAI_LIST);
+        g_productDef.add(ProductBasicEntity.BindPropInfo.DEL_PROP_LIST, 34, ProductPropDto.getPropValInfoDto(), Var.Type.FAI_LIST);
     }
 
     public static ParamDef getProductDto() {
@@ -139,19 +144,6 @@ public class ProductBasicDto {
         public static final int DEL_BIND_GROUP_IDS = 20;
         public static final int UPDATER = 21;
         public static final int UNION_INFO = 22;
-    }
-
-    /** 商品数据（总) **/
-    private static ParamDef g_unionProductDef = new ParamDef();
-    static {
-        g_unionProductDef.add(MgProductEntity.Info.BASIC, 0, ProductBasicDto.getProductDto(), Var.Type.PARAM);
-        g_unionProductDef.add(MgProductEntity.Info.SPEC, 1, ProductSpecDto.Spec.getInfoDto(), Var.Type.FAI_LIST);
-        g_unionProductDef.add(MgProductEntity.Info.SPEC_SKU, 2, ProductSpecDto.SpecSku.getInfoDto(), Var.Type.FAI_LIST);
-        g_unionProductDef.add(MgProductEntity.Info.STORE_SALES, 3, ProductStoreDto.StoreSalesSku.getInfoDto(), Var.Type.FAI_LIST);
-    }
-
-    public static ParamDef getUnionProductDef() {
-        return g_unionProductDef;
     }
 
 

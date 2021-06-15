@@ -44,6 +44,7 @@ public class InOutStoreRecordProc {
         }
         Calendar now = Calendar.getInstance();
         FaiList<Param> dataList = new FaiList<>();
+        FaiList<Integer> unionPriIds = new FaiList<>();
         for(Param info : infoList) {
             int unionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, 0);
             long skuId = info.getLong(InOutStoreRecordEntity.Info.SKU_ID, 0L);
@@ -53,19 +54,32 @@ public class InOutStoreRecordProc {
                 Log.logStd(rt, "arg error;flow=%d;aid=%s;info=%s;", m_flow, aid, info);
                 return rt;
             }
-            Param data = new Param();
-            data.setLong(InOutStoreRecordEntity.Info.PRICE, costPrice);
-            data.setCalendar(InOutStoreRecordEntity.Info.SYS_UPDATE_TIME, now);
+            unionPriIds.add(unionPriId);
+            // 入库记录
+            Param inData = new Param();
+            inData.setLong(InOutStoreRecordEntity.Info.PRICE, costPrice);
+            inData.setLong(InOutStoreRecordEntity.Info.MW_PRICE, 0L);
+            inData.setCalendar(InOutStoreRecordEntity.Info.SYS_UPDATE_TIME, now);
+            inData.setInt(InOutStoreRecordEntity.Info.FLAG, InOutStoreRecordValObj.FLag.RESET_PRICE);
 
-            data.setInt(InOutStoreRecordEntity.Info.AID, aid);
-            data.setInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, unionPriId);
-            data.setCalendar(InOutStoreRecordEntity.Info.OPT_TIME, optTime);
-            data.setInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
-            data.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
-            // 这里加多一个match是为了和update需要 所设置的price区分开，不然构建批量修改会报错
+            inData.setInt(InOutStoreRecordEntity.Info.AID, aid);
+            inData.setInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, unionPriId);
+            inData.setCalendar(InOutStoreRecordEntity.Info.OPT_TIME, optTime);
+            inData.setInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
+            inData.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
+            // 这里加多一个match字符串 是为了和update需要设置的price区分开，不然构建批量修改会报错
             // 只修改price不为0的数据，主要原因是保证是重置未设置成本价的数据，且只能重置一次
-            data.setLong(InOutStoreRecordEntity.Info.PRICE+"match", 0L);
-            dataList.add(data);
+            inData.setLong(InOutStoreRecordEntity.Info.PRICE+"match", 0L);
+            inData.setInt(InOutStoreRecordEntity.Info.OPT_TYPE, InOutStoreRecordValObj.OptType.IN);
+            dataList.add(inData);
+
+            // 出库记录
+            // clone再set，保证Param中key的顺序还是一样的
+            Param outData = inData.clone();
+            outData.setLong(InOutStoreRecordEntity.Info.MW_PRICE, costPrice);
+            outData.setInt(InOutStoreRecordEntity.Info.OPT_TYPE, InOutStoreRecordValObj.OptType.OUT);
+            dataList.add(outData);
+
             Ref<Integer> countRef = new Ref<>();
             rt = getAvailableCount(aid, unionPriId, skuId, rlPdId, optTime, countRef);
             if(rt != Errno.OK) {
@@ -87,11 +101,14 @@ public class InOutStoreRecordProc {
         doBatchMatcher.and(InOutStoreRecordEntity.Info.RL_PD_ID, ParamMatcher.EQ, "?");
         doBatchMatcher.and(InOutStoreRecordEntity.Info.SKU_ID, ParamMatcher.EQ, "?");
         doBatchMatcher.and(InOutStoreRecordEntity.Info.PRICE, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(InOutStoreRecordEntity.Info.OPT_TYPE, ParamMatcher.EQ, "?");
 
         Param item = new Param();
         ParamUpdater doBatchUpdater = new ParamUpdater(item);
         item.setString(InOutStoreRecordEntity.Info.PRICE, "?");
+        item.setString(InOutStoreRecordEntity.Info.MW_PRICE, "?");
         item.setString(InOutStoreRecordEntity.Info.SYS_UPDATE_TIME, "?");
+        doBatchUpdater.add(InOutStoreRecordEntity.Info.FLAG, ParamUpdater.LOR, "?");
 
         rt = m_daoCtrl.doBatchUpdate(doBatchUpdater, doBatchMatcher, dataList, true);
         if(rt != Errno.OK){
@@ -99,7 +116,44 @@ public class InOutStoreRecordProc {
             return rt;
         }
 
+        // 更新相关出入库记录的总成本
+        rt = updateTotalCost(unionPriIds, aid);
+        if(rt != Errno.OK) {
+            return rt;
+        }
+
         Log.logStd("ok;flow=%s;aid=%s;rlPdId=%s;optTime=%s;infoList=%s;", m_flow, aid, rlPdId, Parser.parseString(optTime), infoList);
+        return rt;
+    }
+
+    private int updateTotalCost(FaiList<Integer> unionPriIds, int aid) {
+        int rt;
+        String unionPriIdsStr = unionPriIds.toString().replaceFirst("\\[", "(").replaceFirst("\\]", ")");
+        // update tablenameHold set totalPrice=price*changeCount, mwTotalPrice=mwPrice*changeCount where aid=9859944 and optType=2 and flag&2=2
+        String outSql = "update " + m_daoCtrl.TABLE_HOLD + " set " + InOutStoreRecordEntity.Info.TOTAL_PRICE + "=" + InOutStoreRecordEntity.Info.PRICE + ParamUpdater.MUL + InOutStoreRecordEntity.Info.CHANGE_COUNT
+                + ", " + InOutStoreRecordEntity.Info.MW_TOTAL_PRICE + "=" + InOutStoreRecordEntity.Info.MW_PRICE + ParamUpdater.MUL + InOutStoreRecordEntity.Info.CHANGE_COUNT
+                + " where " + InOutStoreRecordEntity.Info.AID + "=" + aid
+                + " and " + InOutStoreRecordEntity.Info.OPT_TYPE + "=" + InOutStoreRecordValObj.OptType.OUT
+                + " and " + InOutStoreRecordEntity.Info.FLAG + "&" + InOutStoreRecordValObj.FLag.RESET_PRICE + "=" + InOutStoreRecordValObj.FLag.RESET_PRICE
+                + " and " + InOutStoreRecordEntity.Info.UNION_PRI_ID + " in " + unionPriIdsStr;
+
+        rt = m_daoCtrl.executeUpdate(outSql);
+        if(rt != Errno.OK) {
+            Log.logErr("update out totalPrice err;flow=%s;aid=%s;sql=%s", m_flow, aid, outSql);
+            return rt;
+        }
+
+        // update tablenameHold set totalPrice=price*changeCount where aid=9859944 and optType=1 and flag&2=2
+        String inSql = "update " + m_daoCtrl.TABLE_HOLD + " set " + InOutStoreRecordEntity.Info.TOTAL_PRICE + " = " + InOutStoreRecordEntity.Info.PRICE + ParamUpdater.MUL + InOutStoreRecordEntity.Info.CHANGE_COUNT
+                + " where " + InOutStoreRecordEntity.Info.AID + "=" + aid
+                + " and " + InOutStoreRecordEntity.Info.OPT_TYPE + "=" + InOutStoreRecordValObj.OptType.IN
+                + " and " + InOutStoreRecordEntity.Info.FLAG + "&" + InOutStoreRecordValObj.FLag.RESET_PRICE + "=" + InOutStoreRecordValObj.FLag.RESET_PRICE
+                + " and " + InOutStoreRecordEntity.Info.UNION_PRI_ID + " in " + unionPriIdsStr;
+        rt = m_daoCtrl.executeUpdate(inSql);
+        if(rt != Errno.OK) {
+            Log.logErr("update in totalPrice err;flow=%s;aid=%s;sql=%s", m_flow, aid, inSql);
+            return rt;
+        }
         return rt;
     }
 
@@ -333,6 +387,9 @@ public class InOutStoreRecordProc {
             data.setInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, ioStoreRecId);
             data.setInt(InOutStoreRecordEntity.Info.OPT_TYPE, optType);
             data.setInt(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
+            // 默认为0
+            data.setLong(InOutStoreRecordEntity.Info.TOTAL_PRICE, 0L);
+            data.setLong(InOutStoreRecordEntity.Info.MW_TOTAL_PRICE, 0L);
 
             data.assign(info, InOutStoreRecordEntity.Info.C_TYPE);
             data.assign(info, InOutStoreRecordEntity.Info.S_TYPE);
@@ -344,6 +401,7 @@ public class InOutStoreRecordProc {
                 // 当有成本价时需要计算到总成本中
                 if(price > 0 && changeCount > 0){
                     long totalCost = changeCount*price;
+                    data.setLong(InOutStoreRecordEntity.Info.TOTAL_PRICE, totalCost);
                     long inMwTotalCost = changeCount*inMwPrice;
                     Param storeSalesSkuInfo = changeCountAfterSkuStoreSalesInfoMap.get(new SkuBizKey(unionPriId, skuId));
                     long fifoTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, 0L);
@@ -396,6 +454,7 @@ public class InOutStoreRecordProc {
                     BigDecimal result = outTotal.divide(new BigDecimal(changeCount), BigDecimal.ROUND_HALF_UP);
                     long fifoPrice = result.longValue();
                     data.setLong(InOutStoreRecordEntity.Info.PRICE, fifoPrice);
+                    data.setLong(InOutStoreRecordEntity.Info.TOTAL_PRICE, fifoOutTotalCostRef.value);
                     // 计算剩余总成本
                     Long fifoTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, 0L);
                     fifoTotalCost -= fifoOutTotalCostRef.value;
@@ -409,6 +468,7 @@ public class InOutStoreRecordProc {
                     BigDecimal result = total.divide(new BigDecimal(remainCount + changeCount), BigDecimal.ROUND_HALF_UP);// 四舍五入
                     long mwPrice = result.longValue();
                     data.setLong(InOutStoreRecordEntity.Info.MW_PRICE, mwPrice);
+                    data.setLong(InOutStoreRecordEntity.Info.MW_TOTAL_PRICE, mwPrice*changeCount);
                     // 计算剩余的总成本
                     mwTotalCost -= mwPrice*changeCount;
                     storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, mwTotalCost);
@@ -435,13 +495,13 @@ public class InOutStoreRecordProc {
                 sumInfo.setCalendar(InOutStoreSumEntity.Info.SYS_UPDATE_TIME, now);
             }
             // 计算总价：单价 * 变动库存
-            long fifoPrice = data.getLong(InOutStoreRecordEntity.Info.PRICE);
+            long totalFifoPrice = data.getLong(InOutStoreRecordEntity.Info.TOTAL_PRICE, 0L);
             long sumFifoPrice = sumInfo.getLong(InOutStoreSumEntity.Info.PRICE, 0L);
-            sumInfo.setLong(InOutStoreSumEntity.Info.PRICE, fifoPrice * changeCount + sumFifoPrice);
+            sumInfo.setLong(InOutStoreSumEntity.Info.PRICE, totalFifoPrice + sumFifoPrice);
 
-            long mwPrice = data.getLong(InOutStoreRecordEntity.Info.MW_PRICE, 0L);
+            long totalMwPrice = data.getLong(InOutStoreRecordEntity.Info.MW_TOTAL_PRICE, 0L);
             long sumMwPrice = sumInfo.getLong(InOutStoreSumEntity.Info.MW_PRICE, 0L);
-            sumInfo.setLong(InOutStoreSumEntity.Info.MW_PRICE, mwPrice * changeCount + sumMwPrice);
+            sumInfo.setLong(InOutStoreSumEntity.Info.MW_PRICE, totalMwPrice + sumMwPrice);
         }
 
         rt = m_daoCtrl.batchInsert(dataList, null, false); // 暂时不设置为null

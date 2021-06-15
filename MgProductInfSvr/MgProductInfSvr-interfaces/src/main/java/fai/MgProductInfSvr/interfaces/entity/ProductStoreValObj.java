@@ -52,6 +52,7 @@ public class ProductStoreValObj {
          */
         public static final class FLag{
             public static final int NOT_CHANGE_COUNT = 0x1;   // 不改变总库存
+            public static final int RESET_PRICE = 0x2;   // 重置过成本
         }
 
         /**

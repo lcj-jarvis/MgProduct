@@ -3,6 +3,8 @@ package fai.MgProductInfSvr.interfaces.cli;
 import fai.MgProductInfSvr.interfaces.cmd.MgProductInfCmd;
 import fai.MgProductInfSvr.interfaces.dto.ProductBasicDto;
 import fai.MgProductInfSvr.interfaces.dto.ProductPropDto;
+import fai.MgProductInfSvr.interfaces.entity.ProductPropEntity;
+import fai.MgProductInfSvr.interfaces.utils.MgProductArg;
 import fai.comm.util.*;
 
 import java.nio.ByteBuffer;
@@ -243,22 +245,37 @@ public class MgProductInfCli2ForProductProp extends MgProductInfCli1ForProductBa
 
     /**
      * 合并 商品参数 增删改 接口
-     * @param addList 添加数据
-     * @param updaterList 修改数据
-     * @param delList 删除数据
-     * @param idsRef 添加成功后返回的id
-     * @return rt
+     * @param mgProductArg
+     *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *              .setAddList(addList)         // 选填
+     *              .setUpdaterList(updaterList) // 选填
+     *              .setRlPropIds(rlPropIds)     // 选填
+     *              .setLibId(libId)             // 必填
+     *              .build();
+     * addList: 详见{@link ProductPropEntity.PropInfo}
+     * updaterList: 详见{@link ProductPropEntity.PropInfo}
+     * rlPropIds: 参数业务id集合
+     * libId: 库id
+     * @param idsRef 接收返回的rlPropIds
+     * @return {@link Errno}
      */
-    public int unionSetPropList(int aid, int tid, int siteId, int lgId, int keepPriId1, int libId, FaiList<Param> addList, FaiList<ParamUpdater> updaterList, FaiList<Integer> delList, Ref<FaiList<Integer>> idsRef) {
+    public int unionSetPropList(MgProductArg mgProductArg, Ref<FaiList<Integer>> idsRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
+            int aid = mgProductArg.getAid();
             if (aid == 0) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            int libId = mgProductArg.getLibId();
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductPropDto.Key.TID, tid), new Pair(ProductPropDto.Key.SITE_ID, siteId), new Pair(ProductPropDto.Key.LGID, lgId), new Pair(ProductPropDto.Key.KEEP_PRIID1, keepPriId1), new Pair(ProductPropDto.Key.LIB_ID, libId));
+            FaiList<Param> addList = mgProductArg.getAddList();
             if (addList == null) {
                 addList = new FaiList<Param>();
             }
@@ -268,6 +285,7 @@ public class MgProductInfCli2ForProductProp extends MgProductInfCli1ForProductBa
                 Log.logErr(m_rt, "addList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;libId=%s;", aid, tid, siteId, lgId, keepPriId1, libId);
                 return m_rt;
             }
+            FaiList<ParamUpdater> updaterList = mgProductArg.getUpdaterList();
             if (updaterList == null) {
                 updaterList = new FaiList<ParamUpdater>();
             }
@@ -277,6 +295,7 @@ public class MgProductInfCli2ForProductProp extends MgProductInfCli1ForProductBa
                 Log.logErr(m_rt, "updaterList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;libId=%s;", aid, tid, siteId, lgId, keepPriId1, libId);
                 return m_rt;
             }
+            FaiList<Integer> delList = mgProductArg.getRlPropIds();
             if (delList == null) {
                 delList = new FaiList<Integer>();
             }

@@ -53,28 +53,6 @@ public class MgProductDto {
         return g_primaryKeyDef;
     }
 
-    /** 商品数据（总) **/
-    private static ParamDef g_unionProductDef = new ParamDef();
-    static {
-        g_unionProductDef.add(MgProductEntity.Info.BASIC, 0, ProductBasicDto.getProductDto(), Var.Type.PARAM);
-        g_unionProductDef.add(MgProductEntity.Info.SPEC, 1, ProductSpecDto.Spec.getInfoDto(), Var.Type.FAI_LIST);
-        g_unionProductDef.add(MgProductEntity.Info.SPEC_SKU, 2, ProductSpecDto.SpecSku.getInfoDto(), Var.Type.FAI_LIST);
-        g_unionProductDef.add(MgProductEntity.Info.STORE_SALES, 3, ProductStoreDto.StoreSalesSku.getInfoDto(), Var.Type.FAI_LIST);
-    }
-    public static ParamDef getUnionProductDef() {
-        return g_unionProductDef;
-    }
-
-    private static ParamDef g_setProductDef = new ParamDef();
-    static {
-        g_setProductDef.add(MgProductEntity.Info.BASIC, 0, ProductBasicDto.getProductDto(), Var.Type.PARAM);
-        g_setProductDef.add(MgProductEntity.Info.SPEC_SKU, 1, ProductSpecDto.SpecSku.getInfoDto(), Var.Type.FAI_LIST);
-        g_setProductDef.add(MgProductEntity.Info.STORE_SALES, 2, ProductStoreDto.StoreSalesSku.getInfoDto(), Var.Type.FAI_LIST);
-    }
-    public static ParamDef getSetProductDef() {
-        return g_setProductDef;
-    }
-
     public static class Key {
         public static final int TID  = 1;
         public static final int SITE_ID  = 2;

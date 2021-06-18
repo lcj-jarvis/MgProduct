@@ -26,6 +26,7 @@ public class ProductStoreEntity {
         public static final String ORIGIN_PRICE = "originPrice";                    // long 商品原价
         public static final String FIFO_TOTAL_COST = "fifoTotalCost";               // long 先进先出方式计算的总成本
         public static final String MW_TOTAL_COST = "mwTotalCost";                   // long 移动加权方式计算的总成本
+        public static final String MW_COST = "mwCost";                              // long 移动加权方式计算的成本单价
         public static final String MIN_AMOUNT = "minAmount";                        // int 起购量
         public static final String MAX_AMOUNT = "maxAmount";                        // int 限购量
         public static final String DURATION = "duration";                           // double 预约时长

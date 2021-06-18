@@ -735,10 +735,12 @@ public class StoreSalesSkuProc {
             Param totalCostInfo = skuBizKeyInfoEntry.getValue();
             long fifoTotalCost = totalCostInfo.getLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST);
             long mwTotalCost = totalCostInfo.getLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST);
+            long mwCost = totalCostInfo.getLong(StoreSalesSkuEntity.Info.MW_COST);
             Param data = new Param();
             // updater field
             data.setLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, fifoTotalCost);
             data.setLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, mwTotalCost);
+            data.setLong(StoreSalesSkuEntity.Info.MW_COST, mwCost);
             data.setCalendar(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, now);
             // matcher field
             data.setInt(StoreSalesSkuEntity.Info.AID, aid);
@@ -749,6 +751,7 @@ public class StoreSalesSkuProc {
         ParamUpdater updater = new ParamUpdater();
         updater.getData().setString(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, "?");
         updater.getData().setString(StoreSalesSkuEntity.Info.MW_TOTAL_COST, "?");
+        updater.getData().setString(StoreSalesSkuEntity.Info.MW_COST, "?");
         updater.getData().setString(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, "?");
 
         ParamMatcher matcher = new ParamMatcher();
@@ -851,7 +854,8 @@ public class StoreSalesSkuProc {
                     StoreSalesSkuEntity.Info.REMAIN_COUNT,
                     StoreSalesSkuEntity.Info.HOLDING_COUNT,
                     StoreSalesSkuEntity.Info.FIFO_TOTAL_COST,
-                    StoreSalesSkuEntity.Info.MW_TOTAL_COST);
+                    StoreSalesSkuEntity.Info.MW_TOTAL_COST,
+                    StoreSalesSkuEntity.Info.MW_COST);
             if(rt != Errno.OK){
                 return rt;
             }

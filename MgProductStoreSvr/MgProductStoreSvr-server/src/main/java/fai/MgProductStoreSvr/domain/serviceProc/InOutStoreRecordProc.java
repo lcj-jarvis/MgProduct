@@ -86,14 +86,19 @@ public class InOutStoreRecordProc {
                 return rt;
             }
             // 计算需要更新的成本
-            int changeCount = countRef.value;
-            long totalCost = changeCount*costPrice;
-            long inMwTotalCost = changeCount*costPrice;
+            int availabCount = countRef.value;
+            long totalCost = availabCount*costPrice;
+            long inMwTotalCost = availabCount*costPrice;
             Param storeSalesSkuInfo = changeCountAfterSkuStoreInfoMap.get(new SkuBizKey(unionPriId, skuId));
+            long remainCount = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.REMAIN_COUNT, 0L);
+            long holdingCount = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.HOLDING_COUNT, 0L);
             long fifoTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, 0L);
             long mwTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, 0L);
             storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, fifoTotalCost + totalCost);
             storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, mwTotalCost + inMwTotalCost);
+
+            BigDecimal total = new BigDecimal(mwTotalCost + inMwTotalCost);
+            storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_COST, total.divide(new BigDecimal(remainCount+holdingCount)).longValue());
         }
         ParamMatcher doBatchMatcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, "?");
         doBatchMatcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
@@ -395,6 +400,7 @@ public class InOutStoreRecordProc {
             data.assign(info, InOutStoreRecordEntity.Info.S_TYPE);
             data.setInt(InOutStoreRecordEntity.Info.CHANGE_COUNT, changeCount);
             data.setInt(InOutStoreRecordEntity.Info.REMAIN_COUNT, remainCount);
+
             if(optType == InOutStoreRecordValObj.OptType.IN){ // 入库操作记录可用库存
                 // 设置可以库存，用于计算成本
                 data.setInt(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, changeCount);
@@ -408,6 +414,16 @@ public class InOutStoreRecordProc {
                     long mwTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, 0L);
                     storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, fifoTotalCost + totalCost);
                     storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, mwTotalCost + inMwTotalCost);
+
+                    // 计算移动加权方式的成本单价
+                    long mwCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.MW_COST, 0L);
+                    if(mwCost == 0) {
+                        mwCost = new BigDecimal(mwTotalCost + inMwTotalCost).divide(new BigDecimal(remainCount+changeCount), BigDecimal.ROUND_HALF_UP).longValue();
+                    }else {
+                        // (emainCount*mwCost+inMwTotalCost)/(remainCount+changeCount)
+                        mwCost = new BigDecimal(remainCount*mwCost+inMwTotalCost).divide(new BigDecimal(remainCount+changeCount), BigDecimal.ROUND_HALF_UP).longValue();
+                    }
+                    storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_COST, mwCost);
                 }
             }
             // 转化为字符串
@@ -464,13 +480,20 @@ public class InOutStoreRecordProc {
                 {
                     // 计算平均价
                     long mwTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, 0L);
-                    BigDecimal total = new BigDecimal(mwTotalCost);
-                    BigDecimal result = total.divide(new BigDecimal(remainCount + changeCount), BigDecimal.ROUND_HALF_UP);// 四舍五入
-                    long mwPrice = result.longValue();
-                    data.setLong(InOutStoreRecordEntity.Info.MW_PRICE, mwPrice);
-                    data.setLong(InOutStoreRecordEntity.Info.MW_TOTAL_PRICE, mwPrice*changeCount);
+
+                    // 移动加权方式的成本单价
+                    long mwCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.MW_COST, 0L);
+                    if(mwCost == 0) {
+                        BigDecimal total = new BigDecimal(mwTotalCost);
+                        BigDecimal result = total.divide(new BigDecimal(remainCount + changeCount), BigDecimal.ROUND_HALF_UP);// 四舍五入
+                        mwCost = result.longValue();
+                        storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_COST, mwCost);
+                    }
+
+                    data.setLong(InOutStoreRecordEntity.Info.MW_PRICE, mwCost);
+                    data.setLong(InOutStoreRecordEntity.Info.MW_TOTAL_PRICE, mwCost*changeCount);
                     // 计算剩余的总成本
-                    mwTotalCost -= mwPrice*changeCount;
+                    mwTotalCost -= mwCost*changeCount;
                     storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, mwTotalCost);
                 }
             }

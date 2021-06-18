@@ -22,6 +22,7 @@ public class StoreSalesSkuEntity {
         public static final String ORIGIN_PRICE = "originPrice";                    // bigint 商品原价(或者是 sku 的市场价)
         public static final String FIFO_TOTAL_COST = "fifoTotalCost";               // bigint 先进先出方式计算的总成本
         public static final String MW_TOTAL_COST = "mwTotalCost";                   // bigint 移动加权方式计算的总成本
+        public static final String MW_COST = "mwCost";                              // bigint 移动加权方式计算的成本单价
         public static final String MIN_AMOUNT = "minAmount";                        // int 起购量
         public static final String MAX_AMOUNT = "maxAmount";                        // int 限购量
         public static final String DURATION = "duration";                           // double 预约时长

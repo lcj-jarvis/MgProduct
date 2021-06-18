@@ -50,6 +50,7 @@ public class ProductStoreDto {
             g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.LGID, 25, Var.Type.INT);
             g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, 26, Var.Type.INT);
             g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.COST_PRICE, 27, Var.Type.LONG);
+            g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.MW_COST, 28, Var.Type.LONG);
         }
         public static ParamDef getInfoDto() {
             return g_infoDtoDef;

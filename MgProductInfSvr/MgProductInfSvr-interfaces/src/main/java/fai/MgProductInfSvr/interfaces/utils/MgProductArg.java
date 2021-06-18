@@ -23,6 +23,11 @@ public class MgProductArg {
     private FaiList<Param> skuList;
     private FaiList<ParamUpdater> updaterList;
     private Param combined;
+    private ParamUpdater combinedUpdater;
+    private Param inOutStoreRecordInfo;
+    private int libId;
+    private FaiList<Integer> rlPropIds;
+    private FaiList<Integer> rlGroupIds;
 
     private MgProductArg(Builder builder) {
         this.aid = builder.aid;
@@ -41,6 +46,11 @@ public class MgProductArg {
         this.costPrice = builder.costPrice;
         this.skuList = builder.skuList;
         this.combined = builder.combined;
+        this.combinedUpdater = builder.combinedUpdater;
+        this.inOutStoreRecordInfo = builder.inOutStoreRecordInfo;
+        this.libId = builder.libId;
+        this.rlPropIds = builder.rlPropIds;
+        this.rlGroupIds = builder.rlGroupIds;
     }
 
     public int getAid() {
@@ -103,6 +113,26 @@ public class MgProductArg {
         return combined;
     }
 
+    public ParamUpdater getCombinedUpdater() {
+        return combinedUpdater;
+    }
+
+    public Param getInOutStoreRecordInfo() {
+        return inOutStoreRecordInfo;
+    }
+
+    public int getLibId() {
+        return libId;
+    }
+
+    public FaiList<Integer> getRlPropIds() {
+        return rlPropIds;
+    }
+
+    public FaiList<Integer> getRlGroupIds() {
+        return rlGroupIds;
+    }
+
     private static abstract class TopBuilder {
         protected int aid;
         protected int tid;
@@ -114,11 +144,13 @@ public class MgProductArg {
         protected FaiList<Param> primaryKeys;
         protected FaiList<ParamUpdater> updaterList;
         protected Param combined;
+        protected ParamUpdater combinedUpdater;
 
         public abstract Builder setAddList(FaiList<Param> addList);
         public abstract Builder setPrimaryList(FaiList<Param> primaryKeys);
         public abstract Builder setUpdaterList(FaiList<ParamUpdater> updaterList);
         public abstract Builder setCombined(Param combined);
+        public abstract Builder setCombinedUpdater(ParamUpdater combinedUpdater);
     }
 
     private static abstract class BasicBuilder extends TopBuilder {
@@ -130,9 +162,17 @@ public class MgProductArg {
     }
 
     private static abstract class GroupBuilder extends BasicBuilder {
+        protected FaiList<Integer> rlGroupIds;
+
+        public abstract Builder setRlGroupIds(FaiList<Integer> rlGroupIds);
     }
 
     private static abstract class PropBuilder extends GroupBuilder {
+        protected int libId;
+        protected FaiList<Integer> rlPropIds;
+
+        public abstract Builder setLibId(int libId);
+        public abstract Builder setRlPropIds(FaiList<Integer> rlPropIds);
     }
 
     private static abstract class SpecBuilder extends PropBuilder {
@@ -153,10 +193,12 @@ public class MgProductArg {
         protected Calendar optTime;
         protected boolean isBiz;
         protected long costPrice;
+        protected Param inOutStoreRecordInfo;
 
         public abstract Builder setOptTime(Calendar optTime);
         public abstract Builder setIsBiz(boolean isBiz);
         public abstract Builder setCostPrice(long costPrice);
+        public abstract Builder setInOutStoreRecordInfo(Param inOutStoreRecordInfo);
     }
 
     public static class Builder extends StoreBuilder {
@@ -189,6 +231,12 @@ public class MgProductArg {
         @Override
         public Builder setCombined(Param combined) {
             this.combined = combined;
+            return this;
+        }
+
+        @Override
+        public Builder setCombinedUpdater(ParamUpdater combinedUpdater) {
+            this.combinedUpdater = combinedUpdater;
             return this;
         }
 
@@ -259,8 +307,32 @@ public class MgProductArg {
         }
 
         @Override
+        public Builder setInOutStoreRecordInfo(Param inOutStoreRecordInfo) {
+            this.inOutStoreRecordInfo = inOutStoreRecordInfo;
+            return this;
+        }
+
+        @Override
         public Builder setOptTime(Calendar optTime) {
             this.optTime = optTime;
+            return this;
+        }
+
+        @Override
+        public Builder setLibId(int libId) {
+            this.libId = libId;
+            return this;
+        }
+
+        @Override
+        public Builder setRlPropIds(FaiList<Integer> rlPropIds) {
+            this.rlPropIds = rlPropIds;
+            return this;
+        }
+
+        @Override
+        public Builder setRlGroupIds(FaiList<Integer> rlGroupIds) {
+            this.rlGroupIds = rlGroupIds;
             return this;
         }
 

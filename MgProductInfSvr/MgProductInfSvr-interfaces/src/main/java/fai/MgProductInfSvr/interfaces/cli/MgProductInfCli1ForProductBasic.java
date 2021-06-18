@@ -275,29 +275,46 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
 
     /**
      * 新增商品数据、同时添加规格、库存数据以及参数和分类绑定
+     * @param mgProductArg
+     *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *              .setCombined(combined)
+     *              .setInOutStoreRecordInfo(inOutStoreRecordInfo)
+     *              .build();
+     * combined 添加信息 {@link MgProductDto#getInfoDto()}
+     *        只需要其中的 MgProductEntity.Info.BASIC、MgProductEntity.Info.SPEC、MgProductEntity.Info.SPEC_SKU、MgProductEntity.Info.STORE_SALES
+     * inOutStoreRecordInfo 出入库信息 {@link ProductStoreEntity.InOutStoreRecordInfo}
+     * @param rlPdIdRef 接收添加商品后的 rlPdId 不需要的时候请传null
+     * @return {@link Errno}
      */
-    public int addProductInfo(int aid, int tid, int siteId, int lgId, int keepPriId1, Param addInfo, Param inOutStoreRecordInfo, Ref<Integer> rlPdIdRef) {
+    public int addProductInfo(MgProductArg mgProductArg, Ref<Integer> rlPdIdRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
+            int aid = mgProductArg.getAid();
             if (aid == 0) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
+            Param addInfo = mgProductArg.getCombined();
             if (addInfo == null) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error;addInfo is empty");
                 return m_rt;
             }
+            Param inOutStoreRecordInfo = mgProductArg.getInOutStoreRecordInfo();
             if (inOutStoreRecordInfo == null) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error;inOutStoreRecordInfo is empty");
                 return m_rt;
             }
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
-            m_rt = addInfo.toBuffer(sendBody, ProductBasicDto.Key.UNION_INFO, ProductBasicDto.getUnionProductDef());
+            m_rt = addInfo.toBuffer(sendBody, ProductBasicDto.Key.UNION_INFO, MgProductDto.getInfoDto());
             if(m_rt != Errno.OK){
                 Log.logErr(m_rt, "addInfo.toBuffer error;addInfo=%s;", addInfo);
                 return m_rt;
@@ -454,6 +471,51 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
         }
     }
 
+    /**
+     * 修改商品信息 包括 规格和库存服务
+     * @param mgProductArg
+     *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *                 .setCombinedUpdater(updater)   // 必填
+     *                 .setRlPdId(rlPdId)             // 必填
+     *                 .build();
+     * updater说明： updater详见 {@link MgProductDto#getInfoDto}
+     *          只需要其中的 MgProductEntity.Info.BASIC、MgProductEntity.Info.SPEC_SKU、MgProductEntity.Info.STORE_SALES
+     *          其他描述详见接口文档
+     * @return {@link Errno}
+     */
+    public int setProductInfo(MgProductArg mgProductArg) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            int aid = mgProductArg.getAid();
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            ParamUpdater updater = mgProductArg.getCombinedUpdater();
+            if (updater == null || updater.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr("arg error;updater is empty");
+                return m_rt;
+            }
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            int rlPdId = mgProductArg.getRlPdId();
+            // packaging send data
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductBasicDto.Key.RL_PD_ID, rlPdId);
+            updater.toBuffer(sendBody, ProductBasicDto.Key.UPDATER, MgProductDto.getInfoDto());
+            // send and recv
+            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.SET_PD_INFO, sendBody, false, false);
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
 
     /**
      * 批量修改商品，每个商品的改动都是一样的

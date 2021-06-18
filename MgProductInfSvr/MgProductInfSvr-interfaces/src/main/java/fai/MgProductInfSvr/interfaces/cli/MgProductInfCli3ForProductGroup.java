@@ -3,6 +3,8 @@ package fai.MgProductInfSvr.interfaces.cli;
 import fai.MgProductInfSvr.interfaces.cmd.MgProductInfCmd;
 import fai.MgProductInfSvr.interfaces.dto.ProductBasicDto;
 import fai.MgProductInfSvr.interfaces.dto.ProductGroupDto;
+import fai.MgProductInfSvr.interfaces.entity.ProductGroupEntity;
+import fai.MgProductInfSvr.interfaces.utils.MgProductArg;
 import fai.comm.util.*;
 
 public class MgProductInfCli3ForProductGroup extends MgProductInfCli2ForProductProp{
@@ -193,24 +195,47 @@ public class MgProductInfCli3ForProductGroup extends MgProductInfCli2ForProductP
         }
     }
 
-    public int unionSetGroupList(int aid, int tid, int siteId, int lgId, int keepPriId1, Param addInfo, FaiList<ParamUpdater> updaterList, FaiList<Integer> delList, Ref<Integer> rlGroupIdRef) {
+    /**
+     * 合并 增删改接口 (增加只支持单个新增)
+     *
+     * @param mgProductArg
+     *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *              .setCombined(addInfo)        // 选填
+     *              .setUpdaterList(updaterList) // 选填
+     *              .setRlGroupIds(rlGroupIds)   // 选填
+     *              .build();
+     * addInfo: 详见{@link ProductGroupEntity.GroupInfo}
+     * updaterList: 详见{@link ProductGroupEntity.GroupInfo}
+     * rlGroupIds: 分类业务id集合
+     * @param rlGroupIdRef 接收返回的分类业务id
+     * @return {@link Errno}
+     */
+    public int unionSetGroupList(MgProductArg mgProductArg, Ref<Integer> rlGroupIdRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
+            int aid = mgProductArg.getAid();
             if (aid == 0) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductGroupDto.Key.TID, tid), new Pair(ProductGroupDto.Key.SITE_ID, siteId), new Pair(ProductGroupDto.Key.LGID, lgId), new Pair(ProductGroupDto.Key.KEEP_PRIID1, keepPriId1));
+            Param addInfo = mgProductArg.getCombined();
             if (addInfo == null) {
                 addInfo = new Param();
             }
+            FaiList<ParamUpdater> updaterList = mgProductArg.getUpdaterList();
             addInfo.toBuffer(sendBody, ProductGroupDto.Key.INFO, ProductGroupDto.getPdGroupDto());
             if (updaterList == null) {
                 updaterList = new FaiList<ParamUpdater>();
             }
+            FaiList<Integer> delList = mgProductArg.getRlGroupIds();
             updaterList.toBuffer(sendBody, ProductGroupDto.Key.UPDATERLIST, ProductGroupDto.getPdGroupDto());
             if (delList == null) {
                 delList = new FaiList<Integer>();

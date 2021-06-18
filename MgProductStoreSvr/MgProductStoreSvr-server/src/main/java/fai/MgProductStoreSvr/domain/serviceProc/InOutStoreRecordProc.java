@@ -418,10 +418,10 @@ public class InOutStoreRecordProc {
                     // 计算移动加权方式的成本单价
                     long mwCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.MW_COST, 0L);
                     if(mwCost == 0) {
-                        mwCost = new BigDecimal(mwTotalCost + inMwTotalCost).divide(new BigDecimal(remainCount+changeCount), BigDecimal.ROUND_HALF_UP).longValue();
+                        mwCost = new BigDecimal(mwTotalCost + inMwTotalCost).divide(new BigDecimal(remainCount), BigDecimal.ROUND_HALF_UP).longValue();
                     }else {
-                        // (emainCount*mwCost+inMwTotalCost)/(remainCount+changeCount)
-                        mwCost = new BigDecimal(remainCount*mwCost+inMwTotalCost).divide(new BigDecimal(remainCount+changeCount), BigDecimal.ROUND_HALF_UP).longValue();
+                        // (remainCount*mwCost+inMwTotalCost)/(remainCount)
+                        mwCost = new BigDecimal((remainCount-changeCount)*mwCost+inMwTotalCost).divide(new BigDecimal(remainCount), BigDecimal.ROUND_HALF_UP).longValue();
                     }
                     storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_COST, mwCost);
                 }

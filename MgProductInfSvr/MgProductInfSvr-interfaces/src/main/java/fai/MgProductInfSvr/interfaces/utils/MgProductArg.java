@@ -25,8 +25,18 @@ public class MgProductArg {
     private Param combined;
     private ParamUpdater combinedUpdater;
     private Param inOutStoreRecordInfo;
+    private FaiList<Param> importProductList;
+    private MgProductSearch mgProductSearch;
+    private Param addInfo;
+    private Param bindRlPdInfo;
+    private Param pdRelInfo;
+    private FaiList<Param> pdRelInfoList;
+    private ParamUpdater updater;
+    private boolean softDel;
+
     private int libId;
     private FaiList<Integer> rlPropIds;
+
     private FaiList<Integer> rlGroupIds;
 
     private MgProductArg(Builder builder) {
@@ -48,9 +58,19 @@ public class MgProductArg {
         this.combined = builder.combined;
         this.combinedUpdater = builder.combinedUpdater;
         this.inOutStoreRecordInfo = builder.inOutStoreRecordInfo;
+        this.mgProductSearch = builder.mgProductSearch;
+        this.importProductList = builder.importProductList;
+        this.addInfo = builder.addInfo;
+        this.bindRlPdInfo = builder.bindRlPdInfo;
+        this.pdRelInfo = builder.pdRelInfo;
+        this.pdRelInfoList = builder.pdRelInfoList;
+
         this.libId = builder.libId;
         this.rlPropIds = builder.rlPropIds;
+
         this.rlGroupIds = builder.rlGroupIds;
+        this.updater = builder.updater;
+        this.softDel = builder.softDel;
     }
 
     public int getAid() {
@@ -133,6 +153,38 @@ public class MgProductArg {
         return rlGroupIds;
     }
 
+    public MgProductSearch getMgProductSearch() {
+        return mgProductSearch;
+    }
+
+    public FaiList<Param> getImportProductList() {
+        return importProductList;
+    }
+
+    public Param getAddInfo() {
+        return addInfo;
+    }
+
+    public Param getBindRlPdInfo() {
+        return bindRlPdInfo;
+    }
+
+    public Param getPdRelInfo() {
+        return pdRelInfo;
+    }
+
+    public FaiList<Param> getPdRelInfoList() {
+        return pdRelInfoList;
+    }
+
+    public ParamUpdater getUpdater() {
+        return updater;
+    }
+
+    public boolean getSoftDel() {
+        return softDel;
+    }
+
     private static abstract class TopBuilder {
         protected int aid;
         protected int tid;
@@ -145,20 +197,36 @@ public class MgProductArg {
         protected FaiList<ParamUpdater> updaterList;
         protected Param combined;
         protected ParamUpdater combinedUpdater;
+        protected MgProductSearch mgProductSearch;
+        protected FaiList<Param> importProductList;
+        protected ParamUpdater updater;
+        protected boolean softDel;
 
         public abstract Builder setAddList(FaiList<Param> addList);
         public abstract Builder setPrimaryList(FaiList<Param> primaryKeys);
         public abstract Builder setUpdaterList(FaiList<ParamUpdater> updaterList);
         public abstract Builder setCombined(Param combined);
         public abstract Builder setCombinedUpdater(ParamUpdater combinedUpdater);
+        public abstract Builder setMgProductSearch(MgProductSearch mgProductSearch);
+        public abstract Builder setImportProductList(FaiList<Param> importProductList);
+        public abstract Builder setUpdater(ParamUpdater updater);
+        public abstract Builder setSoftDel(boolean softDel);
     }
 
     private static abstract class BasicBuilder extends TopBuilder {
         protected int rlPdId;
         protected FaiList<Integer> rlPdIds;
+        protected Param addInfo;
+        protected Param bindRlPdInfo;
+        protected Param pdRelInfo;
+        protected FaiList<Param> pdRelInfoList;
 
         public abstract Builder setRlPdId(int rlPdId);
         public abstract Builder setRlPdIds(FaiList<Integer> rlPdIds);
+        public abstract Builder setAddInfo(Param addInfo);
+        public abstract Builder setBindRlPdInfo(Param bindRlPdInfo);
+        public abstract Builder setPdRelInfo(Param pdRelInfo);
+        public abstract Builder setPdRelInfoList(FaiList<Param> pdRelInfoList);
     }
 
     private static abstract class GroupBuilder extends BasicBuilder {
@@ -241,6 +309,30 @@ public class MgProductArg {
         }
 
         @Override
+        public Builder setMgProductSearch(MgProductSearch mgProductSearch) {
+            this.mgProductSearch = mgProductSearch;
+            return this;
+        }
+
+        @Override
+        public Builder setImportProductList(FaiList<Param> importProductList) {
+            this.importProductList = importProductList;
+            return this;
+        }
+
+        @Override
+        public Builder setUpdater(ParamUpdater updater) {
+            this.updater = updater;
+            return this;
+        }
+
+        @Override
+        public Builder setSoftDel(boolean softDel) {
+            this.softDel = softDel;
+            return this;
+        }
+
+        @Override
         public Builder setSkuList(FaiList<Param> skuList) {
             if(skuList == null || skuList.isEmpty()) {
                 throw new RuntimeException();
@@ -297,6 +389,30 @@ public class MgProductArg {
         @Override
         public Builder setRlPdIds(FaiList<Integer> rlPdIds) {
             this.rlPdIds = rlPdIds;
+            return this;
+        }
+
+        @Override
+        public Builder setAddInfo(Param addInfo) {
+            this.addInfo = addInfo;
+            return this;
+        }
+
+        @Override
+        public Builder setBindRlPdInfo(Param bindRlPdInfo) {
+            this.bindRlPdInfo = bindRlPdInfo;
+            return this;
+        }
+
+        @Override
+        public Builder setPdRelInfo(Param pdRelInfo) {
+            this.pdRelInfo = pdRelInfo;
+            return this;
+        }
+
+        @Override
+        public Builder setPdRelInfoList(FaiList<Param> pdRelInfoList) {
+            this.pdRelInfoList = pdRelInfoList;
             return this;
         }
 

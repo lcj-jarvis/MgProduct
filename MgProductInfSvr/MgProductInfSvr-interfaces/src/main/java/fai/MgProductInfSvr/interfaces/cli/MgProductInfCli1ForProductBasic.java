@@ -17,18 +17,137 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
         super(flow);
     }
 
+    @Deprecated
+    public int mgProductSearch(int aid, int tid, int siteId, int lgId, int keepPriId1, MgProductSearch mgProductSearch, Param searchResult){
+        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+                .setMgProductSearch(mgProductSearch)
+                .build();
+        return mgProductSearch(mgProductArg, searchResult);
+    }
+
+    @Deprecated
+    public int getProductFullInfo(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, Param combinedInfo){
+        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+                .setRlPdId(rlPdId)
+                .build();
+        return getProductFullInfo(mgProductArg, combinedInfo);
+    }
+
+    @Deprecated
+    public int getProductList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, FaiList<Param> list) {
+        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+                .setRlPdIds(rlPdIds)
+                .build();
+        return getProductList(mgProductArg, list);
+    }
+
+    @Deprecated
+    public int importProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> productList, Param inStoreRecordInfo){
+        return importProduct(aid, tid, siteId, lgId, keepPriId1, productList, inStoreRecordInfo, null);
+    }
+
+    @Deprecated
+    public int importProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> productList, Param inStoreRecordInfo, FaiList<Param> errProductList){
+        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+                .setImportProductList(productList)
+                .setInOutStoreRecordInfo(inStoreRecordInfo)
+                .build();
+        return importProduct(mgProductArg, errProductList);
+    }
+
+    @Deprecated
+    public int addProductAndRel(int aid, int tid, int siteId, int lgId, int keepPriId1, Param info, Ref<Integer> rlPdIdRef) {
+        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+                .setAddInfo(info)
+                .build();
+        return addProductAndRel(mgProductArg, rlPdIdRef);
+    }
+
+    @Deprecated
+    public int bindProductRel(int aid, int tid, int siteId, int lgId, int keepPriId1, Param bindRlPdInfo, Param info, Ref<Integer> rlPdIdRef) {
+        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+                .setBindRlPdInfo(bindRlPdInfo)
+                .setPdRelInfo(info)
+                .build();
+        return bindProductRel(mgProductArg, rlPdIdRef);
+    }
+
+    @Deprecated
+    public int batchBindProductRel(int aid, int tid, Param bindRlPdInfo, FaiList<Param> infoList, Ref<FaiList<Integer>> rlPdIdsRef) {
+        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, 0, 0, 0)
+                .setBindRlPdInfo(bindRlPdInfo)
+                .setPdRelInfoList(infoList)
+                .build();
+        return batchBindProductRel(mgProductArg, rlPdIdsRef);
+    }
+
+    @Deprecated
+    public int setSinglePd(int aid, int tid, int siteId, int lgId, int keepPriId1, Integer rlPdId, ParamUpdater updater) {
+        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+                .setRlPdId(rlPdId)
+                .setUpdater(updater)
+                .build();
+        return setSinglePd(mgProductArg);
+    }
+
+    @Deprecated
+    public int setProducts(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, ParamUpdater updater) {
+        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+                .setRlPdIds(rlPdIds)
+                .setUpdater(updater)
+                .build();
+        return setProducts(mgProductArg);
+    }
+
+    @Deprecated
+    public int batchDelPdRelBind(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) {
+        return batchDelPdRelBind(aid, tid, siteId, lgId, keepPriId1, rlPdIds, false);
+    }
+
+    @Deprecated
+    public int batchSoftDelPdRelBind(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) {
+        return batchDelPdRelBind(aid, tid, siteId, lgId, keepPriId1, rlPdIds, true);
+    }
+
+    @Deprecated
+    public int batchDelPdRelBind(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, boolean softDel) {
+        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+                .setRlPdIds(rlPdIds)
+                .setSoftDel(softDel)
+                .build();
+        return batchDelPdRelBind(mgProductArg);
+    }
+
+    @Deprecated
+    public int batchDelProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) {
+        return batchDelProduct(aid, tid, siteId, lgId, keepPriId1, rlPdIds, false);
+    }
+
+    @Deprecated
+    public int batchSoftDelProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) {
+        return batchDelProduct(aid, tid, siteId, lgId, keepPriId1, rlPdIds, true);
+    }
+
+    @Deprecated
+    private int batchDelProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, boolean softDel) {
+        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+                .setRlPdIds(rlPdIds)
+                .setSoftDel(softDel)
+                .build();
+        return batchDelProduct(mgProductArg);
+    }
+
     /**==============================================   商品信息接口开始   ==============================================*/
     /**
      * 商品中台搜索，根据 mgProductSearch（fai.MgProductInfSvr.interfaces.utils.MgProductSearch）, 在 商品中台内 搜索商品
-     * @param tid 调用搜索的业务，
-     * @param siteId 调用搜索的siteId
-     * @param lgId 调用搜索的lgId
-     * @param keepPriId1 调用搜索的keepPriId1
-     * @param mgProductSearch 搜索条件
+     * @param mgProductArg
+     *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *                 .setMgProductSearch(mgProductSearch) // 必填 搜索条件
+     *                 .build();
      * @param searchResult 搜索结果，对应 MgProductSearchResult 实体
-     *
+     * @return {@link Errno}
      */
-    public int mgProductSearch(int aid, int tid, int siteId, int lgId, int keepPriId1, MgProductSearch mgProductSearch, Param searchResult){
+    public int mgProductSearch(MgProductArg mgProductArg, Param searchResult){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -39,14 +158,20 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             }
             searchResult.clear();
             // 如果没有筛选条件，返回空数据，防止误调用
+            MgProductSearch mgProductSearch = mgProductArg.getMgProductSearch();
             if(mgProductSearch == null || mgProductSearch.isEmpty()){
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "mgProductSearch == null error");
                 return Errno.ARGS_ERROR;
             }
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(MgProductSearchDto.Key.TID, tid), new Pair(MgProductSearchDto.Key.SITE_ID, siteId), new Pair(MgProductSearchDto.Key.LGID, lgId), new Pair(MgProductSearchDto.Key.KEEP_PRIID1, keepPriId1));
             sendBody.putString(MgProductSearchDto.Key.SEARCH_PARAM_STRING, mgProductSearch.getSearchParam().toJson());
+            int aid = mgProductArg.getAid();
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.MgProductSearchCmd.SEARCH_LIST, sendBody, true);
             if (m_rt != Errno.OK) {
@@ -68,17 +193,18 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
 
     /**
      * 获取的商品全部组合信息
-     * @param tid 创建商品的tid
-     * @param siteId 创建商品的siteId
-     * @param lgId 创建商品的lgId
-     * @param keepPriId1 创建商品的keepPriId1
-     * @param rlPdId 业务商品id
+     * @param mgProductArg
+     *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *                 .setRlPdId(rlPdId) // 必填 商品业务id
+     *                 .build();
      * @param combinedInfo 返回商品中台各个服务组合的数据 {@link MgProductEntity.Info}
+     * @return {@link Errno}
      */
-    public int getProductFullInfo(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, Param combinedInfo){
+    public int getProductFullInfo(MgProductArg mgProductArg, Param combinedInfo){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
+            int aid = mgProductArg.getAid();
             if (aid == 0) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error");
@@ -89,8 +215,13 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 Log.logErr(m_rt, "combinedInfo error");
                 return m_rt;
             }
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(MgProductDto.Key.TID, tid), new Pair(MgProductDto.Key.SITE_ID, siteId), new Pair(MgProductDto.Key.LGID, lgId), new Pair(MgProductDto.Key.KEEP_PRIID1, keepPriId1));
+            int rlPdId = mgProductArg.getRlPdId();
             sendBody.putInt(MgProductDto.Key.ID, rlPdId);
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.Cmd.GET_FULL_INFO, sendBody, true);
@@ -113,19 +244,27 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
 
     /**
      * 根据rlPdIds获取商品数据（商品表+商品业表）
-     *
-     * @param rlPdIds 商品业务id集合
-     * @param list    接收结果的集合
-     * @return
+     * @param mgProductArg
+     *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *                 .setRlPdIds(rlPdIds) // 必填 商品业务id集合
+     *                 .build();
+     * @param list 接收结果的集合
+     * @return {@link Errno}
      */
-    public int getProductList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, FaiList<Param> list) {
+    public int getProductList(MgProductArg mgProductArg, FaiList<Param> list) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
             list.clear();
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
+            FaiList<Integer> rlPdIds = mgProductArg.getRlPdIds();
             rlPdIds.toBuffer(sendBody, ProductBasicDto.Key.RL_PD_IDS);
+            int aid = mgProductArg.getAid();
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.GET_PD_LIST, sendBody, true);
             if (m_rt != Errno.OK) {
@@ -146,37 +285,40 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
     }
 
 
-    public int importProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> productList, Param inStoreRecordInfo){
-        return importProduct(aid, tid, siteId, lgId, keepPriId1, productList, inStoreRecordInfo, null);
-    }
     /**
      * 导入商品数据
-     * @param tid 创建商品的tid
-     * @param siteId 创建商品的siteId
-     * @param lgId 创建商品的lgId
-     * @param keepPriId1 创建商品的keepPriId1
-     * @param productList 商品中台各个服务组合的数据 {@link MgProductEntity.Info}
-     * @param inStoreRecordInfo 入库记录 {@link ProductStoreEntity.InOutStoreRecordInfo}  非必要
+     * @param mgProductArg
+     *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *                 .setImportProductList(productList) 商品中台各个服务组合的数据 {@link MgProductEntity.Info}
+     *                 .setInOutStoreRecordInfo(inStoreRecordInfo) {@link ProductStoreEntity.InOutStoreRecordInfo}  非必要
+     *                 .build();
      * @param errProductList 返回导入出错的数据，并且每个Param有对应的错误码 {@link MgProductEntity.Info}
-     * @return
+     * @return {@link Errno}
      */
-    public int importProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> productList, Param inStoreRecordInfo, FaiList<Param> errProductList){
+    public int importProduct(MgProductArg mgProductArg, FaiList<Param> errProductList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
+            int aid = mgProductArg.getAid();
             if (aid == 0) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
+            FaiList<Param> productList = mgProductArg.getImportProductList();
             if(productList == null || productList.isEmpty()){
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "productList error");
                 return m_rt;
             }
+            Param inStoreRecordInfo = mgProductArg.getInOutStoreRecordInfo();
             if(inStoreRecordInfo == null){
                 inStoreRecordInfo = new Param();
             }
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(MgProductDto.Key.TID, tid), new Pair(MgProductDto.Key.SITE_ID, siteId), new Pair(MgProductDto.Key.LGID, lgId), new Pair(MgProductDto.Key.KEEP_PRIID1, keepPriId1));
             m_rt = productList.toBuffer(sendBody, MgProductDto.Key.INFO_LIST, MgProductDto.getInfoDto());
@@ -234,21 +376,33 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
 
     /**
      * 新增商品数据，并添加业务关联
+     * @param mgProductArg
+     *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *                 .setAddInfo(info)  // 必填 添加商品信息
+     *                 .build();
+     * @param rlPdIdRef 接收返回的商品业务id
+     * @return {@link Errno}
      */
-    public int addProductAndRel(int aid, int tid, int siteId, int lgId, int keepPriId1, Param info, Ref<Integer> rlPdIdRef) {
+    public int addProductAndRel(MgProductArg mgProductArg, Ref<Integer> rlPdIdRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
+            int aid = mgProductArg.getAid();
             if (aid == 0) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
+            Param info = mgProductArg.getAddInfo();
             if (Str.isEmpty(info)) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error;info is empty");
                 return m_rt;
             }
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
             info.toBuffer(sendBody, ProductBasicDto.Key.PD_INFO, ProductBasicDto.getProductDto());
@@ -347,26 +501,40 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
 
     /**
      * 新增商品业务关联
+     * @param mgProductArg
+     *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *                 .setBindRlPdInfo(bindRlPdInfo) // 必填 绑定源信息 包含 绑定方 uid 和 绑定方 rlPdId
+     *                 .setPdRelInfo(info) // 必填 业务信息
+     *                 .build();
+     * @param rlPdIdRef 接收返回商品业务id
+     * @return {@link Errno}
      */
-    public int bindProductRel(int aid, int tid, int siteId, int lgId, int keepPriId1, Param bindRlPdInfo, Param info, Ref<Integer> rlPdIdRef) {
+    public int bindProductRel(MgProductArg mgProductArg, Ref<Integer> rlPdIdRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
+            int aid = mgProductArg.getAid();
             if (aid == 0) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
+            Param info = mgProductArg.getPdRelInfo();
             if (Str.isEmpty(info)) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error;info is empty");
                 return m_rt;
             }
+            Param bindRlPdInfo = mgProductArg.getBindRlPdInfo();
             if (Str.isEmpty(bindRlPdInfo)) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error;bindRlPdInfo is empty");
                 return m_rt;
             }
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
             bindRlPdInfo.toBuffer(sendBody, ProductBasicDto.Key.PD_BIND_INFO, ProductBasicDto.getProductRelDto());
@@ -394,21 +562,31 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
 
     /**
      * 批量新增商品业务关联
+     * @param mgProductArg
+     *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, 0, 0, 0)
+     *                 .setBindRlPdInfo(bindRlPdInfo) // 必填 绑定源信息 包含 绑定方 uid 和 绑定方 rlPdId
+     *                 .setPdRelInfoList(infoList)    // 必填 业务信息列表
+     *                 .build();
+     * @param rlPdIdsRef 接收返回的商品业务id集合
+     * @return {@link Errno}
      */
-    public int batchBindProductRel(int aid, int tid, Param bindRlPdInfo, FaiList<Param> infoList, Ref<FaiList<Integer>> rlPdIdsRef) {
+    public int batchBindProductRel(MgProductArg mgProductArg, Ref<FaiList<Integer>> rlPdIdsRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
+            int aid = mgProductArg.getAid();
             if (aid == 0) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
+            FaiList<Param> infoList = mgProductArg.getPdRelInfoList();
             if (infoList == null || infoList.isEmpty()) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error;infoList is empty");
                 return m_rt;
             }
+            Param bindRlPdInfo = mgProductArg.getBindRlPdInfo();
             if (Str.isEmpty(bindRlPdInfo)) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error;bindRlPdInfo is empty");
@@ -416,6 +594,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             }
             // packaging send data
             FaiBuffer sendBody = new FaiBuffer(true);
+            int tid = mgProductArg.getTid();
             sendBody.putInt(ProductBasicDto.Key.TID, tid);
             bindRlPdInfo.toBuffer(sendBody, ProductBasicDto.Key.PD_BIND_INFO, ProductBasicDto.getProductRelDto());
             infoList.toBuffer(sendBody, ProductBasicDto.Key.PD_REL_INFO_LIST, ProductBasicDto.getProductRelDto());
@@ -443,23 +622,38 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
         }
     }
 
-    //  根据商品 id 和 updater，修改 商品 基础信息
-    public int setSinglePd(int aid, int tid, int siteId, int lgId, int keepPriId1, Integer rlPdId, ParamUpdater updater) {
+    /**
+     * 根据商品 id 和 updater，修改 商品 基础信息
+     * @param mgProductArg
+     *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *                 .setRlPdId(rlPdId)    // 必填
+     *                 .setUpdater(updater)  // 必填
+     *                 .build();
+     * @return {@link Errno}
+     */
+    public int setSinglePd(MgProductArg mgProductArg) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
+            int aid = mgProductArg.getAid();
             if (aid == 0) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
+            ParamUpdater updater = mgProductArg.getUpdater();
             if (updater == null || updater.isEmpty()) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error;updater is empty");
                 return m_rt;
             }
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
+            int rlPdId = mgProductArg.getRlPdId();
             sendBody.putInt(ProductBasicDto.Key.RL_PD_ID, rlPdId);
             updater.toBuffer(sendBody, ProductBasicDto.Key.UPDATER, ProductBasicDto.getProductDto());
             // send and recv
@@ -519,26 +713,39 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
 
     /**
      * 批量修改商品，每个商品的改动都是一样的
+     * @param mgProductArg
+     *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *                 .setRlPdIds(rlPdIds)  // 必填
+     *                 .setUpdater(updater)  // 必填
+     *                 .build();
+     * @return {@link Errno}
      */
-    public int setProducts(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, ParamUpdater updater) {
+    public int setProducts(MgProductArg mgProductArg) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
+            int aid = mgProductArg.getAid();
             if (aid == 0) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
+            ParamUpdater updater = mgProductArg.getUpdater();
             if (updater == null || updater.isEmpty()) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error;updater is empty");
                 return m_rt;
             }
+            FaiList<Integer> rlPdIds = mgProductArg.getRlPdIds();
             if (rlPdIds == null || rlPdIds.isEmpty()) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error;rlPdIds is empty");
                 return m_rt;
             }
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
             rlPdIds.toBuffer(sendBody, ProductBasicDto.Key.RL_PD_IDS);
@@ -554,33 +761,38 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
 
     /**
      * 指定业务下，取消 rlPdIds 的商品业务关联
+     * @param mgProductArg
+     *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *                 .setRlPdIds(rlPdIds)  // 必填
+     *                 .setSoftDel(softDel)  // 选填 默认为false
+     *                 .build();
+     *         return batchDelPdRelBind(mgProductArg);
+     * @return {@link Errno}
      */
-    public int batchDelPdRelBind(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) {
-        return batchDelPdRelBind(aid, tid, siteId, lgId, keepPriId1, rlPdIds, false);
-    }
-    /**
-     * 指定业务下，软删除 rlPdIds 的商品业务关联
-     */
-    public int batchSoftDelPdRelBind(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) {
-        return batchDelPdRelBind(aid, tid, siteId, lgId, keepPriId1, rlPdIds, true);
-    }
-    private int batchDelPdRelBind(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, boolean softDel) {
+    private int batchDelPdRelBind(MgProductArg mgProductArg) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
+            int aid = mgProductArg.getAid();
             if (aid == 0) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
+            FaiList<Integer> rlPdIds = mgProductArg.getRlPdIds();
             if (rlPdIds == null || rlPdIds.isEmpty()) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error;rlPdIds is empty");
                 return m_rt;
             }
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
             rlPdIds.toBuffer(sendBody, ProductBasicDto.Key.RL_PD_IDS);
+            boolean softDel = mgProductArg.getSoftDel();
             sendBody.putBoolean(ProductBasicDto.Key.SOFT_DEL, softDel);
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.BATCH_DEL_PD_BIND, sendBody, false, false);
@@ -593,33 +805,37 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
 
     /**
      * 删除 rlPdIds 的商品数据及所有商品业务关联数据
+     * @param mgProductArg
+     *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *                 .setRlPdIds(rlPdIds)  // 必填
+     *                 .setSoftDel(softDel)  // 选填
+     *                 .build();
+     * @return {@link Errno}
      */
-    public int batchDelProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) {
-        return batchDelProduct(aid, tid, siteId, lgId, keepPriId1, rlPdIds, false);
-    }
-    /**
-     * 软删除 rlPdIds 的商品数据及所有商品业务关联数据
-     */
-    public int batchSoftDelProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds) {
-        return batchDelProduct(aid, tid, siteId, lgId, keepPriId1, rlPdIds, true);
-    }
-    private int batchDelProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, boolean softDel) {
+    private int batchDelProduct(MgProductArg mgProductArg) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
+            int aid = mgProductArg.getAid();
             if (aid == 0) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
+            FaiList<Integer> rlPdIds = mgProductArg.getRlPdIds();
             if (rlPdIds == null || rlPdIds.isEmpty()) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error;rlPdIds is empty");
                 return m_rt;
             }
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
             rlPdIds.toBuffer(sendBody, ProductBasicDto.Key.RL_PD_IDS);
+            boolean softDel = mgProductArg.getSoftDel();
             sendBody.putBoolean(ProductBasicDto.Key.SOFT_DEL, softDel);
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.BATCH_DEL_PDS, sendBody, false, false);

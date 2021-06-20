@@ -3,6 +3,7 @@ package fai.MgProductInfSvr.interfaces.utils;
 import fai.comm.util.FaiList;
 import fai.comm.util.Param;
 import fai.comm.util.ParamUpdater;
+import fai.comm.util.SearchArg;
 
 import java.util.Calendar;
 
@@ -34,8 +35,14 @@ public class MgProductArg {
     private ParamUpdater updater;
     private boolean softDel;
 
-    private int libId;
+    private int rlLibId;
     private FaiList<Integer> rlPropIds;
+    private FaiList<Param> propIdsAndValIds;
+    private SearchArg searchArg;
+    private FaiList<Param> addValList;
+    private FaiList<ParamUpdater> setValList;
+    private FaiList<Integer> delValList;
+    private int rlPropId;
 
     private FaiList<Integer> rlGroupIds;
 
@@ -65,8 +72,14 @@ public class MgProductArg {
         this.pdRelInfo = builder.pdRelInfo;
         this.pdRelInfoList = builder.pdRelInfoList;
 
-        this.libId = builder.libId;
+        this.rlLibId = builder.rlLibId;
         this.rlPropIds = builder.rlPropIds;
+        this.propIdsAndValIds = builder.propIdsAndValIds;
+        this.searchArg = builder.searchArg;
+        this.addValList = builder.addValList;
+        this.setValList = builder.setValList;
+        this.delValList = builder.delValList;
+        this.rlPropId = builder.rlPropId;
 
         this.rlGroupIds = builder.rlGroupIds;
         this.updater = builder.updater;
@@ -141,8 +154,8 @@ public class MgProductArg {
         return inOutStoreRecordInfo;
     }
 
-    public int getLibId() {
-        return libId;
+    public int getRlLibId() {
+        return rlLibId;
     }
 
     public FaiList<Integer> getRlPropIds() {
@@ -183,6 +196,30 @@ public class MgProductArg {
 
     public boolean getSoftDel() {
         return softDel;
+    }
+
+    public FaiList<Param> getPropIdsAndValIds() {
+        return propIdsAndValIds;
+    }
+
+    public SearchArg getSearchArg() {
+        return searchArg;
+    }
+
+    public FaiList<Param> getAddValList() {
+        return addValList;
+    }
+
+    public int getRlPropId() {
+        return rlPropId;
+    }
+
+    public FaiList<ParamUpdater> getSetValList() {
+        return setValList;
+    }
+
+    public FaiList<Integer> getDelValList() {
+        return delValList;
     }
 
     private static abstract class TopBuilder {
@@ -236,11 +273,23 @@ public class MgProductArg {
     }
 
     private static abstract class PropBuilder extends GroupBuilder {
-        protected int libId;
+        protected int rlLibId;
         protected FaiList<Integer> rlPropIds;
+        protected FaiList<Param> propIdsAndValIds;
+        protected SearchArg searchArg;
+        protected FaiList<Param> addValList;
+        protected FaiList<ParamUpdater> setValList;
+        protected FaiList<Integer> delValList;
+        protected int rlPropId;
 
-        public abstract Builder setLibId(int libId);
+        public abstract Builder setRlLibId(int rlLibId);
         public abstract Builder setRlPropIds(FaiList<Integer> rlPropIds);
+        public abstract Builder setPropIdsAndValIds(FaiList<Param> propIdsAndValIds);
+        public abstract Builder setSearchArg(SearchArg searchArg);
+        public abstract Builder setAddValList(FaiList<Param> addValList);
+        public abstract Builder setSetValList(FaiList<ParamUpdater> setValList);
+        public abstract Builder setDelValList(FaiList<Integer> delValList);
+        public abstract Builder setRlPropId(int rlPropId);
     }
 
     private static abstract class SpecBuilder extends PropBuilder {
@@ -435,14 +484,50 @@ public class MgProductArg {
         }
 
         @Override
-        public Builder setLibId(int libId) {
-            this.libId = libId;
+        public Builder setRlLibId(int rlLibId) {
+            this.rlLibId = rlLibId;
             return this;
         }
 
         @Override
         public Builder setRlPropIds(FaiList<Integer> rlPropIds) {
             this.rlPropIds = rlPropIds;
+            return this;
+        }
+
+        @Override
+        public Builder setPropIdsAndValIds(FaiList<Param> propIdsAndValIds) {
+            this.propIdsAndValIds = propIdsAndValIds;
+            return this;
+        }
+
+        @Override
+        public Builder setSearchArg(SearchArg searchArg) {
+            this.searchArg = searchArg;
+            return this;
+        }
+
+        @Override
+        public Builder setAddValList(FaiList<Param> addValList) {
+            this.addValList = addValList;
+            return this;
+        }
+
+        @Override
+        public Builder setSetValList(FaiList<ParamUpdater> setValList) {
+            this.setValList = setValList;
+            return this;
+        }
+
+        @Override
+        public Builder setDelValList(FaiList<Integer> delValList) {
+            this.delValList = delValList;
+            return this;
+        }
+
+        @Override
+        public Builder setRlPropId(int rlPropId) {
+            this.rlPropId = rlPropId;
             return this;
         }
 

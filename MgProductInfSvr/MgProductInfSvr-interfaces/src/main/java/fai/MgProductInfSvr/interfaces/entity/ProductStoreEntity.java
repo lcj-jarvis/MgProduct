@@ -40,7 +40,8 @@ public class ProductStoreEntity {
 
         // for init
         public static final String IN_PD_SC_STR_NAME_LIST = ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_NAME_LIST;
-        public static final String COST_PRICE = "costPrice";                        // long 商品成本单价，商品导入用，不入库存销售信息库
+        public static final String COST_PRICE = "costPrice";                        // long 商品成本单价，商品导入用，不入库存销售信息库，为了设置出入库的成本价
+        public static final String OWNER_RL_PD_ID = "ownerRlPdId";                  // int 该商品所属者的商品业务id，批量添加库存信息时，兼容商品信息未绑定过来
     }
 
     /**

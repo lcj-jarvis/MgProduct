@@ -1742,12 +1742,57 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
     }
 
     /**
+     * 新增 sku 库存销售信息
+     * @param mgProductArg
+     * MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPirId1)
+     *                 .setSkuStoreSales(skuStoreSales) //{@link ProductStoreEntity.StoreSalesSkuInfo}
+     *                 .build();
+     * @return
+     */
+    public int batchAddSkuStoreSales(MgProductArg mgProductArg) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            int aid= mgProductArg.getAid();
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            FaiList<Param> skuStoreSales = mgProductArg.getSkuStoreSales();
+            if (skuStoreSales == null || skuStoreSales.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "skuStoreSales error");
+                return m_rt;
+            }
+
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            // packaging send data
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductStoreDto.Key.TID, tid), new Pair(ProductStoreDto.Key.SITE_ID, siteId), new Pair(ProductStoreDto.Key.LGID, lgId), new Pair(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1));
+            m_rt = skuStoreSales.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.StoreSalesSku.getInfoDto());
+            if(m_rt != Errno.OK){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "updaterList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;", aid, tid, siteId, lgId, keepPriId1);
+                return m_rt;
+            }
+            // send and recv
+            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.StoreSalesSkuCmd.BATCH_ADD_LIST, sendBody, false, false);
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    /**
      * 根据rlPdIdList 获取 spu 所有关联的业务的库存销售信息汇总 <br/>
      * 适用场景： <br/>
      *    例如：积分商品  绑定了指定的部分门店， 每个积分商品绑定 门店不同，数量不同，我们在获取列表时候，就需要获取到各个门店的  库存spu信息 出来
      * MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId)
      *                 .setRlPdIds(rlPdIds) // 商品业务id 集合
-     *                 .setCombined(combined)
      *                 .build();
      * @param infoList Param 见 {@link ProductStoreEntity.SpuBizSummaryInfo}
      * @return {@link Errno}

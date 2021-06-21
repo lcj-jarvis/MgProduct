@@ -22,6 +22,7 @@ public class MgProductArg {
     private Calendar optTime;
     private long costPrice;
     private FaiList<Param> skuList;
+    private FaiList<Long> skuIds;
     private FaiList<ParamUpdater> updaterList;
     private Param combined;
     private ParamUpdater combinedUpdater;
@@ -47,6 +48,15 @@ public class MgProductArg {
     private FaiList<Integer> rlGroupIds;
     private FaiList<Integer> addRlGroupIds;
     private FaiList<Integer> delRlGroupIds;
+    private FaiList<String> useOwnerFields;
+    private String skuCode;
+    private FaiList<String> skuCodes;
+    private Param condition;
+    private boolean withSpu;
+    private long skuId;
+    private boolean onlyGetChecked;
+
+    private FaiList<Param> skuStoreSales;
 
     private MgProductArg(Builder builder) {
         this.aid = builder.aid;
@@ -88,6 +98,16 @@ public class MgProductArg {
         this.rlGroupIds = builder.rlGroupIds;
         this.addRlGroupIds = builder.addRlGroupIds;
         this.delRlGroupIds = builder.delRlGroupIds;
+        this.skuIds = builder.skuIds;
+        this.useOwnerFields = builder.useOwnerFields;
+        this.skuCode = builder.skuCode;
+        this.skuCodes = builder.skuCodes;
+        this.condition = builder.condition;
+        this.withSpu = builder.withSpu;
+        this.skuId = builder.skuId;
+        this.onlyGetChecked = builder.onlyGetChecked;
+
+        this.skuStoreSales = builder.skuStoreSales;
     }
 
     public int getAid() {
@@ -234,6 +254,42 @@ public class MgProductArg {
         return delRlGroupIds;
     }
 
+    public FaiList<Long> getSkuIds() {
+        return skuIds;
+    }
+
+    public FaiList<String> getUseOwnerFields() {
+        return useOwnerFields;
+    }
+
+    public String getSkuCode() {
+        return skuCode;
+    }
+
+    public FaiList<String> getSkuCodes() {
+        return skuCodes;
+    }
+
+    public Param getCondition() {
+        return condition;
+    }
+
+    public boolean getWithSpu() {
+        return withSpu;
+    }
+
+    public long getSkuId() {
+        return skuId;
+    }
+
+    public boolean getOnlyGetChecked() {
+        return onlyGetChecked;
+    }
+
+    public FaiList<Param> getSkuStoreSales() {
+        return skuStoreSales;
+    }
+
     private static abstract class TopBuilder {
         protected int aid;
         protected int tid;
@@ -278,7 +334,6 @@ public class MgProductArg {
         public abstract Builder setBindRlPdInfo(Param bindRlPdInfo);
         public abstract Builder setPdRelInfo(Param pdRelInfo);
         public abstract Builder setPdRelInfoList(FaiList<Param> pdRelInfoList);
-
     }
 
     private static abstract class GroupBuilder extends BasicBuilder {
@@ -316,12 +371,18 @@ public class MgProductArg {
         protected boolean withSpu;
         protected String skuCode;
         protected FaiList<String> skuCodes;
+        protected FaiList<Long> skuIds;
+        protected Param condition;
+        protected long skuId;
 
         public abstract Builder setSkuList(FaiList<Param> skuList);
         public abstract Builder setOnlyGetChecked(boolean onlyGetChecked);
         public abstract Builder setWithSpu(boolean withSpu);
         public abstract Builder setSkuCode(String skuCode);
         public abstract Builder setSkuCodes(FaiList<String> skuCodes);
+        public abstract Builder setSkuIds(FaiList<Long> skuIds);
+        public abstract Builder setCondition(Param condition);
+        public abstract Builder setSkuId(long skuId);
     }
 
     private static abstract class StoreBuilder extends SpecBuilder {
@@ -329,11 +390,15 @@ public class MgProductArg {
         protected boolean isBiz;
         protected long costPrice;
         protected Param inOutStoreRecordInfo;
+        protected FaiList<String> useOwnerFields;
+        protected FaiList<Param> skuStoreSales;
 
         public abstract Builder setOptTime(Calendar optTime);
         public abstract Builder setIsBiz(boolean isBiz);
         public abstract Builder setCostPrice(long costPrice);
         public abstract Builder setInOutStoreRecordInfo(Param inOutStoreRecordInfo);
+        public abstract Builder setUseOwnerFields(FaiList<String> useOwnerFields);
+        public abstract Builder setSkuStoreSales(FaiList<Param> skuStoreSales);
     }
 
     public static class Builder extends StoreBuilder {
@@ -433,6 +498,24 @@ public class MgProductArg {
         }
 
         @Override
+        public Builder setSkuIds(FaiList<Long> skuIds) {
+            this.skuIds = skuIds;
+            return this;
+        }
+
+        @Override
+        public Builder setCondition(Param condition) {
+            this.condition = condition;
+            return this;
+        }
+
+        @Override
+        public Builder setSkuId(long skuId) {
+            this.skuId = skuId;
+            return this;
+        }
+
+        @Override
         public Builder setAddList(FaiList<Param> addList) {
             if(addList == null || addList.isEmpty()) {
                 throw new RuntimeException();
@@ -492,6 +575,18 @@ public class MgProductArg {
         @Override
         public Builder setInOutStoreRecordInfo(Param inOutStoreRecordInfo) {
             this.inOutStoreRecordInfo = inOutStoreRecordInfo;
+            return this;
+        }
+
+        @Override
+        public Builder setUseOwnerFields(FaiList<String> useOwnerFields) {
+            this.useOwnerFields = useOwnerFields;
+            return this;
+        }
+
+        @Override
+        public Builder setSkuStoreSales(FaiList<Param> skuStoreSales) {
+            this.skuStoreSales = skuStoreSales;
             return this;
         }
 

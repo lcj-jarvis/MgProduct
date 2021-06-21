@@ -676,6 +676,20 @@ public class MgProductInfHandler extends FaiHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductInfCmd.StoreSalesSkuCmd.BATCH_ADD_LIST)
+    public int batchAddSkuStoreSales(final FaiSession session,
+                                     @ArgFlow final int flow,
+                                     @ArgAid final int aid,
+                                     @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
+                                     @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
+                                     @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
+                                     @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
+                                     @ArgList(classDef = ProductStoreDto.StoreSalesSku.class, methodDef = "getInfoDto",
+                                             keyMatch = ProductStoreDto.Key.INFO_LIST) FaiList<Param> addList) throws IOException {
+        return storeService.batchAddSkuStoreSales(session, flow, aid, tid, siteId, lgId, keepPriId1, addList);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductInfCmd.StoreSalesSkuCmd.BATCH_REDUCE_STORE)
     public int batchReducePdSkuStore(final FaiSession session,
                                 @ArgFlow final int flow,

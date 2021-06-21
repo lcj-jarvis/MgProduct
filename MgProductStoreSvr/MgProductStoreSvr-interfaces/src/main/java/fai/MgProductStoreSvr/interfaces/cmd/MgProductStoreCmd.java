@@ -46,6 +46,7 @@ public class MgProductStoreCmd {
 		public static final int NUM16 = 1016;
 		public static final int NUM17 = 1017;
 		public static final int NUM18 = 1018;
+		public static final int NUM19 = 1019;
 	}
 
 	////////////////// cmd对外定义，实际做cmd读写分离 ////////////////////
@@ -80,6 +81,8 @@ public class MgProductStoreCmd {
 
 		public static final int BATCH_SET_LIST = WriteCmdNum.NUM16;
 		public static final int REFRESH_HOLDING_RECORD_OF_RL_ORDER_CODE = WriteCmdNum.NUM17;
+
+		public static final int BATCH_ADD = WriteCmdNum.NUM19;
 	}
 
 	/**

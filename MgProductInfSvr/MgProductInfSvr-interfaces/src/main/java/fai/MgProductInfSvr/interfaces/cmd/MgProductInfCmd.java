@@ -111,6 +111,7 @@ public class MgProductInfCmd {
         public static final int NUM41 = 1041; /**@see StoreSalesSkuCmd#BATCH_SET_LIST */
         public static final int NUM42 = 1042; /**@see BasicCmd#ADD_PD_INFO */
         public static final int NUM43 = 1043; /**@see BasicCmd#SET_PD_INFO */
+        public static final int NUM44 = 1044; /**@see StoreSalesSkuCmd#BATCH_ADD_LIST */
     }
 
 
@@ -242,6 +243,7 @@ public class MgProductInfCmd {
         public static final int BATCH_REFUND_STORE = WriteCmdNum.NUM29;
         public static final int REFRESH_HOLDING_RECORD_OF_RL_ORDER_CODE = WriteCmdNum.NUM37;
         public static final int BATCH_SET_LIST = WriteCmdNum.NUM41;
+        public static final int BATCH_ADD_LIST = WriteCmdNum.NUM44;
     }
 
     /**

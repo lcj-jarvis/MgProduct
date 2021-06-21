@@ -2,10 +2,7 @@ package fai.MgProductStoreSvr.application.service;
 
 import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
-import fai.MgProductStoreSvr.domain.comm.LockUtil;
-import fai.MgProductStoreSvr.domain.comm.RecordKey;
-import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
-import fai.MgProductStoreSvr.domain.comm.Utils;
+import fai.MgProductStoreSvr.domain.comm.*;
 import fai.MgProductStoreSvr.domain.entity.*;
 import fai.MgProductStoreSvr.domain.repository.*;
 import fai.MgProductStoreSvr.domain.serviceProc.*;
@@ -14,6 +11,7 @@ import fai.MgProductStoreSvr.interfaces.dto.HoldingRecordDto;
 import fai.MgProductStoreSvr.interfaces.dto.StoreSalesSkuDto;
 import fai.MgProductStoreSvr.interfaces.entity.SkuCountChangeEntity;
 import fai.comm.jnetkit.server.fai.FaiSession;
+import fai.comm.middleground.FaiValObj;
 import fai.comm.mq.api.MqFactory;
 import fai.comm.mq.api.Producer;
 import fai.comm.mq.api.SendResult;
@@ -383,12 +381,12 @@ public class StoreSalesSkuService extends StoreService {
         return rt;
     }
     public int setSkuStoreSales(FaiSession session, int flow, int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) throws IOException {
-        return batchSetSkuStoreSales(session, flow, aid, tid, new FaiList<>(Arrays.asList(unionPriId)), pdId, rlPdId, updaterList);
+        return batchSetSkuStoreSales(session, flow, aid, tid, null, new FaiList<>(Arrays.asList(unionPriId)), pdId, rlPdId, updaterList);
     }
     /**
      * 批量修改库存销售sku信息
      */
-    public int batchSetSkuStoreSales(FaiSession session, int flow, int aid, int tid, FaiList<Integer> unionPriIdList, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) throws IOException {
+    public int batchSetSkuStoreSales(FaiSession session, int flow, int aid, int tid, Integer ownerUnionPriId, FaiList<Integer> unionPriIdList, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -425,6 +423,27 @@ public class StoreSalesSkuService extends StoreService {
                     LockUtil.lock(aid);
                     try {
                         transactionCtrl.setAutoCommit(false);
+
+                        // 兼容门店通逻辑，门店通添加商品的时候，只会添加总部的库存销售信息(为了设置价格)，各个门店最开始是不会有销售信息的
+                        // 所以这里设置价格的时候，先查出没有销售信息的unionPriId，并新增销售信息数据
+                        if(tid == FaiValObj.TermId.YK && ownerUnionPriId != null) {
+                            Map<SkuBizKey, PdKey> needCheckSkuStoreKeyPdKeyMap = new HashMap<>();
+                            for(Integer unionPriId : unionPriIdList) {
+                                for(Long skuId : skuIdList) {
+                                    SkuBizKey skuBizKey = new SkuBizKey(unionPriId, skuId);
+                                    if (unionPriId != ownerUnionPriId) {
+                                        needCheckSkuStoreKeyPdKeyMap.put(skuBizKey, new PdKey(unionPriId, pdId, rlPdId));
+                                    }
+                                }
+                            }
+                            if(!needCheckSkuStoreKeyPdKeyMap.isEmpty()) {
+                                rt = storeSalesSkuProc.checkAndAdd(aid, ownerUnionPriId, needCheckSkuStoreKeyPdKeyMap);
+                                if(rt != Errno.OK){
+                                    return rt;
+                                }
+                            }
+                        }
+
                         rt = storeSalesSkuProc.batchSet(aid, unionPriIdList, pdId, updaterList);
                         if(rt != Errno.OK){
                             return rt;

@@ -273,8 +273,8 @@ public class MgProductInfCli2ForProductProp extends MgProductInfCli1ForProductBa
      * 根据 libId、searchArg，搜索 参数 列表
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
-     *                 .setRlLibId(libId)
-     *                 .setSearchArg(searchArg)
+     *                 .setRlLibId(libId)        // 必填
+     *                 .setSearchArg(searchArg)  // 选填
      *                 .build();
      * @param list 接收参数列表
      * @return {@link Errno}
@@ -292,6 +292,9 @@ public class MgProductInfCli2ForProductProp extends MgProductInfCli1ForProductBa
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductPropDto.Key.TID, tid), new Pair(ProductPropDto.Key.SITE_ID, siteId), new Pair(ProductPropDto.Key.LGID, lgId), new Pair(ProductPropDto.Key.KEEP_PRIID1, keepPriId1), new Pair(ProductPropDto.Key.LIB_ID, libId));
             SearchArg searchArg = mgProductArg.getSearchArg();
+            if (searchArg == null) {
+                searchArg = new SearchArg();
+            }
             searchArg.toBuffer(sendBody, ProductPropDto.Key.SEARCH_ARG);
             int aid = mgProductArg.getAid();
             // send and recv
@@ -425,8 +428,8 @@ public class MgProductInfCli2ForProductProp extends MgProductInfCli1ForProductBa
      * 根据 libId、idList， 批量 删除参数
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
-     *                 .setRlLibId(libId)
-     *                 .setRlPropIds(idList)
+     *                 .setRlLibId(libId)      // 必填
+     *                 .setRlPropIds(idList)   // 必填
      *                 .build();
      * @return {@link Errno}
      */
@@ -644,9 +647,21 @@ public class MgProductInfCli2ForProductProp extends MgProductInfCli1ForProductBa
             int rlPropId = mgProductArg.getRlPropId();
             sendBody.putInt(ProductPropDto.Key.RL_PROP_ID, rlPropId);
             ParamUpdater propUpdater = mgProductArg.getUpdater();
+            if (propUpdater == null) {
+                propUpdater = new ParamUpdater();
+            }
             FaiList<Param> addValList = mgProductArg.getAddValList();
+            if (addValList == null) {
+                addValList = new FaiList<Param>();
+            }
             FaiList<ParamUpdater> setValUpList = mgProductArg.getSetValList();
+            if (setValUpList == null) {
+                setValUpList = new FaiList<ParamUpdater>();
+            }
             FaiList<Integer> delValIds = mgProductArg.getDelValList();
+            if (delValIds == null) {
+                delValIds = new FaiList<Integer>();
+            }
             propUpdater.toBuffer(sendBody, ProductPropDto.Key.UPDATER, ProductPropDto.getPropInfoDto());
             addValList.toBuffer(sendBody, ProductPropDto.Key.VAL_LIST, ProductPropDto.getPropValInfoDto());
             setValUpList.toBuffer(sendBody, ProductPropDto.Key.UPDATERLIST, ProductPropDto.getPropValInfoDto());

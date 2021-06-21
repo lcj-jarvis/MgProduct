@@ -34,17 +34,19 @@ public class MgProductArg {
     private FaiList<Param> pdRelInfoList;
     private ParamUpdater updater;
     private boolean softDel;
+    private SearchArg searchArg;
 
     private int rlLibId;
     private FaiList<Integer> rlPropIds;
     private FaiList<Param> propIdsAndValIds;
-    private SearchArg searchArg;
     private FaiList<Param> addValList;
     private FaiList<ParamUpdater> setValList;
     private FaiList<Integer> delValList;
     private int rlPropId;
 
     private FaiList<Integer> rlGroupIds;
+    private FaiList<Integer> addRlGroupIds;
+    private FaiList<Integer> delRlGroupIds;
 
     private MgProductArg(Builder builder) {
         this.aid = builder.aid;
@@ -71,19 +73,21 @@ public class MgProductArg {
         this.bindRlPdInfo = builder.bindRlPdInfo;
         this.pdRelInfo = builder.pdRelInfo;
         this.pdRelInfoList = builder.pdRelInfoList;
+        this.searchArg = builder.searchArg;
+        this.updater = builder.updater;
+        this.softDel = builder.softDel;
 
         this.rlLibId = builder.rlLibId;
         this.rlPropIds = builder.rlPropIds;
         this.propIdsAndValIds = builder.propIdsAndValIds;
-        this.searchArg = builder.searchArg;
         this.addValList = builder.addValList;
         this.setValList = builder.setValList;
         this.delValList = builder.delValList;
         this.rlPropId = builder.rlPropId;
 
         this.rlGroupIds = builder.rlGroupIds;
-        this.updater = builder.updater;
-        this.softDel = builder.softDel;
+        this.addRlGroupIds = builder.addRlGroupIds;
+        this.delRlGroupIds = builder.delRlGroupIds;
     }
 
     public int getAid() {
@@ -222,6 +226,14 @@ public class MgProductArg {
         return delValList;
     }
 
+    public FaiList<Integer> getAddRlGroupIds() {
+        return addRlGroupIds;
+    }
+
+    public FaiList<Integer> getDelRlGroupIds() {
+        return delRlGroupIds;
+    }
+
     private static abstract class TopBuilder {
         protected int aid;
         protected int tid;
@@ -238,6 +250,7 @@ public class MgProductArg {
         protected FaiList<Param> importProductList;
         protected ParamUpdater updater;
         protected boolean softDel;
+        protected SearchArg searchArg;
 
         public abstract Builder setAddList(FaiList<Param> addList);
         public abstract Builder setPrimaryList(FaiList<Param> primaryKeys);
@@ -248,6 +261,7 @@ public class MgProductArg {
         public abstract Builder setImportProductList(FaiList<Param> importProductList);
         public abstract Builder setUpdater(ParamUpdater updater);
         public abstract Builder setSoftDel(boolean softDel);
+        public abstract Builder setSearchArg(SearchArg searchArg);
     }
 
     private static abstract class BasicBuilder extends TopBuilder {
@@ -264,19 +278,24 @@ public class MgProductArg {
         public abstract Builder setBindRlPdInfo(Param bindRlPdInfo);
         public abstract Builder setPdRelInfo(Param pdRelInfo);
         public abstract Builder setPdRelInfoList(FaiList<Param> pdRelInfoList);
+
     }
 
     private static abstract class GroupBuilder extends BasicBuilder {
         protected FaiList<Integer> rlGroupIds;
+        protected FaiList<Integer> addRlGroupIds;
+        protected FaiList<Integer> delRlGroupIds;
 
         public abstract Builder setRlGroupIds(FaiList<Integer> rlGroupIds);
+        public abstract Builder setAddRlGroupIds(FaiList<Integer> addRlGroupIds);
+        public abstract Builder setDelRlGroupIds(FaiList<Integer> delRlGroupIds);
     }
 
     private static abstract class PropBuilder extends GroupBuilder {
         protected int rlLibId;
         protected FaiList<Integer> rlPropIds;
         protected FaiList<Param> propIdsAndValIds;
-        protected SearchArg searchArg;
+
         protected FaiList<Param> addValList;
         protected FaiList<ParamUpdater> setValList;
         protected FaiList<Integer> delValList;
@@ -285,7 +304,6 @@ public class MgProductArg {
         public abstract Builder setRlLibId(int rlLibId);
         public abstract Builder setRlPropIds(FaiList<Integer> rlPropIds);
         public abstract Builder setPropIdsAndValIds(FaiList<Param> propIdsAndValIds);
-        public abstract Builder setSearchArg(SearchArg searchArg);
         public abstract Builder setAddValList(FaiList<Param> addValList);
         public abstract Builder setSetValList(FaiList<ParamUpdater> setValList);
         public abstract Builder setDelValList(FaiList<Integer> delValList);
@@ -534,6 +552,18 @@ public class MgProductArg {
         @Override
         public Builder setRlGroupIds(FaiList<Integer> rlGroupIds) {
             this.rlGroupIds = rlGroupIds;
+            return this;
+        }
+
+        @Override
+        public Builder setAddRlGroupIds(FaiList<Integer> addRlGroupIds) {
+            this.addRlGroupIds = addRlGroupIds;
+            return this;
+        }
+
+        @Override
+        public Builder setDelRlGroupIds(FaiList<Integer> delRlGroupIds) {
+            this.delRlGroupIds = delRlGroupIds;
             return this;
         }
 

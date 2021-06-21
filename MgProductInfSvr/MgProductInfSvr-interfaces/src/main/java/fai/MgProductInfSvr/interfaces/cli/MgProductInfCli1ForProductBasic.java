@@ -431,8 +431,8 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      * 新增商品数据、同时添加规格、库存数据以及参数和分类绑定
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
-     *              .setCombined(combined)
-     *              .setInOutStoreRecordInfo(inOutStoreRecordInfo)
+     *              .setCombined(combined)                          // 必填
+     *              .setInOutStoreRecordInfo(inOutStoreRecordInfo)  // 必填
      *              .build();
      * combined 添加信息 {@link MgProductDto#getInfoDto()}
      *        只需要其中的 MgProductEntity.Info.BASIC、MgProductEntity.Info.SPEC、MgProductEntity.Info.SPEC_SKU、MgProductEntity.Info.STORE_SALES
@@ -504,7 +504,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
      *                 .setBindRlPdInfo(bindRlPdInfo) // 必填 绑定源信息 包含 绑定方 uid 和 绑定方 rlPdId
-     *                 .setPdRelInfo(info) // 必填 业务信息
+     *                 .setPdRelInfo(info)            // 必填 业务信息
      *                 .build();
      * @param rlPdIdRef 接收返回商品业务id
      * @return {@link Errno}

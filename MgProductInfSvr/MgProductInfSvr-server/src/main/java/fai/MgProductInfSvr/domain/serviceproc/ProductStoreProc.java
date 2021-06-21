@@ -287,7 +287,7 @@ public class ProductStoreProc extends AbstractProductProc{
             Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;skuId=%s;unionPriIdList=%s;", m_flow, aid, pdIds, unionPriIdList);
             return rt;
         }
-        rt = m_cli.batchGetSkuStoreSalesByUidAndPdId(aid, tid, pdIds, unionPriIdList, infoList);
+        rt = m_cli.batchGetSkuStoreSalesByUidAndPdId(aid, tid, unionPriIdList, pdIds, infoList);
         if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;skuId=%s;unionPriIdList=%s;", m_flow, aid, pdIds, unionPriIdList);
             return rt;

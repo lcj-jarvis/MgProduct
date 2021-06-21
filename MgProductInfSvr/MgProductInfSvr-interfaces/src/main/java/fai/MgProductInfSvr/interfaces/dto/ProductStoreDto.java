@@ -89,6 +89,7 @@ public class ProductStoreDto {
             g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.MW_PRICE, 26, Var.Type.LONG);
             g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.TOTAL_PRICE, 27, Var.Type.LONG);
             g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.MW_TOTAL_PRICE, 28, Var.Type.LONG);
+            g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.STATUS, 29, Var.Type.INT);
 
         }
         public static ParamDef getInfoDto() {

@@ -35,6 +35,7 @@ public class InOutStoreRecordEntity {
         public static final String KEEP_INT_PROP1 = "keepIntProp1";                 // int 整型 保留字段1 TODO
         public static final String KEEP_PROP1 = "keepProp1";                        // varchar(255) 字符串 保留字段1 TODO
         public static final String SOURCE_UNION_PRI_ID = "sourceUnionPriId";        // int 创建商品的联合主键 id
+        public static final String STATUS = "status";                               // int 数据状态
     }
 
 

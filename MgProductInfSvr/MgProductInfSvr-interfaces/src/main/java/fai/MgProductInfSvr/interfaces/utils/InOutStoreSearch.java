@@ -194,6 +194,16 @@ public class InOutStoreSearch {
         return this;
     }
 
+    // 数据状态
+    public InOutStoreSearch setStatus(int status) {
+        if(SearchType.InOutStoreSum.equals(searchType)) {
+            Log.logErr("search arg error;searchType is InOutStoreSum;aid=%d;tid=%d;siteId=%d;lgId=%d;keepPriId1=%d;", aid, tid, siteId, lgId, keepPriId1);
+            return null;
+        }
+        matcher.and(ProductStoreEntity.InOutStoreRecordInfo.STATUS, ParamMatcher.EQ, status);
+        return this;
+    }
+
     public SearchArg getSearchArg() {
         if(this.searchArg == null) {
             this.searchArg = new SearchArg();

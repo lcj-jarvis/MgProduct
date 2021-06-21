@@ -81,6 +81,7 @@ public class ProductStoreEntity {
         public static final String REMARK = "remark";                               // String 备注
         public static final String RL_ORDER_CODE = "rlOrderCode";                   // String 业务订单code/id
         public static final String RL_REFUND_ID = "rlRefundId";                     // String 业务退款编号
+        public static final String STATUS = "status";                               // int 数据状态
         // for init
         public static final String IN_PD_SC_STR_NAME_LIST = ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_NAME_LIST;
     }

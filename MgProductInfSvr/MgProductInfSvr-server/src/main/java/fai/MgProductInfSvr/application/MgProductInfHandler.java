@@ -379,6 +379,19 @@ public class MgProductInfHandler extends FaiHandler {
         return specService.getPdScInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, onlyGetChecked);
     }
 
+    @Cmd(MgProductInfCmd.ProductSpecCmd.GET_LIST_4ADM)
+    public int getPdScInfoList4Adm(final FaiSession session,
+                               @ArgFlow final int flow,
+                               @ArgAid final int aid,
+                               @ArgBodyInteger(ProductSpecDto.Key.TID) int tid,
+                               @ArgBodyInteger(ProductSpecDto.Key.SITE_ID) int siteId,
+                               @ArgBodyInteger(ProductSpecDto.Key.LGID) int lgId,
+                               @ArgBodyInteger(ProductSpecDto.Key.KEEP_PRIID1) int keepPriId1,
+                               @ArgList(keyMatch = ProductSpecDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
+                               @ArgBodyBoolean(ProductSpecDto.Key.ONLY_GET_CHECKED) boolean onlyGetChecked) throws IOException {
+        return specService.getPdScInfoList4Adm(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIds, onlyGetChecked);
+    }
+
     @WrittenCmd
     @Cmd(MgProductInfCmd.ProductSpecSkuCmd.SET_LIST)
     public int setPdSkuScInfoList(final FaiSession session,

@@ -4,6 +4,7 @@ import fai.MgProductBasicSvr.interfaces.entity.ProductRelEntity;
 import fai.MgProductInfSvr.domain.serviceproc.ProductBasicProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductSpecProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductStoreProc;
+import fai.MgProductInfSvr.interfaces.dto.MgProductDto;
 import fai.MgProductInfSvr.interfaces.dto.ProductSpecDto;
 import fai.MgProductInfSvr.interfaces.entity.ProductBasicEntity;
 import fai.MgProductInfSvr.interfaces.entity.ProductTempEntity;
@@ -569,6 +570,56 @@ public class ProductSpecService extends MgProductInfService {
         }
         return rt;
     }
+
+    public int getPdScInfoList4Adm(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, boolean onlyGetChecked) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            ProductBasicProc productBasicProc = new ProductBasicProc(flow);
+
+            // 1 获取商品关联信息
+            FaiList<Param> pdRelInfos = new FaiList<>();
+            rt = productBasicProc.getRelListByRlIds(aid, unionPriId, rlPdIds, pdRelInfos);
+            if(rt != Errno.OK){
+                return rt;
+            }
+            FaiList<Integer> pdIds = new FaiList<>();
+            for(int i = 0; i < pdRelInfos.size(); i++) {
+                Param info = pdRelInfos.get(i);
+                pdIds.add(info.getInt(ProductBasicEntity.ProductInfo.PD_ID));
+            }
+            ProductSpecProc productSpecProc = new ProductSpecProc(flow);
+            // 获取商品规格
+            FaiList<Param> pdScInfoList = new FaiList<>();
+            rt = productSpecProc.getPdScInfoList4Adm(aid, unionPriId, pdIds, onlyGetChecked, pdScInfoList);
+            if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                return rt;
+            }
+
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            pdScInfoList.toBuffer(sendBuf, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.Spec.getInfoDto());
+            session.write(sendBuf);
+        }finally {
+            stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
+        }
+        return rt;
+    }
+
     /**
      * 批量修改产品规格SKU
      */

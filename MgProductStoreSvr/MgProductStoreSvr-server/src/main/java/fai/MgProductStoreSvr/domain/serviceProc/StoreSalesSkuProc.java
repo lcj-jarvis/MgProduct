@@ -616,7 +616,7 @@ public class StoreSalesSkuProc {
                                 .setInt(StoreSalesSkuEntity.Info.RL_PD_ID, pdKey.rlPdId)
                                 .setLong(StoreSalesSkuEntity.Info.PRICE, price)
                                 .setLong(StoreSalesSkuEntity.Info.ORIGIN_PRICE, originPrice)
-                                //.setInt(StoreSalesSkuEntity.Info.FLAG, flag)
+                                .setInt(StoreSalesSkuEntity.Info.FLAG, flag)
                 );
             }
         }

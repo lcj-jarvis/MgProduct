@@ -480,6 +480,88 @@ public class StoreSalesSkuService extends StoreService {
     }
 
     /**
+     *  批量新增库存销售数据
+     */
+    public int batchAddStoreSales(FaiSession session, int flow, int aid, int sourceTid, int sourceUnionPriId, FaiList<Param> storeSaleSkuList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || sourceTid<=0 || sourceUnionPriId <= 0|| Util.isEmptyList(storeSaleSkuList)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;sourceUnionPriId=%s;storeSaleSkuList=%s;", flow, aid, sourceUnionPriId, storeSaleSkuList);
+                return rt;
+            }
+            Set<Integer> pdIdSet = new HashSet<>();
+            Set<Long> skuIdSet = new HashSet<>();
+            Set<SkuBizKey> skuBizKeySet = new HashSet<>();
+            for (Param storeSaleSku : storeSaleSkuList) {
+                int count = storeSaleSku.getInt(StoreSalesSkuEntity.Info.COUNT, 0);
+                storeSaleSku.setInt(StoreSalesSkuEntity.Info.COUNT, count);
+                storeSaleSku.setInt(StoreSalesSkuEntity.Info.REMAIN_COUNT, count);
+                long skuId = storeSaleSku.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                int pdId = storeSaleSku.getInt(StoreSalesSkuEntity.Info.PD_ID);
+                int unionPriId = storeSaleSku.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+                skuBizKeySet.add(new SkuBizKey(unionPriId, skuId));
+                pdIdSet.add(pdId);
+                skuIdSet.add(skuId);
+            }
+            // 事务
+            TransactionCtrl transactionCtrl = new TransactionCtrl();
+            try {
+                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, transactionCtrl);
+                SpuSummaryProc spuSummaryProc = new SpuSummaryProc(flow, aid, transactionCtrl);
+                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, transactionCtrl);
+                SkuSummaryProc skuSummaryProc = new SkuSummaryProc(flow, aid, transactionCtrl);
+
+                try {
+                    LockUtil.lock(aid);
+                    try {
+                        transactionCtrl.setAutoCommit(false);
+                        rt = storeSalesSkuProc.batchAdd(aid, null, storeSaleSkuList);
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
+                    }finally {
+                        if(rt != Errno.OK){
+                            transactionCtrl.rollback();
+                            return rt;
+                        }
+                        transactionCtrl.commit();
+                    }
+                }finally {
+                    LockUtil.unlock(aid);
+                }
+                try {
+                    transactionCtrl.setAutoCommit(false);
+                    rt = reportSummary(aid, new FaiList<>(pdIdSet), ReportValObj.Flag.REPORT_COUNT|ReportValObj.Flag.REPORT_PRICE,
+                            new FaiList<>(skuIdSet), storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
+                    if(rt != Errno.OK){
+                        return rt;
+                    }
+                }finally {
+                    if(rt != Errno.OK){
+                        transactionCtrl.rollback();
+                        return rt;
+                    }
+                    spuBizSummaryProc.setDirtyCacheEx(aid);
+                    spuSummaryProc.setDirtyCacheEx(aid);
+                    transactionCtrl.commit();
+                    spuBizSummaryProc.deleteDirtyCache(aid);
+                    spuSummaryProc.deleteDirtyCache(aid);
+                }
+            }finally {
+                transactionCtrl.closeDao();
+            }
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("ok;flow=%s;aid=%s;pdIdSet=%s;skuIdSet=%s;", flow, aid, pdIdSet, skuIdSet);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    /**
      * 批量扣减库存
      * @return
      */

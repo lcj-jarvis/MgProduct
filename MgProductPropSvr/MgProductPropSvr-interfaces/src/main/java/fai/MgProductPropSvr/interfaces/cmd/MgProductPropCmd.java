@@ -18,6 +18,7 @@ public class MgProductPropCmd {
 		public static final int NUM2 = 1002; /** @see PropCmd#BATCH_SET */
 		public static final int NUM3 = 1003; /** @see PropCmd#ADD_WITH_VAL */
 		public static final int NUM4 = 1004; /** @see PropValCmd#BATCH_SET */
+		public static final int NUM5 = 1005; /** @see PropCmd#UNION_SET */
 	}
 
 	/**
@@ -30,7 +31,8 @@ public class MgProductPropCmd {
 		public static final int BATCH_DEL = WriteCmdNum.NUM1;
 		public static final int BATCH_SET = WriteCmdNum.NUM2;
 		public static final int ADD_WITH_VAL = WriteCmdNum.NUM3;
-	}
+		public static final int UNION_SET = WriteCmdNum.NUM5;
+    }
 
 	public static class PropValCmd {
 		public static final int GET_LIST = ReadCmdNum.NUM1;

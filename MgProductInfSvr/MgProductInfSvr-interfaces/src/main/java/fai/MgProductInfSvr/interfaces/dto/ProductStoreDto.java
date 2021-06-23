@@ -9,6 +9,19 @@ import fai.comm.util.Var;
  */
 public class ProductStoreDto {
 
+    public static final class PrimaryKey {
+        private static ParamDef g_infoDtoDef = new ParamDef();
+        static {
+            g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.TID, 1, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.SITE_ID, 2, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.LGID, 3, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, 4, Var.Type.INT);
+        }
+        public static ParamDef getInfoDto() {
+            return g_infoDtoDef;
+        }
+    }
+
     public static final class StoreSalesSku{
         private static ParamDef g_infoDtoDef = new ParamDef();
         static {
@@ -36,6 +49,9 @@ public class ProductStoreDto {
             g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.SITE_ID, 24, Var.Type.INT);
             g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.LGID, 25, Var.Type.INT);
             g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, 26, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.COST_PRICE, 27, Var.Type.LONG);
+            g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.MW_COST, 28, Var.Type.LONG);
+            g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.OWNER_RL_PD_ID, 29, Var.Type.INT);
         }
         public static ParamDef getInfoDto() {
             return g_infoDtoDef;
@@ -72,6 +88,9 @@ public class ProductStoreDto {
             g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.RL_ORDER_CODE, 24, Var.Type.STRING);
             g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.RL_REFUND_ID, 25, Var.Type.STRING);
             g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.MW_PRICE, 26, Var.Type.LONG);
+            g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.TOTAL_PRICE, 27, Var.Type.LONG);
+            g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.MW_TOTAL_PRICE, 28, Var.Type.LONG);
+            g_infoDtoDef.add(ProductStoreEntity.InOutStoreRecordInfo.STATUS, 29, Var.Type.INT);
 
         }
         public static ParamDef getInfoDto() {
@@ -139,6 +158,7 @@ public class ProductStoreDto {
             g_infoDtoDef.add(ProductStoreEntity.SkuSummaryInfo.SYS_UPDATE_TIME, 9);
             g_infoDtoDef.add(ProductStoreEntity.SkuSummaryInfo.MIN_PRICE, 10, Var.Type.LONG);
             g_infoDtoDef.add(ProductStoreEntity.SkuSummaryInfo.MAX_PRICE, 11, Var.Type.LONG);
+            g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.MW_COST, 12, Var.Type.LONG);
         }
         public static ParamDef getInfoDto() {
             return g_infoDtoDef;
@@ -204,5 +224,9 @@ public class ProductStoreDto {
         public static final int STR_LIST = 19;
         public static final int IN_OUT_STORE_RECORD_ID = 20;
         public static final int RL_REFUND_ID = 21;
+        public static final int PRI_IDS = 22;
+        public static final int PRICE = 23;
+        public static final int OPT_TIME = 24;
+        public static final int PRIMARY_KEYS = 25;
     }
 }

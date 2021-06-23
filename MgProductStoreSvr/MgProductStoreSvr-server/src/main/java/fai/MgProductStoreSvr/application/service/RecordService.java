@@ -1,17 +1,17 @@
 package fai.MgProductStoreSvr.application.service;
 
-import fai.MgProductStoreSvr.domain.comm.InOutStoreRecordArgCheck;
-import fai.MgProductStoreSvr.domain.comm.LockUtil;
-import fai.MgProductStoreSvr.domain.comm.PdKey;
-import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
+import fai.MgProductStoreSvr.domain.comm.*;
 import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordEntity;
 import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordValObj;
+import fai.MgProductStoreSvr.domain.entity.InOutStoreSumEntity;
 import fai.MgProductStoreSvr.domain.entity.ReportValObj;
 import fai.MgProductStoreSvr.domain.repository.*;
 import fai.MgProductStoreSvr.domain.serviceProc.*;
 import fai.MgProductStoreSvr.interfaces.dto.InOutStoreRecordDto;
+import fai.MgProductStoreSvr.interfaces.entity.SkuCountChangeEntity;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
+import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
@@ -87,13 +87,7 @@ public class RecordService extends StoreService {
             }
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
-                InOutStoreRecordDaoCtrl inOutStoreRecordDaoCtrl = InOutStoreRecordDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                if(!transactionCtrl.checkRegistered(inOutStoreRecordDaoCtrl)){
-                    rt = Errno.ERROR;
-                    Log.logErr(rt,"checkRegistered err;flow=%s;aid=%s;", flow, aid);
-                    return rt;
-                }
-                InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(inOutStoreRecordDaoCtrl, flow);
+                InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(flow, aid, transactionCtrl);
                 try {
                     LockUtil.lock(aid);
                     try {
@@ -228,8 +222,7 @@ public class RecordService extends StoreService {
                 SpuBizSummaryDaoCtrl spuBizSummaryDaoCtrl = SpuBizSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
                 SpuSummaryDaoCtrl spuSummaryDaoCtrl = SpuSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
                 SkuSummaryDaoCtrl skuSummaryDaoCtrl = SkuSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                InOutStoreRecordDaoCtrl inOutStoreRecordDaoCtrl = InOutStoreRecordDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                if(!transactionCtrl.checkRegistered(storeSalesSkuDaoCtrl, spuBizSummaryDaoCtrl, spuSummaryDaoCtrl, skuSummaryDaoCtrl, inOutStoreRecordDaoCtrl)){
+                if(!transactionCtrl.checkRegistered(storeSalesSkuDaoCtrl, spuBizSummaryDaoCtrl, spuSummaryDaoCtrl, skuSummaryDaoCtrl)){
                     return rt = Errno.ERROR;
                 }
 
@@ -237,7 +230,7 @@ public class RecordService extends StoreService {
                 SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(spuBizSummaryDaoCtrl, flow);
                 SpuSummaryProc spuSummaryProc = new SpuSummaryProc(spuSummaryDaoCtrl, flow);
                 SkuSummaryProc skuSummaryProc = new SkuSummaryProc(skuSummaryDaoCtrl, flow);
-                InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(inOutStoreRecordDaoCtrl, flow);
+                InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(flow, aid, transactionCtrl);
                 try {
                     LockUtil.lock(aid);
                     try {
@@ -319,13 +312,13 @@ public class RecordService extends StoreService {
     /**
      * 获取出入库记录
      */
-    public int getInOutStoreRecordInfoList(FaiSession session, int flow, int aid, int tid, int unionPriId, boolean isSource, SearchArg searchArg) throws IOException {
+    public int getInOutStoreRecordInfoList(FaiSession session, int flow, int aid, int tid, Integer unionPriId, boolean isSource, SearchArg searchArg) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
             if (aid <= 0 || searchArg == null || searchArg.isEmpty() || unionPriId <= 0) {
                 rt = Errno.ARGS_ERROR;
-                Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;searchArg=%s;", flow, aid, unionPriId, searchArg);
+                Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%d;searchArg=%s;", flow, aid, unionPriId, searchArg);
                 return rt;
             }
 
@@ -341,25 +334,172 @@ public class RecordService extends StoreService {
                 baseMatcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
             }
 
+
             baseMatcher.and(searchArg.matcher);
             searchArg.matcher = baseMatcher;
 
             Ref<FaiList<Param>> listRef = new Ref<>();
-            InOutStoreRecordDaoCtrl inOutStoreRecordDaoCtrl = InOutStoreRecordDaoCtrl.getInstance(flow, aid);
+            TransactionCtrl tc = new TransactionCtrl();
             try {
-                InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(inOutStoreRecordDaoCtrl, flow);
+                InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(flow, aid, tc);
                 rt = inOutStoreRecordProc.searchFromDao(aid, searchArg, listRef);
                 if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                     return rt;
                 }
             }finally {
-                inOutStoreRecordDaoCtrl.closeDao();
+                tc.closeDao();
             }
             sendInOutRecord(session, searchArg, listRef);
             Log.logDbg("ok;aid=%d;searchArg.matcher.toJson=%s", aid, searchArg.matcher.toJson());
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }
+        return rt;
+    }
+
+    public int newGetInOutStoreRecordInfoList(FaiSession session, int flow, int aid, SearchArg searchArg) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || searchArg == null || searchArg.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;searchArg=%s;", flow, aid, searchArg);
+                return rt;
+            }
+
+            if(searchArg.limit > InOutStoreRecordValObj.SearchArg.Limit.MAX){
+                Log.logErr("searchArg.limit err;flow=%d;aid=%d;searchArg.limit=%s;", flow, aid, searchArg.limit);
+                return rt = Errno.ARGS_ERROR;
+            }
+
+            ParamMatcher baseMatcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
+
+            baseMatcher.and(searchArg.matcher);
+            searchArg.matcher = baseMatcher;
+
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            TransactionCtrl tc = new TransactionCtrl();
+            try {
+                InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(flow, aid, tc);
+                rt = inOutStoreRecordProc.searchFromDao(aid, searchArg, listRef);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                    return rt;
+                }
+            }finally {
+                tc.closeDao();
+            }
+            sendInOutRecord(session, searchArg, listRef);
+            Log.logDbg("ok;aid=%d;searchArg.matcher.toJson=%s", aid, searchArg.matcher.toJson());
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * 重置出入库成本价
+     * 逻辑：
+     *      1.查出指定时间之前，成本价为0(这里是保证是重置未设置成本价的数据，且只能重置一次，这些价格为0的数据应该是连续的，中间不会夹杂成本价不为0的数据)
+     *        入库操作剩余的库存 availableCount
+     *      2.修改指定时间之前，指定商品，指定sku，成本价为0的出入库成本单价
+     *          这里因为是 第一次入库 ~ 指定时间 的成本价都设为同一个值，所以这期间的出库成本，不管是先进先出，还是移动加权，算出来都应该和入库成本是一样的
+     *      3.更新商品规格库存销售 sku 表 mgStoreSaleSKU_0xxx 的现有库存成本 (availableCount*price)
+     *      4.异步更新sku汇总表 mgSkuSummary_0xxx 的现有库存成本
+     * @param session
+     * @param flow
+     * @param aid
+     * @param rlPdId
+     * @param optTime
+     * @param infoList
+     * @return
+     * @throws IOException
+     */
+    public int batchResetCostPrice(FaiSession session, int flow, int aid, int rlPdId, Calendar optTime, FaiList<Param> infoList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || rlPdId <= 0|| infoList == null || infoList.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;rlPdId=%s;infoList=%s;", flow, aid, rlPdId, infoList);
+                return rt;
+            }
+
+            Set<SkuBizKey> skuBizKeySet = new HashSet<>();
+            Set<Long> skuIdSet = new HashSet<>();
+            for (Param info : infoList) {
+                long skuId = info.getLong(InOutStoreRecordEntity.Info.SKU_ID);
+                int unionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, 0);
+                skuBizKeySet.add(new SkuBizKey(unionPriId, skuId));
+                skuIdSet.add(skuId);
+            }
+
+            LockUtil.lock(aid);
+            try {
+                // 事务
+                TransactionCtrl tc = new TransactionCtrl();
+                try {
+                    boolean needSyncSkuPrice = false;
+                    InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(flow, aid, tc);
+                    StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, tc);
+                    SkuSummaryProc skuSummaryProc = new SkuSummaryProc(flow, aid, tc);
+                    tc.setAutoCommit(false);
+                    try {
+                        Map<SkuBizKey, Param> changeCountAfterSkuStoreInfoMap = new HashMap<>();
+                        // 获取库存量
+                        rt = storeSalesSkuProc.getInfoMap4OutRecordFromDao(aid, skuBizKeySet, changeCountAfterSkuStoreInfoMap);
+                        if (rt != Errno.OK) {
+                            return rt;
+                        }
+                        rt = inOutStoreRecordProc.batchResetCostPrice(aid, rlPdId, infoList, optTime, changeCountAfterSkuStoreInfoMap);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+                        needSyncSkuPrice = !changeCountAfterSkuStoreInfoMap.isEmpty();
+                        if(needSyncSkuPrice) {
+                            // 更新总成本
+                            rt = storeSalesSkuProc.batchUpdateTotalCost(aid, changeCountAfterSkuStoreInfoMap);
+                            if(rt != Errno.OK){
+                                return rt;
+                            }
+                        }
+                        tc.commit();
+                    }finally {
+                        if(rt != Errno.OK) {
+                            tc.rollback();
+                            return rt;
+                        }
+                    }
+                    // 更新sku汇总成本， 一定要上面的事务提交了再更新
+                    if(needSyncSkuPrice) {
+                        try {
+                            tc.setAutoCommit(false);
+                            rt = reportSummary(aid, new FaiList<>(), ReportValObj.Flag.REPORT_PRICE,
+                                    new FaiList<>(skuIdSet), storeSalesSkuProc, null, null, skuSummaryProc);
+                            if(rt != Errno.OK){
+                                return rt;
+                            }
+                        }finally {
+                            if(rt != Errno.OK){
+                                tc.rollback();
+                                return rt;
+                            }
+                            tc.commit();
+                        }
+                    }
+                }finally {
+                    tc.closeDao();
+                }
+            }finally {
+                LockUtil.unlock(aid);
+            }
+
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("ok;;aid=%d;rlPdId=%s;optTime=%s", aid, rlPdId, Parser.parseString(optTime));
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+
         return rt;
     }
 
@@ -373,4 +513,52 @@ public class RecordService extends StoreService {
         session.write(sendBuf);
     }
 
+    /**
+     * 获取出入库记录汇总数据
+     */
+    public int getInOutStoreSumList(FaiSession session, int flow, int aid, SearchArg searchArg) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || searchArg == null || searchArg.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;searchArg=%s;", flow, aid, searchArg);
+                return rt;
+            }
+
+            if(searchArg.limit > InOutStoreRecordValObj.SearchArg.Limit.MAX){
+                Log.logErr("searchArg.limit err;flow=%d;aid=%d;searchArg.limit=%s;", flow, aid, searchArg.limit);
+                return rt = Errno.ARGS_ERROR;
+            }
+
+            ParamMatcher baseMatcher = new ParamMatcher(InOutStoreSumEntity.Info.AID, ParamMatcher.EQ, aid);
+
+            baseMatcher.and(searchArg.matcher);
+            searchArg.matcher = baseMatcher;
+
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            TransactionCtrl tc = new TransactionCtrl();
+            try {
+                InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(flow, aid, tc);
+                rt = inOutStoreRecordProc.getSummaryListFromDB(aid, searchArg, listRef);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                    return rt;
+                }
+            }finally {
+                tc.closeDao();
+            }
+
+            FaiList<Param> infoList = listRef.value;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            infoList.toBuffer(sendBuf, InOutStoreRecordDto.Key.INFO_LIST, InOutStoreRecordDto.getSumInfoDto());
+            if(searchArg.totalSize != null){
+                sendBuf.putInt(InOutStoreRecordDto.Key.TOTAL_SIZE, searchArg.totalSize.value);
+            }
+            session.write(sendBuf);
+            Log.logDbg("ok;aid=%d;searchArg.matcher.toJson=%s", aid, searchArg.matcher.toJson());
+        }finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
 }

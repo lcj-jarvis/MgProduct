@@ -274,7 +274,7 @@ public class SkuSummaryProc {
             Log.logStd("dao.select error;flow=%d;aid=%s;searchArg=%s;", m_flow, aid, searchArg);
             return rt;
         }
-        Log.logStd(rt, "ok;flow=%d;aid=%s;searchArg=%s;", m_flow, aid, searchArg);
+        Log.logStd(rt, "ok;flow=%d;aid=%s;match=%s;", m_flow, aid, searchArg.matcher.toJson());
         return rt;
     }
 

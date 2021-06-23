@@ -4,7 +4,9 @@ import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordEntity;
 import fai.comm.distributedkit.idBuilder.domain.IdBuilderConfig;
 import fai.comm.distributedkit.idBuilder.wrapper.IdBuilderWrapper;
 import fai.comm.util.DaoPool;
+import fai.comm.util.Errno;
 import fai.comm.util.Log;
+import fai.comm.util.Str;
 import fai.middleground.svrutil.repository.DaoWithIdBuilderCtrl;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
@@ -39,6 +41,16 @@ public class InOutStoreRecordDaoCtrl extends DaoWithIdBuilderCtrl {
 		return new InOutStoreRecordDaoCtrl(flow, aid);
 	}
 
+	public int executeUpdate(String sql) {
+		int rt;
+		if(Str.isEmpty(sql)) {
+			rt = Errno.DAO_SQL_ERROR;
+			return rt;
+		}
+		sql = sql.replaceFirst(TABLE_HOLD, getTableName());
+		return m_dao.executeUpdate(sql);
+	}
+
 	@Override
 	protected DaoPool getDaoPool() {
 		return m_daoProxy.getDaoPool(aid, getGroup());
@@ -70,4 +82,5 @@ public class InOutStoreRecordDaoCtrl extends DaoWithIdBuilderCtrl {
 
 	private static final int ID_BUILDER_INIT = 1;
 	private static IdBuilderWrapper m_idBuilder;
+	public static final String TABLE_HOLD = "tablenameHold";
 }

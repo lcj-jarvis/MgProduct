@@ -2,6 +2,11 @@ package fai.MgProductInfSvr.interfaces.entity;
 
 public class MgProductEntity {
     public final class Info{
+        public static final String TID = "tid";  // int 项目id
+        public static final String SITE_ID = "siteId"; // int 站点id
+        public static final String LGID = "lgId"; // int 多语言id
+        public static final String KEEP_PRI_ID1 = "keepPriId1"; //int 保留主键1
+
         /** @see ProductBasicEntity.ProductInfo */
         public static final String BASIC = "basic";                         // Param 基础信息
 
@@ -13,6 +18,9 @@ public class MgProductEntity {
 
         /** @see ProductStoreEntity.StoreSalesSkuInfo */
         public static final String STORE_SALES = "storeSales";              // FaiList<Param> 库存销售
+
+        /** @see ProductStoreEntity.StoreSalesSkuInfo */
+        public static final String SPU_SALES = "spuSales";                  // FaiList<Param> spu库存销售
 
         /**
          * @see fai.mgproduct.comm.MgProductErrno

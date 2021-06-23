@@ -16,6 +16,7 @@ import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 public class StoreSalesSkuProc {
@@ -579,12 +580,32 @@ public class StoreSalesSkuProc {
         if(needAddedSkuIdSet.isEmpty()){
             return Errno.OK;
         }
+        Ref<FaiList<Param>> sourceListRef = new Ref<>();
+        rt = getListFromDaoBySkuIdList(aid, ownerUnionPriId, new FaiList<>(needAddedSkuIdSet), sourceListRef,
+                StoreSalesSkuEntity.Info.SKU_ID, StoreSalesSkuEntity.Info.PRICE, StoreSalesSkuEntity.Info.ORIGIN_PRICE);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            Log.logErr(rt, "get sourceList err;flow=%s;aid=%s;ownerUnionPriId=%s;skuSet=%s;", m_flow, aid, ownerUnionPriId, needAddedSkuIdSet);
+            return rt;
+        }
+        FaiList<Param> sourceList = sourceListRef.value;
+        if(sourceList == null) {
+            sourceList = new FaiList<>();
+        }
+        Map<Long, Param> map = sourceList.stream().collect(Collectors.toMap(info -> info.getLong(StoreSalesSkuEntity.Info.SKU_ID), info -> info));
         // 生关联的sku
         FaiList<Param> addInfoList = new FaiList<>(needAddedSkuIdSet.size());
         for (Map.Entry<Integer, Set<Long>> uidSkuIdSetEntry : uidSkuIdSetMap.entrySet()) {
             int uid = uidSkuIdSetEntry.getKey();
             Set<Long> skuIdSet = uidSkuIdSetEntry.getValue();
             for (Long skuId : skuIdSet) {
+                Param sourceInfo = map.get(skuId);
+                int flag = StoreSalesSkuValObj.FLag.SETED_PRICE;
+                if(sourceInfo == null) {
+                    sourceInfo = new Param();
+                    flag = 0;
+                }
+                long price = sourceInfo.getLong(StoreSalesSkuEntity.Info.PRICE, 0L);
+                long originPrice = sourceInfo.getLong(StoreSalesSkuEntity.Info.ORIGIN_PRICE, 0L);
                 PdKey pdKey = needCheckSkuStoreKeyPdKeyMap.get(new SkuBizKey(uid, skuId));
                 addInfoList.add(
                         new Param()
@@ -593,6 +614,9 @@ public class StoreSalesSkuProc {
                                 .setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId)
                                 .setInt(StoreSalesSkuEntity.Info.PD_ID, pdKey.pdId)
                                 .setInt(StoreSalesSkuEntity.Info.RL_PD_ID, pdKey.rlPdId)
+                                .setLong(StoreSalesSkuEntity.Info.PRICE, price)
+                                .setLong(StoreSalesSkuEntity.Info.ORIGIN_PRICE, originPrice)
+                                .setInt(StoreSalesSkuEntity.Info.FLAG, flag)
                 );
             }
         }
@@ -711,10 +735,12 @@ public class StoreSalesSkuProc {
             Param totalCostInfo = skuBizKeyInfoEntry.getValue();
             long fifoTotalCost = totalCostInfo.getLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST);
             long mwTotalCost = totalCostInfo.getLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST);
+            long mwCost = totalCostInfo.getLong(StoreSalesSkuEntity.Info.MW_COST);
             Param data = new Param();
             // updater field
             data.setLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, fifoTotalCost);
             data.setLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, mwTotalCost);
+            data.setLong(StoreSalesSkuEntity.Info.MW_COST, mwCost);
             data.setCalendar(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, now);
             // matcher field
             data.setInt(StoreSalesSkuEntity.Info.AID, aid);
@@ -725,6 +751,7 @@ public class StoreSalesSkuProc {
         ParamUpdater updater = new ParamUpdater();
         updater.getData().setString(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, "?");
         updater.getData().setString(StoreSalesSkuEntity.Info.MW_TOTAL_COST, "?");
+        updater.getData().setString(StoreSalesSkuEntity.Info.MW_COST, "?");
         updater.getData().setString(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, "?");
 
         ParamMatcher matcher = new ParamMatcher();
@@ -827,7 +854,8 @@ public class StoreSalesSkuProc {
                     StoreSalesSkuEntity.Info.REMAIN_COUNT,
                     StoreSalesSkuEntity.Info.HOLDING_COUNT,
                     StoreSalesSkuEntity.Info.FIFO_TOTAL_COST,
-                    StoreSalesSkuEntity.Info.MW_TOTAL_COST);
+                    StoreSalesSkuEntity.Info.MW_TOTAL_COST,
+                    StoreSalesSkuEntity.Info.MW_COST);
             if(rt != Errno.OK){
                 return rt;
             }

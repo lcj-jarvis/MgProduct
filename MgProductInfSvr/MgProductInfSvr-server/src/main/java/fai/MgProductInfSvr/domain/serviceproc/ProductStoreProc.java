@@ -4,6 +4,8 @@ import fai.MgProductStoreSvr.interfaces.cli.MgProductStoreCli;
 import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuValObj;
 import fai.comm.util.*;
 
+import java.util.Calendar;
+
 public class ProductStoreProc extends AbstractProductProc{
     public ProductStoreProc(int flow) {
         this.m_flow = flow;
@@ -80,6 +82,24 @@ public class ProductStoreProc extends AbstractProductProc{
         rt = m_cli.setSkuStoreSales(aid, tid, unionPriId, pdId, rlPdId, updaterList);
         if (rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;rlPdId=%s;", m_flow, aid, unionPriId, rlPdId);
+            return rt;
+        }
+        return rt;
+    }
+
+    /**
+     * 修改sku库存销售信息
+     */
+    public int batchSetSkuStoreSales(int aid, int tid, int ownerUnionPriId, FaiList<Integer> unionPriIds, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) {
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return rt;
+        }
+        rt = m_cli.batchSetSkuStoreSales(aid, tid, ownerUnionPriId, unionPriIds, pdId, rlPdId, updaterList);
+        if (rt != Errno.OK) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriIds=%s;rlPdId=%s;", m_flow, aid, unionPriIds, rlPdId);
             return rt;
         }
         return rt;
@@ -258,6 +278,24 @@ public class ProductStoreProc extends AbstractProductProc{
     }
 
     /**
+     * 根据 prIdList 和 unionPriIdList 获取sku库存销售信息
+     */
+    public int getStoreSalesByPdIdsAndUIdList(int aid, int tid, FaiList<Integer> pdIds, FaiList<Integer> unionPriIdList, FaiList infoList) {
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;skuId=%s;unionPriIdList=%s;", m_flow, aid, pdIds, unionPriIdList);
+            return rt;
+        }
+        rt = m_cli.batchGetSkuStoreSalesByUidAndPdId(aid, tid, unionPriIdList, pdIds, infoList);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;skuId=%s;unionPriIdList=%s;", m_flow, aid, pdIds, unionPriIdList);
+            return rt;
+        }
+        return rt;
+    }
+
+    /**
      * 根据 pdId 获取商品规格库存销售sku
      */
     public int getSkuStoreSalesByPdId(int aid, int tid, int pdId, FaiList infoList) {
@@ -313,23 +351,58 @@ public class ProductStoreProc extends AbstractProductProc{
     }
 
     /**
-     * 获取出入库存记录
+     * 重置指定操作时间之前的入库成本
      */
-    public int getInOutStoreRecordInfoList(int aid, int tid, int unionPriId, boolean isSource, SearchArg searchArg, FaiList<Param> infoList) {
+    public int batchResetCostPrice(int aid, int rlPdId, Calendar optTime, FaiList<Param> infoList) {
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
-        rt = m_cli.getInOutStoreRecordInfoList(aid, tid, unionPriId, isSource, searchArg, infoList);
-        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%s;isSource=%s;searchArg=%s;", m_flow, aid, unionPriId, isSource, getSearchArgInfo(searchArg));
+        rt = m_cli.batchResetCostPrice(aid, rlPdId, optTime, infoList);
+        if (rt != Errno.OK) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;rlPdId=%s;list=%s;", m_flow, aid, rlPdId, infoList);
             return rt;
         }
         return rt;
     }
 
+    /**
+     * 获取出入库存记录
+     */
+    public int getInOutStoreRecordInfoList(int aid, SearchArg searchArg, FaiList<Param> infoList) {
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        rt = m_cli.getInOutStoreRecordInfoList(aid, searchArg, infoList);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;searchArg=%s;", m_flow, aid, getSearchArgInfo(searchArg));
+            return rt;
+        }
+        return rt;
+    }
+
+    /**
+     * 获取出入库存记录
+     */
+    public int getInOutStoreSumList(int aid, SearchArg searchArg, FaiList<Param> infoList) {
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        rt = m_cli.getInOutStoreSumList(aid, searchArg, infoList);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;searchArg=%s;", m_flow, aid, getSearchArgInfo(searchArg));
+            return rt;
+        }
+        return rt;
+    }
 
     /**
      * 批量删除商品所有库存销售相关信息
@@ -457,6 +530,21 @@ public class ProductStoreProc extends AbstractProductProc{
         return rt;
     }
 
+    public int batchAddStoreSales(int aid, int tid, int unionPriId, FaiList<Param> storeSaleSkuList) {
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+
+        rt = m_cli.batchAddStoreSales(aid, tid, unionPriId, storeSaleSkuList);
+        if (rt != Errno.OK) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%s;storeSaleSkuList=%s;", m_flow, aid, unionPriId, storeSaleSkuList);
+            return rt;
+        }
+        return rt;
+    }
 
     private int m_flow;
     private MgProductStoreCli m_cli;

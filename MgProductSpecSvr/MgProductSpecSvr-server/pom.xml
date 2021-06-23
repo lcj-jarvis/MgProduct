@@ -3,12 +3,12 @@
     <parent>
         <groupId>MgProduct</groupId>
         <artifactId>MgProductSpecSvr</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.0.0</version>
     </parent>
 
     <artifactId>MgProductSpecSvr-server</artifactId>
     <packaging>jar</packaging>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <dependencies>
         <dependency>
             <groupId>fai-comm-middleground</groupId>

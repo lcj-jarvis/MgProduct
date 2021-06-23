@@ -22,6 +22,7 @@ import fai.comm.util.*;
 import fai.middleground.svrutil.service.MiddleGroundHandler;
 
 import java.io.IOException;
+import java.util.Calendar;
 
 public class MgProductStoreHandler extends MiddleGroundHandler {
     public MgProductStoreHandler(FaiServer server) {
@@ -118,12 +119,13 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                       @ArgFlow final int flow,
                                       @ArgAid final int aid,
                                       @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
+                                      @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int ownerUnionPriId,
                                       @ArgList(keyMatch = StoreSalesSkuDto.Key.UID_LIST) final FaiList<Integer> unionPriIdList,
                                       @ArgBodyInteger(StoreSalesSkuDto.Key.PD_ID) final int pdId,
                                       @ArgBodyInteger(StoreSalesSkuDto.Key.RL_PD_ID) final int rlPdId,
                                       @ArgList(classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto", keyMatch = StoreSalesSkuDto.Key.UPDATER_LIST)
                                               FaiList<ParamUpdater> updaterList) throws IOException {
-        return m_storeSalesSkuService.batchSetSkuStoreSales(session, flow, aid, tid, unionPriIdList, pdId, rlPdId, updaterList);
+        return m_storeSalesSkuService.batchSetSkuStoreSales(session, flow, aid, tid, ownerUnionPriId, unionPriIdList, pdId, rlPdId, updaterList);
     }
 
     @WrittenCmd
@@ -284,6 +286,18 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
         return m_recordService.addInOutStoreRecordInfoList(session, flow, aid, tid, unionPriId, infoList);
     }
 
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.InOutStoreRecordCmd.BATCH_RESET_PRICE)
+    private int batchResetCostPrice(final FaiSession session,
+                                    @ArgFlow final int flow,
+                                    @ArgAid final int aid,
+                                    @ArgBodyInteger(InOutStoreRecordDto.Key.RL_PD_ID) final int rlPdId,
+                                    @ArgBodyCalendar(InOutStoreRecordDto.Key.OPT_TIME)Calendar optTime,
+                                    @ArgList(classDef = InOutStoreRecordDto.class, methodDef = "getInfoDto", keyMatch = InOutStoreRecordDto.Key.INFO_LIST)
+                                                FaiList<Param> infoList) throws IOException {
+        return m_recordService.batchResetCostPrice(session, flow, aid, rlPdId, optTime, infoList);
+    }
+
     @Cmd(MgProductStoreCmd.InOutStoreRecordCmd.GET_LIST)
     private int getInOutStoreRecordInfoList(final FaiSession session,
                                             @ArgFlow final int flow,
@@ -294,7 +308,21 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                             @ArgSearchArg(InOutStoreRecordDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
         return m_recordService.getInOutStoreRecordInfoList(session, flow, aid, tid, unionPriId, isSource, searchArg);
     }
+    @Cmd(MgProductStoreCmd.InOutStoreRecordCmd.NEW_GET_LIST)
+    private int newGetInOutStoreRecordInfoList(final FaiSession session,
+                                            @ArgFlow final int flow,
+                                            @ArgAid final int aid,
+                                            @ArgSearchArg(InOutStoreRecordDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
+        return m_recordService.newGetInOutStoreRecordInfoList(session, flow, aid, searchArg);
+    }
 
+    @Cmd(MgProductStoreCmd.InOutStoreRecordCmd.GET_SUM_LIST)
+    private int getInOutStoreSumList(final FaiSession session,
+                                     @ArgFlow final int flow,
+                                     @ArgAid final int aid,
+                                     @ArgSearchArg(InOutStoreRecordDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
+        return m_recordService.getInOutStoreSumList(session, flow, aid, searchArg);
+    }
 
     @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.GET_LIST_BY_PD_ID)
     private int getSpuBizSummaryInfoListByPdId(final FaiSession session,
@@ -390,6 +418,18 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                  @ArgParam(keyMatch = StoreSalesSkuDto.Key.IN_OUT_STORE_RECORD_INFO,
                                          classDef = InOutStoreRecordDto.class, methodDef = "getInfoDto") Param inStoreRecordInfo) throws IOException {
         return m_storeService.importStoreSales(session, flow, aid, tid, unionPriId, storeSaleSkuList, inStoreRecordInfo);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_ADD)
+    private int batchAddStoreSales(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid final int aid,
+                                 @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
+                                 @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
+                                 @ArgList(keyMatch = StoreSalesSkuDto.Key.INFO_LIST,
+                                         classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto") FaiList<Param> storeSaleSkuList) throws IOException {
+        return m_storeSalesSkuService.batchAddStoreSales(session, flow, aid, tid, unionPriId, storeSaleSkuList);
     }
 
     @Cmd(MgProductStoreCmd.SkuSummaryCmd.BIZ_GET_LIST)

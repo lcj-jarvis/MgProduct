@@ -15,6 +15,8 @@ public class ProductBasicEntity {
         public static final String RL_PROP_ID = "rlPropId"; // int 参数业务id
         public static final String PROP_VAL_ID = "propValId"; // int 参数值id
         public static final String VAL = "val"; // varchar 参数值
+        public static final String ADD_PROP_LIST = "addPropList"; // 修改方法中使用 FaiList<Param>
+        public static final String DEL_PROP_LIST = "delPropList"; // 修改方法中使用 FaiList<Param>
     }
 
     /**
@@ -26,6 +28,8 @@ public class ProductBasicEntity {
         public static final String RL_PD_ID = "rlPdId"; // int 商品业务 id
         public static final String PD_ID = "pdId"; // int 商品id
         public static final String CREATE_TIME = "sysCreateTime"; // datetime 创建时间
+        public static final String DEL_RL_GROUP_IDS = "delRlGroupIds"; // 删除用的ids
+        public static final String ADD_RL_GROUP_IDS = "addRlGroupIds"; // 添加用的ids
     }
 
     /**
@@ -66,5 +70,9 @@ public class ProductBasicEntity {
         public static final String SITE_ID = "siteId"; // int 站点id
         public static final String LGID = "lgId"; // int 多语言id
         public static final String KEEP_PRI_ID1 = "keepPriId1"; //int 保留主键1
+
+        public static final String RL_GROUP_IDS = "rlGroupIds"; // 分类ids
+        public static final String RL_PROP_IDS = "rlPropIds";   // 参数ids
+        public static final String PROP_VAL_IDS = "propValIds"; // 参数值ids
     }
 }

@@ -53,6 +53,10 @@ public class MgProductInfCmd {
         public static final int NUM31 = 5031; /**@see ProductSpecSkuCmd#GET_ONLY_SPU_INFO_LIST*/
 
         public static final int NUM32 = 5032; /**@see MgProductSearchCmd#SEARCH_LIST*/
+        public static final int NUM33 = 5033; /**@see InOutStoreRecordCmd#GET_SUM_LIST*/
+        public static final int NUM34 = 5034; /**@see Cmd#GET_FULL_LIST_4ADM */
+        public static final int NUM35 = 5035; /**@see Cmd#GET_SUM_LIST_4ADM */
+        public static final int NUM36 = 5036; /**@see ProductSpecCmd#GET_LIST_4ADM */
     }
 
     // 1000 到 5000 的范围
@@ -102,6 +106,13 @@ public class MgProductInfCmd {
         public static final int NUM35 = 1035; /**@see BasicCmd#SET_SINGLE_PD */
         public static final int NUM36 = 1036; /**@see BasicCmd#SET_PDS */
         public static final int NUM37 = 1037; /**@see StoreSalesSkuCmd#REFRESH_HOLDING_RECORD_OF_RL_ORDER_CODE */
+        public static final int NUM38 = 1038; /**@see InOutStoreRecordCmd#BATCH_RESET_PRICE */
+        public static final int NUM39 = 1039; /**@see PropCmd#UNION_SET_PROP_LIST */
+        public static final int NUM40 = 1040; /**@see GroupCmd#UNION_SET_GROUP_LIST */
+        public static final int NUM41 = 1041; /**@see StoreSalesSkuCmd#BATCH_SET_LIST */
+        public static final int NUM42 = 1042; /**@see BasicCmd#ADD_PD_INFO */
+        public static final int NUM43 = 1043; /**@see BasicCmd#SET_PD_INFO */
+        public static final int NUM44 = 1044; /**@see StoreSalesSkuCmd#BATCH_ADD_LIST */
     }
 
 
@@ -125,6 +136,7 @@ public class MgProductInfCmd {
         public static final int ADD_WITH_VAL = WriteCmdNum.NUM4;
         public static final int SET_WITH_VAL = WriteCmdNum.NUM5;
         public static final int BATCH_SET_VAL = WriteCmdNum.NUM6;
+        public static final int UNION_SET_PROP_LIST = WriteCmdNum.NUM39;
     }
 
     public static class BasicCmd {
@@ -144,6 +156,8 @@ public class MgProductInfCmd {
         public static final int SET_PD_BIND_GROUP = WriteCmdNum.NUM33;
         public static final int SET_SINGLE_PD = WriteCmdNum.NUM35;
         public static final int SET_PDS = WriteCmdNum.NUM36;
+        public static final int ADD_PD_INFO = WriteCmdNum.NUM42;
+        public static final int SET_PD_INFO = WriteCmdNum.NUM43;
     }
 
     public static class GroupCmd {
@@ -154,6 +168,7 @@ public class MgProductInfCmd {
         public static final int ADD_GROUP = WriteCmdNum.NUM30;
         public static final int DEL_GROUP_LIST = WriteCmdNum.NUM31;
         public static final int SET_GROUP_LIST = WriteCmdNum.NUM32;
+        public static final int UNION_SET_GROUP_LIST = WriteCmdNum.NUM40;
     }
 
     /**
@@ -192,6 +207,7 @@ public class MgProductInfCmd {
         public static final int GET_INFO = ReadCmdNum.NUM8;
         public static final int GET_LIST = ReadCmdNum.NUM9;
         public static final int GET_CHECKED_LIST = ReadCmdNum.NUM10;
+        public static final int GET_LIST_4ADM = ReadCmdNum.NUM36;
 
         //写命令
         public static final int IMPORT = WriteCmdNum.NUM14;
@@ -228,14 +244,19 @@ public class MgProductInfCmd {
         public static final int BATCH_MAKE_UP_STORE = WriteCmdNum.NUM25;
         public static final int BATCH_REFUND_STORE = WriteCmdNum.NUM29;
         public static final int REFRESH_HOLDING_RECORD_OF_RL_ORDER_CODE = WriteCmdNum.NUM37;
+        public static final int BATCH_SET_LIST = WriteCmdNum.NUM41;
+        public static final int BATCH_ADD_LIST = WriteCmdNum.NUM44;
     }
 
     /**
      * 出入库存记录 相关 cmd
      */
     public static class InOutStoreRecordCmd {
-        public static final int ADD_LIST = WriteCmdNum.NUM26;
         public static final int GET_LIST = ReadCmdNum.NUM19;
+        public static final int GET_SUM_LIST = ReadCmdNum.NUM33;
+
+        public static final int ADD_LIST = WriteCmdNum.NUM26;
+        public static final int BATCH_RESET_PRICE = WriteCmdNum.NUM38;
     }
 
     /**
@@ -282,6 +303,9 @@ public class MgProductInfCmd {
      */
     public static class Cmd{
         public static final int GET_FULL_INFO = ReadCmdNum.NUM21;
+        public static final int GET_FULL_LIST_4ADM = ReadCmdNum.NUM34;
+        public static final int GET_SUM_LIST_4ADM = ReadCmdNum.NUM35;
+
         public static final int IMPORT_PRODUCT = WriteCmdNum.NUM34;
     }
 }

@@ -11,6 +11,7 @@ public class TableDBMapping {
         public static final String MG_SPU_BIZ_SUMMARY = "mgSpuBizSummary";
         public static final String MG_HOLDING_RECORD = "mgHoldingRecord";
         public static final String MG_IN_OUT_STORE_RECORD = "mgInOutStoreRecord";
+        public static final String MG_IN_OUT_STORE_SUM = "mgInOutStoreSum";
         public static final String MG_SPU_SUMMARY = "mgSpuSummary";
         public static final String MG_STORE_ORDER_RECORD = "mgStoreOrderRecord";
         public static final String MG_STORE_SALE_SKU = "mgStoreSaleSKU";
@@ -39,6 +40,7 @@ public class TableDBMapping {
         , MG_SKU_SUMMARY(Table.MG_SKU_SUMMARY, DB.MG_PRODUCT_STORE_SUMMARY)
 
         , MG_IN_OUT_STORE_RECORD(Table.MG_IN_OUT_STORE_RECORD, DB.MG_PRODUCT_STORE_RECORD)
+        , MG_IN_OUT_STORE_SUM(Table.MG_IN_OUT_STORE_SUM, DB.MG_PRODUCT_STORE_RECORD)
         ;
         private String table;
         private String db;

@@ -1,6 +1,7 @@
 package fai.MgProductStoreSvr.interfaces.dto;
 
 import fai.MgProductStoreSvr.interfaces.entity.SkuSummaryEntity;
+import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity;
 import fai.comm.util.ParamDef;
 import fai.comm.util.Var;
 
@@ -21,6 +22,7 @@ public class SkuSummaryDto {
         g_dtoDef.add(SkuSummaryEntity.Info.MIN_PRICE, 11, Var.Type.LONG);
         g_dtoDef.add(SkuSummaryEntity.Info.MAX_PRICE, 12, Var.Type.LONG);
         g_dtoDef.add(SkuSummaryEntity.Info.SOURCE_UNION_PRI_ID, 13, Var.Type.INT);
+        g_dtoDef.add(StoreSalesSkuEntity.Info.MW_COST, 14, Var.Type.LONG); // 门店维护获取数据需要返回成本单价
     }
 
     public static ParamDef getInfoDto() {

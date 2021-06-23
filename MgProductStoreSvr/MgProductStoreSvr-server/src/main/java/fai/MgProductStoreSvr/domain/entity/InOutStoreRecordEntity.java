@@ -20,6 +20,8 @@ public class InOutStoreRecordEntity {
         public static final String REMAIN_COUNT = "remainCount";                    // int 变动后剩余库存
         public static final String PRICE = "price";                                 // bigint 入库：采购单价（成本价） |  出库：先进先出方式计算的成本价
         public static final String MW_PRICE = "mwPrice";                            // bigint 出库：移动加权计算的成本价
+        public static final String TOTAL_PRICE = "totalPrice";                      // bigint 入库：采购总价（成本价） |  出库：先进先出方式计算的总成本价
+        public static final String MW_TOTAL_PRICE = "mwTotalPrice";                 // bigint 出库：移动加权计算的总成本价
         public static final String NUMBER = "number";                               // varchar(15) 单号（天时间+4位以上顺序数字：如2010120001）
         public static final String OPT_SID = "optSid";                              // int 操作员工 id
         public static final String HEAD_SID = "headSid";                            // int 加减库存负责人 id
@@ -33,7 +35,7 @@ public class InOutStoreRecordEntity {
         public static final String IN_PD_SC_STR_ID_LIST = "inPdScStrIdList";        // varchar(150) 规格值 FaiList<Integer>
         public static final String KEEP_INT_PROP1 = "keepIntProp1";                 // int 整型 保留字段1 TODO 临时用于存储YK那边的出入库记录Id
         public static final String KEEP_PROP1 = "keepProp1";                        // varchar(255) 字符串 保留字段1 TODO
-
+        public static final String STATUS = "status";                               // int 数据状态
     }
 
 

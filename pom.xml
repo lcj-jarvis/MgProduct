@@ -3,7 +3,7 @@
 
     <groupId>MgProduct</groupId>
     <artifactId>MgProduct</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <packaging>pom</packaging>
     
     <modules>
@@ -13,9 +13,9 @@
         <module>MgProductBasicSvr</module>
         <module>MgProductGroupSvr</module>
         <module>MgProductPropSvr</module>
-        <module>MgProductSearchSvr</module>
         <module>MgProductSpecSvr</module>
         <module>MgProductStoreSvr</module>
+        <module>MgProductSearchSvr</module>
         <module>MgProductInfSvr</module>
     </modules>
 </project>

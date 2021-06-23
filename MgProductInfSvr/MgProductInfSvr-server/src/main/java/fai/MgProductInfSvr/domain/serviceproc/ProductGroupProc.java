@@ -63,6 +63,18 @@ public class ProductGroupProc {
         }
     }
 
+    /**
+     * 合并（增、删、改）接口
+     */
+    public int unionSetGroupList(int aid, int tid, int unionPriId, Param addInfo, FaiList<ParamUpdater> updaterList, FaiList<Integer> delList) {
+        Ref<Integer> rlGroupIdRef = new Ref<>();
+        int rt = m_cli.unionSetGroupList(aid, tid, unionPriId, addInfo, updaterList, delList, rlGroupIdRef);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "unionSetGroupList error;flow=%d;aid=%d;uid=%d", m_flow, aid, unionPriId);
+        }
+        return rlGroupIdRef.value;
+    }
+
     private int m_flow;
     private MgProductGroupCli m_cli;
 }

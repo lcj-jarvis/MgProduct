@@ -352,8 +352,7 @@ public class ProductBasicProc {
     }
 
     /**
-     * 批量新增商品业务关联，同时绑定多个产品数据，给悦客接入进销存中心临时使用的
-     * 接入完成后，废除，该接口禁止对外开放
+     * 批量新增商品业务关联，同时绑定多个产品数据
      */
     public int batchBindProductsRel(int aid, int tid, FaiList<Param> list){
         int rt = Errno.ERROR;

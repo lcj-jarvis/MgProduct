@@ -6,10 +6,14 @@
 
     <groupId>MgProduct</groupId>
     <artifactId>MgProductParent</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <packaging>pom</packaging>
 
     <properties>
+        <repository_id>nexus-id</repository_id>
+        <repository_name>release repository</repository_name>
+        <repository_url>http://maven.faidev.cc/repository/maven-releases/</repository_url>
+
         <!--处理ssl问题-->
         <java-compiler-source-ver>1.8</java-compiler-source-ver>
         <java-bcprov-jdk15on>1.52</java-bcprov-jdk15on>
@@ -41,72 +45,27 @@
         <fai-fileupload-spi-site-ver>1.0.0</fai-fileupload-spi-site-ver>
         <fai-oauth-ver>1.0.0</fai-oauth-ver>
         <fai-spider-comm-ver>1.0.0</fai-spider-comm-ver>
+        <!--中台-->
+        <fai-comm-middleground-ver>1.0.0</fai-comm-middleground-ver>
+        <fai-middleground-infutil-ver>1.0.0</fai-middleground-infutil-ver>
+        <fai-middleground-svrutil-ver>1.0.0</fai-middleground-svrutil-ver>
+        <MgCommon-MgPrimaryKeySvr-interfaces-ver>1.0.0</MgCommon-MgPrimaryKeySvr-interfaces-ver>
+        <MgProduct-MgProductInfSvr-interfaces-ver>1.0.0</MgProduct-MgProductInfSvr-interfaces-ver>
+        <MgProduct-MgProductPropSvr-interfaces-ver>1.0.0</MgProduct-MgProductPropSvr-interfaces-ver>
+        <MgProduct-MgProductSearchSvr-interfaces-ver>1.0.0</MgProduct-MgProductSearchSvr-interfaces-ver>
+        <MgProduct-MgProductBasicSvr-interfaces-ver>1.0.0</MgProduct-MgProductBasicSvr-interfaces-ver>
+        <MgProduct-MgProductSpecSvr-interfaces-ver>1.0.0</MgProduct-MgProductSpecSvr-interfaces-ver>
+        <MgProduct-MgProductStoreSvr-interfaces-ver>1.0.0</MgProduct-MgProductStoreSvr-interfaces-ver>
+        <MgProduct-MgProductGroupSvr-interfaces-ver>1.0.0</MgProduct-MgProductGroupSvr-interfaces-ver>
+        <MgProduct-MgProductComm-ver>1.0.0</MgProduct-MgProductComm-ver>
+        <MgProduct-MgProductInfUtil-ver>1.0.0</MgProduct-MgProductInfUtil-ver>
     </properties>
 
-    <!--环境-->
-    <profiles>
-    <!--本地环境-->
-    <profile>
-        <id>dev</id>
-        <activation>
-            <activeByDefault>true</activeByDefault>
-        </activation>
-        <properties>
-            <repository_id>nexus-id</repository_id>
-            <repository_name>snapshots repository</repository_name>
-            <repository_url>http://maven.faidev.cc/repository/maven-snapshots/</repository_url>
-            <!--中台-->
-            <fai-comm-middleground-ver>1.0.0-SNAPSHOT</fai-comm-middleground-ver>
-            <fai-middleground-infutil-ver>1.0.0-SNAPSHOT</fai-middleground-infutil-ver>
-            <fai-middleground-svrutil-ver>1.0.0-SNAPSHOT</fai-middleground-svrutil-ver>
-
-            <MgProduct-MgProductInfSvr-interfaces-ver>1.0.0-SNAPSHOT</MgProduct-MgProductInfSvr-interfaces-ver>
-            <MgCommon-MgPrimaryKeySvr-interfaces-ver>1.0.0-SNAPSHOT</MgCommon-MgPrimaryKeySvr-interfaces-ver>
-            <MgProduct-MgProductInfSvr-interfaces-ver>1.0.0-SNAPSHOT</MgProduct-MgProductInfSvr-interfaces-ver>
-            <MgProduct-MgProductPropSvr-interfaces-ver>1.0.0-SNAPSHOT</MgProduct-MgProductPropSvr-interfaces-ver>
-            <MgProduct-MgProductSearchSvr-interfaces-ver>1.0.0-SNAPSHOT</MgProduct-MgProductSearchSvr-interfaces-ver>
-            <MgProduct-MgProductBasicSvr-interfaces-ver>1.0.0-SNAPSHOT</MgProduct-MgProductBasicSvr-interfaces-ver>
-            <MgProduct-MgProductSpecSvr-interfaces-ver>1.0.0-SNAPSHOT</MgProduct-MgProductSpecSvr-interfaces-ver>
-            <MgProduct-MgProductStoreSvr-interfaces-ver>1.0.0-SNAPSHOT</MgProduct-MgProductStoreSvr-interfaces-ver>
-            <MgProduct-MgProductGroupSvr-interfaces-ver>1.0.0-SNAPSHOT</MgProduct-MgProductGroupSvr-interfaces-ver>
-            <MgProduct-MgProductComm-ver>1.0.0-SNAPSHOT</MgProduct-MgProductComm-ver>
-            <MgProduct-MgProductInfUtil-ver>1.0.0-SNAPSHOT</MgProduct-MgProductInfUtil-ver>
-        </properties>
-    </profile>
-
-        <!--正式环境-->
-        <profile>
-            <id>pro</id>
-            <properties>
-                <repository_id>nexus-id</repository_id>
-                <repository_name>release repository</repository_name>
-                <repository_url>http://maven.faidev.cc/repository/maven-releases/</repository_url>
-                <!--中台-->
-                <fai-comm-middleground-ver>1.0.0</fai-comm-middleground-ver>
-                <fai-middleground-svrutil-ver>1.0.0</fai-middleground-svrutil-ver>
-                <MgCommon-MgPrimaryKeySvr-interfaces-ver>1.0.0</MgCommon-MgPrimaryKeySvr-interfaces-ver>
-                <MgProduct-MgProductInfSvr-interfaces-ver>1.0.0</MgProduct-MgProductInfSvr-interfaces-ver>
-                <MgProduct-MgProductPropSvr-interfaces-ver>1.0.0</MgProduct-MgProductPropSvr-interfaces-ver>
-                <MgProduct-MgProductBasicSvr-interfaces-ver>1.0.0</MgProduct-MgProductBasicSvr-interfaces-ver>
-                <MgProduct-MgProductSpecSvr-interfaces-ver>1.0.0</MgProduct-MgProductSpecSvr-interfaces-ver>
-                <MgProduct-MgProductStoreSvr-interfaces-ver>1.0.0</MgProduct-MgProductStoreSvr-interfaces-ver>
-                <MgProduct-MgProductGroupSvr-interfaces-ver>1.0.0</MgProduct-MgProductGroupSvr-interfaces-ver>
-                <MgProduct-MgProductComm-ver>1.0.0</MgProduct-MgProductComm-ver>
-                <fai-middleground-infutil-ver>1.0.0</fai-middleground-infutil-ver>
-            </properties>
-        </profile>
-    </profiles>
     <distributionManagement>
         <repository>
             <id>${repository_id}</id>
             <name>${repository_name}</name>
             <url>${repository_url}</url>
         </repository>
-
-        <snapshotRepository>
-            <id>${repository_id}</id>
-            <name>${repository_name}</name>
-            <url>${repository_url}</url>
-        </snapshotRepository>
     </distributionManagement>
 </project>

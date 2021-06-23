@@ -52,6 +52,7 @@ public class ProductStoreValObj {
          */
         public static final class FLag{
             public static final int NOT_CHANGE_COUNT = 0x1;   // 不改变总库存
+            public static final int RESET_PRICE = 0x2;   // 重置过成本
         }
 
         /**
@@ -60,6 +61,11 @@ public class ProductStoreValObj {
         public static final class OptType{
             public static final int IN = 1;  // 入库操作
             public static final int OUT = 2;   // 出库操作
+        }
+
+        public static final class Status {
+            public static final int DEL = -1; // 删除状态
+            public static final int DEFAULT = 0; // 默认状态
         }
     }
 }

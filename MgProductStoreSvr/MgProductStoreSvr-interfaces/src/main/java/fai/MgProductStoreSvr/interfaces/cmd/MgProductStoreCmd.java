@@ -21,6 +21,8 @@ public class MgProductStoreCmd {
 		public static final int NUM14 = 5014;
 		public static final int NUM15 = 5015;
 		public static final int NUM16 = 5016;
+		public static final int NUM17 = 5017;
+		public static final int NUM18 = 5018;
 	}
 
 
@@ -43,6 +45,8 @@ public class MgProductStoreCmd {
 		public static final int NUM15 = 1015;
 		public static final int NUM16 = 1016;
 		public static final int NUM17 = 1017;
+		public static final int NUM18 = 1018;
+		public static final int NUM19 = 1019;
 	}
 
 	////////////////// cmd对外定义，实际做cmd读写分离 ////////////////////
@@ -77,6 +81,8 @@ public class MgProductStoreCmd {
 
 		public static final int BATCH_SET_LIST = WriteCmdNum.NUM16;
 		public static final int REFRESH_HOLDING_RECORD_OF_RL_ORDER_CODE = WriteCmdNum.NUM17;
+
+		public static final int BATCH_ADD = WriteCmdNum.NUM19;
 	}
 
 	/**
@@ -84,9 +90,12 @@ public class MgProductStoreCmd {
 	 */
 	public static class InOutStoreRecordCmd {
 		public static final int GET_LIST = ReadCmdNum.NUM6;
+		public static final int GET_SUM_LIST = ReadCmdNum.NUM17;
+		public static final int NEW_GET_LIST = ReadCmdNum.NUM18;
 
 		public static final int ADD_LIST = WriteCmdNum.NUM5;
 		public static final int BATCH_SYN_RECORD = WriteCmdNum.NUM13;
+		public static final int BATCH_RESET_PRICE = WriteCmdNum.NUM18;
 	}
 
 	/**

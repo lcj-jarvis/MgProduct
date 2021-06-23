@@ -285,6 +285,48 @@ public class ProductPropService extends MgProductInfService {
     }
 
     /**
+     * 合并 商品参数（增、删、改） 接口
+     */
+    public int unionSetPropList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int libId, FaiList<Param> addList, FaiList<ParamUpdater> updaterList, FaiList<Integer> delList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            Ref<FaiList<Integer>> idsRef = new Ref<>();
+            ProductPropProc productPropProc = new ProductPropProc(flow);
+            rt = productPropProc.unionSetPropList(aid, tid, unionPriId, libId, addList, updaterList, delList, idsRef);
+            if (rt != Errno.OK) {
+                return rt;
+            }
+            FaiList<Integer> rlPropIds = idsRef.value;
+
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            if(rlPropIds != null) {
+                rlPropIds.toBuffer(sendBuf, ProductPropDto.Key.RL_PROP_IDS);
+            }
+            session.write(sendBuf);
+            Log.logStd("unionSetPropList ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+        } finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+
+    /**
      * 根据商品参数业务id，获取商品参数值列表
      */
     public int getPropValList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int libId, FaiList<Integer> rlPropIds) throws IOException {

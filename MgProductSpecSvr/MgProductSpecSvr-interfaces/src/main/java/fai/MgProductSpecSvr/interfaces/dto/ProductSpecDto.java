@@ -51,6 +51,7 @@ public class ProductSpecDto {
         public static final int PD_ID_LIST = 11;
         public static final int SOFT_DEL = 12;
         public static final int SKU_INFO_LIST = 13;
+        public static final int ONLY_CHECKED = 14;
     }
 
     /**

@@ -10,6 +10,7 @@ public class ProductSpecEntity {
     public static final class SpecInfo {
         public static final String AID = "aid";                                     // int 企业aid
         public static final String RL_PD_ID = "rlPdId";                             // int 商品业务 id
+        public static final String PD_ID = "pdId";                                  // int 商品id
         public static final String SC_STR_ID = SpecStrInfo.SC_STR_ID;
         public static final String NAME = SpecStrInfo.NAME;
         public static final String PD_SC_ID = "pdScId";                             // int 商品规格 id

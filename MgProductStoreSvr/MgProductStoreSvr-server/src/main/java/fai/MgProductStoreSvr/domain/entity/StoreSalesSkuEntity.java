@@ -83,6 +83,7 @@ public class StoreSalesSkuEntity {
                     , Info.FIFO_TOTAL_COST
                     , Info.MW_TOTAL_COST
                     , Info.MW_COST
+                    , Info.RL_PD_ID
             }
     );
     public static String getSkuBizSummaryFields(){

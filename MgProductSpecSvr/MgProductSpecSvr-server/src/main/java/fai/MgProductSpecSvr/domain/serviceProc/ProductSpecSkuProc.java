@@ -569,7 +569,7 @@ public class ProductSpecSkuProc {
                 matcher.and(ProductSpecSkuEntity.Info.FLAG, ParamMatcher.LAND_NE, ProductSpecSkuValObj.FLag.SPU, ProductSpecSkuValObj.FLag.SPU);
             }
         }
-        //matcher.and(ProductSpecSkuEntity.Info.STATUS, ParamMatcher.EQ, ProductSpecSkuValObj.Status.DEFAULT);
+        matcher.and(ProductSpecSkuEntity.Info.STATUS, ParamMatcher.EQ, ProductSpecSkuValObj.Status.DEFAULT);
         searchArg.matcher = matcher;
         int rt = m_daoCtrl.select(searchArg, pdScSkuInfoListRef, onlyNeedFields);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){

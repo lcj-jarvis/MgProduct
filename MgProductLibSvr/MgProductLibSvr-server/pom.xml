@@ -1,14 +1,17 @@
-<?xml version="1.0" ?><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
     <parent>
+        <artifactId>MgProductLibSvr</artifactId>
         <groupId>MgProduct</groupId>
-        <artifactId>MgProductGroupSvr</artifactId>
         <version>1.0.0</version>
     </parent>
+    <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>MgProductGroupSvr-server</artifactId>
+    <artifactId>MgProductLibSvr-server</artifactId>
     <packaging>jar</packaging>
-    <version>1.0.0</version>
 
     <dependencies>
         <dependency>
@@ -25,8 +28,8 @@
 
         <dependency>
             <groupId>MgProduct</groupId>
-            <artifactId>MgProductGroupSvr-interfaces</artifactId>
-            <version>${MgProduct-MgProductGroupSvr-interfaces-ver}</version>
+            <artifactId>MgProductLibSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductLibSvr-interfaces-ver}</version>
         </dependency>
 
         <dependency>
@@ -148,8 +151,8 @@
     </dependencies>
 
     <build>
-    <finalName>MgProductGroupSvr</finalName>
-	<sourceDirectory>src/main/java</sourceDirectory>
+        <finalName>MgProductGroupSvr</finalName>
+        <sourceDirectory>src/main/java</sourceDirectory>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -213,4 +216,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>

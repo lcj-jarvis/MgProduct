@@ -14,7 +14,7 @@ public class ProductBindGroupCache extends CacheCtrl {
         String cacheKey = getCacheKey(aid, unionPriId);
         FaiList<Param> list = null;
         try {
-            m_cache.hmget(cacheKey, ProductBindGroupDto.Key.INFO, ProductBindGroupDto.getInfoDto(), rlPdIds);
+            list = m_cache.hmget(cacheKey, ProductBindGroupDto.Key.INFO, ProductBindGroupDto.getInfoDto(), rlPdIds);
         } catch (Exception e) {
             Log.logErr(e,"getCacheList error;aid=%d;unionPriId=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
         }

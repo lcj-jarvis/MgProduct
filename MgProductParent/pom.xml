@@ -57,6 +57,7 @@
         <MgProduct-MgProductSpecSvr-interfaces-ver>1.0.0</MgProduct-MgProductSpecSvr-interfaces-ver>
         <MgProduct-MgProductStoreSvr-interfaces-ver>1.0.0</MgProduct-MgProductStoreSvr-interfaces-ver>
         <MgProduct-MgProductGroupSvr-interfaces-ver>1.0.0</MgProduct-MgProductGroupSvr-interfaces-ver>
+        <MgProduct-MgProductLibSvr-interfaces-ver>1.0.0</MgProduct-MgProductLibSvr-interfaces-ver>
         <MgProduct-MgProductComm-ver>1.0.0</MgProduct-MgProductComm-ver>
         <MgProduct-MgProductInfUtil-ver>1.0.0</MgProduct-MgProductInfUtil-ver>
     </properties>

@@ -81,6 +81,7 @@ public class ProductGroupRelProc {
             int groupId = oldInfo.getInt(ProductGroupRelEntity.Info.GROUP_ID);
             oldInfo = updater.update(oldInfo, true);
             Param data = new Param();
+
             //只能修改rlFlag和sort
             int sort = oldInfo.getInt(ProductGroupRelEntity.Info.SORT, 0);
             int rlFlag = oldInfo.getInt(ProductGroupRelEntity.Info.RL_FLAG, 0);

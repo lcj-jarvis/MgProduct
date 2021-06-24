@@ -1843,4 +1843,58 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
             stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
         }
     }
+    /**
+     * 根据rlPdIds获取产品规格列表
+     * @param mgProductArg
+     * MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *                     .setRlPdIds(rlPdIds) //商品业务id集合 {@link ProductSpecEntity.SpecInfo#RL_PD_ID}
+     *                     .setOnlyGetChecked(onlyGetChecked) // 是否只获取有勾选的商品规格
+     *                     .build();
+     * @param infoList       Param 见 {@link ProductSpecEntity.SpecInfo} <br/>
+     * @return {@link Errno}
+     */
+    public int getPdScInfoList4Adm(MgProductArg mgProductArg, FaiList<Param> infoList) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            int aid = mgProductArg.getAid();
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if (infoList == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "infoList error");
+                return m_rt;
+            }
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            FaiList<Integer> rlPdIds = mgProductArg.getRlPdIds();
+            boolean onlyGetChecked = mgProductArg.getOnlyGetChecked();
+            // packaging send data
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductSpecDto.Key.TID, tid), new Pair(ProductSpecDto.Key.SITE_ID, siteId), new Pair(ProductSpecDto.Key.LGID, lgId), new Pair(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1));
+            rlPdIds.toBuffer(sendBody, ProductSpecDto.Key.RL_PD_IDS);
+            sendBody.putBoolean(ProductSpecDto.Key.ONLY_GET_CHECKED, onlyGetChecked);
+            // send and recv
+            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.ProductSpecCmd.GET_LIST_4ADM, sendBody, true);
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductSpecDto.Spec.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductSpecDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
 }

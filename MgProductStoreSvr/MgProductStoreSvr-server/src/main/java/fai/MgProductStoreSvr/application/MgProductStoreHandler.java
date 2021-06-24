@@ -429,7 +429,7 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                  @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
                                  @ArgList(keyMatch = StoreSalesSkuDto.Key.INFO_LIST,
                                          classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto") FaiList<Param> storeSaleSkuList) throws IOException {
-        return m_storeService.batchAddStoreSales(session, flow, aid, tid, unionPriId, storeSaleSkuList);
+        return m_storeSalesSkuService.batchAddStoreSales(session, flow, aid, tid, unionPriId, storeSaleSkuList);
     }
 
     @Cmd(MgProductStoreCmd.SkuSummaryCmd.BIZ_GET_LIST)

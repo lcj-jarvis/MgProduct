@@ -129,7 +129,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
     }
 
     @Deprecated
-    private int batchDelProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, boolean softDel) {
+    public int batchDelProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, boolean softDel) {
         MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
                 .setRlPdIds(rlPdIds)
                 .setSoftDel(softDel)
@@ -769,7 +769,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      *         return batchDelPdRelBind(mgProductArg);
      * @return {@link Errno}
      */
-    private int batchDelPdRelBind(MgProductArg mgProductArg) {
+    public int batchDelPdRelBind(MgProductArg mgProductArg) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -812,7 +812,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      *                 .build();
      * @return {@link Errno}
      */
-    private int batchDelProduct(MgProductArg mgProductArg) {
+    public int batchDelProduct(MgProductArg mgProductArg) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {

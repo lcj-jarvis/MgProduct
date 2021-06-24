@@ -12,8 +12,6 @@ public class ProductLibCheck {
 
     /**
      * 检查库的名称是否有效
-     * @param name
-     * @return
      */
     public static boolean isNameValid(String name) {
         return !(name == null || name.isEmpty() || name.length() > Limit.NAME_MAXLEN);

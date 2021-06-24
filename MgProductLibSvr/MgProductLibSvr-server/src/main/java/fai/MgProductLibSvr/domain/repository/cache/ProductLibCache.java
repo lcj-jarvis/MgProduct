@@ -53,9 +53,7 @@ public class ProductLibCache extends CacheCtrl{
     }
 
     /**
-     * 更新缓存的
-     * @param aid
-     * @param updaterList
+     * 更新缓存的FaiList<Param>
      */
     public static void updateCacheList(int aid, FaiList<ParamUpdater> updaterList) {
         if(updaterList == null || updaterList.isEmpty()) {
@@ -74,8 +72,6 @@ public class ProductLibCache extends CacheCtrl{
 
     /**
      * 获取所有的缓存的FaiList<Param> ---> cacheKey:FaiList<Param>
-     * @param aid
-     * @return
      */
     public static FaiList<Param> getCacheList(int aid) {
         String cacheKey = getCacheKey(aid);
@@ -85,9 +81,7 @@ public class ProductLibCache extends CacheCtrl{
 
     /**
      * 如果keyExists为true，执行hset操作，添加单个缓存到hash中。
-     *    缓存的形式：cachekey LibId（byte[]数组的形式） Param（byte[]数组的形式）
-     * @param aid
-     * @param info
+     *    缓存的形式：cacheKey LibId（byte[]数组的形式） Param（byte[]数组的形式）
      */
     public static void addCache(int aid, Param info) {
         if(Str.isEmpty(info)) {
@@ -100,7 +94,6 @@ public class ProductLibCache extends CacheCtrl{
 
     /**
      * 删除单个缓存FaiList<Param>
-     * @param aid
      */
     public static void delCache(int aid) {
         m_cache.del(getCacheKey(aid));
@@ -123,5 +116,6 @@ public class ProductLibCache extends CacheCtrl{
     public static String getCacheKey(int aid) {
         return wrapCacheVersion(CACHE_KEY + "-" + aid, aid);
     }
+
 
 }

@@ -15,10 +15,10 @@ public class ProductLibRelCache extends CacheCtrl{
 
     public static class InfoCache {
 
-        private static final String CACHE_KEY = "MG_productGroupRel";
+        private static final String CACHE_KEY = "MG_productLibRel";
         /**
-         * 获取缓存的key，格式：MG_productGroupRel-aid:HHmmss
-         * @return MG_productGroupRel-aid:HHmmss
+         * 获取缓存的key，格式：MG_productLibRel-aid:HHmmss
+         * @return MG_productLibRel-aid:HHmmss
          */
         public static String getCacheKey(int aid, int unionPriId) {
             return wrapCacheVersion(CACHE_KEY + "-" + aid + "-" + unionPriId, aid);
@@ -117,7 +117,7 @@ public class ProductLibRelCache extends CacheCtrl{
     /*** sort 字段的 cache ***/
     public static class SortCache {
 
-        private static final String SORT_CACHE_KEY = "MG_productGroupRelSort";
+        private static final String SORT_CACHE_KEY = "MG_productLibRelSort";
 
         //添加排序字段的缓存
         public static void set(int aid, int unionPriId, int sort) {

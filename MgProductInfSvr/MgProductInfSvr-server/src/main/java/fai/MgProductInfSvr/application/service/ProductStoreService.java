@@ -1657,7 +1657,8 @@ public class ProductStoreService extends MgProductInfService {
 
             ProductBasicProc productBasicProc = new ProductBasicProc(flow);
             Map<Integer, Integer> pdIdRlPdIdMap = null;
-            if(searchArg.matcher != null){
+            // 如果是总部查汇总数据，因为汇总数据没有rlPdId，所以转换成pdId去查
+            if(searchArg.matcher != null && !isBiz){
                 FaiList<Integer> rlPdIdList = new FaiList<>();
                 for (ParamMatcher.Cond cond : searchArg.matcher.getRawCondList()) {
                     if(ProductStoreEntity.SkuSummaryInfo.RL_PD_ID.equals(cond.key)){
@@ -1719,7 +1720,8 @@ public class ProductStoreService extends MgProductInfService {
             if(rt != Errno.OK) {
                 return rt;
             }
-            if(infoList.size() > 0){
+            // 如果是总部查汇总数据，因为汇总数据没有rlPdId，所以需要转换设置下
+            if(infoList.size() > 0 && !isBiz){
                 if(pdIdRlPdIdMap == null){
                     Set<Integer> pdIdSet = new HashSet<>();
                     for (Param info : infoList) {

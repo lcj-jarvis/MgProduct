@@ -13,13 +13,17 @@ import fai.MgProductLibSvr.domain.serviceproc.ProductLibRelProc;
 import fai.MgProductLibSvr.interfaces.dto.ProductLibRelDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
+import fai.mgproduct.comm.DataStatus;
+import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.annotation.SuccessRt;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -27,6 +31,7 @@ import java.util.concurrent.locks.Lock;
  * @date 2021-06-23 14:18
  */
 public class ProductLibService {
+
 
     @SuccessRt(value = Errno.OK)
     public int addProductLib(FaiSession session, int flow, int aid, int unionPriId, int tid, Param info) throws IOException {
@@ -99,13 +104,115 @@ public class ProductLibService {
     }
 
     @SuccessRt(value = Errno.OK)
-    public int delLibList(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlLibIds) {
-        return 0;
+    public int delLibList(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlLibIds) throws IOException {
+        int rt;
+        if(rlLibIds == null || rlLibIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, rlLibIds is not valid;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+            return rt;
+        }
+
+        Lock lock = LockUtil.getLock(aid);
+        lock.lock();
+        try {
+            TransactionCtrl transactionCtrl = new TransactionCtrl();
+            boolean commit = false;
+            FaiList<Integer> delLibIdList = null;
+            try {
+                transactionCtrl.setAutoCommit(false);
+                ProductLibRelProc relProc = new ProductLibRelProc(flow, aid, transactionCtrl);
+                // 先获取要删除的库id
+                delLibIdList = relProc.getLibIdsByRlLibIds(aid, unionPriId, rlLibIds);
+
+                // 删除库业务表数据
+                relProc.delLibIdList(aid, unionPriId, rlLibIds);
+
+                // 删除库表数据
+                ProductLibProc groupProc = new ProductLibProc(flow, aid, transactionCtrl);
+                groupProc.delLibList(aid, delLibIdList);
+
+                commit = true;
+                // commit之前设置10s过期时间，避免脏数据，保持一致性
+                ProductLibRelCache.InfoCache.setExpire(aid, unionPriId);
+                ProductLibCache.setExpire(aid);
+            }finally {
+                if(commit) {
+                    transactionCtrl.commit();
+                    ProductLibCache.delCacheList(aid, delLibIdList);
+                    ProductLibRelCache.InfoCache.delCacheList(aid, unionPriId, rlLibIds);
+                    ProductLibRelCache.DataStatusCache.update(aid, unionPriId, rlLibIds.size(), false);
+                }else {
+                    transactionCtrl.rollback();
+                }
+                transactionCtrl.closeDao();
+            }
+        }finally {
+            lock.unlock();
+        }
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("del ok;flow=%d;aid=%d;unionPriId=%d;ids=%s;", flow, aid, unionPriId, rlLibIds);
+        return rt;
     }
 
     @SuccessRt(value = Errno.OK)
-    public int setLibList(FaiSession session, int flow, int aid, int unionPriId, FaiList<ParamUpdater> updaterList) {
-        return 0;
+    public int setLibList(FaiSession session, int flow, int aid, int unionPriId, FaiList<ParamUpdater> updaterList) throws IOException {
+        int rt;
+        if(aid <= 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
+            return rt;
+        }
+
+        Lock lock = LockUtil.getLock(aid);
+        lock.lock();
+        try {
+            FaiList<ParamUpdater> libUpdaterList = new FaiList<ParamUpdater>();
+            TransactionCtrl transactionCtrl = new TransactionCtrl();
+            boolean commit = false;
+            try {
+                transactionCtrl.setAutoCommit(false);
+                // 修改库业务表
+                ProductLibRelProc relProc = new ProductLibRelProc(flow, aid, transactionCtrl);
+                relProc.setLibRelList(aid, unionPriId, updaterList, libUpdaterList);
+
+                // 修改库表
+                if(!libUpdaterList.isEmpty()) {
+                    ProductLibProc groupProc = new ProductLibProc(flow, aid, transactionCtrl);
+                    groupProc.setLibList(aid, libUpdaterList);
+                }
+                commit = true;
+                // commit之前设置10s过期时间，避免脏数据，保持一致性
+                if(updaterList != null && !updaterList.isEmpty()) {
+                    ProductLibRelCache.InfoCache.setExpire(aid, unionPriId);
+                }
+                if(!libUpdaterList.isEmpty()) {
+                    ProductLibCache.setExpire(aid);
+                }
+            }finally {
+                if(commit) {
+                    transactionCtrl.commit();
+                    ProductLibCache.updateCacheList(aid, libUpdaterList);
+                    if(!Util.isEmptyList(updaterList)) {
+                        ProductLibRelCache.InfoCache.updateCacheList(aid, unionPriId, updaterList);
+                        // 修改数据，更新dataStatus 的管理态字段更新时间
+                        ProductLibRelCache.DataStatusCache.update(aid, unionPriId);
+                    }
+                }else {
+                    transactionCtrl.rollback();
+                }
+                transactionCtrl.closeDao();
+            }
+        }finally {
+            lock.unlock();
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("set ok;flow=%d;aid=%d;unionPriId=%d;tid=%d;", flow, aid, unionPriId);
+        return rt;
     }
 
     @SuccessRt(value = Errno.OK)
@@ -121,10 +228,10 @@ public class ProductLibService {
         TransactionCtrl transactionCtrl = new TransactionCtrl();
         try {
             ProductLibRelProc relLibProc = new ProductLibRelProc(flow, aid, transactionCtrl);
-            relLibList = relLibProc.getLibRelList(aid, unionPriId);
+            relLibList = relLibProc.getLibRelList(aid, unionPriId, null,true);
 
             ProductLibProc libProc = new ProductLibProc(flow, aid, transactionCtrl);
-            libList = libProc.getLibList(aid);
+            libList = libProc.getLibList(aid,null, true);
         }finally {
             transactionCtrl.closeDao();
         }
@@ -152,6 +259,7 @@ public class ProductLibService {
         if(searchArg.matcher == null) {
             searchArg.matcher = new ParamMatcher();
         }
+        //先按sort字段排序，再按照reLibId排序
         if(searchArg.cmpor == null) {
             searchArg.cmpor = new ParamComparator();
             searchArg.cmpor.addKey(ProductLibRelEntity.Info.SORT);
@@ -174,18 +282,69 @@ public class ProductLibService {
     }
 
     @SuccessRt(value = Errno.OK)
-    public int getAllLibRel(FaiSession session, int flow, int aid, int uninoPriId) {
-        return 0;
+    public int getAllLibRel(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
+        return getLibRelByConditions(session, flow, aid, unionPriId,null,true);
     }
 
     @SuccessRt(value = Errno.OK)
-    public int getLibRelDataStatus(FaiSession session, int flow, int aid, int unionPriId) {
-        return 0;
+    public int getLibRelDataStatus(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
+        int rt;
+        if(aid <= 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
+            return rt;
+        }
+
+        Param info;
+        TransactionCtrl transactionCtrl = new TransactionCtrl();
+        try {
+            ProductLibRelProc relProc = new ProductLibRelProc(flow, aid, transactionCtrl);
+            info = relProc.getDataStatus(aid, unionPriId);
+        }finally {
+            transactionCtrl.closeDao();
+        }
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        info.toBuffer(sendBuf, ProductLibRelDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
+        session.write(sendBuf);
+        rt = Errno.OK;
+        Log.logDbg("getLibRelDataStatus ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+        return rt;
     }
 
     @SuccessRt(value = Errno.OK)
-    public int getLibRelFromDb(FaiSession session, int flow, int aid, int uninoPriId, SearchArg searchArg) {
-       return 0;
+    public int getLibRelFromDb(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg) throws IOException {
+        return getLibRelByConditions(session, flow, aid, unionPriId, searchArg, false);
+    }
+
+    /**
+     * 根据条件查询库业务表的数据
+     * @param searchArg 查询的条件。为null的话，查询的条件就会是aid和unionPriId
+     * @param getFromCache 是否需要查缓存
+     * @return
+     * @throws IOException
+     */
+    private int getLibRelByConditions(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg, boolean getFromCache) throws IOException {
+        int rt;
+        if(aid <= 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
+            return rt;
+        }
+        FaiList<Param> list;
+        TransactionCtrl transactionCtrl = new TransactionCtrl();
+        try {
+            ProductLibRelProc relProc = new ProductLibRelProc(flow, aid, transactionCtrl);
+            list = relProc.getLibRelList(aid, unionPriId, searchArg, getFromCache);
+        }finally {
+            transactionCtrl.closeDao();
+        }
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        list.toBuffer(sendBuf, ProductLibRelDto.Key.INFO_LIST, ProductLibRelDto.getInfoDto());
+        session.write(sendBuf);
+        rt = Errno.OK;
+        Log.logDbg("get list ok;flow=%d;aid=%d;unionPriId=%d;size=%d;", flow, aid, unionPriId, list.size());
+
+        return rt;
     }
 
     /**

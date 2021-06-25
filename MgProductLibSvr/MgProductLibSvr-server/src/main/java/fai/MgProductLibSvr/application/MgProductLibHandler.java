@@ -73,17 +73,17 @@ public class MgProductLibHandler extends MiddleGroundHandler {
     public int getAllLibRel(final FaiSession session,
                               @ArgFlow final int flow,
                               @ArgAid int aid,
-                              @ArgBodyInteger(ProductLibRelDto.Key.UNION_PRI_ID) int uninoPriId) throws IOException {
-        return libService.getAllLibRel(session, flow, aid, uninoPriId);
+                              @ArgBodyInteger(ProductLibRelDto.Key.UNION_PRI_ID) int unionPriId) throws IOException {
+        return libService.getAllLibRel(session, flow, aid, unionPriId);
     }
 
     @Cmd(MgProductLibCmd.LibCmd.SEARCH_REL)
     public int getLibRelFromDb(final FaiSession session,
                                     @ArgFlow final int flow,
                                     @ArgAid int aid,
-                                    @ArgBodyInteger(ProductLibRelDto.Key.UNION_PRI_ID) int uninoPriId,
+                                    @ArgBodyInteger(ProductLibRelDto.Key.UNION_PRI_ID) int unionPriId,
                                     @ArgSearchArg(ProductLibRelDto.Key.SEARCH_ARG)SearchArg searchArg) throws IOException {
-        return libService.getLibRelFromDb(session, flow, aid, uninoPriId, searchArg);
+        return libService.getLibRelFromDb(session, flow, aid, unionPriId, searchArg);
     }
 
     @Cmd(MgProductLibCmd.LibCmd.GET_REL_DATA_STATUS)

@@ -139,7 +139,7 @@ public class ProductGroupRelProc {
         return getList(aid, unionPriId);
     }
 
-    public FaiList<Param> searchFromDb(int aid, int unionPriId, SearchArg searchArg, String ... selectFields) {
+    public FaiList<Param> searchFromDb(int aid, int unionPriId, SearchArg searchArg) {
         if(searchArg == null) {
             searchArg = new SearchArg();
         }

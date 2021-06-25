@@ -1,9 +1,12 @@
 package fai.MgProductLibSvr.domain.serviceproc;
 
 import fai.MgProductLibSvr.domain.common.LockUtil;
+import fai.MgProductLibSvr.domain.common.ProductLibCheck;
 import fai.MgProductLibSvr.domain.entity.ProductLibEntity;
+import fai.MgProductLibSvr.domain.entity.ProductLibRelEntity;
 import fai.MgProductLibSvr.domain.entity.ProductLibValObj;
 import fai.MgProductLibSvr.domain.repository.cache.ProductLibCache;
+import fai.MgProductLibSvr.domain.repository.cache.ProductLibRelCache;
 import fai.MgProductLibSvr.domain.repository.dao.ProductLibDaoCtrl;
 import fai.comm.distributedkit.idBuilder.domain.IdBuilderConfig;
 import fai.comm.distributedkit.idBuilder.wrapper.IdBuilderWrapper;
@@ -12,6 +15,8 @@ import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.DaoCtrl;
 import fai.middleground.svrutil.repository.TransactionCtrl;
+
+import java.util.Calendar;
 
 import static fai.app.FodderDef.ComeFrom.getList;
 import static java.awt.SystemColor.info;
@@ -51,7 +56,7 @@ public class ProductLibProc {
             throw new MgException(rt, "args err, infoList is empty;flow=%d;aid=%d;libInfo=%s", m_flow, aid, libInfo);
         }
 
-        FaiList<Param> list = getLibList(aid);
+        FaiList<Param> list = getLibList(aid,null,true);
         int count = list.size();
         if(count >= ProductLibValObj.Limit.COUNT_MAX) {
             rt = Errno.COUNT_LIMIT;
@@ -92,32 +97,57 @@ public class ProductLibProc {
         return libId;
     }
 
-    public FaiList<Param> getLibList(int aid) {
-        return getList(aid);
+    public FaiList<Param> getLibList(int aid, SearchArg searchArg, boolean getFromCache) {
+        return getListByConditions(aid, searchArg, getFromCache);
     }
 
-    private FaiList<Param> getList(int aid) {
-        // 从缓存获取数据
-        FaiList<Param> list = ProductLibCache.getCacheList(aid);
-        if(!Util.isEmptyList(list)) {
-            return list;
-        }
-
-        LockUtil.LibLock.readLock(aid);
-        try {
-            // check again
+    /**
+     * 按照条件查询数据，默认是查询同一个aid下的全部数据.
+     * (该方法方便后期扩展只查DB的情形)
+     * @param searchArg 查询条件
+     * @param getFromCache 是否需要从缓存中查询
+     * @return
+     */
+    private FaiList<Param> getListByConditions(int aid, SearchArg searchArg, boolean getFromCache) {
+        FaiList<Param> list;
+        if (getFromCache) {
+            // 从缓存获取数据
             list = ProductLibCache.getCacheList(aid);
             if(!Util.isEmptyList(list)) {
                 return list;
             }
+        }
+
+        LockUtil.LibLock.readLock(aid);
+        try {
+            if (getFromCache) {
+                // check again
+                list = ProductLibCache.getCacheList(aid);
+                if(!Util.isEmptyList(list)) {
+                    return list;
+                }
+            }
+
+            //无searchArg
+            if (searchArg == null) {
+                searchArg = new SearchArg();
+            }
+
+            //有searchArg，无查询条件
+            if (searchArg.matcher == null) {
+                searchArg.matcher = new ParamMatcher();
+            }
+
+            //如果查询过来的条件已经包含这两个查询条件,就先删除
+            searchArg.matcher.remove(ProductLibEntity.Info.AID);
+
+            //有searchArg，有查询条件，加多一个查询条件
+            searchArg.matcher.and(ProductLibRelEntity.Info.AID, ParamMatcher.EQ, aid);
 
             Ref<FaiList<Param>> listRef = new Ref<>();
-            // 从db获取数据
-            SearchArg searchArg = new SearchArg();
-            searchArg.matcher = new ParamMatcher(ProductLibEntity.Info.AID, ParamMatcher.EQ, aid);
             int rt = m_daoCtrl.select(searchArg, listRef);
             if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-                throw new MgException(rt, "getList error;flow=%d;aid=%d;", m_flow, aid);
+                throw new MgException(rt, "get error;flow=%d;aid=%d;", m_flow, aid);
             }
             list = listRef.value;
             if(list == null) {
@@ -125,11 +155,13 @@ public class ProductLibProc {
             }
             if (list.isEmpty()) {
                 rt = Errno.NOT_FOUND;
-                Log.logDbg(rt, "not found;aid=%d", aid);
+                Log.logDbg(rt, "not found;flow=%d;aid=%d;", m_flow, aid);
                 return list;
             }
-            // 添加到缓存
-            ProductLibCache.addCacheList(aid, list);
+            //添加到缓存（直接查DB的不需要添加缓存）
+            if (getFromCache) {
+                ProductLibCache.addCacheList(aid, list);
+            }
         }finally {
             LockUtil.LibLock.readUnLock(aid);
         }
@@ -137,7 +169,88 @@ public class ProductLibProc {
         return list;
     }
 
+
+
     public void clearIdBuilderCache(int aid) {
         m_daoCtrl.clearIdBuilderCache(aid);
+    }
+
+    /**
+     * 根据aid和libId删除库表的数据
+     */
+    public void delLibList(int aid, FaiList<Integer> libIdList) {
+        int rt;
+        if(libIdList == null || libIdList.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args err;flow=%d;aid=%d;idList=%s", m_flow, aid, libIdList);
+        }
+
+        ParamMatcher matcher = new ParamMatcher(ProductLibEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductLibEntity.Info.LIB_ID, ParamMatcher.IN, libIdList);
+        rt = m_daoCtrl.delete(matcher);
+        if(rt != Errno.OK){
+            throw new MgException(rt, "delLibList error;flow=%d;aid=%d;libIdList=%s", m_flow, aid, libIdList);
+        }
+    }
+
+    /**
+     * 修改库表（只修改部分字段）
+     */
+    public void setLibList(int aid, FaiList<ParamUpdater> libUpdaterList) {
+        int rt;
+        //入参校验
+        for(ParamUpdater updater : libUpdaterList){
+            Param updateInfo = updater.getData();
+            String libName = updateInfo.getString(ProductLibEntity.Info.LIB_NAME);
+            if(libName != null && !ProductLibCheck.isNameValid(libName)) {
+                rt = Errno.ARGS_ERROR;
+                throw new MgException(rt, "flow=%d;aid=%d;name=%s", m_flow, aid, libName);
+            }
+        }
+
+        //先获取到库表的所有的数据
+        FaiList<Param> oldList = getLibList(aid,null,true);
+        //保存更新的数据
+        FaiList<Param> dataList = new FaiList<Param>();
+        Calendar now = Calendar.getInstance();
+        for(ParamUpdater updater : libUpdaterList){
+            Param updateInfo = updater.getData();
+            int libId = updateInfo.getInt(ProductLibEntity.Info.LIB_ID, 0);
+            //获取到要修改的记录
+            Param oldInfo = Misc.getFirstNullIsEmpty(oldList, ProductLibEntity.Info.LIB_ID, libId);
+            if(Str.isEmpty(oldInfo)){
+                continue;
+            }
+            //保存修改的信息到oldInfo中
+            oldInfo = updater.update(oldInfo, true);
+
+            Param data = new Param();
+            data.assign(oldInfo, ProductLibEntity.Info.AID);
+            data.assign(oldInfo, ProductLibEntity.Info.LIB_ID);
+            data.assign(oldInfo, ProductLibEntity.Info.LIB_NAME);
+            data.assign(oldInfo, ProductLibEntity.Info.LIB_TYPE);
+            data.assign(oldInfo, ProductLibEntity.Info.FLAG);
+            data.setCalendar(ProductLibEntity.Info.UPDATE_TIME, now);
+            dataList.add(data);
+        }
+        if(dataList.size() == 0){
+            rt = Errno.OK;
+            Log.logStd(rt, "dataList empty;flow=%d;aid=%d;", m_flow, aid);
+            return;
+        }
+
+        //设置修改的条件
+        ParamMatcher doBatchMatcher = new ParamMatcher(ProductLibEntity.Info.AID, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(ProductLibEntity.Info.LIB_ID, ParamMatcher.EQ, "?");
+        //设置要修改的信息（这里没有修改库类型）
+        Param item = new Param();
+        item.setString(ProductLibEntity.Info.LIB_NAME, "?");
+        item.setString(ProductLibEntity.Info.FLAG, "?");
+        item.setString(ProductLibEntity.Info.UPDATE_TIME, "?");
+        ParamUpdater doBatchUpdater = new ParamUpdater(item);
+        rt = m_daoCtrl.doBatchUpdate(doBatchUpdater, doBatchMatcher, dataList, true);
+        if(rt != Errno.OK){
+            throw new MgException(rt, "doBatchUpdate product Lib error;flow=%d;aid=%d;updateList=%s", m_flow, aid, dataList);
+        }
     }
 }

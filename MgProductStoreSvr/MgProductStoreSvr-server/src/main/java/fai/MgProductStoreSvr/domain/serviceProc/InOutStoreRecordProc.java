@@ -98,7 +98,10 @@ public class InOutStoreRecordProc {
             storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, mwTotalCost + inMwTotalCost);
 
             BigDecimal total = new BigDecimal(mwTotalCost + inMwTotalCost);
-            storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_COST, total.divide(new BigDecimal(remainCount+holdingCount)).longValue());
+            long relRemainCount = remainCount+holdingCount;
+            if(relRemainCount != 0) {
+                storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_COST, total.divide(new BigDecimal(relRemainCount)).longValue());
+            }
         }
         ParamMatcher doBatchMatcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, "?");
         doBatchMatcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");

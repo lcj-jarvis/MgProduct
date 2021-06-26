@@ -100,7 +100,7 @@ public class InOutStoreRecordProc {
             BigDecimal total = new BigDecimal(mwTotalCost + inMwTotalCost);
             long relRemainCount = remainCount+holdingCount;
             if(relRemainCount != 0) {
-                storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_COST, total.divide(new BigDecimal(relRemainCount)).longValue());
+                storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_COST, total.divide(new BigDecimal(relRemainCount), BigDecimal.ROUND_HALF_UP).longValue());
             }
         }
         ParamMatcher doBatchMatcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, "?");

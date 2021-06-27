@@ -634,7 +634,16 @@ public class SpuBizSummaryProc {
             if(unionPirIdPdIdListMap == null){
                 return;
             }
-            dirtyCacheKeyMap.putAll(unionPirIdPdIdListMap);
+            for (Map.Entry<Integer, FaiList<Integer>> dataEntry : unionPirIdPdIdListMap.entrySet()) {
+                int unionPriId = dataEntry.getKey();
+                FaiList<Integer> pdIds = dirtyCacheKeyMap.get(unionPriId);
+                if(pdIds == null) {
+                    pdIds = new FaiList<>();
+                    dirtyCacheKeyMap.put(unionPriId, pdIds);
+                }
+                pdIds.addAll(dataEntry.getValue());
+            }
+            //dirtyCacheKeyMap.putAll(unionPirIdPdIdListMap);
         }
         private void addDataTypeDirtyCacheKey(DataType dataType, Set<Integer> unionPriIdSet){
             if(unionPriIdSet.isEmpty()){

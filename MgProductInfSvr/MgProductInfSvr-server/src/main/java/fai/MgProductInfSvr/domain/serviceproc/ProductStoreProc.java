@@ -530,6 +530,22 @@ public class ProductStoreProc extends AbstractProductProc{
         return rt;
     }
 
+    public int clearRelData(int aid, int unionPriId) {
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+
+        rt = m_cli.clearRelData(aid, unionPriId);
+        if (rt != Errno.OK) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%s;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        return rt;
+    }
+
     public int batchAddStoreSales(int aid, int tid, int unionPriId, FaiList<Param> storeSaleSkuList) {
         int rt = Errno.ERROR;
         if (m_cli == null) {

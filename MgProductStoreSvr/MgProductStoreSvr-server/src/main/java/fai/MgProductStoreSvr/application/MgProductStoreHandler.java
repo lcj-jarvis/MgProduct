@@ -421,6 +421,15 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.CLEAR_REL_DATA)
+    private int clearRelData(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid final int aid,
+                                 @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId) throws IOException {
+        return m_storeService.clearRelData(session, flow, aid, unionPriId);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_ADD)
     private int batchAddStoreSales(final FaiSession session,
                                  @ArgFlow final int flow,

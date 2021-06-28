@@ -2,6 +2,7 @@ package fai.MgProductStoreSvr.domain.repository;
 
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.cache.redis.client.RedisClient;
+import fai.comm.util.Log;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -39,6 +40,22 @@ public class CacheCtrl {
 	public static boolean clearCacheVersion(int aid){
 		String cacheVersionKey = getCacheVersionKey(aid);
 		return m_cache.del(cacheVersionKey);
+	}
+
+	public static boolean clearAllCache(int aid) {
+		boolean allOption = true;
+		boolean boo = CacheCtrl.clearCacheVersion(aid);
+		if(!boo){
+			Log.logErr("CacheCtrl.clearCacheVersion err;aid=%s;", aid);
+		}
+		allOption &= boo;
+		boo = SpuSummaryCacheCtrl.delAllCache(aid);
+		if(!boo){
+			Log.logErr("SpuSummaryCacheCtrl.delAllCache err;aid=%s;", aid);
+		}
+		allOption &= boo;
+
+		return allOption;
 	}
 
 	protected static String wrapCacheVersion(String cacheKey, int aid){

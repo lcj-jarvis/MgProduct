@@ -176,7 +176,6 @@ public class ProductBasicService extends ServicePub {
             Log.logErr("args error, rlPdIds is empty;flow=%d;aid=%d;rlPdIds=%s;", flow, aid, rlPdIds);
             return rt;
         }
-boolean useProductGroup = useProductGroup();
         Lock lock = LockUtil.getLock(aid);
         lock.lock();
         try {
@@ -201,21 +200,24 @@ boolean useProductGroup = useProductGroup();
                     pdIdList.add(pdId);
                 }
                 // 删除pdIdList的所有业务关联数据
-                delRelInfos = relProc.delProductRelByPdId(aid, pdIdList, softDel);
+                delRelInfos = relProc.delProductRelByPdId(aid, pdIdList, softDel, true);
 
                 ProductProc pdProc = new ProductProc(flow, aid, tc);
                 // 删除商品数据
                 delPdCount = pdProc.deleteProductList(aid, tid, pdIdList, softDel);
 
-                // 删除参数关联
-                ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
-                bindPropProc.delPdBindProp(aid, pdIdList);
+                if(!softDel) {
+                    // 删除参数关联
+                    ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
+                    bindPropProc.delPdBindProp(aid, pdIdList);
 
-                if(useProductGroup()) {
-                    // 删除分类关联
-                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
-                    bindGroupProc.delPdBindGroupList(aid, pdIdList);
+                    if(useProductGroup()) {
+                        // 删除分类关联
+                        ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                        bindGroupProc.delPdBindGroupList(aid, pdIdList);
+                    }
                 }
+
                 commit = true;
                 tc.commit();
             }finally {
@@ -255,6 +257,62 @@ boolean useProductGroup = useProductGroup();
         FaiBuffer sendBuf = new FaiBuffer(true);
         session.write(sendBuf);
         Log.logStd("delProductList ok;flow=%d;aid=%d;uid=%d;rlPdIds=%s;", flow, aid, unionPriId, rlPdIds);
+
+        return rt;
+    }
+
+    /**
+     * 删除商品数据关联数据
+     */
+    @SuccessRt(value = Errno.OK)
+    public int clearRelData(FaiSession session, int flow ,int aid, int unionPriId, boolean softDel) throws IOException {
+        int rt;
+
+        Lock lock = LockUtil.getLock(aid);
+        lock.lock();
+        try {
+            //统一控制事务
+            TransactionCtrl tc = new TransactionCtrl();
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+
+                ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+                relProc.clearData(aid, unionPriId, softDel);
+
+                if(!softDel) {
+                    // 删除参数关联
+                    ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
+                    // 删除当前unionPriId的数据
+                    bindPropProc.delPdBindProp(aid, unionPriId, null);
+
+                    if(useProductGroup()) {
+                        // 删除分类关联
+                        ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                        // 删除当前unionPriId的数据
+                        bindGroupProc.delPdBindGroup(aid, unionPriId, null);
+                    }
+                }
+                commit = true;
+                tc.commit();
+            }finally {
+                if(!commit){
+                    tc.rollback();
+                }
+                tc.closeDao();
+            }
+            // 清缓存
+            ProductRelCacheCtrl.clearCacheVersion(aid);
+            ProductBindPropCache.clearCacheVersion(aid);
+            ProductBindGroupCache.clearCacheVersion(aid);
+        }finally {
+            lock.unlock();
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("delProductList ok;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
 
         return rt;
     }

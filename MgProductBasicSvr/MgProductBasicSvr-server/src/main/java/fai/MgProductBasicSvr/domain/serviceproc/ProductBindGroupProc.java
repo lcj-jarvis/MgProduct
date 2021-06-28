@@ -54,6 +54,22 @@ public class ProductBindGroupProc {
         }
     }
 
+    public int delPdBindGroup(int aid, int unionPriId, ParamMatcher matcher) {
+        int rt;
+        if(matcher == null) {
+            matcher = new ParamMatcher();
+        }
+        Ref<Integer> refRowCount = new Ref<>();
+        matcher.and(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        rt = m_dao.delete(matcher, refRowCount);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "del info error;flow=%d;aid=%d;matcher=%s;", m_flow, aid, matcher.toJson());
+        }
+        Log.logStd("del bind group ok;aid=%d;uid=%d;matcher=%s;", aid, unionPriId, matcher.toJson());
+        return refRowCount.value;
+    }
+
     public int delPdBindGroupList(int aid, FaiList<Integer> pdIds) {
         int rt;
         if(Util.isEmptyList(pdIds)) {

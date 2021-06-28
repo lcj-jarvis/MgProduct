@@ -113,6 +113,7 @@ public class MgProductInfCmd {
         public static final int NUM42 = 1042; /**@see BasicCmd#ADD_PD_INFO */
         public static final int NUM43 = 1043; /**@see BasicCmd#SET_PD_INFO */
         public static final int NUM44 = 1044; /**@see StoreSalesSkuCmd#BATCH_ADD_LIST */
+        public static final int NUM45 = 1045; /**@see Cmd#CLEAR_REL_DATA */
     }
 
 
@@ -307,5 +308,6 @@ public class MgProductInfCmd {
         public static final int GET_SUM_LIST_4ADM = ReadCmdNum.NUM35;
 
         public static final int IMPORT_PRODUCT = WriteCmdNum.NUM34;
+        public static final int CLEAR_REL_DATA = WriteCmdNum.NUM45;
     }
 }

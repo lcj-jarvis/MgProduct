@@ -195,7 +195,19 @@ public class StoreSalesSkuProc {
             Log.logStd(rt, "dao.delete err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
             return rt;
         }
-        Log.logStd("ok;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
+        Log.logStd("ok;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+        return rt;
+    }
+
+    public int clearData(int aid, int unionPriId) {
+        ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        int rt = m_daoCtrl.delete(matcher);
+        if(rt != Errno.OK){
+            Log.logStd(rt, "dao.delete err;flow=%s;aid=%s;pdIdList;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        Log.logStd("ok;flow=%s;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
         return rt;
     }
 
@@ -1011,6 +1023,27 @@ public class StoreSalesSkuProc {
         Log.logDbg(rt,"ok;flow=%d;aid=%d;skuId=%s;", m_flow, aid, skuId);
         return rt;
     }
+
+    public int getAllSkuIdAndPdId(int aid, int unionPriId, Ref<FaiList<Param>> listRef) {
+        if(aid <= 0 || listRef == null){
+            Log.logErr("arg error;flow=%d;aid=%s;uid=%s;listRef=%s;", m_flow, aid, unionPriId, listRef);
+            return Errno.ARGS_ERROR;
+        }
+        int rt;
+
+        Dao.SelectArg selectArg = new Dao.SelectArg();
+        selectArg.field = "distinct " + StoreSalesSkuEntity.Info.SKU_ID + ", " + StoreSalesSkuEntity.Info.PD_ID;
+        selectArg.searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        selectArg.searchArg.matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        rt = m_daoCtrl.select(selectArg, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            Log.logStd("dao.select error;flow=%d;aid=%s;uid=%s;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        Log.logDbg(rt,"ok;flow=%d;aid=%d;uid=%s;", m_flow, aid, unionPriId);
+        return rt;
+    }
+
     private void initReportInfoList(FaiList<Param> list){
         for (Param info : list) {
             initReportInfo(info);

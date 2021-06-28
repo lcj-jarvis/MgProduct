@@ -271,6 +271,27 @@ public class ProductBasicProc {
     }
 
     /**
+     * 清空业务关联数据
+     * @param softDel 目前都是使用false
+     * @return
+     */
+    public int clearRelData(int aid, int unionPriId, boolean softDel) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;softDel=%s;", m_flow, aid, unionPriId, softDel);
+            return rt;
+        }
+        rt = m_cli.clearRelData(aid, unionPriId, softDel);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "clearRelData error;flow=%d;aid=%d;unionPriId=%d;softDel=%s;", m_flow, aid, unionPriId, softDel);
+            return rt;
+        }
+
+        return rt;
+    }
+
+    /**
      * 根据商品业务id，获取商品业务关系数据
      * @return
      */

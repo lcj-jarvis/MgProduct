@@ -408,7 +408,19 @@ public class SpuBizSummaryProc {
             Log.logStd(rt, "delete err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
             return rt;
         }
-        Log.logStd("ok;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
+        Log.logStd("ok;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+        return rt;
+    }
+
+    public int clearData(int aid, int unionPriId) {
+        ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SpuBizSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        int rt = m_daoCtrl.delete(matcher);
+        if(rt != Errno.OK){
+            Log.logStd(rt, "delete err;flow=%s;aid=%s;unionPriId;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        Log.logStd("ok;flow=%s;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
         return rt;
     }
 

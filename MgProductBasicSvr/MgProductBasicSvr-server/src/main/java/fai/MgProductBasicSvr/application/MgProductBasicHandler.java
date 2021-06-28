@@ -213,6 +213,17 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductBasicCmd.BasicCmd.CLEAR_REL_DATA)
+    public int clearRelData(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid final int aid,
+                              @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                              @ArgBodyBoolean(value = ProductRelDto.Key.SOFT_DEL,
+                                      useDefault = true, defaultValue = false) boolean softDel) throws IOException {
+        return service.clearRelData(session, flow, aid, unionPriId, softDel);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductBasicCmd.BasicCmd.DEL_REL_BIND)
     public int batchDelPdRelBind(final FaiSession session,
                                  @ArgFlow final int flow,

@@ -129,6 +129,18 @@ public class HoldingRecordProc {
         return Errno.OK;
     }
 
+    public int clearData(int aid, int unionPriId) {
+        ParamMatcher matcher = new ParamMatcher(HoldingRecordEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(HoldingRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        int rt = m_daoCtrl.delete(matcher);
+        if(rt != Errno.OK){
+            Log.logErr(rt, "delete err;flow=%s;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        Log.logStd("ok;flow=%s;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+        return rt;
+    }
+
     public int batchLogicDel(int aid, int unionPriId, Set<RecordKey> recordSet, String rlOrderCode){
         if(aid <= 0 || unionPriId <= 0 || Util.isEmptyList(recordSet) || Str.isEmpty(rlOrderCode)){
             Log.logErr("batchLogicDel error;flow=%d;aid=%d;unionPriId=%s;recordSet=%s;rlOrderCode=%s;", m_flow, aid, unionPriId, recordSet, rlOrderCode);

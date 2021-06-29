@@ -308,6 +308,70 @@ public class StoreSalesSkuProc {
         return rt;
     }
 
+    public int batchSet(int aid, FaiList<ParamUpdater> updaterList, Map<SkuBizKey, Param> existMap) {
+        if(aid <= 0 || existMap == null || existMap.isEmpty() || updaterList == null || updaterList.isEmpty()){
+            Log.logErr("arg error;flow=%d;aid=%s;existMap=%s;updaterList=%s;", m_flow, aid, existMap, updaterList);
+            return Errno.ARGS_ERROR;
+        }
+        int rt = Errno.ERROR;
+        Set<String> maxUpdaterKeys = new HashSet<>(Arrays.asList(StoreSalesSkuEntity.getValidKeys()));
+        // 移除主键
+        maxUpdaterKeys.remove(StoreSalesSkuEntity.Info.AID);
+        maxUpdaterKeys.remove(StoreSalesSkuEntity.Info.SKU_ID);
+        maxUpdaterKeys.remove(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+
+        FaiList<Param> dataList = new FaiList<>();
+
+        // 组成批量更新的数据集
+        Calendar now = Calendar.getInstance();
+        for(ParamUpdater updater : updaterList) {
+            Param info = updater.getData();
+            int unionPriId = info.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+            long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+            Param oldData = existMap.remove(new SkuBizKey(unionPriId, skuId)); // help gc
+            Param updatedData = updater.update(oldData, true);
+            Param data = new Param();
+            { // for prepare updater
+                maxUpdaterKeys.forEach(key->{
+                    data.assign(updatedData, key);
+                });
+                if(data.containsKey(StoreSalesSkuEntity.Info.PRICE)){
+                    int flag = data.getInt(StoreSalesSkuEntity.Info.FLAG, 0);
+                    flag |= StoreSalesSkuValObj.FLag.SETED_PRICE;
+                    data.setInt(StoreSalesSkuEntity.Info.FLAG, flag);
+                }
+                data.setCalendar(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, now);
+            }
+            { // for prepare matcher
+                data.setInt(StoreSalesSkuEntity.Info.AID, aid);
+                data.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId);
+                data.setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId);
+            }
+            dataList.add(data);
+        }
+
+        // prepare updater
+        ParamUpdater doBatchUpdater = new ParamUpdater();
+        maxUpdaterKeys.forEach(key->{
+            doBatchUpdater.getData().setString(key, "?");
+        });
+        doBatchUpdater.getData().setString(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, "?");
+        // prepare matcher
+        ParamMatcher doBatchMatcher = new ParamMatcher();
+        doBatchMatcher.and(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.EQ, "?");
+
+        rt = m_daoCtrl.batchUpdate(doBatchUpdater, doBatchMatcher, dataList);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "dao.batchUpdate error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
+            return rt;
+        }
+        Log.logDbg("flow=%d;aid=%d;doBatchUpdater.json=%s;dataList=%s;",  m_flow, aid, doBatchUpdater, dataList);
+        Log.logStd("ok;flow=%d;aid=%d;updaterList=%s;", m_flow, aid, updaterList);
+        return rt;
+    }
+
     int random = Sys.random();
     /**
      * 扣减库存

@@ -561,9 +561,11 @@ public class StoreSalesSkuService extends StoreService {
                             }
                         }
 
-                        rt = storeSalesSkuProc.batchAdd(aid, null, storeSaleSkuList);
-                        if(rt != Errno.OK){
-                            return rt;
+                        if(!storeSaleSkuList.isEmpty()) {
+                            rt = storeSalesSkuProc.batchAdd(aid, null, storeSaleSkuList);
+                            if(rt != Errno.OK){
+                                return rt;
+                            }
                         }
                     }finally {
                         if(rt != Errno.OK){

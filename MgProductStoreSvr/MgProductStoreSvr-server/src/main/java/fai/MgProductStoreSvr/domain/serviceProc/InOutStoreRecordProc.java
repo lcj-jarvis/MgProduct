@@ -435,8 +435,12 @@ public class InOutStoreRecordProc {
                 data.setString(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList.toJson());
             }
 
+            Long mvPrice = info.getLong(InOutStoreRecordEntity.Info.MW_PRICE);
+            if(mvPrice == null) {
+                mvPrice = 0L;
+            }
             data.setLong(InOutStoreRecordEntity.Info.PRICE, price);
-            data.assign(info, InOutStoreRecordEntity.Info.MW_PRICE);
+            data.setLong(InOutStoreRecordEntity.Info.MW_PRICE, mvPrice);
             data.setString(InOutStoreRecordEntity.Info.NUMBER, number);
             data.assign(info, InOutStoreRecordEntity.Info.OPT_SID);
             data.assign(info, InOutStoreRecordEntity.Info.HEAD_SID);

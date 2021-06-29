@@ -1,22 +1,18 @@
 package fai.MgProductLibSvr.domain.serviceproc;
 
 import fai.MgProductLibSvr.domain.common.LockUtil;
-import fai.MgProductLibSvr.domain.common.ProductLibCheck;
-import fai.MgProductLibSvr.domain.entity.ProductLibEntity;
 import fai.MgProductLibSvr.domain.entity.ProductLibRelEntity;
 import fai.MgProductLibSvr.domain.entity.ProductLibRelValObj;
+import fai.MgProductLibSvr.domain.entity.ProductLibValObj;
 import fai.MgProductLibSvr.domain.repository.cache.ProductLibRelCache;
-import fai.MgProductLibSvr.domain.repository.dao.ProductLibDaoCtrl;
 import fai.MgProductLibSvr.domain.repository.dao.ProductLibRelDaoCtrl;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
-import org.apache.jute.CsvOutputArchive;
 
 import java.util.Calendar;
-import java.util.function.Consumer;
 
 /**
  * @author LuChaoJi
@@ -73,7 +69,41 @@ public class ProductLibRelProc {
         return sort;
     }
 
-    public int addLibRelInfo(int aid, int unionPriId, Param relLibInfo) {
+    public void addLibRelBatch(int aid, int unionPriId, FaiList<Param> relLibInfoList, FaiList<Integer> relLibIds) {
+        int rt;
+        if(Util.isEmptyList(relLibInfoList)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args err, relLibInfoList is empty;flow=%d;aid=%d;relLibInfoList=%s", m_flow, aid, relLibInfoList);
+        }
+
+        //判断是否超出数量限制
+        FaiList<Param> list = getLibRelList(aid, unionPriId,null,true);
+        int count = list.size();
+        boolean isOverLimit = (count >= ProductLibValObj.Limit.COUNT_MAX) ||
+                (count + relLibInfoList.size() >  ProductLibValObj.Limit.COUNT_MAX);
+        if(isOverLimit) {
+            rt = Errno.COUNT_LIMIT;
+            throw new MgException(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;addSize=%d;", m_flow, aid, count,
+                    ProductLibValObj.Limit.COUNT_MAX, relLibInfoList.size());
+        }
+
+        int relLibId = 0;
+        for (Param relLibInfo:relLibInfoList) {
+            //自增库业务id
+            relLibId = createAndSetId(aid, unionPriId, relLibInfo);
+            //保存库业务id
+            relLibIds.add(relLibId);
+        }
+
+        //批量插入
+        rt = m_relDaoCtrl.batchInsert(relLibInfoList);
+
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "batch insert product lib rel error;flow=%d;aid=%d;", m_flow, aid);
+        }
+    }
+
+   /* public int addLibRelInfo(int aid, int unionPriId, Param relLibInfo) {
         int rt;
         //获取存在的库的数量
         int count = getLibRelList(aid, unionPriId,null,true).size();
@@ -88,7 +118,7 @@ public class ProductLibRelProc {
         }
 
         return rlGroupId;
-    }
+    }*/
 
     private int createAndSetId(int aid, int unionPriId, Param relLibInfo) {
         Integer rlLibId = relLibInfo.getInt(ProductLibRelEntity.Info.RL_LIB_ID, 0);
@@ -148,7 +178,7 @@ public class ProductLibRelProc {
                 searchArg.matcher = new ParamMatcher();
             }
 
-            //如果查询过来的条件已经包含这两个查询条件,就先删除
+            //避免查询过来的条件已经包含这两个查询条件,就先删除，防止重复添加查询条件
             searchArg.matcher.remove(ProductLibRelEntity.Info.AID);
             searchArg.matcher.remove(ProductLibRelEntity.Info.UNION_PRI_ID);
 
@@ -203,7 +233,7 @@ public class ProductLibRelProc {
     /**
      * 根据库业务id删除库业务表的数据
      */
-    public void delLibIdList(int aid, int unionPriId, FaiList<Integer> rlLibIds) {
+    public void delRelLibList(int aid, int unionPriId, FaiList<Integer> rlLibIds) {
         int rt;
         if(rlLibIds == null || rlLibIds.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -302,4 +332,5 @@ public class ProductLibRelProc {
         ProductLibRelCache.DataStatusCache.add(aid, unionPriId, statusInfo);
         return statusInfo;
     }
+
 }

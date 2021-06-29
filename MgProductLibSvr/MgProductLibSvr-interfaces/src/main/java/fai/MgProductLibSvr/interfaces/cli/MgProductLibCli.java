@@ -6,9 +6,9 @@ import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
+import fai.mgproduct.comm.Util;
 import fai.middleground.infutil.MgConfPool;
 
-import java.lang.reflect.Method;
 
 /**
  * @author LuChaoJi
@@ -190,6 +190,10 @@ public class MgProductLibCli extends FaiClient {
             }
             libList.clear();
 
+            if (searchArg == null) {
+                searchArg = new SearchArg();
+            }
+
             // send contents
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductLibRelDto.Key.UNION_PRI_ID, unionPriId);
@@ -330,11 +334,85 @@ public class MgProductLibCli extends FaiClient {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
             }
-
             return m_rt;
         } finally {
             close();
             stat.end((m_rt != Errno.OK), m_rt);
+
+        }
+    }
+
+
+    /**
+     * 联合增删改
+     * @param addInfoList  要添加的库信息
+     * @param updaterList  要更新的库信息
+     * @param delRlLibIds  要删除的库
+     * @param rlLibIdsRef  接收新增库的库业务id
+     * @return
+     */
+    public int unionSetLibList(int aid, int tid, int unionPriId, FaiList<Param> addInfoList,
+                                 FaiList<ParamUpdater> updaterList,
+                                 FaiList<Integer> delRlLibIds,
+                                 FaiList<Integer> rlLibIdsRef) {
+        if(!useProductLib()) {
+            return Errno.OK;
+        }
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+
+            //初始化rlLibIdsRef
+            if (rlLibIdsRef == null) {
+                rlLibIdsRef = new FaiList<Integer>();
+            }
+            rlLibIdsRef.clear();
+
+            // 组装sendBody
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductLibRelDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductLibRelDto.Key.TID, tid);
+            if (Util.isEmptyList(addInfoList)) {
+                addInfoList = new FaiList<Param>();
+            }
+            addInfoList.toBuffer(sendBody, ProductLibRelDto.Key.INFO_LIST, ProductLibRelDto.getAllInfoDto());
+            if (updaterList == null) {
+                updaterList = new FaiList<ParamUpdater>();
+            }
+            updaterList.toBuffer(sendBody, ProductLibRelDto.Key.UPDATERLIST, ProductLibRelDto.getAllInfoDto());
+            if (delRlLibIds == null) {
+                delRlLibIds = new FaiList<Integer>();
+            }
+            delRlLibIds.toBuffer(sendBody, ProductLibRelDto.Key.RL_LIB_IDS);
+
+            //发送数据
+            Param result = sendAndReceive(aid, MgProductLibCmd.LibCmd.UNION_SET_LIB_LIST, sendBody, true);
+            Boolean success = result.getBoolean("success");
+            if (!success) {
+                return m_rt;
+            }
+
+            //接收插入成功后的reLibId
+            FaiBuffer recvBody = (FaiBuffer) result.getObject("recvBody");
+            if (!Util.isEmptyList(addInfoList)) {
+                Ref<Integer> keyRef = new Ref<Integer>();
+                rlLibIdsRef.fromBuffer(recvBody, keyRef);
+                if (m_rt != Errno.OK || keyRef.value != ProductLibRelDto.Key.RL_LIB_IDS) {
+                    Log.logErr(m_rt, "recv rlLibIds codec err");
+                    return m_rt;
+                }
+
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
         }
     }
 

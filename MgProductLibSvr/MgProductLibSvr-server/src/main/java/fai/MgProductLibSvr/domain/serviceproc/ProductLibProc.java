@@ -49,7 +49,7 @@ public class ProductLibProc {
     /**
      * 添加库表中的数据，同一个aid下的库不能超过100
      */
-    public int addLib(int aid, Param libInfo) {
+    /*public int addLib(int aid, Param libInfo) {
         int rt;
         if(Str.isEmpty(libInfo)) {
             rt = Errno.ARGS_ERROR;
@@ -71,13 +71,14 @@ public class ProductLibProc {
         }
 
         int libId = creatAndSetId(aid, libInfo);
+
         rt = m_daoCtrl.insert(libInfo);
         if(rt != Errno.OK) {
-            throw new MgException(rt, "insert product group error;flow=%d;aid=%d;groupId=%d;", m_flow, aid, libId);
+            throw new MgException(rt, "insert product lib error;flow=%d;aid=%d;libId=%d;", m_flow, aid, libId);
         }
 
         return libId;
-    }
+    }*/
 
     private int creatAndSetId(int aid, Param libInfo) {
         Integer libId = libInfo.getInt(ProductLibEntity.Info.LIB_ID, 0);
@@ -252,5 +253,52 @@ public class ProductLibProc {
         if(rt != Errno.OK){
             throw new MgException(rt, "doBatchUpdate product Lib error;flow=%d;aid=%d;updateList=%s", m_flow, aid, dataList);
         }
+    }
+
+    /**
+     * 批量添加库表的数据
+     * @param libInfoList 保存到库表的数据
+     * @param libIdsRef 接收库id
+     */
+    public void addLibBatch(int aid, FaiList<Param> libInfoList, FaiList<Integer> libIdsRef) {
+        int rt;
+        if(Util.isEmptyList(libInfoList)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args err, infoList is empty;flow=%d;aid=%d;libInfo=%s", m_flow, aid, libInfoList);
+        }
+
+        FaiList<Param> list = getLibList(aid,null,true);
+        int count = list.size();
+        //判断是否超出数量限制
+        boolean isOverLimit = (count >= ProductLibValObj.Limit.COUNT_MAX) ||
+                              (count + libInfoList.size() >  ProductLibValObj.Limit.COUNT_MAX);
+        if(isOverLimit) {
+            rt = Errno.COUNT_LIMIT;
+            throw new MgException(rt, "over limit;flow=%d;aid=%d;currentCount=%d;limit=%d;wantAddSize=%d;", m_flow, aid, count,
+                    ProductLibValObj.Limit.COUNT_MAX, libInfoList.size());
+        }
+
+        int libId = 0;
+        //检查名称是否合法
+        for (Param libInfo:libInfoList) {
+            String libName = libInfo.getString(ProductLibEntity.Info.LIB_NAME);
+            Param existInfo = Misc.getFirst(list, ProductLibEntity.Info.LIB_NAME, libName);
+            if(!Str.isEmpty(existInfo)) {
+                rt = Errno.ALREADY_EXISTED;
+                throw new MgException(rt, "lib name is existed;flow=%d;aid=%d;name=%s;", m_flow, aid, libName);
+            }
+            //自增库id
+            libId = creatAndSetId(aid, libInfo);
+            //保存libId
+            libIdsRef.add(libId);
+        }
+
+        //批量插入
+        rt = m_daoCtrl.batchInsert(libInfoList);
+
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "batch insert product lib error;flow=%d;aid=%d;", m_flow, aid);
+        }
+
     }
 }

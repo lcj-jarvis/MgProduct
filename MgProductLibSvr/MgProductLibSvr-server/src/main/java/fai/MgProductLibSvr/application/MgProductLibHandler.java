@@ -93,4 +93,20 @@ public class MgProductLibHandler extends MiddleGroundHandler {
                                  @ArgBodyInteger(ProductLibRelDto.Key.UNION_PRI_ID) int unionPriId) throws IOException {
         return libService.getLibRelDataStatus(session, flow, aid, unionPriId);
     }
+
+
+    @WrittenCmd
+    @Cmd(MgProductLibCmd.LibCmd.UNION_SET_LIB_LIST)
+    public int unionSetGroupList(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid int aid,
+                                 @ArgBodyInteger(ProductLibRelDto.Key.UNION_PRI_ID) int unionPriId,
+                                 @ArgBodyInteger(ProductLibRelDto.Key.TID) int tid,
+                                 @ArgParam(classDef = ProductLibRelDto.class, methodDef = "getAllInfoDto",
+                                         keyMatch = ProductLibRelDto.Key.INFO_LIST) FaiList<Param> addInfoList,
+                                 @ArgList(classDef = ProductLibRelDto.class, methodDef = "getAllInfoDto",
+                                         keyMatch = ProductLibRelDto.Key.UPDATERLIST) FaiList<ParamUpdater> updaterList,
+                                 @ArgList(keyMatch = ProductLibRelDto.Key.RL_LIB_IDS) FaiList<Integer> delRlLibIds) throws IOException {
+        return  libService.unionSetLibList(session, flow, aid, unionPriId, tid, addInfoList, updaterList, delRlLibIds);
+    }
 }

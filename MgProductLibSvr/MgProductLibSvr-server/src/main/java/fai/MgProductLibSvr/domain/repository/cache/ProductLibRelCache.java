@@ -82,7 +82,7 @@ public class ProductLibRelCache extends CacheCtrl{
 
         /**
          * 如果keyExists为true，执行hset操作，添加单个缓存到hash中。
-         *    缓存的形式：cachekey LibId（byte[]数组的形式） Param（byte[]数组的形式）
+         *    缓存的形式：cacheKey LibId（byte[]数组的形式） Param（byte[]数组的形式）
          */
         public static void addCache(int aid, int unionId, Param info) {
             if(Str.isEmpty(info)) {

@@ -32,8 +32,136 @@ import java.util.concurrent.locks.Lock;
  */
 public class ProductLibService {
 
+    /**
+     * 批量添加商品信息
+     * @param addInfoList  保存完整的库信息（包含库表和库业务）
+     * @param libInfoList  用于保存要插入库表的数据
+     * @param relLibInfoList  用于保存要插入库业务表的数据
+     * @param relLibIds  保存插入成功后的库业务id
+     * @return
+     */
+    private int addLibBatch(int flow, int aid, int unionPriId, int tid,
+                       TransactionCtrl transactionCtrl,
+                       ProductLibProc libProc,
+                       ProductLibRelProc relLibProc,
+                       FaiList<Param> addInfoList,
+                       FaiList<Param> libInfoList,
+                       FaiList<Param> relLibInfoList,
+                       FaiList<Integer> relLibIds) {
+
+        int rt;
+        ProductLibRelProc libRelProc = new ProductLibRelProc(flow, aid, transactionCtrl);
+
+        // 获取参数中最大的sort
+        int maxSort = libRelProc.getMaxSort(aid, unionPriId);
+        if(maxSort < 0) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "getMaxSort error;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+            return rt;
+        }
+
+        for (int i = 0; i < addInfoList.size(); i++) {
+            // 未设置排序则默认排序值+1
+            Param addInfo = addInfoList.get(i);
+            Integer sort = addInfo.getInt(ProductLibRelEntity.Info.SORT);
+            if(sort == null) {
+                addInfo.setInt(ProductLibRelEntity.Info.SORT, ++maxSort);
+            }
+
+            Param libInfo = new Param();
+            Param relLibInfo = new Param();
+            //装配库表和库业务表的数据
+            assemblyLibInfo(flow, aid, unionPriId, tid, addInfo, libInfo, relLibInfo);
+            libInfoList.add(libInfo);
+            relLibInfoList.add(relLibInfo);
+        }
+
+        //将事务设置为非自动提交
+        if (transactionCtrl.isAutoCommit()) {
+            transactionCtrl.setAutoCommit(false);
+        }
+
+        //保存libId
+        FaiList<Integer> libIds = new FaiList<>();
+        if (libProc == null) {
+            libProc = new ProductLibProc(flow, aid, transactionCtrl);
+        }
+        //批量添加库表的数据
+        libProc.addLibBatch(aid, libInfoList, libIds);
+
+        for (int i = 0; i < libIds.size(); i++) {
+            Param relLibInfo = relLibInfoList.get(i);
+            //设置libId
+            relLibInfo.setInt(ProductLibRelEntity.Info.LIB_ID, libIds.get(i));
+        }
+        if (relLibProc == null) {
+            relLibProc = new ProductLibRelProc(flow, aid, transactionCtrl);
+        }
+        relLibProc.addLibRelBatch(aid, unionPriId, relLibInfoList, relLibIds);
+
+        return maxSort;
+    }
 
     @SuccessRt(value = Errno.OK)
+    public int addProductLib(FaiSession session, int flow, int aid, int unionPriId, int tid, Param info) throws IOException {
+        int rt;
+        if(Str.isEmpty(info)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, info is empty;flow=%d;aid=%d;", flow, aid);
+            return rt;
+        }
+
+        FaiList<Param> addInfoList = new FaiList<>();
+        addInfoList.add(info);
+        FaiList<Param> libInfoList = new FaiList<>();
+        FaiList<Param> relLibInfoList = new FaiList<>();
+        FaiList<Integer> relLibIds = new FaiList<>();
+
+        Lock lock = LockUtil.getLock(aid);
+        lock.lock();
+        try {
+            boolean commit = false;
+            TransactionCtrl transactionCtrl = new TransactionCtrl();
+            ProductLibProc libProc = new ProductLibProc(flow, aid, transactionCtrl);
+            ProductLibRelProc libRelProc = new ProductLibRelProc(flow, aid, transactionCtrl);
+            int maxSort = 0;
+            try {
+                maxSort = addLibBatch(flow, aid, unionPriId, tid, transactionCtrl, libProc, libRelProc, addInfoList,
+                                      libInfoList, relLibInfoList, relLibIds);
+                commit = true;
+            } finally {
+                if(commit) {
+                    transactionCtrl.commit();
+                    // 新增缓存
+                    ProductLibCache.addCache(aid, libInfoList.get(0));
+                    ProductLibRelCache.InfoCache.addCache(aid, unionPriId, relLibInfoList.get(0));
+                    ProductLibRelCache.SortCache.set(aid, unionPriId, maxSort);
+                    ProductLibRelCache.DataStatusCache.update(aid, unionPriId, 1);
+                }else {
+                    transactionCtrl.rollback();
+                    libProc.clearIdBuilderCache(aid);
+                    libRelProc.clearIdBuilderCache(aid, unionPriId);
+                }
+                transactionCtrl.closeDao();
+            }
+        }finally {
+            lock.unlock();
+        }
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        Param result = relLibInfoList.get(0);
+        sendBuf.putInt(ProductLibRelDto.Key.RL_LIB_ID, relLibIds.get(0));
+        sendBuf.putInt(ProductLibRelDto.Key.LIB_ID, result.getInt(ProductLibRelEntity.Info.LIB_ID));
+        session.write(sendBuf);
+        Log.logStd("add ok;flow=%d;aid=%d;unionPriId=%d;tid=%d;rlLibId=%d;libId=%d;", flow, aid, unionPriId,
+                tid, relLibIds.get(0), result.getInt(ProductLibRelEntity.Info.LIB_ID));
+        return rt;
+    }
+
+    /**
+     * 添加单个库
+     */
+    /*@SuccessRt(value = Errno.OK)
     public int addProductLib(FaiSession session, int flow, int aid, int unionPriId, int tid, Param info) throws IOException {
         int rt;
         if(Str.isEmpty(info)) {
@@ -69,6 +197,8 @@ public class ProductLibService {
             boolean commit = false;
             transactionCtrl.setAutoCommit(false);
 
+          //  addLib(flow, aid, unionPriId, info, transactionCtrl, libInfo, relLibInfo, rlLibId);
+
             ProductLibProc libProc = new ProductLibProc(flow, aid, transactionCtrl);
             try {
                 libId = libProc.addLib(aid, libInfo);
@@ -101,7 +231,7 @@ public class ProductLibService {
         session.write(sendBuf);
         Log.logStd("add ok;flow=%d;aid=%d;unionPriId=%d;tid=%d;rlLibId=%d;libId=%d;", flow, aid, unionPriId, tid, rlLibId, libId);
         return rt;
-    }
+    }*/
 
     @SuccessRt(value = Errno.OK)
     public int delLibList(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlLibIds) throws IOException {
@@ -125,7 +255,7 @@ public class ProductLibService {
                 delLibIdList = relProc.getLibIdsByRlLibIds(aid, unionPriId, rlLibIds);
 
                 // 删除库业务表数据
-                relProc.delLibIdList(aid, unionPriId, rlLibIds);
+                relProc.delRelLibList(aid, unionPriId, rlLibIds);
 
                 // 删除库表数据
                 ProductLibProc groupProc = new ProductLibProc(flow, aid, transactionCtrl);
@@ -184,7 +314,7 @@ public class ProductLibService {
                 }
                 commit = true;
                 // commit之前设置10s过期时间，避免脏数据，保持一致性
-                if(updaterList != null && !updaterList.isEmpty()) {
+                if(!Util.isEmptyList(updaterList)) {
                     ProductLibRelCache.InfoCache.setExpire(aid, unionPriId);
                 }
                 if(!libUpdaterList.isEmpty()) {
@@ -228,9 +358,11 @@ public class ProductLibService {
         TransactionCtrl transactionCtrl = new TransactionCtrl();
         try {
             ProductLibRelProc relLibProc = new ProductLibRelProc(flow, aid, transactionCtrl);
+            //查询所有的库业务表的数据
             relLibList = relLibProc.getLibRelList(aid, unionPriId, null,true);
 
             ProductLibProc libProc = new ProductLibProc(flow, aid, transactionCtrl);
+            //查询所有的库表的数据
             libList = libProc.getLibList(aid,null, true);
         }finally {
             transactionCtrl.closeDao();
@@ -387,4 +519,132 @@ public class ProductLibService {
         relLibInfo.setCalendar(ProductLibRelEntity.Info.UPDATE_TIME, updateTime);
 
     }
+
+    /**
+     * 先删除，再修改，最后添加
+     * @param addInfoList 要添加的库（多个）
+     * @param updaterList 要更新的库（多个）
+     * @param delRlLibIds 要删除的库的库业务id
+     * @return
+     * @throws IOException
+     */
+    @SuccessRt(value = Errno.OK)
+    public int unionSetLibList(FaiSession session, int flow, int aid, int unionPriId, int tid,
+                               FaiList<Param> addInfoList,
+                               FaiList<ParamUpdater> updaterList,
+                               FaiList<Integer> delRlLibIds) throws IOException {
+        int rt;
+        //保存库业务id
+        FaiList<Integer> rlLibIds = new FaiList<>();
+        int maxSort = 0;
+        Lock lock = LockUtil.getLock(aid);
+        lock.lock();
+        try {
+            TransactionCtrl tc = new TransactionCtrl();
+            tc.setAutoCommit(false);
+            boolean commit = false;
+
+            //保存库表的信息
+            FaiList<Param> libInfoList = new FaiList<>();
+            //保存库业务表的信息
+            FaiList<Param>  relInfoList = new FaiList();
+            //保存要删除的库的库id
+            FaiList<Integer> delLibIdList = null;
+            //保存要更新的库表信息
+            FaiList<ParamUpdater> libUpdaterList = new FaiList<>();
+
+            ProductLibProc libProc = new ProductLibProc(flow, aid, tc);
+            ProductLibRelProc relLibProc = new ProductLibRelProc(flow, aid, tc);
+            try {
+                // 删除
+                if (!Util.isEmptyList(delRlLibIds)) {
+                    // 先获取要删除的库id
+                    delLibIdList = relLibProc.getLibIdsByRlLibIds(aid, unionPriId, delRlLibIds);
+
+                    // 删除库业务表数据
+                    relLibProc.delRelLibList(aid, unionPriId, delRlLibIds);
+
+                    // 删除库表数据
+                    libProc.delLibList(aid, delLibIdList);
+                }
+
+                // 修改
+                if (!Util.isEmptyList(updaterList)) {
+                    // 修改库业务关系表
+                    relLibProc.setLibRelList(aid, unionPriId, updaterList, libUpdaterList);
+
+                    // 修改库表
+                    if(!libUpdaterList.isEmpty()) {
+                        libProc.setLibList(aid, libUpdaterList);
+                    }
+                }
+
+                // 添加
+                if (!Util.isEmptyList(addInfoList)) {
+                   maxSort = addLibBatch(flow, aid, unionPriId, tid, tc, libProc, relLibProc,
+                                addInfoList, libInfoList, relInfoList, rlLibIds);
+                }
+
+                commit = true;
+                tc.commit();
+            } finally {
+                if (!commit) {
+                    tc.rollback();
+                    libProc.clearIdBuilderCache(aid);
+                    relLibProc.clearIdBuilderCache(aid, unionPriId);
+                }
+                tc.closeDao();
+            }
+
+            // 处理缓存
+            if (!Util.isEmptyList(delRlLibIds)) {
+                // 设置过期时间
+                ProductLibCache.setExpire(aid);
+                ProductLibRelCache.InfoCache.setExpire(aid, unionPriId);
+                ProductLibCache.delCacheList(aid, delLibIdList);
+                ProductLibRelCache.InfoCache.delCacheList(aid, unionPriId, delRlLibIds);
+                ProductLibRelCache.DataStatusCache.update(aid, unionPriId, delRlLibIds.size(), false);
+            }
+
+            if (!Util.isEmptyList(updaterList)) {
+                // 设置过期时间
+                ProductLibCache.setExpire(aid);
+                ProductLibCache.updateCacheList(aid, libUpdaterList);
+                if(!Util.isEmptyList(updaterList)) {
+                    ProductLibRelCache.InfoCache.setExpire(aid, unionPriId);
+                    ProductLibRelCache.InfoCache.updateCacheList(aid, unionPriId, updaterList);
+                    // 修改数据，更新dataStatus 的管理态字段更新时间
+                    ProductLibRelCache.DataStatusCache.update(aid, unionPriId);
+                }
+            }
+
+            boolean isSuccess = !(Util.isEmptyList(libInfoList) && Util.isEmptyList(relInfoList));
+            if (isSuccess) {
+                //设置过期时间
+                ProductLibCache.setExpire(aid);
+                ProductLibRelCache.InfoCache.setExpire(aid, unionPriId);
+
+                //添加缓存
+                ProductLibCache.addCacheList(aid, libInfoList);
+                ProductLibRelCache.InfoCache.addCacheList(aid, unionPriId, relInfoList);
+
+                ProductLibRelCache.SortCache.set(aid, unionPriId, maxSort);
+                ProductLibRelCache.DataStatusCache.update(aid, unionPriId, relInfoList.size(), true);
+            }
+
+        } finally {
+            lock.unlock();
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+
+        if (!Util.isEmptyList(addInfoList)) {
+           rlLibIds.toBuffer(sendBuf, ProductLibRelDto.Key.RL_LIB_IDS);
+        }
+        session.write(sendBuf);
+        Log.logStd("add ok;flow=%d;aid=%d;unionPriId=%d;tid=%d;addLib=%s;", flow, aid, unionPriId, tid, addInfoList);
+        return rt;
+    }
+
 }

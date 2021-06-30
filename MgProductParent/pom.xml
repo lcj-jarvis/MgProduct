@@ -29,15 +29,16 @@
         <fai-cli-arch-ver>1.0.0</fai-cli-arch-ver>
         <fai-web-inf-arch-ver>1.0.0</fai-web-inf-arch-ver>
         <fai-web-kit-arch-ver>1.0.0</fai-web-kit-arch-ver>
-        <fai-comm-util-arch-ver>1.0.0</fai-comm-util-arch-ver>
+        <fai-comm-util-arch-ver>1.0.6</fai-comm-util-arch-ver>
         <fai-comm-distributedkit-ver>1.4.0</fai-comm-distributedkit-ver>
         <fai-comm-netkit-ver>1.0.0</fai-comm-netkit-ver>
         <fai-comm-config-ver>1.0.0</fai-comm-config-ver>
         <fai-comm-mq-ver>1.0.1</fai-comm-mq-ver>
         <fai-comm-cache-ver>1.0.0</fai-comm-cache-ver>
-        <fai-comm-jnetkit-ver>1.0.0</fai-comm-jnetkit-ver>
+        <fai-comm-jnetkit-ver>1.1.2</fai-comm-jnetkit-ver>
         <fai-comm-mskit-ver>1.0.0</fai-comm-mskit-ver>
         <fai-comm-zkcli-ver>1.0.0</fai-comm-zkcli-ver>
+        <fai-comm-fseata-client-version>1.0.0</fai-comm-fseata-client-version>
         <fai-webgateway-client-ver>1.0.0</fai-webgateway-client-ver>
         <fai-fileupload-ver>1.0.0</fai-fileupload-ver>
         <fai-ucloud-spi-arch-ver>1.0.0</fai-ucloud-spi-arch-ver>

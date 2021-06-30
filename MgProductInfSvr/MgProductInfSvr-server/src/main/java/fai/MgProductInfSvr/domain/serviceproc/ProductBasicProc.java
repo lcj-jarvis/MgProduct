@@ -387,18 +387,27 @@ public class ProductBasicProc {
     }
 
     public int setPdBindGroup(int aid, int unionPriId, int rlPdId, FaiList<Integer> addGroupIds, FaiList<Integer> delGroupIds) {
-        int rt = Errno.ERROR;
+        return setPdBindGroup(aid, unionPriId, rlPdId, addGroupIds, delGroupIds, null);
+    }
+
+    public int setPdBindGroup(int aid, int unionPriId, int rlPdId, FaiList<Integer> addGroupIds, FaiList<Integer> delGroupIds, String xid) {
+        int rt;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.setPdBindGroup(aid, unionPriId, rlPdId, addGroupIds, delGroupIds);
+        if (Str.isEmpty(xid)) {
+            // 如果没有xid，则执行非分布式事务的方法
+            rt = m_cli.setPdBindGroup(aid, unionPriId, rlPdId, addGroupIds, delGroupIds);
+        } else {
+            // 如果有xid，则执行分布式事务的方法
+            rt = m_cli.transactionSetPdBindGroup(aid, unionPriId, rlPdId, addGroupIds, delGroupIds, xid);
+        }
         if(rt != Errno.OK) {
             Log.logErr(rt, "setPdBindGroup error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-
         return rt;
     }
 

@@ -3,6 +3,7 @@ package fai.MgProductInfSvr.application;
 import fai.MgProductInfSvr.application.service.*;
 import fai.MgProductInfSvr.interfaces.cmd.MgProductInfCmd;
 import fai.MgProductInfSvr.interfaces.dto.*;
+import fai.comm.fseata.client.core.exception.TransactionException;
 import fai.comm.jnetkit.server.fai.FaiHandler;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
@@ -580,7 +581,7 @@ public class MgProductInfHandler extends FaiHandler {
                               @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
                               @ArgBodyInteger( ProductBasicDto.Key.RL_PD_ID) Integer rlPdId,
                               @ArgParamUpdater(classDef = MgProductDto.class, methodDef = "getInfoDto",
-                                      keyMatch = ProductBasicDto.Key.UPDATER) ParamUpdater updater) throws IOException {
+                                      keyMatch = ProductBasicDto.Key.UPDATER) ParamUpdater updater) throws IOException, TransactionException {
         return basicService.setProductInfo(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, updater);
     }
 
@@ -1100,14 +1101,14 @@ public class MgProductInfHandler extends FaiHandler {
                                  @ArgAid final int aid,
                                  @ArgBodyInteger(ProductGroupDto.Key.TID) int tid,
                                  @ArgBodyInteger(ProductGroupDto.Key.SITE_ID) int siteId,
-                                 @ArgBodyInteger(ProductGroupDto.Key.LGID) int lgid,
+                                 @ArgBodyInteger(ProductGroupDto.Key.LGID) int lgId,
                                  @ArgBodyInteger(ProductGroupDto.Key.KEEP_PRIID1) int keepPriId1,
-                                 @ArgParam(keyMatch = ProductGroupDto.Key.INFO, methodDef = "getPdGroupDto",
-                                         classDef = ProductGroupDto.class) Param addInfo,
+                                 @ArgList(keyMatch = ProductGroupDto.Key.INFO, methodDef = "getPdGroupDto",
+                                         classDef = ProductGroupDto.class) FaiList<Param> addList,
                                  @ArgList(keyMatch = ProductGroupDto.Key.UPDATERLIST, methodDef = "getPdGroupDto",
                                          classDef = ProductGroupDto.class) FaiList<ParamUpdater> updaterList,
                                  @ArgList(keyMatch = ProductGroupDto.Key.RL_GROUP_IDS) FaiList<Integer> delList) throws IOException{
-        return groupService.unionSetGroupList(session, flow, aid, tid, siteId, lgid, keepPriId1, addInfo, updaterList, delList);
+        return groupService.unionSetGroupList(session, flow, aid, tid, siteId, lgId, keepPriId1, addList, updaterList, delList);
     }
 
     @WrittenCmd

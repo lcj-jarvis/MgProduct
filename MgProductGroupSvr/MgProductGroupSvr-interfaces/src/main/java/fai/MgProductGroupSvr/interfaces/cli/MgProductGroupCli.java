@@ -15,6 +15,7 @@ public class MgProductGroupCli extends FaiClient {
 
     /**
      * <p> 初始化
+     *
      * @return
      */
     public boolean init() {
@@ -23,7 +24,7 @@ public class MgProductGroupCli extends FaiClient {
 
     public static boolean useProductGroup() {
         Param mgSwitch = MgConfPool.getEnvConf("mgSwitch");
-        if(Str.isEmpty(mgSwitch)) {
+        if (Str.isEmpty(mgSwitch)) {
             return false;
         }
         boolean useProductGroup = mgSwitch.getBoolean("useProductGroup", false);
@@ -34,7 +35,7 @@ public class MgProductGroupCli extends FaiClient {
      * 新增商品数据，并添加与当前unionPriId的关联
      */
     public int addProductGroup(int aid, int tid, int unionPriId, Param info, Ref<Integer> groupIdRef, Ref<Integer> rlGroupIdRef) {
-        if(!useProductGroup()) {
+        if (!useProductGroup()) {
             return Errno.OK;
         }
         m_rt = Errno.ERROR;
@@ -86,7 +87,7 @@ public class MgProductGroupCli extends FaiClient {
                 return m_rt;
             }
 
-            if(groupIdRef != null || rlGroupIdRef != null) {
+            if (groupIdRef != null || rlGroupIdRef != null) {
                 Ref<Integer> keyRef = new Ref<Integer>();
                 m_rt = recvBody.getInt(keyRef, rlGroupIdRef);
                 if (m_rt != Errno.OK || keyRef.value != ProductGroupRelDto.Key.RL_GROUP_ID) {
@@ -109,7 +110,7 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int getGroupList(int aid, int unionPriId, SearchArg searchArg, FaiList<Param> list) {
-        if(!useProductGroup()) {
+        if (!useProductGroup()) {
             return Errno.OK;
         }
         m_rt = Errno.ERROR;
@@ -178,7 +179,7 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int setGroupList(int aid, int unionPriId, FaiList<ParamUpdater> updaterList) {
-        if(!useProductGroup()) {
+        if (!useProductGroup()) {
             return Errno.OK;
         }
         m_rt = Errno.ERROR;
@@ -230,7 +231,7 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int delGroupList(int aid, int unionPriId, FaiList<Integer> idList) {
-        if(!useProductGroup()) {
+        if (!useProductGroup()) {
             return Errno.OK;
         }
         m_rt = Errno.ERROR;
@@ -282,7 +283,7 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int getGroupRelDataStatus(int aid, int unionPriId, Param statusInfo) {
-        if(!useProductGroup()) {
+        if (!useProductGroup()) {
             return Errno.OK;
         }
         m_rt = Errno.ERROR;
@@ -340,7 +341,7 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int searchGroupRelFromDb(int aid, int unionPriId, SearchArg searchArg, FaiList<Param> list) {
-        if(!useProductGroup()) {
+        if (!useProductGroup()) {
             return Errno.OK;
         }
         m_rt = Errno.ERROR;
@@ -409,7 +410,7 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int getAllGroupRel(int aid, int unionPriId, FaiList<Param> list) {
-        if(!useProductGroup()) {
+        if (!useProductGroup()) {
             return Errno.OK;
         }
         m_rt = Errno.ERROR;
@@ -467,8 +468,8 @@ public class MgProductGroupCli extends FaiClient {
         }
     }
 
-    public int unionSetGroupList(int aid, int tid, int unionPriId, Param addInfo, FaiList<ParamUpdater> updaterList, FaiList<Integer> delList, Ref<Integer> rlGroupIdRef) {
-        if(!useProductGroup()) {
+    public int unionSetGroupList(int aid, int tid, int unionPriId, FaiList<Param> addList, FaiList<ParamUpdater> updaterList, FaiList<Integer> delList, Ref<FaiList<Integer>> rlGroupIdsRef) {
+        if (!useProductGroup()) {
             return Errno.OK;
         }
         m_rt = Errno.ERROR;
@@ -484,10 +485,10 @@ public class MgProductGroupCli extends FaiClient {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductGroupRelDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(ProductGroupRelDto.Key.TID, tid);
-            if (addInfo == null) {
-                addInfo = new Param();
+            if (addList == null) {
+                addList = new FaiList<Param>();
             }
-            addInfo.toBuffer(sendBody, ProductGroupRelDto.Key.INFO, ProductGroupRelDto.getAllInfoDto());
+            addList.toBuffer(sendBody, ProductGroupRelDto.Key.INFO, ProductGroupRelDto.getAllInfoDto());
             if (updaterList == null) {
                 updaterList = new FaiList<ParamUpdater>();
             }
@@ -518,20 +519,25 @@ public class MgProductGroupCli extends FaiClient {
                 return m_rt;
             }
 
-            FaiBuffer recvBody = recvProtocol.getDecodeBody();
-            if (recvBody == null) {
-                m_rt = Errno.ERROR;
-                Log.logErr(m_rt, "recv body=null;aid=%d", aid);
-                return m_rt;
-            }
-            if(!addInfo.isEmpty()) {
-                Ref<Integer> keyRef = new Ref<Integer>();
-                m_rt = recvBody.getInt(keyRef, rlGroupIdRef);
-                if (m_rt != Errno.OK || keyRef.value != ProductGroupRelDto.Key.RL_GROUP_ID) {
-                    Log.logErr(m_rt, "recv rlGroupId codec err");
+            if (!addList.isEmpty()) {
+                FaiBuffer recvBody = recvProtocol.getDecodeBody();
+                if (recvBody == null) {
+                    m_rt = Errno.ERROR;
+                    Log.logErr(m_rt, "recv body=null;aid=%d", aid);
                     return m_rt;
                 }
+
+                Ref<Integer> keyRef = new Ref<Integer>();
+                FaiList<Integer> ids = new FaiList<Integer>();
+                m_rt = ids.fromBuffer(recvBody, keyRef);
+                if (m_rt != Errno.OK || keyRef.value != ProductGroupRelDto.Key.RL_GROUP_IDS) {
+                    Log.logErr(m_rt, "recv rlGroupIds codec err");
+                    return m_rt;
+                }
+                rlGroupIdsRef.value = ids;
             }
+
+            m_rt = Errno.OK;
             return m_rt;
         } finally {
             close();

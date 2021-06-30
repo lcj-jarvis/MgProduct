@@ -1,13 +1,15 @@
 package fai.MgProductBasicSvr.application;
 
 import fai.MgProductBasicSvr.application.service.ProductBasicService;
-import fai.MgProductBasicSvr.application.service.ProductBindPropService;
 import fai.MgProductBasicSvr.application.service.ProductBindGroupService;
+import fai.MgProductBasicSvr.application.service.ProductBindPropService;
 import fai.MgProductBasicSvr.interfaces.cmd.MgProductBasicCmd;
-import fai.MgProductBasicSvr.interfaces.dto.ProductBindPropDto;
 import fai.MgProductBasicSvr.interfaces.dto.ProductBindGroupDto;
+import fai.MgProductBasicSvr.interfaces.dto.ProductBindPropDto;
 import fai.MgProductBasicSvr.interfaces.dto.ProductDto;
 import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
+import fai.comm.fseata.client.core.rpc.annotation.SagaTransaction;
+import fai.comm.fseata.client.core.rpc.def.CommDef;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
@@ -323,6 +325,30 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                @ArgList(keyMatch = ProductBindGroupDto.Key.RL_GROUP_IDS) FaiList<Integer> addGroupIds,
                                @ArgList(keyMatch = ProductBindGroupDto.Key.DEL_RL_GROUP_IDS) FaiList<Integer> delGroupIds) throws IOException {
         return groupBindService.setPdBindGroup(session, flow, aid, unionPriId, rlPdId, addGroupIds, delGroupIds);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BindGroupCmd.TRANSACTION_SET_PD_BIND_GROUP)
+    @SagaTransaction(clientName = "MgProductBasicCli", rollbackCmd = MgProductBasicCmd.BindGroupCmd.SET_PD_BIND_GROUP_ROLLBACK)
+    public int transactionSetPdBindGroup(final FaiSession session,
+                                         @ArgFlow final int flow,
+                                         @ArgAid int aid,
+                                         @ArgBodyInteger(ProductBindGroupDto.Key.UNION_PRI_ID) int unionPriId,
+                                         @ArgBodyInteger(ProductBindGroupDto.Key.RL_PD_ID) int rlPdId,
+                                         @ArgBodyXid(ProductDto.Key.XID) String xid,
+                                         @ArgList(keyMatch = ProductBindGroupDto.Key.RL_GROUP_IDS) FaiList<Integer> addGroupIds,
+                                         @ArgList(keyMatch = ProductBindGroupDto.Key.DEL_RL_GROUP_IDS) FaiList<Integer> delGroupIds) throws IOException {
+        return groupBindService.transactionSetPdBindGroup(session, flow, aid, unionPriId, rlPdId, xid, addGroupIds, delGroupIds);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BindGroupCmd.SET_PD_BIND_GROUP_ROLLBACK)
+    public int setPdBindGroupRollback(final FaiSession session,
+                                      @ArgFlow int flow,
+                                      @ArgAid int aid,
+                                      @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                      @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return groupBindService.setPdBindGroupRollback(session, flow, aid, xid, branchId);
     }
 
     @WrittenCmd

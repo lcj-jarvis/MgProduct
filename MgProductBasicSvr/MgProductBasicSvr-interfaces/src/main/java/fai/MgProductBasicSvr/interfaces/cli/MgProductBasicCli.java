@@ -2106,4 +2106,72 @@ public class MgProductBasicCli extends FaiClient {
             stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
         }
     }
+
+    /**
+     * 修改绑定分类 - 分布式事务
+     * @param aid 用户id
+     * @param unionPriId 联合主机那
+     * @param rlPdId 商品业务id
+     * @param addGroupIds 想绑定的分类id
+     * @param delGroupIds 想删除绑定的分类id
+     * @param xid 事务全局id
+     * @return {@link Errno}
+     */
+    public int transactionSetPdBindGroup(int aid, int unionPriId, int rlPdId, FaiList<Integer> addGroupIds, FaiList<Integer> delGroupIds, String xid) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr("args error");
+                return m_rt;
+            }
+            if(addGroupIds == null) {
+                addGroupIds = new FaiList<Integer>();
+            }
+            if(delGroupIds == null) {
+                delGroupIds = new FaiList<Integer>();
+            }
+            if(addGroupIds.isEmpty() && delGroupIds.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;addList and delList all empty");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductBindGroupDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductBindGroupDto.Key.RL_PD_ID, rlPdId);
+            sendBody.putString(ProductDto.Key.XID, xid);
+            addGroupIds.toBuffer(sendBody, ProductBindGroupDto.Key.RL_GROUP_IDS);
+            delGroupIds.toBuffer(sendBody, ProductBindGroupDto.Key.DEL_RL_GROUP_IDS);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductBasicCmd.BindGroupCmd.TRANSACTION_SET_PD_BIND_GROUP);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
 }

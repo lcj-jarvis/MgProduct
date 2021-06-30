@@ -48,13 +48,22 @@ public class ProductBasicProc {
     }
 
     public int setPdBindPropInfo(int aid, int tid, int unionPriId, int rlPdId, FaiList<Param> addList, FaiList<Param> delList) {
-        int rt = Errno.ERROR;
+        return setPdBindPropInfo(aid, tid, unionPriId, rlPdId, addList, delList, null);
+    }
+
+    public int setPdBindPropInfo(int aid, int tid, int unionPriId, int rlPdId, FaiList<Param> addList, FaiList<Param> delList, String xid) {
+        int rt;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.setPdBindProp(aid, tid, unionPriId, rlPdId, addList, delList);
+        // 没有xid则走不用分布式事务的方法
+        if (Str.isEmpty(xid)) {
+            rt = m_cli.setPdBindProp(aid, tid, unionPriId, rlPdId, addList, delList);
+        } else {
+            rt = m_cli.transactionSetPdBindProp(aid, tid, unionPriId, rlPdId, addList, delList, xid);
+        }
         if(rt != Errno.OK) {
             Log.logErr(rt, "setPdBindProp error;flow=%d;aid=%d;tid=%d;unionPriId=%d;", m_flow, aid, tid, unionPriId);
             return rt;

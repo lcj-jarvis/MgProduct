@@ -4,6 +4,11 @@ import fai.comm.util.FaiList;
 
 public class ProductBindPropEntity {
 
+    public static final class BUSINESS {
+        public static final String ADD_LIST = "addList";
+        public static final String DEL_LIST = "delList";
+    }
+
     public static final class Info {
         public static final String AID = "aid"; // int 企业id
         public static final String RL_PD_ID = "rlPdId"; // int 商品业务 id

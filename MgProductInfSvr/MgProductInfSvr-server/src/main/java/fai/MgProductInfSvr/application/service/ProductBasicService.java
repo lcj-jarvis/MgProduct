@@ -541,7 +541,7 @@ public class ProductBasicService extends MgProductInfService {
                     FaiList<Param> delPropList = basicData.getList(ProductBasicEntity.BindPropInfo.DEL_PROP_LIST);
                     if (!Util.isEmptyList(addPropList) || !Util.isEmptyList(delPropList)) {
                         ProductBasicProc basicProc = new ProductBasicProc(flow);
-                        rt = basicProc.setPdBindPropInfo(aid, tid, unionPriId, rlPdId, addPropList, delPropList);
+                        rt = basicProc.setPdBindPropInfo(aid, tid, unionPriId, rlPdId, addPropList, delPropList, tx.getXid());
                         if (rt != Errno.OK) {
                             // TODO 分布式事务
                             Oss.logAlarm("setProductInfo error;an error occurred while modifying the parameter association");

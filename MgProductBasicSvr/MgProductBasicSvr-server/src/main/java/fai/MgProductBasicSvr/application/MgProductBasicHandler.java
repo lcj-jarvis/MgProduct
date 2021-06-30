@@ -55,6 +55,23 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
         return propBindservice.setPdBindProp(session, flow, aid, unionPriId, tid, rlPdId, addList, delList);
     }
 
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BindPropCmd.TRANSACTION_SET_PD_BIND_PROP)
+    @SagaTransaction(clientName = "MgProductBasicCli", rollbackCmd = MgProductBasicCmd.BindPropCmd.SET_PD_BIND_PROP_ROLLBACK)
+    public int transactionSetPdBindProp(final FaiSession session,
+                                        @ArgFlow final int flow,
+                                        @ArgAid final int aid,
+                                        @ArgBodyInteger(ProductBindPropDto.Key.UNION_PRI_ID) int unionPriId,
+                                        @ArgBodyInteger(ProductBindPropDto.Key.TID) int tid,
+                                        @ArgBodyInteger(ProductBindPropDto.Key.RL_PD_ID) int rlPdId,
+                                        @ArgBodyXid(value = ProductDto.Key.XID, useDefault = true) String xid,
+                                        @ArgList(classDef = ProductBindPropDto.class, methodDef = "getInfoDto",
+                                                keyMatch = ProductBindPropDto.Key.PROP_BIND) FaiList<Param> addList,
+                                        @ArgList(classDef = ProductBindPropDto.class, methodDef = "getInfoDto",
+                                                keyMatch = ProductBindPropDto.Key.DEL_PROP_BIND) FaiList<Param> delList) {
+        return propBindservice.transactionSetPdBindProp(session, flow, aid, unionPriId, tid, rlPdId, xid, addList, delList);
+    }
+
     @Cmd(MgProductBasicCmd.BindPropCmd.GET_LIST_BY_PROP)
     public int getRlPdByPropVal(final FaiSession session,
                              @ArgFlow final int flow,
@@ -346,7 +363,7 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                          @ArgAid int aid,
                                          @ArgBodyInteger(ProductBindGroupDto.Key.UNION_PRI_ID) int unionPriId,
                                          @ArgBodyInteger(ProductBindGroupDto.Key.RL_PD_ID) int rlPdId,
-                                         @ArgBodyXid(ProductDto.Key.XID) String xid,
+                                         @ArgBodyXid(value = ProductDto.Key.XID, useDefault = true) String xid,
                                          @ArgList(keyMatch = ProductBindGroupDto.Key.RL_GROUP_IDS) FaiList<Integer> addGroupIds,
                                          @ArgList(keyMatch = ProductBindGroupDto.Key.DEL_RL_GROUP_IDS) FaiList<Integer> delGroupIds) throws IOException {
         return groupBindService.transactionSetPdBindGroup(session, flow, aid, unionPriId, rlPdId, xid, addGroupIds, delGroupIds);

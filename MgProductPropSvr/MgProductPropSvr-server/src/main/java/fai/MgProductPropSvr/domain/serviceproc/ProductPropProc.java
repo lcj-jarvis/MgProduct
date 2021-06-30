@@ -162,6 +162,42 @@ public class ProductPropProc {
 		}
 	}
 
+	public void clearData(int aid, FaiList<Integer> unionPriIds) {
+		int rt;
+		if(unionPriIds == null || unionPriIds.isEmpty()) {
+			rt = Errno.ARGS_ERROR;
+			throw new MgException(rt, "clearData args error, unionPriIds is null;flow=%d;aid=%d;unionPriIds=%s", m_flow, aid, unionPriIds);
+		}
+		ParamMatcher matcher = new ParamMatcher(ProductPropEntity.Info.AID, ParamMatcher.EQ, aid);
+		matcher.and(ProductPropEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.IN, unionPriIds);
+		rt = m_propDao.delete(matcher);
+		if(rt != Errno.OK){
+			throw new MgException(rt, "clearData error;flow=%d;aid=%d;unionPriIds=%s", m_flow, aid, unionPriIds);
+		}
+		// 处理下idBuilder
+		m_propDao.restoreMaxId(aid, m_flow, false);
+		Log.logStd("clearData ok;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
+	}
+
+	public FaiList<Param> getListFromDao(int aid, SearchArg searchArg, String ... selectFields) {
+		// 从db获取数据
+		searchArg.matcher.and(ProductPropEntity.Info.AID, ParamMatcher.EQ, aid);
+		Ref<FaiList<Param>> listRef = new Ref<>();
+		int rt = m_propDao.select(searchArg, listRef, selectFields);
+		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+			throw new MgException(rt, "getList error;flow=%d;aid=%d;", m_flow, aid);
+		}
+		FaiList<Param> list = listRef.value;
+		if(list == null) {
+			list = new FaiList<Param>();
+		}
+		if (list.isEmpty()) {
+			rt = Errno.NOT_FOUND;
+			Log.logDbg(rt, "not found;aid=%d;match=%s;", aid, searchArg.matcher.toJson());
+		}
+		return list;
+	}
+
 	private FaiList<Param> getList(int aid) {
 		// 从缓存获取数据
 		FaiList<Param> list = ProductPropCacheCtrl.getCacheList(aid);

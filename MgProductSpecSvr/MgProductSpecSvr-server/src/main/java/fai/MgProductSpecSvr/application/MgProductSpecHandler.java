@@ -357,6 +357,14 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
         return m_productSpecService.clearAllCache(session, flow, aid);
     }
 
+    @Cmd(MgProductSpecCmd.CommCmd.CLEAR_ACCT)
+    @WrittenCmd
+    private int clearAcct(final FaiSession session,
+                           @ArgFlow final int flow,
+                           @ArgAid final int aid,
+                           @ArgList(keyMatch = ProductSpecSkuDto.Key.UNION_PRI_IDS) final FaiList<Integer> unionPriIds) throws IOException {
+        return m_productSpecService.clearAcct(session, flow, aid, unionPriIds);
+    }
 
     private SpecTempService m_specTempService = new SpecTempService();
 

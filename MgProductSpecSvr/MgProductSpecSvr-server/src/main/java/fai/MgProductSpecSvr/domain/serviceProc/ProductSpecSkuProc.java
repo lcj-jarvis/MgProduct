@@ -360,6 +360,24 @@ public class ProductSpecSkuProc {
         return rt;
     }
 
+    public int clearData(int aid, FaiList<Integer> unionPriIds) {
+        if(aid <= 0 || Util.isEmptyList(unionPriIds)){
+            Log.logErr("arg error;flow=%d;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return Errno.ARGS_ERROR;
+        }
+        ParamMatcher delMatcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        delMatcher.and(ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+        int rt = m_daoCtrl.delete(delMatcher);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "dao.delete error;flow=%d;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return rt;
+        }
+        // 处理下idBuilder
+        m_daoCtrl.restoreMaxId();
+        Log.logStd("ok;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
+        return rt;
+    }
+
     public int refreshSku(int aid, int tid, int unionPriId, int pdId, FaiList<FaiList<Integer>> skuList) {
         if(aid <= 0 || pdId <= 0 || skuList == null){
             Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;skuList=%s;", m_flow, aid, pdId, skuList);

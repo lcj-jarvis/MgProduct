@@ -11,6 +11,7 @@ import fai.MgProductGroupSvr.domain.repository.ProductGroupCache;
 import fai.MgProductGroupSvr.domain.repository.ProductGroupRelCache;
 import fai.MgProductGroupSvr.domain.serviceproc.ProductGroupProc;
 import fai.MgProductGroupSvr.domain.serviceproc.ProductGroupRelProc;
+import fai.MgProductGroupSvr.interfaces.dto.ProductGroupDto;
 import fai.MgProductGroupSvr.interfaces.dto.ProductGroupRelDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
@@ -353,9 +354,9 @@ public class ProductGroupService extends ServicePub {
     }
 
     @SuccessRt(value = Errno.OK)
-    public int unionSetGroupList(FaiSession session, int flow, int aid, int unionPriId, int tid, Param addInfo, FaiList<ParamUpdater> updaterList, FaiList<Integer> delList) throws IOException {
+    public int unionSetGroupList(FaiSession session, int flow, int aid, int unionPriId, int tid, FaiList<Param> addList, FaiList<ParamUpdater> updaterList, FaiList<Integer> delList) throws IOException {
         int rt;
-        FaiList<Integer> rlGroupId = new FaiList<>();
+        FaiList<Integer> rlGroupIds = new FaiList<>();
         int maxSort = 0;
         Lock lock = LockUtil.getLock(aid);
         lock.lock();
@@ -363,8 +364,8 @@ public class ProductGroupService extends ServicePub {
             TransactionCtrl tc = new TransactionCtrl();
             tc.setAutoCommit(false);
             boolean commit = false;
-            Param groupInfo = new Param();
-            Param relInfo = new Param();
+            FaiList<Param> groupInfoList = new FaiList<>();
+            FaiList<Param> relInfoList = new FaiList<>();
             FaiList<Integer> delGroupIdList = null;
             FaiList<ParamUpdater> groupUpdaterList = new FaiList<>();
             ProductGroupProc groupProc = new ProductGroupProc(flow, aid, tc);
@@ -381,7 +382,6 @@ public class ProductGroupService extends ServicePub {
                     // 删除分类表数据
                     groupProc.delGroupList(aid, delGroupIdList);
                 }
-
                 // 修改
                 if (!Util.isEmptyList(updaterList)) {
                     // 修改分类业务关系表
@@ -391,10 +391,9 @@ public class ProductGroupService extends ServicePub {
                         groupProc.setGroupList(aid, groupUpdaterList);
                     }
                 }
-
                 // 添加
-                if (!Str.isEmpty(addInfo)) {
-                    maxSort = addGroup(flow, aid, unionPriId, tid, addInfo, tc, groupInfo, relInfo, rlGroupId);
+                if (!Util.isEmptyList(addList)) {
+                    maxSort = addGroupList(flow, aid, unionPriId, tid, addList, tc, groupInfoList, relInfoList, rlGroupIds);
                 }
 
                 commit = true;
@@ -416,62 +415,66 @@ public class ProductGroupService extends ServicePub {
                 ProductGroupRelCache.InfoCache.delCacheList(aid, unionPriId, delList);
                 ProductGroupRelCache.DataStatusCache.update(aid, unionPriId, delList.size(), false);
             }
-
             if (!Util.isEmptyList(updaterList)) {
-                // 设置过期时间
-                ProductGroupCache.setExpire(aid);
-                ProductGroupCache.updateCacheList(aid, groupUpdaterList);
-                if(!Util.isEmptyList(updaterList)) {
-                    ProductGroupRelCache.InfoCache.setExpire(aid, unionPriId);
-                    ProductGroupRelCache.InfoCache.updateCacheList(aid, unionPriId, updaterList);
-                    // 修改数据，更新dataStatus 的管理态字段更新时间
-                    ProductGroupRelCache.DataStatusCache.update(aid, unionPriId);
+                if (!groupUpdaterList.isEmpty()) {
+                    // 设置过期时间
+                    ProductGroupCache.setExpire(aid);
+                    ProductGroupCache.updateCacheList(aid, groupUpdaterList);
                 }
+                ProductGroupRelCache.InfoCache.setExpire(aid, unionPriId);
+                ProductGroupRelCache.InfoCache.updateCacheList(aid, unionPriId, updaterList);
+                // 修改数据，更新dataStatus 的管理态字段更新时间
+                ProductGroupRelCache.DataStatusCache.update(aid, unionPriId);
             }
-
-            if (!Str.isEmpty(addInfo)) {
+            if (!Util.isEmptyList(addList)) {
                 // 设置过期时间
                 ProductGroupCache.setExpire(aid);
                 ProductGroupRelCache.InfoCache.setExpire(aid, unionPriId);
-                ProductGroupCache.addCache(aid, groupInfo);
-                ProductGroupRelCache.InfoCache.addCache(aid, unionPriId, relInfo);
+                ProductGroupCache.addCacheList(aid, groupInfoList);
+                ProductGroupRelCache.InfoCache.addCacheList(aid, unionPriId, relInfoList);
                 ProductGroupRelCache.SortCache.set(aid, unionPriId, maxSort);
-                ProductGroupRelCache.DataStatusCache.update(aid, unionPriId, 1);
+                ProductGroupRelCache.DataStatusCache.update(aid, unionPriId, groupInfoList.size());
             }
         } finally {
             lock.unlock();
         }
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
-        if (!Str.isEmpty(addInfo)) {
-            sendBuf.putInt(ProductGroupRelDto.Key.RL_GROUP_ID, rlGroupId.get(0));
+        if (!Util.isEmptyList(rlGroupIds)) {
+            rlGroupIds.toBuffer(sendBuf, ProductGroupDto.Key.RL_GROUP_IDS);
         }
         session.write(sendBuf);
-        Log.logStd("add ok;flow=%d;aid=%d;unionPriId=%d;tid=%d;rlGroupId=%d;", flow, aid, unionPriId, tid, rlGroupId.get(0));
+        Log.logStd("unionSetGroupList ok;flow=%d;aid=%d;unionPriId=%d;tid=%d;rlGroupId=%s;", flow, aid, unionPriId, tid, rlGroupIds);
         return rt;
     }
 
-    private int addGroup(int flow, int aid, int unionPriId, int tid, Param addInfo, TransactionCtrl tc, Param groupInfo, Param relInfo, FaiList<Integer> rlGroupId) {
+    private int addGroupList(int flow, int aid, int unionPriId, int tid, FaiList<Param> addList, TransactionCtrl tc, FaiList<Param> groupInfoList, FaiList<Param> relInfoList, FaiList<Integer> rlGroupIds) {
         int rt;
         ProductGroupRelProc groupRelProc = new ProductGroupRelProc(flow, aid, tc);
-        // 获取参数中最大的sort
         int maxSort = groupRelProc.getMaxSort(aid, unionPriId);
-        if(maxSort < 0) {
-            rt = Errno.ERROR;
-            Log.logErr(rt, "getMaxSort error;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
-            return rt;
-        }
-        // 未设置排序则默认排序值+1
-        Integer sort = addInfo.getInt(ProductGroupRelEntity.Info.SORT);
-        if(sort == null) {
-            addInfo.setInt(ProductGroupRelEntity.Info.SORT, ++maxSort);
-        }
-        assemblyGroupInfo(flow, aid, unionPriId, tid, addInfo, groupInfo, relInfo);
-        ProductGroupProc groupProc = new ProductGroupProc(flow, aid, tc);
-        int groupId = groupProc.addGroup(aid, groupInfo);
-        relInfo.setInt(ProductGroupRelEntity.Info.GROUP_ID, groupId);
+        for (Param addInfo : addList) {
+            // 获取参数中最大的sort
+            if(maxSort < 0) {
+                rt = Errno.ERROR;
+                Log.logErr(rt, "getMaxSort error;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+                return rt;
+            }
+            // 未设置排序则默认排序值+1
+            Integer sort = addInfo.getInt(ProductGroupRelEntity.Info.SORT);
+            if(sort == null) {
+                addInfo.setInt(ProductGroupRelEntity.Info.SORT, ++maxSort);
+            }
+            Param groupInfo = new Param();
+            Param relInfo = new Param();
+            assemblyGroupInfo(flow, aid, unionPriId, tid, addInfo, groupInfo, relInfo);
+            ProductGroupProc groupProc = new ProductGroupProc(flow, aid, tc);
+            int groupId = groupProc.addGroup(aid, groupInfo);
+            relInfo.setInt(ProductGroupRelEntity.Info.GROUP_ID, groupId);
 
-        rlGroupId.add(groupRelProc.addGroupRelInfo(aid, unionPriId, relInfo));
+            groupInfoList.add(groupInfo);
+            relInfoList.add(relInfo);
+            rlGroupIds.add(groupRelProc.addGroupRelInfo(aid, unionPriId, relInfo));
+        }
 
         return maxSort;
     }

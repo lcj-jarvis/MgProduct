@@ -436,6 +436,23 @@ public class ProductSpecProc extends AbstractProductProc {
         return rt;
     }
 
+    /**
+     * 清空数据
+     */
+    public int clearAcct(int aid, FaiList<Integer> unionPriIds){
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return rt;
+        }
+        rt = m_cli.clearAcct(aid, unionPriIds);
+        if(rt != Errno.OK) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return rt;
+        }
+        return rt;
+    }
 
     private int m_flow;
     private MgProductSpecCli m_cli;

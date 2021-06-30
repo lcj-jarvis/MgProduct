@@ -58,5 +58,6 @@ public class ProductPropDto {
 		public static final int UPDATERLIST = 8;
 		public static final int RL_PROP_ID = 9;
 		public static final int RL_PROP_IDS = 10;
+		public static final int UNION_PRI_IDS = 11;
 	}
 }

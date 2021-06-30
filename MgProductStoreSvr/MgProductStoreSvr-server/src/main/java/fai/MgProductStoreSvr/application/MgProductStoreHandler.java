@@ -430,6 +430,15 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.CLEAR_ACCT)
+    private int clearAcct(final FaiSession session,
+                             @ArgFlow final int flow,
+                             @ArgAid final int aid,
+                             @ArgList(keyMatch = StoreSalesSkuDto.Key.UNION_PRI_IDS) final FaiList<Integer> unionPriIds) throws IOException {
+        return m_storeService.clearAcct(session, flow, aid, unionPriIds);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_ADD)
     private int batchAddStoreSales(final FaiSession session,
                                  @ArgFlow final int flow,

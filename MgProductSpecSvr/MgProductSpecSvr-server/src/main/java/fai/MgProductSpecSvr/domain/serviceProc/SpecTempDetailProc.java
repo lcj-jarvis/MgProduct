@@ -4,6 +4,7 @@ import fai.MgProductSpecSvr.domain.comm.Utils;
 import fai.MgProductSpecSvr.domain.entity.SpecTempDetailEntity;
 import fai.MgProductSpecSvr.domain.repository.SpecTempDetailDaoCtrl;
 import fai.comm.util.*;
+import fai.mgproduct.comm.Util;
 
 import java.util.*;
 
@@ -88,6 +89,23 @@ public class SpecTempDetailProc {
         return rt;
     }
 
+    public int clearData(int aid, FaiList<Integer> tpScIds) {
+        if(aid <= 0 || Util.isEmptyList(tpScIds)){
+            Log.logErr("clearData error;flow=%d;aid=%s;tpScIds=%s;", m_flow, aid, tpScIds);
+            return Errno.ARGS_ERROR;
+        }
+        ParamMatcher matcher = new ParamMatcher(SpecTempDetailEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SpecTempDetailEntity.Info.TP_SC_ID, ParamMatcher.IN, tpScIds);
+        int rt = m_daoCtrl.delete(matcher);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "clearData error;flow=%d;aid=%s;tpScId=%s;", m_flow, aid, tpScIds);
+            return rt;
+        }
+        // 处理下idBuilder
+        m_daoCtrl.restoreMaxId();
+        Log.logStd("clearData ok;flow=%d;aid=%d;tpScId=%s;", m_flow, aid, tpScIds);
+        return rt;
+    }
 
     public int batchSet(int aid, int tpScId, FaiList<ParamUpdater> specTempDetailUpdaterList) {
         if(aid <= 0 || tpScId <= 0 || specTempDetailUpdaterList == null || specTempDetailUpdaterList.isEmpty()){

@@ -5,6 +5,7 @@ import fai.MgProductSpecSvr.domain.entity.SpecTempBizRelEntity;
 import fai.MgProductSpecSvr.domain.repository.SpecTempBizRelCacheCtrl;
 import fai.MgProductSpecSvr.domain.repository.SpecTempBizRelDaoCtrl;
 import fai.comm.util.*;
+import fai.mgproduct.comm.Util;
 
 import java.util.Calendar;
 import java.util.HashSet;
@@ -79,6 +80,25 @@ public class SpecTempBizRelProc {
         return rt;
     }
 
+    public int clearAcct(int aid, FaiList<Integer> unionPriIds) {
+        if(aid <= 0 || Util.isEmptyList(unionPriIds)){
+            Log.logErr("clearAcct arg error;flow=%d;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return Errno.ARGS_ERROR;
+        }
+        ParamMatcher matcher = new ParamMatcher(SpecTempBizRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SpecTempBizRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+        int rt = m_daoCtrl.delete(matcher);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "clearAcct error;flow=%d;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return rt;
+        }
+        // 处理下idBuilder
+        for(int unionPriId : unionPriIds) {
+            m_daoCtrl.restoreMaxId(unionPriId);
+        }
+        Log.logStd("clearAcct ok;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
+        return rt;
+    }
 
     public int batchSet(int aid, int unionPriId, FaiList<ParamUpdater> specTempBizRelUpdaterList) {
         if(aid <= 0 || unionPriId<= 0 || specTempBizRelUpdaterList == null || specTempBizRelUpdaterList.isEmpty()){

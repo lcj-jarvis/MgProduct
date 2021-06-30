@@ -154,6 +154,22 @@ public class ProductBindPropProc {
         return refRowCount.value;
     }
 
+    // 清空指定aid+unionPriId的数据
+    public void clearAcct(int aid, FaiList<Integer> unionPriIds) {
+        int rt;
+        if(unionPriIds == null || unionPriIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "clearAcct error, unionPriIds is null;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+        rt = m_bindPropDao.delete(matcher);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "del product rel error;flow=%d;aid=%d;unionPridId=%s;", m_flow, aid, unionPriIds);
+        }
+        Log.logStd("clearAcct ok;flow=%d;aid=%d;unionPridId=%s;", m_flow, aid, unionPriIds);
+    }
+
     /**
      * 根据参数id+参数值id的列表，筛选出商品业务id
      * 目前是直接查db

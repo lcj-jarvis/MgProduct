@@ -13,4 +13,5 @@ public class CommDtoKey {
     public static final int SOFT_DEL = 9;
     public static final int PRICE = 10;
     public static final int OPT_TIME = 11;
+    public static final int UNION_PRI_IDS = 12;
 }

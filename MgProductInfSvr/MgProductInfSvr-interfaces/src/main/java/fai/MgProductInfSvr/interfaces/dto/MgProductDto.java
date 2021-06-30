@@ -65,5 +65,6 @@ public class MgProductDto {
         public static final int USE_BASIC = 9;
         public static final int RL_PD_IDS = 10;
         public static final int COMBINED = 11;
+        public static final int PRIMARY_KEYS = 12;
     }
 }

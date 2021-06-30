@@ -193,6 +193,24 @@ public class ProductProc {
         return refRowCount.value;
     }
 
+    // 清空指定aid+unionPriId的数据
+    public void clearAcct(int aid, FaiList<Integer> unionPriIds) {
+        int rt;
+        if(unionPriIds == null || unionPriIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "clearAcct error, unionPriIds is null;flow=%d;aid=%d;sourceUnionPriId=%s;", m_flow, aid, unionPriIds);
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.IN, unionPriIds);
+        rt = m_dao.delete(matcher);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "del product rel error;flow=%d;aid=%d;sourceUnionPriId=%s;", m_flow, aid, unionPriIds);
+        }
+        // 处理下idBuilder
+        m_dao.restoreMaxId(aid, false);
+        Log.logStd("clearAcct ok;flow=%d;aid=%d;sourceUnionPriId=%s;", m_flow, aid, unionPriIds);
+    }
+
     public int getPdCount(int aid) {
         // 从缓存中获取
         Param dataStatus = getDataStatus(aid);

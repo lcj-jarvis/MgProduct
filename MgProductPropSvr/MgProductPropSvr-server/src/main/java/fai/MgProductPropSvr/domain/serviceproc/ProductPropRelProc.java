@@ -11,6 +11,7 @@ import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 
@@ -98,12 +99,26 @@ public class ProductPropRelProc {
 	}
 
 	public void clearData(int aid, int unionPriId) {
-		ParamMatcher matcher = new ParamMatcher(ProductPropRelEntity.Info.AID, ParamMatcher.EQ, aid);
-		matcher.and(ProductPropRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-		int rt = m_relDao.delete(matcher);
-		if(rt != Errno.OK){
-			throw new MgException(rt, "delPropList error;flow=%d;aid=%d;unionPriId=%s", m_flow, aid, unionPriId);
+		clearData(aid, new FaiList<>(Arrays.asList(unionPriId)));
+	}
+
+	public void clearData(int aid, FaiList<Integer> unionPriIds) {
+		int rt;
+		if(unionPriIds == null || unionPriIds.isEmpty()) {
+			rt = Errno.ARGS_ERROR;
+			throw new MgException(rt, "clearData args error, unionPriIds is null;flow=%d;aid=%d;unionPriIds=%s", m_flow, aid, unionPriIds);
 		}
+		ParamMatcher matcher = new ParamMatcher(ProductPropRelEntity.Info.AID, ParamMatcher.EQ, aid);
+		matcher.and(ProductPropRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+		rt = m_relDao.delete(matcher);
+		if(rt != Errno.OK){
+			throw new MgException(rt, "delPropList error;flow=%d;aid=%d;unionPriIds=%s", m_flow, aid, unionPriIds);
+		}
+		// 处理下idBuilder
+		for(int unionPriId : unionPriIds) {
+			m_relDao.restoreMaxId(aid, unionPriId, m_flow, false);
+		}
+		Log.logStd("clearData ok;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
 	}
 
 	/**

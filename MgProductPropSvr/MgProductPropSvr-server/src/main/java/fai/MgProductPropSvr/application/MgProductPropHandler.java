@@ -96,6 +96,15 @@ public class MgProductPropHandler extends MiddleGroundHandler {
 	}
 
 	@WrittenCmd
+	@Cmd(MgProductPropCmd.PropCmd.CLEAR_ACCT)
+	public int clearAcct(final FaiSession session,
+							@ArgFlow final int flow,
+							@ArgAid final int aid,
+							@ArgList(keyMatch = ProductPropDto.Key.UNION_PRI_IDS) FaiList<Integer> unionPriIds) throws IOException {
+		return service.clearAcct(session, flow, aid, unionPriIds);
+	}
+
+	@WrittenCmd
 	@Cmd(MgProductPropCmd.PropCmd.UNION_SET)
 	public int unionSetPropList(final FaiSession session,
 								@ArgFlow final int flow,

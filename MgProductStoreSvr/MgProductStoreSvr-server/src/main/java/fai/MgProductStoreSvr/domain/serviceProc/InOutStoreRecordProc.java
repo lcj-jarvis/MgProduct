@@ -842,16 +842,30 @@ public class InOutStoreRecordProc {
     }
 
     public int clearData(int aid, int unionPriId) {
-        ParamMatcher matcher = new ParamMatcher();
-        matcher.and(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        FaiList<Integer> unionPriIds = new FaiList<>();
+        unionPriIds.add(unionPriId);
+        return clearData(aid, unionPriIds);
+    }
 
-        int rt = m_daoCtrl.delete(matcher);
-        if(rt != Errno.OK){
-            Log.logErr(rt, "delete err;flow=%s;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+    public int clearData(int aid, FaiList<Integer> unionPriIds) {
+        int rt;
+        if(unionPriIds == null || unionPriIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "clearData unionPriIds is empty;aid=%d;unionPriIds=%s;", aid, unionPriIds);
             return rt;
         }
-        Log.logStd("ok;flow=%s;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+        ParamMatcher matcher = new ParamMatcher();
+        matcher.and(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+
+        rt = m_daoCtrl.delete(matcher);
+        if(rt != Errno.OK){
+            Log.logErr(rt, "delete err;flow=%s;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return rt;
+        }
+        // 处理下idBuilder
+        m_daoCtrl.restoreMaxId();
+        Log.logStd("ok;flow=%s;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
         return rt;
     }
 
@@ -962,16 +976,28 @@ public class InOutStoreRecordProc {
     }
 
     public int clearSummaryData(int aid, int unionPriId) {
-        ParamMatcher matcher = new ParamMatcher();
-        matcher.and(InOutStoreSumEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(InOutStoreSumEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        FaiList<Integer> unionPriIds = new FaiList<>();
+        unionPriIds.add(unionPriId);
+        return clearSummaryData(aid, unionPriIds);
+    }
 
-        int rt = m_sumDaoCtrl.delete(matcher);
-        if(rt != Errno.OK){
-            Log.logErr(rt, "delete err;flow=%s;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+    public int clearSummaryData(int aid, FaiList<Integer> unionPriIds) {
+        int rt;
+        if(unionPriIds == null || unionPriIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "clearSummaryData unionPriIds is empty;aid=%d;unionPriIds=%s;", aid, unionPriIds);
             return rt;
         }
-        Log.logStd("ok;flow=%s;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+        ParamMatcher matcher = new ParamMatcher();
+        matcher.and(InOutStoreSumEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(InOutStoreSumEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+
+        rt = m_sumDaoCtrl.delete(matcher);
+        if(rt != Errno.OK){
+            Log.logErr(rt, "delete err;flow=%s;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return rt;
+        }
+        Log.logStd("ok;flow=%s;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
         return rt;
     }
     /*** 汇总数据 end ***/

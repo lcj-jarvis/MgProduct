@@ -604,6 +604,95 @@ public class MgProductInfService extends ServicePub {
         return rt;
     }
 
+    public int clearAcct(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> primaryKeys) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(tid != FaiValObj.TermId.YK) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, only supports yk del;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+
+            if(primaryKeys == null || primaryKeys.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, primaryKeys is null;flow=%d;aid=%d;tid=%d;primaryKeys=%s;", flow, aid, tid, primaryKeys);
+                return rt;
+            }
+
+            for(Param primaryKeyInfo : primaryKeys) {
+                Integer tmpTid = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.TID);
+                if(tmpTid == null || tmpTid != FaiValObj.TermId.YK) {
+                    rt = Errno.ARGS_ERROR;
+                    Log.logErr("args error, only supports yk del;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                    return rt;
+                }
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            FaiList<Param> list = new FaiList<>();
+            rt = getPrimaryKeyList(flow, aid, primaryKeys, list);
+            if(rt != Errno.OK){
+                return rt;
+            }
+            FaiList<Integer> unionPriIds = new FaiList<>();
+            for(Param primaryKeyInfo : list) {
+                Integer tmpUnionPriId = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.UNION_PRI_ID);
+                unionPriIds.add(tmpUnionPriId);
+            }
+
+            // 删除商品基础信息相关数据
+            ProductBasicProc basicProc = new ProductBasicProc(flow);
+            rt = basicProc.clearAcct(aid, unionPriIds);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+
+            // 删除商品参数相关数据
+            ProductPropProc propProc = new ProductPropProc(flow);
+            rt = propProc.clearAcct(aid, unionPriIds);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+
+            //TODO 删除商品分类数据(商品分类还没上线)
+
+            // 删除规格数据
+            ProductSpecProc specProc = new ProductSpecProc(flow);
+            rt = specProc.clearAcct(aid, unionPriIds);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+
+            // 删除库存销售信息
+            // 1. 删除unionPriId下的出入库记录数据
+            // 2. 删除unionPriId下的预扣记录、退库存记录、直扣记录
+            // 3. 删除unionPriId下的sku库存销售信息
+            // 4. 删除unionPriId下的spu库存销售信息汇总
+            // 5. 删除aid下sourceUnionPriId为指定unionPriIds的sku、spu库存销售信息汇总
+            ProductStoreProc storeProc = new ProductStoreProc(flow);
+            rt = storeProc.clearAcct(aid, unionPriIds);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+
+            Log.logStd("clear rel data ok;aid=%d;do unionPriId=%d;primaryKeys=%s;", aid, unionPriId, primaryKeys);
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
     /**
      * 导入商品
      * @param ownerTid 创建商品的 ownerTid

@@ -42,6 +42,7 @@ public class MgProductBasicCmd {
         public static final int NUM12 = 1012; /** @see BasicCmd#SET_SINGLE_PD */
         public static final int NUM13 = 1013; /** @see BasicCmd#SET_PDS */
         public static final int NUM14 = 1014; /** @see BasicCmd#CLEAR_REL_DATA */
+        public static final int NUM15 = 1015; /** @see BasicCmd#CLEAR_ACCT */
     }
 
     /**
@@ -92,6 +93,7 @@ public class MgProductBasicCmd {
         public static final int SET_SINGLE_PD = WriteCmdNum.NUM12;
         public static final int SET_PDS = WriteCmdNum.NUM13;
         public static final int CLEAR_REL_DATA = WriteCmdNum.NUM14;
+        public static final int CLEAR_ACCT = WriteCmdNum.NUM15;
     }
 
 }

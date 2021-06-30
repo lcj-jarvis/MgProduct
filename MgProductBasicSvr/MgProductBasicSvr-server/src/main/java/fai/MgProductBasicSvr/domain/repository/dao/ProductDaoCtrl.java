@@ -5,6 +5,7 @@ import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.distributedkit.idBuilder.domain.IdBuilderConfig;
 import fai.comm.distributedkit.idBuilder.wrapper.IdBuilderWrapper;
 import fai.comm.util.*;
+import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.DaoCtrl;
 
 public class ProductDaoCtrl extends DaoCtrl {
@@ -35,25 +36,56 @@ public class ProductDaoCtrl extends DaoCtrl {
         return new ProductDaoCtrl(flow, aid);
     }
 
-    public Integer restoreMaxId(int aid, boolean needLock) {
-        SearchArg searchArg = new SearchArg();
-        searchArg.matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
-        Dao.SelectArg sltArg = new Dao.SelectArg();
-        sltArg.table = getTableName();
-        sltArg.searchArg = searchArg;
-        sltArg.field = "max(" + ProductEntity.Info.PD_ID + ") as maxId";
+    public void restoreMaxId(int aid, boolean needLock) {
         int rt = openDao();
         if(rt != Errno.OK) {
+            throw new MgException(rt, "openDao err;flow=%d;aid=%d;", flow, aid);
+        }
+        Integer maxId = getMaxId(aid);
+        if(maxId == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "select maxId err;flow=%d;aid=%d;", flow, aid);
+        }
+        // 最大值小于初始值
+        if (maxId < ID_BUILDER_INIT) {
+            rt = m_idBuilder.clear(aid, m_dao, needLock);
+            if (rt != Errno.OK) {
+                throw new MgException(rt, "IdBuilder clear err;flow=%d, aid=%d;", flow, aid);
+            }
+        } else {
+            if (m_idBuilder.restore(aid, maxId, m_dao, needLock) == null) {
+                rt = Errno.DAO_ERROR;
+                throw new MgException(rt, "IdBuilder restore err;flow=%d, aid=%d;", flow, aid);
+            }
+        }
+    }
+
+    private Integer getMaxId(int aid) {
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
+        Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
+        int rt = select(searchArg, listRef, "max(" + ProductEntity.Info.PD_ID + ") as " + ProductEntity.Info.PD_ID);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             return null;
         }
-        Param maxInfo = m_dao.selectFirst(sltArg);
-        if(Str.isEmpty(maxInfo)){
-            rt = Errno.DAO_ERROR;
-            Log.logErr(rt, "select db err;");
+        if (listRef.value == null || listRef.value.isEmpty()) {
+            rt = Errno.NOT_FOUND;
+            Log.logErr(rt, "select maxId err;flow=%d;aid=%d;", flow, aid);
             return null;
         }
-        int maxId = maxInfo.getInt("maxId");
-        return updateId(aid, maxId, needLock);
+
+        Param info = listRef.value.get(0);
+        if (info == null) {
+            Log.logErr(rt, "select maxId err;flow=%d;aid=%d;", flow, aid);
+            return null;
+        }
+        Integer id;
+        if (info.isEmpty()) {
+            id = 0;
+        } else {
+            id = info.getInt(ProductEntity.Info.PD_ID, 0);
+        }
+        return id;
     }
 
     public Integer getId(int aid) {

@@ -84,9 +84,9 @@ public class ProductBindPropProc {
 
     public int delPdBindProp(int aid, int unionPriId, ParamMatcher matcher) {
         int rt;
-        if(matcher == null || matcher.isEmpty()) {
-            rt = Errno.ARGS_ERROR;
-            throw new MgException(rt, "args error, matcher is empty;flow=%d;aid=%d;matcher=%s;", m_flow, aid, matcher.toJson());
+        if(matcher == null) {
+            matcher = new ParamMatcher();
+            Log.logStd("del all;aid=%d;uid=%d;", aid, unionPriId);
         }
         Ref<Integer> refRowCount = new Ref<>();
         matcher.and(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
@@ -96,6 +96,7 @@ public class ProductBindPropProc {
             throw new MgException(rt, "del info error;flow=%d;aid=%d;matcher=%s;", m_flow, aid, matcher.toJson());
         }
 
+        Log.logStd("del bind prop ok;aid=%d;uid=%d;matcher=%s;", aid, unionPriId, matcher.toJson());
         return refRowCount.value;
     }
 

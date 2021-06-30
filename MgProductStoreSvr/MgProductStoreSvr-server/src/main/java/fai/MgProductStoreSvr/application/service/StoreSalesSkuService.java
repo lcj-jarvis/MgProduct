@@ -494,6 +494,7 @@ public class StoreSalesSkuService extends StoreService {
             Set<Integer> pdIdSet = new HashSet<>();
             Set<Long> skuIdSet = new HashSet<>();
             Set<SkuBizKey> skuBizKeySet = new HashSet<>();
+            Map<Integer, FaiList<Long>> unionPriId_SkuIds = new HashMap<>();
             for (Param storeSaleSku : storeSaleSkuList) {
                 int count = storeSaleSku.getInt(StoreSalesSkuEntity.Info.COUNT, 0);
                 storeSaleSku.setInt(StoreSalesSkuEntity.Info.COUNT, count);
@@ -502,6 +503,12 @@ public class StoreSalesSkuService extends StoreService {
                 int pdId = storeSaleSku.getInt(StoreSalesSkuEntity.Info.PD_ID);
                 int unionPriId = storeSaleSku.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
                 skuBizKeySet.add(new SkuBizKey(unionPriId, skuId));
+                FaiList<Long> skuIds = unionPriId_SkuIds.get(unionPriId);
+                if(skuIds == null) {
+                    skuIds = new FaiList<>();
+                    unionPriId_SkuIds.put(unionPriId, skuIds);
+                }
+                skuIds.add(skuId);
                 pdIdSet.add(pdId);
                 skuIdSet.add(skuId);
             }
@@ -517,9 +524,48 @@ public class StoreSalesSkuService extends StoreService {
                     LockUtil.lock(aid);
                     try {
                         transactionCtrl.setAutoCommit(false);
-                        rt = storeSalesSkuProc.batchAdd(aid, null, storeSaleSkuList);
-                        if(rt != Errno.OK){
-                            return rt;
+
+                        // 已存在的数据做更新操作，这个逻辑是因为门店通最开始，添加商品时，各个门店没有库存销售数据，后来补充了，所以跑工具修复线上数据，同步库存销售数据到所有门店
+                        // 但是因为门店通有个逻辑，新增门店时，商品是不会同步到新增的门店中的，所以也不会有库存销售信息，但是这个时候，跑工具已经把库存销售信息同步过来了
+                        {
+                            Map<SkuBizKey, Param> existMap = new HashMap<>();
+                            for(Map.Entry<Integer, FaiList<Long>> uid_skuIdEntry : unionPriId_SkuIds.entrySet()) {
+                                int unionPriId = uid_skuIdEntry.getKey();
+                                FaiList<Long> skuIds = uid_skuIdEntry.getValue();
+                                Ref<FaiList<Param>> listRef = new Ref();
+                                rt = storeSalesSkuProc.getListFromDaoBySkuIdList(aid, unionPriId, skuIds, listRef, StoreSalesSkuEntity.getValidKeys());
+                                if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                                    return rt;
+                                }
+                                for(Param info : listRef.value) {
+                                    existMap.put(new SkuBizKey(unionPriId, info.getLong(StoreSalesSkuEntity.Info.SKU_ID)), info);
+                                }
+                            }
+                            if(!existMap.isEmpty()) {
+                                FaiList<ParamUpdater> updateList = new FaiList<>(existMap.size());
+                                for(Iterator<Param> iterator = storeSaleSkuList.iterator();iterator.hasNext();){
+                                    Param storeSaleSku = iterator.next();
+                                    long skuId = storeSaleSku.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                                    int unionPriId = storeSaleSku.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+                                    SkuBizKey skuBizKey = new SkuBizKey(unionPriId, skuId);
+                                    if(existMap.containsKey(skuBizKey)) {
+                                        updateList.add(new ParamUpdater(storeSaleSku));
+                                        iterator.remove();
+                                    }
+                                }
+                                // 批量更新
+                                rt = storeSalesSkuProc.batchSet(aid, updateList, existMap);
+                                if(rt != Errno.OK) {
+                                    return rt;
+                                }
+                            }
+                        }
+
+                        if(!storeSaleSkuList.isEmpty()) {
+                            rt = storeSalesSkuProc.batchAdd(aid, null, storeSaleSkuList);
+                            if(rt != Errno.OK){
+                                return rt;
+                            }
                         }
                     }finally {
                         if(rt != Errno.OK){

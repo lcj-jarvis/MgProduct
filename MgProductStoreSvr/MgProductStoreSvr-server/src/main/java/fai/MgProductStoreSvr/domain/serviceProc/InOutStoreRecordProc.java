@@ -98,7 +98,10 @@ public class InOutStoreRecordProc {
             storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, mwTotalCost + inMwTotalCost);
 
             BigDecimal total = new BigDecimal(mwTotalCost + inMwTotalCost);
-            storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_COST, total.divide(new BigDecimal(remainCount+holdingCount)).longValue());
+            long relRemainCount = remainCount+holdingCount;
+            if(relRemainCount != 0) {
+                storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_COST, total.divide(new BigDecimal(relRemainCount), BigDecimal.ROUND_HALF_UP).longValue());
+            }
         }
         ParamMatcher doBatchMatcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, "?");
         doBatchMatcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
@@ -432,8 +435,12 @@ public class InOutStoreRecordProc {
                 data.setString(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList.toJson());
             }
 
+            Long mvPrice = info.getLong(InOutStoreRecordEntity.Info.MW_PRICE);
+            if(mvPrice == null) {
+                mvPrice = 0L;
+            }
             data.setLong(InOutStoreRecordEntity.Info.PRICE, price);
-            data.assign(info, InOutStoreRecordEntity.Info.MW_PRICE);
+            data.setLong(InOutStoreRecordEntity.Info.MW_PRICE, mvPrice);
             data.setString(InOutStoreRecordEntity.Info.NUMBER, number);
             data.assign(info, InOutStoreRecordEntity.Info.OPT_SID);
             data.assign(info, InOutStoreRecordEntity.Info.HEAD_SID);
@@ -827,13 +834,26 @@ public class InOutStoreRecordProc {
         ParamUpdater updater = new ParamUpdater(new Param().setInt(InOutStoreRecordEntity.Info.STATUS, InOutStoreRecordValObj.Status.DEL));
         int rt = m_daoCtrl.update(updater, matcher);
         if(rt != Errno.OK){
-            Log.logErr(rt, "soft delete err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
+            Log.logErr(rt, "soft delete err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
             return rt;
         }
-        Log.logStd("ok;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
+        Log.logStd("ok;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
         return rt;
     }
 
+    public int clearData(int aid, int unionPriId) {
+        ParamMatcher matcher = new ParamMatcher();
+        matcher.and(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+
+        int rt = m_daoCtrl.delete(matcher);
+        if(rt != Errno.OK){
+            Log.logErr(rt, "delete err;flow=%s;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        Log.logStd("ok;flow=%s;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+        return rt;
+    }
 
     public int searchFromDao(int aid, SearchArg searchArg, Ref<FaiList<Param>> listRef) {
         int rt = m_daoCtrl.select(searchArg, listRef);
@@ -938,6 +958,20 @@ public class InOutStoreRecordProc {
             return rt;
         }
         Log.logStd(rt, "ok;flow=%d;aid=%s;matcher=%s;", m_flow, aid, searchArg.matcher.toJson());
+        return rt;
+    }
+
+    public int clearSummaryData(int aid, int unionPriId) {
+        ParamMatcher matcher = new ParamMatcher();
+        matcher.and(InOutStoreSumEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(InOutStoreSumEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+
+        int rt = m_sumDaoCtrl.delete(matcher);
+        if(rt != Errno.OK){
+            Log.logErr(rt, "delete err;flow=%s;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        Log.logStd("ok;flow=%s;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
         return rt;
     }
     /*** 汇总数据 end ***/

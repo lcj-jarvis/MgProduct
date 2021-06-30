@@ -1047,6 +1047,18 @@ public class MgProductInfHandler extends FaiHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductInfCmd.Cmd.CLEAR_REL_DATA)
+    public int clearRelData(final FaiSession session,
+                            @ArgFlow final int flow,
+                            @ArgAid final int aid,
+                            @ArgBodyInteger(MgProductDto.Key.TID) int tid,
+                            @ArgBodyInteger(MgProductDto.Key.SITE_ID) int siteId,
+                            @ArgBodyInteger(MgProductDto.Key.LGID) int lgId,
+                            @ArgBodyInteger(MgProductDto.Key.KEEP_PRIID1) int keepPriId1) throws IOException {
+        return mgProductInfService.clearRelData(session, flow, aid, tid, siteId, lgId, keepPriId1);
+    }
+
+    @WrittenCmd
     @Cmd(NKDef.Protocol.Cmd.CLEAR_CACHE)
     public int clearCache(final FaiSession session,
                           @ArgFlow final int flow,

@@ -9,6 +9,7 @@ import fai.MgProductInfSvr.application.MgProductInfSvr;
 import fai.MgProductInfSvr.domain.comm.BizPriKey;
 import fai.MgProductInfSvr.domain.comm.ProductSpecCheck;
 import fai.MgProductInfSvr.domain.serviceproc.ProductBasicProc;
+import fai.MgProductInfSvr.domain.serviceproc.ProductPropProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductSpecProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductStoreProc;
 import fai.MgProductInfSvr.interfaces.dto.MgProductDto;
@@ -541,6 +542,64 @@ public class MgProductInfService extends ServicePub {
             session.write(sendBuf);
         }finally {
             stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
+        }
+        return rt;
+    }
+
+    public int clearRelData(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            // 处理商品基础信息
+            // 1. 删除商品业务绑定关系数据
+            // 2. 删除商品参数绑定关系数据
+            // 3. 删除商品分类绑定关系数据
+            ProductBasicProc basicProc = new ProductBasicProc(flow);
+            rt = basicProc.clearRelData(aid, unionPriId, false);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+
+            // 处理商品参数
+            // 删除商品参数业务绑定关系数据
+            ProductPropProc propProc = new ProductPropProc(flow);
+            rt = propProc.clearRelData(aid, unionPriId);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+
+            // 处理库存销售信息
+            // 1. 删除unionPriId下的出入库记录数据
+            // 2. 删除unionPriId下的预扣记录、退库存记录、直扣记录
+            // 3. 删除unionPriId下的sku库存销售信息
+            // 4. 删除unionPriId下的spu库存销售信息汇总
+            // 5. 重新计算aid下sku、spu库存销售信息汇总
+            ProductStoreProc storeProc = new ProductStoreProc(flow);
+            rt = storeProc.clearRelData(aid, unionPriId);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+
+            Log.logStd("clear rel data ok;aid=%d;unionPriId=%d;", aid, unionPriId);
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
         }
         return rt;
     }

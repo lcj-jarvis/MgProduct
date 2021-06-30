@@ -195,7 +195,19 @@ public class StoreSalesSkuProc {
             Log.logStd(rt, "dao.delete err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
             return rt;
         }
-        Log.logStd("ok;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
+        Log.logStd("ok;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+        return rt;
+    }
+
+    public int clearData(int aid, int unionPriId) {
+        ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        int rt = m_daoCtrl.delete(matcher);
+        if(rt != Errno.OK){
+            Log.logStd(rt, "dao.delete err;flow=%s;aid=%s;pdIdList;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        Log.logStd("ok;flow=%s;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
         return rt;
     }
 
@@ -293,6 +305,70 @@ public class StoreSalesSkuProc {
         }
         Log.logDbg("flow=%d;aid=%d;pdId=%s;doBatchUpdater.json=%s;dataList=%s;",  m_flow, aid, pdId, doBatchUpdater, dataList);
         Log.logStd("ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
+        return rt;
+    }
+
+    public int batchSet(int aid, FaiList<ParamUpdater> updaterList, Map<SkuBizKey, Param> existMap) {
+        if(aid <= 0 || existMap == null || existMap.isEmpty() || updaterList == null || updaterList.isEmpty()){
+            Log.logErr("arg error;flow=%d;aid=%s;existMap=%s;updaterList=%s;", m_flow, aid, existMap, updaterList);
+            return Errno.ARGS_ERROR;
+        }
+        int rt = Errno.ERROR;
+        Set<String> maxUpdaterKeys = new HashSet<>(Arrays.asList(StoreSalesSkuEntity.getValidKeys()));
+        // 移除主键
+        maxUpdaterKeys.remove(StoreSalesSkuEntity.Info.AID);
+        maxUpdaterKeys.remove(StoreSalesSkuEntity.Info.SKU_ID);
+        maxUpdaterKeys.remove(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+
+        FaiList<Param> dataList = new FaiList<>();
+
+        // 组成批量更新的数据集
+        Calendar now = Calendar.getInstance();
+        for(ParamUpdater updater : updaterList) {
+            Param info = updater.getData();
+            int unionPriId = info.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+            long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+            Param oldData = existMap.remove(new SkuBizKey(unionPriId, skuId)); // help gc
+            Param updatedData = updater.update(oldData, true);
+            Param data = new Param();
+            { // for prepare updater
+                maxUpdaterKeys.forEach(key->{
+                    data.assign(updatedData, key);
+                });
+                if(data.containsKey(StoreSalesSkuEntity.Info.PRICE)){
+                    int flag = data.getInt(StoreSalesSkuEntity.Info.FLAG, 0);
+                    flag |= StoreSalesSkuValObj.FLag.SETED_PRICE;
+                    data.setInt(StoreSalesSkuEntity.Info.FLAG, flag);
+                }
+                data.setCalendar(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, now);
+            }
+            { // for prepare matcher
+                data.setInt(StoreSalesSkuEntity.Info.AID, aid);
+                data.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId);
+                data.setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId);
+            }
+            dataList.add(data);
+        }
+
+        // prepare updater
+        ParamUpdater doBatchUpdater = new ParamUpdater();
+        maxUpdaterKeys.forEach(key->{
+            doBatchUpdater.getData().setString(key, "?");
+        });
+        doBatchUpdater.getData().setString(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, "?");
+        // prepare matcher
+        ParamMatcher doBatchMatcher = new ParamMatcher();
+        doBatchMatcher.and(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.EQ, "?");
+
+        rt = m_daoCtrl.batchUpdate(doBatchUpdater, doBatchMatcher, dataList);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "dao.batchUpdate error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
+            return rt;
+        }
+        Log.logDbg("flow=%d;aid=%d;doBatchUpdater.json=%s;dataList=%s;",  m_flow, aid, doBatchUpdater, dataList);
+        Log.logStd("ok;flow=%d;aid=%d;updaterList=%s;", m_flow, aid, updaterList);
         return rt;
     }
 
@@ -1011,6 +1087,27 @@ public class StoreSalesSkuProc {
         Log.logDbg(rt,"ok;flow=%d;aid=%d;skuId=%s;", m_flow, aid, skuId);
         return rt;
     }
+
+    public int getAllSkuIdAndPdId(int aid, int unionPriId, Ref<FaiList<Param>> listRef) {
+        if(aid <= 0 || listRef == null){
+            Log.logErr("arg error;flow=%d;aid=%s;uid=%s;listRef=%s;", m_flow, aid, unionPriId, listRef);
+            return Errno.ARGS_ERROR;
+        }
+        int rt;
+
+        Dao.SelectArg selectArg = new Dao.SelectArg();
+        selectArg.field = "distinct " + StoreSalesSkuEntity.Info.SKU_ID + ", " + StoreSalesSkuEntity.Info.PD_ID;
+        selectArg.searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        selectArg.searchArg.matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        rt = m_daoCtrl.select(selectArg, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            Log.logStd("dao.select error;flow=%d;aid=%s;uid=%s;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        Log.logDbg(rt,"ok;flow=%d;aid=%d;uid=%s;", m_flow, aid, unionPriId);
+        return rt;
+    }
+
     private void initReportInfoList(FaiList<Param> list){
         for (Param info : list) {
             initReportInfo(info);

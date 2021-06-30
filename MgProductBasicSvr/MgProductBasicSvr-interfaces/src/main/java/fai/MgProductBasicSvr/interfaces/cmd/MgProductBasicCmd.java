@@ -41,8 +41,12 @@ public class MgProductBasicCmd {
         public static final int NUM11 = 1011; /** @see BindGroupCmd#DEL */
         public static final int NUM12 = 1012; /** @see BasicCmd#SET_SINGLE_PD */
         public static final int NUM13 = 1013; /** @see BasicCmd#SET_PDS */
+<<<<<<< HEAD
         public static final int NUM14 = 1014; /** @see BindGroupCmd#TRANSACTION_SET_PD_BIND_GROUP */
         public static final int NUM15 = 1015; /** @see BindGroupCmd#SET_PD_BIND_GROUP_ROLLBACK */
+=======
+        public static final int NUM14 = 1014; /** @see BasicCmd#CLEAR_REL_DATA */
+>>>>>>> ecd4feb7177c53fcca7035616c812c6b8ca4061f
     }
 
     /**
@@ -94,6 +98,7 @@ public class MgProductBasicCmd {
         public static final int BATCH_ADD_PDS_REL_BIND = WriteCmdNum.NUM7;
         public static final int SET_SINGLE_PD = WriteCmdNum.NUM12;
         public static final int SET_PDS = WriteCmdNum.NUM13;
+        public static final int CLEAR_REL_DATA = WriteCmdNum.NUM14;
     }
 
 }

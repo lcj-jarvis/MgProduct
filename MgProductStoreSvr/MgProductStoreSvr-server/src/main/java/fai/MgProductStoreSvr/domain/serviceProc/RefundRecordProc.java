@@ -3,6 +3,7 @@ package fai.MgProductStoreSvr.domain.serviceProc;
 import fai.MgProductStoreSvr.domain.entity.RefundRecordEntity;
 import fai.MgProductStoreSvr.domain.repository.RefundRecordDaoCtrl;
 import fai.comm.util.*;
+import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.Calendar;
 import java.util.Map;
@@ -10,6 +11,14 @@ import java.util.Map;
 public class RefundRecordProc {
     public RefundRecordProc(RefundRecordDaoCtrl daoCtrl, int flow) {
         m_daoCtrl = daoCtrl;
+        m_flow = flow;
+    }
+
+    public RefundRecordProc(int flow, int aid, TransactionCtrl transactionCtrl) {
+        m_daoCtrl = RefundRecordDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+        if(m_daoCtrl == null){
+            throw new RuntimeException(String.format("RefundRecordDaoCtrl init err;flow=%s;aid=%s;", flow, aid));
+        }
         m_flow = flow;
     }
 
@@ -40,6 +49,17 @@ public class RefundRecordProc {
         return rt;
     }
 
+    public int clearData(int aid, int unionPriId) {
+        ParamMatcher matcher = new ParamMatcher(RefundRecordEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(RefundRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        int rt = m_daoCtrl.delete(matcher);
+        if(rt != Errno.OK){
+            Log.logErr(rt, "delete err;flow=%s;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        Log.logStd("ok;flow=%s;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+        return rt;
+    }
 
     public int getListFromDao(int aid, int unionPriId, FaiList<Long> skuIdList, String rlRefundId, Ref<FaiList<Param>> listRef){
         if(aid <= 0 || unionPriId <= 0 || skuIdList == null || Str.isEmpty(rlRefundId)){

@@ -97,6 +97,15 @@ public class ProductPropRelProc {
 		}
 	}
 
+	public void clearData(int aid, int unionPriId) {
+		ParamMatcher matcher = new ParamMatcher(ProductPropRelEntity.Info.AID, ParamMatcher.EQ, aid);
+		matcher.and(ProductPropRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+		int rt = m_relDao.delete(matcher);
+		if(rt != Errno.OK){
+			throw new MgException(rt, "delPropList error;flow=%d;aid=%d;unionPriId=%s", m_flow, aid, unionPriId);
+		}
+	}
+
 	/**
 	 * 根据rlPropId list 获取 propId list
 	 * @return

@@ -4,7 +4,6 @@ import fai.MgProductBasicSvr.interfaces.entity.ProductRelEntity;
 import fai.MgProductInfSvr.domain.serviceproc.ProductBasicProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductSpecProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductStoreProc;
-import fai.MgProductInfSvr.interfaces.dto.MgProductDto;
 import fai.MgProductInfSvr.interfaces.dto.ProductSpecDto;
 import fai.MgProductInfSvr.interfaces.entity.ProductBasicEntity;
 import fai.MgProductInfSvr.interfaces.entity.ProductTempEntity;
@@ -598,9 +597,13 @@ public class ProductSpecService extends MgProductInfService {
                 return rt;
             }
             FaiList<Integer> pdIds = new FaiList<>();
+            Map<Integer, Integer> pdId_RlPdIdMap = new HashMap<>();
             for(int i = 0; i < pdRelInfos.size(); i++) {
                 Param info = pdRelInfos.get(i);
+                Integer pdId = info.getInt(ProductBasicEntity.ProductInfo.PD_ID);
+                Integer rlPdId = info.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID);
                 pdIds.add(info.getInt(ProductBasicEntity.ProductInfo.PD_ID));
+                pdId_RlPdIdMap.put(pdId, rlPdId);
             }
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
             // 获取商品规格
@@ -608,6 +611,11 @@ public class ProductSpecService extends MgProductInfService {
             rt = productSpecProc.getPdScInfoList4Adm(aid, unionPriId, pdIds, onlyGetChecked, pdScInfoList);
             if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                 return rt;
+            }
+
+            for(Param scInfo : pdScInfoList) {
+                int pdId = scInfo.getInt(ProductSpecEntity.Info.PD_ID);
+                scInfo.setInt(ProductBasicEntity.ProductInfo.RL_PD_ID, pdId_RlPdIdMap.get(pdId));
             }
 
             rt = Errno.OK;

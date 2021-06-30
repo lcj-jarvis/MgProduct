@@ -27,5 +27,6 @@ public class ProductGroupDto {
     public static class Key {
         public static final int INFO = 1;
         public static final int INFO_LIST = 2;
+        public static final int RL_GROUP_IDS = 3;
     }
 }

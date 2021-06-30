@@ -41,5 +41,6 @@ public class ProductDto {
         public static final int DATA_STATUS = 6;
         public static final int TOTAL_SIZE = 7;
         public static final int SEARCH_ARG = 8;
+        public static final int XID = 9;
     }
 }

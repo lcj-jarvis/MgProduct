@@ -7,6 +7,7 @@ import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuCodeCacheCtrl;
 import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuCodeDaoCtrl;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
+import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.sql.PreparedStatement;
@@ -299,7 +300,21 @@ public class ProductSpecSkuCodeProc {
         return rt;
     }
 
-
+    public int clearData(int aid, FaiList<Integer> unionPriIds){
+        if(aid <= 0 || Util.isEmptyList(unionPriIds)){
+            Log.logErr("arg error;flow=%d;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return Errno.ARGS_ERROR;
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductSpecSkuCodeEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductSpecSkuCodeEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+        int rt = m_daoCtrl.delete(matcher);
+        if(rt != Errno.OK){
+            Log.logErr(rt, "delete err;flow=%s;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return rt;
+        }
+        Log.logStd("ok;flow=%s;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
+        return rt;
+    }
 
     public int getListFromDao(int aid, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef){
         int rt = Errno.ERROR;

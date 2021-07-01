@@ -301,6 +301,26 @@ public class ProductBasicProc {
     }
 
     /**
+     * 清空数据
+     * @return
+     */
+    public int clearAcct(int aid, FaiList<Integer> unionPriIds) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return rt;
+        }
+        rt = m_cli.clearAcct(aid, unionPriIds);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "clearAcct error;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return rt;
+        }
+
+        return rt;
+    }
+
+    /**
      * 根据商品业务id，获取商品业务关系数据
      * @return
      */

@@ -46,6 +46,7 @@ public class MgProductBasicCmd {
         public static final int NUM16 = 1016; /** @see BindGroupCmd#TRANSACTION_SET_PD_BIND_GROUP */
         public static final int NUM17 = 1017; /** @see BindPropCmd#TRANSACTION_SET_PD_BIND_PROP */
         public static final int NUM18 = 1018; /** @see BindPropCmd#SET_PD_BIND_PROP_ROLLBACK */
+        public static final int NUM19 = 1019; /** @see BasicCmd#CLEAR_ACCT */
     }
 
     /**
@@ -100,6 +101,7 @@ public class MgProductBasicCmd {
         public static final int SET_SINGLE_PD = WriteCmdNum.NUM12;
         public static final int SET_PDS = WriteCmdNum.NUM13;
         public static final int CLEAR_REL_DATA = WriteCmdNum.NUM14;
+        public static final int CLEAR_ACCT = WriteCmdNum.NUM19;
     }
 
 }

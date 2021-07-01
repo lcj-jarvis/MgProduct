@@ -1059,6 +1059,20 @@ public class MgProductInfHandler extends FaiHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductInfCmd.Cmd.CLEAR_ACCT)
+    public int clearAcct(final FaiSession session,
+                            @ArgFlow final int flow,
+                            @ArgAid final int aid,
+                            @ArgBodyInteger(MgProductDto.Key.TID) int tid,
+                            @ArgBodyInteger(MgProductDto.Key.SITE_ID) int siteId,
+                            @ArgBodyInteger(MgProductDto.Key.LGID) int lgId,
+                            @ArgBodyInteger(MgProductDto.Key.KEEP_PRIID1) int keepPriId1,
+                            @ArgList(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
+                                 keyMatch = MgProductDto.Key.PRIMARY_KEYS) FaiList<Param> primaryKeys) throws IOException {
+        return mgProductInfService.clearAcct(session, flow, aid, tid, siteId, lgId, keepPriId1, primaryKeys);
+    }
+
+    @WrittenCmd
     @Cmd(NKDef.Protocol.Cmd.CLEAR_CACHE)
     public int clearCache(final FaiSession session,
                           @ArgFlow final int flow,

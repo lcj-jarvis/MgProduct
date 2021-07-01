@@ -262,6 +262,25 @@ public class ProductSpecProc {
         return rt;
     }
 
+    public int clearData(int aid, FaiList<Integer> unionPriIds) {
+        if(aid <= 0 || Util.isEmptyList(unionPriIds)){
+            Log.logErr("clearData arg error;flow=%d;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return Errno.ARGS_ERROR;
+        }
+        int rt = Errno.ERROR;
+        ParamMatcher matcher = new ParamMatcher(ProductSpecEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductSpecEntity.Info.SOURCE_UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+        rt = m_daoCtrl.delete(matcher);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "clearData error;flow=%d;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return rt;
+        }
+        // 处理下idBuilder
+        m_daoCtrl.restoreMaxId();
+        Log.logStd("clearData ok;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
+        return rt;
+    }
+
     public int batchSet(int aid, int pdId, FaiList<ParamUpdater> updaterList, Ref<Boolean> needRefreshSkuRef) {
         if(aid <= 0 || pdId <=0 || updaterList == null || updaterList.isEmpty()){
             Log.logErr("batchDel arg error;flow=%d;aid=%s;pdId=%s;tpScDtIdList=%s;", m_flow, aid, pdId, updaterList);

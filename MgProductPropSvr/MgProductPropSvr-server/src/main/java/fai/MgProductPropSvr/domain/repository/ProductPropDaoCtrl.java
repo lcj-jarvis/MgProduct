@@ -1,9 +1,11 @@
 package fai.MgProductPropSvr.domain.repository;
 
+import fai.MgProductPropSvr.domain.entity.ProductPropEntity;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.distributedkit.idBuilder.domain.IdBuilderConfig;
 import fai.comm.distributedkit.idBuilder.wrapper.IdBuilderWrapper;
 import fai.comm.util.*;
+import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.DaoCtrl;
 
 public class ProductPropDaoCtrl extends DaoCtrl {
@@ -48,6 +50,58 @@ public class ProductPropDaoCtrl extends DaoCtrl {
 			return null;
 		}
 		return m_idBuilder.update(aid, id, m_dao, needLock);
+	}
+
+	public void restoreMaxId(int aid, int flow, boolean needLock) {
+		int rt = openDao();
+		if(rt != Errno.OK) {
+			throw new MgException(rt, "openDao err;flow=%d;aid=%d;", flow, aid);
+		}
+		Integer maxId = getMaxId(aid);
+		if(maxId == null) {
+			rt = Errno.ERROR;
+			throw new MgException(rt, "select maxId err;flow=%d;aid=%d;", flow, aid);
+		}
+		// 最大值小于初始值
+		if (maxId < ID_BUILDER_INIT) {
+			rt = m_idBuilder.clear(aid, m_dao, needLock);
+			if (rt != Errno.OK) {
+				throw new MgException(rt, "IdBuilder clear err;flow=%d, aid=%d;", flow, aid);
+			}
+		} else {
+			if (m_idBuilder.restore(aid, maxId, m_dao, needLock) == null) {
+				rt = Errno.DAO_ERROR;
+				throw new MgException(rt, "IdBuilder restore err;flow=%d, aid=%d;", flow, aid);
+			}
+		}
+	}
+
+	private Integer getMaxId(int aid) {
+		SearchArg searchArg = new SearchArg();
+		searchArg.matcher = new ParamMatcher(ProductPropEntity.Info.AID, ParamMatcher.EQ, aid);
+		Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
+		int rt = select(searchArg, listRef, "max(" + ProductPropEntity.Info.PROP_ID + ") as " + ProductPropEntity.Info.PROP_ID);
+		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+			return null;
+		}
+		if (listRef.value == null || listRef.value.isEmpty()) {
+			rt = Errno.NOT_FOUND;
+			Log.logErr(rt, "select maxId err;flow=%d;aid=%d;", flow, aid);
+			return null;
+		}
+
+		Param info = listRef.value.get(0);
+		if (info == null) {
+			Log.logErr(rt, "select maxId err;flow=%d;aid=%d;", flow, aid);
+			return null;
+		}
+		Integer id;
+		if (info.isEmpty()) {
+			id = 0;
+		} else {
+			id = info.getInt(ProductPropEntity.Info.PROP_ID, 0);
+		}
+		return id;
 	}
 
 	public static void clearIdBuilderCache(int aid) {

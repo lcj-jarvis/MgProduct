@@ -108,7 +108,30 @@ public class ProductRelProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "del product rel error;flow=%d;aid=%d;unionPridId=%d;", m_flow, aid, unionPriId);
         }
+        // 处理下idBuilder
+        m_dao.restoreMaxId(aid, unionPriId, false);
+        Log.logStd("clearData ok;flow=%d;aid=%d;unionPriId=%s;delCnt=%s;", m_flow, aid, unionPriId, refRowCount.value);
         return refRowCount.value;
+    }
+
+    // 清空指定aid+unionPriId的数据
+    public void clearAcct(int aid, FaiList<Integer> unionPriIds) {
+        int rt;
+        if(unionPriIds == null || unionPriIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "clearAcct error, unionPriIds is null;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+        rt = m_dao.delete(matcher);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "del product rel error;flow=%d;aid=%d;unionPridId=%s;", m_flow, aid, unionPriIds);
+        }
+        // 处理下idBuilder
+        for(int unionPriId : unionPriIds) {
+            m_dao.restoreMaxId(aid, unionPriId, false);
+        }
+        Log.logStd("clearAcct ok;flow=%d;aid=%d;unionPridId=%s;", m_flow, aid, unionPriIds);
     }
 
     public int delProductRel(int aid, int unionPriId, FaiList<Integer> rlPdIds, boolean softDel) {

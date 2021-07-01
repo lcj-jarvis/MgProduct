@@ -4,10 +4,7 @@ package fai.MgProductSpecSvr.application.service;
 import fai.MgProductSpecSvr.domain.comm.*;
 import fai.MgProductSpecSvr.domain.entity.*;
 import fai.MgProductSpecSvr.domain.repository.*;
-import fai.MgProductSpecSvr.domain.serviceProc.ProductSpecProc;
-import fai.MgProductSpecSvr.domain.serviceProc.ProductSpecSkuCodeProc;
-import fai.MgProductSpecSvr.domain.serviceProc.ProductSpecSkuProc;
-import fai.MgProductSpecSvr.domain.serviceProc.SpecStrProc;
+import fai.MgProductSpecSvr.domain.serviceProc.*;
 import fai.MgProductSpecSvr.interfaces.dto.ProductSpecDto;
 import fai.MgProductSpecSvr.interfaces.dto.ProductSpecSkuCodeDao;
 import fai.MgProductSpecSvr.interfaces.dto.ProductSpecSkuDto;
@@ -1696,6 +1693,127 @@ public class ProductSpecService extends ServicePub {
             }
             session.write(rt);
             Log.logStd("flow=%s;aid=%s;allOption=%s", flow, aid, allOption);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * 清空aid+unionPriIds数据
+     */
+    public int clearAcct(FaiSession session, int flow, int aid, FaiList<Integer> unionPriIds) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || Util.isEmptyList(unionPriIds)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;unionPriIds=%s;", flow, aid, unionPriIds);
+                return rt;
+            }
+
+            TransactionCtrl transactionCtrl = new TransactionCtrl();
+            try {
+                ProductSpecDaoCtrl productSpecDaoCtrl = ProductSpecDaoCtrl.getInstance(flow, aid);
+                ProductSpecSkuDaoCtrl productSpecSkuDaoCtrl = ProductSpecSkuDaoCtrl.getInstance(flow, aid);
+                ProductSpecSkuCodeDaoCtrl productSpecSkuCodeDaoCtrl = ProductSpecSkuCodeDaoCtrl.getInstance(flow, aid);
+
+                SpecTempDaoCtrl specTempDaoCtrl = SpecTempDaoCtrl.getInstance(flow, aid);
+                SpecTempBizRelDaoCtrl specTempBizRelDaoCtrl = SpecTempBizRelDaoCtrl.getInstance(flow, aid);
+                SpecTempDetailDaoCtrl specTempDetailDaoCtrl = SpecTempDetailDaoCtrl.getInstance(flow, aid);
+                if(!transactionCtrl.register(productSpecDaoCtrl, productSpecSkuCodeDaoCtrl, productSpecSkuDaoCtrl, specTempDaoCtrl, specTempBizRelDaoCtrl, specTempDetailDaoCtrl)){
+                    return rt=Errno.ERROR;
+                }
+
+                ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(productSpecSkuDaoCtrl, flow);
+                ProductSpecProc productSpecProc = new ProductSpecProc(productSpecDaoCtrl, flow);
+                ProductSpecSkuCodeProc productSpecSkuCodeProc = new ProductSpecSkuCodeProc(productSpecSkuCodeDaoCtrl, flow);
+                SpecTempProc specTempProc = new SpecTempProc(specTempDaoCtrl, flow);
+                SpecTempBizRelProc specTempBizRelProc = new SpecTempBizRelProc(specTempBizRelDaoCtrl, flow);
+                SpecTempDetailProc specTempDetailProc = new SpecTempDetailProc(specTempDetailDaoCtrl, flow);
+                try {
+                    LockUtil.lock(aid);
+                    try {
+                        transactionCtrl.setAutoCommit(false);
+                        // 删除商品规格数据
+                        rt = productSpecProc.clearData(aid, unionPriIds);
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
+
+                        // 删除商品规格sku
+                        rt = productSpecSkuProc.clearData(aid, unionPriIds);
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
+
+                        // 删除商品规格skuCode
+                        rt = productSpecSkuCodeProc.clearData(aid, unionPriIds);
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
+
+                        SearchArg searchArg = new SearchArg();
+                        searchArg.matcher = new ParamMatcher(SpecTempEntity.Info.AID, ParamMatcher.EQ, aid);
+                        searchArg.matcher.and(SpecTempEntity.Info.SOURCE_UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+                        Ref<FaiList<Param>> specListRef = new Ref<>();
+                        rt = specTempProc.getListFromDB(aid, searchArg, specListRef, SpecTempEntity.Info.TP_SC_ID);
+                        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                            return rt;
+                        }
+
+                        FaiList<Integer> tcScIds = Utils.getValList(specListRef.value, SpecTempEntity.Info.TP_SC_ID);
+
+                        // 删除规格模板
+                        rt = specTempProc.clearData(aid, unionPriIds);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+
+                        // 删除规格模板详情
+                        if(!Util.isEmptyList(tcScIds)) {
+                            rt = specTempDetailProc.clearData(aid, tcScIds);
+                            if(rt != Errno.OK) {
+                                return rt;
+                            }
+                        }
+
+                        // 删除规格模板业务关系
+                        rt = specTempBizRelProc.clearAcct(aid, unionPriIds);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+
+                    }finally {
+                        if(rt != Errno.OK){
+                            transactionCtrl.rollback();
+                            // 清除idBuilder缓存
+                            productSpecProc.clearIdBuilderCache(aid);
+                            productSpecSkuProc.clearIdBuilderCache(aid);
+                            specTempProc.clearIdBuilderCache(aid);
+                            specTempDetailProc.clearIdBuilderCache(aid);
+                            for(int unionPriId : unionPriIds) {
+                                specTempBizRelProc.clearIdBuilderCache(aid, unionPriId);
+                            }
+                            return rt;
+                        }
+                        transactionCtrl.commit();
+                    }
+                    CacheCtrl.clearCacheVersion(aid);
+                    SpecStrCacheCtrl.delAllCache(aid);
+                    ProductSpecSkuCacheCtrl.delAllCache(aid);
+                    ProductSpecSkuCodeCacheCtrl.delAllCache(aid);
+                }finally {
+                    LockUtil.unlock(aid);
+                }
+            }finally {
+                transactionCtrl.closeDao();
+            }
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            session.write(rt);
+            Log.logStd("ok;flow=%d;aid=%d;pdIdList=%s;unionPriIds=%s;", flow, aid, unionPriIds);
         }finally {
             stat.end(rt != Errno.OK, rt);
         }

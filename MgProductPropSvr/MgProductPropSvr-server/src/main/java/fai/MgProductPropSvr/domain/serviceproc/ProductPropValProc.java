@@ -68,6 +68,7 @@ public class ProductPropValProc {
 		if(rt != Errno.OK){
 			throw new MgException(rt, "delValList error;flow=%d;aid=%d;propIds=%s;", m_flow, aid, propIds);
 		}
+		Log.logStd("del ok;flow=%d;aid=%d;propIds=%s;", m_flow, aid, propIds);
 	}
 
 	public void setValList(int aid, int propId, FaiList<ParamUpdater> updaterList) {

@@ -62,5 +62,10 @@ public class ProductStoreValObj {
             public static final int IN = 1;  // 入库操作
             public static final int OUT = 2;   // 出库操作
         }
+
+        public static final class Status {
+            public static final int DEL = -1; // 删除状态
+            public static final int DEFAULT = 0; // 默认状态
+        }
     }
 }

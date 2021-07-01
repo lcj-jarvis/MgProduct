@@ -35,7 +35,7 @@ public class InOutStoreRecordEntity {
         public static final String IN_PD_SC_STR_ID_LIST = "inPdScStrIdList";        // varchar(150) 规格值 FaiList<Integer>
         public static final String KEEP_INT_PROP1 = "keepIntProp1";                 // int 整型 保留字段1 TODO 临时用于存储YK那边的出入库记录Id
         public static final String KEEP_PROP1 = "keepProp1";                        // varchar(255) 字符串 保留字段1 TODO
-
+        public static final String STATUS = "status";                               // int 数据状态
     }
 
 

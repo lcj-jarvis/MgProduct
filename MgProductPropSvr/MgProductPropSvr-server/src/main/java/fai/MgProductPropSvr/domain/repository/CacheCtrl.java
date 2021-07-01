@@ -25,6 +25,17 @@ public class CacheCtrl {
 		return m_cache.del(cacheVersionKey);
 	}
 
+	public static boolean clearAllCache(int aid) {
+		// 更新缓存数据版本号
+		boolean success = CacheCtrl.clearCacheVersion(aid);
+
+		// 尽可能删除已失效的缓存数据
+		ProductPropCacheCtrl.delCache(aid);
+		ProductPropValCacheCtrl.DataStatusCache.delCache(aid);
+
+		return success;
+	}
+
 	private static String getCacheVersionKey(int aid){
 		return CACHE_VERSION_PREFIX + ":"+aid;
 	}

@@ -93,12 +93,12 @@ public class MgProductGroupHandler extends MiddleGroundHandler {
 								 @ArgAid int aid,
 								 @ArgBodyInteger(ProductGroupRelDto.Key.UNION_PRI_ID) int unionPriId,
 								 @ArgBodyInteger(ProductGroupRelDto.Key.TID) int tid,
-								 @ArgParam(classDef = ProductGroupRelDto.class, methodDef = "getAllInfoDto",
-										 keyMatch = ProductGroupRelDto.Key.INFO) Param addInfo,
+								 @ArgList(classDef = ProductGroupRelDto.class, methodDef = "getAllInfoDto",
+										 keyMatch = ProductGroupRelDto.Key.INFO) FaiList<Param> addList,
 								 @ArgList(classDef = ProductGroupRelDto.class, methodDef = "getAllInfoDto",
 										 keyMatch = ProductGroupRelDto.Key.UPDATERLIST) FaiList<ParamUpdater> updaterList,
 								 @ArgList(keyMatch = ProductGroupRelDto.Key.RL_GROUP_IDS) FaiList<Integer> delList) throws IOException {
-		return groupService.unionSetGroupList(session, flow, aid, unionPriId, tid, addInfo, updaterList, delList);
+		return groupService.unionSetGroupList(session, flow, aid, unionPriId, tid, addList, updaterList, delList);
 	}
 
 	@Cmd(NKDef.Protocol.Cmd.CLEAR_CACHE)

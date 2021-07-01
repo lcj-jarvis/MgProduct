@@ -84,6 +84,36 @@ public class ProductPropProc {
         return rt;
     }
 
+    public int clearRelData(int aid, int unionPriId) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductPropCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.clearRelData(aid, unionPriId);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "getPropList error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        return rt;
+    }
+
+    public int clearAcct(int aid, FaiList<Integer> unionPriIds) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductPropCli error;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return rt;
+        }
+        rt = m_cli.clearAcct(aid, unionPriIds);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "getPropList error;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return rt;
+        }
+        return rt;
+    }
+
     public int unionSetPropList(int aid, int tid, int unionPriId, int libId, FaiList<Param> addList, FaiList<ParamUpdater> updaterList, FaiList<Integer> delList, Ref<FaiList<Integer>> idsRef) {
         int rt;
         if (m_cli == null) {

@@ -42,9 +42,13 @@ public class MgProductSpecCmd {
 		public static final int NUM12 = 1012;
 		public static final int NUM13 = 1013;
 		public static final int NUM14 = 1014;
+		public static final int NUM15 = 1015;
 	}
 
 	////////////////// cmd对外定义，实际做cmd读写分离 ////////////////////
+	public static class CommCmd {
+		public static final int CLEAR_ACCT = WriteCmdNum.NUM15;
+	}
 
 	/**
 	 * 规格模板相关cmd

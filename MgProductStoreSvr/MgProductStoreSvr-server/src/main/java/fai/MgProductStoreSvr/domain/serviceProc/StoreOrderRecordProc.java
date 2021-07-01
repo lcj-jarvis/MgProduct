@@ -3,7 +3,9 @@ package fai.MgProductStoreSvr.domain.serviceProc;
 import fai.MgProductStoreSvr.domain.entity.StoreOrderRecordEntity;
 import fai.MgProductStoreSvr.domain.repository.StoreOrderRecordDaoCtrl;
 import fai.comm.util.*;
+import fai.middleground.svrutil.repository.TransactionCtrl;
 
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Map;
 
@@ -12,6 +14,15 @@ public class StoreOrderRecordProc {
         m_daoCtrl = daoCtrl;
         m_flow = flow;
     }
+
+    public StoreOrderRecordProc(int flow, int aid, TransactionCtrl tc) {
+        m_daoCtrl = StoreOrderRecordDaoCtrl.getInstanceWithRegistered(flow, aid, tc);
+        if(m_daoCtrl == null){
+            throw new RuntimeException(String.format("StoreOrderRecordDaoCtrl init err;flow=%s;aid=%s;", flow, aid));
+        }
+        m_flow = flow;
+    }
+
     public int batchAdd(int aid, int unionPriId, Map<Long, Integer> skuIdCountMap, String rlOrderCode) {
         if(aid <= 0 || unionPriId <= 0 || skuIdCountMap == null || Str.isEmpty(rlOrderCode) ){
             Log.logErr("add error;flow=%d;aid=%d;unionPriId=%s;skuIdCountMap=%s;rlOrderCode=%s;expireTime=%s", m_flow, aid, unionPriId, skuIdCountMap, rlOrderCode);
@@ -38,6 +49,28 @@ public class StoreOrderRecordProc {
         return rt;
     }
 
+    public int clearData(int aid, Integer unionPriId) {
+        return clearData(aid, new FaiList<>(Arrays.asList(unionPriId)));
+    }
+    public int clearData(int aid, FaiList<Integer> unionPriIds) {
+        int rt;
+        if(unionPriIds == null || unionPriIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "clearData unionPriIds is empty;aid=%d;unionPriIds=%s;", aid, unionPriIds);
+            return rt;
+        }
+
+        ParamMatcher matcher = new ParamMatcher(StoreOrderRecordEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(StoreOrderRecordEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+
+        rt = m_daoCtrl.delete(matcher);
+        if(rt != Errno.OK){
+            Log.logErr(rt, "delete err;flow=%s;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return rt;
+        }
+        Log.logStd("ok;flow=%s;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
+        return rt;
+    }
 
     public int getFromDao(int aid, int unionPriId, long skuId, int rlOrderId){
         if(aid <= 0 || unionPriId <= 0 || skuId <= 0 || rlOrderId <= 0 ){

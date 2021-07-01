@@ -357,6 +357,119 @@ public class ProductPropService extends ServicePub {
 	}
 
 	/**
+	 * 批量删除指定商品参数关联数据
+	 */
+	@SuccessRt(value = Errno.OK)
+	public int clearRelData(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
+		int rt;
+		Lock lock = LockUtil.getLock(aid);
+		lock.lock();
+		try {
+			//统一控制事务
+			TransactionCtrl tc = new TransactionCtrl();
+			try {
+				boolean commit = false;
+				tc.setAutoCommit(false);
+				try {
+					// 删除参数业务关系数据
+					ProductPropRelProc propRelProc = new ProductPropRelProc(flow, aid, tc);
+
+					propRelProc.clearData(aid, unionPriId);
+
+					commit = true;
+					tc.commit();
+				}finally {
+					if(!commit) {
+						tc.rollback();
+					}
+				}
+			}finally {
+				tc.closeDao();
+			}
+			// 删除缓存
+			CacheCtrl.clearAllCache(aid);
+			ProductPropDaoCtrl.clearIdBuilderCache(aid);
+			ProductPropRelDaoCtrl.clearIdBuilderCache(aid, unionPriId);
+		}finally {
+			lock.unlock();
+		}
+		rt = Errno.OK;
+		FaiBuffer sendBuf = new FaiBuffer(true);
+		session.write(sendBuf);
+		Log.logStd("clearRelData ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+		return rt;
+	}
+
+	/**
+	 * 批量删除指定商品参数关联数据
+	 */
+	@SuccessRt(value = Errno.OK)
+	public int clearAcct(FaiSession session, int flow, int aid, FaiList<Integer> unionPriIds) throws IOException {
+		int rt;
+		if(Util.isEmptyList(unionPriIds)) {
+			rt = Errno.ARGS_ERROR;
+			Log.logErr("args error, unionPriIds is empty;flow=%d;aid=%d;rlPdIds=%s;", flow, aid, unionPriIds);
+			return rt;
+		}
+
+		Lock lock = LockUtil.getLock(aid);
+		lock.lock();
+		try {
+			//统一控制事务
+			TransactionCtrl tc = new TransactionCtrl();
+			try {
+				boolean commit = false;
+				tc.setAutoCommit(false);
+				try {
+					// 删除参数业务关系数据
+					ProductPropRelProc propRelProc = new ProductPropRelProc(flow, aid, tc);
+					propRelProc.clearData(aid, unionPriIds);
+
+					ProductPropProc propProc = new ProductPropProc(flow, aid, tc);
+					SearchArg searchArg = new SearchArg();
+					searchArg.matcher = new ParamMatcher(ProductPropEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.IN, unionPriIds);
+					FaiList<Param> propList = propProc.getListFromDao(aid, searchArg, ProductPropEntity.Info.PROP_ID);
+					// 删除参数数据
+					propProc.clearData(aid, unionPriIds);
+
+					FaiList<Integer> propIds = new FaiList<>(propList.size());
+					for(Param propInfo : propList) {
+						int propId = propInfo.getInt(ProductPropEntity.Info.PROP_ID);
+						propIds.add(propId);
+					}
+					// 删除参数值数据
+					if(!propIds.isEmpty()) {
+						ProductPropValProc valProc = new ProductPropValProc(flow, aid, tc);
+						valProc.delValListByPropIds(aid, propIds);
+					}
+
+					commit = true;
+					tc.commit();
+				}finally {
+					if(!commit) {
+						tc.rollback();
+						ProductPropDaoCtrl.clearIdBuilderCache(aid);
+						for(Integer unionPriId : unionPriIds) {
+							ProductPropRelDaoCtrl.clearIdBuilderCache(aid, unionPriId);
+						}
+					}
+				}
+			}finally {
+				tc.closeDao();
+			}
+			// 删除缓存
+			CacheCtrl.clearAllCache(aid);
+		}finally {
+			lock.unlock();
+		}
+		rt = Errno.OK;
+		FaiBuffer sendBuf = new FaiBuffer(true);
+		session.write(sendBuf);
+		Log.logStd("clearAcct ok;flow=%d;aid=%d;unionPriIds=%s;", flow, aid, unionPriIds);
+		return rt;
+	}
+
+	/**
 	 * 批量修改指定商品库的商品参数列表
 	 */
 	@SuccessRt(value = Errno.OK)
@@ -720,11 +833,7 @@ public class ProductPropService extends ServicePub {
 		lock.lock();
 		try {
 			// 更新缓存数据版本号
-			CacheCtrl.clearCacheVersion(aid);
-
-			// 尽可能删除已失效的缓存数据
-			ProductPropCacheCtrl.delCache(aid);
-			ProductPropValCacheCtrl.DataStatusCache.delCache(aid);
+			CacheCtrl.clearAllCache(aid);
 		}finally {
 			lock.unlock();
 		}

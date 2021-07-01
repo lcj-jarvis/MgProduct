@@ -569,6 +569,65 @@ public class ProductSpecService extends MgProductInfService {
         }
         return rt;
     }
+
+    public int getPdScInfoList4Adm(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, boolean onlyGetChecked) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            ProductBasicProc productBasicProc = new ProductBasicProc(flow);
+
+            // 1 获取商品关联信息
+            FaiList<Param> pdRelInfos = new FaiList<>();
+            rt = productBasicProc.getRelListByRlIds(aid, unionPriId, rlPdIds, pdRelInfos);
+            if(rt != Errno.OK){
+                return rt;
+            }
+            FaiList<Integer> pdIds = new FaiList<>();
+            Map<Integer, Integer> pdId_RlPdIdMap = new HashMap<>();
+            for(int i = 0; i < pdRelInfos.size(); i++) {
+                Param info = pdRelInfos.get(i);
+                Integer pdId = info.getInt(ProductBasicEntity.ProductInfo.PD_ID);
+                Integer rlPdId = info.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID);
+                pdIds.add(info.getInt(ProductBasicEntity.ProductInfo.PD_ID));
+                pdId_RlPdIdMap.put(pdId, rlPdId);
+            }
+            ProductSpecProc productSpecProc = new ProductSpecProc(flow);
+            // 获取商品规格
+            FaiList<Param> pdScInfoList = new FaiList<>();
+            rt = productSpecProc.getPdScInfoList4Adm(aid, unionPriId, pdIds, onlyGetChecked, pdScInfoList);
+            if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                return rt;
+            }
+
+            for(Param scInfo : pdScInfoList) {
+                int pdId = scInfo.getInt(ProductSpecEntity.Info.PD_ID);
+                scInfo.setInt(ProductBasicEntity.ProductInfo.RL_PD_ID, pdId_RlPdIdMap.get(pdId));
+            }
+
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            pdScInfoList.toBuffer(sendBuf, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.Spec.getInfoDto());
+            session.write(sendBuf);
+        }finally {
+            stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
+        }
+        return rt;
+    }
+
     /**
      * 批量修改产品规格SKU
      */

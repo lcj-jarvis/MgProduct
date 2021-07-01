@@ -4,6 +4,7 @@ import fai.MgProductSpecSvr.domain.comm.Utils;
 import fai.MgProductSpecSvr.domain.entity.SpecTempEntity;
 import fai.MgProductSpecSvr.domain.repository.SpecTempDaoCtrl;
 import fai.comm.util.*;
+import fai.mgproduct.comm.Util;
 
 import java.util.Calendar;
 import java.util.Map;
@@ -63,6 +64,24 @@ public class SpecTempProc {
             return rt;
         }
         Log.logStd("batchDel ok;flow=%d;aid=%d;idList=%s;", m_flow, aid, idList);
+        return rt;
+    }
+
+    public int clearData(int aid, FaiList<Integer> unionPriIds) {
+        if(aid <= 0 || Util.isEmptyList(unionPriIds)){
+            Log.logErr("clearData arg error;flow=%d;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return Errno.ARGS_ERROR;
+        }
+        ParamMatcher matcher = new ParamMatcher(SpecTempEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SpecTempEntity.Info.SOURCE_UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+        int rt = m_daoCtrl.delete(matcher);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "batchDel error;flow=%d;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return rt;
+        }
+        // 处理下idBuilder
+        m_daoCtrl.restoreMaxId();
+        Log.logStd("batchDel ok;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
         return rt;
     }
 
@@ -155,6 +174,26 @@ public class SpecTempProc {
         return rt;
     }
 
+    public int getListFromDB(int aid, SearchArg searchArg, Ref<FaiList<Param>> listRef, String ... selectFields) {
+        if(searchArg == null) {
+            Log.logErr("arg error, searchArg is null;flow=%d;aid=%s;", m_flow, aid);
+            return Errno.ARGS_ERROR;
+        }
+        if(searchArg.matcher == null) {
+            searchArg.matcher = new ParamMatcher();
+        }
+        searchArg.matcher.and(SpecTempEntity.Info.AID, ParamMatcher.EQ, aid);
+        int rt =  m_daoCtrl.select(searchArg, listRef, selectFields);
+        if(rt != Errno.OK) {
+            if(rt != Errno.NOT_FOUND) {
+                Log.logErr(rt, "getList error;flow=%d;aid=%s;matcher=%s;", m_flow, aid, searchArg.matcher.toJson());
+            }
+            listRef.value = new FaiList<>();
+            return rt;
+        }
+        Log.logDbg(rt,"getList ok;flow=%d;aid=%d;matcher=%s;", m_flow, aid, searchArg.matcher.toJson());
+        return rt;
+    }
 
     public int clearIdBuilderCache(int aid){
         int rt = m_daoCtrl.clearIdBuilderCache(aid);

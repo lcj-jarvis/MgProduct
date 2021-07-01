@@ -25,8 +25,13 @@ public class ProductEntity {
         public static final String STATUS = "status"; // int 数据状态
     }
 
+    public static final class Business {
+        public static final String ADD_COUNT = "addCount"; // int 记录条数变化，用于事务补偿
+    }
+
     public static final FaiList<String> MANAGE_FIELDS; // 管理态字段
     public static final FaiList<String> VISITOR_FIELDS; // 访客态字段
+
     static {
         MANAGE_FIELDS = new FaiList<String>();
         MANAGE_FIELDS.add(Info.PD_ID);

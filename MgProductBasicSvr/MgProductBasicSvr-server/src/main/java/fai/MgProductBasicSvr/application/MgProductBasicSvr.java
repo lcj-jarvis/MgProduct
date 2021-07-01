@@ -2,10 +2,7 @@ package fai.MgProductBasicSvr.application;
 
 import fai.MgProductBasicSvr.domain.common.LockUtil;
 import fai.MgProductBasicSvr.domain.repository.cache.CacheCtrl;
-import fai.MgProductBasicSvr.domain.repository.dao.ProductBindGroupDaoCtrl;
-import fai.MgProductBasicSvr.domain.repository.dao.ProductBindPropDaoCtrl;
-import fai.MgProductBasicSvr.domain.repository.dao.ProductDaoCtrl;
-import fai.MgProductBasicSvr.domain.repository.dao.ProductRelDaoCtrl;
+import fai.MgProductBasicSvr.domain.repository.dao.*;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.cache.redis.config.RedisClientConfig;
 import fai.comm.cache.redis.pool.JedisPool;
@@ -88,6 +85,7 @@ public class MgProductBasicSvr {
         ProductRelDaoCtrl.init(daoPool, cache);
         ProductBindPropDaoCtrl.init(daoPool);
         ProductBindGroupDaoCtrl.init(daoPool);
+        ProductRollbackDaoCtrl.init(daoPool);
 
         // 缓存初始化
         CacheCtrl.init(cache);

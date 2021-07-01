@@ -26,6 +26,7 @@ public class ProductStoreEntity {
         public static final String ORIGIN_PRICE = "originPrice";                    // long 商品原价
         public static final String FIFO_TOTAL_COST = "fifoTotalCost";               // long 先进先出方式计算的总成本
         public static final String MW_TOTAL_COST = "mwTotalCost";                   // long 移动加权方式计算的总成本
+        public static final String MW_COST = "mwCost";                              // long 移动加权方式计算的成本单价
         public static final String MIN_AMOUNT = "minAmount";                        // int 起购量
         public static final String MAX_AMOUNT = "maxAmount";                        // int 限购量
         public static final String DURATION = "duration";                           // double 预约时长
@@ -39,7 +40,8 @@ public class ProductStoreEntity {
 
         // for init
         public static final String IN_PD_SC_STR_NAME_LIST = ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_NAME_LIST;
-        public static final String COST_PRICE = "costPrice";                        // long 商品成本单价，商品导入用，不入库存销售信息库
+        public static final String COST_PRICE = "costPrice";                        // long 商品成本单价，商品导入用，不入库存销售信息库，为了设置出入库的成本价
+        public static final String OWNER_RL_PD_ID = "ownerRlPdId";                  // int 该商品所属者的商品业务id，批量添加库存信息时，兼容商品信息未绑定过来
     }
 
     /**
@@ -80,6 +82,7 @@ public class ProductStoreEntity {
         public static final String REMARK = "remark";                               // String 备注
         public static final String RL_ORDER_CODE = "rlOrderCode";                   // String 业务订单code/id
         public static final String RL_REFUND_ID = "rlRefundId";                     // String 业务退款编号
+        public static final String STATUS = "status";                               // int 数据状态
         // for init
         public static final String IN_PD_SC_STR_NAME_LIST = ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_NAME_LIST;
     }

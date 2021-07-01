@@ -54,6 +54,22 @@ public class ProductBindGroupProc {
         }
     }
 
+    public int delPdBindGroup(int aid, int unionPriId, ParamMatcher matcher) {
+        int rt;
+        if(matcher == null) {
+            matcher = new ParamMatcher();
+        }
+        Ref<Integer> refRowCount = new Ref<>();
+        matcher.and(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        rt = m_dao.delete(matcher, refRowCount);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "del info error;flow=%d;aid=%d;matcher=%s;", m_flow, aid, matcher.toJson());
+        }
+        Log.logStd("del bind group ok;aid=%d;uid=%d;matcher=%s;", aid, unionPriId, matcher.toJson());
+        return refRowCount.value;
+    }
+
     public int delPdBindGroupList(int aid, FaiList<Integer> pdIds) {
         int rt;
         if(Util.isEmptyList(pdIds)) {
@@ -106,6 +122,22 @@ public class ProductBindGroupProc {
         }
         Log.logStd("delPdBindGroupList ok;flow=%d;aid=%d;rlPdIds=%s;", m_flow, aid, rlPdIds);
         return refRowCount.value;
+    }
+
+    // 清空指定aid+unionPriId的数据
+    public void clearAcct(int aid, FaiList<Integer> unionPriIds) {
+        int rt;
+        if(unionPriIds == null || unionPriIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "clearAcct error, unionPriIds is null;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+        rt = m_dao.delete(matcher);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "del product rel error;flow=%d;aid=%d;unionPridId=%s;", m_flow, aid, unionPriIds);
+        }
+        Log.logStd("clearAcct ok;flow=%d;aid=%d;unionPridId=%s;", m_flow, aid, unionPriIds);
     }
 
     public FaiList<Integer> getRlPdIdsByGroupId(int aid, int unionPriId, FaiList<Integer> rlGroupIds) {

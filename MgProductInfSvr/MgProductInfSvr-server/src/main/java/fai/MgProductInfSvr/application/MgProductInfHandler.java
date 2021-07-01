@@ -3,6 +3,7 @@ package fai.MgProductInfSvr.application;
 import fai.MgProductInfSvr.application.service.*;
 import fai.MgProductInfSvr.interfaces.cmd.MgProductInfCmd;
 import fai.MgProductInfSvr.interfaces.dto.*;
+import fai.comm.fseata.client.core.exception.TransactionException;
 import fai.comm.jnetkit.server.fai.FaiHandler;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
@@ -379,6 +380,19 @@ public class MgProductInfHandler extends FaiHandler {
         return specService.getPdScInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, onlyGetChecked);
     }
 
+    @Cmd(MgProductInfCmd.ProductSpecCmd.GET_LIST_4ADM)
+    public int getPdScInfoList4Adm(final FaiSession session,
+                               @ArgFlow final int flow,
+                               @ArgAid final int aid,
+                               @ArgBodyInteger(ProductSpecDto.Key.TID) int tid,
+                               @ArgBodyInteger(ProductSpecDto.Key.SITE_ID) int siteId,
+                               @ArgBodyInteger(ProductSpecDto.Key.LGID) int lgId,
+                               @ArgBodyInteger(ProductSpecDto.Key.KEEP_PRIID1) int keepPriId1,
+                               @ArgList(keyMatch = ProductSpecDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
+                               @ArgBodyBoolean(ProductSpecDto.Key.ONLY_GET_CHECKED) boolean onlyGetChecked) throws IOException {
+        return specService.getPdScInfoList4Adm(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIds, onlyGetChecked);
+    }
+
     @WrittenCmd
     @Cmd(MgProductInfCmd.ProductSpecSkuCmd.SET_LIST)
     public int setPdSkuScInfoList(final FaiSession session,
@@ -505,7 +519,7 @@ public class MgProductInfHandler extends FaiHandler {
                                    @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
                                    @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
                                    @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
-                                   @ArgParam(classDef = ProductBasicDto.class, methodDef = "getUnionProductDef",
+                                   @ArgParam(classDef = MgProductDto.class, methodDef = "getInfoDto",
                                            keyMatch = ProductBasicDto.Key.UNION_INFO) Param addInfo,
                                    @ArgParam(keyMatch = MgProductDto.Key.IN_OUT_STORE_RECORD_INFO,
                                            classDef = ProductStoreDto.InOutStoreRecord.class, methodDef = "getInfoDto") Param inStoreRecordInfo) throws IOException {
@@ -551,9 +565,24 @@ public class MgProductInfHandler extends FaiHandler {
                            @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
                            @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
                            @ArgBodyInteger( ProductBasicDto.Key.RL_PD_ID) Integer rlPdId,
-                           @ArgParam(classDef = ProductBasicDto.class, methodDef = "getProductDto",
+                           @ArgParamUpdater(classDef = ProductBasicDto.class, methodDef = "getProductDto",
                                    keyMatch = ProductBasicDto.Key.UPDATER) ParamUpdater updater) throws IOException {
         return basicService.setSinglePd(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, updater);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.BasicCmd.SET_PD_INFO)
+    public int setProductInfo(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid final int aid,
+                              @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
+                              @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
+                              @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
+                              @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
+                              @ArgBodyInteger( ProductBasicDto.Key.RL_PD_ID) Integer rlPdId,
+                              @ArgParamUpdater(classDef = MgProductDto.class, methodDef = "getInfoDto",
+                                      keyMatch = ProductBasicDto.Key.UPDATER) ParamUpdater updater) throws IOException, TransactionException {
+        return basicService.setProductInfo(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, updater);
     }
 
     @WrittenCmd
@@ -566,7 +595,7 @@ public class MgProductInfHandler extends FaiHandler {
                            @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
                            @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
                            @ArgList(keyMatch = ProductBasicDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
-                           @ArgParam(classDef = ProductBasicDto.class, methodDef = "getProductDto",
+                           @ArgParamUpdater(classDef = ProductBasicDto.class, methodDef = "getProductDto",
                                    keyMatch = ProductBasicDto.Key.UPDATER) ParamUpdater updater) throws IOException {
         return basicService.setProducts(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIds, updater);
     }
@@ -658,6 +687,20 @@ public class MgProductInfHandler extends FaiHandler {
                                 @ArgList(classDef = ProductStoreDto.StoreSalesSku.class, methodDef = "getInfoDto",
                                         keyMatch = ProductStoreDto.Key.UPDATER_LIST) FaiList<ParamUpdater> updaterList) throws IOException {
         return storeService.batchSetSkuStoreSales(session, flow, aid, tid, siteId, lgId, keepPriId1, primaryKeys, rlPdId, updaterList);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.StoreSalesSkuCmd.BATCH_ADD_LIST)
+    public int batchAddSkuStoreSales(final FaiSession session,
+                                     @ArgFlow final int flow,
+                                     @ArgAid final int aid,
+                                     @ArgBodyInteger(ProductStoreDto.Key.TID) int tid,
+                                     @ArgBodyInteger(ProductStoreDto.Key.SITE_ID) int siteId,
+                                     @ArgBodyInteger(ProductStoreDto.Key.LGID) int lgId,
+                                     @ArgBodyInteger(ProductStoreDto.Key.KEEP_PRIID1) int keepPriId1,
+                                     @ArgList(classDef = ProductStoreDto.StoreSalesSku.class, methodDef = "getInfoDto",
+                                             keyMatch = ProductStoreDto.Key.INFO_LIST) FaiList<Param> addList) throws IOException {
+        return storeService.batchAddSkuStoreSales(session, flow, aid, tid, siteId, lgId, keepPriId1, addList);
     }
 
     @WrittenCmd
@@ -1004,6 +1047,32 @@ public class MgProductInfHandler extends FaiHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductInfCmd.Cmd.CLEAR_REL_DATA)
+    public int clearRelData(final FaiSession session,
+                            @ArgFlow final int flow,
+                            @ArgAid final int aid,
+                            @ArgBodyInteger(MgProductDto.Key.TID) int tid,
+                            @ArgBodyInteger(MgProductDto.Key.SITE_ID) int siteId,
+                            @ArgBodyInteger(MgProductDto.Key.LGID) int lgId,
+                            @ArgBodyInteger(MgProductDto.Key.KEEP_PRIID1) int keepPriId1) throws IOException {
+        return mgProductInfService.clearRelData(session, flow, aid, tid, siteId, lgId, keepPriId1);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.Cmd.CLEAR_ACCT)
+    public int clearAcct(final FaiSession session,
+                            @ArgFlow final int flow,
+                            @ArgAid final int aid,
+                            @ArgBodyInteger(MgProductDto.Key.TID) int tid,
+                            @ArgBodyInteger(MgProductDto.Key.SITE_ID) int siteId,
+                            @ArgBodyInteger(MgProductDto.Key.LGID) int lgId,
+                            @ArgBodyInteger(MgProductDto.Key.KEEP_PRIID1) int keepPriId1,
+                            @ArgList(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
+                                 keyMatch = MgProductDto.Key.PRIMARY_KEYS) FaiList<Param> primaryKeys) throws IOException {
+        return mgProductInfService.clearAcct(session, flow, aid, tid, siteId, lgId, keepPriId1, primaryKeys);
+    }
+
+    @WrittenCmd
     @Cmd(NKDef.Protocol.Cmd.CLEAR_CACHE)
     public int clearCache(final FaiSession session,
                           @ArgFlow final int flow,
@@ -1058,14 +1127,14 @@ public class MgProductInfHandler extends FaiHandler {
                                  @ArgAid final int aid,
                                  @ArgBodyInteger(ProductGroupDto.Key.TID) int tid,
                                  @ArgBodyInteger(ProductGroupDto.Key.SITE_ID) int siteId,
-                                 @ArgBodyInteger(ProductGroupDto.Key.LGID) int lgid,
+                                 @ArgBodyInteger(ProductGroupDto.Key.LGID) int lgId,
                                  @ArgBodyInteger(ProductGroupDto.Key.KEEP_PRIID1) int keepPriId1,
-                                 @ArgParam(keyMatch = ProductGroupDto.Key.INFO, methodDef = "getPdGroupDto",
-                                         classDef = ProductGroupDto.class) Param addInfo,
+                                 @ArgList(keyMatch = ProductGroupDto.Key.INFO, methodDef = "getPdGroupDto",
+                                         classDef = ProductGroupDto.class) FaiList<Param> addList,
                                  @ArgList(keyMatch = ProductGroupDto.Key.UPDATERLIST, methodDef = "getPdGroupDto",
                                          classDef = ProductGroupDto.class) FaiList<ParamUpdater> updaterList,
                                  @ArgList(keyMatch = ProductGroupDto.Key.RL_GROUP_IDS) FaiList<Integer> delList) throws IOException{
-        return groupService.unionSetGroupList(session, flow, aid, tid, siteId, lgid, keepPriId1, addInfo, updaterList, delList);
+        return groupService.unionSetGroupList(session, flow, aid, tid, siteId, lgId, keepPriId1, addList, updaterList, delList);
     }
 
     @WrittenCmd

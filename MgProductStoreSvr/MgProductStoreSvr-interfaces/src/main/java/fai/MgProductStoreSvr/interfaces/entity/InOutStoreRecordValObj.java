@@ -84,6 +84,11 @@ public class InOutStoreRecordValObj {
         }
     }
 
+    public static final class Status {
+        public static final int DEL = -1; // 删除状态
+        public static final int DEFAULT = 0; // 默认状态
+    }
+
     /**
      * {@link fai.comm.util.SearchArg}
      * 相关限制

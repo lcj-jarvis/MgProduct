@@ -3,6 +3,7 @@ package fai.MgProductBasicSvr.application.service;
 import fai.MgProductBasicSvr.domain.common.LockUtil;
 import fai.MgProductBasicSvr.domain.entity.ProductBindGroupEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductBindPropEntity;
+import fai.MgProductBasicSvr.domain.entity.ProductEntity;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductBindPropCache;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductBindPropProc;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductRelProc;
@@ -123,6 +124,70 @@ public class ProductBindPropService extends ServicePub {
         session.write(sendBuf);
         Log.logStd("setPdBindProp ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
         return rt;
+    }
+
+    /**
+     * Fseata分布式事务
+     */
+    @SuccessRt(value = Errno.OK)
+    public int transactionSetPdBindProp(FaiSession session, int flow, int aid, int unionPriId, int tid, int rlPdId, String xid, FaiList<Param> addList, FaiList<Param> delList) {
+        int rt;
+        if(!FaiValObj.TermId.isValidTid(tid)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+            return rt;
+        }
+
+        // 加锁
+        Lock lock = LockUtil.getLock(aid);
+        lock.lock();
+        try {
+            // 本地事务控制
+            TransactionCtrl tc = new TransactionCtrl();
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+                int addCount = 0;
+                int pdId = 0;
+                ProductBindPropProc propProc = new ProductBindPropProc(flow, aid, tc);
+
+                boolean isDel = !Util.isEmptyList(delList);
+                boolean isAdd = !Util.isEmptyList(addList);
+                // 删除数据
+                if (isDel) {
+                    int delCount = propProc.delPdBindPropList(aid, unionPriId, rlPdId, delList);
+                    addCount -= delCount;
+                }
+
+                // 添加数据
+                if (isAdd) {
+                    ProductRelProc productRelProc = new ProductRelProc(flow, aid, tc);
+                    Param productRel = productRelProc.getProductRel(aid, unionPriId, rlPdId);
+                    if(!Str.isEmpty(productRel)) {
+                        pdId = productRel.getInt(ProductBindGroupEntity.Info.PD_ID);
+                    }
+                    // 目前商品数据还在业务方，这边先设置商品id为0
+                    propProc.addPdBindPropList(aid, unionPriId, rlPdId, pdId, addList);
+                    addCount += addList.size();
+                }
+
+                // 定义补偿信息
+                Param rollbackInfo = new Param();
+                rollbackInfo.setInt(ProductEntity.Business.ADD_COUNT, addCount);
+                rollbackInfo.setInt(ProductBindPropEntity.Info.RL_PD_ID, rlPdId);
+                rollbackInfo.setInt(ProductBindPropEntity.Info.PD_ID, pdId);
+                rollbackInfo.setInt(ProductBindPropEntity.Info.UNION_PRI_ID, unionPriId);
+                rollbackInfo.setList(ProductBindPropEntity.BUSINESS.ADD_LIST, addList);
+                rollbackInfo.setList(ProductBindPropEntity.BUSINESS.DEL_LIST, delList);
+
+
+            } finally {
+                tc.closeDao();
+            }
+            return Errno.OK;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**

@@ -1,11 +1,11 @@
 package fai.MgProductBasicSvr.domain.repository.dao;
 
 import fai.MgProductBasicSvr.domain.entity.ProductRelEntity;
-import fai.MgProductBasicSvr.domain.entity.ProductRelValObj;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.distributedkit.idBuilder.domain.IdBuilderConfig;
 import fai.comm.distributedkit.idBuilder.wrapper.IdBuilderWrapper;
 import fai.comm.util.*;
+import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.DaoCtrl;
 
 public class ProductRelDaoCtrl extends DaoCtrl {
@@ -56,26 +56,57 @@ public class ProductRelDaoCtrl extends DaoCtrl {
         return m_idBuilder.update(aid, unionPriId, id, m_dao, needLock);
     }
 
-    public Integer restoreMaxId(int aid, int unionPriId, boolean needLock) {
+    public void restoreMaxId(int aid, int unionPriId, boolean needLock) {
+        int rt = openDao();
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "openDao err;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+        }
+        Integer maxId = getMaxId(aid, unionPriId);
+        if(maxId == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "select maxId err;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+        }
+        // 最大值小于初始值
+        if (maxId < ID_BUILDER_INIT) {
+            rt = m_idBuilder.clear(aid, unionPriId, m_dao, needLock);
+            if (rt != Errno.OK) {
+                throw new MgException(rt, "IdBuilder clear err;flow=%d, aid=%d, unionPriId=%s", flow, aid, unionPriId);
+            }
+        } else {
+            if (m_idBuilder.restore(aid, unionPriId, maxId, m_dao, needLock) == null) {
+                rt = Errno.DAO_ERROR;
+                throw new MgException(rt, "IdBuilder restore err;flow=%d, aid=%d, unionPriId=%s", flow, aid, unionPriId);
+            }
+        }
+    }
+
+    private Integer getMaxId(int aid, int unionPriId) {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        Dao.SelectArg sltArg = new Dao.SelectArg();
-        sltArg.table = getTableName();
-        sltArg.searchArg = searchArg;
-        sltArg.field = "max(" + ProductRelEntity.Info.RL_PD_ID + ") as maxId";
-        int rt = openDao();
-        if(rt != Errno.OK) {
+        Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
+        int rt = select(searchArg, listRef, "max(" + ProductRelEntity.Info.RL_PD_ID + ") as " + ProductRelEntity.Info.RL_PD_ID);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             return null;
         }
-        Param maxInfo = m_dao.selectFirst(sltArg);
-        if(Str.isEmpty(maxInfo)){
-            rt = Errno.DAO_ERROR;
-            Log.logErr(rt, "select db err;");
+        if (listRef.value == null || listRef.value.isEmpty()) {
+            rt = Errno.NOT_FOUND;
+            Log.logErr(rt, "select maxId err;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
             return null;
         }
-        int maxId = maxInfo.getInt("maxId");
-        return updateId(aid, unionPriId, maxId, needLock);
+
+        Param info = listRef.value.get(0);
+        if (info == null) {
+            Log.logErr(rt, "select maxId err;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+            return null;
+        }
+        Integer id;
+        if (info.isEmpty()) {
+            id = 0;
+        } else {
+            id = info.getInt(ProductRelEntity.Info.RL_PD_ID, 0);
+        }
+        return id;
     }
 
     public Integer getId(int aid, int unionPriId) {

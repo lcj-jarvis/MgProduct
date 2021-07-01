@@ -12,6 +12,11 @@ public class ProductBindGroupEntity {
         public static final String CREATE_TIME = "sysCreateTime"; // datetime 创建时间
     }
 
+    public static final class Business {
+        public static final String ADD_GROUP_IDS = "addGroupIds"; // 添加绑定的分类id
+        public static final String DEL_GROUP_IDS = "delGroupIds"; // 删除绑定的分类id
+    }
+
     public static final FaiList<String> MANAGE_FIELDS; // 管理态字段
     public static final FaiList<String> VISITOR_FIELDS; // 访客态字段
     static {

@@ -56,6 +56,7 @@ public class MgProductInfCmd {
         public static final int NUM33 = 5033; /**@see InOutStoreRecordCmd#GET_SUM_LIST*/
         public static final int NUM34 = 5034; /**@see Cmd#GET_FULL_LIST_4ADM */
         public static final int NUM35 = 5035; /**@see Cmd#GET_SUM_LIST_4ADM */
+        public static final int NUM36 = 5036; /**@see ProductSpecCmd#GET_LIST_4ADM */
     }
 
     // 1000 到 5000 的范围
@@ -109,7 +110,11 @@ public class MgProductInfCmd {
         public static final int NUM39 = 1039; /**@see PropCmd#UNION_SET_PROP_LIST */
         public static final int NUM40 = 1040; /**@see GroupCmd#UNION_SET_GROUP_LIST */
         public static final int NUM41 = 1041; /**@see StoreSalesSkuCmd#BATCH_SET_LIST */
-        public static final int NUM42 = 1042; /**@see BasicCmd#UNION_SET_LIST */
+        public static final int NUM42 = 1042; /**@see BasicCmd#ADD_PD_INFO */
+        public static final int NUM43 = 1043; /**@see BasicCmd#SET_PD_INFO */
+        public static final int NUM44 = 1044; /**@see StoreSalesSkuCmd#BATCH_ADD_LIST */
+        public static final int NUM45 = 1045; /**@see Cmd#CLEAR_REL_DATA */
+        public static final int NUM46 = 1046; /**@see Cmd#CLEAR_ACCT */
     }
 
 
@@ -154,6 +159,7 @@ public class MgProductInfCmd {
         public static final int SET_SINGLE_PD = WriteCmdNum.NUM35;
         public static final int SET_PDS = WriteCmdNum.NUM36;
         public static final int ADD_PD_INFO = WriteCmdNum.NUM42;
+        public static final int SET_PD_INFO = WriteCmdNum.NUM43;
     }
 
     public static class GroupCmd {
@@ -203,6 +209,7 @@ public class MgProductInfCmd {
         public static final int GET_INFO = ReadCmdNum.NUM8;
         public static final int GET_LIST = ReadCmdNum.NUM9;
         public static final int GET_CHECKED_LIST = ReadCmdNum.NUM10;
+        public static final int GET_LIST_4ADM = ReadCmdNum.NUM36;
 
         //写命令
         public static final int IMPORT = WriteCmdNum.NUM14;
@@ -240,6 +247,7 @@ public class MgProductInfCmd {
         public static final int BATCH_REFUND_STORE = WriteCmdNum.NUM29;
         public static final int REFRESH_HOLDING_RECORD_OF_RL_ORDER_CODE = WriteCmdNum.NUM37;
         public static final int BATCH_SET_LIST = WriteCmdNum.NUM41;
+        public static final int BATCH_ADD_LIST = WriteCmdNum.NUM44;
     }
 
     /**
@@ -301,5 +309,7 @@ public class MgProductInfCmd {
         public static final int GET_SUM_LIST_4ADM = ReadCmdNum.NUM35;
 
         public static final int IMPORT_PRODUCT = WriteCmdNum.NUM34;
+        public static final int CLEAR_REL_DATA = WriteCmdNum.NUM45;
+        public static final int CLEAR_ACCT = WriteCmdNum.NUM46;
     }
 }

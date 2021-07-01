@@ -2,10 +2,7 @@ package fai.MgProductStoreSvr.application.service;
 
 import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
-import fai.MgProductStoreSvr.domain.comm.LockUtil;
-import fai.MgProductStoreSvr.domain.comm.RecordKey;
-import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
-import fai.MgProductStoreSvr.domain.comm.Utils;
+import fai.MgProductStoreSvr.domain.comm.*;
 import fai.MgProductStoreSvr.domain.entity.*;
 import fai.MgProductStoreSvr.domain.repository.*;
 import fai.MgProductStoreSvr.domain.serviceProc.*;
@@ -14,6 +11,7 @@ import fai.MgProductStoreSvr.interfaces.dto.HoldingRecordDto;
 import fai.MgProductStoreSvr.interfaces.dto.StoreSalesSkuDto;
 import fai.MgProductStoreSvr.interfaces.entity.SkuCountChangeEntity;
 import fai.comm.jnetkit.server.fai.FaiSession;
+import fai.comm.middleground.FaiValObj;
 import fai.comm.mq.api.MqFactory;
 import fai.comm.mq.api.Producer;
 import fai.comm.mq.api.SendResult;
@@ -383,12 +381,12 @@ public class StoreSalesSkuService extends StoreService {
         return rt;
     }
     public int setSkuStoreSales(FaiSession session, int flow, int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) throws IOException {
-        return batchSetSkuStoreSales(session, flow, aid, tid, new FaiList<>(Arrays.asList(unionPriId)), pdId, rlPdId, updaterList);
+        return batchSetSkuStoreSales(session, flow, aid, tid, null, new FaiList<>(Arrays.asList(unionPriId)), pdId, rlPdId, updaterList);
     }
     /**
      * 批量修改库存销售sku信息
      */
-    public int batchSetSkuStoreSales(FaiSession session, int flow, int aid, int tid, FaiList<Integer> unionPriIdList, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) throws IOException {
+    public int batchSetSkuStoreSales(FaiSession session, int flow, int aid, int tid, Integer ownerUnionPriId, FaiList<Integer> unionPriIdList, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -425,6 +423,27 @@ public class StoreSalesSkuService extends StoreService {
                     LockUtil.lock(aid);
                     try {
                         transactionCtrl.setAutoCommit(false);
+
+                        // 兼容门店通逻辑，门店通添加商品的时候，只会添加总部的库存销售信息(为了设置价格)，各个门店最开始是不会有销售信息的
+                        // 所以这里设置价格的时候，先查出没有销售信息的unionPriId，并新增销售信息数据
+                        if(tid == FaiValObj.TermId.YK && ownerUnionPriId != null) {
+                            Map<SkuBizKey, PdKey> needCheckSkuStoreKeyPdKeyMap = new HashMap<>();
+                            for(Integer unionPriId : unionPriIdList) {
+                                for(Long skuId : skuIdList) {
+                                    SkuBizKey skuBizKey = new SkuBizKey(unionPriId, skuId);
+                                    if (unionPriId != ownerUnionPriId) {
+                                        needCheckSkuStoreKeyPdKeyMap.put(skuBizKey, new PdKey(unionPriId, pdId, rlPdId));
+                                    }
+                                }
+                            }
+                            if(!needCheckSkuStoreKeyPdKeyMap.isEmpty()) {
+                                rt = storeSalesSkuProc.checkAndAdd(aid, ownerUnionPriId, needCheckSkuStoreKeyPdKeyMap);
+                                if(rt != Errno.OK){
+                                    return rt;
+                                }
+                            }
+                        }
+
                         rt = storeSalesSkuProc.batchSet(aid, unionPriIdList, pdId, updaterList);
                         if(rt != Errno.OK){
                             return rt;
@@ -454,6 +473,134 @@ public class StoreSalesSkuService extends StoreService {
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
             Log.logStd("ok;aid=%s;unionPriIdList=%s;pdId=%s;rlPdId=%s;",aid, unionPriIdList, pdId, rlPdId);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    /**
+     *  批量新增库存销售数据
+     */
+    public int batchAddStoreSales(FaiSession session, int flow, int aid, int sourceTid, int sourceUnionPriId, FaiList<Param> storeSaleSkuList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || sourceTid<=0 || sourceUnionPriId <= 0|| Util.isEmptyList(storeSaleSkuList)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;sourceUnionPriId=%s;storeSaleSkuList=%s;", flow, aid, sourceUnionPriId, storeSaleSkuList);
+                return rt;
+            }
+            Set<Integer> pdIdSet = new HashSet<>();
+            Set<Long> skuIdSet = new HashSet<>();
+            Set<SkuBizKey> skuBizKeySet = new HashSet<>();
+            Map<Integer, FaiList<Long>> unionPriId_SkuIds = new HashMap<>();
+            for (Param storeSaleSku : storeSaleSkuList) {
+                int count = storeSaleSku.getInt(StoreSalesSkuEntity.Info.COUNT, 0);
+                storeSaleSku.setInt(StoreSalesSkuEntity.Info.COUNT, count);
+                storeSaleSku.setInt(StoreSalesSkuEntity.Info.REMAIN_COUNT, count);
+                long skuId = storeSaleSku.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                int pdId = storeSaleSku.getInt(StoreSalesSkuEntity.Info.PD_ID);
+                int unionPriId = storeSaleSku.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+                skuBizKeySet.add(new SkuBizKey(unionPriId, skuId));
+                FaiList<Long> skuIds = unionPriId_SkuIds.get(unionPriId);
+                if(skuIds == null) {
+                    skuIds = new FaiList<>();
+                    unionPriId_SkuIds.put(unionPriId, skuIds);
+                }
+                skuIds.add(skuId);
+                pdIdSet.add(pdId);
+                skuIdSet.add(skuId);
+            }
+            // 事务
+            TransactionCtrl transactionCtrl = new TransactionCtrl();
+            try {
+                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, transactionCtrl);
+                SpuSummaryProc spuSummaryProc = new SpuSummaryProc(flow, aid, transactionCtrl);
+                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, transactionCtrl);
+                SkuSummaryProc skuSummaryProc = new SkuSummaryProc(flow, aid, transactionCtrl);
+
+                try {
+                    LockUtil.lock(aid);
+                    try {
+                        transactionCtrl.setAutoCommit(false);
+
+                        // 已存在的数据做更新操作，这个逻辑是因为门店通最开始，添加商品时，各个门店没有库存销售数据，后来补充了，所以跑工具修复线上数据，同步库存销售数据到所有门店
+                        // 但是因为门店通有个逻辑，新增门店时，商品是不会同步到新增的门店中的，所以也不会有库存销售信息，但是这个时候，跑工具已经把库存销售信息同步过来了
+                        {
+                            Map<SkuBizKey, Param> existMap = new HashMap<>();
+                            for(Map.Entry<Integer, FaiList<Long>> uid_skuIdEntry : unionPriId_SkuIds.entrySet()) {
+                                int unionPriId = uid_skuIdEntry.getKey();
+                                FaiList<Long> skuIds = uid_skuIdEntry.getValue();
+                                Ref<FaiList<Param>> listRef = new Ref();
+                                rt = storeSalesSkuProc.getListFromDaoBySkuIdList(aid, unionPriId, skuIds, listRef, StoreSalesSkuEntity.getValidKeys());
+                                if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                                    return rt;
+                                }
+                                for(Param info : listRef.value) {
+                                    existMap.put(new SkuBizKey(unionPriId, info.getLong(StoreSalesSkuEntity.Info.SKU_ID)), info);
+                                }
+                            }
+                            if(!existMap.isEmpty()) {
+                                FaiList<ParamUpdater> updateList = new FaiList<>(existMap.size());
+                                for(Iterator<Param> iterator = storeSaleSkuList.iterator();iterator.hasNext();){
+                                    Param storeSaleSku = iterator.next();
+                                    long skuId = storeSaleSku.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                                    int unionPriId = storeSaleSku.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+                                    SkuBizKey skuBizKey = new SkuBizKey(unionPriId, skuId);
+                                    if(existMap.containsKey(skuBizKey)) {
+                                        updateList.add(new ParamUpdater(storeSaleSku));
+                                        iterator.remove();
+                                    }
+                                }
+                                // 批量更新
+                                rt = storeSalesSkuProc.batchSet(aid, updateList, existMap);
+                                if(rt != Errno.OK) {
+                                    return rt;
+                                }
+                            }
+                        }
+
+                        if(!storeSaleSkuList.isEmpty()) {
+                            rt = storeSalesSkuProc.batchAdd(aid, null, storeSaleSkuList);
+                            if(rt != Errno.OK){
+                                return rt;
+                            }
+                        }
+                    }finally {
+                        if(rt != Errno.OK){
+                            transactionCtrl.rollback();
+                            return rt;
+                        }
+                        transactionCtrl.commit();
+                    }
+                }finally {
+                    LockUtil.unlock(aid);
+                }
+                try {
+                    transactionCtrl.setAutoCommit(false);
+                    rt = reportSummary(aid, new FaiList<>(pdIdSet), ReportValObj.Flag.REPORT_COUNT|ReportValObj.Flag.REPORT_PRICE,
+                            new FaiList<>(skuIdSet), storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
+                    if(rt != Errno.OK){
+                        return rt;
+                    }
+                }finally {
+                    if(rt != Errno.OK){
+                        transactionCtrl.rollback();
+                        return rt;
+                    }
+                    spuBizSummaryProc.setDirtyCacheEx(aid);
+                    spuSummaryProc.setDirtyCacheEx(aid);
+                    transactionCtrl.commit();
+                    spuBizSummaryProc.deleteDirtyCache(aid);
+                    spuSummaryProc.deleteDirtyCache(aid);
+                }
+            }finally {
+                transactionCtrl.closeDao();
+            }
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("ok;flow=%s;aid=%s;pdIdSet=%s;skuIdSet=%s;", flow, aid, pdIdSet, skuIdSet);
         }finally {
             stat.end(rt != Errno.OK, rt);
         }

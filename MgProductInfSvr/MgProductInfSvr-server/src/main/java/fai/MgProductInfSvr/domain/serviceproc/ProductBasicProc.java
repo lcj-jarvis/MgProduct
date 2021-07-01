@@ -48,13 +48,22 @@ public class ProductBasicProc {
     }
 
     public int setPdBindPropInfo(int aid, int tid, int unionPriId, int rlPdId, FaiList<Param> addList, FaiList<Param> delList) {
-        int rt = Errno.ERROR;
+        return setPdBindPropInfo(aid, tid, unionPriId, rlPdId, addList, delList, null);
+    }
+
+    public int setPdBindPropInfo(int aid, int tid, int unionPriId, int rlPdId, FaiList<Param> addList, FaiList<Param> delList, String xid) {
+        int rt;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.setPdBindProp(aid, tid, unionPriId, rlPdId, addList, delList);
+        // 没有xid则走不用分布式事务的方法
+        if (Str.isEmpty(xid)) {
+            rt = m_cli.setPdBindProp(aid, tid, unionPriId, rlPdId, addList, delList);
+        } else {
+            rt = m_cli.transactionSetPdBindProp(aid, tid, unionPriId, rlPdId, addList, delList, xid);
+        }
         if(rt != Errno.OK) {
             Log.logErr(rt, "setPdBindProp error;flow=%d;aid=%d;tid=%d;unionPriId=%d;", m_flow, aid, tid, unionPriId);
             return rt;
@@ -271,6 +280,47 @@ public class ProductBasicProc {
     }
 
     /**
+     * 清空业务关联数据
+     * @param softDel 目前都是使用false
+     * @return
+     */
+    public int clearRelData(int aid, int unionPriId, boolean softDel) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;softDel=%s;", m_flow, aid, unionPriId, softDel);
+            return rt;
+        }
+        rt = m_cli.clearRelData(aid, unionPriId, softDel);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "clearRelData error;flow=%d;aid=%d;unionPriId=%d;softDel=%s;", m_flow, aid, unionPriId, softDel);
+            return rt;
+        }
+
+        return rt;
+    }
+
+    /**
+     * 清空数据
+     * @return
+     */
+    public int clearAcct(int aid, FaiList<Integer> unionPriIds) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return rt;
+        }
+        rt = m_cli.clearAcct(aid, unionPriIds);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "clearAcct error;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return rt;
+        }
+
+        return rt;
+    }
+
+    /**
      * 根据商品业务id，获取商品业务关系数据
      * @return
      */
@@ -352,8 +402,7 @@ public class ProductBasicProc {
     }
 
     /**
-     * 批量新增商品业务关联，同时绑定多个产品数据，给悦客接入进销存中心临时使用的
-     * 接入完成后，废除，该接口禁止对外开放
+     * 批量新增商品业务关联，同时绑定多个产品数据
      */
     public int batchBindProductsRel(int aid, int tid, FaiList<Param> list){
         int rt = Errno.ERROR;
@@ -388,18 +437,27 @@ public class ProductBasicProc {
     }
 
     public int setPdBindGroup(int aid, int unionPriId, int rlPdId, FaiList<Integer> addGroupIds, FaiList<Integer> delGroupIds) {
-        int rt = Errno.ERROR;
+        return setPdBindGroup(aid, unionPriId, rlPdId, addGroupIds, delGroupIds, null);
+    }
+
+    public int setPdBindGroup(int aid, int unionPriId, int rlPdId, FaiList<Integer> addGroupIds, FaiList<Integer> delGroupIds, String xid) {
+        int rt;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.setPdBindGroup(aid, unionPriId, rlPdId, addGroupIds, delGroupIds);
+        if (Str.isEmpty(xid)) {
+            // 如果没有xid，则执行非分布式事务的方法
+            rt = m_cli.setPdBindGroup(aid, unionPriId, rlPdId, addGroupIds, delGroupIds);
+        } else {
+            // 如果有xid，则执行分布式事务的方法
+            rt = m_cli.transactionSetPdBindGroup(aid, unionPriId, rlPdId, addGroupIds, delGroupIds, xid);
+        }
         if(rt != Errno.OK) {
             Log.logErr(rt, "setPdBindGroup error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-
         return rt;
     }
 

@@ -317,6 +317,230 @@ public class StoreService {
         return rt;
     }
 
+    public int clearRelData(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            // 事务
+            TransactionCtrl tc = new TransactionCtrl();
+            try {
+                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, tc);
+
+                Ref<FaiList<Param>> skuIdAndPdIdRef = new Ref<>();
+                rt = storeSalesSkuProc.getAllSkuIdAndPdId(aid, unionPriId, skuIdAndPdIdRef);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                    return rt;
+                }
+                // 没数据直接返回ok
+                if(rt == Errno.NOT_FOUND) {
+                    rt = Errno.OK;
+                    Log.logStd("clearBizData, data not found;flow=%s;aid=%s;unionPriId=%s", flow, aid, unionPriId);
+                    return rt;
+                }
+
+                Set<Integer> pdIdSet = new HashSet<>(skuIdAndPdIdRef.value.size());
+                FaiList<Long> skuIds = new FaiList<>();
+                for(Param info : skuIdAndPdIdRef.value) {
+                    long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                    int pdId = info.getInt(StoreSalesSkuEntity.Info.PD_ID);
+                    skuIds.add(skuId);
+                    pdIdSet.add(pdId);
+                }
+
+                LockUtil.lock(aid);
+                try {
+                    SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
+                    SpuSummaryProc spuSummaryProc = new SpuSummaryProc(flow, aid, tc);
+                    SkuSummaryProc skuSummaryProc = new SkuSummaryProc(flow, aid, tc);
+                    InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(flow, aid, tc);
+                    HoldingRecordProc holdingRecordProc = new HoldingRecordProc(flow, aid, tc);
+                    RefundRecordProc refundRecordProc = new RefundRecordProc(flow, aid, tc);
+                    StoreOrderRecordProc storeOrderRecordProc = new StoreOrderRecordProc(flow, aid, tc);
+                    tc.setAutoCommit(false);
+                    boolean commit = false;
+                    try {
+                        // 清空出入库记录
+                        rt = inOutStoreRecordProc.clearData(aid, unionPriId);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+
+                        // 清空出入库汇总
+                        rt = inOutStoreRecordProc.clearSummaryData(aid, unionPriId);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+
+                        // 清空预扣记录
+                        rt = holdingRecordProc.clearData(aid, unionPriId);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+
+                        // 清空退库存记录
+                        rt = refundRecordProc.clearData(aid, unionPriId);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+
+                        rt = storeOrderRecordProc.clearData(aid, unionPriId);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+
+                        // 删除aid+unionPriId 下 sku库存销售
+                        rt = storeSalesSkuProc.clearData(aid, unionPriId);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+                        // 删除aid+unionPriId 下 spu库存销售汇总
+                        rt = spuBizSummaryProc.clearData(aid, unionPriId);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+
+                        int flag = ReportValObj.Flag.REPORT_COUNT|ReportValObj.Flag.REPORT_PRICE;
+                        int batchCount = 200;
+                        FaiList<FaiList<Long>> batchSkuIds = Util.splitList(skuIds, batchCount);
+                        for(FaiList<Long> itemSkuIds : batchSkuIds) {
+                            rt = reportSummary(aid, null, flag, itemSkuIds, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
+                            if(rt != Errno.OK) {
+                                return rt;
+                            }
+                        }
+                        FaiList<FaiList<Integer>> batchPdIds = Util.splitList(new FaiList<>(pdIdSet), batchCount);
+                        for(FaiList<Integer> itemPdIds : batchPdIds) {
+                            rt = reportSummary(aid, itemPdIds, flag, null, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
+                            if(rt != Errno.OK) {
+                                return rt;
+                            }
+                        }
+
+                        commit = true;
+                        tc.commit();
+                    }finally {
+                        if(!commit) {
+                            tc.rollback();
+                            inOutStoreRecordProc.clearIdBuilderCache(aid);
+                        }
+                        CacheCtrl.clearAllCache(aid);
+                    }
+                }finally {
+                    LockUtil.unlock(aid);
+                }
+            }finally {
+                tc.closeDao();
+            }
+            session.write(rt);
+            Log.logStd("clearBizData ok;flow=%s;aid=%s;unionPriId=%s", flow, aid, unionPriId);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    public int clearAcct(FaiSession session, int flow, int aid, FaiList<Integer> unionPriIds) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || Util.isEmptyList(unionPriIds)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;unionPriIds=%s;", flow, aid, unionPriIds);
+                return rt;
+            }
+
+            // 事务
+            TransactionCtrl tc = new TransactionCtrl();
+            try {
+                LockUtil.lock(aid);
+                try {
+                    StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, tc);
+                    SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
+                    SpuSummaryProc spuSummaryProc = new SpuSummaryProc(flow, aid, tc);
+                    SkuSummaryProc skuSummaryProc = new SkuSummaryProc(flow, aid, tc);
+                    InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(flow, aid, tc);
+                    HoldingRecordProc holdingRecordProc = new HoldingRecordProc(flow, aid, tc);
+                    RefundRecordProc refundRecordProc = new RefundRecordProc(flow, aid, tc);
+                    StoreOrderRecordProc storeOrderRecordProc = new StoreOrderRecordProc(flow, aid, tc);
+                    tc.setAutoCommit(false);
+                    boolean commit = false;
+                    try {
+                        // 清空出入库记录
+                        rt = inOutStoreRecordProc.clearData(aid, unionPriIds);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+
+                        // 清空出入库汇总
+                        rt = inOutStoreRecordProc.clearSummaryData(aid, unionPriIds);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+
+                        // 清空预扣记录
+                        rt = holdingRecordProc.clearData(aid, unionPriIds);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+
+                        // 清空退库存记录
+                        rt = refundRecordProc.clearData(aid, unionPriIds);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+
+                        // 清空直扣库存记录
+                        rt = storeOrderRecordProc.clearData(aid, unionPriIds);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+
+                        // 删除aid+unionPriId 下 sku库存销售
+                        rt = storeSalesSkuProc.clearData(aid, unionPriIds);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+                        // 删除aid+unionPriId 下 spu库存销售汇总
+                        rt = spuBizSummaryProc.clearData(aid, unionPriIds);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+
+                        // 删除aid+sourceUnionPriId 下 sku库存销售汇总
+                        rt = skuSummaryProc.clearData(aid, unionPriIds);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+
+                        // 删除aid+sourceUnionPriId 下 spu库存销售汇总
+                        rt = spuSummaryProc.clearData(aid, unionPriIds);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+
+                        commit = true;
+                        tc.commit();
+                    }finally {
+                        if(!commit) {
+                            tc.rollback();
+                            inOutStoreRecordProc.clearIdBuilderCache(aid);
+                        }
+                        CacheCtrl.clearAllCache(aid);
+                    }
+                }finally {
+                    LockUtil.unlock(aid);
+                }
+            }finally {
+                tc.closeDao();
+            }
+            session.write(rt);
+            Log.logStd("clearAcct ok;flow=%s;aid=%s;unionPriIds=%s;", flow, aid, unionPriIds);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
     /**
      * 清除当前aid的所有缓存
      */
@@ -327,16 +551,7 @@ public class StoreService {
             boolean allOption = true;
             try {
                 LockUtil.lock(aid);
-                boolean boo = CacheCtrl.clearCacheVersion(aid);
-                if(!boo){
-                    Log.logErr("CacheCtrl.clearCacheVersion err;flow=%s;aid=%s;", flow, aid);
-                }
-                allOption &= boo;
-                boo = SpuSummaryCacheCtrl.delAllCache(aid);
-                if(!boo){
-                    Log.logErr("SpuSummaryCacheCtrl.delAllCache err;flow=%s;aid=%s;", flow, aid);
-                }
-                allOption &= boo;
+                allOption = CacheCtrl.clearAllCache(aid);
             }finally {
                 LockUtil.unlock(aid);
             }

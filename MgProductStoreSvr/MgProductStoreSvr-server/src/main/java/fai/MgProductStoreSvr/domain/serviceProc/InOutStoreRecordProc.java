@@ -86,14 +86,22 @@ public class InOutStoreRecordProc {
                 return rt;
             }
             // 计算需要更新的成本
-            int changeCount = countRef.value;
-            long totalCost = changeCount*costPrice;
-            long inMwTotalCost = changeCount*costPrice;
+            int availabCount = countRef.value;
+            long totalCost = availabCount*costPrice;
+            long inMwTotalCost = availabCount*costPrice;
             Param storeSalesSkuInfo = changeCountAfterSkuStoreInfoMap.get(new SkuBizKey(unionPriId, skuId));
+            long remainCount = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.REMAIN_COUNT, 0L);
+            long holdingCount = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.HOLDING_COUNT, 0L);
             long fifoTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, 0L);
             long mwTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, 0L);
             storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, fifoTotalCost + totalCost);
             storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, mwTotalCost + inMwTotalCost);
+
+            BigDecimal total = new BigDecimal(mwTotalCost + inMwTotalCost);
+            long relRemainCount = remainCount+holdingCount;
+            if(relRemainCount != 0) {
+                storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_COST, total.divide(new BigDecimal(relRemainCount), BigDecimal.ROUND_HALF_UP).longValue());
+            }
         }
         ParamMatcher doBatchMatcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, "?");
         doBatchMatcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
@@ -395,6 +403,7 @@ public class InOutStoreRecordProc {
             data.assign(info, InOutStoreRecordEntity.Info.S_TYPE);
             data.setInt(InOutStoreRecordEntity.Info.CHANGE_COUNT, changeCount);
             data.setInt(InOutStoreRecordEntity.Info.REMAIN_COUNT, remainCount);
+
             if(optType == InOutStoreRecordValObj.OptType.IN){ // 入库操作记录可用库存
                 // 设置可以库存，用于计算成本
                 data.setInt(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, changeCount);
@@ -408,6 +417,16 @@ public class InOutStoreRecordProc {
                     long mwTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, 0L);
                     storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, fifoTotalCost + totalCost);
                     storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, mwTotalCost + inMwTotalCost);
+
+                    // 计算移动加权方式的成本单价
+                    long mwCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.MW_COST, 0L);
+                    if(mwCost == 0) {
+                        mwCost = new BigDecimal(mwTotalCost + inMwTotalCost).divide(new BigDecimal(remainCount), BigDecimal.ROUND_HALF_UP).longValue();
+                    }else {
+                        // (remainCount*mwCost+inMwTotalCost)/(remainCount)
+                        mwCost = new BigDecimal((remainCount-changeCount)*mwCost+inMwTotalCost).divide(new BigDecimal(remainCount), BigDecimal.ROUND_HALF_UP).longValue();
+                    }
+                    storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_COST, mwCost);
                 }
             }
             // 转化为字符串
@@ -416,8 +435,12 @@ public class InOutStoreRecordProc {
                 data.setString(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList.toJson());
             }
 
+            Long mvPrice = info.getLong(InOutStoreRecordEntity.Info.MW_PRICE);
+            if(mvPrice == null) {
+                mvPrice = 0L;
+            }
             data.setLong(InOutStoreRecordEntity.Info.PRICE, price);
-            data.assign(info, InOutStoreRecordEntity.Info.MW_PRICE);
+            data.setLong(InOutStoreRecordEntity.Info.MW_PRICE, mvPrice);
             data.setString(InOutStoreRecordEntity.Info.NUMBER, number);
             data.assign(info, InOutStoreRecordEntity.Info.OPT_SID);
             data.assign(info, InOutStoreRecordEntity.Info.HEAD_SID);
@@ -464,13 +487,20 @@ public class InOutStoreRecordProc {
                 {
                     // 计算平均价
                     long mwTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, 0L);
-                    BigDecimal total = new BigDecimal(mwTotalCost);
-                    BigDecimal result = total.divide(new BigDecimal(remainCount + changeCount), BigDecimal.ROUND_HALF_UP);// 四舍五入
-                    long mwPrice = result.longValue();
-                    data.setLong(InOutStoreRecordEntity.Info.MW_PRICE, mwPrice);
-                    data.setLong(InOutStoreRecordEntity.Info.MW_TOTAL_PRICE, mwPrice*changeCount);
+
+                    // 移动加权方式的成本单价
+                    long mwCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.MW_COST, 0L);
+                    if(mwCost == 0) {
+                        BigDecimal total = new BigDecimal(mwTotalCost);
+                        BigDecimal result = total.divide(new BigDecimal(remainCount + changeCount), BigDecimal.ROUND_HALF_UP);// 四舍五入
+                        mwCost = result.longValue();
+                        storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_COST, mwCost);
+                    }
+
+                    data.setLong(InOutStoreRecordEntity.Info.MW_PRICE, mwCost);
+                    data.setLong(InOutStoreRecordEntity.Info.MW_TOTAL_PRICE, mwCost*changeCount);
                     // 计算剩余的总成本
-                    mwTotalCost -= mwPrice*changeCount;
+                    mwTotalCost -= mwCost*changeCount;
                     storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, mwTotalCost);
                 }
             }
@@ -800,15 +830,44 @@ public class InOutStoreRecordProc {
         ParamMatcher matcher = new ParamMatcher();
         matcher.and(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(InOutStoreRecordEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
-        int rt = m_daoCtrl.delete(matcher);
+
+        ParamUpdater updater = new ParamUpdater(new Param().setInt(InOutStoreRecordEntity.Info.STATUS, InOutStoreRecordValObj.Status.DEL));
+        int rt = m_daoCtrl.update(updater, matcher);
         if(rt != Errno.OK){
-            Log.logErr(rt, "delete err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
+            Log.logErr(rt, "soft delete err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
             return rt;
         }
-        Log.logStd("ok;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
+        Log.logStd("ok;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
         return rt;
     }
 
+    public int clearData(int aid, int unionPriId) {
+        FaiList<Integer> unionPriIds = new FaiList<>();
+        unionPriIds.add(unionPriId);
+        return clearData(aid, unionPriIds);
+    }
+
+    public int clearData(int aid, FaiList<Integer> unionPriIds) {
+        int rt;
+        if(unionPriIds == null || unionPriIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "clearData unionPriIds is empty;aid=%d;unionPriIds=%s;", aid, unionPriIds);
+            return rt;
+        }
+        ParamMatcher matcher = new ParamMatcher();
+        matcher.and(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+
+        rt = m_daoCtrl.delete(matcher);
+        if(rt != Errno.OK){
+            Log.logErr(rt, "delete err;flow=%s;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return rt;
+        }
+        // 处理下idBuilder
+        m_daoCtrl.restoreMaxId();
+        Log.logStd("ok;flow=%s;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
+        return rt;
+    }
 
     public int searchFromDao(int aid, SearchArg searchArg, Ref<FaiList<Param>> listRef) {
         int rt = m_daoCtrl.select(searchArg, listRef);
@@ -913,6 +972,32 @@ public class InOutStoreRecordProc {
             return rt;
         }
         Log.logStd(rt, "ok;flow=%d;aid=%s;matcher=%s;", m_flow, aid, searchArg.matcher.toJson());
+        return rt;
+    }
+
+    public int clearSummaryData(int aid, int unionPriId) {
+        FaiList<Integer> unionPriIds = new FaiList<>();
+        unionPriIds.add(unionPriId);
+        return clearSummaryData(aid, unionPriIds);
+    }
+
+    public int clearSummaryData(int aid, FaiList<Integer> unionPriIds) {
+        int rt;
+        if(unionPriIds == null || unionPriIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "clearSummaryData unionPriIds is empty;aid=%d;unionPriIds=%s;", aid, unionPriIds);
+            return rt;
+        }
+        ParamMatcher matcher = new ParamMatcher();
+        matcher.and(InOutStoreSumEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(InOutStoreSumEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+
+        rt = m_sumDaoCtrl.delete(matcher);
+        if(rt != Errno.OK){
+            Log.logErr(rt, "delete err;flow=%s;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
+            return rt;
+        }
+        Log.logStd("ok;flow=%s;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
         return rt;
     }
     /*** 汇总数据 end ***/

@@ -15,6 +15,9 @@ import fai.MgProductInfSvr.interfaces.entity.ProductStoreEntity;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuValObj;
 import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity;
+import fai.comm.fseata.client.core.exception.TransactionException;
+import fai.comm.fseata.client.tm.GlobalTransactionContext;
+import fai.comm.fseata.client.tm.api.GlobalTransaction;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
@@ -22,10 +25,7 @@ import fai.mgproduct.comm.Util;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 商品基础服务相关接口
@@ -488,6 +488,189 @@ public class ProductBasicService extends MgProductInfService {
         return rt;
     }
 
+    /**
+     *  修改商品数据 包括 规格、库存
+     */
+    public int setProductInfo(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, Integer rlPdId, ParamUpdater recvUpdater) throws IOException, TransactionException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+            if (rlPdId < 0) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr(rt, "args error, rlPdId < 0;flow=%d;aid=%d;rlPdIds=%d;", flow, aid, rlPdId);
+                return rt;
+            }
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if (rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            // 获取全局事务
+            GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
+            // 开启事务
+            try {
+                tx.begin(aid, 60000, "mgProduct-setProductInfo", flow);
+                // 分配修改内容
+                Param updaterData = recvUpdater.getData();
+                /** 基础信息修改 start */
+                Param basicData = updaterData.getParam(MgProductEntity.Info.BASIC);
+                if (!Str.isEmpty(basicData)) {
+                    // 将basic表和rel表的修改内容 与 分类关联表 和 参数关联表 分开
+                    // 1、分类关联表
+                    FaiList<Integer> delRlGroupIds = basicData.getList(ProductBasicEntity.BindGroupInfo.DEL_RL_GROUP_IDS);
+                    FaiList<Integer> addRlGroupIds = basicData.getList(ProductBasicEntity.BindGroupInfo.ADD_RL_GROUP_IDS);
+                    if (!Util.isEmptyList(delRlGroupIds) || !Util.isEmptyList(addRlGroupIds)) {
+                        ProductBasicProc basicProc = new ProductBasicProc(flow);
+                        rt = basicProc.setPdBindGroup(aid, unionPriId, rlPdId, addRlGroupIds, delRlGroupIds, tx.getXid());
+                        if (rt != Errno.OK) {
+                            return rt;
+                        }
+                        basicData.remove(ProductBasicEntity.BindGroupInfo.DEL_RL_GROUP_IDS);
+                        basicData.remove(ProductBasicEntity.BindGroupInfo.ADD_RL_GROUP_IDS);
+                    }
+                    // 2、参数关联表
+                    FaiList<Param> addPropList = basicData.getList(ProductBasicEntity.BindPropInfo.ADD_PROP_LIST);
+                    FaiList<Param> delPropList = basicData.getList(ProductBasicEntity.BindPropInfo.DEL_PROP_LIST);
+                    if (!Util.isEmptyList(addPropList) || !Util.isEmptyList(delPropList)) {
+                        ProductBasicProc basicProc = new ProductBasicProc(flow);
+                        rt = basicProc.setPdBindPropInfo(aid, tid, unionPriId, rlPdId, addPropList, delPropList, tx.getXid());
+                        if (rt != Errno.OK) {
+                            // TODO 分布式事务
+                            Oss.logAlarm("setProductInfo error;an error occurred while modifying the parameter association");
+                            return rt;
+                        }
+                        basicData.remove(ProductBasicEntity.BindPropInfo.ADD_PROP_LIST);
+                        basicData.remove(ProductBasicEntity.BindPropInfo.DEL_PROP_LIST);
+                    }
+                    // check again
+                    if (!Str.isEmpty(basicData)) {
+                        ProductBasicProc basicProc = new ProductBasicProc(flow);
+                        ParamUpdater updater = new ParamUpdater(basicData);
+                        rt = basicProc.setSinglePd(aid, unionPriId, rlPdId, updater);
+                        if (rt != Errno.OK) {
+                            // TODO 分布式事务
+                            Oss.logAlarm("setProductInfo error;an error occurred while modifying the basic info");
+                            return rt;
+                        }
+                    }
+                }
+                /** 基础信息修改 end */
+
+                /** 规格SKU 修改 start */
+                FaiList<Param> specSkuList = updaterData.getList(MgProductEntity.Info.SPEC_SKU);
+                if (!Util.isEmptyList(specSkuList)) {
+                    // 获取 pdId
+                    idRef.value = null;
+                    rt = getPdId(flow, aid, tid, unionPriId, rlPdId, idRef);
+                    if(rt != Errno.OK) {
+                        return rt;
+                    }
+                    int pdId = idRef.value;
+
+                    FaiList<ParamUpdater> specSkuUpdaterList = new FaiList<>();
+                    for (Param specSkuInfo : specSkuList) {
+                        specSkuUpdaterList.add(new ParamUpdater(specSkuInfo));
+                    }
+                    ProductSpecProc productSpecProc = new ProductSpecProc(flow);
+                    rt = productSpecProc.setPdSkuScInfoList(aid, tid, unionPriId, pdId, specSkuUpdaterList);
+                    if(rt != Errno.OK) {
+                        // TODO 分布式事务
+                        if (!Str.isEmpty(basicData)) {
+                            Oss.logAlarm("setProductInfo error;an error occurred while modifying the specSku info");
+                        }
+                        return rt;
+                    }
+                }
+                /** 规格SKU 修改 end */
+
+                /** 库存信息修改 start */
+                FaiList<Param> storeData = updaterData.getList(MgProductEntity.Info.STORE_SALES);
+                if (!Util.isEmptyList(storeData)) {
+                    // 获取 pdId
+                    idRef.value = null;
+                    rt = getPdId(flow, aid, tid, unionPriId, rlPdId, idRef);
+                    if (rt != Errno.OK) {
+                        return rt;
+                    }
+                    int pdId = idRef.value;
+
+                    Map<FaiList<String>, Param> inPdScStrNameInfoMap = new HashMap<>();
+                    for (Param storeInfo : storeData) {
+                        Long skuId = storeInfo.getLong(ProductStoreEntity.StoreSalesSkuInfo.SKU_ID);
+                        if(skuId == null){
+                            FaiList<String> inPdScStrNameList = storeInfo.getList(ProductStoreEntity.StoreSalesSkuInfo.IN_PD_SC_STR_NAME_LIST);
+                            if(inPdScStrNameList == null){
+                                return rt = Errno.ARGS_ERROR;
+                            }
+                            Collections.sort(inPdScStrNameList);
+                            inPdScStrNameInfoMap.put(inPdScStrNameList, storeInfo);
+                        }
+                    }
+                    if(inPdScStrNameInfoMap.size() > 0){
+                        ProductSpecProc productSpecProc = new ProductSpecProc(flow);
+                        FaiList<Param> infoList = new FaiList<Param>();
+                        rt = productSpecProc.getPdSkuScInfoList(aid, tid, unionPriId, pdId, false, infoList);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+                        for (Param info : infoList) {
+                            FaiList<String> inPdScStrNameList = info.getList(ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_NAME_LIST);
+                            Collections.sort(inPdScStrNameList);
+                            Param storeInfo = inPdScStrNameInfoMap.remove(inPdScStrNameList);
+                            if(storeInfo == null){
+                                continue;
+                            }
+                            storeInfo.assign(info, ProductSpecEntity.SpecSkuInfo.SKU_ID, ProductStoreEntity.StoreSalesSkuInfo.SKU_ID);
+                        }
+                        if(inPdScStrNameInfoMap.size() > 0){
+                            Log.logErr("args error, updaterList is err;flow=%d;aid=%d;tid=%d;inPdScStrNameInfoMap=%s;", flow, aid, tid, inPdScStrNameInfoMap);
+                            return rt = Errno.ARGS_ERROR;
+                        }
+                    }
+
+                    FaiList<ParamUpdater> updaterList = new FaiList<>();
+                    for (Param storeInfo : storeData) {
+                        updaterList.add(new ParamUpdater(storeInfo));
+                    }
+                    ProductStoreProc productStoreProc = new ProductStoreProc(flow);
+                    rt = productStoreProc.setSkuStoreSales(aid, tid, unionPriId, pdId, rlPdId, updaterList);
+                    if(rt != Errno.OK) {
+                        // TODO 分布式事务
+                        if (!Str.isEmpty(basicData) || !Util.isEmptyList(specSkuList)) {
+                            Oss.logAlarm("setProductInfo error;an error occurred while modifying the storeSaleSku info");
+                        }
+                        return rt;
+                    }
+                }
+                /** 库存信息修改 end */
+
+                FaiBuffer sendBuf = new FaiBuffer(true);
+                session.write(sendBuf);
+                Log.logStd("set productInfo ok;flow=%d;aid=%d;tid=%d;rlPdId=%s;", flow, aid, tid, rlPdId);
+            } catch (TransactionException e) {
+                rt = Errno.ERROR;
+                e.printStackTrace();
+            } finally {
+                if (rt != Errno.OK) {
+                    tx.rollback();
+                } else {
+                    tx.commit();
+                }
+            }
+        } finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
     public int setProducts(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, ParamUpdater updater) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
@@ -771,8 +954,8 @@ public class ProductBasicService extends MgProductInfService {
             if (!Util.isEmptyList(rlGroupIds)) {
                 rt = basicProc.setPdBindGroup(aid, ownerUnionPriId, rlPdIdRef.value, rlGroupIds, null);
                 if (rt != Errno.OK) {
-                    // 因为未加入分布式事务，只能先告警
-                    Oss.logAlarm("In the operation of adding a product, there is an error in the binding groupInfo");
+                    // TODO 因为未加入分布式事务，只能先告警
+                    Oss.logAlarm("addProductInfo error;there is an error in the binding groupInfo");
                     return rt;
                 }
             }
@@ -794,8 +977,8 @@ public class ProductBasicService extends MgProductInfService {
                 }
                 rt = basicProc.setPdBindPropInfo(aid, ownerTid, ownerUnionPriId, rlPdIdRef.value, addList, null);
                 if (rt != Errno.OK) {
-                    // 因为未加入分布式事务，只能先告警
-                    Oss.logAlarm("In the operation of adding a product, there is an error in the binding propInfo");
+                    // TODO 因为未加入分布式事务，只能先告警
+                    Oss.logAlarm("addProductInfo error;there is an error in the binding propInfo");
                     return rt;
                 }
             }
@@ -833,8 +1016,8 @@ public class ProductBasicService extends MgProductInfService {
                 if (!importSpecList.isEmpty()) {
                     rt = specProc.importPdScWithSku(aid, ownerTid, ownerUnionPriId, importSpecList, importSpecSkuList, skuIdInfoList);
                     if (rt != Errno.OK) {
-                        // 因为未加入分布式事务，只能先告警
-                        Oss.logAlarm("In the operation of adding a product, an error occurred in adding the product specification");
+                        // TODO 因为未加入分布式事务，只能先告警
+                        Oss.logAlarm("addProductInfo error;an error occurred in adding the product specification");
                         return rt;
                     }
                 }
@@ -911,8 +1094,8 @@ public class ProductBasicService extends MgProductInfService {
                 ProductStoreProc productStoreProc = new ProductStoreProc(flow);
                 rt = productStoreProc.importStoreSales(aid, ownerTid, ownerUnionPriId, storeSaleSkuList, inStoreRecordInfo);
                 if (rt != Errno.OK) {
-                    // 因为未加入分布式事务，只能先告警
-                    Oss.logAlarm("In the operation of adding a product, an error occurred in adding the product storeSale");
+                    // TODO 因为未加入分布式事务，只能先告警
+                    Oss.logAlarm("addProductInfo error;an error occurred in adding the product storeSale");
                     return rt;
                 }
             }

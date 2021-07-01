@@ -14,7 +14,7 @@ public class ProductSagaEntity {
         public static final String BRANCH_ID = "branchId";
         public static final String ROLLBACK_INFO = "rollbackInfo";
         public static final String STATUS = "status";
-        public static final String CREATE_TIME = "createTime";
-        public static final String UPDATE_TIME = "updateTime";
+        public static final String SYS_CREATE_TIME = "sysCreateTime";
+        public static final String SYS_UPDATE_TIME = "sysUpdateTime";
     }
 }

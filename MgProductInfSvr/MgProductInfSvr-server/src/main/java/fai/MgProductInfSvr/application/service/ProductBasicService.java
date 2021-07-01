@@ -543,8 +543,6 @@ public class ProductBasicService extends MgProductInfService {
                         ProductBasicProc basicProc = new ProductBasicProc(flow);
                         rt = basicProc.setPdBindPropInfo(aid, tid, unionPriId, rlPdId, addPropList, delPropList, tx.getXid());
                         if (rt != Errno.OK) {
-                            // TODO 分布式事务
-                            Oss.logAlarm("setProductInfo error;an error occurred while modifying the parameter association");
                             return rt;
                         }
                         basicData.remove(ProductBasicEntity.BindPropInfo.ADD_PROP_LIST);

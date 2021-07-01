@@ -68,7 +68,7 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                         @ArgList(classDef = ProductBindPropDto.class, methodDef = "getInfoDto",
                                                 keyMatch = ProductBindPropDto.Key.PROP_BIND) FaiList<Param> addList,
                                         @ArgList(classDef = ProductBindPropDto.class, methodDef = "getInfoDto",
-                                                keyMatch = ProductBindPropDto.Key.DEL_PROP_BIND) FaiList<Param> delList) {
+                                                keyMatch = ProductBindPropDto.Key.DEL_PROP_BIND) FaiList<Param> delList) throws IOException {
         return propBindservice.transactionSetPdBindProp(session, flow, aid, unionPriId, tid, rlPdId, xid, addList, delList);
     }
 

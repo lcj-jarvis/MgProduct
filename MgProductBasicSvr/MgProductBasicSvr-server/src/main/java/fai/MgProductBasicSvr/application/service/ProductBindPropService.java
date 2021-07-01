@@ -1,13 +1,14 @@
 package fai.MgProductBasicSvr.application.service;
 
 import fai.MgProductBasicSvr.domain.common.LockUtil;
-import fai.MgProductBasicSvr.domain.entity.ProductBindGroupEntity;
-import fai.MgProductBasicSvr.domain.entity.ProductBindPropEntity;
-import fai.MgProductBasicSvr.domain.entity.ProductEntity;
+import fai.MgProductBasicSvr.domain.entity.*;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductBindPropCache;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductBindPropProc;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductRelProc;
+import fai.MgProductBasicSvr.domain.serviceproc.ProductRollbackProc;
 import fai.MgProductBasicSvr.interfaces.dto.ProductBindPropDto;
+import fai.comm.fseata.client.core.model.BranchStatus;
+import fai.comm.fseata.client.core.rpc.def.CommDef;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
@@ -130,7 +131,7 @@ public class ProductBindPropService extends ServicePub {
      * Fseata分布式事务
      */
     @SuccessRt(value = Errno.OK)
-    public int transactionSetPdBindProp(FaiSession session, int flow, int aid, int unionPriId, int tid, int rlPdId, String xid, FaiList<Param> addList, FaiList<Param> delList) {
+    public int transactionSetPdBindProp(FaiSession session, int flow, int aid, int unionPriId, int tid, int rlPdId, String xid, FaiList<Param> addList, FaiList<Param> delList) throws IOException {
         int rt;
         if(!FaiValObj.TermId.isValidTid(tid)) {
             rt = Errno.ARGS_ERROR;
@@ -151,16 +152,14 @@ public class ProductBindPropService extends ServicePub {
                 int pdId = 0;
                 ProductBindPropProc propProc = new ProductBindPropProc(flow, aid, tc);
 
-                boolean isDel = !Util.isEmptyList(delList);
-                boolean isAdd = !Util.isEmptyList(addList);
                 // 删除数据
-                if (isDel) {
+                if (!Util.isEmptyList(delList)) {
                     int delCount = propProc.delPdBindPropList(aid, unionPriId, rlPdId, delList);
                     addCount -= delCount;
                 }
 
                 // 添加数据
-                if (isAdd) {
+                if (!Util.isEmptyList(addList)) {
                     ProductRelProc productRelProc = new ProductRelProc(flow, aid, tc);
                     Param productRel = productRelProc.getProductRel(aid, unionPriId, rlPdId);
                     if(!Str.isEmpty(productRel)) {
@@ -180,14 +179,118 @@ public class ProductBindPropService extends ServicePub {
                 rollbackInfo.setList(ProductBindPropEntity.BUSINESS.ADD_LIST, addList);
                 rollbackInfo.setList(ProductBindPropEntity.BUSINESS.DEL_LIST, delList);
 
+                ProductRollbackProc rollbackProc = new ProductRollbackProc(flow, aid, tc);
+                rollbackProc.addInfo(aid, xid, rollbackInfo);
 
+                commit = true;
+                tc.commit();
+                // 删除缓存
+                ProductBindPropCache.delCache(aid, unionPriId, rlPdId);
+                ProductBindPropCache.DataStatusCache.update(aid, unionPriId, addCount);
             } finally {
+                if(!commit) {
+                    tc.rollback();
+                }
                 tc.closeDao();
             }
-            return Errno.OK;
         } finally {
             lock.unlock();
         }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("transactionSetPdBindProp ok;flow=%d;aid=%d;uid=%d;rlPdId=%s;", flow, aid, unionPriId, rlPdId);
+        return rt;
+    }
+
+    /**
+     * transactionSetPdBindProp 的补偿方法
+     */
+    public int setPdBindPropRollback(FaiSession session, int aid, int flow, String xid, Long branchId) throws IOException {
+        int rt = Errno.ERROR;
+        Lock lock = LockUtil.getLock(aid);
+        lock.lock();
+        try {
+            TransactionCtrl tc = new TransactionCtrl();
+            boolean commit = false;
+            int addCount = 0;
+            int unionPriId = 0;
+            try {
+                tc.setAutoCommit(false);
+                // 获取 saga 表中的数据
+                ProductRollbackProc rollbackProc = new ProductRollbackProc(flow, aid, tc);
+                Ref<Param> sagaInfoRef = new Ref<>();
+                rt = rollbackProc.getInfo(xid, branchId, sagaInfoRef);
+                if (rt != Errno.OK) {
+                    // 如果是 NOT_FOUND，要允许空补偿和防悬挂控制，在getInfo中已经做到，插入一条saga记录作为空补偿
+                    if (rt == Errno.NOT_FOUND) {
+                        rt = Errno.OK;
+                        Log.reportErr(flow, rt,"get SagaInfo not found; xid=%s, branchId=%s", xid, branchId);
+                    }
+                    return rt;
+                }
+
+                // 获取补偿信息
+                Param sagaInfo = sagaInfoRef.value;
+                Param rollbackInfo = Param.parseParam(sagaInfoRef.value.getString(ProductSagaEntity.Info.ROLLBACK_INFO));
+                int status = sagaInfo.getInt(ProductSagaEntity.Info.STATUS);
+                // 幂等性保证
+                if (status == ProductSagaValObj.Status.ROLLBACK_OK) {
+                    return rt;
+                }
+
+                int pdId = rollbackInfo.getInt(ProductBindGroupEntity.Info.PD_ID);
+                unionPriId = rollbackInfo.getInt(ProductBindGroupEntity.Info.UNION_PRI_ID);
+                int rlPdId = rollbackInfo.getInt(ProductBindGroupEntity.Info.RL_PD_ID);
+                addCount = rollbackInfo.getInt(ProductEntity.Business.ADD_COUNT);
+                // 之前添加的参数绑定信息
+                FaiList<Param> addList = rollbackInfo.getList(ProductBindPropEntity.BUSINESS.ADD_LIST);
+                // 之前删除的参数绑定信息
+                FaiList<Param> delList = rollbackInfo.getList(ProductBindPropEntity.BUSINESS.DEL_LIST);
+
+                // 执行补偿
+                ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
+                if (!Util.isEmptyList(addList)) {
+                    bindPropProc.delPdBindPropList(aid, unionPriId, rlPdId, addList);
+                }
+                if (!Util.isEmptyList(delList)) {
+                    bindPropProc.addPdBindPropList(aid, unionPriId, rlPdId, pdId, delList);
+                }
+
+                // 修改 saga 状态
+                rt = rollbackProc.setStatus(xid, branchId, status);
+                if (rt != Errno.OK) {
+                    return rt;
+                }
+
+                commit = true;
+                tc.commit();
+            } finally {
+                if (!commit) {
+                    tc.rollback();
+                } else {
+                    // 告知数据状态发生变化，由于之前的逻辑是修改完后直接删除整个缓存并没有更新缓存，所以在这里不做参数绑定的缓存补偿
+                    ProductBindPropCache.DataStatusCache.update(aid, unionPriId, -addCount);
+                }
+                tc.closeDao();
+            }
+        } finally {
+            lock.unlock();
+
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            // 判断是否需要重试
+            if (rt != Errno.OK) {
+                //失败，需要重试
+                sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, BranchStatus.PhaseTwo_RollbackFailed_Retryable.getCode());
+            }else{
+                //成功，不需要重试
+                sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, BranchStatus.PhaseTwo_Rollbacked.getCode());
+            }
+            session.write(sendBuf);
+            session.write(rt);
+        }
+        return rt;
     }
 
     /**

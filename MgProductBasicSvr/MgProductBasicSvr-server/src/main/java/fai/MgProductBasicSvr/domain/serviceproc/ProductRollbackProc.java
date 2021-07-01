@@ -4,6 +4,7 @@ package fai.MgProductBasicSvr.domain.serviceproc;
 import fai.MgProductBasicSvr.domain.entity.ProductSagaEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductSagaValObj;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductRollbackDaoCtrl;
+import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.util.*;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
@@ -35,9 +36,9 @@ public class ProductRollbackProc {
         addInfo.setString(ProductSagaEntity.Info.XID, xid);
         addInfo.setInt(ProductSagaEntity.Info.STATUS, ProductSagaValObj.Status.INIT);
         addInfo.setString(ProductSagaEntity.Info.ROLLBACK_INFO, rollbackInfo.toJson());
-        addInfo.setLong(ProductSagaEntity.Info.BRANCH_ID, 1L);
-        addInfo.setCalendar(ProductSagaEntity.Info.CREATE_TIME, Calendar.getInstance());
-        addInfo.setCalendar(ProductSagaEntity.Info.UPDATE_TIME, Calendar.getInstance());
+        addInfo.setLong(ProductSagaEntity.Info.BRANCH_ID, RootContext.getBranchId());
+        addInfo.setCalendar(ProductSagaEntity.Info.SYS_CREATE_TIME, Calendar.getInstance());
+        addInfo.setCalendar(ProductSagaEntity.Info.SYS_UPDATE_TIME, Calendar.getInstance());
 
         addInfo(addInfo);
     }
@@ -114,7 +115,7 @@ public class ProductRollbackProc {
 
         Param updateInfo = new Param();
         updateInfo.setInt(ProductSagaEntity.Info.STATUS, status);
-        updateInfo.setCalendar(ProductSagaEntity.Info.UPDATE_TIME, Calendar.getInstance());
+        updateInfo.setCalendar(ProductSagaEntity.Info.SYS_UPDATE_TIME, Calendar.getInstance());
         ParamUpdater updater = new ParamUpdater(updateInfo);
 
         ParamMatcher matcher = new ParamMatcher(ProductSagaEntity.Info.XID, ParamMatcher.EQ, xid);

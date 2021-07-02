@@ -73,6 +73,12 @@
         </dependency>
 
         <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProductLibSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductLibSvr-interfaces-ver}</version>
+        </dependency>
+
+        <dependency>
             <groupId>fai-comm-jnetkit</groupId>
             <artifactId>fai-comm-jnetkit</artifactId>
             <version>${fai-comm-jnetkit-ver}</version>

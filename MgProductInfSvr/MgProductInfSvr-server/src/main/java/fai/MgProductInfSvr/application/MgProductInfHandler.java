@@ -3,6 +3,7 @@ package fai.MgProductInfSvr.application;
 import fai.MgProductInfSvr.application.service.*;
 import fai.MgProductInfSvr.interfaces.cmd.MgProductInfCmd;
 import fai.MgProductInfSvr.interfaces.dto.*;
+import fai.MgProductLibSvr.interfaces.dto.ProductLibRelDto;
 import fai.comm.fseata.client.core.exception.TransactionException;
 import fai.comm.jnetkit.server.fai.FaiHandler;
 import fai.comm.jnetkit.server.fai.FaiServer;
@@ -1153,6 +1154,89 @@ public class MgProductInfHandler extends FaiHandler {
 
     /*** 商品分类 end ***/
 
+    /**商品库 start*/
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.LibCmd.ADD_LIB)
+    public int addProductLib(final FaiSession session,
+                             @ArgFlow final int flow,
+                             @ArgAid final int aid,
+                             @ArgBodyInteger(ProductLibDto.Key.TID) int tid,
+                             @ArgBodyInteger(ProductLibDto.Key.SITE_ID) int siteId,
+                             @ArgBodyInteger(ProductLibDto.Key.LGID) int lgid,
+                             @ArgBodyInteger(ProductLibDto.Key.KEEP_PRIID1) int keepPriId1,
+                             @ArgParam(keyMatch = ProductLibDto.Key.INFO, methodDef = "getPdLibDto",
+                                     classDef = ProductLibDto.class) Param addInfo) throws IOException {
+        return libService.addProductLib(session, flow, aid, tid, siteId, lgid, keepPriId1, addInfo);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.LibCmd.DEL_LIB_LIST)
+    public int delPdLibList(final FaiSession session,
+                            @ArgFlow final int flow,
+                            @ArgAid final int aid,
+                            @ArgBodyInteger(ProductLibDto.Key.TID) int tid,
+                            @ArgBodyInteger(ProductLibDto.Key.SITE_ID) int siteId,
+                            @ArgBodyInteger(ProductLibDto.Key.LGID) int lgid,
+                            @ArgBodyInteger(ProductLibDto.Key.KEEP_PRIID1) int keepPriId1,
+                            @ArgList(keyMatch = ProductLibDto.Key.RL_LIB_IDS) FaiList<Integer> rlLibIds) throws IOException {
+        return libService.delPdLibList(session, flow, aid, tid, siteId, lgid, keepPriId1, rlLibIds);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.LibCmd.SET_LIB_LIST)
+    public int setPdLibList(final FaiSession session,
+                            @ArgFlow final int flow,
+                            @ArgAid final int aid,
+                            @ArgBodyInteger(ProductLibDto.Key.TID) int tid,
+                            @ArgBodyInteger(ProductLibDto.Key.SITE_ID) int siteId,
+                            @ArgBodyInteger(ProductLibDto.Key.LGID) int lgid,
+                            @ArgBodyInteger(ProductLibDto.Key.KEEP_PRIID1) int keepPriId1,
+                            @ArgList(keyMatch = ProductLibDto.Key.UPDATERLIST, methodDef = "getPdLibDto",
+                                    classDef = ProductLibDto.class) FaiList<ParamUpdater> updaterList) throws IOException {
+        return libService.setPdLibList(session, flow, aid, tid, siteId, lgid, keepPriId1, updaterList);
+    }
+
+    @Cmd(MgProductInfCmd.LibCmd.GET_LIB_LIST)
+    public int getPdLibList(final FaiSession session,
+                            @ArgFlow final int flow,
+                            @ArgAid final int aid,
+                            @ArgBodyInteger(ProductLibDto.Key.TID) int tid,
+                            @ArgBodyInteger(ProductLibDto.Key.SITE_ID) int siteId,
+                            @ArgBodyInteger(ProductLibDto.Key.LGID) int lgid,
+                            @ArgBodyInteger(ProductLibDto.Key.KEEP_PRIID1) int keepPriId1,
+                            @ArgSearchArg(value = ProductLibDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
+        return libService.getPdLibList(session, flow, aid, tid, siteId, lgid, keepPriId1, searchArg);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.LibCmd.UNION_SET_LIB_LIST)
+    public int unionSetLibList(final FaiSession session,
+                               @ArgFlow final int flow,
+                               @ArgAid final int aid,
+                               @ArgBodyInteger(ProductLibDto.Key.TID) int tid,
+                               @ArgBodyInteger(ProductLibDto.Key.SITE_ID) int siteId,
+                               @ArgBodyInteger(ProductLibDto.Key.LGID) int lgid,
+                               @ArgBodyInteger(ProductLibDto.Key.KEEP_PRIID1) int keepPriId1,
+                               @ArgParam(classDef = ProductLibDto.class, methodDef = "getPdLibDto",
+                                       keyMatch = ProductLibRelDto.Key.INFO_LIST) FaiList<Param> addInfoList,
+                               @ArgList(classDef = ProductLibRelDto.class, methodDef = "getPdLibDto",
+                                       keyMatch = ProductLibDto.Key.UPDATERLIST) FaiList<ParamUpdater> updaterList,
+                               @ArgList(keyMatch = ProductLibDto.Key.RL_LIB_IDS) FaiList<Integer> delRlLibIds) throws IOException{
+        return libService.unionSetLibList(session, flow, aid, tid, siteId, lgid, keepPriId1, addInfoList, updaterList, delRlLibIds);
+    }
+
+    @Cmd(MgProductInfCmd.LibCmd.GET_REL_LIB_LIST)
+    public int getPdRelLibList(final FaiSession session,
+                               @ArgFlow final int flow,
+                               @ArgAid final int aid,
+                               @ArgBodyInteger(ProductLibDto.Key.TID) int tid,
+                               @ArgBodyInteger(ProductLibDto.Key.SITE_ID) int siteId,
+                               @ArgBodyInteger(ProductLibDto.Key.LGID) int lgid,
+                               @ArgBodyInteger(ProductLibDto.Key.KEEP_PRIID1) int keepPriId1) throws IOException {
+        return libService.getPdRelLibList(session, flow, aid, tid, siteId, lgid, keepPriId1);
+    }
+    /**商品库 end*/
+
     MgProductInfService mgProductInfService = new MgProductInfService();
 
     ProductSearchService searchService = new ProductSearchService();
@@ -1161,4 +1245,5 @@ public class MgProductInfHandler extends FaiHandler {
     ProductSpecService specService = new ProductSpecService();
     ProductStoreService storeService = new ProductStoreService();
     ProductGroupService groupService = ServiceProxy.create(new ProductGroupService());
+    ProductLibService libService = ServiceProxy.create(new ProductLibService());
 }

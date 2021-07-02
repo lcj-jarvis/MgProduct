@@ -57,6 +57,9 @@ public class MgProductInfCmd {
         public static final int NUM34 = 5034; /**@see Cmd#GET_FULL_LIST_4ADM */
         public static final int NUM35 = 5035; /**@see Cmd#GET_SUM_LIST_4ADM */
         public static final int NUM36 = 5036; /**@see ProductSpecCmd#GET_LIST_4ADM */
+
+        public static final int NUM37 = 5037; /**@see LibCmd#GET_LIB_LIST */
+        public static final int NUM38 = 5038; /**@see LibCmd#GET_REL_LIB_LIST */
     }
 
     // 1000 到 5000 的范围
@@ -115,6 +118,12 @@ public class MgProductInfCmd {
         public static final int NUM44 = 1044; /**@see StoreSalesSkuCmd#BATCH_ADD_LIST */
         public static final int NUM45 = 1045; /**@see Cmd#CLEAR_REL_DATA */
         public static final int NUM46 = 1046; /**@see Cmd#CLEAR_ACCT */
+
+        public static final int NUM47 = 1047; /**@see LibCmd#ADD_LIB */
+        public static final int NUM48 = 1048; /**@see LibCmd#DEL_LIB_LIST */
+        public static final int NUM49 = 1049; /**@see LibCmd#SET_LIB_LIST */
+        public static final int NUM50 = 1050; /**@see LibCmd#UNION_SET_LIB_LIST */
+
     }
 
 
@@ -172,6 +181,19 @@ public class MgProductInfCmd {
         public static final int SET_GROUP_LIST = WriteCmdNum.NUM32;
         public static final int UNION_SET_GROUP_LIST = WriteCmdNum.NUM40;
     }
+
+    public static class LibCmd {
+        //读命令
+        public static final int GET_LIB_LIST = ReadCmdNum.NUM37;
+        public static final int GET_REL_LIB_LIST = ReadCmdNum.NUM38;
+
+        //写命令
+        public static final int ADD_LIB = WriteCmdNum.NUM47;
+        public static final int DEL_LIB_LIST = WriteCmdNum.NUM48;
+        public static final int SET_LIB_LIST = WriteCmdNum.NUM49;
+        public static final int UNION_SET_LIB_LIST = WriteCmdNum.NUM50;
+    }
+
 
     /**
      * 规格模板 相关 cmd

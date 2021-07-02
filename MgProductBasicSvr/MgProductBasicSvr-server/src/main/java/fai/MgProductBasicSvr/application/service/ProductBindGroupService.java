@@ -152,7 +152,6 @@ public class ProductBindGroupService extends ServicePub {
                     bindGroupProc.addPdBindGroupList(aid, unionPriId, rlPdId, pdId, addGroupIds);
                     addCount += addGroupIds.size();
                 }
-
                 // 记录修改的数据，作为补偿
                 Param rollbackInfo = new Param();
                 rollbackInfo.setInt(ProductBindGroupEntity.Info.AID, aid);
@@ -183,7 +182,7 @@ public class ProductBindGroupService extends ServicePub {
 
         FaiBuffer sendBuf = new FaiBuffer(true);
         session.write(sendBuf);
-        Log.logStd("set ok;flow=%d;aid=%d;uid=%d;rlPdId=%s;", flow, aid, unionPriId, rlPdId);
+        Log.logStd("transactionSetPdBindGroup ok;flow=%d;aid=%d;uid=%d;rlPdId=%s;", flow, aid, unionPriId, rlPdId);
         return Errno.OK;
     }
 
@@ -217,7 +216,8 @@ public class ProductBindGroupService extends ServicePub {
                 }
 
                 // 获取补偿信息
-                Param sagaInfo = Param.parseParam(sagaInfoRef.value.getString(ProductSagaEntity.Info.ROLLBACK_INFO));
+                Param sagaInfo = sagaInfoRef.value;
+                Param rollbackInfo = Param.parseParam(sagaInfoRef.value.getString(ProductSagaEntity.Info.ROLLBACK_INFO));
                 int status = sagaInfo.getInt(ProductSagaEntity.Info.STATUS);
                 // 幂等性保证
                 if (status == ProductSagaValObj.Status.ROLLBACK_OK) {
@@ -225,15 +225,15 @@ public class ProductBindGroupService extends ServicePub {
                 }
 
                 /* 获取补偿信息 start */
-                int pdId = sagaInfo.getInt(ProductBindGroupEntity.Info.PD_ID);
-                unionPriId = sagaInfo.getInt(ProductBindGroupEntity.Info.UNION_PRI_ID);
+                int pdId = rollbackInfo.getInt(ProductBindGroupEntity.Info.PD_ID);
+                unionPriId = rollbackInfo.getInt(ProductBindGroupEntity.Info.UNION_PRI_ID);
                 int curAid = sagaInfo.getInt(ProductBindGroupEntity.Info.AID);
-                int rlPdId = sagaInfo.getInt(ProductBindGroupEntity.Info.RL_PD_ID);
-                addCount = sagaInfo.getInt(ProductEntity.Business.ADD_COUNT);
+                int rlPdId = rollbackInfo.getInt(ProductBindGroupEntity.Info.RL_PD_ID);
+                addCount = rollbackInfo.getInt(ProductEntity.Business.ADD_COUNT);
                 // 之前添加的分类ids
-                FaiList<Integer> addGroupIds = sagaInfo.getList(ProductBindGroupEntity.Business.ADD_GROUP_IDS);
+                FaiList<Integer> addGroupIds = rollbackInfo.getList(ProductBindGroupEntity.Business.ADD_GROUP_IDS);
                 // 之前删除的分类ids
-                FaiList<Integer> delGroupList = sagaInfo.getList(ProductBindGroupEntity.Business.DEL_GROUP_IDS);
+                FaiList<Integer> delGroupList = rollbackInfo.getList(ProductBindGroupEntity.Business.DEL_GROUP_IDS);
                 /* 获取补偿信息 end */
 
                 ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);

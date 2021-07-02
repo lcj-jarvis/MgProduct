@@ -11,7 +11,6 @@ import fai.MgProductGroupSvr.domain.repository.ProductGroupCache;
 import fai.MgProductGroupSvr.domain.repository.ProductGroupRelCache;
 import fai.MgProductGroupSvr.domain.serviceproc.ProductGroupProc;
 import fai.MgProductGroupSvr.domain.serviceproc.ProductGroupRelProc;
-import fai.MgProductGroupSvr.interfaces.dto.ProductGroupDto;
 import fai.MgProductGroupSvr.interfaces.dto.ProductGroupRelDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
@@ -441,7 +440,7 @@ public class ProductGroupService extends ServicePub {
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
         if (!Util.isEmptyList(rlGroupIds)) {
-            rlGroupIds.toBuffer(sendBuf, ProductGroupDto.Key.RL_GROUP_IDS);
+            rlGroupIds.toBuffer(sendBuf, ProductGroupRelDto.Key.RL_GROUP_IDS);
         }
         session.write(sendBuf);
         Log.logStd("unionSetGroupList ok;flow=%d;aid=%d;unionPriId=%d;tid=%d;rlGroupId=%s;", flow, aid, unionPriId, tid, rlGroupIds);

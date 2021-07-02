@@ -351,7 +351,7 @@ public class MgProductInfCli3ForProductGroup extends MgProductInfCli2ForProductP
                 Ref<Integer> keyRef = new Ref<Integer>();
                 FaiList<Integer> ids = new FaiList<Integer>();
                 m_rt = ids.fromBuffer(recvBody, keyRef);
-                if (m_rt != Errno.OK || keyRef.value != ProductGroupDto.Key.RL_GROUP_ID) {
+                if (m_rt != Errno.OK || keyRef.value != ProductGroupDto.Key.RL_GROUP_IDS) {
                     Log.logErr(m_rt, "recv rlGroupId codec err");
                     return m_rt;
                 }

@@ -2043,6 +2043,7 @@ public class ProductSpecService extends ServicePub {
             if(pdId == null){
                 pdId = pdScInfo.getInt(ProductSpecEntity.Info.PD_ID);
             }
+            // 消除规格名称和规格值名称的空格，避免主键冲突
             trimProductSpecStrName(pdScInfo);
             pdScInfo.setInt(ProductSpecEntity.Info.SOURCE_TID, tid);
             pdScInfo.setInt(ProductSpecEntity.Info.SOURCE_UNION_PRI_ID, unionPriId);
@@ -2061,9 +2062,11 @@ public class ProductSpecService extends ServicePub {
                         Log.logErr(rt, "arg err;flow=%d;aid=%d;pdId=%s;name=%s", flow, aid, pdId, name);
                         return rt;
                     }
+                    // 将所有的名称都放入Set中
                     specStrNameSet.add(name);
                 }
             }else{
+                // 单一规格时，允许inPdScValList为空，例如：只有一个规格 - "白色"，这个白色已经体现在之前的Name中
                 if(!Misc.checkBit(flag, ProductSpecValObj.FLag.ALLOW_IN_PD_SC_VAL_LIST_IS_EMPTY)){
                     Log.logErr(rt, "arg err;flow=%d;aid=%d;pdId=%s;name=%s", flow, aid, pdId, name);
                     return rt;
@@ -2078,6 +2081,7 @@ public class ProductSpecService extends ServicePub {
             SpecStrProc specStrProc = new SpecStrProc(specStrDaoCtrl, flow);
             try {
                 LockUtil.lock(aid);
+                // 根据 规格名称（里面包含了规格值的名称），获取 （规格字符串id - 规格名称）对应的Map
                 rt = specStrProc.getListWithBatchAdd(aid, new FaiList<>(specStrNameSet), nameIdMap);
                 if(rt != Errno.OK){
                     return rt;
@@ -2089,6 +2093,7 @@ public class ProductSpecService extends ServicePub {
             specStrDaoCtrl.closeDao();
         }
 
+        // 将名称都替换成规格字符串id
         for (Param pdScInfo : addPdScInfoList) {
             String name = (String)pdScInfo.remove(fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity.Info.NAME);
             Integer scStrId = nameIdMap.getInt(name);
@@ -2219,6 +2224,10 @@ public class ProductSpecService extends ServicePub {
         return skuList;
     }
 
+    /**
+     * 消除名称前后的空格
+     * @param pdScInfo 规格对象
+     */
     public static void trimProductSpecStrName(Param pdScInfo){
         if(pdScInfo.containsKey(SpecStrEntity.Info.NAME)){
             pdScInfo.setString(SpecStrEntity.Info.NAME, Str.trim(pdScInfo.getString(SpecStrEntity.Info.NAME)));

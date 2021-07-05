@@ -14,7 +14,7 @@ public class MgProductInfCli6ForProductLib extends MgProductInfCli5ForProductScA
     public MgProductInfCli6ForProductLib(int flow) {
         super(flow);
     }
-
+    
     /**==============================================   商品库服务接口开始   ==============================================*/
     /**
      * 新增商品库
@@ -58,7 +58,7 @@ public class MgProductInfCli6ForProductLib extends MgProductInfCli5ForProductScA
                 }
             }
             if (rlLibIdRef != null) {
-                m_rt = recvBody.getInt(keyRef, rlLibIdRef);
+                m_rt = recvBody.getInt(keyRef, libIdRef);
                 if (m_rt != Errno.OK || keyRef.value != ProductLibDto.Key.RL_LIB_ID) {
                     Log.logErr(m_rt, "recv rlLibId codec err");
                     return m_rt;
@@ -143,7 +143,7 @@ public class MgProductInfCli6ForProductLib extends MgProductInfCli5ForProductScA
     }
 
     /**
-     * 根据条件查询商品库的数据
+     * 查询商品库的数据
      */
     public int getPdLibList(int aid, int tid, int siteId, int lgId, int keepPriId1,
                             SearchArg searchArg, FaiList<Param> list) {
@@ -183,14 +183,14 @@ public class MgProductInfCli6ForProductLib extends MgProductInfCli5ForProductScA
     }
 
     /**
-     * 联合增删改
+     * 联合增删改。先删除，再修改，最后添加
      * @param addInfoList 要添加的
      * @param updaterList 要更新的
      * @param delRlLibIds 要删除的
      * @param rlLibIdsRef 保存新增商品的rlLibId
      * @return
      */
-    public int unionSetGroupList(int aid, int tid, int siteId, int lgId, int keepPriId1,
+    public int unionSetLibList(int aid, int tid, int siteId, int lgId, int keepPriId1,
                                  FaiList<Param> addInfoList,
                                  FaiList<ParamUpdater> updaterList,
                                  FaiList<Integer> delRlLibIds,
@@ -249,7 +249,7 @@ public class MgProductInfCli6ForProductLib extends MgProductInfCli5ForProductScA
     }
 
     /**
-     * 获取所以的库业务表的数据
+     * 获取所有的库业务表的数据
      */
     public int getAllLibRel(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> relLibList) {
         m_rt = Errno.ERROR;

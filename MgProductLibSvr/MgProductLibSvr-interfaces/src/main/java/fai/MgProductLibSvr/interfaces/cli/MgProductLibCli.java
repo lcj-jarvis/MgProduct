@@ -267,9 +267,14 @@ public class MgProductLibCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductLibRelDto.Key.UNION_PRI_ID, unionPriId);
+
             if (searchArg != null) {
+                //调用svr的getLibRelFromDb方法
                 command = MgProductLibCmd.LibCmd.SEARCH_REL;
                 searchArg.toBuffer(sendBody, ProductLibRelDto.Key.SEARCH_ARG);
+            }else {
+                //调用svr的getAllLibRel方法
+                searchArg = new SearchArg();
             }
 
             Param result = sendAndReceive(aid, command, sendBody,true);
@@ -286,6 +291,7 @@ public class MgProductLibCli extends FaiClient {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
             }
+
             // recv total size
             if (searchArg.totalSize != null) {
                 recvBody.getInt(keyRef, searchArg.totalSize);
@@ -464,5 +470,4 @@ public class MgProductLibCli extends FaiClient {
 
         return param.setBoolean("success", true).setObject("recvBody", recvBody);
     }
-
 }

@@ -58,6 +58,8 @@ public class MgProductArg {
 
     private FaiList<Param> skuStoreSales;
 
+
+
     private MgProductArg(Builder builder) {
         this.aid = builder.aid;
         this.tid = builder.tid;

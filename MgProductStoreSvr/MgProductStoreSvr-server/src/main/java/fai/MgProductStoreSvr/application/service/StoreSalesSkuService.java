@@ -770,6 +770,8 @@ public class StoreSalesSkuService extends StoreService {
                         totalCount = totalCount - count;
                         if(totalCount == 0){
                             skuIdCountMap.remove(skuId);
+                        }else {
+                            skuIdCountMap.put(skuId, totalCount);
                         }
                     }
                 }

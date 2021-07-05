@@ -198,6 +198,7 @@ public class HoldingRecordProc {
         matcher.and(HoldingRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         matcher.and(HoldingRecordEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
         matcher.and(HoldingRecordEntity.Info.RL_ORDER_CODE, ParamMatcher.EQ, rlOrderCode);
+        matcher.and(HoldingRecordEntity.Info.ALREADY_DEL, ParamMatcher.EQ, false);
         ParamUpdater updater = new ParamUpdater();
         updater.getData().setBoolean(HoldingRecordEntity.Info.ALREADY_DEL, true);
         Ref<Integer> rowRef = new Ref<>();

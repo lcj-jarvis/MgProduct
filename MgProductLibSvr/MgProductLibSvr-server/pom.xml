@@ -151,7 +151,7 @@
     </dependencies>
 
     <build>
-        <finalName>MgProductGroupSvr</finalName>
+        <finalName>MgProductLibSvr</finalName>
         <sourceDirectory>src/main/java</sourceDirectory>
         <plugins>
             <plugin>
@@ -186,7 +186,7 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>fai.MgProductGroupSvr.application.MgProductGroupSvr</mainClass>
+                            <mainClass>fai.MgProductLibSvr.application.MgProductLibSvr</mainClass>
                         </manifest>
                     </archive>
                     <outputDirectory>${user.home}/sbin/${project.parent.artifactId}</outputDirectory>

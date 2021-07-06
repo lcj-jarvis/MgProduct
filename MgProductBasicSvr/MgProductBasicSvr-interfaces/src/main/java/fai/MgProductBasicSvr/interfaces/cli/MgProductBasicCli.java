@@ -715,14 +715,7 @@ public class MgProductBasicCli extends FaiClient {
     /**
      * 新增商品业务关联
      */
-    public int bindProductRel(int aid, int tid, int unionPriId, Param bindRlPdInfo, Param info) {
-        return bindProductRel(aid, tid, unionPriId, bindRlPdInfo, info, null);
-    }
-
-    /**
-     * 新增商品业务关联
-     */
-    public int bindProductRel(int aid, int tid, int unionPriId, Param bindRlPdInfo, Param info, Ref<Integer> rlPdIdRef) {
+    public int bindProductRel(int aid, int tid, int unionPriId, String xid, Param bindRlPdInfo, Param info, Ref<Integer> rlPdIdRef, Ref<Integer> pdIdRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -739,6 +732,7 @@ public class MgProductBasicCli extends FaiClient {
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putString(ProductRelDto.Key.XID, xid);
             sendBody.putInt(ProductRelDto.Key.TID, tid);
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
             bindRlPdInfo.toBuffer(sendBody, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto());
@@ -778,6 +772,13 @@ public class MgProductBasicCli extends FaiClient {
                 if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.RL_PD_ID) {
                     Log.logErr(m_rt, "recv sid codec err");
                     return m_rt;
+                }
+                if(pdIdRef != null) {
+                    m_rt = recvBody.getInt(keyRef, pdIdRef);
+                    if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.PD_ID) {
+                        Log.logErr(m_rt, "recv sid codec err");
+                        return m_rt;
+                    }
                 }
             }
 

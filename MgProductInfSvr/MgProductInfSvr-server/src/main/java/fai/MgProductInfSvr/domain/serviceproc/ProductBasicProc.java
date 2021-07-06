@@ -146,14 +146,14 @@ public class ProductBasicProc {
      * 新增商品业务关联
      * @return
      */
-    public int bindProductRel(int aid, int tid, int unionPriId, Param bindRlPdInfo, Param info, Ref<Integer> rlPdIdRef) {
+    public int bindProductRel(int aid, int tid, int unionPriId, String xid, Param bindRlPdInfo, Param info, Ref<Integer> rlPdIdRef, Ref<Integer> pdIdRef) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.bindProductRel(aid, tid, unionPriId, bindRlPdInfo, info, rlPdIdRef);
+        rt = m_cli.bindProductRel(aid, tid, unionPriId, xid, bindRlPdInfo, info, rlPdIdRef, pdIdRef);
         if(rt != Errno.OK) {
             Log.logErr(rt, "bindProductRel error;flow=%d;aid=%d;tid=%d;unionPriId=%d;", m_flow, aid, tid, unionPriId);
             return rt;

@@ -109,7 +109,7 @@ public class ProductRelProc {
             throw new MgException(rt, "del product rel error;flow=%d;aid=%d;unionPridId=%d;", m_flow, aid, unionPriId);
         }
         // 处理下idBuilder
-        m_dao.restoreMaxId(aid, unionPriId, false);
+        restoreMaxId(aid, unionPriId, false);
         Log.logStd("clearData ok;flow=%d;aid=%d;unionPriId=%s;delCnt=%s;", m_flow, aid, unionPriId, refRowCount.value);
         return refRowCount.value;
     }
@@ -129,9 +129,14 @@ public class ProductRelProc {
         }
         // 处理下idBuilder
         for(int unionPriId : unionPriIds) {
-            m_dao.restoreMaxId(aid, unionPriId, false);
+            restoreMaxId(aid, unionPriId, false);
         }
         Log.logStd("clearAcct ok;flow=%d;aid=%d;unionPridId=%s;", m_flow, aid, unionPriIds);
+    }
+
+    public void restoreMaxId(int aid, int unionPriId, boolean needLock) {
+        m_dao.restoreMaxId(aid, unionPriId, needLock);
+        m_dao.clearIdBuilderCache(aid, unionPriId);
     }
 
     public int delProductRel(int aid, int unionPriId, FaiList<Integer> rlPdIds, boolean softDel) {

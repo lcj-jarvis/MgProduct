@@ -15,6 +15,8 @@ public class MgProductArg {
     private int keepPriId1;
     private FaiList<Param> primaryKeys;
 
+    private String xid;
+
     private FaiList<Param> addList;
     private boolean isBiz;
     private int rlPdId;
@@ -68,6 +70,8 @@ public class MgProductArg {
         this.lgId = builder.lgId;
         this.keepPriId1 = builder.keepPriId1;
 
+        this.xid = builder.xid;
+
         this.primaryKeys = builder.primaryKeys;
         this.updaterList = builder.updaterList;
         this.addList = builder.addList;
@@ -114,6 +118,10 @@ public class MgProductArg {
 
         this.delRelLibIds = builder.delRelLibIds;
 
+    }
+
+    public String getXid() {
+        return xid;
     }
 
     public int getAid() {
@@ -307,6 +315,8 @@ public class MgProductArg {
         protected int lgId;
         protected int keepPriId1;
 
+        protected String xid;
+
         protected FaiList<Param> addList;
         protected FaiList<Param> primaryKeys;
         protected FaiList<ParamUpdater> updaterList;
@@ -317,6 +327,8 @@ public class MgProductArg {
         protected ParamUpdater updater;
         protected boolean softDel;
         protected SearchArg searchArg;
+
+        public abstract Builder setXid(String xid);
 
         public abstract Builder setAddList(FaiList<Param> addList);
         public abstract Builder setPrimaryList(FaiList<Param> primaryKeys);
@@ -528,6 +540,12 @@ public class MgProductArg {
         @Override
         public Builder setSkuId(long skuId) {
             this.skuId = skuId;
+            return this;
+        }
+
+        @Override
+        public Builder setXid(String xid) {
+            this.xid = xid;
             return this;
         }
 

@@ -71,7 +71,8 @@ public class ProductBasicEntity {
         public static final String LGID = "lgId"; // int 多语言id
         public static final String KEEP_PRI_ID1 = "keepPriId1"; //int 保留主键1
 
-        public static final String RL_GROUP_IDS = "rlGroupIds"; // 分类ids
+        public static final String RL_GROUP_IDS = "rlGroupIds"; // 商品分类业务ids
+        public static final String RL_PROPS = "rlGroupIds"; // 商品参数绑定关系
         public static final String RL_PROP_IDS = "rlPropIds";   // 参数ids
         public static final String PROP_VAL_IDS = "propValIds"; // 参数值ids
     }

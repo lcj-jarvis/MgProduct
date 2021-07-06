@@ -9,9 +9,9 @@ import fai.middleground.svrutil.repository.DaoCtrl;
  * @version 1.0
  * @date 2021/6/28 16:26
  */
-public class ProductRollbackDaoCtrl extends DaoCtrl {
+public class SagaDaoCtrl extends DaoCtrl {
 
-    private ProductRollbackDaoCtrl(int flow, int aid) {
+    private SagaDaoCtrl(int flow, int aid) {
         super(flow, aid);
     }
 
@@ -19,12 +19,12 @@ public class ProductRollbackDaoCtrl extends DaoCtrl {
         m_daoPool = daoPool;
     }
 
-    public static ProductRollbackDaoCtrl getInstance(int flow, int aid) {
+    public static SagaDaoCtrl getInstance(int flow, int aid) {
         if(m_daoPool == null) {
             Log.logErr("m_daoPool is not init;");
             return null;
         }
-        return new ProductRollbackDaoCtrl(flow, aid);
+        return new SagaDaoCtrl(flow, aid);
     }
 
     @Override

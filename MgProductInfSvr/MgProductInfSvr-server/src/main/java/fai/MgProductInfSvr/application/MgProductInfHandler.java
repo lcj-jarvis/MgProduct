@@ -4,7 +4,9 @@ import fai.MgProductInfSvr.application.service.*;
 import fai.MgProductInfSvr.interfaces.cmd.MgProductInfCmd;
 import fai.MgProductInfSvr.interfaces.dto.*;
 import fai.MgProductLibSvr.interfaces.dto.ProductLibRelDto;
+import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.fseata.client.core.exception.TransactionException;
+import fai.comm.fseata.client.core.rpc.annotation.SagaTransaction;
 import fai.comm.jnetkit.server.fai.FaiHandler;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
@@ -532,15 +534,21 @@ public class MgProductInfHandler extends FaiHandler {
     public int bindProductRel(final FaiSession session,
                                 @ArgFlow final int flow,
                                 @ArgAid final int aid,
-                                @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
-                                @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
-                                @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
-                                @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
+                                @ArgBodyXid(value = MgProductDto.Key.XID, useDefault = true) String xid,
+                                @ArgBodyInteger(MgProductDto.Key.TID) int tid,
+                                @ArgBodyInteger(MgProductDto.Key.SITE_ID) int siteId,
+                                @ArgBodyInteger(MgProductDto.Key.LGID) int lgId,
+                                @ArgBodyInteger(MgProductDto.Key.KEEP_PRIID1) int keepPriId1,
+                                @ArgParam(classDef = MgProductDto.class, methodDef = "getInfoDto",
+                                        keyMatch = MgProductDto.Key.INFO) Param addInfo,
                                 @ArgParam(classDef = ProductBasicDto.class, methodDef = "getProductRelDto",
-                                        keyMatch = ProductBasicDto.Key.PD_BIND_INFO) Param bindRlPdInfo,
-                                @ArgParam(classDef = ProductBasicDto.class, methodDef = "getProductRelDto",
-                                        keyMatch = ProductBasicDto.Key.PD_REL_INFO) Param info) throws IOException {
-        return basicService.bindProductRel(session, flow, aid, tid, siteId, lgId, keepPriId1, bindRlPdInfo, info);
+                                        keyMatch = MgProductDto.Key.BIND_PD_INFO) Param bindPdInfo,
+                                @ArgParam(classDef = ProductStoreDto.InOutStoreRecord.class, methodDef = "getInfoDto",
+                                        keyMatch = MgProductDto.Key.IN_OUT_STORE_RECORD_INFO) Param inStoreRecordInfo) throws IOException, TransactionException {
+        if(!Str.isEmpty(xid)) {
+            RootContext.bind(xid, flow); // 方便后面使用GlobalTransactionContext.getCurrentOrCreate
+        }
+        return basicService.bindProductRel(session, flow, aid, xid, tid, siteId, lgId, keepPriId1, addInfo, bindPdInfo, inStoreRecordInfo);
     }
 
     @WrittenCmd
@@ -1246,4 +1254,5 @@ public class MgProductInfHandler extends FaiHandler {
     ProductStoreService storeService = new ProductStoreService();
     ProductGroupService groupService = ServiceProxy.create(new ProductGroupService());
     ProductLibService libService = ServiceProxy.create(new ProductLibService());
+
 }

@@ -182,16 +182,28 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductBasicCmd.BasicCmd.ADD_REL_BIND)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductBasicCmd.BasicCmd.ADD_REL_BIND_ROLLBACK)
     public int bindProductRel(final FaiSession session,
                               @ArgFlow final int flow,
                               @ArgAid final int aid,
+                              @ArgBodyXid(value = ProductRelDto.Key.XID, useDefault = true) String xid,
                               @ArgBodyInteger(ProductRelDto.Key.TID) int tid,
                               @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
                               @ArgParam(classDef = ProductRelDto.class, methodDef = "getInfoDto",
                                       keyMatch = ProductRelDto.Key.INFO) Param bindRlPdInfo,
                               @ArgParam(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
                                       keyMatch = ProductRelDto.Key.INFO) Param info) throws IOException {
-        return service.bindProductRel(session, flow, aid, tid, unionPriId, bindRlPdInfo, info);
+        return service.bindProductRel(session, flow, aid, xid, tid, unionPriId, bindRlPdInfo, info);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BasicCmd.ADD_REL_BIND_ROLLBACK)
+    public int bindProductRelRollback(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid final int aid,
+                              @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                              @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return service.bindProductRelRollback(session, flow, aid, xid, branchId);
     }
 
     @WrittenCmd
@@ -442,4 +454,6 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
     private ProductBasicService service = ServiceProxy.create(new ProductBasicService());
     private ProductBindGroupService groupBindService = ServiceProxy.create(new ProductBindGroupService());
     private ProductBindPropService propBindservice = ServiceProxy.create(new ProductBindPropService());
+
+    private final static String CLI_NAME = "MgProductBasicCli";
 }

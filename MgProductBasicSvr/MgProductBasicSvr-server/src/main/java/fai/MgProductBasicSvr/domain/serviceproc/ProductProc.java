@@ -207,8 +207,13 @@ public class ProductProc {
             throw new MgException(rt, "del product rel error;flow=%d;aid=%d;sourceUnionPriId=%s;", m_flow, aid, unionPriIds);
         }
         // 处理下idBuilder
-        m_dao.restoreMaxId(aid, false);
+        restoreMaxId(aid, false);
         Log.logStd("clearAcct ok;flow=%d;aid=%d;sourceUnionPriId=%s;", m_flow, aid, unionPriIds);
+    }
+
+    private void restoreMaxId(int aid, boolean needLock) {
+        m_dao.restoreMaxId(aid, needLock);
+        m_dao.clearIdBuilderCache(aid);
     }
 
     public int getPdCount(int aid) {

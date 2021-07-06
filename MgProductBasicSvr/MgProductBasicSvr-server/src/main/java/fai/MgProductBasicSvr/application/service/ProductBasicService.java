@@ -2,18 +2,15 @@ package fai.MgProductBasicSvr.application.service;
 
 import fai.MgProductBasicSvr.domain.common.LockUtil;
 import fai.MgProductBasicSvr.domain.common.MgProductCheck;
-import fai.MgProductBasicSvr.domain.entity.ProductBindPropEntity;
-import fai.MgProductBasicSvr.domain.entity.ProductEntity;
-import fai.MgProductBasicSvr.domain.entity.ProductRelEntity;
+import fai.MgProductBasicSvr.domain.entity.*;
 import fai.MgProductBasicSvr.domain.repository.cache.*;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductDaoCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductRelDaoCtrl;
-import fai.MgProductBasicSvr.domain.serviceproc.ProductBindGroupProc;
-import fai.MgProductBasicSvr.domain.serviceproc.ProductBindPropProc;
-import fai.MgProductBasicSvr.domain.serviceproc.ProductProc;
-import fai.MgProductBasicSvr.domain.serviceproc.ProductRelProc;
+import fai.MgProductBasicSvr.domain.serviceproc.*;
 import fai.MgProductBasicSvr.interfaces.dto.ProductDto;
 import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
+import fai.comm.fseata.client.core.model.BranchStatus;
+import fai.comm.fseata.client.core.rpc.def.CommDef;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
 import fai.comm.middleground.FaiValObj;
@@ -302,10 +299,7 @@ public class ProductBasicService extends ServicePub {
                 tc.closeDao();
             }
             // 清缓存
-            ProductRelCacheCtrl.clearCacheVersion(aid);
-            ProductBindPropCache.clearCacheVersion(aid);
-            ProductBindGroupCache.clearCacheVersion(aid);
-            ProductRelDaoCtrl.clearIdBuilderCache(aid, unionPriId);
+            CacheCtrl.clearCacheVersion(aid);
         }finally {
             lock.unlock();
         }
@@ -367,15 +361,8 @@ public class ProductBasicService extends ServicePub {
                 tc.closeDao();
             }
             // 清缓存
-            ProductCacheCtrl.clearCacheVersion(aid);
-            ProductRelCacheCtrl.clearCacheVersion(aid);
-            ProductBindPropCache.clearCacheVersion(aid);
-            ProductBindGroupCache.clearCacheVersion(aid);
+            CacheCtrl.clearCacheVersion(aid);
 
-            ProductDaoCtrl.clearIdBuilderCache(aid);
-            for(int unionPriId : unionPriIds) {
-                ProductRelDaoCtrl.clearIdBuilderCache(aid, unionPriId);
-            }
         }finally {
             lock.unlock();
         }
@@ -465,8 +452,7 @@ public class ProductBasicService extends ServicePub {
     public int setProducts(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlPdIds, ParamUpdater recvUpdater) throws IOException {
         int rt;
         if(!MgProductCheck.RequestLimit.checkWriteSize(aid, rlPdIds)) {
-            rt = Errno.ARGS_ERROR;
-            Log.logErr("args error, rlPdIds is not valid;aid=%d;uid=%d;", aid, unionPriId);
+            rt = Errno.SIZE_LIMIT;
             return rt;
         }
         if(recvUpdater == null || recvUpdater.isEmpty()) {
@@ -878,7 +864,7 @@ public class ProductBasicService extends ServicePub {
      * 新增商品业务关联
      */
     @SuccessRt(value = Errno.OK)
-    public int bindProductRel(FaiSession session, int flow, int aid, int tid, int unionPriId, Param bindRlPdInfo, Param info) throws IOException {
+    public int bindProductRel(FaiSession session, int flow, int aid, String xid, int tid, int unionPriId, Param bindRlPdInfo, Param info) throws IOException {
         int rt = Errno.ERROR;
         if(!FaiValObj.TermId.isValidTid(tid)) {
             rt = Errno.ARGS_ERROR;
@@ -960,6 +946,7 @@ public class ProductBasicService extends ServicePub {
         relData.assign(info, ProductRelEntity.Info.FLAG);
 
         Integer rlPdId = 0;
+        Integer pdId = 0;
 
         Lock lock = LockUtil.getLock(aid);
         lock.lock();
@@ -977,11 +964,39 @@ public class ProductBasicService extends ServicePub {
                     rt = Errno.ERROR;
                     return rt;
                 }
-                relData.assign(bindRel, ProductRelEntity.Info.PD_ID);
+                pdId = bindRel.getInt(ProductRelEntity.Info.PD_ID);
+                relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
                 relData.assign(bindRel, ProductRelEntity.Info.PD_TYPE);
 
                 // 新增商品业务关系
                 rlPdId = relProc.addProductRel(aid, unionPriId, relData);
+
+                // 新增商品参数绑定关系
+                FaiList<Param> bindProps = info.getList(ProductRelEntity.Info.RL_PROPS);
+                if(!Util.isEmptyList(bindProps)) {
+                    ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
+                    bindPropProc.addPdBindPropList(aid, unionPriId, rlPdId, pdId, bindProps);
+                }
+
+                // 新增商品分类绑定关系
+                FaiList<Integer> rlGroupIds = info.getList(ProductRelEntity.Info.RL_GROUP_IDS);
+                if(useProductGroup() && !Util.isEmptyList(rlGroupIds)) {
+                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                    bindGroupProc.addPdBindGroupList(aid, unionPriId, rlPdId, pdId, rlGroupIds);
+                    Log.logStd("add bind groupIds ok;flow=%d;aid=%d;uid=%d;rlPdId=%d;pdId=%d;rlGroupIds=%s;", flow, aid, unionPriId, rlPdId, pdId, rlGroupIds);
+                }
+
+                // xid不为空，则开启了分布式事务，saga添加一条记录
+                if(!Str.isEmpty(xid)) {
+                    // saga
+                    Param prop = new Param();
+                    prop.setInt(BasicSagaEntity.PropInfo.UNION_PRI_ID, unionPriId);
+                    prop.setInt(BasicSagaEntity.PropInfo.RL_PD_ID, rlPdId);
+                    prop.assign(info, BasicSagaEntity.PropInfo.RL_PROPS);
+                    prop.assign(info, BasicSagaEntity.PropInfo.RL_GROUP_IDS);
+                    SagaProc sagaProc = new SagaProc(flow, aid, tc);
+                    sagaProc.addInfo(aid, xid, prop);
+                }
 
                 commit = true;
                 tc.commit();
@@ -991,7 +1006,6 @@ public class ProductBasicService extends ServicePub {
             } finally {
                 if(!commit) {
                     tc.rollback();
-                    ProductDaoCtrl.clearIdBuilderCache(aid);
                     ProductRelDaoCtrl.clearIdBuilderCache(aid, unionPriId);
                 }
                 tc.closeDao();
@@ -1001,10 +1015,95 @@ public class ProductBasicService extends ServicePub {
             lock.unlock();
         }
         rt = Errno.OK;
-        Log.logStd("bindProductRel ok;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
+        Log.logStd("bindProductRel ok;flow=%d;aid=%d;uid=%d;rlPdId=%d;pdId=%d;info=%s;", flow, aid, unionPriId, rlPdId, pdId, info);
         FaiBuffer sendBuf = new FaiBuffer(true);
         sendBuf.putInt(ProductRelDto.Key.RL_PD_ID, rlPdId);
+        sendBuf.putInt(ProductRelDto.Key.PD_ID, pdId);
         session.write(sendBuf);
+        return rt;
+    }
+
+    /**
+     * 新增商品业务关联-补偿
+     */
+    @SuccessRt(value = Errno.OK)
+    public int bindProductRelRollback(FaiSession session, int flow, int aid, String xid, long branchId) throws IOException {
+        int rt = Errno.ERROR;
+
+        Lock lock = LockUtil.getLock(aid);
+        lock.lock();
+        try {
+            //统一控制事务
+            TransactionCtrl tc = new TransactionCtrl();
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+                SagaProc sagaProc = new SagaProc(flow, aid, tc);
+                Param sagaInfo = sagaProc.getInfoWithAdd(xid, branchId);
+                if(sagaInfo == null) {
+                    return Errno.OK;
+                }
+
+                int status = sagaInfo.getInt(BasicSagaEntity.Info.STATUS);
+                if(status == BasicSagaValObj.Status.ROLLBACK_OK) {
+                    rt = Errno.OK;
+                    Log.logStd(rt, "rollback already ok! saga=%s;", sagaInfo);
+                    return rt;
+                }
+
+                Param prop = Param.parseParam(sagaInfo.getString(BasicSagaEntity.Info.PROP));
+                // 执行回滚逻辑
+                if(!Str.isEmpty(prop)) {
+                    int rlPdId = prop.getInt(BasicSagaEntity.PropInfo.RL_PD_ID);
+                    int unionPriId = prop.getInt(BasicSagaEntity.PropInfo.UNION_PRI_ID);
+                    ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+                    relProc.delProductRel(aid, unionPriId, new FaiList<>(Arrays.asList(rlPdId)), false);
+
+                    // 注意！！！ 这里是restoreMaxId，不是回退为之前的id
+                    // 因为saga模式是不保证事务隔离性的，很有可能已经有其他请求添加数据了
+                    relProc.restoreMaxId(aid, unionPriId, false);
+
+                    FaiList<Param> rlProps = prop.getList(BasicSagaEntity.PropInfo.RL_PROPS);
+                    if(!Util.isEmptyList(rlProps)) {
+                        ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
+                        bindPropProc.delPdBindPropList(aid, unionPriId, rlPdId, rlProps);
+                    }
+
+                    if(useProductGroup()) {
+                        FaiList<Integer> rlGroupIds = prop.getList(BasicSagaEntity.PropInfo.RL_GROUP_IDS);
+                        if(!Util.isEmptyList(rlProps)) {
+                            ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                            bindGroupProc.delPdBindGroupList(aid, unionPriId, rlPdId, rlGroupIds);
+                        }
+                    }
+                }
+
+                // 更新saga记录status
+                sagaProc.setStatus(xid, branchId, BasicSagaValObj.Status.ROLLBACK_OK);
+
+                commit = true;
+                tc.commit();
+            } finally {
+                if(!commit) {
+                    tc.rollback();
+                }
+                tc.closeDao();
+            }
+            // 更新缓存
+            CacheCtrl.clearCacheVersion(aid);
+        } finally {
+            lock.unlock();
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            if (rt != Errno.OK) {
+                //失败，需要重试
+                sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, BranchStatus.PhaseTwo_RollbackFailed_Retryable.getCode());
+            }else{
+                //成功，不需要重试
+                sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, BranchStatus.PhaseTwo_Rollbacked.getCode());
+            }
+            session.write(sendBuf);
+        }
+        rt = Errno.OK;
         return rt;
     }
 

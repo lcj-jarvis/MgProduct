@@ -93,7 +93,7 @@ public class ProductSpecService extends MgProductInfService {
         return rt;
     }
     /**
-     * 批量删除规格模板
+     * 批量修改规格模板
      */
     public int setTpScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<ParamUpdater> updaterList) throws IOException {
         int rt = Errno.ERROR;
@@ -491,6 +491,7 @@ public class ProductSpecService extends MgProductInfService {
             FaiList<Param> pdScSkuInfoList = new FaiList<>();
             Log.logDbg("whalelog updaterList=%s", updaterList);
             // TODO 分布式事务
+            // 针对规格的操作
             rt = productSpecProc.unionSetPdScInfoList(aid, tid, unionPriId, pdId, addList, delList, updaterList, pdScSkuInfoList);
             if(rt != Errno.OK) {
                 return rt;
@@ -513,6 +514,7 @@ public class ProductSpecService extends MgProductInfService {
             }
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
+            // 刷新sku，修改库存
             rt = productStoreProc.refreshSkuStoreSales(aid, tid, unionPriId, pdId, rlPdId, storeSalesSkuList);
             if(rt != Errno.OK) {
                 return rt;

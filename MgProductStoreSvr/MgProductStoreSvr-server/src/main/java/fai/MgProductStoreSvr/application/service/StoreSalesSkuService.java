@@ -448,7 +448,7 @@ public class StoreSalesSkuService extends StoreService {
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = reportSummary(aid, new FaiList<>(Arrays.asList(pdId)), ReportValObj.Flag.REPORT_PRICE,
+                        rt = reportSummary(aid, new FaiList<>(Arrays.asList(pdId)), ReportValObj.Flag.REPORT_PRICE|ReportValObj.Flag.REPORT_COUNT,
                                 skuIdList, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
                         if(rt != Errno.OK){
                             return rt;
@@ -770,6 +770,8 @@ public class StoreSalesSkuService extends StoreService {
                         totalCount = totalCount - count;
                         if(totalCount == 0){
                             skuIdCountMap.remove(skuId);
+                        }else {
+                            skuIdCountMap.put(skuId, totalCount);
                         }
                     }
                 }

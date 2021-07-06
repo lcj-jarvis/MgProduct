@@ -46,8 +46,8 @@ public class MgProductLibHandler extends MiddleGroundHandler {
                             @ArgFlow final int flow,
                             @ArgAid int aid,
                             @ArgBodyInteger(ProductLibRelDto.Key.UNION_PRI_ID) int unionPriId,
-                            @ArgList(keyMatch = ProductLibRelDto.Key.RL_LIB_IDS) FaiList<Integer> rlGroupIds) throws IOException {
-        return libService.delLibList(session, flow, aid, unionPriId, rlGroupIds);
+                            @ArgList(keyMatch = ProductLibRelDto.Key.RL_LIB_IDS) FaiList<Integer> rlLibIds) throws IOException {
+        return libService.delLibList(session, flow, aid, unionPriId, rlLibIds);
     }
 
     @Cmd(MgProductLibCmd.LibCmd.BATCH_SET)
@@ -102,7 +102,7 @@ public class MgProductLibHandler extends MiddleGroundHandler {
                                  @ArgAid int aid,
                                  @ArgBodyInteger(ProductLibRelDto.Key.UNION_PRI_ID) int unionPriId,
                                  @ArgBodyInteger(ProductLibRelDto.Key.TID) int tid,
-                                 @ArgParam(classDef = ProductLibRelDto.class, methodDef = "getAllInfoDto",
+                                 @ArgList(classDef = ProductLibRelDto.class, methodDef = "getAllInfoDto",
                                          keyMatch = ProductLibRelDto.Key.INFO_LIST) FaiList<Param> addInfoList,
                                  @ArgList(classDef = ProductLibRelDto.class, methodDef = "getAllInfoDto",
                                          keyMatch = ProductLibRelDto.Key.UPDATERLIST) FaiList<ParamUpdater> updaterList,

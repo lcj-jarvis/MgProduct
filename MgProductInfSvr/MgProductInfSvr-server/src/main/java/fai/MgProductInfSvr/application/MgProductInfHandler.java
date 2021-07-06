@@ -1217,9 +1217,9 @@ public class MgProductInfHandler extends FaiHandler {
                                @ArgBodyInteger(ProductLibDto.Key.SITE_ID) int siteId,
                                @ArgBodyInteger(ProductLibDto.Key.LGID) int lgid,
                                @ArgBodyInteger(ProductLibDto.Key.KEEP_PRIID1) int keepPriId1,
-                               @ArgParam(classDef = ProductLibDto.class, methodDef = "getPdLibDto",
-                                       keyMatch = ProductLibRelDto.Key.INFO_LIST) FaiList<Param> addInfoList,
-                               @ArgList(classDef = ProductLibRelDto.class, methodDef = "getPdLibDto",
+                               @ArgList(classDef = ProductLibDto.class, methodDef = "getPdLibDto",
+                                       keyMatch = ProductLibDto.Key.INFO_LIST) FaiList<Param> addInfoList,
+                               @ArgList(classDef = ProductLibDto.class, methodDef = "getPdLibDto",
                                        keyMatch = ProductLibDto.Key.UPDATERLIST) FaiList<ParamUpdater> updaterList,
                                @ArgList(keyMatch = ProductLibDto.Key.RL_LIB_IDS) FaiList<Integer> delRlLibIds) throws IOException{
         return libService.unionSetLibList(session, flow, aid, tid, siteId, lgid, keepPriId1, addInfoList, updaterList, delRlLibIds);

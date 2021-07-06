@@ -115,7 +115,7 @@ public class MgProductLibCli extends FaiClient {
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
-            if (rlLibIds == null || rlLibIds.isEmpty()) {
+            if ( Util.isEmptyList(rlLibIds)) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "list is null");
                 return m_rt;
@@ -151,7 +151,7 @@ public class MgProductLibCli extends FaiClient {
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
-            if (updaterList == null || updaterList.isEmpty()) {
+            if (Util.isEmptyList(updaterList)) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "list is null");
                 return m_rt;

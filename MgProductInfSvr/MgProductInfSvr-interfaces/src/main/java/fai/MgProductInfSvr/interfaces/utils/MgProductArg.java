@@ -58,6 +58,7 @@ public class MgProductArg {
 
     private FaiList<Param> skuStoreSales;
 
+    private FaiList<Integer> delRelLibIds;
 
 
     private MgProductArg(Builder builder) {
@@ -110,6 +111,9 @@ public class MgProductArg {
         this.onlyGetChecked = builder.onlyGetChecked;
 
         this.skuStoreSales = builder.skuStoreSales;
+
+        this.delRelLibIds = builder.delRelLibIds;
+
     }
 
     public int getAid() {
@@ -292,6 +296,10 @@ public class MgProductArg {
         return skuStoreSales;
     }
 
+    public FaiList<Integer> getDelRelLibIds() {
+        return delRelLibIds;
+    }
+
     private static abstract class TopBuilder {
         protected int aid;
         protected int tid;
@@ -348,7 +356,13 @@ public class MgProductArg {
         public abstract Builder setDelRlGroupIds(FaiList<Integer> delRlGroupIds);
     }
 
-    private static abstract class PropBuilder extends GroupBuilder {
+    private static abstract class LibBuilder extends GroupBuilder {
+        protected FaiList<Integer> delRelLibIds;
+
+        public abstract Builder setDelRelLibIds(FaiList<Integer> delRelLibIds);
+    }
+
+    private static abstract class PropBuilder extends LibBuilder {
         protected int rlLibId;
         protected FaiList<Integer> rlPropIds;
         protected FaiList<Param> propIdsAndValIds;
@@ -664,8 +678,15 @@ public class MgProductArg {
             return this;
         }
 
+        @Override
+        public Builder setDelRelLibIds(FaiList<Integer> delRelLibIds) {
+            this.delRelLibIds = delRelLibIds;
+            return this;
+        }
+
         public MgProductArg build() {
             return new MgProductArg(this);
         }
+
     }
 }

@@ -29,23 +29,16 @@ public class MgProductInfCli6ForProductLib extends MgProductInfCli5ForProductScA
      * @return {@link Errno}
      */
     public int addProductLib(MgProductArg mgProductArg, Ref<Integer> libIdRef, Ref<Integer> rlLibIdRef) {
-        return addProductLib(mgProductArg.getAid(), mgProductArg.getTid(), mgProductArg.getSiteId(),
-                    mgProductArg.getLgId(), mgProductArg.getKeepPriId1(), mgProductArg.getAddInfo(),
-                    libIdRef, rlLibIdRef);
-    }
-
-    /**
-     * 新增商品库
-     * @param info 添加的库信息
-     * @param libIdRef 接收添加成功后的库id
-     * @param rlLibIdRef 接收添加成功后的库业务id
-     * @return {@link Errno}
-     */
-    public int addProductLib(int aid, int tid, int siteId, int lgId, int keepPriId1,
-                             Param info, Ref<Integer> libIdRef, Ref<Integer> rlLibIdRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
+            int aid = mgProductArg.getAid();
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            Param info = mgProductArg.getAddInfo();
+
             if (aid == 0) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error");
@@ -90,6 +83,7 @@ public class MgProductInfCli6ForProductLib extends MgProductInfCli5ForProductScA
         } finally {
             close();
             stat.end(m_rt != Errno.OK, m_rt);
+
         }
     }
 
@@ -102,19 +96,16 @@ public class MgProductInfCli6ForProductLib extends MgProductInfCli5ForProductScA
      * @return {@link Errno}
      */
     public int delPdLibList(MgProductArg mgProductArg) {
-       return delPdLibList(mgProductArg.getAid(), mgProductArg.getTid(), mgProductArg.getSiteId(),
-               mgProductArg.getLgId(), mgProductArg.getKeepPriId1(), mgProductArg.getDelRelLibIds());
-    }
-
-    /**
-     * 删除商品库
-     * @param delRelLibIds 要删除的商品库业务id集合
-     * @return {@link Errno}
-     */
-    public int delPdLibList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> delRelLibIds) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
+            int aid = mgProductArg.getAid();
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            FaiList<Integer> delRelLibIds = mgProductArg.getDelRelLibIds();
+
             if (aid == 0) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error");
@@ -139,6 +130,7 @@ public class MgProductInfCli6ForProductLib extends MgProductInfCli5ForProductScA
         } finally {
             close();
             stat.end(m_rt != Errno.OK, m_rt);
+
         }
     }
 
@@ -151,19 +143,15 @@ public class MgProductInfCli6ForProductLib extends MgProductInfCli5ForProductScA
      * @return {@link Errno}
      */
     public int setPdLibList(MgProductArg mgProductArg) {
-        return setPdLibList(mgProductArg.getAid(), mgProductArg.getTid(), mgProductArg.getSiteId(),
-                mgProductArg.getLgId(), mgProductArg.getKeepPriId1(), mgProductArg.getUpdaterList());
-    }
-
-    /**
-     * 修改商品库
-     * @param updaterList 保存修改的信息
-     * @return {@link Errno}
-     */
-    public int setPdLibList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<ParamUpdater> updaterList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
+            int aid = mgProductArg.getAid();
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            FaiList<ParamUpdater> updaterList = mgProductArg.getUpdaterList();
             if (aid == 0) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error");
@@ -186,8 +174,10 @@ public class MgProductInfCli6ForProductLib extends MgProductInfCli5ForProductScA
         } finally {
             close();
             stat.end(m_rt != Errno.OK, m_rt);
+
         }
     }
+
 
     /**
      * 查询商品库的数据
@@ -199,20 +189,15 @@ public class MgProductInfCli6ForProductLib extends MgProductInfCli5ForProductScA
      * @return  {@link Errno}
      */
     public int getPdLibList(MgProductArg mgProductArg, FaiList<Param> list) {
-        return getPdLibList(mgProductArg.getAid(), mgProductArg.getTid(), mgProductArg.getSiteId(),
-                mgProductArg.getLgId(), mgProductArg.getKeepPriId1(), mgProductArg.getSearchArg(), list);
-    }
-
-    /**
-     * 查询商品库的数据
-     * @param list 接收查询的结果
-     * @return {@link Errno}
-     */
-    public int getPdLibList(int aid, int tid, int siteId, int lgId, int keepPriId1,
-                            SearchArg searchArg, FaiList<Param> list) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
+            int aid = mgProductArg.getAid();
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            SearchArg searchArg = mgProductArg.getSearchArg();
             if (aid == 0) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error");
@@ -242,6 +227,7 @@ public class MgProductInfCli6ForProductLib extends MgProductInfCli5ForProductScA
         } finally {
             close();
             stat.end(m_rt != Errno.OK, m_rt);
+
         }
     }
 
@@ -260,34 +246,17 @@ public class MgProductInfCli6ForProductLib extends MgProductInfCli5ForProductScA
      * @return {@link Errno}
      */
     public int unionSetLibList(MgProductArg mgProductArg, Ref<FaiList<Integer>> rlLibIdsRef) {
-        if (rlLibIdsRef == null) {
-            rlLibIdsRef = new Ref<FaiList<Integer>>();
-        }
-        FaiList<Integer> rlLibIds = new FaiList<Integer>();
-        int rt = unionSetLibList(mgProductArg.getAid(), mgProductArg.getTid(), mgProductArg.getSiteId(),
-                mgProductArg.getLgId(), mgProductArg.getKeepPriId1(), mgProductArg.getAddList(),
-                mgProductArg.getUpdaterList(), mgProductArg.getDelRelLibIds(), rlLibIds);
-        rlLibIdsRef.value = rlLibIds;
-        return rt;
-    }
-
-
-    /**
-     * 联合增删改。先删除，再修改，最后添加
-     * @param addInfoList 要添加的
-     * @param updaterList 要更新的
-     * @param delRelLibIds 要删除的
-     * @param rlLibIdsRef 保存新增商品的rlLibId
-     * @return {@link Errno}
-     */
-    public int unionSetLibList(int aid, int tid, int siteId, int lgId, int keepPriId1,
-                                 FaiList<Param> addInfoList,
-                                 FaiList<ParamUpdater> updaterList,
-                                 FaiList<Integer> delRelLibIds,
-                                 FaiList<Integer> rlLibIdsRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
+            int aid = mgProductArg.getAid();
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            FaiList<Param> addInfoList = mgProductArg.getAddList();
+            FaiList<ParamUpdater> updaterList = mgProductArg.getUpdaterList();
+            FaiList<Integer> delRelLibIds = mgProductArg.getDelRelLibIds();
             if (aid == 0) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error");
@@ -323,19 +292,23 @@ public class MgProductInfCli6ForProductLib extends MgProductInfCli5ForProductScA
 
             if (needRlLibIds) {
                 Ref<Integer> keyRef = new Ref<Integer>();
-                rlLibIdsRef.fromBuffer(recvBody, keyRef);
+                FaiList<Integer> rlLibIds = new FaiList<Integer>();
+                rlLibIds.fromBuffer(recvBody, keyRef);
                 if (m_rt != Errno.OK || keyRef.value != ProductLibDto.Key.RL_LIB_IDS) {
                     Log.logErr(m_rt, "recv rlLibIds codec err");
                     return m_rt;
                 }
+                rlLibIdsRef.value = rlLibIds;
             }
 
             return m_rt;
         } finally {
             close();
             stat.end(m_rt != Errno.OK, m_rt);
+
         }
     }
+
 
     /**
      * 获取所有的库业务表的数据
@@ -346,17 +319,14 @@ public class MgProductInfCli6ForProductLib extends MgProductInfCli5ForProductScA
      * @return  {@link Errno}
      */
     public int getAllLibRel(MgProductArg mgProductArg, FaiList<Param> relLibList) {
-        return getAllLibRel(mgProductArg.getAid(), mgProductArg.getTid(), mgProductArg.getSiteId(),
-                mgProductArg.getLgId(), mgProductArg.getKeepPriId1(), relLibList);
-    }
-
-    /**
-     * 获取所有的库业务表的数据
-     */
-    public int getAllLibRel(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> relLibList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
+            int aid = mgProductArg.getAid();
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
             if (aid == 0) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error");
@@ -386,6 +356,7 @@ public class MgProductInfCli6ForProductLib extends MgProductInfCli5ForProductScA
         } finally {
             close();
             stat.end(m_rt != Errno.OK, m_rt);
+
         }
     }
     /**==============================================   商品库服务接口结束   ==============================================*/

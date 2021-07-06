@@ -20,7 +20,7 @@ public class ProductLibEntity {
      */
     public static final class Info {
         public static final String AID = "aid";
-        public static final String LIB_ID = "LibId";
+        public static final String LIB_ID = "libId";
         public static final String SOURCE_TID = "sourceTid";
         public static final String SOURCE_UNIONPRIID = "sourceUnionPriId";
         public static final String LIB_NAME = "libName";

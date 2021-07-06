@@ -519,8 +519,8 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
-            Param info = mgProductArg.getPdRelInfo();
-            if (Str.isEmpty(info)) {
+            Param addInfo = mgProductArg.getAddInfo();
+            if (Str.isEmpty(addInfo)) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error;info is empty");
                 return m_rt;
@@ -531,14 +531,19 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 Log.logErr(m_rt, "args error;bindRlPdInfo is empty");
                 return m_rt;
             }
+            Param inStoreRecordInfo = mgProductArg.getInOutStoreRecordInfo();
+            if(inStoreRecordInfo == null) {
+                inStoreRecordInfo = new Param();
+            }
             int tid = mgProductArg.getTid();
             int siteId = mgProductArg.getSiteId();
             int lgId = mgProductArg.getLgId();
             int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
-            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
-            bindRlPdInfo.toBuffer(sendBody, ProductBasicDto.Key.PD_BIND_INFO, ProductBasicDto.getProductRelDto());
-            info.toBuffer(sendBody, ProductBasicDto.Key.PD_REL_INFO, ProductBasicDto.getProductRelDto());
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(MgProductDto.Key.TID, tid), new Pair(MgProductDto.Key.SITE_ID, siteId), new Pair(MgProductDto.Key.LGID, lgId), new Pair(MgProductDto.Key.KEEP_PRIID1, keepPriId1));
+            addInfo.toBuffer(sendBody, MgProductDto.Key.INFO, MgProductDto.getInfoDto());
+            bindRlPdInfo.toBuffer(sendBody, MgProductDto.Key.BIND_PD_INFO, ProductBasicDto.getProductRelDto());
+            inStoreRecordInfo.toBuffer(sendBody, MgProductDto.Key.IN_OUT_STORE_RECORD_INFO, ProductStoreDto.InOutStoreRecord.getInfoDto());
             // send and recv
             boolean rlPdIdRefNotNull = (rlPdIdRef != null);
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.ADD_PD_BIND, sendBody, false, rlPdIdRefNotNull);

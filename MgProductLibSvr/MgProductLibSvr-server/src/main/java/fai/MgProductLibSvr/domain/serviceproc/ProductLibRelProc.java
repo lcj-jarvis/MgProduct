@@ -95,8 +95,8 @@ public class ProductLibRelProc {
             relLibIds.add(relLibId);
         }
 
-        //批量插入
-        rt = m_relDaoCtrl.batchInsert(relLibInfoList);
+        //批量插入,并且不将relLibInfoList的元素设置为null
+        rt = m_relDaoCtrl.batchInsert(relLibInfoList, null, false);
 
         if(rt != Errno.OK) {
             throw new MgException(rt, "batch insert product lib rel error;flow=%d;aid=%d;", m_flow, aid);

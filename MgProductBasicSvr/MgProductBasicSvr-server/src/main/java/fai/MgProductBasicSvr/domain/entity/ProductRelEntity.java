@@ -22,6 +22,10 @@ public class ProductRelEntity {
         public static final String UPDATE_TIME = "sysUpdateTime"; // datetime 更新时间
         public static final String PD_TYPE = "productType"; // int 商品类型 (为了方便搜索，冗余商品表的该字段)
 
+        /*** 未入库属性 ***/
+        public static final String RL_GROUP_IDS = "rlGroupId"; // FaiList<Integer> 商品分类业务id集合
+        public static final String RL_PROPS = "rlProps"; // FaiList<Param> 商品参数业务绑定关系集合
+
         public static final String INFO_CHECK = "infoCheck"; // boolean 是否要校验info中的数据，中台内部使用。业务方接入可能需要添加一些空数据
         public static final String BIND_LIST = "bindList"; // FaiList 要绑定的商品关系表数据集合，给悦客接入进销存临时使用
     }

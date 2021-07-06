@@ -6,20 +6,13 @@ import fai.MgProductLibSvr.domain.entity.ProductLibEntity;
 import fai.MgProductLibSvr.domain.entity.ProductLibRelEntity;
 import fai.MgProductLibSvr.domain.entity.ProductLibValObj;
 import fai.MgProductLibSvr.domain.repository.cache.ProductLibCache;
-import fai.MgProductLibSvr.domain.repository.cache.ProductLibRelCache;
 import fai.MgProductLibSvr.domain.repository.dao.ProductLibDaoCtrl;
-import fai.comm.distributedkit.idBuilder.domain.IdBuilderConfig;
-import fai.comm.distributedkit.idBuilder.wrapper.IdBuilderWrapper;
 import fai.comm.util.*;
 import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.exception.MgException;
-import fai.middleground.svrutil.repository.DaoCtrl;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.Calendar;
-
-import static fai.app.FodderDef.ComeFrom.getList;
-import static java.awt.SystemColor.info;
 
 /**
  * @author LuChaoJi
@@ -45,40 +38,6 @@ public class ProductLibProc {
 
         }
     }
-
-    /**
-     * 添加库表中的数据，同一个aid下的库不能超过100
-     */
-    /*public int addLib(int aid, Param libInfo) {
-        int rt;
-        if(Str.isEmpty(libInfo)) {
-            rt = Errno.ARGS_ERROR;
-            throw new MgException(rt, "args err, infoList is empty;flow=%d;aid=%d;libInfo=%s", m_flow, aid, libInfo);
-        }
-
-        FaiList<Param> list = getLibList(aid,null,true);
-        int count = list.size();
-        if(count >= ProductLibValObj.Limit.COUNT_MAX) {
-            rt = Errno.COUNT_LIMIT;
-            throw new MgException(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductLibValObj.Limit.COUNT_MAX);
-        }
-
-        String libName = libInfo.getString(ProductLibEntity.Info.LIB_NAME);
-        Param existInfo = Misc.getFirst(list, ProductLibEntity.Info.LIB_NAME, libName);
-        if(!Str.isEmpty(existInfo)) {
-            rt = Errno.ALREADY_EXISTED;
-            throw new MgException(rt, "lib name is existed;flow=%d;aid=%d;name=%s;", m_flow, aid, libName);
-        }
-
-        int libId = creatAndSetId(aid, libInfo);
-
-        rt = m_daoCtrl.insert(libInfo);
-        if(rt != Errno.OK) {
-            throw new MgException(rt, "insert product lib error;flow=%d;aid=%d;libId=%d;", m_flow, aid, libId);
-        }
-
-        return libId;
-    }*/
 
     private int creatAndSetId(int aid, Param libInfo) {
         Integer libId = libInfo.getInt(ProductLibEntity.Info.LIB_ID, 0);
@@ -170,8 +129,6 @@ public class ProductLibProc {
         return list;
     }
 
-
-
     public void clearIdBuilderCache(int aid) {
         m_daoCtrl.clearIdBuilderCache(aid);
     }
@@ -191,6 +148,7 @@ public class ProductLibProc {
         rt = m_daoCtrl.delete(matcher);
         if(rt != Errno.OK){
             throw new MgException(rt, "delLibList error;flow=%d;aid=%d;libIdList=%s", m_flow, aid, libIdList);
+
         }
     }
 
@@ -225,13 +183,13 @@ public class ProductLibProc {
             //保存修改的信息到oldInfo中
             oldInfo = updater.update(oldInfo, true);
 
+            //只更新部分信息，和sql语句的参数一致
             Param data = new Param();
-            data.assign(oldInfo, ProductLibEntity.Info.AID);
-            data.assign(oldInfo, ProductLibEntity.Info.LIB_ID);
             data.assign(oldInfo, ProductLibEntity.Info.LIB_NAME);
-            data.assign(oldInfo, ProductLibEntity.Info.LIB_TYPE);
             data.assign(oldInfo, ProductLibEntity.Info.FLAG);
             data.setCalendar(ProductLibEntity.Info.UPDATE_TIME, now);
+            data.assign(oldInfo, ProductLibEntity.Info.AID);
+            data.assign(oldInfo, ProductLibEntity.Info.LIB_ID);
             dataList.add(data);
         }
         if(dataList.size() == 0){
@@ -249,9 +207,11 @@ public class ProductLibProc {
         item.setString(ProductLibEntity.Info.FLAG, "?");
         item.setString(ProductLibEntity.Info.UPDATE_TIME, "?");
         ParamUpdater doBatchUpdater = new ParamUpdater(item);
+        //注意，data中保存数据的顺序和个数要和sql语句入参的顺序一致
         rt = m_daoCtrl.doBatchUpdate(doBatchUpdater, doBatchMatcher, dataList, true);
         if(rt != Errno.OK){
             throw new MgException(rt, "doBatchUpdate product Lib error;flow=%d;aid=%d;updateList=%s", m_flow, aid, dataList);
+
         }
     }
 
@@ -274,8 +234,8 @@ public class ProductLibProc {
                               (count + libInfoList.size() >  ProductLibValObj.Limit.COUNT_MAX);
         if(isOverLimit) {
             rt = Errno.COUNT_LIMIT;
-            throw new MgException(rt, "over limit;flow=%d;aid=%d;currentCount=%d;limit=%d;wantAddSize=%d;", m_flow, aid, count,
-                    ProductLibValObj.Limit.COUNT_MAX, libInfoList.size());
+            throw new MgException(rt, "over limit;flow=%d;aid=%d;currentCount=%d;limit=%d;wantAddSize=%d;", m_flow, aid,
+                    count, ProductLibValObj.Limit.COUNT_MAX, libInfoList.size());
         }
 
         int libId = 0;
@@ -293,12 +253,12 @@ public class ProductLibProc {
             libIdsRef.add(libId);
         }
 
-        //批量插入
-        rt = m_daoCtrl.batchInsert(libInfoList);
+        //批量插入，并且不将libInfoList的元素设置为null
+        rt = m_daoCtrl.batchInsert(libInfoList, null, false);
 
         if(rt != Errno.OK) {
             throw new MgException(rt, "batch insert product lib error;flow=%d;aid=%d;", m_flow, aid);
-        }
 
+        }
     }
 }

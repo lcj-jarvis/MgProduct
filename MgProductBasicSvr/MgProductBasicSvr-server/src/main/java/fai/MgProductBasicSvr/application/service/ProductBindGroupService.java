@@ -3,12 +3,12 @@ package fai.MgProductBasicSvr.application.service;
 import fai.MgProductBasicSvr.domain.common.LockUtil;
 import fai.MgProductBasicSvr.domain.entity.ProductBindGroupEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductEntity;
-import fai.MgProductBasicSvr.domain.entity.ProductSagaEntity;
-import fai.MgProductBasicSvr.domain.entity.ProductSagaValObj;
+import fai.MgProductBasicSvr.domain.entity.BasicSagaEntity;
+import fai.MgProductBasicSvr.domain.entity.BasicSagaValObj;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductBindGroupCache;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductBindGroupProc;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductRelProc;
-import fai.MgProductBasicSvr.domain.serviceproc.ProductRollbackProc;
+import fai.MgProductBasicSvr.domain.serviceproc.SagaProc;
 import fai.MgProductBasicSvr.interfaces.dto.ProductBindGroupDto;
 import fai.comm.fseata.client.core.model.BranchStatus;
 import fai.comm.fseata.client.core.rpc.def.CommDef;
@@ -162,8 +162,8 @@ public class ProductBindGroupService extends ServicePub {
                 rollbackInfo.setList(ProductBindGroupEntity.Business.ADD_GROUP_IDS, addGroupIds);
                 rollbackInfo.setList(ProductBindGroupEntity.Business.DEL_GROUP_IDS, delGroupIds);
 
-                ProductRollbackProc rollbackProc = new ProductRollbackProc(flow, aid, tc);
-                rollbackProc.addInfo(aid, xid, rollbackInfo);
+                SagaProc sagaProc = new SagaProc(flow, aid, tc);
+                sagaProc.addInfo(aid, xid, rollbackInfo);
 
                 commit = true;
                 tc.commit();
@@ -202,25 +202,19 @@ public class ProductBindGroupService extends ServicePub {
             int unionPriId = 0;
             try {
                 tc.setAutoCommit(false);
-                ProductRollbackProc rollbackProc = new ProductRollbackProc(flow, aid, tc);
-                Ref<Param> sagaInfoRef = new Ref<>();
+                SagaProc sagaProc = new SagaProc(flow, aid, tc);
                 // 获取 saga 表中的数据
-                rt = rollbackProc.getInfo(xid, branchId, sagaInfoRef);
-                if (rt != Errno.OK) {
-                    // 如果是 NOT_FOUND，要允许空补偿和防悬挂控制，在getInfo中已经做到，插入一条saga记录作为空补偿
-                    if (rt == Errno.NOT_FOUND) {
-                        rt = Errno.OK;
-                        Log.reportErr(flow, rt,"get SagaInfo not found; xid=%s, branchId=%s", xid, branchId);
-                    }
+                Param sagaInfo = sagaProc.getInfoWithAdd(xid, branchId);
+                if (sagaInfo == null) {
+                    rt = Errno.OK;
                     return rt;
                 }
 
                 // 获取补偿信息
-                Param sagaInfo = sagaInfoRef.value;
-                Param rollbackInfo = Param.parseParam(sagaInfoRef.value.getString(ProductSagaEntity.Info.ROLLBACK_INFO));
-                int status = sagaInfo.getInt(ProductSagaEntity.Info.STATUS);
+                Param rollbackInfo = Param.parseParam(sagaInfo.getString(BasicSagaEntity.Info.PROP));
+                int status = sagaInfo.getInt(BasicSagaEntity.Info.STATUS);
                 // 幂等性保证
-                if (status == ProductSagaValObj.Status.ROLLBACK_OK) {
+                if (status == BasicSagaValObj.Status.ROLLBACK_OK) {
                     return rt;
                 }
 
@@ -246,10 +240,7 @@ public class ProductBindGroupService extends ServicePub {
                     bindGroupProc.addPdBindGroupList(curAid, unionPriId, rlPdId, pdId, delGroupList);
                 }
                 // 修改Saga状态
-                rt = rollbackProc.setStatus(xid, branchId, ProductSagaValObj.Status.ROLLBACK_OK);
-                if (rt != Errno.OK) {
-                    return rt;
-                }
+                sagaProc.setStatus(xid, branchId, BasicSagaValObj.Status.ROLLBACK_OK);
 
                 commit = true;
                 tc.commit();

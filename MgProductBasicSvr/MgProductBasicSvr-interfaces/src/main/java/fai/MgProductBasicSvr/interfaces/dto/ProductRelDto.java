@@ -68,7 +68,8 @@ public class ProductRelDto {
         g_relAndPdDtoDef.add(ProductEntity.Info.KEEP_INT_PROP1, 25);
         g_relAndPdDtoDef.add(ProductEntity.Info.KEEP_INT_PROP2, 26);
 
-        g_relAndPdDtoDef.add(ProductRelEntity.Info.INFO_CHECK, 27);
+        g_relAndPdDtoDef.add(ProductRelEntity.Info.RL_GROUP_IDS, 27);
+        g_relAndPdDtoDef.add(ProductRelEntity.Info.RL_PROPS, 28);
     }
 
     static {
@@ -108,5 +109,6 @@ public class ProductRelDto {
         public static final int SOFT_DEL = 13;
         public static final int UPDATER = 14;
         public static final int UNION_PRI_IDS = 15;
+        public static final int XID = 16;
     }
 }

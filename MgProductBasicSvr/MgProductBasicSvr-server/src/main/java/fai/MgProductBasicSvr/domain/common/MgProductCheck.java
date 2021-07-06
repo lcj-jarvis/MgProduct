@@ -1,6 +1,7 @@
 package fai.MgProductBasicSvr.domain.common;
 
 import fai.MgProductBasicSvr.domain.entity.ProductValObj;
+import fai.comm.util.Errno;
 import fai.comm.util.Log;
 import fai.comm.util.Str;
 import fai.mgproduct.comm.Util;
@@ -11,11 +12,11 @@ public class MgProductCheck {
     public static class RequestLimit {
         public static <T> boolean checkWriteSize(int aid, Collection<T> list) {
             if(Util.isEmptyList(list)) {
-                Log.logErr("args error, rlPdIds is empty;aid=%d;list=%s;", aid, list);
+                Log.logErr(Errno.SIZE_LIMIT, "args error, rlPdIds is empty;aid=%d;list=%s;", aid, list);
                 return false;
             }
             if(list.size() > WRITE_SIZE_LIMIT) {
-                Log.logErr("args error, write size is too long;aid=%d;list size=%d;limit size=%d;", aid, list.size(), WRITE_SIZE_LIMIT);
+                Log.logErr(Errno.SIZE_LIMIT, "args error, write size is too long;aid=%d;list size=%d;limit size=%d;", aid, list.size(), WRITE_SIZE_LIMIT);
                 return false;
             }
             return true;

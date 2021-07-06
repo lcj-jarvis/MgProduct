@@ -15,6 +15,8 @@ public class MgProductArg {
     private int keepPriId1;
     private FaiList<Param> primaryKeys;
 
+    private String xid;
+
     private FaiList<Param> addList;
     private boolean isBiz;
     private int rlPdId;
@@ -58,12 +60,17 @@ public class MgProductArg {
 
     private FaiList<Param> skuStoreSales;
 
+    private FaiList<Integer> delRelLibIds;
+
+
     private MgProductArg(Builder builder) {
         this.aid = builder.aid;
         this.tid = builder.tid;
         this.siteId = builder.siteId;
         this.lgId = builder.lgId;
         this.keepPriId1 = builder.keepPriId1;
+
+        this.xid = builder.xid;
 
         this.primaryKeys = builder.primaryKeys;
         this.updaterList = builder.updaterList;
@@ -108,6 +115,13 @@ public class MgProductArg {
         this.onlyGetChecked = builder.onlyGetChecked;
 
         this.skuStoreSales = builder.skuStoreSales;
+
+        this.delRelLibIds = builder.delRelLibIds;
+
+    }
+
+    public String getXid() {
+        return xid;
     }
 
     public int getAid() {
@@ -290,12 +304,18 @@ public class MgProductArg {
         return skuStoreSales;
     }
 
+    public FaiList<Integer> getDelRelLibIds() {
+        return delRelLibIds;
+    }
+
     private static abstract class TopBuilder {
         protected int aid;
         protected int tid;
         protected int siteId;
         protected int lgId;
         protected int keepPriId1;
+
+        protected String xid;
 
         protected FaiList<Param> addList;
         protected FaiList<Param> primaryKeys;
@@ -307,6 +327,8 @@ public class MgProductArg {
         protected ParamUpdater updater;
         protected boolean softDel;
         protected SearchArg searchArg;
+
+        public abstract Builder setXid(String xid);
 
         public abstract Builder setAddList(FaiList<Param> addList);
         public abstract Builder setPrimaryList(FaiList<Param> primaryKeys);
@@ -346,7 +368,13 @@ public class MgProductArg {
         public abstract Builder setDelRlGroupIds(FaiList<Integer> delRlGroupIds);
     }
 
-    private static abstract class PropBuilder extends GroupBuilder {
+    private static abstract class LibBuilder extends GroupBuilder {
+        protected FaiList<Integer> delRelLibIds;
+
+        public abstract Builder setDelRelLibIds(FaiList<Integer> delRelLibIds);
+    }
+
+    private static abstract class PropBuilder extends LibBuilder {
         protected int rlLibId;
         protected FaiList<Integer> rlPropIds;
         protected FaiList<Param> propIdsAndValIds;
@@ -516,6 +544,12 @@ public class MgProductArg {
         }
 
         @Override
+        public Builder setXid(String xid) {
+            this.xid = xid;
+            return this;
+        }
+
+        @Override
         public Builder setAddList(FaiList<Param> addList) {
             if(addList == null || addList.isEmpty()) {
                 throw new RuntimeException();
@@ -662,8 +696,15 @@ public class MgProductArg {
             return this;
         }
 
+        @Override
+        public Builder setDelRelLibIds(FaiList<Integer> delRelLibIds) {
+            this.delRelLibIds = delRelLibIds;
+            return this;
+        }
+
         public MgProductArg build() {
             return new MgProductArg(this);
         }
+
     }
 }

@@ -60,11 +60,10 @@ public class ProductLibService {
             return rt;
         }
 
-        for (int i = 0; i < addInfoList.size(); i++) {
+        for (Param addInfo : addInfoList) {
             // 未设置排序则默认排序值+1
-            Param addInfo = addInfoList.get(i);
             Integer sort = addInfo.getInt(ProductLibRelEntity.Info.SORT);
-            if(sort == null) {
+            if (sort == null) {
                 addInfo.setInt(ProductLibRelEntity.Info.SORT, ++maxSort);
             }
 
@@ -97,6 +96,7 @@ public class ProductLibService {
         if (relLibProc == null) {
             relLibProc = new ProductLibRelProc(flow, aid, transactionCtrl);
         }
+        //批量添加库表的数据
         relLibProc.addLibRelBatch(aid, unionPriId, relLibInfoList, relLibIds);
 
         return maxSort;
@@ -150,6 +150,7 @@ public class ProductLibService {
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
         Param result = relLibInfoList.get(0);
+
         sendBuf.putInt(ProductLibRelDto.Key.RL_LIB_ID, relLibIds.get(0));
         sendBuf.putInt(ProductLibRelDto.Key.LIB_ID, result.getInt(ProductLibRelEntity.Info.LIB_ID));
         session.write(sendBuf);
@@ -157,81 +158,6 @@ public class ProductLibService {
                 tid, relLibIds.get(0), result.getInt(ProductLibRelEntity.Info.LIB_ID));
         return rt;
     }
-
-    /**
-     * 添加单个库
-     */
-    /*@SuccessRt(value = Errno.OK)
-    public int addProductLib(FaiSession session, int flow, int aid, int unionPriId, int tid, Param info) throws IOException {
-        int rt;
-        if(Str.isEmpty(info)) {
-            rt = Errno.ARGS_ERROR;
-            Log.logErr("args error, info is empty;flow=%d;aid=%d;", flow, aid);
-            return rt;
-        }
-        int libId;
-        int rlLibId;
-        int maxSort;
-
-        Lock lock = LockUtil.getLock(aid);
-        lock.lock();
-        try {
-            TransactionCtrl transactionCtrl = new TransactionCtrl();
-            ProductLibRelProc libRelProc = new ProductLibRelProc(flow, aid, transactionCtrl);
-            // 获取参数中最大的sort
-            maxSort = libRelProc.getMaxSort(aid, unionPriId);
-            if(maxSort < 0) {
-                rt = Errno.ERROR;
-                Log.logErr(rt, "getMaxSort error;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
-                return rt;
-            }
-            // 未设置排序则默认排序值+1
-            Integer sort = info.getInt(ProductLibRelEntity.Info.SORT);
-            if(sort == null) {
-                info.setInt(ProductLibRelEntity.Info.SORT, ++maxSort);
-            }
-            Param libInfo = new Param();
-            Param relLibInfo = new Param();
-            assemblyLibInfo(flow, aid, unionPriId, tid, info, libInfo, relLibInfo);
-
-            boolean commit = false;
-            transactionCtrl.setAutoCommit(false);
-
-          //  addLib(flow, aid, unionPriId, info, transactionCtrl, libInfo, relLibInfo, rlLibId);
-
-            ProductLibProc libProc = new ProductLibProc(flow, aid, transactionCtrl);
-            try {
-                libId = libProc.addLib(aid, libInfo);
-                relLibInfo.setInt(ProductLibRelEntity.Info.LIB_ID, libId);
-
-                rlLibId = libRelProc.addLibRelInfo(aid, unionPriId, relLibInfo);
-                commit = true;
-            } finally {
-                if(commit) {
-                    transactionCtrl.commit();
-                    // 新增缓存
-                    ProductLibCache.addCache(aid, libInfo);
-                    ProductLibRelCache.InfoCache.addCache(aid, unionPriId, relLibInfo);
-                    ProductLibRelCache.SortCache.set(aid, unionPriId, maxSort);
-                    ProductLibRelCache.DataStatusCache.update(aid, unionPriId, 1);
-                }else {
-                    transactionCtrl.rollback();
-                    libProc.clearIdBuilderCache(aid);
-                    libRelProc.clearIdBuilderCache(aid, unionPriId);
-                }
-                transactionCtrl.closeDao();
-            }
-        }finally {
-            lock.unlock();
-        }
-        rt = Errno.OK;
-        FaiBuffer sendBuf = new FaiBuffer(true);
-        sendBuf.putInt(ProductLibRelDto.Key.RL_LIB_ID, rlLibId);
-        sendBuf.putInt(ProductLibRelDto.Key.LIB_ID, libId);
-        session.write(sendBuf);
-        Log.logStd("add ok;flow=%d;aid=%d;unionPriId=%d;tid=%d;rlLibId=%d;libId=%d;", flow, aid, unionPriId, tid, rlLibId, libId);
-        return rt;
-    }*/
 
     @SuccessRt(value = Errno.OK)
     public int delLibList(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlLibIds) throws IOException {
@@ -472,6 +398,13 @@ public class ProductLibService {
         }
         FaiBuffer sendBuf = new FaiBuffer(true);
         list.toBuffer(sendBuf, ProductLibRelDto.Key.INFO_LIST, ProductLibRelDto.getInfoDto());
+        if (searchArg != null) {
+            boolean needTotalSize = searchArg.totalSize != null && searchArg.totalSize.value != null;
+            if (needTotalSize) {
+                sendBuf.putInt(ProductLibRelDto.Key.TOTAL_SIZE, searchArg.totalSize.value);
+            }
+        }
+
         session.write(sendBuf);
         rt = Errno.OK;
         Log.logDbg("get list ok;flow=%d;aid=%d;unionPriId=%d;size=%d;", flow, aid, unionPriId, list.size());
@@ -646,5 +579,4 @@ public class ProductLibService {
         Log.logStd("add ok;flow=%d;aid=%d;unionPriId=%d;tid=%d;addLib=%s;", flow, aid, unionPriId, tid, addInfoList);
         return rt;
     }
-
 }

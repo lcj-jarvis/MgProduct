@@ -5,7 +5,7 @@ package fai.MgProductBasicSvr.domain.entity;
  * @version 1.0
  * @date 2021/6/28 19:30
  */
-public class ProductSagaValObj {
+public class BasicSagaValObj {
 
     public static final class Status {
         /** 初始化 */

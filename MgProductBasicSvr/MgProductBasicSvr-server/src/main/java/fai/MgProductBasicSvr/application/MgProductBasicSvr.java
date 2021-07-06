@@ -85,7 +85,7 @@ public class MgProductBasicSvr {
         ProductRelDaoCtrl.init(daoPool, cache);
         ProductBindPropDaoCtrl.init(daoPool);
         ProductBindGroupDaoCtrl.init(daoPool);
-        ProductRollbackDaoCtrl.init(daoPool);
+        SagaDaoCtrl.init(daoPool);
 
         // 缓存初始化
         CacheCtrl.init(cache);

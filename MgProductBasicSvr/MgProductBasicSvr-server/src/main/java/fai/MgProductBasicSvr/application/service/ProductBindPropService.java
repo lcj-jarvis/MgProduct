@@ -5,7 +5,7 @@ import fai.MgProductBasicSvr.domain.entity.*;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductBindPropCache;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductBindPropProc;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductRelProc;
-import fai.MgProductBasicSvr.domain.serviceproc.ProductRollbackProc;
+import fai.MgProductBasicSvr.domain.serviceproc.SagaProc;
 import fai.MgProductBasicSvr.interfaces.dto.ProductBindPropDto;
 import fai.comm.fseata.client.core.model.BranchStatus;
 import fai.comm.fseata.client.core.rpc.def.CommDef;
@@ -179,7 +179,7 @@ public class ProductBindPropService extends ServicePub {
                 rollbackInfo.setList(ProductBindPropEntity.BUSINESS.ADD_LIST, addList);
                 rollbackInfo.setList(ProductBindPropEntity.BUSINESS.DEL_LIST, delList);
 
-                ProductRollbackProc rollbackProc = new ProductRollbackProc(flow, aid, tc);
+                SagaProc rollbackProc = new SagaProc(flow, aid, tc);
                 rollbackProc.addInfo(aid, xid, rollbackInfo);
 
                 commit = true;
@@ -219,24 +219,17 @@ public class ProductBindPropService extends ServicePub {
             try {
                 tc.setAutoCommit(false);
                 // 获取 saga 表中的数据
-                ProductRollbackProc rollbackProc = new ProductRollbackProc(flow, aid, tc);
-                Ref<Param> sagaInfoRef = new Ref<>();
-                rt = rollbackProc.getInfo(xid, branchId, sagaInfoRef);
-                if (rt != Errno.OK) {
-                    // 如果是 NOT_FOUND，要允许空补偿和防悬挂控制，在getInfo中已经做到，插入一条saga记录作为空补偿
-                    if (rt == Errno.NOT_FOUND) {
-                        rt = Errno.OK;
-                        Log.reportErr(flow, rt,"get SagaInfo not found; xid=%s, branchId=%s", xid, branchId);
-                    }
-                    return rt;
+                SagaProc sagaProc = new SagaProc(flow, aid, tc);
+                Param sagaInfo = sagaProc.getInfoWithAdd(xid, branchId);
+                if (sagaInfo == null) {
+                    return Errno.OK;
                 }
 
                 // 获取补偿信息
-                Param sagaInfo = sagaInfoRef.value;
-                Param rollbackInfo = Param.parseParam(sagaInfoRef.value.getString(ProductSagaEntity.Info.ROLLBACK_INFO));
-                int status = sagaInfo.getInt(ProductSagaEntity.Info.STATUS);
+                Param rollbackInfo = Param.parseParam(sagaInfo.getString(BasicSagaEntity.Info.PROP));
+                int status = sagaInfo.getInt(BasicSagaEntity.Info.STATUS);
                 // 幂等性保证
-                if (status == ProductSagaValObj.Status.ROLLBACK_OK) {
+                if (status == BasicSagaValObj.Status.ROLLBACK_OK) {
                     return rt;
                 }
 
@@ -259,10 +252,7 @@ public class ProductBindPropService extends ServicePub {
                 }
 
                 // 修改 saga 状态
-                rt = rollbackProc.setStatus(xid, branchId, status);
-                if (rt != Errno.OK) {
-                    return rt;
-                }
+                sagaProc.setStatus(xid, branchId, status);
 
                 commit = true;
                 tc.commit();

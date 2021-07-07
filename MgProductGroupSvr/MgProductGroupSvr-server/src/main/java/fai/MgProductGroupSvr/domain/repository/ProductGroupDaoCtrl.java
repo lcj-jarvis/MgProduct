@@ -1,5 +1,6 @@
 package fai.MgProductGroupSvr.domain.repository;
 
+import fai.MgProductGroupSvr.domain.entity.ProductGroupEntity;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.distributedkit.idBuilder.domain.IdBuilderConfig;
 import fai.comm.distributedkit.idBuilder.wrapper.IdBuilderWrapper;
@@ -65,5 +66,7 @@ public class ProductGroupDaoCtrl extends DaoCtrl {
             .buildTableName(TABLE_PREFIX)
             .buildAssistTableSuffix("idBuilder")
             .buildInitValue(ID_BUILDER_INIT)
+            .buildPrimaryMatchField(ProductGroupEntity.Info.AID)
+            .buildAutoIncField(ProductGroupEntity.Info.GROUP_ID)
             .build();
 }

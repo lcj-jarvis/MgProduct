@@ -10,9 +10,11 @@ import fai.comm.util.Log;
 import fai.middleground.svrutil.repository.DaoCtrl;
 
 public class ProductGroupDaoCtrl extends DaoCtrl {
+    private String tableName;
 
     public ProductGroupDaoCtrl(int flow, int aid) {
         super(flow, aid);
+        this.tableName = TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
     }
 
     @Override
@@ -22,7 +24,15 @@ public class ProductGroupDaoCtrl extends DaoCtrl {
 
     @Override
     protected String getTableName() {
-        return TABLE_PREFIX + "_" + String.format("%04d", getAid() % 1000);
+        return tableName;
+    }
+
+    public void setTableName(int aid) {
+        this.tableName = TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
+    }
+
+    public void restoreTableName() {
+        this.tableName = TABLE_PREFIX + "_" + String.format("%04d", this.aid % 1000);
     }
 
     public static ProductGroupDaoCtrl getInstance(int flow, int aid) {
@@ -47,6 +57,10 @@ public class ProductGroupDaoCtrl extends DaoCtrl {
             return null;
         }
         return m_idBuilder.update(aid, id, m_dao, needLock);
+    }
+
+    public int restoreMaxId(boolean needLock) {
+        return m_idBuilder.restoreMaxId(aid, flow, tableName, m_dao, needLock);
     }
 
     public void clearIdBuilderCache(int aid) {

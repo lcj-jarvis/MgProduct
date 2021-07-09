@@ -1,10 +1,8 @@
 package fai.MgProductGroupSvr.domain.serviceproc;
 
 import fai.MgProductGroupSvr.domain.common.LockUtil;
-import fai.MgProductGroupSvr.domain.entity.ProductGroupEntity;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupRelEntity;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupRelValObj;
-import fai.MgProductGroupSvr.domain.entity.ProductGroupValObj;
 import fai.MgProductGroupSvr.domain.repository.ProductGroupRelCache;
 import fai.MgProductGroupSvr.domain.repository.ProductGroupRelDaoCtrl;
 import fai.comm.util.*;
@@ -14,6 +12,7 @@ import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.Calendar;
+import java.util.Map;
 
 public class ProductGroupRelProc {
 
@@ -41,6 +40,78 @@ public class ProductGroupRelProc {
         }
 
         return rlGroupId;
+    }
+
+    public void cloneData(int aid, int fromAid, Map<Integer, Integer> cloneUnionPriIds) {
+        int rt;
+        if(cloneUnionPriIds == null || cloneUnionPriIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "cloneUnionPriIds is null;flow=%d;aid=%d;fromAid=%d;uids=%s;", m_flow, aid, fromAid, cloneUnionPriIds);
+        }
+        if(m_relDao.isAutoCommit()) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "dao is auto commit;flow=%d;aid=%d;fromAid=%d;uids=%s;", m_flow, aid, fromAid, cloneUnionPriIds);
+        }
+        FaiList<Integer> fromUnionPriIds = new FaiList<>(cloneUnionPriIds.keySet());
+        ParamMatcher matcher = new ParamMatcher(ProductGroupRelEntity.Info.AID, ParamMatcher.EQ, fromAid);
+        matcher.and(ProductGroupRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, fromUnionPriIds);
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+
+        // 根据fromAid设置表名，默认表名是根据aid生成的
+        m_relDao.setTableName(fromAid);
+        Ref<FaiList<Param>> dataListRef = new Ref<>();
+        rt = m_relDao.select(searchArg, dataListRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException("select clone data err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, aid, fromAid, cloneUnionPriIds);
+        }
+
+        // 根据aid设置表名
+        m_relDao.setTableName(aid);
+        FaiList<Integer> toUnionPriIds = new FaiList<>(cloneUnionPriIds.values());
+        ParamMatcher delMatcher = new ParamMatcher(ProductGroupRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        delMatcher.and(ProductGroupRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, toUnionPriIds);
+        rt = m_relDao.delete(delMatcher);
+        if(rt != Errno.OK) {
+            throw new MgException("del old data err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, aid, fromAid, cloneUnionPriIds);
+        }
+        // 组装数据
+        for(Param data : dataListRef.value) {
+            int fromUnionPriId = data.getInt(ProductGroupRelEntity.Info.UNION_PRI_ID);
+            int toUnionPriId = cloneUnionPriIds.get(fromUnionPriId);
+            data.setInt(ProductGroupRelEntity.Info.AID, aid);
+            data.setInt(ProductGroupRelEntity.Info.UNION_PRI_ID, toUnionPriId);
+        }
+        // 批量插入
+        if(!dataListRef.value.isEmpty()) {
+            rt = m_relDao.batchInsert(dataListRef.value);
+            if(rt != Errno.OK) {
+                throw new MgException("batch insert err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, aid, fromAid, cloneUnionPriIds);
+            }
+        }
+        for(int unionPriId : toUnionPriIds) {
+            rt = m_relDao.restoreMaxId(unionPriId, false);
+            if(rt != Errno.OK) {
+                throw new MgException("restoreMaxId err;flow=%d;aid=%d;fromAid=%d;curUid=%d;cloneUnionPriIds=%s;", m_flow, aid, fromAid, unionPriId, cloneUnionPriIds);
+            }
+            m_relDao.clearIdBuilderCache(aid, unionPriId);
+        }
+    }
+
+    public void insert4IncrementalClone(int aid, int unionPriId, FaiList<Param> list) {
+        if(Util.isEmptyList(list)) {
+            Log.logStd("incrementalClone list is empty;aid=%d;uid=%d;", aid, unionPriId);
+            return;
+        }
+        int rt = m_relDao.batchInsert(list, null, false);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "batch insert group rel error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        rt = m_relDao.restoreMaxId(unionPriId, false);
+        if(rt != Errno.OK) {
+            throw new MgException("restoreMaxId err;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
+        }
+        m_relDao.clearIdBuilderCache(aid, unionPriId);
     }
 
     public FaiList<Integer> batchAddGroupRel(int aid, int unionPriId, FaiList<Param> infoList) {
@@ -94,7 +165,7 @@ public class ProductGroupRelProc {
             data.assign(oldInfo, ProductGroupRelEntity.Info.RL_GROUP_ID);
             dataList.add(data);
             if(groupUpdaterList != null) {
-                updateInfo.setInt(ProductGroupEntity.Info.GROUP_ID, groupId);
+                updateInfo.setInt(ProductGroupRelEntity.Info.GROUP_ID, groupId);
                 groupUpdaterList.add(updater);
             }
         }
@@ -150,13 +221,14 @@ public class ProductGroupRelProc {
         searchArg.matcher.and(ProductGroupRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
+        // 因为克隆可能获取其他aid的数据，所以根据传进来的aid设置tablename
+        m_relDao.setTableName(aid);
         int rt = m_relDao.select(searchArg, listRef, ProductGroupRelEntity.MANAGE_FIELDS);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             throw new MgException(rt, "get error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
         }
-        if(listRef.value == null) {
-            listRef.value = new FaiList<Param>();
-        }
+        // 查完之后恢复之前的tablename
+        m_relDao.restoreTableName();
         if (listRef.value.isEmpty()) {
             rt = Errno.NOT_FOUND;
             Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);

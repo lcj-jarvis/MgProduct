@@ -5,7 +5,9 @@ import fai.MgProductGroupSvr.interfaces.dto.ProductGroupRelDto;
 import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
+import fai.mgproduct.comm.CloneDef;
 import fai.mgproduct.comm.DataStatus;
+import fai.mgproduct.comm.Util;
 import fai.middleground.infutil.MgConfPool;
 
 public class MgProductGroupCli extends FaiClient {
@@ -535,6 +537,101 @@ public class MgProductGroupCli extends FaiClient {
                     return m_rt;
                 }
                 rlGroupIdsRef.value = ids;
+            }
+
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    public int cloneData(int aid, int fromAid, FaiList<Param> cloneUnionPriIds) {
+        if (!useProductGroup()) {
+            return Errno.OK;
+        }
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0 || Util.isEmptyList(cloneUnionPriIds)) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;aid=%d;fromAid=%d;cloneUids=%s;", aid, fromAid, cloneUnionPriIds);
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductGroupRelDto.Key.FROM_AID, fromAid);
+            cloneUnionPriIds.toBuffer(sendBody, ProductGroupRelDto.Key.CLONE_UNION_PRI_IDS, CloneDef.Dto.getDto());
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setAid(aid);
+            sendProtocol.setCmd(MgProductGroupCmd.GroupCmd.CLONE);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    public int incrementalClone(int aid, int unionPriId, int fromAid, int fromUnionPriId) {
+        if (!useProductGroup()) {
+            return Errno.OK;
+        }
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;aid=%d;uid=%d;fromAid=%d;fromUid=%d;", aid, unionPriId, fromAid, fromUnionPriId);
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductGroupRelDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductGroupRelDto.Key.FROM_AID, fromAid);
+            sendBody.putInt(ProductGroupRelDto.Key.FROM_UNION_PRI_ID, fromUnionPriId);
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setAid(aid);
+            sendProtocol.setCmd(MgProductGroupCmd.GroupCmd.INCR_CLONE);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
             }
 
             m_rt = Errno.OK;

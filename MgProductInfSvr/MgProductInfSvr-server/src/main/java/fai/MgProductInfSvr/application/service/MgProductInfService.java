@@ -75,6 +75,26 @@ public class MgProductInfService extends ServicePub {
     }
 
     /**
+     * 获取unionPriId
+     * @return unionPriId
+     */
+    protected int getUnionPriIdWithoutAdd(int flow, int aid, int tid, int siteId, int lgId, int keepPriId1) {
+        int rt = Errno.ERROR;
+        MgPrimaryKeyCli cli = new MgPrimaryKeyCli(flow);
+        if(!cli.init()) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "init MgPrimaryKeyCli error");
+        }
+
+        Ref<Integer> idRef = new Ref<>();
+        rt = cli.getUnionPriId(aid, tid, siteId, lgId, keepPriId1, false, idRef);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "getUnionPriId error;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+        }
+        return idRef.value;
+    }
+
+    /**
      * 根据unionPriIdList 获取主键信息
      * @param tid
      * @param unionPriIds
@@ -107,6 +127,23 @@ public class MgProductInfService extends ServicePub {
         }
 
         rt = cli.getPrimaryKeyList(aid, searchArgList, list);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "getPrimaryKeyList error;flow=%d;aid=%d;", flow, aid);
+            return rt;
+        }
+        return rt;
+    }
+
+    protected int getPrimaryKeyListWithOutAdd(int flow, int aid, FaiList<Param> searchArgList, FaiList<Param> list) {
+        int rt = Errno.ERROR;
+        MgPrimaryKeyCli cli = new MgPrimaryKeyCli(flow);
+        if(!cli.init()) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "init MgPrimaryKeyCli error;flow=%d;aid=%d;", flow, aid);
+            return rt;
+        }
+
+        rt = cli.getPrimaryKeyList(aid, searchArgList, false, list);
         if(rt != Errno.OK) {
             Log.logErr(rt, "getPrimaryKeyList error;flow=%d;aid=%d;", flow, aid);
             return rt;

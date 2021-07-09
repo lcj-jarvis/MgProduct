@@ -10,6 +10,7 @@ import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
 import fai.comm.netkit.NKDef;
 import fai.comm.util.*;
+import fai.mgproduct.comm.CloneDef;
 import fai.middleground.svrutil.service.MiddleGroundHandler;
 import fai.middleground.svrutil.service.ServiceProxy;
 
@@ -99,6 +100,28 @@ public class MgProductGroupHandler extends MiddleGroundHandler {
 										 keyMatch = ProductGroupRelDto.Key.UPDATERLIST) FaiList<ParamUpdater> updaterList,
 								 @ArgList(keyMatch = ProductGroupRelDto.Key.RL_GROUP_IDS) FaiList<Integer> delList) throws IOException {
 		return groupService.unionSetGroupList(session, flow, aid, unionPriId, tid, addList, updaterList, delList);
+	}
+
+	@WrittenCmd
+	@Cmd(MgProductGroupCmd.GroupCmd.CLONE)
+	public int cloneData(final FaiSession session,
+							@ArgFlow final int flow,
+							@ArgAid int aid,
+							@ArgBodyBoolean(ProductGroupRelDto.Key.FROM_AID) int fromAid,
+							@ArgList(classDef = CloneDef.Dto.class, methodDef = "getDto",
+									keyMatch = ProductGroupRelDto.Key.CLONE_UNION_PRI_IDS) FaiList<Param> cloneUnionPriIds) throws IOException {
+		return groupService.cloneData(session, flow, aid, fromAid, cloneUnionPriIds);
+	}
+
+	@WrittenCmd
+	@Cmd(MgProductGroupCmd.GroupCmd.INCR_CLONE)
+	public int incrementalClone(final FaiSession session,
+						 @ArgFlow final int flow,
+						 @ArgAid int aid,
+						 @ArgBodyBoolean(ProductGroupRelDto.Key.UNION_PRI_ID) int unionPriId,
+						 @ArgBodyBoolean(ProductGroupRelDto.Key.FROM_AID) int fromAid,
+						 @ArgBodyBoolean(ProductGroupRelDto.Key.FROM_UNION_PRI_ID) int fromUnionPriId) throws IOException {
+		return groupService.incrementalClone(session, flow, aid, unionPriId, fromAid, fromUnionPriId);
 	}
 
 	@Cmd(NKDef.Protocol.Cmd.CLEAR_CACHE)

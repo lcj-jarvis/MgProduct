@@ -58,5 +58,8 @@ public class ProductGroupRelDto {
         public static final int UPDATERLIST = 9;
         public static final int RL_GROUP_IDS = 10;
         public static final int DATA_STATUS = 11;
+        public static final int FROM_AID = 12;
+        public static final int CLONE_UNION_PRI_IDS = 13;
+        public static final int FROM_UNION_PRI_ID = 14;
     }
 }

@@ -14,6 +14,7 @@ import fai.MgProductGroupSvr.domain.serviceproc.ProductGroupRelProc;
 import fai.MgProductGroupSvr.interfaces.dto.ProductGroupRelDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
+import fai.mgproduct.comm.CloneDef;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.annotation.SuccessRt;
@@ -24,6 +25,7 @@ import fai.middleground.svrutil.service.ServicePub;
 import java.io.IOException;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.locks.Lock;
 
 public class ProductGroupService extends ServicePub {
@@ -476,6 +478,162 @@ public class ProductGroupService extends ServicePub {
         }
 
         return maxSort;
+    }
+
+    @SuccessRt(value = Errno.OK)
+    public int cloneData(FaiSession session, int flow, int aid, int fromAid, FaiList<Param> cloneUnionPriIds) throws IOException {
+        int rt;
+        if(Util.isEmptyList(cloneUnionPriIds)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, cloneUnionPriIds is empty;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, aid, fromAid, cloneUnionPriIds);
+            return rt;
+        }
+
+        Map<Integer, Integer> cloneUidMap = new HashMap<>();
+        for(Param cloneUidInfo : cloneUnionPriIds) {
+            Integer toUnionPriId = cloneUidInfo.getInt(CloneDef.Info.TO_UNIONPRIID);
+            Integer fromUnionPriId = cloneUidInfo.getInt(CloneDef.Info.FROM_UNIONPRIID);
+            if(toUnionPriId == null || fromUnionPriId == null) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, cloneUnionPriIds is error;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, aid, fromAid, cloneUnionPriIds);
+                return rt;
+            }
+            cloneUidMap.put(fromUnionPriId, toUnionPriId);
+        }
+
+        Lock lock = LockUtil.getLock(aid);
+        lock.lock();
+        try {
+            boolean commit = false;
+            TransactionCtrl tc = new TransactionCtrl();
+            tc.setAutoCommit(false);
+            try {
+                // 业务关系数据克隆
+                ProductGroupRelProc groupRelProc = new ProductGroupRelProc(flow, aid, tc);
+                groupRelProc.cloneData(aid, fromAid, cloneUidMap);
+
+                // 分类数据克隆
+                ProductGroupProc groupProc = new ProductGroupProc(flow, aid, tc);
+                groupProc.cloneData(aid, fromAid, cloneUidMap);
+
+                commit = true;
+            }finally {
+                if(commit) {
+                    tc.commit();
+                }else {
+                    tc.rollback();
+                }
+                tc.closeDao();
+            }
+        }finally {
+            lock.unlock();
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("cloneData ok;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, aid, fromAid, cloneUnionPriIds);
+        return rt;
+    }
+
+    @SuccessRt(value = Errno.OK)
+    public int incrementalClone(FaiSession session, int flow, int toAid, int toUnionPriId, int fromAid, int fromUnionPriId) throws IOException {
+        int rt;
+
+        Lock lock = LockUtil.getLock(toAid);
+        lock.lock();
+        try {
+            boolean commit = false;
+            TransactionCtrl tc = new TransactionCtrl();
+            // 业务关系数据克隆
+            ProductGroupRelProc groupRelProc = new ProductGroupRelProc(flow, toAid, tc);
+            Map<Integer, Param> groupId_RelInfo = new HashMap<>();
+
+            // 查出要克隆的数据
+            FaiList<Param> fromRelList = groupRelProc.searchFromDb(fromAid, fromUnionPriId, null);
+            if(!fromRelList.isEmpty()) {
+                // 查出已存在的数据
+                FaiList<Param> existedList = groupRelProc.searchFromDb(toAid, toUnionPriId, null);
+                for(Param fromInfo : fromRelList) {
+                    int rlGroupId = fromInfo.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID);
+                    boolean existed = Misc.getFirst(existedList, ProductGroupRelEntity.Info.RL_GROUP_ID, rlGroupId) != null;
+                    // 如果rlGroupId尚未存在，则需做增量
+                    if(!existed) {
+                        Param data = fromInfo.clone();
+                        data.setInt(ProductGroupRelEntity.Info.AID, toAid);
+                        data.setInt(ProductGroupRelEntity.Info.UNION_PRI_ID, toUnionPriId);
+                        int groupId = data.getInt(ProductGroupRelEntity.Info.GROUP_ID);
+                        groupId_RelInfo.put(groupId, data);
+                    }
+                }
+            }
+            // 没有需要做增量的数据
+            if(groupId_RelInfo.isEmpty()) {
+                rt = Errno.OK;
+                FaiBuffer sendBuf = new FaiBuffer(true);
+                session.write(sendBuf);
+                Log.logStd("ok, incremental is empty;flow=%d;toAid=%d;toUid=%d;fromAid=%d;fromUid=%d;", flow, toAid, toUnionPriId, fromAid, fromUnionPriId);
+                return rt;
+            }
+            SearchArg groupSearch = new SearchArg();
+            groupSearch.matcher = new ParamMatcher(ProductGroupEntity.Info.GROUP_ID, ParamMatcher.IN, new FaiList<>(groupId_RelInfo.keySet() ));
+            ProductGroupProc groupProc = new ProductGroupProc(flow, toAid, tc);
+            FaiList<Param> fromGroupList = groupProc.searchFromDb(fromAid, groupSearch);
+            // 这里必定是会查到数据才对
+            if(fromGroupList.isEmpty()) {
+                rt = Errno.ERROR;
+                Log.logErr(rt, "get from group list err;flow=%d;toAid=%d;toUid=%d;fromAid=%d;fromUid=%d;", flow, toAid, toUnionPriId, fromAid, fromUnionPriId);
+                return rt;
+            }
+
+            // 这里 保持 fromGroupIds 和 addGroupList的顺序一致，是为了后面能得到fromGroupId 和 toGroupId的映射关系
+            FaiList<Integer> fromGroupIds = new FaiList<>();
+            FaiList<Param> addGroupList = new FaiList<>();
+            for(Param fromInfo : fromGroupList) {
+                Param data = fromInfo.clone();
+                data.setInt(ProductGroupEntity.Info.AID, toAid);
+                int fromGroupId = (Integer) data.remove(ProductGroupEntity.Info.GROUP_ID);
+                fromGroupIds.add(fromGroupId);
+                addGroupList.add(data);
+            }
+            tc.setAutoCommit(false);
+            try {
+                Map<Integer, Integer> fromGroupId_toGroupId = new HashMap<>();
+                FaiList<Integer> groupIds = groupProc.batchAddGroup(toAid, addGroupList);
+                // 组装fromGroupId 和 toGroupId的映射关系
+                for(int i = 0; i < groupIds.size(); i++) {
+                    fromGroupId_toGroupId.put(fromGroupIds.get(i), groupIds.get(i));
+                }
+
+                // 组装业务关系表增量克隆数据，设置toGroupId
+                FaiList<Param> addRelList = new FaiList<>();
+                for(Integer fromGroupId : groupId_RelInfo.keySet()) {
+                    Param relInfo = groupId_RelInfo.get(fromGroupId);
+                    int groupId = fromGroupId_toGroupId.get(fromGroupId);
+                    relInfo.setInt(ProductGroupRelEntity.Info.GROUP_ID, groupId);
+                    addRelList.add(relInfo);
+                }
+                // 插入增量克隆数据
+                groupRelProc.insert4IncrementalClone(toAid, toUnionPriId, addRelList);
+
+                commit = true;
+            }finally {
+                if(commit) {
+                    tc.commit();
+                }else {
+                    tc.rollback();
+                }
+                tc.closeDao();
+            }
+        }finally {
+            lock.unlock();
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("incrementalClone ok;flow=%d;toAid=%d;toUid=%d;fromAid=%d;fromUid=%d;", flow, toAid, toUnionPriId, fromAid, fromUnionPriId);
+        return rt;
     }
 
     @SuccessRt(value = Errno.OK)

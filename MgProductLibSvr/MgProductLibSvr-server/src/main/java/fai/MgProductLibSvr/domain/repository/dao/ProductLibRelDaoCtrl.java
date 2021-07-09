@@ -1,5 +1,6 @@
 package fai.MgProductLibSvr.domain.repository.dao;
 
+import fai.MgProductLibSvr.domain.entity.ProductLibRelEntity;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.distributedkit.idBuilder.domain.IdBuilderConfig;
 import fai.comm.distributedkit.idBuilder.wrapper.IdBuilderWrapper;
@@ -21,8 +22,9 @@ public class ProductLibRelDaoCtrl extends DaoCtrl {
     private static IdBuilderConfig idBuilderConfig = new IdBuilderConfig.HeavyweightBuilder()
             .buildTableName(TABLE_PREFIX)
             .buildAssistTableSuffix("idBuilder")
-            .buildPrimaryMatchField("aid")
-            .buildForeignMatchField("unionPriId")
+            .buildPrimaryMatchField(ProductLibRelEntity.Info.AID)
+            .buildForeignMatchField(ProductLibRelEntity.Info.UNION_PRI_ID)
+            .buildAutoIncField(ProductLibRelEntity.Info.RL_LIB_ID)
             .buildInitValue(ID_BUILDER_INIT)
             .build();
 

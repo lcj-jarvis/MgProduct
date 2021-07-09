@@ -204,7 +204,7 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                               @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
                               @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
         return service.bindProductRelRollback(session, flow, aid, xid, branchId);
-    }
+}
 
     @WrittenCmd
     @Cmd(MgProductBasicCmd.BasicCmd.BATCH_ADD_REL_BIND)

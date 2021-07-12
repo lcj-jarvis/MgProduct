@@ -79,12 +79,12 @@ public class ProductLibRelProc {
         //判断是否超出数量限制
         FaiList<Param> list = getLibRelList(aid, unionPriId,null,true);
         int count = list.size();
-        boolean isOverLimit = (count >= ProductLibValObj.Limit.COUNT_MAX) ||
-                (count + relLibInfoList.size() >  ProductLibValObj.Limit.COUNT_MAX);
+        boolean isOverLimit = (count >= ProductLibRelValObj.Limit.COUNT_MAX) ||
+                (count + relLibInfoList.size() >  ProductLibRelValObj.Limit.COUNT_MAX);
         if(isOverLimit) {
             rt = Errno.COUNT_LIMIT;
             throw new MgException(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;addSize=%d;", m_flow, aid, count,
-                    ProductLibValObj.Limit.COUNT_MAX, relLibInfoList.size());
+                    ProductLibRelValObj.Limit.COUNT_MAX, relLibInfoList.size());
         }
 
         int relLibId = 0;
@@ -102,23 +102,6 @@ public class ProductLibRelProc {
             throw new MgException(rt, "batch insert product lib rel error;flow=%d;aid=%d;", m_flow, aid);
         }
     }
-
-   /* public int addLibRelInfo(int aid, int unionPriId, Param relLibInfo) {
-        int rt;
-        //获取存在的库的数量
-        int count = getLibRelList(aid, unionPriId,null,true).size();
-        if(count >= ProductLibRelValObj.Limit.COUNT_MAX) {
-            rt = Errno.COUNT_LIMIT;
-            throw new MgException(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductLibRelValObj.Limit.COUNT_MAX);
-        }
-        int rlGroupId = createAndSetId(aid, unionPriId, relLibInfo);
-        rt = m_relDaoCtrl.insert(relLibInfo);
-        if(rt != Errno.OK) {
-            throw new MgException(rt, "batch insert lib rel error;flow=%d;aid=%d;", m_flow, aid);
-        }
-
-        return rlGroupId;
-    }*/
 
     private int createAndSetId(int aid, int unionPriId, Param relLibInfo) {
         Integer rlLibId = relLibInfo.getInt(ProductLibRelEntity.Info.RL_LIB_ID, 0);

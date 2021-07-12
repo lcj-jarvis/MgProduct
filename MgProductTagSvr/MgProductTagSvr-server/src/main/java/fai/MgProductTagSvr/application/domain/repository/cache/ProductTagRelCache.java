@@ -1,24 +1,26 @@
-package fai.MgProductLibSvr.domain.repository.cache;
+package fai.MgProductTagSvr.application.domain.repository.cache;
 
-import fai.MgProductLibSvr.domain.entity.ProductLibRelEntity;
-import fai.MgProductLibSvr.interfaces.dto.ProductLibRelDto;
+import fai.MgProductTagSvr.application.domain.entity.ProductTagRelEntity;
+import fai.MgProductTagSvr.interfaces.dto.ProductTagRelDto;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
+import fai.mgproduct.comm.Util;
 
 /**
  * @author LuChaoJi
- * @date 2021-06-23 14:22
+ * @date 2021-07-12 14:00
  */
-public class ProductLibRelCache extends CacheCtrl{
-
+public class ProductTagRelCache extends CacheCtrl{
+    
     private static final int EXPIRE_SECOND = 10;
 
     public static class InfoCache {
 
-        private static final String CACHE_KEY = "MG_productLibRel";
+        private static final String CACHE_KEY = "MG_productTagRel";
+      
         /**
-         * 获取缓存的key，格式：MG_productLibRel-aid:HHmmss
-         * @return MG_productLibRel-aid:HHmmss
+         * 获取缓存的key，格式：MG_productTagRel-aid:HHmmss
+         * @return MG_productTagRel-aid:HHmmss
          */
         public static String getCacheKey(int aid, int unionPriId) {
             return wrapCacheVersion(CACHE_KEY + "-" + aid + "-" + unionPriId, aid);
@@ -26,39 +28,39 @@ public class ProductLibRelCache extends CacheCtrl{
 
         /**
          * 添加FaiList<Param>到缓存
-         * 缓存的形式：cachkey rlLibId  Param rlLibId Param ....
+         * 缓存的形式：cacheKey rlTagId  Param rlTagId Param ....
          */
         public static void addCacheList(int aid, int unionId, FaiList<Param> list) {
-            if(list == null || list.isEmpty()) {
+            if(Util.isEmptyList(list)) {
                 return;
             }
             String cacheKey = getCacheKey(aid, unionId);
-            m_cache.hmsetFaiList(cacheKey, ProductLibRelEntity.Info.RL_LIB_ID, Var.Type.INT, list, ProductLibRelDto.Key.INFO, ProductLibRelDto.getInfoDto());
+            m_cache.hmsetFaiList(cacheKey, ProductTagRelEntity.Info.RL_TAG_ID, Var.Type.INT, list, ProductTagRelDto.Key.INFO, ProductTagRelDto.getInfoDto());
         }
 
         /**
          * 删除缓存的FaiList<Param>
          */
-        public static void delCacheList(int aid, int uninoId, FaiList<Integer> rlLibIds) {
-            if(rlLibIds == null || rlLibIds.isEmpty()) {
+        public static void delCacheList(int aid, int uninoId, FaiList<Integer> rlTagIds) {
+            if(Util.isEmptyList(rlTagIds)) {
                 return;
             }
             String cacheKey = getCacheKey(aid, uninoId);
             if(!m_cache.exists(cacheKey)) {
                 return;
             }
-            String[] rlLibIdStrs = new String[rlLibIds.size()];
-            for(int i = 0; i < rlLibIds.size(); i++) {
-                rlLibIdStrs[i] = String.valueOf(rlLibIds.get(i));
+            String[] rlTagIdStrs = new String[rlTagIds.size()];
+            for(int i = 0; i < rlTagIds.size(); i++) {
+                rlTagIdStrs[i] = String.valueOf(rlTagIds.get(i));
             }
-            m_cache.hdel(cacheKey, rlLibIdStrs);
+            m_cache.hdel(cacheKey, rlTagIdStrs);
         }
 
         /**
          * 更新缓存的FaiList<Param>
          */
         public static void updateCacheList(int aid, int unionId, FaiList<ParamUpdater> updaterList) {
-            if(updaterList == null || updaterList.isEmpty()) {
+            if(Util.isEmptyList(updaterList)) {
                 return;
             }
             String cacheKey = getCacheKey(aid, unionId);
@@ -67,8 +69,8 @@ public class ProductLibRelCache extends CacheCtrl{
             }
             for(ParamUpdater updater : updaterList) {
                 Param info = updater.getData();
-                int rlLibId = info.getInt(ProductLibRelEntity.Info.RL_LIB_ID, 0);
-                m_cache.hsetParam(cacheKey, String.valueOf(rlLibId), updater, ProductLibRelDto.Key.INFO, ProductLibRelDto.getInfoDto());
+                int rlTagId = info.getInt(ProductTagRelEntity.Info.RL_TAG_ID, 0);
+                m_cache.hsetParam(cacheKey, String.valueOf(rlTagId), updater, ProductTagRelDto.Key.INFO, ProductTagRelDto.getInfoDto());
             }
         }
 
@@ -77,20 +79,20 @@ public class ProductLibRelCache extends CacheCtrl{
          */
         public static FaiList<Param> getCacheList(int aid, int unionPriId) {
             String cacheKey = getCacheKey(aid, unionPriId);
-            return m_cache.hgetAllFaiList(cacheKey, ProductLibRelDto.Key.INFO, ProductLibRelDto.getInfoDto());
+            return m_cache.hgetAllFaiList(cacheKey, ProductTagRelDto.Key.INFO, ProductTagRelDto.getInfoDto());
         }
 
         /**
          * 如果keyExists为true，执行hset操作，添加单个缓存到hash中。
-         *    缓存的形式：cacheKey LibId（byte[]数组的形式） Param（byte[]数组的形式）
+         *    缓存的形式：cacheKey TagId（byte[]数组的形式） Param（byte[]数组的形式）
          */
         public static void addCache(int aid, int unionId, Param info) {
             if(Str.isEmpty(info)) {
                 return;
             }
             String cacheKey = getCacheKey(aid, unionId);
-            int rlLibId = info.getInt(ProductLibRelEntity.Info.RL_LIB_ID, 0);
-            m_cache.hsetParam(true, cacheKey, String.valueOf(rlLibId), info, ProductLibRelDto.Key.INFO, ProductLibRelDto.getInfoDto());
+            int rlTagId = info.getInt(ProductTagRelEntity.Info.RL_TAG_ID, 0);
+            m_cache.hsetParam(true, cacheKey, String.valueOf(rlTagId), info, ProductTagRelDto.Key.INFO, ProductTagRelDto.getInfoDto());
         }
 
         /**
@@ -110,14 +112,13 @@ public class ProductLibRelCache extends CacheCtrl{
             String cacheKey = getCacheKey(aid, unionId);
             m_cache.expire(cacheKey, EXPIRE_SECOND);
         }
-        
-    }
 
+    }
 
     /*** sort 字段的 cache ***/
     public static class SortCache {
 
-        private static final String SORT_CACHE_KEY = "MG_productLibRelSort";
+        private static final String SORT_CACHE_KEY = "MG_productTagRelSort";
 
         //添加排序字段的缓存
         public static void set(int aid, int unionPriId, int sort) {
@@ -157,12 +158,12 @@ public class ProductLibRelCache extends CacheCtrl{
 
         public static Param get(int aid, int unionPriId) {
             String cacheKey = getCacheKey(aid, unionPriId);
-            return m_cache.getParam(cacheKey, ProductLibRelDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
+            return m_cache.getParam(cacheKey, ProductTagRelDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
         }
 
         public static void add(int aid, int unionPriId, Param info) {
             String cacheKey = getCacheKey(aid, unionPriId);
-            m_cache.setParam(cacheKey, info, ProductLibRelDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
+            m_cache.setParam(cacheKey, info, ProductTagRelDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
         }
 
         public static void update(int aid, int unionPriId) {
@@ -181,7 +182,7 @@ public class ProductLibRelCache extends CacheCtrl{
                 String op = add ? ParamUpdater.INC : ParamUpdater.DEC;
                 updater.add(DataStatus.Info.TOTAL_SIZE, op, count);
             }
-            m_cache.updateParam(getCacheKey(aid, unionPriId), updater, ProductLibRelDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
+            m_cache.updateParam(getCacheKey(aid, unionPriId), updater, ProductTagRelDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
         }
 
         public static void expire(int aid, int unionPriId, int second) {
@@ -192,6 +193,6 @@ public class ProductLibRelCache extends CacheCtrl{
             return wrapCacheVersion(DATA_STATUS_CACHE_KEY + "-" + aid + "-" + unionPriId, aid);
         }
 
-        private static final String DATA_STATUS_CACHE_KEY = "MG_pdLibRelDS";
+        private static final String DATA_STATUS_CACHE_KEY = "MG_pdTagRelDS";
     }
 }

@@ -27,12 +27,14 @@ public class ProductTagRelDaoCtrl extends DaoCtrl {
             .buildAutoIncField(ProductTagRelEntity.Info.RL_TAG_ID)
             .buildInitValue(ID_BUILDER_INIT)
             .build();
+    private String tableName;
 
     /**
      * 对外暴露getInstance方法获取对象。
      */
     private ProductTagRelDaoCtrl(int flow, int aid) {
         super(flow, aid);
+        tableName = TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
     }
 
     @Override
@@ -42,7 +44,7 @@ public class ProductTagRelDaoCtrl extends DaoCtrl {
 
     @Override
     protected String getTableName() {
-        return TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
+        return tableName;
     }
 
     public static void init(DaoPool daoPool, RedisCacheManager cache) {
@@ -76,5 +78,17 @@ public class ProductTagRelDaoCtrl extends DaoCtrl {
 
     public void clearIdBuilderCache(int aid, int unionPriId) {
         m_idBuilder.clearCache(aid, unionPriId);
+    }
+
+    public void setTableName(int aid) {
+        this.tableName = TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
+    }
+
+    public void restoreTableName() {
+        this.tableName = TABLE_PREFIX + "_" + String.format("%04d", this.aid % 1000);
+    }
+
+    public int restoreMaxId(int unionPriId, boolean needLock) {
+        return m_idBuilder.restoreMaxId(aid, unionPriId, flow, tableName, m_dao, needLock);
     }
 }

@@ -97,7 +97,7 @@ public class MgProductTagHandler extends MiddleGroundHandler {
 
 
     @WrittenCmd
-    @Cmd(MgProductTagCmd.TagCmd.UNION_SET_LIB_LIST)
+    @Cmd(MgProductTagCmd.TagCmd.UNION_SET_TAG_LIST)
     public int unionSetTagList(final FaiSession session,
                                  @ArgFlow final int flow,
                                  @ArgAid int aid,

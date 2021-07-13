@@ -575,6 +575,8 @@ public class ProductGroupService extends ServicePub {
                 Log.logStd("ok, incremental is empty;flow=%d;toAid=%d;toUid=%d;fromAid=%d;fromUid=%d;", flow, toAid, toUnionPriId, fromAid, fromUnionPriId);
                 return rt;
             }
+
+            //查出对应的分类表数据
             SearchArg groupSearch = new SearchArg();
             groupSearch.matcher = new ParamMatcher(ProductGroupEntity.Info.GROUP_ID, ParamMatcher.IN, new FaiList<>(groupId_RelInfo.keySet() ));
             ProductGroupProc groupProc = new ProductGroupProc(flow, toAid, tc);

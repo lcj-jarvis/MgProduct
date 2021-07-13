@@ -259,6 +259,7 @@ public class ProductLibRelProc {
             //只能修改rlFlag，sort，和updateTime
             int sort = oldInfo.getInt(ProductLibRelEntity.Info.SORT, 0);
             int rlFlag = oldInfo.getInt(ProductLibRelEntity.Info.RL_FLAG, 0);
+            data.assign(oldInfo, ProductLibRelEntity.Info.LIB_TYPE);
             data.setInt(ProductLibRelEntity.Info.SORT, sort);
             data.setInt(ProductLibRelEntity.Info.RL_FLAG, rlFlag);
             data.setCalendar(ProductLibRelEntity.Info.UPDATE_TIME, now);
@@ -286,6 +287,7 @@ public class ProductLibRelProc {
 
         //设置更新的字段（这里没有修改库类型）
         Param item = new Param();
+        item.setString(ProductLibRelEntity.Info.LIB_TYPE, "?");
         item.setString(ProductLibRelEntity.Info.SORT, "?");
         item.setString(ProductLibRelEntity.Info.RL_FLAG, "?");
         item.setString(ProductLibRelEntity.Info.UPDATE_TIME, "?");

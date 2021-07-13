@@ -1,6 +1,7 @@
 package fai.MgProductTagSvr.application.domain.serviceproc;
 
 import fai.MgProductTagSvr.application.domain.common.LockUtil;
+import fai.MgProductTagSvr.application.domain.common.ProductTagCheck;
 import fai.MgProductTagSvr.application.domain.entity.ProductTagEntity;
 import fai.MgProductTagSvr.application.domain.entity.ProductTagRelEntity;
 import fai.MgProductTagSvr.application.domain.entity.ProductTagValObj;
@@ -11,6 +12,9 @@ import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
+import java.util.Calendar;
+import java.util.Map;
+
 /**
  * @author LuChaoJi
  * @date 2021-07-12 14:03
@@ -20,17 +24,17 @@ public class ProductTagProc {
     private int m_flow;
     private ProductTagDaoCtrl m_daoCtrl;
 
-    public ProductTagProc(int flow, int aid, TransactionCtrl transactionCrtl) {
+    public ProductTagProc(int flow, int aid, TransactionCtrl transactionCtrl) {
         this.m_flow = flow;
         this.m_daoCtrl = ProductTagDaoCtrl.getInstance(flow, aid);
-        init(transactionCrtl);
+        init(transactionCtrl);
     }
 
-    private void init(TransactionCtrl transactionCrtl) {
-        if (transactionCrtl == null) {
+    private void init(TransactionCtrl transactionCtrl) {
+        if (transactionCtrl == null) {
             throw new MgException("TransactionCtrl is null , registered ProductTagDao err;");
         }
-        if(!transactionCrtl.register(m_daoCtrl)) {
+        if(!transactionCtrl.register(m_daoCtrl)) {
             throw new MgException("registered ProductTagDao err;");
 
         }
@@ -76,11 +80,11 @@ public class ProductTagProc {
             throw new MgException(rt, "args err, infoList is empty;flow=%d;aid=%d;tagInfo=%s", m_flow, aid, tagInfoList);
         }
 
+        //获取一个aid下的所有标签
         FaiList<Param> list = getTagList(aid,null,true);
         int count = list.size();
         //判断是否超出数量限制
-        boolean isOverLimit = (count >= ProductTagValObj.Limit.COUNT_MAX) ||
-                (count + tagInfoList.size() >  ProductTagValObj.Limit.COUNT_MAX);
+        boolean isOverLimit = count + tagInfoList.size() >  ProductTagValObj.Limit.COUNT_MAX;
         if(isOverLimit) {
             rt = Errno.COUNT_LIMIT;
             throw new MgException(rt, "over limit;flow=%d;aid=%d;currentCount=%d;limit=%d;wantAddSize=%d;", m_flow, aid,
@@ -152,14 +156,22 @@ public class ProductTagProc {
                 searchArg.matcher = new ParamMatcher();
             }
 
-            //如果查询过来的条件已经包含这两个查询条件,就先删除
+            //如果查询过来的条件已经包含这个查询条件,就先删除
             searchArg.matcher.remove(ProductTagEntity.Info.AID);
 
             //有searchArg，有查询条件，加多一个查询条件
             searchArg.matcher.and(ProductTagRelEntity.Info.AID, ParamMatcher.EQ, aid);
 
+            //为了克隆需要，因为克隆可能获取其他aid的数据，所以根据传进来的aid设置tableName
+            m_daoCtrl.setTableName(aid);
+
             Ref<FaiList<Param>> listRef = new Ref<>();
             int rt = m_daoCtrl.select(searchArg, listRef);
+
+            //查完之后恢复最初的tableName
+            m_daoCtrl.restoreTableName();
+
+            //检查结果
             if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
                 throw new MgException(rt, "get error;flow=%d;aid=%d;", m_flow, aid);
             }
@@ -181,5 +193,148 @@ public class ProductTagProc {
         }
 
         return list;
+    }
+
+    /**
+     * 根据aid和tagId删除标签表的数据
+     */
+    public void delTagList(int aid, FaiList<Integer> tagIdList) {
+        int rt;
+        if(Util.isEmptyList(tagIdList)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args err;flow=%d;aid=%d;idList=%s", m_flow, aid, tagIdList);
+        }
+
+        ParamMatcher matcher = new ParamMatcher(ProductTagEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductTagEntity.Info.TAG_ID, ParamMatcher.IN, tagIdList);
+        rt = m_daoCtrl.delete(matcher);
+        if(rt != Errno.OK){
+            throw new MgException(rt, "delTagList error;flow=%d;aid=%d;tagIdList=%s", m_flow, aid, tagIdList);
+
+        }
+    }
+
+    /**
+     * 修改标签表（只修改部分字段）
+     */
+    public void setTagList(int aid, FaiList<ParamUpdater> tagUpdaterList) {
+        int rt;
+        //入参校验
+        for(ParamUpdater updater : tagUpdaterList){
+            Param updateInfo = updater.getData();
+            String tagName = updateInfo.getString(ProductTagEntity.Info.TAG_NAME);
+            if(tagName != null && !ProductTagCheck.isNameValid(tagName)) {
+                rt = Errno.ARGS_ERROR;
+                throw new MgException(rt, "flow=%d;aid=%d;name=%s", m_flow, aid, tagName);
+            }
+        }
+
+        //先获取到标签表的所有的数据
+        FaiList<Param> oldList = getTagList(aid,null,true);
+        //保存更新的数据
+        FaiList<Param> dataList = new FaiList<Param>();
+        Calendar now = Calendar.getInstance();
+        for(ParamUpdater updater : tagUpdaterList){
+            Param updateInfo = updater.getData();
+            int tagId = updateInfo.getInt(ProductTagEntity.Info.TAG_ID, 0);
+            //获取到要修改的记录
+            Param oldInfo = Misc.getFirstNullIsEmpty(oldList, ProductTagEntity.Info.TAG_ID, tagId);
+            if(Str.isEmpty(oldInfo)){
+                continue;
+            }
+            //保存修改的信息到oldInfo中
+            oldInfo = updater.update(oldInfo, true);
+
+            //只更新部分信息，和sql语句的参数一致
+            Param data = new Param();
+            data.assign(oldInfo, ProductTagEntity.Info.TAG_NAME);
+            data.assign(oldInfo, ProductTagEntity.Info.TAG_TYPE);
+            data.assign(oldInfo, ProductTagEntity.Info.FLAG);
+            data.setCalendar(ProductTagEntity.Info.UPDATE_TIME, now);
+            data.assign(oldInfo, ProductTagEntity.Info.AID);
+            data.assign(oldInfo, ProductTagEntity.Info.TAG_ID);
+            dataList.add(data);
+        }
+        if(dataList.size() == 0){
+            rt = Errno.OK;
+            Log.logStd(rt, "dataList empty;flow=%d;aid=%d;", m_flow, aid);
+            return;
+        }
+
+        //设置修改的条件
+        ParamMatcher doBatchMatcher = new ParamMatcher(ProductTagEntity.Info.AID, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(ProductTagEntity.Info.TAG_ID, ParamMatcher.EQ, "?");
+        //设置要修改的信息（这里没有修改标签类型）
+        Param item = new Param();
+        item.setString(ProductTagEntity.Info.TAG_NAME, "?");
+        item.setString(ProductTagEntity.Info.TAG_TYPE, "?");
+        item.setString(ProductTagEntity.Info.FLAG, "?");
+        item.setString(ProductTagEntity.Info.UPDATE_TIME, "?");
+        ParamUpdater doBatchUpdater = new ParamUpdater(item);
+        //注意，data中保存数据的顺序和个数要和sql语句入参的顺序一致
+        rt = m_daoCtrl.doBatchUpdate(doBatchUpdater, doBatchMatcher, dataList, true);
+        if(rt != Errno.OK){
+            throw new MgException(rt, "doBatchUpdate product Tag error;flow=%d;aid=%d;updateList=%s", m_flow, aid, dataList);
+
+        }
+    }
+
+    public void cloneData(int toAid, int fromAid, Map<Integer, Integer> cloneUnionPriIds) {
+        int rt;
+        if(cloneUnionPriIds == null || cloneUnionPriIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "cloneUnionPriIds is null;flow=%d;aid=%d;fromAid=%d;uids=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
+        }
+        if(m_daoCtrl.isAutoCommit()) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "dao is auto commit;flow=%d;aid=%d;fromAid=%d;uids=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
+        }
+
+        FaiList<Integer> fromUnionPriIds = new FaiList<>(cloneUnionPriIds.keySet());
+        ParamMatcher matcher = new ParamMatcher(ProductTagEntity.Info.AID, ParamMatcher.EQ, fromAid);
+        matcher.and(ProductTagEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.IN, fromUnionPriIds);
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+
+        // 根据fromAid设置表名，默认表名是根据aid生成的.查询出所有被克隆的数据
+        m_daoCtrl.setTableName(fromAid);
+        Ref<FaiList<Param>> dataListRef = new Ref<>();
+        rt = m_daoCtrl.select(searchArg, dataListRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException("select clone data err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
+        }
+
+        // 根据aid设置表名
+        m_daoCtrl.setTableName(toAid);
+        //删除掉已经存在的数据
+        FaiList<Integer> toUnionPriIds = new FaiList<>(cloneUnionPriIds.values());
+        ParamMatcher delMatcher = new ParamMatcher(ProductTagEntity.Info.AID, ParamMatcher.EQ, toAid);
+        delMatcher.and(ProductTagEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.IN, toUnionPriIds);
+        rt = m_daoCtrl.delete(delMatcher);
+        if(rt != Errno.OK) {
+            throw new MgException("del old data err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
+        }
+
+        // 组装数据
+        for(Param data : dataListRef.value) {
+            int fromUnionPriId = data.getInt(ProductTagEntity.Info.SOURCE_UNIONPRIID);
+            int toUnionPriId = cloneUnionPriIds.get(fromUnionPriId);
+            data.setInt(ProductTagEntity.Info.AID, toAid);
+            data.setInt(ProductTagEntity.Info.SOURCE_UNIONPRIID, toUnionPriId);
+        }
+        // 批量插入
+        if(!dataListRef.value.isEmpty()) {
+            rt = m_daoCtrl.batchInsert(dataListRef.value);
+            if(rt != Errno.OK) {
+                throw new MgException("batch insert err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
+            }
+        }
+
+        //设置自增id
+        rt = m_daoCtrl.restoreMaxId(false);
+        if(rt != Errno.OK) {
+            throw new MgException("restoreMaxId err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
+        }
+        m_daoCtrl.clearIdBuilderCache(toAid);
     }
 }

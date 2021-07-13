@@ -184,9 +184,7 @@ public class MgProductLibCli extends FaiClient {
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
             if (libList == null) {
-                m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "list is null");
-                return m_rt;
+                libList = new FaiList<Param>();
             }
             libList.clear();
 

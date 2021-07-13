@@ -23,7 +23,7 @@ public class MgProductTagCmd {
         public static final int NUM = 1000;/** @see TagCmd#ADD */
         public static final int NUM1 = 1001;/** @see TagCmd#BATCH_SET */
         public static final int NUM2 = 1002;/** @see TagCmd#BATCH_DEL */
-        public static final int NUM4 = 1003;/** @see TagCmd#UNION_SET_LIB_LIST*/
+        public static final int NUM4 = 1003;/** @see TagCmd#UNION_SET_TAG_LIST*/
         public static final int NUM5 = 1004;/** @see TagCmd#CLONE*/
         public static final int NUM6 = 1005;/** @see TagCmd#INCR_CLONE*/
 
@@ -34,7 +34,7 @@ public class MgProductTagCmd {
         public static final int ADD = WriteCmdNum.NUM;
         public static final int BATCH_SET = WriteCmdNum.NUM1;
         public static final int BATCH_DEL = WriteCmdNum.NUM2;
-        public static final int UNION_SET_LIB_LIST = WriteCmdNum.NUM4;
+        public static final int UNION_SET_TAG_LIST = WriteCmdNum.NUM4;
         public static final int CLONE = WriteCmdNum.NUM5;
         public static final int INCR_CLONE = WriteCmdNum.NUM6;
 

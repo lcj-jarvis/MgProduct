@@ -186,6 +186,7 @@ public class ProductLibProc {
             //只更新部分信息，和sql语句的参数一致
             Param data = new Param();
             data.assign(oldInfo, ProductLibEntity.Info.LIB_NAME);
+            data.assign(oldInfo, ProductLibEntity.Info.LIB_TYPE);
             data.assign(oldInfo, ProductLibEntity.Info.FLAG);
             data.setCalendar(ProductLibEntity.Info.UPDATE_TIME, now);
             data.assign(oldInfo, ProductLibEntity.Info.AID);
@@ -204,6 +205,7 @@ public class ProductLibProc {
         //设置要修改的信息（这里没有修改库类型）
         Param item = new Param();
         item.setString(ProductLibEntity.Info.LIB_NAME, "?");
+        item.setString(ProductLibEntity.Info.LIB_TYPE, "?");
         item.setString(ProductLibEntity.Info.FLAG, "?");
         item.setString(ProductLibEntity.Info.UPDATE_TIME, "?");
         ParamUpdater doBatchUpdater = new ParamUpdater(item);

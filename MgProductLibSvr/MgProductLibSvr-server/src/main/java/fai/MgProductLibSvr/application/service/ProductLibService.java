@@ -184,8 +184,8 @@ public class ProductLibService {
                 relProc.delRelLibList(aid, unionPriId, rlLibIds);
 
                 // 删除库表数据
-                ProductLibProc groupProc = new ProductLibProc(flow, aid, transactionCtrl);
-                groupProc.delLibList(aid, delLibIdList);
+                ProductLibProc libProc = new ProductLibProc(flow, aid, transactionCtrl);
+                libProc.delLibList(aid, delLibIdList);
 
                 commit = true;
                 // commit之前设置10s过期时间，避免脏数据，保持一致性
@@ -235,8 +235,8 @@ public class ProductLibService {
 
                 // 修改库表
                 if(!libUpdaterList.isEmpty()) {
-                    ProductLibProc groupProc = new ProductLibProc(flow, aid, transactionCtrl);
-                    groupProc.setLibList(aid, libUpdaterList);
+                    ProductLibProc libProc = new ProductLibProc(flow, aid, transactionCtrl);
+                    libProc.setLibList(aid, libUpdaterList);
                 }
                 commit = true;
                 // commit之前设置10s过期时间，避免脏数据，保持一致性
@@ -480,7 +480,7 @@ public class ProductLibService {
             //保存库表的信息
             FaiList<Param> libInfoList = new FaiList<>();
             //保存库业务表的信息
-            FaiList<Param>  relInfoList = new FaiList();
+            FaiList<Param>  relInfoList = new FaiList<>();
             //保存要删除的库的库id
             FaiList<Integer> delLibIdList = null;
             //保存要更新的库表信息

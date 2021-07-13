@@ -695,7 +695,7 @@ public class StoreSalesSkuService extends StoreService {
             session.write(sendBuf);
             Log.logStd("aid=%d;unionPriId=%s;rlOrderCode=%s;reduceMode=%s;expireTimeSeconds=%s;;skuIdCountMap=%s", aid, unionPriId, rlOrderCode, reduceMode, expireTimeSeconds, skuIdCountMap);
         } finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end(rt != Errno.OK && rt != MgProductErrno.Store.SHORTAGE, rt);
         }
         return rt;
     }

@@ -441,7 +441,7 @@ public class ProductStoreService extends MgProductInfService {
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end(rt != Errno.OK && rt != MgProductErrno.Store.SHORTAGE, rt);
         }
         return rt;
     }

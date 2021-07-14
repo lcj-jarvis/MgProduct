@@ -1536,10 +1536,14 @@ public class ProductSpecService extends ServicePub {
             for (Map.Entry<Integer, List<Param>> pdIdSpecListEntry : pdIdSpecListMap.entrySet()) {
                 int pdId = pdIdSpecListEntry.getKey();
                 List<Param> pdScInfoList = pdIdSpecListEntry.getValue();
-                boolean allowInPdScValListIsEmpty = true;
-                FaiList<FaiList<Integer>> skuList = genSkuList(new FaiList<>(pdScInfoList), null, ProductSpecSkuValObj.Limit.SINGLE_PRODUCT_MAX_SIZE, ProductSpecSkuValObj.Limit.InPdScValIdSkuList.MAX_SIZE, allowInPdScValListIsEmpty);
+                FaiList<FaiList<Integer>> skuList = genSkuList(new FaiList<>(pdScInfoList), null, ProductSpecSkuValObj.Limit.SINGLE_PRODUCT_MAX_SIZE, ProductSpecSkuValObj.Limit.InPdScValIdSkuList.MAX_SIZE, true);
                 if (skuList == null) {
                     return rt = Errno.SIZE_LIMIT;
+                }
+                // 是否允许 inPdScValList 为空，即是否是单规格
+                boolean allowInPdScValListIsEmpty = false;
+                if(pdScInfoList.size() == 1 && skuList.size() == 1) {
+                    allowInPdScValListIsEmpty = Misc.checkBit(pdScInfoList.get(0).getInt(ProductSpecEntity.Info.FLAG), ProductSpecValObj.FLag.ALLOW_IN_PD_SC_VAL_LIST_IS_EMPTY);
                 }
                 Map<String, Param> inPdScStrIdListJsonSpecSkuMap = pdIdInPdScStrIdListJsonSpecSkuMap.get(pdId);
                 FaiList<Param> pdScSkuList = new FaiList<>(skuList.size()+1);
@@ -1561,6 +1565,12 @@ public class ProductSpecService extends ServicePub {
                             addSpecSkuInfo.assign(specSkuInfo, fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.SORT, ProductSpecSkuEntity.Info.SORT);
                         }
                     }
+                    int flag = 0;
+                    // 单规格设置允许为空
+                    if(allowInPdScValListIsEmpty) {
+                        flag |= ProductSpecSkuValObj.FLag.ALLOW_EMPTY;
+                    }
+                    addSpecSkuInfo.setInt(ProductSpecSkuEntity.Info.FLAG, flag);
                     pdScSkuList.add(addSpecSkuInfo);
                 }
                 pdIdPdScSkuListMap.put(pdId, pdScSkuList);

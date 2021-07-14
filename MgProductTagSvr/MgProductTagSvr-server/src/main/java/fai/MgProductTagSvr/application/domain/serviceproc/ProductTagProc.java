@@ -150,19 +150,16 @@ public class ProductTagProc {
             if (searchArg == null) {
                 searchArg = new SearchArg();
             }
-
             //有searchArg，无查询条件
             if (searchArg.matcher == null) {
                 searchArg.matcher = new ParamMatcher();
             }
-
             //如果查询过来的条件已经包含这个查询条件,就先删除
             searchArg.matcher.remove(ProductTagEntity.Info.AID);
-
             //有searchArg，有查询条件，加多一个查询条件
             searchArg.matcher.and(ProductTagRelEntity.Info.AID, ParamMatcher.EQ, aid);
 
-            //为了克隆需要，因为克隆可能获取其他aid的数据，所以根据传进来的aid设置tableName
+            //为了克隆需要，因为克隆可能获取其他aid的数据，所以根据传进来的aid设置tableName(并不影响其他的业务)
             m_daoCtrl.setTableName(aid);
 
             Ref<FaiList<Param>> listRef = new Ref<>();

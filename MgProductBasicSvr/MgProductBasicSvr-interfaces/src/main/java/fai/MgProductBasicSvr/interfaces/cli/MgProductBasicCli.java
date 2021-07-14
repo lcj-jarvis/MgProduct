@@ -2320,4 +2320,89 @@ public class MgProductBasicCli extends FaiClient {
             stat.end(m_rt != Errno.OK, m_rt);
         }
     }
+
+
+    /**==========================================操作商品与标签关联开始===========================================================*/
+    public int getPdBindTag(int aid, int unionPriId, FaiList<Integer> rlPdIds, FaiList<Param> list) {
+        return 0;
+    }
+
+    public int unionDelAndAddPdBindTag(int aid, int unionPriId, int rlPdId, FaiList<Integer> addGroupIds, FaiList<Integer> delGroupIds) {
+        return 0;
+    }
+
+    public int delPdBindTag(int aid, int unionPriId, FaiList<Integer> delGroupIds) {
+        return 0;
+    }
+
+    public int getRlPdIdsByRlTagId(int aid, int unionPriId, FaiList<Integer> rlGroupIds, FaiList<Integer> rlPdIds) {
+        return 0;
+    }
+
+    public int getBindTagDataStatus(int aid, int unionPriId, Param statusInfo) {
+        return 0;
+    }
+
+    public int getBindTagFromDb(int aid, int unionPriId, SearchArg searchArg, FaiList<Param> list) {
+        return 0;
+    }
+
+    public int getAllBindTagData(int aid, int unionPriId, FaiList<Param> list) {
+        return 0;
+    }
+
+    public int transactionSetPdBindTag(int aid, int unionPriId, int rlPdId, FaiList<Integer> addGroupIds, FaiList<Integer> delGroupIds, String xid) {
+        return 0;
+    }
+
+    /**
+     * 发送和接收数据，并且验证发送和接收是否成功
+     *
+     * @param sendBody          发送的数据体
+     * @param verifyReceiveBody true表示要验证接收的数据是否为null，false表示不用验证
+     * @return true 表示发送和接收成功，false表示发送和接收失败
+     */
+    private Param sendAndReceive(int aid, int command, FaiBuffer sendBody, boolean verifyReceiveBody) {
+
+        Param param = new Param(true);
+        FaiProtocol sendProtocol = new FaiProtocol();
+        sendProtocol.setAid(aid);
+        sendProtocol.setCmd(command);
+        sendProtocol.addEncodeBody(sendBody);
+        //send
+        m_rt = send(sendProtocol);
+        if (m_rt != Errno.OK) {
+            Log.logErr(m_rt, "send err");
+            return param.setBoolean("success", false);
+        }
+
+        // recv
+        FaiProtocol recvProtocol = new FaiProtocol();
+        m_rt = recv(recvProtocol);
+        if (m_rt != Errno.OK) {
+            Log.logErr(m_rt, "recv err");
+            return param.setBoolean("success", false);
+        }
+        m_rt = recvProtocol.getResult();
+        if (m_rt != Errno.OK) {
+            if (m_rt != Errno.NOT_FOUND) {
+                Log.logErr(m_rt, "recv result err");
+            }
+            return param.setBoolean("success", false);
+        }
+
+        if (!verifyReceiveBody) {
+            return param.setBoolean("success", true);
+        }
+
+        FaiBuffer recvBody = recvProtocol.getDecodeBody();
+        if (recvBody == null) {
+            m_rt = Errno.CODEC_ERROR;
+            Log.logErr(m_rt, "recv body null");
+            return param.setBoolean("success", false);
+        }
+        return param.setBoolean("success", true).setObject("recvBody", recvBody);
+    }
+    /**==========================================操作商品与标签关联结束===========================================================*/
+
 }

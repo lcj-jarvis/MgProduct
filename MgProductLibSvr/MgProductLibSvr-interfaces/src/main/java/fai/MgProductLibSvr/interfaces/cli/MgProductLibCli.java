@@ -5,6 +5,7 @@ import fai.MgProductLibSvr.interfaces.dto.ProductLibRelDto;
 import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
+import fai.mgproduct.comm.CloneDef;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 import fai.middleground.infutil.MgConfPool;
@@ -410,8 +411,38 @@ public class MgProductLibCli extends FaiClient {
                     Log.logErr(m_rt, "recv rlLibIds codec err");
                     return m_rt;
                 }
-
             }
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    /**
+     * 克隆数据
+     * @param fromAid 从哪个aid下克隆
+     * @param cloneUnionPriIds 保存fromUnionPriId（从哪个unionId下克隆）和toUnionPriId（克隆到哪个unionId下）
+     */
+    public int cloneData(int aid, int fromAid, FaiList<Param> cloneUnionPriIds) {
+        if (!useProductLib()) {
+            return Errno.OK;
+        }
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0 || Util.isEmptyList(cloneUnionPriIds)) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;aid=%d;fromAid=%d;cloneUids=%s;", aid, fromAid, cloneUnionPriIds);
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductLibRelDto.Key.FROM_AID, fromAid);
+            cloneUnionPriIds.toBuffer(sendBody, ProductLibRelDto.Key.CLONE_UNION_PRI_IDS, CloneDef.Dto.getDto());
+            //发送数据
+            sendAndReceive(aid, MgProductLibCmd.LibCmd.CLONE, sendBody, false);
 
             return m_rt;
         } finally {
@@ -419,6 +450,44 @@ public class MgProductLibCli extends FaiClient {
             stat.end(m_rt != Errno.OK, m_rt);
         }
     }
+
+    /**
+     * 增量克隆：从fromAid、fromUnionPriId查看对应要克隆的数据，如果aid、unionPriId已经存在的就不进行克隆，
+     * 克隆未存在的。移除克隆数据的libId，设置新的libId，新的libId在已经存在的libId下开始自增。
+     * @param aid 克隆到哪个aid下
+     * @param unionPriId 克隆到哪个uid下
+     * @param fromAid 从哪个aid下开始克隆
+     * @param fromUnionPriId 从哪个unionPriId下开始克隆
+     * @return
+     */
+    public int incrementalClone(int aid, int unionPriId, int fromAid, int fromUnionPriId) {
+        if (!useProductLib()) {
+            return Errno.OK;
+        }
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;aid=%d;uid=%d;fromAid=%d;fromUid=%d;", aid, unionPriId, fromAid, fromUnionPriId);
+                return m_rt;
+            }
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductLibRelDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductLibRelDto.Key.FROM_AID, fromAid);
+            sendBody.putInt(ProductLibRelDto.Key.FROM_UNION_PRI_ID, fromUnionPriId);
+            //发送数据
+            sendAndReceive(aid, MgProductLibCmd.LibCmd.INCR_CLONE, sendBody, false);
+
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
 
     /**
      * 发送和接收数据，并且验证发送和接收是否成功
@@ -465,7 +534,6 @@ public class MgProductLibCli extends FaiClient {
             Log.logErr(m_rt, "recv body null");
             return param.setBoolean("success", false);
         }
-
         return param.setBoolean("success", true).setObject("recvBody", recvBody);
     }
 }

@@ -13,6 +13,7 @@ import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.Calendar;
+import java.util.Map;
 
 /**
  * @author LuChaoJi
@@ -155,22 +156,26 @@ public class ProductLibRelProc {
             if (searchArg == null) {
                 searchArg = new SearchArg();
             }
-
             //有searchArg，无查询条件
             if (searchArg.matcher == null) {
                 searchArg.matcher = new ParamMatcher();
             }
-
             //避免查询过来的条件已经包含这两个查询条件,就先删除，防止重复添加查询条件
             searchArg.matcher.remove(ProductLibRelEntity.Info.AID);
             searchArg.matcher.remove(ProductLibRelEntity.Info.UNION_PRI_ID);
-
             //有searchArg，有查询条件，加多两个查询条件
             searchArg.matcher.and(ProductLibRelEntity.Info.AID, ParamMatcher.EQ, aid);
             searchArg.matcher.and(ProductLibRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
 
+            //为了克隆需要,因为克隆可能获取其他aid的数据，所以根据传进来的aid设置tableName（并不影响其他业务）
+            m_relDaoCtrl.setTableName(aid);
+
             Ref<FaiList<Param>> listRef = new Ref<>();
             int rt = m_relDaoCtrl.select(searchArg, listRef);
+
+            //恢复之前的表名
+            m_relDaoCtrl.restoreTableName();
+
             if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
                 throw new MgException(rt, "get error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             }
@@ -183,7 +188,6 @@ public class ProductLibRelProc {
                 Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
                 return list;
             }
-
             //添加到缓存（直接查DB的不需要添加缓存）
             if (getFromCache) {
                 ProductLibRelCache.InfoCache.addCacheList(aid, unionPriId, list);
@@ -191,7 +195,6 @@ public class ProductLibRelProc {
         }finally {
             LockUtil.LibRelLock.readUnLock(aid);
         }
-
         return list;
     }
 
@@ -318,4 +321,92 @@ public class ProductLibRelProc {
         return statusInfo;
     }
 
+    /**
+     * 从fromAid、fromUnionPriId中克隆数据到toAid、toUnionPriId下，并且设置toAid、toUnionPriId的自增id
+     * @param toAid 克隆到哪个aid下
+     * @param fromAid 从哪个aid下克隆
+     * @param cloneUnionPriIds key：fromUnionPriId 从哪个uid下克隆
+     *                         value: toUnionPriId 克隆到哪个uid下
+     *
+     */
+    public void cloneData(int toAid, int fromAid, Map<Integer, Integer> cloneUnionPriIds) {
+        int rt;
+        if(cloneUnionPriIds == null || cloneUnionPriIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "cloneUnionPriIds is null;flow=%d;aid=%d;fromAid=%d;uids=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
+        }
+        if(m_relDaoCtrl.isAutoCommit()) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "dao is auto commit;flow=%d;aid=%d;fromAid=%d;uids=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
+        }
+
+        //获取到所有被克隆的unionPriIds
+        FaiList<Integer> fromUnionPriIds = new FaiList<>(cloneUnionPriIds.keySet());
+        ParamMatcher matcher = new ParamMatcher(ProductLibRelEntity.Info.AID, ParamMatcher.EQ, fromAid);
+        matcher.and(ProductLibRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, fromUnionPriIds);
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+
+        // 根据fromAid设置表名，默认表名是根据aid生成的
+        m_relDaoCtrl.setTableName(fromAid);
+        Ref<FaiList<Param>> dataListRef = new Ref<>();
+        rt = m_relDaoCtrl.select(searchArg, dataListRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException("select clone data err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
+        }
+
+        // 根据aid设置表名
+        m_relDaoCtrl.setTableName(toAid);
+        //克隆之前先删掉已经存在的数据
+        FaiList<Integer> toUnionPriIds = new FaiList<>(cloneUnionPriIds.values());
+        ParamMatcher delMatcher = new ParamMatcher(ProductLibRelEntity.Info.AID, ParamMatcher.EQ, toAid);
+        delMatcher.and(ProductLibRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, toUnionPriIds);
+        rt = m_relDaoCtrl.delete(delMatcher);
+        if(rt != Errno.OK) {
+            throw new MgException("del old data err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
+        }
+
+        // 组装数据
+        for(Param data : dataListRef.value) {
+            int fromUnionPriId = data.getInt(ProductLibRelEntity.Info.UNION_PRI_ID);
+            int toUnionPriId = cloneUnionPriIds.get(fromUnionPriId);
+            data.setInt(ProductLibRelEntity.Info.AID, toAid);
+            data.setInt(ProductLibRelEntity.Info.UNION_PRI_ID, toUnionPriId);
+        }
+        // 批量插入
+        if(!dataListRef.value.isEmpty()) {
+            rt = m_relDaoCtrl.batchInsert(dataListRef.value);
+            if(rt != Errno.OK) {
+                throw new MgException("batch insert err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
+            }
+        }
+
+        //设置toAid和toUnionPriId的自增id
+        for(int unionPriId : toUnionPriIds) {
+            rt = m_relDaoCtrl.restoreMaxId(unionPriId, false);
+            if(rt != Errno.OK) {
+                throw new MgException("restoreMaxId err;flow=%d;aid=%d;fromAid=%d;curUid=%d;cloneUnionPriIds=%s;", m_flow, toAid, fromAid, unionPriId, cloneUnionPriIds);
+            }
+            m_relDaoCtrl.clearIdBuilderCache(toAid, unionPriId);
+        }
+    }
+
+    /**
+     * 标签业务表添加增量克隆的数据
+     */
+    public void addIncrementalClone(int aid, int unionPriId, FaiList<Param> list) {
+        if(Util.isEmptyList(list)) {
+            Log.logStd("incrementalClone list is empty;aid=%d;uid=%d;", aid, unionPriId);
+            return;
+        }
+        int rt = m_relDaoCtrl.batchInsert(list, null, false);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "batch insert tag rel error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        rt = m_relDaoCtrl.restoreMaxId(unionPriId, false);
+        if(rt != Errno.OK) {
+            throw new MgException("restoreMaxId err;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
+        }
+        m_relDaoCtrl.clearIdBuilderCache(aid, unionPriId);
+    }
 }

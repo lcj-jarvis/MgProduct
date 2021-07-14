@@ -48,7 +48,6 @@ public class ProductTagService {
                             FaiList<Param> tagInfoList,
                             FaiList<Param> relTagInfoList,
                             FaiList<Integer> relTagIds) {
-
         int rt;
         ProductTagRelProc tagRelProc = new ProductTagRelProc(flow, aid, transactionCtrl);
 

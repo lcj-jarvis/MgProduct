@@ -232,7 +232,7 @@ public class MgProductTagCli extends FaiClient {
 
     /**
      * 获取所有的标签业务表的信息,先查缓存再查DB
-     * @param relTagList 保存查询到的库业务表的信息
+     * @param relTagList 保存查询到的标签业务表的信息
      */
     public int getAllTagRel(int aid, int unionPriId, FaiList<Param> relTagList) {
         return getTagRelByCondition(aid, unionPriId, null, relTagList);
@@ -251,7 +251,7 @@ public class MgProductTagCli extends FaiClient {
     }
 
     /**
-     * 根据条件查询库业务表的信息
+     * 根据条件查询标签业务表的信息
      */
     private  int getTagRelByCondition(int aid, int unionPriId, SearchArg searchArg, FaiList<Param> relTagList) {
         if(!useProductTag()) {
@@ -349,7 +349,7 @@ public class MgProductTagCli extends FaiClient {
 
     /**
      * 联合增删改
-     * @param addInfoList  要添加的库信息
+     * @param addInfoList  要添加的标签信息
      * @param updaterList  要更新的标签信息
      * @param delRlTagIds  要删除的标签
      * @param rlTagIdsRef  接收新增标签的标签id
@@ -451,7 +451,13 @@ public class MgProductTagCli extends FaiClient {
     }
 
     /**
-     * 增量克隆
+     * 增量克隆：从fromAid、fromUnionPriId查看对应要克隆的数据，如果aid、unionPriId已经存在的就不进行克隆，
+     * 克隆未存在的。移除克隆数据的tagId，设置新的tagId，新的tagId在已经存在的tagId下开始自增。
+     * @param aid 克隆到哪个aid下
+     * @param unionPriId 克隆到哪个uid下
+     * @param fromAid 从哪个aid下开始克隆
+     * @param fromUnionPriId 从哪个unionPriId下开始克隆
+     * @return
      */
     public int incrementalClone(int aid, int unionPriId, int fromAid, int fromUnionPriId) {
         if (!useProductTag()) {

@@ -27,12 +27,14 @@ public class ProductLibDaoCtrl extends DaoCtrl {
             .buildPrimaryMatchField(ProductLibEntity.Info.AID)
             .buildAutoIncField(ProductLibEntity.Info.LIB_ID)
             .build();
+    private String tableName;
 
     /**
      * 对外暴露getInstance方法获取对象。
      */
     private ProductLibDaoCtrl(int flow, int aid) {
         super(flow, aid);
+        tableName = TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
     }
 
     public static void init(DaoPool daoPool, RedisCacheManager cache) {
@@ -75,7 +77,18 @@ public class ProductLibDaoCtrl extends DaoCtrl {
 
     @Override
     protected String getTableName() {
-        return TABLE_PREFIX + "_" + String.format("%04d", getAid() % 1000);
+        return tableName;
     }
 
+    public void setTableName(int aid) {
+        this.tableName = TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
+    }
+
+    public void restoreTableName() {
+        this.tableName = TABLE_PREFIX + "_" + String.format("%04d", this.aid % 1000);
+    }
+
+    public int restoreMaxId(boolean needLock) {
+        return m_idBuilder.restoreMaxId(aid, flow, tableName, m_dao, needLock);
+    }
 }

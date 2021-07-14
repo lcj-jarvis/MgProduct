@@ -26,7 +26,7 @@ public class ProductLibRelCache extends CacheCtrl{
 
         /**
          * 添加FaiList<Param>到缓存
-         * 缓存的形式：cachkey rlLibId  Param rlLibId Param ....
+         * 缓存的形式：cachekey rlLibId  Param rlLibId Param ....
          */
         public static void addCacheList(int aid, int unionId, FaiList<Param> list) {
             if(list == null || list.isEmpty()) {
@@ -39,11 +39,11 @@ public class ProductLibRelCache extends CacheCtrl{
         /**
          * 删除缓存的FaiList<Param>
          */
-        public static void delCacheList(int aid, int uninoId, FaiList<Integer> rlLibIds) {
+        public static void delCacheList(int aid, int unionId, FaiList<Integer> rlLibIds) {
             if(rlLibIds == null || rlLibIds.isEmpty()) {
                 return;
             }
-            String cacheKey = getCacheKey(aid, uninoId);
+            String cacheKey = getCacheKey(aid, unionId);
             if(!m_cache.exists(cacheKey)) {
                 return;
             }

@@ -23,17 +23,17 @@ public class ProductTagRelProc {
     private int m_flow;
     private ProductTagRelDaoCtrl m_relDaoCtrl;
 
-    public ProductTagRelProc(int flow, int aid, TransactionCtrl transactionCrtl) {
+    public ProductTagRelProc(int flow, int aid, TransactionCtrl transactionCtrl) {
         this.m_flow = flow;
         this.m_relDaoCtrl = ProductTagRelDaoCtrl.getInstance(flow, aid);
-        init(transactionCrtl);
+        init(transactionCtrl);
     }
 
-    private void init(TransactionCtrl transactionCrtl) {
-        if (transactionCrtl == null) {
+    private void init(TransactionCtrl transactionCtrl) {
+        if (transactionCtrl == null) {
             throw new MgException("TransactionCtrl is null , registered ProductTagDao err;");
         }
-        if(!transactionCrtl.register(m_relDaoCtrl)) {
+        if(!transactionCtrl.register(m_relDaoCtrl)) {
             throw new MgException("registered ProductTagDao err;");
 
         }
@@ -168,7 +168,7 @@ public class ProductTagRelProc {
             searchArg.matcher.and(ProductTagRelEntity.Info.AID, ParamMatcher.EQ, aid);
             searchArg.matcher.and(ProductTagRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
 
-            //为了克隆需要,因为克隆可能获取其他aid的数据，所以根据传进来的aid设置tableName
+            //为了克隆需要,因为克隆可能获取其他aid的数据，所以根据传进来的aid设置tableName（并不影响其他业务）
             m_relDaoCtrl.setTableName(aid);
 
             Ref<FaiList<Param>> listRef = new Ref<>();
@@ -399,7 +399,7 @@ public class ProductTagRelProc {
     }
 
     /**
-     * 添加增量克隆的数据
+     * 标签业务表添加增量克隆的数据
      */
     public void addIncrementalClone(int aid, int unionPriId, FaiList<Param> list) {
         if(Util.isEmptyList(list)) {

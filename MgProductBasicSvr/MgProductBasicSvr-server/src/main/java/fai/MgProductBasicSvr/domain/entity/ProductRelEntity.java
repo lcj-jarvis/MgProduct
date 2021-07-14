@@ -24,6 +24,7 @@ public class ProductRelEntity {
 
         /*** 未入库属性 ***/
         public static final String RL_GROUP_IDS = "rlGroupId"; // FaiList<Integer> 商品分类业务id集合
+        public static final String RL_TAG_IDS = "rlTagId"; // FaiList<Integer> 商品标签业务id集合
         public static final String RL_PROPS = "rlProps"; // FaiList<Param> 商品参数业务绑定关系集合
 
         public static final String INFO_CHECK = "infoCheck"; // boolean 是否要校验info中的数据，中台内部使用。业务方接入可能需要添加一些空数据

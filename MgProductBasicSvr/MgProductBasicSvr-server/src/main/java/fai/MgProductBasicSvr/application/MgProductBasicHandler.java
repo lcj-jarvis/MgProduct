@@ -3,6 +3,7 @@ package fai.MgProductBasicSvr.application;
 import fai.MgProductBasicSvr.application.service.ProductBasicService;
 import fai.MgProductBasicSvr.application.service.ProductBindGroupService;
 import fai.MgProductBasicSvr.application.service.ProductBindPropService;
+import fai.MgProductBasicSvr.application.service.ProductBindTagService;
 import fai.MgProductBasicSvr.interfaces.cmd.MgProductBasicCmd;
 import fai.MgProductBasicSvr.interfaces.dto.ProductBindGroupDto;
 import fai.MgProductBasicSvr.interfaces.dto.ProductBindPropDto;
@@ -37,7 +38,7 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                             @ArgBodyInteger(ProductBindPropDto.Key.UNION_PRI_ID) int unionPriId,
                             @ArgBodyInteger(ProductBindPropDto.Key.TID) int tid,
                             @ArgBodyInteger(ProductBindPropDto.Key.RL_PD_ID) int rlPdId) throws IOException {
-        return propBindservice.getPdBindProp(session, flow, aid, unionPriId, tid, rlPdId);
+        return propBindService.getPdBindProp(session, flow, aid, unionPriId, tid, rlPdId);
     }
 
     @WrittenCmd
@@ -52,7 +53,7 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                             keyMatch = ProductBindPropDto.Key.PROP_BIND) FaiList<Param> addList,
                             @ArgList(classDef = ProductBindPropDto.class, methodDef = "getInfoDto",
                             keyMatch = ProductBindPropDto.Key.DEL_PROP_BIND) FaiList<Param> delList) throws IOException {
-        return propBindservice.setPdBindProp(session, flow, aid, unionPriId, tid, rlPdId, addList, delList);
+        return propBindService.setPdBindProp(session, flow, aid, unionPriId, tid, rlPdId, addList, delList);
     }
 
     @WrittenCmd
@@ -69,7 +70,7 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                                 keyMatch = ProductBindPropDto.Key.PROP_BIND) FaiList<Param> addList,
                                         @ArgList(classDef = ProductBindPropDto.class, methodDef = "getInfoDto",
                                                 keyMatch = ProductBindPropDto.Key.DEL_PROP_BIND) FaiList<Param> delList) throws IOException {
-        return propBindservice.transactionSetPdBindProp(session, flow, aid, unionPriId, tid, rlPdId, xid, addList, delList);
+        return propBindService.transactionSetPdBindProp(session, flow, aid, unionPriId, tid, rlPdId, xid, addList, delList);
     }
 
     @Cmd(MgProductBasicCmd.BindPropCmd.GET_LIST_BY_PROP)
@@ -80,7 +81,7 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                              @ArgBodyInteger(ProductBindPropDto.Key.TID) int tid,
                              @ArgList(classDef = ProductBindPropDto.class, methodDef = "getInfoDto",
                              keyMatch = ProductBindPropDto.Key.INFO_LIST) FaiList<Param> proIdsAndValIds) throws IOException {
-        return propBindservice.getRlPdByPropVal(session, flow, aid, unionPriId, tid, proIdsAndValIds);
+        return propBindService.getRlPdByPropVal(session, flow, aid, unionPriId, tid, proIdsAndValIds);
     }
 
     @WrittenCmd
@@ -90,7 +91,7 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                    @ArgAid final int aid,
                                    @ArgBodyInteger(ProductBindPropDto.Key.UNION_PRI_ID) int unionPriId,
                                    @ArgList(keyMatch = ProductBindPropDto.Key.RL_PROP_IDS) FaiList<Integer> rlPropIds) throws IOException {
-        return propBindservice.delPdBindPropByPropId(session, flow, aid, unionPriId, rlPropIds);
+        return propBindService.delPdBindPropByPropId(session, flow, aid, unionPriId, rlPropIds);
     }
 
     @WrittenCmd
@@ -101,7 +102,7 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                              @ArgBodyInteger(ProductBindPropDto.Key.UNION_PRI_ID) int unionPriId,
                              @ArgBodyInteger(ProductBindPropDto.Key.RL_PROP_ID) int rlPropId,
                              @ArgList(keyMatch = ProductBindPropDto.Key.PROP_VAL_IDS) FaiList<Integer> delPropValIds) throws IOException {
-        return propBindservice.delPdBindPropByValId(session, flow, aid, unionPriId, rlPropId, delPropValIds);
+        return propBindService.delPdBindPropByValId(session, flow, aid, unionPriId, rlPropId, delPropValIds);
     }
 
     @Cmd(MgProductBasicCmd.BindPropCmd.GET_DATA_STATUS)
@@ -109,7 +110,7 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                      @ArgFlow final int flow,
                                      @ArgAid final int aid,
                                      @ArgBodyInteger(ProductBindPropDto.Key.UNION_PRI_ID) int unionPriId) throws IOException {
-        return propBindservice.getBindPropDataStatus(session, flow, aid, unionPriId);
+        return propBindService.getBindPropDataStatus(session, flow, aid, unionPriId);
     }
 
     @Cmd(MgProductBasicCmd.BindPropCmd.GET_ALL_DATA)
@@ -117,7 +118,7 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                               @ArgFlow final int flow,
                               @ArgAid final int aid,
                               @ArgBodyInteger(ProductBindPropDto.Key.UNION_PRI_ID) int unionPriId) throws IOException {
-        return propBindservice.getAllBindProp(session, flow, aid, unionPriId);
+        return propBindService.getAllBindProp(session, flow, aid, unionPriId);
     }
 
     @Cmd(MgProductBasicCmd.BindPropCmd.SEARCH_FROM_DB)
@@ -126,7 +127,7 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                     @ArgAid final int aid,
                                     @ArgBodyInteger(ProductBindPropDto.Key.UNION_PRI_ID) int unionPriId,
                                     @ArgSearchArg(ProductBindPropDto.Key.SEARCH_ARG)SearchArg searchArg) throws IOException {
-        return propBindservice.searchBindPropFromDb(session, flow, aid, unionPriId, searchArg);
+        return propBindService.searchBindPropFromDb(session, flow, aid, unionPriId, searchArg);
     }
 
     @Cmd(MgProductBasicCmd.BasicCmd.GET_REL)
@@ -451,9 +452,16 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
         return service.clearCache(session, flow, aid);
     }
 
+    /**==========================================操作商品与标签关联开始===========================================================*/
+
+
+
+    /**==========================================操作商品与标签关联结束===========================================================*/
+
     private ProductBasicService service = ServiceProxy.create(new ProductBasicService());
     private ProductBindGroupService groupBindService = ServiceProxy.create(new ProductBindGroupService());
-    private ProductBindPropService propBindservice = ServiceProxy.create(new ProductBindPropService());
+    private ProductBindPropService propBindService = ServiceProxy.create(new ProductBindPropService());
+    private ProductBindTagService tagBindService = ServiceProxy.create(new ProductBindTagService());
 
     private final static String CLI_NAME = "MgProductBasicCli";
 }

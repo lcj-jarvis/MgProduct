@@ -227,7 +227,7 @@ public class ProductBindGroupProc {
 
     private FaiList<Param> getList(int aid, int unionPriId, HashSet<Integer> rlPdIds) {
         if(rlPdIds == null || rlPdIds.isEmpty()) {
-            throw new MgException(Errno.ARGS_ERROR, "arrgs error, rlPdIds is empty;aid=%d;unionPriId=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
+            throw new MgException(Errno.ARGS_ERROR, "args error, rlPdIds is empty;aid=%d;unionPriId=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
         }
         // 缓存中获取
         List<String> rlPdIdStrs = rlPdIds.stream().map(String::valueOf).collect(Collectors.toList());

@@ -8,6 +8,8 @@ import fai.MgProductStoreSvr.application.service.SummaryService;
 import fai.MgProductStoreSvr.interfaces.cmd.MgProductStoreCmd;
 import fai.MgProductStoreSvr.interfaces.conf.MqConfig;
 import fai.MgProductStoreSvr.interfaces.dto.*;
+import fai.comm.fseata.client.core.rpc.annotation.SagaTransaction;
+import fai.comm.fseata.client.core.rpc.def.CommDef;
 import fai.comm.jnetkit.server.ServerConfig;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
@@ -420,16 +422,28 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.IMPORT)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductStoreCmd.StoreSalesSkuCmd.IMPORT_STORE_SALES_ROLLBACK)
     private int importStoreSales(final FaiSession session,
                                  @ArgFlow final int flow,
                                  @ArgAid final int aid,
                                  @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
                                  @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
+                                 @ArgBodyXid(value = StoreSalesSkuDto.Key.XID, useDefault = true) String xid,
                                  @ArgList(keyMatch = StoreSalesSkuDto.Key.INFO_LIST,
                                          classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto") FaiList<Param> storeSaleSkuList,
                                  @ArgParam(keyMatch = StoreSalesSkuDto.Key.IN_OUT_STORE_RECORD_INFO,
                                          classDef = InOutStoreRecordDto.class, methodDef = "getInfoDto") Param inStoreRecordInfo) throws IOException {
-        return m_storeService.importStoreSales(session, flow, aid, tid, unionPriId, storeSaleSkuList, inStoreRecordInfo);
+        return m_storeService.importStoreSales(session, flow, aid, tid, unionPriId, xid, storeSaleSkuList, inStoreRecordInfo);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.IMPORT_STORE_SALES_ROLLBACK)
+    private int importStoreSalesRollback(final FaiSession session,
+                                         @ArgFlow final int flow,
+                                         @ArgAid final int aid,
+                                         @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                         @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return m_storeService.importStoreSalesRollback(session, flow, aid, xid, branchId);
     }
 
     @WrittenCmd
@@ -490,6 +504,7 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
         return m_storeService.clearAllCache(session, flow, aid);
     }
 
+    private static final String CLI_NAME = "MgProductStoreCli";
     private StoreService m_storeService = new StoreService();
     private StoreSalesSkuService m_storeSalesSkuService = new StoreSalesSkuService();
     private RecordService m_recordService = new RecordService();

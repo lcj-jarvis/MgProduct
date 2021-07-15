@@ -1,10 +1,7 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
 import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
-import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordEntity;
-import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordValObj;
-import fai.MgProductStoreSvr.domain.entity.InOutStoreSumEntity;
-import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuEntity;
+import fai.MgProductStoreSvr.domain.entity.*;
 import fai.MgProductStoreSvr.domain.repository.InOutStoreRecordDaoCtrl;
 import fai.MgProductStoreSvr.domain.repository.InOutStoreSumDaoCtrl;
 import fai.comm.middleground.FaiValObj;
@@ -365,7 +362,8 @@ public class InOutStoreRecordProc {
 
             if(remainCount == null){
                 Param storeSalesSkuInfo = changeCountAfterSkuStoreSalesInfoMap.get(new SkuBizKey(unionPriId, skuId));
-                remainCount = storeSalesSkuInfo.getInt(StoreSalesSkuEntity.Info.REMAIN_COUNT)+storeSalesSkuInfo.getInt(StoreSalesSkuEntity.Info.HOLDING_COUNT);
+                // 剩余库存 + 预扣库存
+                remainCount = storeSalesSkuInfo.getInt(StoreSalesSkuEntity.Info.REMAIN_COUNT) + storeSalesSkuInfo.getInt(StoreSalesSkuEntity.Info.HOLDING_COUNT);
                 pdId = storeSalesSkuInfo.getInt(InOutStoreRecordEntity.Info.PD_ID, pdId);
                 rlPdId = storeSalesSkuInfo.getInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
                 if(sourceUnionPriId == 0){
@@ -409,9 +407,9 @@ public class InOutStoreRecordProc {
                 data.setInt(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, changeCount);
                 // 当有成本价时需要计算到总成本中
                 if(price > 0 && changeCount > 0){
-                    long totalCost = changeCount*price;
+                    long totalCost = changeCount * price;
                     data.setLong(InOutStoreRecordEntity.Info.TOTAL_PRICE, totalCost);
-                    long inMwTotalCost = changeCount*inMwPrice;
+                    long inMwTotalCost = changeCount * inMwPrice;
                     Param storeSalesSkuInfo = changeCountAfterSkuStoreSalesInfoMap.get(new SkuBizKey(unionPriId, skuId));
                     long fifoTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, 0L);
                     long mwTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, 0L);
@@ -424,7 +422,7 @@ public class InOutStoreRecordProc {
                         mwCost = new BigDecimal(mwTotalCost + inMwTotalCost).divide(new BigDecimal(remainCount), BigDecimal.ROUND_HALF_UP).longValue();
                     }else {
                         // (remainCount*mwCost+inMwTotalCost)/(remainCount)
-                        mwCost = new BigDecimal((remainCount-changeCount)*mwCost+inMwTotalCost).divide(new BigDecimal(remainCount), BigDecimal.ROUND_HALF_UP).longValue();
+                        mwCost = new BigDecimal((remainCount-changeCount) * mwCost + inMwTotalCost).divide(new BigDecimal(remainCount), BigDecimal.ROUND_HALF_UP).longValue();
                     }
                     storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_COST, mwCost);
                 }
@@ -841,6 +839,22 @@ public class InOutStoreRecordProc {
         return rt;
     }
 
+    public int batchDel4Saga(int ioStoreRecId) {
+        ParamMatcher matcher = new ParamMatcher(StoreSagaEntity.PropInfo.IO_STORE_REC_ID, ParamMatcher.EQ, ioStoreRecId);
+        int rt = m_daoCtrl.delete(matcher);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "batchDel4Saga-Record err;flow=%d;ioStoreRecId=%d", m_flow, ioStoreRecId);
+            return rt;
+        }
+        rt = m_sumDaoCtrl.delete(matcher);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "batchDel4Saga-Sum err;flow=%d;ioStoreRecId=%d", m_flow, ioStoreRecId);
+            return rt;
+        }
+        Log.logStd("batchDel4Saga ok;flow=%d;ioStoreRecId=%d", m_flow, ioStoreRecId);
+        return rt;
+    }
+
     public int clearData(int aid, int unionPriId) {
         FaiList<Integer> unionPriIds = new FaiList<>();
         unionPriIds.add(unionPriId);
@@ -919,6 +933,11 @@ public class InOutStoreRecordProc {
     public int clearIdBuilderCache(int aid){
         int rt = m_daoCtrl.clearIdBuilderCache(aid);
         return rt;
+    }
+
+    public void restoreMaxId(int aid) {
+        m_daoCtrl.restoreMaxId();
+        m_daoCtrl.clearIdBuilderCache(aid);
     }
 
     private static class TmpKey{

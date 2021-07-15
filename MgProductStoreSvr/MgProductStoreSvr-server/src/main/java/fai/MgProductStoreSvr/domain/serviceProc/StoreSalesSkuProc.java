@@ -6,6 +6,7 @@ import fai.MgProductStoreSvr.domain.comm.LockUtil;
 import fai.MgProductStoreSvr.domain.comm.PdKey;
 import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
 import fai.MgProductStoreSvr.domain.comm.Utils;
+import fai.MgProductStoreSvr.domain.entity.StoreSagaEntity;
 import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuEntity;
 import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuValObj;
 import fai.MgProductStoreSvr.domain.repository.StoreSalesSkuCacheCtrl;
@@ -197,6 +198,31 @@ public class StoreSalesSkuProc {
         }
         Log.logStd("ok;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
         return rt;
+    }
+
+    /**
+     * saga补偿批量删除
+     * @param delList 包含 aid unionPriId skuId 的集合
+     * @return {@link Errno}
+     */
+    public int batchDel4Saga(int aid ,FaiList<Param> delList) {
+        int rt;
+        if (Util.isEmptyList(delList)) {
+            Log.logErr("arg err;delList is empty;flow=%d,aid=%d", m_flow, aid);
+            return Errno.ARGS_ERROR;
+        }
+        for (Param delInfo : delList) {
+            ParamMatcher matcher = new ParamMatcher(StoreSagaEntity.Info.AID, ParamMatcher.EQ, aid);
+            matcher.and(StoreSagaEntity.PropInfo.StoreSaleSKU.UNION_PRI_ID, ParamMatcher.EQ, delInfo.getInt(StoreSagaEntity.PropInfo.StoreSaleSKU.UNION_PRI_ID));
+            matcher.and(StoreSagaEntity.PropInfo.StoreSaleSKU.SKU_ID, ParamMatcher.EQ, delInfo.getLong(StoreSagaEntity.PropInfo.StoreSaleSKU.SKU_ID));
+            rt = m_daoCtrl.delete(matcher);
+            if (rt != Errno.OK) {
+                Log.logErr(rt, "batchDel4Saga err;flow=%d;aid=%d;delList=%s", m_flow, aid, delList);
+                return rt;
+            }
+        }
+        Log.logStd("batchDel4Saga ok;flow=%d;aid=%d", m_flow, aid);
+        return Errno.OK;
     }
 
     public int clearData(int aid, Integer unionPriId) {
@@ -916,6 +942,7 @@ public class StoreSalesSkuProc {
             Log.logErr("arg error;flow=%d;aid=%s;skuStoreKeySet=%s;skuCountAndTotalCostMap=%s;", m_flow, aid, skuBizKeySet, skuCountAndTotalCostMap);
             return Errno.ARGS_ERROR;
         }
+        // unionPriId - skuList
         Map<Integer, FaiList<Long>> unionPriIdSkuIdListMap = new HashMap<>();
         for (SkuBizKey skuBizKey : skuBizKeySet) {
             int unionPriId = skuBizKey.unionPriId;

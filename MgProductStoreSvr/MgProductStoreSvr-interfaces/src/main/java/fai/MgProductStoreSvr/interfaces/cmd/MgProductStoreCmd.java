@@ -50,6 +50,7 @@ public class MgProductStoreCmd {
 		public static final int NUM20 = 1020;
 		public static final int NUM21 = 1021;
 		public static final int NUM22 = 1022;
+		public static final int NUM23 = 1023;
 	}
 
 	////////////////// cmd对外定义，实际做cmd读写分离 ////////////////////
@@ -89,6 +90,7 @@ public class MgProductStoreCmd {
 		public static final int CLEAR_REL_DATA = WriteCmdNum.NUM20;
 		public static final int CLEAR_ACCT = WriteCmdNum.NUM21;
 		public static final int REPORT = WriteCmdNum.NUM22;
+		public static final int IMPORT_STORE_SALES_ROLLBACK = WriteCmdNum.NUM23;
 	}
 
 	/**

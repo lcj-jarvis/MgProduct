@@ -2115,7 +2115,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
     /**
      * 导入数据
      */
-    public int importStoreSales(int aid, int tid, int unionPriId, FaiList<Param> storeSaleSkuList, Param inStoreRecordInfo){
+    public int importStoreSales(int aid, int tid, int unionPriId, String xid, FaiList<Param> storeSaleSkuList, Param inStoreRecordInfo){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2139,6 +2139,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(StoreSalesSkuDto.Key.TID, tid);
             sendBody.putInt(StoreSalesSkuDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putString(StoreSalesSkuDto.Key.XID, xid);
             storeSaleSkuList.toBuffer(sendBody, StoreSalesSkuDto.Key.INFO_LIST, StoreSalesSkuDto.getInfoDto());
             inStoreRecordInfo.toBuffer(sendBody, StoreSalesSkuDto.Key.IN_OUT_STORE_RECORD_INFO, InOutStoreRecordDto.getInfoDto());
 

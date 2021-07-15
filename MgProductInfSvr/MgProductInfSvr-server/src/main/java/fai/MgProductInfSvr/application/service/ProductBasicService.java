@@ -323,11 +323,12 @@ public class ProductBasicService extends MgProductInfService {
 
             boolean commit = false;
             GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
-            tx.begin(aid, 60000, "bindProductRel", flow);
+            tx.begin(aid, 60000, "mgProduct-bindProductRel", flow);
+            xid = tx.getXid();
             try {
                 // 添加商品业务绑定数据
                 ProductBasicProc basicProc = new ProductBasicProc(flow);
-                rt = basicProc.bindProductRel(aid, tid, unionPriId, tx.getXid(), bindPdInfo, basicInfo, rlPdIdRef, pdIdRef);
+                rt = basicProc.bindProductRel(aid, tid, unionPriId, xid, bindPdInfo, basicInfo, rlPdIdRef, pdIdRef);
                 if (rt != Errno.OK) {
                     return rt;
                 }
@@ -354,6 +355,7 @@ public class ProductBasicService extends MgProductInfService {
                     }
                     ProductSpecProc productSpecProc = new ProductSpecProc(flow);
                     FaiList<Param> skuList = new FaiList<>();
+                    // 根据 SKU 列表获取信息
                     rt = productSpecProc.getPdSkuScInfoListBySkuIdList(aid, tid, new FaiList<>(skuIds), skuList);
                     if(rt != Errno.OK) {
                         Log.logErr(rt, "getPdSkuScInfoListBySkuIdList err;flow=%s;aid=%s;addInfo=%s;", flow, aid, addInfo);
@@ -397,14 +399,11 @@ public class ProductBasicService extends MgProductInfService {
                 }
                 if (!storeSaleSkuList.isEmpty()) {
                     ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-                    rt = productStoreProc.importStoreSales(aid, tid, unionPriId, storeSaleSkuList, inStoreRecordInfo);
+                    rt = productStoreProc.importStoreSales(aid, tid, unionPriId, tx.getXid(), storeSaleSkuList, inStoreRecordInfo);
                     if (rt != Errno.OK) {
-                        // TODO 因为未加入分布式事务，只能先告警
-                        Oss.logAlarm("addProductInfo error;an error occurred in adding the product storeSale");
                         return rt;
                     }
                 }
-
                 commit = true;
                 tx.commit();
             }finally {
@@ -1171,7 +1170,7 @@ public class ProductBasicService extends MgProductInfService {
             // 导入
             if (!storeSaleSkuList.isEmpty()) {
                 ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-                rt = productStoreProc.importStoreSales(aid, ownerTid, ownerUnionPriId, storeSaleSkuList, inStoreRecordInfo);
+                rt = productStoreProc.importStoreSales(aid, ownerTid, ownerUnionPriId, null, storeSaleSkuList, inStoreRecordInfo);
                 if (rt != Errno.OK) {
                     // TODO 因为未加入分布式事务，只能先告警
                     Oss.logAlarm("addProductInfo error;an error occurred in adding the product storeSale");

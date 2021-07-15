@@ -1079,7 +1079,7 @@ public class MgProductInfService extends ServicePub {
                 // 导入
                 if(!storeSaleSkuList.isEmpty()){
                     ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-                    rt = productStoreProc.importStoreSales(aid, ownerTid, ownerUnionPriId, storeSaleSkuList, inStoreRecordInfo);
+                    rt = productStoreProc.importStoreSales(aid, ownerTid, ownerUnionPriId, null, storeSaleSkuList, inStoreRecordInfo);
                     if(rt != Errno.OK){
                         return rt;
                     }

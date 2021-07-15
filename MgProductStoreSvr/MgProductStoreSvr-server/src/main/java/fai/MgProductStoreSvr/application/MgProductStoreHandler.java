@@ -78,6 +78,18 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.REPORT)
+    private int reportSummary(final FaiSession session,
+                                     @ArgFlow final int flow,
+                                     @ArgAid final int aid,
+                                     @ArgList(keyMatch = StoreSalesSkuDto.Key.PD_ID, useDefault = true) FaiList<Integer> pdIds,
+                                     @ArgList(keyMatch = StoreSalesSkuDto.Key.SKU_ID, useDefault = true) FaiList<Long> skuIds,
+                                     @ArgBodyBoolean(StoreSalesSkuDto.Key.REPORT_COUNT) boolean reportCount,
+                                     @ArgBodyBoolean(StoreSalesSkuDto.Key.REPORT_PRICE) boolean reportPrice) throws IOException {
+        return m_storeSalesSkuService.reportSummary(session, flow, aid, pdIds, skuIds, reportCount, reportPrice);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_SYN_SPU_TO_SKU)
     private int batchSynchronousStoreSalesSPU2SKU(final FaiSession session,
                                                   @ArgFlow final int flow,

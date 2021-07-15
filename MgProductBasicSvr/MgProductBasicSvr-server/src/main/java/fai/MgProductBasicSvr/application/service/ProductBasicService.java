@@ -1041,11 +1041,14 @@ public class ProductBasicService extends ServicePub {
                 SagaProc sagaProc = new SagaProc(flow, aid, tc);
                 Param sagaInfo = sagaProc.getInfoWithAdd(xid, branchId);
                 if(sagaInfo == null) {
-                    return Errno.OK;
+                    commit = true;
+                    rt = Errno.OK;
+                    return rt;
                 }
 
                 int status = sagaInfo.getInt(BasicSagaEntity.Info.STATUS);
                 if(status == BasicSagaValObj.Status.ROLLBACK_OK) {
+                    commit = true;
                     rt = Errno.OK;
                     Log.logStd(rt, "rollback already ok! saga=%s;", sagaInfo);
                     return rt;
@@ -1081,6 +1084,7 @@ public class ProductBasicService extends ServicePub {
                 // 更新saga记录status
                 sagaProc.setStatus(xid, branchId, BasicSagaValObj.Status.ROLLBACK_OK);
 
+                rt = Errno.OK;
                 commit = true;
                 tc.commit();
             } finally {

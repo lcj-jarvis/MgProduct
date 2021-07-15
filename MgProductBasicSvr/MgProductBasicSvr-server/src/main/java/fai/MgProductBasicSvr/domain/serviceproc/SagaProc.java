@@ -89,8 +89,14 @@ public class SagaProc {
         searchArg.matcher.and(BasicSagaEntity.Info.BRANCH_ID, ParamMatcher.EQ, branchId);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
-        m_dao.select(searchArg, listRef);
-        return listRef.value == null ? null : listRef.value.get(0);
+        int rt = m_dao.select(searchArg, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "getInfoFromDB err;xid=%s;branchId=%s;", xid, branchId);
+        }
+        if(listRef.value == null || listRef.value.isEmpty()) {
+            return null;
+        }
+        return listRef.value.get(0);
     }
 
     /**

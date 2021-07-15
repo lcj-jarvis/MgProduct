@@ -30,6 +30,76 @@ import java.util.*;
  * 主要处理 库存销售sku相关 请求
  */
 public class StoreSalesSkuService extends StoreService {
+    public int reportSummary(FaiSession session, int flow, int aid, FaiList<Integer> pdIds, FaiList<Long> skuIds, boolean reportCount, boolean reportPrice) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || (skuIds.isEmpty() && pdIds.isEmpty())) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;aid=%s;pdIds=%s;skuIds=%s;reportCount=%s;reportPrice=%s;",aid, pdIds, skuIds, reportCount, reportPrice);
+                return rt;
+            }
+            int flag = 0;
+            if(reportCount) {
+                flag |= ReportValObj.Flag.REPORT_COUNT;
+            }
+            if(reportPrice) {
+                flag |= ReportValObj.Flag.REPORT_PRICE;
+            }
+            if(flag == 0) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err, price and count all unreport;aid=%s;pdIds=%s;skuIds=%s;reportCount=%s;reportPrice=%s;",aid, pdIds, skuIds, reportCount, reportPrice);
+                return rt;
+            }
+
+            TransactionCtrl transactionCtrl = new TransactionCtrl();
+            try {
+                LockUtil.lock(aid);
+                SpuBizSummaryDaoCtrl spuBizSummaryDaoCtrl = SpuBizSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+                SpuSummaryDaoCtrl spuSummaryDaoCtrl = SpuSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+                SkuSummaryDaoCtrl skuSummaryDaoCtrl =SkuSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+                StoreSalesSkuDaoCtrl storeSalesSkuDaoCtrl = StoreSalesSkuDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+                if(!transactionCtrl.checkRegistered(storeSalesSkuDaoCtrl, spuBizSummaryDaoCtrl, spuSummaryDaoCtrl, skuSummaryDaoCtrl)){
+                    return rt = Errno.ERROR;
+                }
+
+                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(spuBizSummaryDaoCtrl, flow);
+                SpuSummaryProc spuSummaryProc = new SpuSummaryProc(spuSummaryDaoCtrl, flow);
+                SkuSummaryProc skuSummaryProc = new SkuSummaryProc(skuSummaryDaoCtrl, flow);
+                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
+
+                try {
+                    transactionCtrl.setAutoCommit(false);
+                    // 同步方式汇总信息
+                    rt = reportSummary(aid, pdIds, flag, skuIds, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
+                    if(rt != Errno.OK){
+                        return rt;
+                    }
+                }finally {
+                    if(rt != Errno.OK){
+                        transactionCtrl.rollback();
+                        return rt;
+                    }
+                    // 事务提交前先设置一个较短的过期时间
+                    spuBizSummaryProc.setDirtyCacheEx(aid);
+                    spuSummaryProc.setDirtyCacheEx(aid);
+                    transactionCtrl.commit();
+                    // 提交成功再删除缓存
+                    spuBizSummaryProc.deleteDirtyCache(aid);
+                    spuSummaryProc.deleteDirtyCache(aid);
+                }
+            }finally {
+                LockUtil.unlock(aid);
+                transactionCtrl.closeDao();
+            }
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("ok;aid=%s;pdIds=%s;skuIds=%s;reportCount=%s;reportPrice=%s;",aid, pdIds, skuIds, reportCount, reportPrice);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
     /**
      * 刷新库存销售sku信息
      */
@@ -695,7 +765,7 @@ public class StoreSalesSkuService extends StoreService {
             session.write(sendBuf);
             Log.logStd("aid=%d;unionPriId=%s;rlOrderCode=%s;reduceMode=%s;expireTimeSeconds=%s;;skuIdCountMap=%s", aid, unionPriId, rlOrderCode, reduceMode, expireTimeSeconds, skuIdCountMap);
         } finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end(rt != Errno.OK && rt != MgProductErrno.Store.SHORTAGE, rt);
         }
         return rt;
     }

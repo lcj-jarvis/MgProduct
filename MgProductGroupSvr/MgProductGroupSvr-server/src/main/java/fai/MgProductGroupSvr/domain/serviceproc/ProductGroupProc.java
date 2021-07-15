@@ -12,6 +12,7 @@ import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.Calendar;
+import java.util.Map;
 
 public class ProductGroupProc {
     public ProductGroupProc(int flow, int aid, TransactionCtrl transactionCrtl) {
@@ -114,6 +115,111 @@ public class ProductGroupProc {
         }
     }
 
+    public void cloneData(int aid, int fromAid, Map<Integer, Integer> cloneUnionPriIds) {
+        int rt;
+        if(cloneUnionPriIds == null || cloneUnionPriIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "cloneUnionPriIds is null;flow=%d;aid=%d;fromAid=%d;uids=%s;", m_flow, aid, fromAid, cloneUnionPriIds);
+        }
+        if(m_daoCtrl.isAutoCommit()) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "dao is auto commit;flow=%d;aid=%d;fromAid=%d;uids=%s;", m_flow, aid, fromAid, cloneUnionPriIds);
+        }
+        FaiList<Integer> fromUnionPriIds = new FaiList<>(cloneUnionPriIds.keySet());
+        ParamMatcher matcher = new ParamMatcher(ProductGroupEntity.Info.AID, ParamMatcher.EQ, fromAid);
+        matcher.and(ProductGroupEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.IN, fromUnionPriIds);
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+
+        // 根据fromAid设置表名，默认表名是根据aid生成的
+        m_daoCtrl.setTableName(fromAid);
+        Ref<FaiList<Param>> dataListRef = new Ref<>();
+        rt = m_daoCtrl.select(searchArg, dataListRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException("select clone data err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, aid, fromAid, cloneUnionPriIds);
+        }
+
+        // 根据aid设置表名
+        m_daoCtrl.setTableName(aid);
+        FaiList<Integer> toUnionPriIds = new FaiList<>(cloneUnionPriIds.values());
+        ParamMatcher delMatcher = new ParamMatcher(ProductGroupEntity.Info.AID, ParamMatcher.EQ, aid);
+        delMatcher.and(ProductGroupEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.IN, toUnionPriIds);
+        rt = m_daoCtrl.delete(delMatcher);
+        if(rt != Errno.OK) {
+            throw new MgException("del old data err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, aid, fromAid, cloneUnionPriIds);
+        }
+        // 组装数据
+        for(Param data : dataListRef.value) {
+            int fromUnionPriId = data.getInt(ProductGroupEntity.Info.SOURCE_UNIONPRIID);
+            int toUnionPriId = cloneUnionPriIds.get(fromUnionPriId);
+            data.setInt(ProductGroupEntity.Info.AID, aid);
+            data.setInt(ProductGroupEntity.Info.SOURCE_UNIONPRIID, toUnionPriId);
+        }
+        // 批量插入
+        if(!dataListRef.value.isEmpty()) {
+            rt = m_daoCtrl.batchInsert(dataListRef.value);
+            if(rt != Errno.OK) {
+                throw new MgException("batch insert err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, aid, fromAid, cloneUnionPriIds);
+            }
+        }
+        rt = m_daoCtrl.restoreMaxId(false);
+        if(rt != Errno.OK) {
+            throw new MgException("restoreMaxId err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, aid, fromAid, cloneUnionPriIds);
+        }
+        m_daoCtrl.clearIdBuilderCache(aid);
+    }
+
+    /*public void incrementalClone(int aid, int unionPriId, int fromAid, int fromUnionPriId) {
+        int rt;
+        if(m_daoCtrl.isAutoCommit()) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "dao is auto commit;flow=%d;aid=%d;uid=%d;fromAid=%d;fromUid=%s;", m_flow, aid, unionPriId, fromAid, fromUnionPriId);
+        }
+
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductGroupEntity.Info.AID, ParamMatcher.EQ, fromAid);
+        searchArg.matcher.and(ProductGroupEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.EQ, fromUnionPriId);
+
+        // 根据fromAid设置表名，默认表名是根据aid生成的
+        m_daoCtrl.setTableName(fromAid);
+        Ref<FaiList<Param>> fromListRef = new Ref<>();
+        rt = m_daoCtrl.select(searchArg, fromListRef);
+        if(rt != Errno.OK) {
+            // not found说明增量为空，直接return
+            if(rt == Errno.NOT_FOUND) {
+                return;
+            }
+            throw new MgException("select clone data err;flow=%d;aid=%d;uid=%d;fromAid=%d;fromUid=%s;", m_flow, aid, unionPriId, fromAid, fromUnionPriId);
+        }
+
+        // 根据aid设置表名
+        m_daoCtrl.setTableName(aid);
+        searchArg.matcher = new ParamMatcher(ProductGroupEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductGroupEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.EQ, unionPriId);
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        rt = m_daoCtrl.select(searchArg, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException("select old data err;flow=%d;aid=%d;uid=%d;fromAid=%d;fromUid=%s;", m_flow, aid, unionPriId, fromAid, fromUnionPriId);
+        }
+        // 组装数据
+        for(Param data : fromListRef.value) {
+            data.setInt(ProductGroupEntity.Info.AID, aid);
+            data.setInt(ProductGroupEntity.Info.SOURCE_UNIONPRIID, unionPriId);
+        }
+        // 批量插入
+        if(!fromListRef.value.isEmpty()) {
+            rt = m_daoCtrl.batchInsert(fromListRef.value);
+            if(rt != Errno.OK) {
+                throw new MgException("batch insert err;flow=%d;aid=%d;uid=%d;fromAid=%d;fromUid=%s;", m_flow, aid, unionPriId, fromAid, fromUnionPriId);
+            }
+        }
+        rt = m_daoCtrl.restoreMaxId(false);
+        if(rt != Errno.OK) {
+            throw new MgException("restoreMaxId err;flow=%d;aid=%d;uid=%d;fromAid=%d;fromUid=%s;", m_flow, aid, unionPriId, fromAid, fromUnionPriId);
+        }
+        m_daoCtrl.clearIdBuilderCache(aid);
+    }*/
+
     /**
      * 批量添加商品分类数据
      * @return 商品分类id集合
@@ -182,6 +288,31 @@ public class ProductGroupProc {
 
     public void clearIdBuilderCache(int aid) {
         m_daoCtrl.clearIdBuilderCache(aid);
+    }
+
+    public FaiList<Param> searchFromDb(int aid, SearchArg searchArg, String ... selectFields) {
+        if(searchArg == null) {
+            searchArg = new SearchArg();
+        }
+        if(searchArg.matcher == null) {
+            searchArg.matcher = new ParamMatcher();
+        }
+        searchArg.matcher.and(ProductGroupEntity.Info.AID, ParamMatcher.EQ, aid);
+
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        // 因为克隆可能获取其他aid的数据，所以根据传进来的aid设置tablename
+        m_daoCtrl.setTableName(aid);
+        int rt = m_daoCtrl.select(searchArg, listRef, selectFields);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "get error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        // 查完之后恢复最初的tablename
+        m_daoCtrl.restoreTableName();
+        if (listRef.value.isEmpty()) {
+            rt = Errno.NOT_FOUND;
+            Log.logDbg(rt, "not found;flow=%d;aid=%d;", m_flow, aid);
+        }
+        return listRef.value;
     }
 
     private FaiList<Param> getList(int aid) {

@@ -68,8 +68,9 @@ public class ProductRelDto {
         g_relAndPdDtoDef.add(ProductEntity.Info.KEEP_INT_PROP1, 25);
         g_relAndPdDtoDef.add(ProductEntity.Info.KEEP_INT_PROP2, 26);
 
-        g_relAndPdDtoDef.add(ProductRelEntity.Info.RL_GROUP_IDS, 27);
-        g_relAndPdDtoDef.add(ProductRelEntity.Info.RL_PROPS, 28);
+        g_relAndPdDtoDef.add(ProductRelEntity.Info.INFO_CHECK, 27);
+        g_relAndPdDtoDef.add(ProductRelEntity.Info.RL_GROUP_IDS, 28);
+        g_relAndPdDtoDef.add(ProductRelEntity.Info.RL_PROPS, 29);
     }
 
     static {

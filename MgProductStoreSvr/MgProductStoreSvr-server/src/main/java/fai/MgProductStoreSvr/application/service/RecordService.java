@@ -1,17 +1,21 @@
 package fai.MgProductStoreSvr.application.service;
 
-import fai.MgProductStoreSvr.domain.comm.*;
+import fai.MgProductStoreSvr.domain.comm.InOutStoreRecordArgCheck;
+import fai.MgProductStoreSvr.domain.comm.LockUtil;
+import fai.MgProductStoreSvr.domain.comm.PdKey;
+import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
 import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordEntity;
 import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordValObj;
 import fai.MgProductStoreSvr.domain.entity.InOutStoreSumEntity;
 import fai.MgProductStoreSvr.domain.entity.ReportValObj;
-import fai.MgProductStoreSvr.domain.repository.*;
+import fai.MgProductStoreSvr.domain.repository.SkuSummaryDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.SpuBizSummaryDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.SpuSummaryDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.StoreSalesSkuDaoCtrl;
 import fai.MgProductStoreSvr.domain.serviceProc.*;
 import fai.MgProductStoreSvr.interfaces.dto.InOutStoreRecordDto;
-import fai.MgProductStoreSvr.interfaces.entity.SkuCountChangeEntity;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
-import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;

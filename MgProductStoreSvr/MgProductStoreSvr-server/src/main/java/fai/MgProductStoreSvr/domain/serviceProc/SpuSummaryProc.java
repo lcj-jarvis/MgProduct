@@ -1,7 +1,7 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
-import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryEntity;
 import fai.MgProductStoreSvr.domain.entity.SpuSummaryEntity;
+import fai.MgProductStoreSvr.domain.entity.StoreSagaEntity;
 import fai.MgProductStoreSvr.domain.repository.SpuSummaryCacheCtrl;
 import fai.MgProductStoreSvr.domain.repository.SpuSummaryDaoCtrl;
 import fai.comm.util.*;
@@ -107,7 +107,7 @@ public class SpuSummaryProc {
         return rt;
     }
 
-    public int batchReport(int aid, Map<Integer, Param> pdIdInfoMap) {
+    public int batchReport(int aid, Map<Integer, Param> pdIdInfoMap, Ref<Param> sagaInfoRef) {
         if(aid <= 0 || pdIdInfoMap == null || pdIdInfoMap.isEmpty()){
             Log.logErr("arg error;flow=%d;aid=%s;pdIdInfoMap=%s;", m_flow, aid, pdIdInfoMap);
             return Errno.ARGS_ERROR;
@@ -164,6 +164,14 @@ public class SpuSummaryProc {
                 return rt;
             }
         }
+        Param sagaInfo = null;
+        if (sagaInfoRef != null) {
+            sagaInfo = sagaInfoRef.value;
+            if (Str.isEmpty(sagaInfo)) {
+                sagaInfo = new Param();
+            }
+        }
+        FaiList<Param> sagaSpuSumList = new FaiList<>();
         FaiList<Param> addInfoList = new FaiList<>();
         for (Map.Entry<Integer, Param> pdIdInfoEntry : pdIdInfoMap.entrySet()) {
             Integer pdId = pdIdInfoEntry.getKey();
@@ -173,6 +181,16 @@ public class SpuSummaryProc {
             info.setCalendar(SpuSummaryEntity.Info.SYS_CREATE_TIME, now);
             info.setCalendar(SpuSummaryEntity.Info.SYS_UPDATE_TIME, now);
             addInfoList.add(info);
+            // 添加补偿信息
+            if (sagaInfoRef != null) {
+                Param priKey = new Param();
+                priKey.assign(info, SpuSummaryEntity.Info.PD_ID);
+                sagaSpuSumList.add(priKey);
+            }
+        }
+        if (sagaInfoRef != null) {
+            sagaInfo.setList(StoreSagaEntity.PropInfo.SPU_SUMMARY, sagaSpuSumList);
+            sagaInfoRef.value = sagaInfo;
         }
         if(!addInfoList.isEmpty()){
             rt = m_daoCtrl.batchInsert(addInfoList);
@@ -236,6 +254,30 @@ public class SpuSummaryProc {
             return rt;
         }
         Log.logStd("ok;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
+        return rt;
+    }
+
+    /**
+     * Saga 模式 补偿删除 根据 aid + pdIds 进行删除
+     *
+     * @param aid aid
+     * @param sagaSpuSumList pdIds集合
+     * @return {@link Errno}
+     */
+    public int sagaDel(int aid, FaiList<Param> sagaSpuSumList) {
+        FaiList<Integer> pdIds = new FaiList<>(sagaSpuSumList.size());
+        for (Param sagaSpuSum : sagaSpuSumList) {
+            Integer pdId = sagaSpuSum.getInt(SpuSummaryEntity.Info.PD_ID);
+            pdIds.add(pdId);
+        }
+        ParamMatcher matcher = new ParamMatcher(SpuSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SpuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        int rt = m_daoCtrl.delete(matcher);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "sagaDel err;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+            return rt;
+        }
+        Log.logStd(rt, "sagaDel ok;flow=%d;aid=%d", m_flow, aid);
         return rt;
     }
 

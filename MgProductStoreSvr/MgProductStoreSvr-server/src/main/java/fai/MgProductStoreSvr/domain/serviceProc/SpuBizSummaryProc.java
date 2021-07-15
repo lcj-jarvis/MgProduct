@@ -3,6 +3,7 @@ package fai.MgProductStoreSvr.domain.serviceProc;
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
 import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryEntity;
 import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryValObj;
+import fai.MgProductStoreSvr.domain.entity.StoreSagaEntity;
 import fai.MgProductStoreSvr.domain.repository.DataType;
 import fai.MgProductStoreSvr.domain.repository.SpuBizSummaryCacheCtrl;
 import fai.MgProductStoreSvr.domain.repository.SpuBizSummaryDaoCtrl;
@@ -121,7 +122,12 @@ public class SpuBizSummaryProc {
         Log.logStd("ok;flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
+
     public int report(int aid, int pdId, FaiList<Param> infoList) {
+        return report(aid, pdId, infoList, null);
+    }
+
+    public int report(int aid, int pdId, FaiList<Param> infoList, Ref<Param> sagaInfoRef) {
         if(aid <= 0 || pdId <= 0 || infoList == null || infoList.isEmpty()){
             Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;infoList=%s;", m_flow, aid, pdId, infoList);
             return Errno.ARGS_ERROR;
@@ -198,6 +204,15 @@ public class SpuBizSummaryProc {
             pdIdList.add(pdId);
         }
 
+        Param sagaInfo = null;
+        if (sagaInfoRef != null) {
+            sagaInfo = sagaInfoRef.value;
+            if (Str.isEmpty(sagaInfo)) {
+                sagaInfo = new Param();
+            }
+        }
+        FaiList<Param> sagaSpuBizSumList = new FaiList<>();
+        // 在 unionPriIdInfoMap 剩下的就是应该添加的数据
         for (Param info : unionPriIdInfoMap.values()) {
             Param addData = new Param();
             addData.setInt(SpuBizSummaryEntity.Info.AID, aid);
@@ -235,6 +250,18 @@ public class SpuBizSummaryProc {
             addData.setCalendar(SpuBizSummaryEntity.Info.SYS_UPDATE_TIME, now);
             addData.setCalendar(SpuBizSummaryEntity.Info.SYS_CREATE_TIME, now);
             addDataList.add(addData);
+
+            // 记录补偿信息
+            if (sagaInfoRef != null) {
+                Param priKey = new Param();
+                priKey.assign(addData, SpuBizSummaryEntity.Info.PD_ID);
+                priKey.assign(addData, SpuBizSummaryEntity.Info.UNION_PRI_ID);
+                sagaSpuBizSumList.add(priKey);
+            }
+        }
+        if (sagaInfoRef != null) {
+            sagaInfo.setList(StoreSagaEntity.PropInfo.SPU_BIZ_SUMMARY, sagaSpuBizSumList);
+            sagaInfoRef.value = sagaInfo;
         }
 
         if(!addDataList.isEmpty()){
@@ -617,6 +644,33 @@ public class SpuBizSummaryProc {
     private SpuBizSummaryDaoCtrl m_daoCtrl;
 
     private CacheManage cacheManage = new CacheManage();
+
+    /**
+     * Saga 模式下的补偿删除 ，根据 aid + pdIds + uids 删除
+     * @param aid aid
+     * @param sagaSpuBizSumList 补偿主键
+     * @return {@link Errno}
+     */
+    public int sagaDel(int aid, FaiList<Param> sagaSpuBizSumList) {
+        ParamMatcher matcher1 = new ParamMatcher();
+        matcher1.and(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        ParamMatcher matcher2 = new ParamMatcher();
+        for (Param sagaSpuBizSum : sagaSpuBizSumList) {
+            Integer pdId = sagaSpuBizSum.getInt(SpuBizSummaryEntity.Info.PD_ID);
+            Integer unionPriId = sagaSpuBizSum.getInt(SpuBizSummaryEntity.Info.UNION_PRI_ID);
+            ParamMatcher matcher3 = new ParamMatcher(SpuBizSummaryEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
+            matcher3.and(SpuBizSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+            matcher2.or(matcher3);
+        }
+        matcher1.and(matcher2);
+        int rt = m_daoCtrl.delete(matcher1);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "sagaDel err;flow=%d;aid=%d;sagaSpuBizSumList=%s", m_flow, aid, sagaSpuBizSumList);
+            return rt;
+        }
+        Log.logStd("sagaDel ok;flow=%d;aid=%s", m_flow, aid);
+        return rt;
+    }
 
 
     private static class CacheManage{

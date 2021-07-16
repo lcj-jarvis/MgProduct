@@ -77,9 +77,10 @@ public class ProductLibProc {
             if(!Util.isEmptyList(list)) {
                 return list;
             }
+            //防止缓存穿透
+            LockUtil.LibLock.readLock(aid);
         }
 
-        LockUtil.LibLock.readLock(aid);
         try {
             if (getFromCache) {
                 // check again
@@ -128,7 +129,9 @@ public class ProductLibProc {
                 ProductLibCache.addCacheList(aid, list);
             }
         }finally {
-            LockUtil.LibLock.readUnLock(aid);
+            if (getFromCache) {
+                LockUtil.LibLock.readUnLock(aid);
+            }
         }
         return list;
     }

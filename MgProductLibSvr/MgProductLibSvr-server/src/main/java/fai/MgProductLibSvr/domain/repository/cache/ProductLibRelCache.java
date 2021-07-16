@@ -26,7 +26,7 @@ public class ProductLibRelCache extends CacheCtrl{
 
         /**
          * 添加FaiList<Param>到缓存
-         * 缓存的形式：cachekey rlLibId  Param rlLibId Param ....
+         * 缓存的形式：cacheKey rlLibId  Param rlLibId Param ....
          */
         public static void addCacheList(int aid, int unionId, FaiList<Param> list) {
             if(list == null || list.isEmpty()) {

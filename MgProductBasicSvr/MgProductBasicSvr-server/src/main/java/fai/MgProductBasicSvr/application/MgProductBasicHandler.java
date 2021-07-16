@@ -5,10 +5,7 @@ import fai.MgProductBasicSvr.application.service.ProductBindGroupService;
 import fai.MgProductBasicSvr.application.service.ProductBindPropService;
 import fai.MgProductBasicSvr.application.service.ProductBindTagService;
 import fai.MgProductBasicSvr.interfaces.cmd.MgProductBasicCmd;
-import fai.MgProductBasicSvr.interfaces.dto.ProductBindGroupDto;
-import fai.MgProductBasicSvr.interfaces.dto.ProductBindPropDto;
-import fai.MgProductBasicSvr.interfaces.dto.ProductDto;
-import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
+import fai.MgProductBasicSvr.interfaces.dto.*;
 import fai.comm.fseata.client.core.rpc.annotation.SagaTransaction;
 import fai.comm.fseata.client.core.rpc.def.CommDef;
 import fai.comm.jnetkit.server.fai.FaiServer;
@@ -453,11 +450,95 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
     }
 
     /**==========================================操作商品与标签关联开始===========================================================*/
+    @Cmd(MgProductBasicCmd.BindTagCmd.GET_LIST)
+    public int getPdsBindTag(final FaiSession session,
+                               @ArgFlow final int flow,
+                               @ArgAid int aid,
+                               @ArgBodyInteger(ProductBindTagDto.Key.UNION_PRI_ID) int unionPriId,
+                               @ArgList(keyMatch = ProductBindTagDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
+        return tagBindService.getPdsBindTag(session, flow, aid, unionPriId, rlPdIds);
+    }
 
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BindTagCmd.BATCH_SET)
+    public int setPdBindTag(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid int aid,
+                              @ArgBodyInteger(ProductBindTagDto.Key.UNION_PRI_ID) int unionPriId,
+                              @ArgBodyInteger(ProductBindTagDto.Key.RL_PD_ID) int rlPdId,
+                              @ArgList(keyMatch = ProductBindTagDto.Key.RL_TAG_IDS) FaiList<Integer> addTagIds,
+                              @ArgList(keyMatch = ProductBindTagDto.Key.DEL_RL_TAG_IDS) FaiList<Integer> delTagIds) throws IOException {
+        return tagBindService.setPdBindTag(session, flow, aid, unionPriId, rlPdId, addTagIds, delTagIds);
+    }
 
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BindTagCmd.TRANSACTION_SET_PD_BIND_TAG)
+    @SagaTransaction(clientName = "MgProductBasicCli", rollbackCmd = MgProductBasicCmd.BindTagCmd.SET_PD_BIND_TAG_ROLLBACK)
+    public int transactionSetPdBindTag(final FaiSession session,
+                                         @ArgFlow final int flow,
+                                         @ArgAid int aid,
+                                         @ArgBodyInteger(ProductBindTagDto.Key.UNION_PRI_ID) int unionPriId,
+                                         @ArgBodyInteger(ProductBindTagDto.Key.RL_PD_ID) int rlPdId,
+                                         @ArgBodyXid(value = ProductDto.Key.XID, useDefault = true) String xid,
+                                         @ArgList(keyMatch = ProductBindTagDto.Key.RL_TAG_IDS) FaiList<Integer> addTagIds,
+                                         @ArgList(keyMatch = ProductBindTagDto.Key.DEL_RL_TAG_IDS) FaiList<Integer> delTagIds) throws IOException {
+        return tagBindService.transactionSetPdBindTag(session, flow, aid, unionPriId, rlPdId, xid, addTagIds, delTagIds);
+    }
 
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BindTagCmd.SET_PD_BIND_TAG_ROLLBACK)
+    public int setPdBindTagRollback(final FaiSession session,
+                                      @ArgFlow int flow,
+                                      @ArgAid int aid,
+                                      @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                      @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return tagBindService.setPdBindTagRollback(session, flow, aid, xid, branchId);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BindTagCmd.DEL)
+    public int delPdBindTag(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid int aid,
+                              @ArgBodyInteger(ProductBindTagDto.Key.UNION_PRI_ID) int unionPriId,
+                              @ArgList(keyMatch = ProductBindTagDto.Key.RL_TAG_IDS) FaiList<Integer> delTagIds) throws IOException {
+        return tagBindService.delBindTagList(session, flow, aid, unionPriId, delTagIds);
+    }
+
+    @Cmd(MgProductBasicCmd.BindTagCmd.GET_PD_BY_TAG)
+    public int getRlPdIdsByRlTagIds(final FaiSession session,
+                                  @ArgFlow final int flow,
+                                  @ArgAid int aid,
+                                  @ArgBodyInteger(ProductBindTagDto.Key.UNION_PRI_ID) int unionPriId,
+                                  @ArgList(keyMatch = ProductBindTagDto.Key.RL_TAG_IDS) FaiList<Integer> rlTagIds) throws IOException {
+        return tagBindService.getRlPdIdsByRlTagIds(session, flow, aid, unionPriId, rlTagIds);
+    }
+
+    @Cmd(MgProductBasicCmd.BindTagCmd.GET_DATA_STATUS)
+    public int getBindTagDataStatus(final FaiSession session,
+                                      @ArgFlow final int flow,
+                                      @ArgAid final int aid,
+                                      @ArgBodyInteger(ProductBindTagDto.Key.UNION_PRI_ID) int unionPriId) throws IOException {
+        return tagBindService.getBindTagDataStatus(session, flow, aid, unionPriId);
+    }
+
+    @Cmd(MgProductBasicCmd.BindTagCmd.GET_ALL_DATA)
+    public int getAllBindTag(final FaiSession session,
+                               @ArgFlow final int flow,
+                               @ArgAid final int aid,
+                               @ArgBodyInteger(ProductBindTagDto.Key.UNION_PRI_ID) int unionPriId) throws IOException {
+        return tagBindService.getAllPdBindTag(session, flow, aid, unionPriId);
+    }
+
+    @Cmd(MgProductBasicCmd.BindTagCmd.SEARCH_FROM_DB)
+    public int getBindTagFromDb(final FaiSession session,
+                                     @ArgFlow final int flow,
+                                     @ArgAid final int aid,
+                                     @ArgBodyInteger(ProductBindTagDto.Key.UNION_PRI_ID) int unionPriId,
+                                     @ArgSearchArg(ProductBindTagDto.Key.SEARCH_ARG)SearchArg searchArg) throws IOException {
+        return tagBindService.getBindTagFromDb(session, flow, aid, unionPriId, searchArg);
+    }
     /**==========================================操作商品与标签关联结束===========================================================*/
-
     private ProductBasicService service = ServiceProxy.create(new ProductBasicService());
     private ProductBindGroupService groupBindService = ServiceProxy.create(new ProductBindGroupService());
     private ProductBindPropService propBindService = ServiceProxy.create(new ProductBindPropService());

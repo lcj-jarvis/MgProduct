@@ -11,13 +11,18 @@ import java.util.List;
 
 public class ProductBindTagCache extends CacheCtrl {
 
-    public static FaiList<Param> getCacheList(int aid, int unionPriId, List<String> rlPdIds) {
+    public static boolean exist(int aid, int unionPriId, int rlPdId) {
+        String cacheKey = getCacheKey(aid, unionPriId);
+        return m_cache.hexists(cacheKey.getBytes(), String.valueOf(rlPdId).getBytes());
+    }
+
+    public static FaiList<Param> getCacheList(int aid, int unionPriId) {
         String cacheKey = getCacheKey(aid, unionPriId);
         FaiList<Param> list = null;
         try {
-            list = m_cache.hmget(cacheKey, ProductBindTagDto.Key.INFO, ProductBindTagDto.getInfoDto(), rlPdIds);
+            list = m_cache.hgetAllFaiList(cacheKey, ProductBindTagDto.Key.INFO, ProductBindTagDto.getInfoDto());
         } catch (Exception e) {
-            Log.logErr(e,"getCacheList error;aid=%d;unionPriId=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
+            Log.logErr(e,"getCacheList error;aid=%d;unionPriId=%d;", aid, unionPriId);
         }
         return list;
     }
@@ -32,14 +37,22 @@ public class ProductBindTagCache extends CacheCtrl {
             return;
         }
         String cacheKey = getCacheKey(aid, unionPriId);
-        m_cache.hmsetFaiList(cacheKey, ProductBindTagEntity.Info.RL_TAG_ID, Var.Type.INT, list, ProductBindTagDto.Key.INFO, ProductBindTagDto.getInfoDto());
+        m_cache.hmsetFaiList(cacheKey, ProductBindTagEntity.Info.RL_PD_ID, Var.Type.INT, list, ProductBindTagDto.Key.INFO, ProductBindTagDto.getInfoDto());
     }
 
-    public static void delCache(int aid, int unionPriId) {
-        String cacheKey = getCacheKey(aid, unionPriId);
-        if(m_cache.exists(cacheKey)) {
-            m_cache.del(cacheKey);
+    public static void delCacheList(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
+        if(Util.isEmptyList(rlPdIds)) {
+            return;
         }
+        String cacheKey = getCacheKey(aid, unionPriId);
+        if(!m_cache.exists(cacheKey)) {
+            return;
+        }
+        String[] rlLibIdStrs = new String[rlPdIds.size()];
+        for(int i = 0; i < rlPdIds.size(); i++) {
+            rlLibIdStrs[i] = String.valueOf(rlPdIds.get(i));
+        }
+        m_cache.hdel(cacheKey, rlLibIdStrs);
     }
 
     /** 数据状态缓存 **/

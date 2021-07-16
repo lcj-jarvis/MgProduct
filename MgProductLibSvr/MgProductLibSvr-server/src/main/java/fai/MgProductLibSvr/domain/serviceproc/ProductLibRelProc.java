@@ -23,10 +23,10 @@ public class ProductLibRelProc {
     private int m_flow;
     private ProductLibRelDaoCtrl m_relDaoCtrl;
 
-    public ProductLibRelProc(int flow, int aid, TransactionCtrl transactionCrtl) {
+    public ProductLibRelProc(int flow, int aid, TransactionCtrl transactionCtrl) {
         this.m_flow = flow;
         this.m_relDaoCtrl = ProductLibRelDaoCtrl.getInstance(flow, aid);
-        init(transactionCrtl);
+        init(transactionCtrl);
     }
 
     private void init(TransactionCtrl transactionCrtl) {
@@ -140,9 +140,9 @@ public class ProductLibRelProc {
             if(!Util.isEmptyList(list)) {
                 return list;
             }
+            //加读锁防止缓存穿透
+            LockUtil.LibRelLock.readLock(aid);
         }
-
-        LockUtil.LibRelLock.readLock(aid);
         try {
             if (getFromCache) {
                 // check again
@@ -160,6 +160,7 @@ public class ProductLibRelProc {
             if (searchArg.matcher == null) {
                 searchArg.matcher = new ParamMatcher();
             }
+
             //避免查询过来的条件已经包含这两个查询条件,就先删除，防止重复添加查询条件
             searchArg.matcher.remove(ProductLibRelEntity.Info.AID);
             searchArg.matcher.remove(ProductLibRelEntity.Info.UNION_PRI_ID);
@@ -193,7 +194,9 @@ public class ProductLibRelProc {
                 ProductLibRelCache.InfoCache.addCacheList(aid, unionPriId, list);
             }
         }finally {
-            LockUtil.LibRelLock.readUnLock(aid);
+            if (getFromCache) {
+                LockUtil.LibRelLock.readUnLock(aid);
+            }
         }
         return list;
     }

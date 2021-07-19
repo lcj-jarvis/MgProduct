@@ -875,11 +875,11 @@ public class ProductBasicService extends MgProductInfService {
                 // TODO 分布式事务
 
                 // 删除商品基础信息
-//                rt = basicService.batchDelProduct(aid, tid, unionPriId, rlPdIds, softDel);
-//                if (rt != Errno.OK) {
-//                    Log.logErr(rt, "batchDelProduct err;aid=%s;tid=%s;pdIdList=%s;", aid, tid, pdIdList);
-//                    return rt;
-//                }
+                rt = basicService.batchDelProduct(aid, tid, unionPriId, rlPdIds, softDel);
+                if (rt != Errno.OK) {
+                    Log.logErr(rt, "batchDelProduct err;aid=%s;tid=%s;pdIdList=%s;", aid, tid, pdIdList);
+                    return rt;
+                }
                 // 删除库存销售相关信息
                 rt = storeProc.batchDelPdAllStoreSales(aid, tid, pdIdList, tx.getXid(), softDel);
                 if (rt != Errno.OK) {
@@ -887,11 +887,11 @@ public class ProductBasicService extends MgProductInfService {
                     return rt;
                 }
                 // 删除商品规格相关信息
-//                rt = productSpecProc.batchDelPdAllSc(aid, tid, pdIdList, softDel);
-//                if (rt != Errno.OK) {
-//                    Log.logErr(rt, "batchDelPdAllStoreSales err;aid=%s;tid=%s;pdIdList=%s;", aid, tid, pdIdList);
-//                    return rt;
-//                }
+                rt = productSpecProc.batchDelPdAllSc(aid, tid, pdIdList, softDel);
+                if (rt != Errno.OK) {
+                    Log.logErr(rt, "batchDelPdAllStoreSales err;aid=%s;tid=%s;pdIdList=%s;", aid, tid, pdIdList);
+                    return rt;
+                }
 
                 commit = true;
                 tx.commit();

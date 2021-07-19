@@ -58,7 +58,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
             sendBody.putBoolean(StoreSalesSkuDto.Key.REPORT_PRICE, reportPrice);
 
             FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.REFRESH);
+            sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.REPORT);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);

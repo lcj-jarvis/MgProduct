@@ -4,6 +4,7 @@ import fai.MgProductStoreSvr.domain.entity.SkuSummaryEntity;
 import fai.MgProductStoreSvr.domain.entity.StoreSagaEntity;
 import fai.MgProductStoreSvr.domain.repository.SkuSummaryDaoCtrl;
 import fai.comm.util.*;
+import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.Calendar;
@@ -244,14 +245,24 @@ public class SkuSummaryProc {
         Log.logStd("ok;flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
-    public int batchDel(int aid, FaiList<Integer> pdIdList) {
+    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean isSaga) {
+        int rt;
         ParamMatcher matcher = new ParamMatcher(SkuSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(SkuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
-        int rt = m_daoCtrl.delete(matcher);
+        if (!isSaga) {
+            // 如果不是分布式事务，则走正常的删除逻辑
+            matcher.and(SkuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+            rt = m_daoCtrl.delete(matcher);
+        } else {
+            // 分布式事务，不删除当前记录，而是将所有记录的 aid 变成负数
+            ParamUpdater updater = new ParamUpdater(new Param().setInt(SkuSummaryEntity.Info.AID, -aid));
+            matcher.and(SkuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+            rt = m_daoCtrl.update(updater, matcher);
+        }
         if(rt != Errno.OK){
             Log.logStd(rt, "delete err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
             return rt;
         }
+
         Log.logStd("ok;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
         return rt;
     }
@@ -266,6 +277,32 @@ public class SkuSummaryProc {
             return rt;
         }
         Log.logStd("ok;flow=%s;aid=%s;pdId=%s;skuIdList=%s;", m_flow, aid, pdId, skuIdList);
+        return rt;
+    }
+
+    /**
+     * Saga 模式 补偿 batchDel 方法
+     *
+     * @param aid aid
+     * @param pdIdList 商品ids
+     * @return {@link Errno}
+     */
+    public int batchDelRollback(int aid, FaiList<Integer> pdIdList) {
+        int rt;
+        if (Util.isEmptyList(pdIdList)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "arg err;pdIdList is empty;flow=%d;aid=%d", m_flow, aid);
+            return rt;
+        }
+        ParamUpdater updater = new ParamUpdater(new Param().setInt(SkuSummaryEntity.Info.AID, aid));
+        ParamMatcher matcher = new ParamMatcher(SkuSummaryEntity.Info.AID, ParamMatcher.EQ, -aid);
+        matcher.and(SkuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        rt = m_daoCtrl.update(updater, matcher);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "batchDelRollback err;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        Log.logStd("batchDelRollback ok;flow=%d;aid=%d", m_flow, aid);
         return rt;
     }
 
@@ -341,7 +378,4 @@ public class SkuSummaryProc {
 
     private int m_flow;
     private SkuSummaryDaoCtrl m_daoCtrl;
-
-
-
 }

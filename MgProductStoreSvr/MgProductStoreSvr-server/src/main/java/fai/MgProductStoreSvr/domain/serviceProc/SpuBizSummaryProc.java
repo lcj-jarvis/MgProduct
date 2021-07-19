@@ -410,7 +410,7 @@ public class SpuBizSummaryProc {
         return rt;
     }
 
-    public int batchDel(int aid, FaiList<Integer> pdIdList) {
+    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean isSaga) {
         ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(SpuBizSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
         SearchArg searchArg = new SearchArg();
@@ -430,12 +430,46 @@ public class SpuBizSummaryProc {
         // 标记管理数据为脏
         cacheManage.addDataTypeDirtyCacheKey(DataType.Manage, unionPirIdPdIdListMap.keySet());
         cacheManage.addDirtyCacheKey(aid, unionPirIdPdIdListMap);
-        rt = m_daoCtrl.delete(matcher);
+        if (!isSaga) {
+            // 非分布式事务，则走正常的删除逻辑
+            rt = m_daoCtrl.delete(matcher);
+        } else {
+            // 分布式事务，不删除当前记录，而是将 aid 变为负数
+            ParamUpdater updater = new ParamUpdater(new Param().setInt(SpuBizSummaryEntity.Info.AID, -aid));
+            rt = m_daoCtrl.update(updater, matcher);
+        }
         if(rt != Errno.OK){
             Log.logStd(rt, "delete err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
             return rt;
         }
+
         Log.logStd("ok;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+        return rt;
+    }
+
+    /**
+     * Saga 模式 batchDel 的补偿方法
+     *
+     * @param aid aid
+     * @param pdIdList 商品id集合
+     * @return {@link Errno}
+     */
+    public int batchDelRollback(int aid, FaiList<Integer> pdIdList) {
+        int rt;
+        if (Util.isEmptyList(pdIdList)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "arg err;pdIdList is empty;flow=%d;aid=%d", m_flow, aid);
+            return rt;
+        }
+        ParamUpdater updater = new ParamUpdater(new Param().setInt(SpuBizSummaryEntity.Info.AID, aid));
+        ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, -aid);
+        matcher.and(SpuBizSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        rt = m_daoCtrl.update(updater, matcher);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "batchDelRollback err;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        Log.logStd("batchDelRollback ok;flow=%d;aid=%d", m_flow, aid);
         return rt;
     }
 

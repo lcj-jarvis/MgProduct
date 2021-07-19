@@ -2057,12 +2057,12 @@ public class MgProductStoreCli extends MgProductInternalCli {
     }
 
     public int batchDelPdAllStoreSales(int aid, int tid, FaiList<Integer> pdIdList){
-        return batchDelPdAllStoreSales(aid, tid, pdIdList, false);
+        return batchDelPdAllStoreSales(aid, tid, pdIdList, null, false);
     }
     /**
      * 批量删除商品所有库存销售相关信息
      */
-    public int batchDelPdAllStoreSales(int aid, int tid, FaiList<Integer> pdIdList, boolean softDel){
+    public int batchDelPdAllStoreSales(int aid, int tid, FaiList<Integer> pdIdList, String xid, boolean softDel){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2081,6 +2081,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(StoreSalesSkuDto.Key.TID, tid);
             pdIdList.toBuffer(sendBody, StoreSalesSkuDto.Key.ID_LIST);
+            sendBody.putString(StoreSalesSkuDto.Key.XID, xid);
             sendBody.putBoolean(StoreSalesSkuDto.Key.SOFT_DEL, softDel);
 
             FaiProtocol sendProtocol = new FaiProtocol();

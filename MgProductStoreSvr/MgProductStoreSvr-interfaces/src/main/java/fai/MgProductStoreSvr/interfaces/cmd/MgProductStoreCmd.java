@@ -51,6 +51,7 @@ public class MgProductStoreCmd {
 		public static final int NUM21 = 1021;
 		public static final int NUM22 = 1022;
 		public static final int NUM23 = 1023;
+		public static final int NUM24 = 1024;
 	}
 
 	////////////////// cmd对外定义，实际做cmd读写分离 ////////////////////
@@ -91,7 +92,8 @@ public class MgProductStoreCmd {
 		public static final int CLEAR_ACCT = WriteCmdNum.NUM21;
 		public static final int REPORT = WriteCmdNum.NUM22;
 		public static final int IMPORT_STORE_SALES_ROLLBACK = WriteCmdNum.NUM23;
-	}
+		public static final int BATCH_DEL_PD_ALL_STORE_SALES_ROLLBACK = WriteCmdNum.NUM24;
+    }
 
 	/**
 	 * 出入库存记录 相关 cmd

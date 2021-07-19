@@ -318,7 +318,7 @@ public class MgProductInfCli6ForProductLib extends MgProductInfCli5ForProductScA
      * @param relLibList 保存所有库业务表的数据
      * @return  {@link Errno}
      */
-    public int getAllLibRel(MgProductArg mgProductArg, FaiList<Param> relLibList) {
+    public int getPdRlLibList(MgProductArg mgProductArg, FaiList<Param> relLibList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -327,6 +327,7 @@ public class MgProductInfCli6ForProductLib extends MgProductInfCli5ForProductScA
             int siteId = mgProductArg.getSiteId();
             int lgId = mgProductArg.getLgId();
             int keepPriId1 = mgProductArg.getKeepPriId1();
+            SearchArg searchArg = mgProductArg.getSearchArg();
             if (aid == 0) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error");
@@ -339,6 +340,7 @@ public class MgProductInfCli6ForProductLib extends MgProductInfCli5ForProductScA
                     new Pair(ProductLibDto.Key.SITE_ID, siteId),
                     new Pair(ProductLibDto.Key.LGID, lgId),
                     new Pair(ProductLibDto.Key.KEEP_PRIID1, keepPriId1));
+            searchArg.toBuffer(sendBody, ProductLibDto.Key.SEARCH_ARG);
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.LibCmd.GET_REL_LIB_LIST, sendBody, true);
             if (m_rt != Errno.OK) {

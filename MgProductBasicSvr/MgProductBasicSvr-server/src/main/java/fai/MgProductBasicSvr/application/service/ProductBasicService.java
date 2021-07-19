@@ -111,14 +111,21 @@ public class ProductBasicService extends ServicePub {
                 ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
                 ProductRelCacheCtrl.InfoCache.setExpire(aid, unionPriId);
                 int delCount = relProc.delProductRel(aid, unionPriId, rlPdIds, softDel);
-                // 删除参数、分类关联数据
+                // 删除参数、分类、标签关联数据
                 int delGroupCount = 0;
+                int delTagCount = 0;
                 int delPropCount = 0;
                 if(!softDel) {
                     if(useProductGroup()) {
                         ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
                         ProductBindGroupCache.setExpire(aid, unionPriId);
                         delGroupCount = bindGroupProc.delPdBindGroupList(aid, unionPriId, rlPdIds);
+                    }
+
+                    if(useProductTag()) {
+                        ProductBindTagProc bindGroupProc = new ProductBindTagProc(flow, aid, tc);
+                        ProductBindTagCache.setExpire(aid, unionPriId);
+                        delGroupCount = bindGroupProc.delPdBindTagList(aid, unionPriId, rlPdIds);
                     }
 
                     ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
@@ -135,8 +142,13 @@ public class ProductBasicService extends ServicePub {
                     // 处理商品分类关联数据缓存
                     ProductBindGroupCache.delCache(aid, unionPriId);
                     ProductBindGroupCache.DataStatusCache.update(aid, unionPriId, -delGroupCount);
+                    // 处理商品标签关联数据缓存
+                    HashSet<Integer> cacheRlPdIds = new HashSet<>(rlPdIds);
+                    rlPdIds = new FaiList<>(cacheRlPdIds);
+                    ProductBindTagCache.delCacheList(aid, unionPriId, rlPdIds);
+                    ProductBindTagCache.DataStatusCache.update(aid, unionPriId, -delTagCount);
                     // 处理商品参数关联数据缓存
-                    ProductBindPropCache.delCacheList(aid, unionPriId, new HashSet<>(rlPdIds));
+                    ProductBindPropCache.delCacheList(aid, unionPriId, cacheRlPdIds);
                     ProductBindPropCache.DataStatusCache.update(aid, unionPriId, -delPropCount);
                 }
             }finally {
@@ -213,6 +225,12 @@ public class ProductBasicService extends ServicePub {
                         ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
                         bindGroupProc.delPdBindGroupList(aid, pdIdList);
                     }
+
+                    if(useProductTag()) {
+                        // 删除标签关联
+                        ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
+                        bindTagProc.delPdBindTagList(aid, pdIdList);
+                    }
                 }
 
                 commit = true;
@@ -227,9 +245,11 @@ public class ProductBasicService extends ServicePub {
             if(!Util.isEmptyList(delRelInfos)) {
                 HashSet<Integer> uids = new HashSet<>();
                 for(Param info : delRelInfos) {
+                    FaiList<Integer> rlPdIdList = new FaiList<>();
                     int curUnionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
                     int curRlPdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
                     uids.add(curUnionPriId);
+                    rlPdIdList.add(curRlPdId);
                     // mgProductRel 缓存
                     ProductRelCacheCtrl.InfoCache.delCache(aid, curUnionPriId, curRlPdId);
                     // cache: aid+unionPriId+pdId -> rlPdId
@@ -238,11 +258,15 @@ public class ProductBasicService extends ServicePub {
                     ProductBindPropCache.delCache(aid, curUnionPriId, curRlPdId);
                     // 分类关联缓存
                     ProductBindGroupCache.delCache(aid, curUnionPriId);
+                    //标签关联缓存
+                    ProductBindTagCache.delCacheList(aid, curUnionPriId, rlPdIdList);
                 }
+
                 // 删除 数据状态dataStatus 缓存
                 ProductRelCacheCtrl.DataStatusCache.del(aid, uids);
                 ProductBindPropCache.DataStatusCache.del(aid, uids);
                 ProductBindGroupCache.DataStatusCache.del(aid, uids);
+                ProductBindTagCache.DataStatusCache.del(aid, uids);
             }
             ProductCacheCtrl.InfoCache.delCacheList(aid, pdIdList);
             ProductCacheCtrl.DataStatusCache.update(aid, -delPdCount); // 更新数据状态缓存
@@ -1660,6 +1684,15 @@ public class ProductBasicService extends ServicePub {
             return false;
         }
         boolean useProductGroup = mgSwitch.getBoolean("useProductGroup", false);
+        return useProductGroup;
+    }
+
+    public static boolean useProductTag() {
+        Param mgSwitch = MgConfPool.getEnvConf("mgSwitch");
+        if(Str.isEmpty(mgSwitch)) {
+            return false;
+        }
+        boolean useProductGroup = mgSwitch.getBoolean("useProductTag", false);
         return useProductGroup;
     }
 

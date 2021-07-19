@@ -315,6 +315,7 @@ public class ProductBindGroupService extends ServicePub {
         try {
             ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
             delCount = bindGroupProc.delPdBindGroupList(aid, unionPriId, rlGroupIds);
+
         }finally {
             tc.closeDao();
         }

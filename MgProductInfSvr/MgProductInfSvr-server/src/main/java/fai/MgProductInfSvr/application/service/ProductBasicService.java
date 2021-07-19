@@ -22,6 +22,7 @@ import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
 import fai.mgproduct.comm.Util;
+import fai.middleground.svrutil.annotation.SuccessRt;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -628,6 +629,8 @@ public class ProductBasicService extends MgProductInfService {
                         basicData.remove(ProductBasicEntity.BindPropInfo.ADD_PROP_LIST);
                         basicData.remove(ProductBasicEntity.BindPropInfo.DEL_PROP_LIST);
                     }
+
+
                     // check again
                     if (!Str.isEmpty(basicData)) {
                         ProductBasicProc basicProc = new ProductBasicProc(flow);
@@ -1212,4 +1215,117 @@ public class ProductBasicService extends MgProductInfService {
         }
         return Errno.OK;
     }
+
+    /********************************************商品和标签的关联开始********************************************************/
+    @SuccessRt(value = Errno.OK)
+    public int getPdBindTagList(FaiSession session, int flow, int aid, int tid, int siteId,
+                                int lgId, int keepPriId1, FaiList<Integer> rlPdIds) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if (rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            FaiList<Param> list = new FaiList<>();
+            ProductBasicProc basicService = new ProductBasicProc(flow);
+            rt = basicService.getPdBindTags(aid, unionPriId, rlPdIds, list);
+            if (rt != Errno.OK) {
+                return rt;
+            }
+
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            list.toBuffer(sendBuf, ProductBasicDto.Key.BIND_TAG_LIST, ProductBasicDto.getBindTagDto());
+            session.write(sendBuf);
+            Log.logDbg("get ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+        } finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+
+    @SuccessRt(value = Errno.OK)
+    public int setPdBindTag(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1,
+                            int rlPdId, FaiList<Integer> addRlTagIds, FaiList<Integer> delRlTagIds) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if (rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            ProductBasicProc basicService = new ProductBasicProc(flow);
+            rt = basicService.setPdBindTag(aid, unionPriId, rlPdId, addRlTagIds, delRlTagIds);
+            if (rt != Errno.OK) {
+                return rt;
+            }
+
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("set ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+        } finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    @SuccessRt(value = Errno.OK)
+    public int delPdBindTag(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> delRlPdIds) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if (rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            ProductBasicProc basicService = new ProductBasicProc(flow);
+            rt = basicService.delPdBindTag(aid, unionPriId, delRlPdIds);
+            if (rt != Errno.OK) {
+                return rt;
+            }
+
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("delete ok;flow=%d;aid=%d;unionPriId=%d;rlPdIds=%s;", flow, aid, unionPriId, delRlPdIds);
+        } finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    /********************************************商品和标签的关联结束********************************************************/
+
 }

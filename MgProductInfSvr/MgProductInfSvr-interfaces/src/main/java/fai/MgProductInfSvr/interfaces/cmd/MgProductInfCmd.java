@@ -60,6 +60,11 @@ public class MgProductInfCmd {
 
         public static final int NUM37 = 5037; /**@see LibCmd#GET_LIB_LIST */
         public static final int NUM38 = 5038; /**@see LibCmd#GET_REL_LIB_LIST */
+
+        public static final int NUM39 = 5039; /**@see TagCmd#GET_TAG_LIST */
+        public static final int NUM40 = 5040; /**@see TagCmd#GET_REL_TAG_LIST */
+
+        public static final int NUM41 = 5041; /**@see BasicCmd#GET_PD_BIND_TAGS */
     }
 
     // 1000 到 5000 的范围
@@ -124,6 +129,13 @@ public class MgProductInfCmd {
         public static final int NUM49 = 1049; /**@see LibCmd#SET_LIB_LIST */
         public static final int NUM50 = 1050; /**@see LibCmd#UNION_SET_LIB_LIST */
 
+        public static final int NUM51 = 1051; /**@see TagCmd#ADD_TAG */
+        public static final int NUM52 = 1052; /**@see TagCmd#DEL_TAG_LIST */
+        public static final int NUM53 = 1053; /**@see TagCmd#SET_TAG_LIST */
+        public static final int NUM54 = 1054; /**@see TagCmd#UNION_SET_TAG_LIST */
+
+        public static final int NUM55 = 1055; /**@see BasicCmd#SET_PD_BIND_TAG */
+
     }
 
 
@@ -156,6 +168,7 @@ public class MgProductInfCmd {
         public static final int GET_RLPDIDS_BY_PROP = ReadCmdNum.NUM12;
         public static final int GET_PD_LIST = ReadCmdNum.NUM26;
         public static final int GET_PD_BIND_GROUPS = ReadCmdNum.NUM28;
+        public static final int GET_PD_BIND_TAGS = ReadCmdNum.NUM41;
 
         //写命令
         public static final int SET_PROP_LIST = WriteCmdNum.NUM7;
@@ -169,6 +182,7 @@ public class MgProductInfCmd {
         public static final int SET_PDS = WriteCmdNum.NUM36;
         public static final int ADD_PD_INFO = WriteCmdNum.NUM42;
         public static final int SET_PD_INFO = WriteCmdNum.NUM43;
+        public static final int SET_PD_BIND_TAG = WriteCmdNum.NUM55;
     }
 
     public static class GroupCmd {
@@ -192,6 +206,18 @@ public class MgProductInfCmd {
         public static final int DEL_LIB_LIST = WriteCmdNum.NUM48;
         public static final int SET_LIB_LIST = WriteCmdNum.NUM49;
         public static final int UNION_SET_LIB_LIST = WriteCmdNum.NUM50;
+    }
+
+    public static class TagCmd {
+        //读命令
+        public static final int GET_TAG_LIST = ReadCmdNum.NUM39;
+        public static final int GET_REL_TAG_LIST = ReadCmdNum.NUM40;
+
+        //写命令
+        public static final int ADD_TAG = WriteCmdNum.NUM51;
+        public static final int DEL_TAG_LIST = WriteCmdNum.NUM52;
+        public static final int SET_TAG_LIST = WriteCmdNum.NUM53;
+        public static final int UNION_SET_TAG_LIST = WriteCmdNum.NUM54;
     }
 
 

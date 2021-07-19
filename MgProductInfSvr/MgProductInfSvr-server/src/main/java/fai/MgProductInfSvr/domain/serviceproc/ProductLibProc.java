@@ -86,11 +86,11 @@ public class ProductLibProc {
     }
 
     /**
-     * 获取到所有的库业务表的数据
+     * 根据条件查询库业务表的数据
      */
-    public FaiList<Param> getRelLibList(int aid, int unionPriId) {
+    public FaiList<Param> getRelLibList(int aid, int unionPriId, SearchArg searchArg) {
         FaiList<Param> list = new FaiList<>();
-        int rt = m_cli.getAllLibRel(aid, unionPriId, list);
+        int rt = m_cli.getLibRelFromDb(aid, unionPriId, searchArg, list);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             throw new MgException(rt, "getRelLibList error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
         }

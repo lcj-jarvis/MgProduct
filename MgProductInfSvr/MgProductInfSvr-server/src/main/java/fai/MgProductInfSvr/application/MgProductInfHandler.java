@@ -1,5 +1,6 @@
 package fai.MgProductInfSvr.application;
 
+import fai.MgProductBasicSvr.interfaces.dto.ProductDto;
 import fai.MgProductInfSvr.application.service.*;
 import fai.MgProductInfSvr.interfaces.cmd.MgProductInfCmd;
 import fai.MgProductInfSvr.interfaces.dto.*;
@@ -1238,10 +1239,137 @@ public class MgProductInfHandler extends FaiHandler {
                                @ArgBodyInteger(ProductLibDto.Key.TID) int tid,
                                @ArgBodyInteger(ProductLibDto.Key.SITE_ID) int siteId,
                                @ArgBodyInteger(ProductLibDto.Key.LGID) int lgid,
-                               @ArgBodyInteger(ProductLibDto.Key.KEEP_PRIID1) int keepPriId1) throws IOException {
-        return libService.getPdRelLibList(session, flow, aid, tid, siteId, lgid, keepPriId1);
+                               @ArgBodyInteger(ProductLibDto.Key.KEEP_PRIID1) int keepPriId1,
+                               @ArgSearchArg(value = ProductLibDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
+        return libService.getPdRelLibList(session, flow, aid, tid, siteId, lgid, keepPriId1, searchArg);
     }
     /**商品库 end*/
+
+    /**商品标签 start*/
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.TagCmd.ADD_TAG)
+    public int addProductTag(final FaiSession session,
+                             @ArgFlow final int flow,
+                             @ArgAid final int aid,
+                             @ArgBodyInteger(ProductLibDto.Key.TID) int tid,
+                             @ArgBodyInteger(ProductLibDto.Key.SITE_ID) int siteId,
+                             @ArgBodyInteger(ProductLibDto.Key.LGID) int lgid,
+                             @ArgBodyInteger(ProductLibDto.Key.KEEP_PRIID1) int keepPriId1,
+                             @ArgParam(keyMatch = ProductTagDto.Key.INFO, methodDef = "getPdTagDto",
+                                     classDef = ProductTagDto.class) Param addInfo) throws IOException {
+        return tagService.addProductTag(session, flow, aid, tid, siteId, lgid, keepPriId1, addInfo);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.TagCmd.DEL_TAG_LIST)
+    public int delPdTagList(final FaiSession session,
+                            @ArgFlow final int flow,
+                            @ArgAid final int aid,
+                            @ArgBodyInteger(ProductTagDto.Key.TID) int tid,
+                            @ArgBodyInteger(ProductTagDto.Key.SITE_ID) int siteId,
+                            @ArgBodyInteger(ProductTagDto.Key.LGID) int lgid,
+                            @ArgBodyInteger(ProductTagDto.Key.KEEP_PRIID1) int keepPriId1,
+                            @ArgList(keyMatch = ProductTagDto.Key.RL_TAG_IDS) FaiList<Integer> rlTagIds) throws IOException {
+        return tagService.delPdTagList(session, flow, aid, tid, siteId, lgid, keepPriId1, rlTagIds);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.TagCmd.SET_TAG_LIST)
+    public int setPdTagList(final FaiSession session,
+                            @ArgFlow final int flow,
+                            @ArgAid final int aid,
+                            @ArgBodyInteger(ProductTagDto.Key.TID) int tid,
+                            @ArgBodyInteger(ProductTagDto.Key.SITE_ID) int siteId,
+                            @ArgBodyInteger(ProductTagDto.Key.LGID) int lgid,
+                            @ArgBodyInteger(ProductTagDto.Key.KEEP_PRIID1) int keepPriId1,
+                            @ArgList(keyMatch = ProductTagDto.Key.UPDATERLIST, methodDef = "getPdTagDto",
+                                    classDef = ProductTagDto.class) FaiList<ParamUpdater> updaterList) throws IOException {
+        return tagService.setPdTagList(session, flow, aid, tid, siteId, lgid, keepPriId1, updaterList);
+    }
+
+    @Cmd(MgProductInfCmd.TagCmd.GET_TAG_LIST)
+    public int getPdTagList(final FaiSession session,
+                            @ArgFlow final int flow,
+                            @ArgAid final int aid,
+                            @ArgBodyInteger(ProductTagDto.Key.TID) int tid,
+                            @ArgBodyInteger(ProductTagDto.Key.SITE_ID) int siteId,
+                            @ArgBodyInteger(ProductTagDto.Key.LGID) int lgid,
+                            @ArgBodyInteger(ProductTagDto.Key.KEEP_PRIID1) int keepPriId1,
+                            @ArgSearchArg(value = ProductTagDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
+        return tagService.getPdTagList(session, flow, aid, tid, siteId, lgid, keepPriId1, searchArg);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.TagCmd.UNION_SET_TAG_LIST)
+    public int unionSetTagList(final FaiSession session,
+                               @ArgFlow final int flow,
+                               @ArgAid final int aid,
+                               @ArgBodyInteger(ProductTagDto.Key.TID) int tid,
+                               @ArgBodyInteger(ProductTagDto.Key.SITE_ID) int siteId,
+                               @ArgBodyInteger(ProductTagDto.Key.LGID) int lgid,
+                               @ArgBodyInteger(ProductTagDto.Key.KEEP_PRIID1) int keepPriId1,
+                               @ArgList(classDef = ProductTagDto.class, methodDef = "getPdTagDto",
+                                       keyMatch = ProductTagDto.Key.INFO_LIST) FaiList<Param> addInfoList,
+                               @ArgList(classDef = ProductTagDto.class, methodDef = "getPdTagDto",
+                                       keyMatch = ProductTagDto.Key.UPDATERLIST) FaiList<ParamUpdater> updaterList,
+                               @ArgList(keyMatch = ProductTagDto.Key.RL_TAG_IDS) FaiList<Integer> delRlTagIds) throws IOException{
+        return tagService.unionSetTagList(session, flow, aid, tid, siteId, lgid, keepPriId1, addInfoList, updaterList, delRlTagIds);
+    }
+
+    @Cmd(MgProductInfCmd.TagCmd.GET_REL_TAG_LIST)
+    public int getPdRlTagList(final FaiSession session,
+                               @ArgFlow final int flow,
+                               @ArgAid final int aid,
+                               @ArgBodyInteger(ProductTagDto.Key.TID) int tid,
+                               @ArgBodyInteger(ProductTagDto.Key.SITE_ID) int siteId,
+                               @ArgBodyInteger(ProductTagDto.Key.LGID) int lgid,
+                               @ArgBodyInteger(ProductTagDto.Key.KEEP_PRIID1) int keepPriId1,
+                               @ArgSearchArg(value = ProductTagDto.Key.SEARCH_ARG) SearchArg searchArg) throws IOException {
+        return tagService.getPdRlTagList(session, flow, aid, tid, siteId, lgid, keepPriId1, searchArg);
+    }
+    /**商品标签 end*/
+
+    /**商品和标签的关联 begin*/
+    @Cmd(MgProductInfCmd.BasicCmd.GET_PD_BIND_TAGS)
+    public int getPdBindTags(final FaiSession session,
+                             @ArgFlow final int flow,
+                             @ArgAid final int aid,
+                             @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
+                             @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
+                             @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
+                             @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
+                             @ArgList(keyMatch = ProductBasicDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
+        return basicService.getPdBindTagList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIds);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.BasicCmd.SET_PD_BIND_TAG)
+    public int setPdBindTag(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid final int aid,
+                              @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
+                              @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
+                              @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
+                              @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
+                              @ArgBodyInteger(ProductBasicDto.Key.RL_PD_ID) int rlPdId,
+                              @ArgList(keyMatch = ProductBasicDto.Key.BIND_TAG_IDS) FaiList<Integer> addRlTagIds,
+                              @ArgList(keyMatch = ProductBasicDto.Key.DEL_BIND_TAG_IDS) FaiList<Integer> delRlTagIds) throws IOException {
+        return basicService.setPdBindTag(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, addRlTagIds, delRlTagIds);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.TagCmd.DEL_TAG_LIST)
+    public int delPdBindTag(final FaiSession session,
+                            @ArgFlow final int flow,
+                            @ArgAid final int aid,
+                            @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
+                            @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
+                            @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
+                            @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
+                            @ArgList(keyMatch = ProductBasicDto.Key.RL_PD_IDS) FaiList<Integer> delRlPdIds) throws IOException {
+        return basicService.delPdBindTag(session, flow, aid, tid, siteId, lgId, keepPriId1, delRlPdIds);
+    }
+    /**商品和标签的关联 end*/
 
     MgProductInfService mgProductInfService = new MgProductInfService();
 
@@ -1252,5 +1380,6 @@ public class MgProductInfHandler extends FaiHandler {
     ProductStoreService storeService = new ProductStoreService();
     ProductGroupService groupService = ServiceProxy.create(new ProductGroupService());
     ProductLibService libService = ServiceProxy.create(new ProductLibService());
+    ProductTagService tagService = ServiceProxy.create(new ProductTagService());
 
 }

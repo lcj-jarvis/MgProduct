@@ -2417,7 +2417,7 @@ public class MgProductBasicCli extends FaiClient {
         }
     }
 
-    public int delPdBindTag(int aid, int unionPriId, FaiList<Integer> delTagIds) {
+    public int delPdBindTag(int aid, int unionPriId, FaiList<Integer> delRlPdIds) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2426,7 +2426,7 @@ public class MgProductBasicCli extends FaiClient {
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
-            if(Util.isEmptyList(delTagIds)) {
+            if(Util.isEmptyList(delRlPdIds)) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error;delList is empty");
                 return m_rt;
@@ -2435,7 +2435,7 @@ public class MgProductBasicCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductBindTagDto.Key.UNION_PRI_ID, unionPriId);
-            delTagIds.toBuffer(sendBody, ProductBindTagDto.Key.DEL_RL_TAG_IDS);
+            delRlPdIds.toBuffer(sendBody, ProductBindTagDto.Key.RL_PD_IDS);
 
             //send and receive
             sendAndReceive(aid, MgProductBasicCmd.BindTagCmd.DEL, sendBody, false);

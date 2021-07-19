@@ -501,8 +501,8 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                               @ArgFlow final int flow,
                               @ArgAid int aid,
                               @ArgBodyInteger(ProductBindTagDto.Key.UNION_PRI_ID) int unionPriId,
-                              @ArgList(keyMatch = ProductBindTagDto.Key.RL_TAG_IDS) FaiList<Integer> delTagIds) throws IOException {
-        return tagBindService.delBindTagList(session, flow, aid, unionPriId, delTagIds);
+                              @ArgList(keyMatch = ProductBindTagDto.Key.RL_PD_IDS) FaiList<Integer> delRlPdIds) throws IOException {
+        return tagBindService.delBindTagList(session, flow, aid, unionPriId, delRlPdIds);
     }
 
     @Cmd(MgProductBasicCmd.BindTagCmd.GET_PD_BY_TAG)

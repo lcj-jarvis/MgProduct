@@ -2,17 +2,19 @@ package fai.MgProductBasicSvr.domain.serviceproc;
 
 import fai.MgProductBasicSvr.domain.common.LockUtil;
 import fai.MgProductBasicSvr.domain.entity.ProductBindTagEntity;
+import fai.MgProductBasicSvr.domain.entity.ProductBindTagEntity;
+import fai.MgProductBasicSvr.domain.entity.ProductBindTagEntity;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductBindTagCache;
-import fai.MgProductBasicSvr.domain.repository.cache.ProductBindTagCache;
-import fai.MgProductBasicSvr.domain.repository.dao.ProductBindTagDaoCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductBindTagDaoCtrl;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
+import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Calendar;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * @author LuChaoJi
@@ -22,8 +24,8 @@ public class ProductBindTagProc {
 
     private int m_flow;
     private ProductBindTagDaoCtrl m_dao;
-    private static final String ERROR_LOG = "get error;flow=%d;aid=%d;unionPriId=%d;";
-    private static final String DEBUG_LOG = "not found;flow=%d;aid=%d;unionPriId=%d;";
+    public static final String ERROR_LOG = "get error;flow=%d;aid=%d;unionPriId=%d;";
+    public static final String DEBUG_LOG = "not found;flow=%d;aid=%d;unionPriId=%d;";
 
     public ProductBindTagProc(int flow, int aid, TransactionCtrl tc) {
         this.m_flow = flow;
@@ -188,5 +190,84 @@ public class ProductBindTagProc {
 
         ProductBindTagCache.DataStatusCache.add(aid, unionPriId, statusInfo);
         return statusInfo;
+    }
+
+    public int delPdBindTagList(int aid, int unionPriId, int rlPdId, FaiList<Integer> delRlTagIds) {
+        int rt;
+        if(Util.isEmptyList(delRlTagIds)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(ProductBindTagEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
+        matcher.and(ProductBindTagEntity.Info.RL_TAG_ID, ParamMatcher.IN, delRlTagIds);
+        Ref<Integer> refRowCount = new Ref<>();
+        rt = m_dao.delete(matcher, refRowCount);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "del info error;flow=%d;aid=%d;rlPdId=%d;rlTagIds=%s;", m_flow, aid, rlPdId, delRlTagIds);
+        }
+        Log.logStd("delPdBindTagList ok;flow=%d;aid=%d;rlPdId=%d;rlTagIds=%s;", m_flow, aid, rlPdId, delRlTagIds);
+        return refRowCount.value;
+    }
+
+
+    public void addPdBindTagList(int aid, int unionPriId, int rlPdId, int pdId, FaiList<Integer> addRlTagIds) {
+        int rt;
+        if(Util.isEmptyList(addRlTagIds)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args error;flow=%d;aid=%d;");
+        }
+        FaiList<Param> addList = new FaiList<Param>();
+        Calendar now = Calendar.getInstance();
+        for(int rlTagId : addRlTagIds) {
+            Param info = new Param();
+            info.setInt(ProductBindTagEntity.Info.AID, aid);
+            info.setInt(ProductBindTagEntity.Info.RL_PD_ID, rlPdId);
+            info.setInt(ProductBindTagEntity.Info.RL_TAG_ID, rlTagId);
+            info.setInt(ProductBindTagEntity.Info.UNION_PRI_ID, unionPriId);
+            info.setInt(ProductBindTagEntity.Info.PD_ID, pdId);
+            info.setCalendar(ProductBindTagEntity.Info.CREATE_TIME, now);
+            addList.add(info);
+        }
+        rt = m_dao.batchInsert(addList, null, false);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "batch insert product bind tag error;flow=%d;aid=%d;", m_flow, aid);
+        }
+    }
+
+    public int delPdBindTagList(int aid, int unionPriId, FaiList<Integer> delRlPdIds) {
+        int rt;
+        if(Util.isEmptyList(delRlPdIds)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(ProductBindTagEntity.Info.RL_PD_ID, ParamMatcher.IN, delRlPdIds);
+        Ref<Integer> refRowCount = new Ref<>();
+        rt = m_dao.delete(matcher, refRowCount);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "del info error;flow=%d;aid=%d;rlPdIds=%s;", m_flow, aid, delRlPdIds);
+        }
+        Log.logStd("delPdBindTagList ok;flow=%d;aid=%d;rlPdIds=%s;", m_flow, aid, delRlPdIds);
+        return refRowCount.value;
+    }
+
+    public int delPdBindTagList(int aid, FaiList<Integer> pdIds) {
+        int rt;
+        if(Util.isEmptyList(pdIds)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "del error;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductBindTagEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        Ref<Integer> refRowCount = new Ref<>();
+        rt = m_dao.delete(matcher, refRowCount);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "del info error;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
+        }
+        Log.logStd("delPdBindTagList ok;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
+        return refRowCount.value;
     }
 }

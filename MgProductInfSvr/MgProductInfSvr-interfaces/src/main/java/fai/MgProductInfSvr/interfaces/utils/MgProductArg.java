@@ -62,6 +62,10 @@ public class MgProductArg {
 
     private FaiList<Integer> delRelLibIds;
 
+    private FaiList<Integer> rlTagIds;
+    private FaiList<Integer> addRlTagIds;
+    private FaiList<Integer> delRlTagIds;
+
 
     private MgProductArg(Builder builder) {
         this.aid = builder.aid;
@@ -118,6 +122,9 @@ public class MgProductArg {
 
         this.delRelLibIds = builder.delRelLibIds;
 
+        this.rlTagIds = builder.rlTagIds;
+        this.addRlTagIds = builder.addRlTagIds;
+        this.delRlTagIds = builder.delRlTagIds;
     }
 
     public String getXid() {
@@ -308,6 +315,18 @@ public class MgProductArg {
         return delRelLibIds;
     }
 
+    public FaiList<Integer> getRlTagIds() {
+        return rlTagIds;
+    }
+
+    public FaiList<Integer> getAddRlTagIds() {
+        return addRlTagIds;
+    }
+
+    public FaiList<Integer> getDelRlTagIds() {
+        return delRlTagIds;
+    }
+
     private static abstract class TopBuilder {
         protected int aid;
         protected int tid;
@@ -374,7 +393,17 @@ public class MgProductArg {
         public abstract Builder setDelRelLibIds(FaiList<Integer> delRelLibIds);
     }
 
-    private static abstract class PropBuilder extends LibBuilder {
+    private static abstract class TagBuilder extends LibBuilder {
+        protected FaiList<Integer> rlTagIds;
+        protected FaiList<Integer> addRlTagIds;
+        protected FaiList<Integer> delRlTagIds;
+
+        public abstract Builder setRlTagIds(FaiList<Integer> rlTagIds);
+        public abstract Builder setAddRlTagIds(FaiList<Integer> addRlTagIds);
+        public abstract Builder setDelRlTagIds(FaiList<Integer> delRlTagIds);
+    }
+
+    private static abstract class PropBuilder extends TagBuilder {
         protected int rlLibId;
         protected FaiList<Integer> rlPropIds;
         protected FaiList<Param> propIdsAndValIds;
@@ -702,9 +731,26 @@ public class MgProductArg {
             return this;
         }
 
+        @Override
+        public Builder setRlTagIds(FaiList<Integer> rlTagIds) {
+            this.rlTagIds = rlTagIds;
+            return this;
+        }
+
+        @Override
+        public Builder setAddRlTagIds(FaiList<Integer> addRlTagIds) {
+            this.addRlTagIds = addRlTagIds;
+            return this;
+        }
+
+        @Override
+        public Builder setDelRlTagIds(FaiList<Integer> delRlTagIds) {
+            this.delRlTagIds = delRlTagIds;
+            return this;
+        }
+
         public MgProductArg build() {
             return new MgProductArg(this);
         }
-
     }
 }

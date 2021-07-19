@@ -10,7 +10,7 @@ import fai.comm.util.Var;
  * @date 2021-07-12 13:48
  */
 public class ProductTagRelDto {
-    //库业务表
+    //标签业务表
     private static ParamDef g_tagRelDtoDef = new ParamDef();
 
     static {
@@ -28,7 +28,7 @@ public class ProductTagRelDto {
         return g_tagRelDtoDef;
     }
 
-    // 完整数据，包括库表和库业务表
+    // 完整数据，包括标签表和标签业务表
     private static ParamDef g_tagAllDtoDef = new ParamDef();
 
     static {

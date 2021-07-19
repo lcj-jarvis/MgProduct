@@ -49,7 +49,7 @@ public class ProductBindGroupProc {
             info.setCalendar(ProductBindGroupEntity.Info.CREATE_TIME, now);
             addList.add(info);
         }
-        rt = m_dao.batchInsert(addList, null, true);
+        rt = m_dao.batchInsert(addList, null, false);
         if(rt != Errno.OK) {
             throw new MgException(rt, "batch insert product bind group error;flow=%d;aid=%d;", m_flow, aid);
         }

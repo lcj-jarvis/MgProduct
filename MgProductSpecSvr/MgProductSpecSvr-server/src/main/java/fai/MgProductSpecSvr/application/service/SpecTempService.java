@@ -451,6 +451,7 @@ public class SpecTempService extends ServicePub {
                 specTempDetailInfo.setList(SpecTempDetailEntity.Info.IN_SC_VAL_LIST, inScValList);
                 specTempDetailList.add(specTempDetailInfo);
             }
+            // 将规格名称都替换成规格字符串id
             rt = replaceNameToScStrId(flow, aid, specStrNameList, specTempDetailList);
             if(rt != Errno.OK){
                 return rt;

@@ -58,6 +58,7 @@ public class ProductSpecProc {
                 data.assign( info, ProductSpecEntity.Info.FLAG);
                 FaiList<Param> inPdScValList = info.getList(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST);
                 for (Param inPdScValInfo : inPdScValList) {
+                    // 判断是否勾选，c:true
                     if(inPdScValInfo.getBoolean(ProductSpecValObj.InPdScValList.Item.CHECK, false)){
                         int flag = data.getInt(ProductSpecEntity.Info.FLAG, 0) | ProductSpecValObj.FLag.IN_PD_SC_VAL_LIST_CHECKED;
                         if(needRefreshSkuRef != null){
@@ -289,6 +290,7 @@ public class ProductSpecProc {
         int rt = Errno.ERROR;
         FaiList<Integer> pdScIdList = new FaiList<>(updaterList.size());
         Set<Integer> scStrIdSet = new HashSet<>();
+        // 排除非法的key，留下可以修改的 key，并将 updaterList 中的 pdScId 加入 pdScIdList 中，scStrId 加入 scStrIdSet 中
         Set<String> maxUpdaterKeys = Utils.retainValidUpdaterList(updaterList, ProductSpecEntity.getValidKeys(), data->{
             pdScIdList.add(data.getInt(ProductSpecEntity.Info.PD_SC_ID));
             Integer scStrId = data.getInt(ProductSpecEntity.Info.SC_STR_ID);
@@ -298,9 +300,11 @@ public class ProductSpecProc {
         });
         maxUpdaterKeys.remove(ProductSpecEntity.Info.PD_SC_ID);
 
+        // 获取已经存在的 规格字符串id 集合
         Set<Integer> alreadyExistedScStrIdSet = new HashSet<>();
         if(!scStrIdSet.isEmpty()){
             Ref<FaiList<Param>> listRef = new Ref<>();
+            // 根据 aid + pdId + scStrId 查找 list，并将其中的 inPdScValList 从 String 转换成 FaiList
             rt = getListFromDao(aid, pdId, new FaiList<>(scStrIdSet), listRef, ProductSpecEntity.Info.SC_STR_ID);
             if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                 return rt;
@@ -309,6 +313,7 @@ public class ProductSpecProc {
         }
 
         Ref<FaiList<Param>> listRef = new Ref<>();
+        // 获取旧数据 list
         rt = getListFromDaoByPdScIdList(aid, pdId, pdScIdList, listRef);
         if(rt != Errno.OK){
             return rt;
@@ -354,6 +359,7 @@ public class ProductSpecProc {
             Param oldData = oldDataMap.remove(pdScId); // help gc
             int oldFlag = oldData.getInt(ProductSpecEntity.Info.FLAG, 0);
             Param updatedData = updater.update(oldData, true);
+            // 如果不允许 inPdScValList 为空，则进入下面逻辑
             if(!Misc.checkBit(oldFlag, ProductSpecValObj.FLag.ALLOW_IN_PD_SC_VAL_LIST_IS_EMPTY)){
                 if(!needRefreshSkuRef.value){
                     FaiList<Integer> oldCheckIdList = getCheckIdList(oldData);

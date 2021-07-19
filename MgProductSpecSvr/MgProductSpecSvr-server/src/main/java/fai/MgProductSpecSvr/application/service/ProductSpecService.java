@@ -1542,8 +1542,9 @@ public class ProductSpecService extends ServicePub {
                 }
                 // 是否允许 inPdScValList 为空，即是否是单规格
                 boolean allowInPdScValListIsEmpty = false;
-                if(pdScInfoList.size() == 1 && skuList.size() == 1) {
-                    allowInPdScValListIsEmpty = Misc.checkBit(pdScInfoList.get(0).getInt(ProductSpecEntity.Info.FLAG), ProductSpecValObj.FLag.ALLOW_IN_PD_SC_VAL_LIST_IS_EMPTY);
+
+                if(pdScInfoList != null && pdScInfoList.size() == 1 && skuList.size() == 1) {
+                    allowInPdScValListIsEmpty = Misc.checkBit(pdScInfoList.get(0).getInt(ProductSpecEntity.Info.FLAG, 0), ProductSpecValObj.FLag.ALLOW_IN_PD_SC_VAL_LIST_IS_EMPTY);
                 }
                 Map<String, Param> inPdScStrIdListJsonSpecSkuMap = pdIdInPdScStrIdListJsonSpecSkuMap.get(pdId);
                 FaiList<Param> pdScSkuList = new FaiList<>(skuList.size()+1);

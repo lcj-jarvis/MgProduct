@@ -1,7 +1,7 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
 import fai.MgProductStoreSvr.domain.entity.SkuSummaryEntity;
-import fai.MgProductStoreSvr.domain.entity.SpuSummaryEntity;
+import fai.MgProductStoreSvr.domain.entity.StoreSagaEntity;
 import fai.MgProductStoreSvr.domain.repository.SkuSummaryDaoCtrl;
 import fai.comm.util.*;
 import fai.middleground.svrutil.repository.TransactionCtrl;
@@ -144,7 +144,7 @@ public class SkuSummaryProc {
         Log.logStd("ok;flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
-    public int report(int aid, FaiList<Param> infoList) {
+    public int report(int aid, FaiList<Param> infoList, Ref<Param> sagaInfoRef) {
         if(aid <= 0 || infoList == null || infoList.isEmpty()){
             Log.logErr("arg error;flow=%d;aid=%s;infoList=%s;", m_flow, aid, infoList);
             return Errno.ARGS_ERROR;
@@ -190,16 +190,33 @@ public class SkuSummaryProc {
             batchUpdateDataList.add(data);
         }
 
+        Param sagaInfo = null;
+        if (sagaInfoRef != null) {
+            sagaInfo = sagaInfoRef.value;
+            if (Str.isEmpty(sagaInfo)) {
+                sagaInfo = new Param();
+            }
+        }
+        FaiList<Param> sagaSkuSumList = new FaiList<>();
         if(skuIdInfoMap.size() > 0){ // 批量添加
             FaiList<Param> addList = new FaiList<>(skuIdInfoMap.size());
             for (Param info : skuIdInfoMap.values()) {
                 info.setCalendar(SkuSummaryEntity.Info.SYS_CREATE_TIME, now);
                 addList.add(info);
+                if (sagaInfoRef != null) {
+                    Param priKey = new Param();
+                    priKey.assign(info, SkuSummaryEntity.Info.SKU_ID);
+                    sagaSkuSumList.add(priKey);
+                }
             }
             rt = m_daoCtrl.batchInsert(addList, null, true);
             if(rt != Errno.OK){
                 Log.logStd("dao.batchInsert error;flow=%d;aid=%s;addList=%s;", m_flow, aid, addList);
             }
+        }
+        if (sagaInfoRef != null) {
+            sagaInfo.setList(StoreSagaEntity.PropInfo.SKU_SUMMARY, sagaSkuSumList);
+            sagaInfoRef.value = sagaInfo;
         }
         if(batchUpdateDataList.size() > 0){ // 批量更新
             ParamUpdater batchUpdater = new ParamUpdater();
@@ -249,6 +266,30 @@ public class SkuSummaryProc {
             return rt;
         }
         Log.logStd("ok;flow=%s;aid=%s;pdId=%s;skuIdList=%s;", m_flow, aid, pdId, skuIdList);
+        return rt;
+    }
+
+    /**
+     * Saga 模式 补偿删除 根据 aid + skuIds
+     *
+     * @param aid aid
+     * @param sagaSkuSumList skuId
+     * @return {@link Errno}
+     */
+    public int sagaDel(int aid, FaiList<Param> sagaSkuSumList) {
+        FaiList<Long> skuIds = new FaiList<>(sagaSkuSumList.size());
+        for (Param sagaSkuSum : sagaSkuSumList) {
+            Long skuId = sagaSkuSum.getLong(SkuSummaryEntity.Info.SKU_ID);
+            skuIds.add(skuId);
+        }
+        ParamMatcher matcher = new ParamMatcher(SkuSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SkuSummaryEntity.Info.SKU_ID, ParamMatcher.IN, skuIds);
+        int rt = m_daoCtrl.delete(matcher);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "sagaDel err;flow=%d;aid=%d;skuIds=%s", m_flow, aid, skuIds);
+            return rt;
+        }
+        Log.logStd(rt, "sagaDel ok;flow=%d;aid=%d", m_flow, aid);
         return rt;
     }
 

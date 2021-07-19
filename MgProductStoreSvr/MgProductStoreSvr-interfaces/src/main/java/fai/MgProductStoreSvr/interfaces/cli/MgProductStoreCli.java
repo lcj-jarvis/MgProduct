@@ -23,6 +23,70 @@ public class MgProductStoreCli extends MgProductInternalCli {
     }
 
     /**
+     * 刷新指定商品id和指定skuId的库存销售汇总
+     * for工具，一般用于出现异常数据，工具处理库存销售数据后，重新上报汇总数据
+     */
+    public int reportSummary(int aid, FaiList<Integer> pdIds, FaiList<Long> skuIds, boolean reportCount, boolean reportPrice){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(pdIds == null && skuIds == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "infoList error");
+                return m_rt;
+            }
+            if(!reportCount && !reportPrice) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args err, report null;aid=%d;pdIds=%s;skuIds=%s;reportCount=%s;reportPrice=%s;", aid, pdIds, skuIds, reportCount, reportPrice);
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            if(pdIds != null) {
+                pdIds.toBuffer(sendBody, StoreSalesSkuDto.Key.PD_ID);
+            }
+            if(skuIds != null) {
+                skuIds.toBuffer(sendBody, StoreSalesSkuDto.Key.SKU_ID);
+            }
+            sendBody.putBoolean(StoreSalesSkuDto.Key.REPORT_COUNT, reportCount);
+            sendBody.putBoolean(StoreSalesSkuDto.Key.REPORT_PRICE, reportPrice);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.REPORT);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    /**
      * 刷新商品规格库存销售sku
      */
     public int refreshSkuStoreSales(int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<Param> pdScSkuInfoList){
@@ -2051,7 +2115,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
     /**
      * 导入数据
      */
-    public int importStoreSales(int aid, int tid, int unionPriId, FaiList<Param> storeSaleSkuList, Param inStoreRecordInfo){
+    public int importStoreSales(int aid, int tid, int unionPriId, String xid, FaiList<Param> storeSaleSkuList, Param inStoreRecordInfo){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2075,6 +2139,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(StoreSalesSkuDto.Key.TID, tid);
             sendBody.putInt(StoreSalesSkuDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putString(StoreSalesSkuDto.Key.XID, xid);
             storeSaleSkuList.toBuffer(sendBody, StoreSalesSkuDto.Key.INFO_LIST, StoreSalesSkuDto.getInfoDto());
             inStoreRecordInfo.toBuffer(sendBody, StoreSalesSkuDto.Key.IN_OUT_STORE_RECORD_INFO, InOutStoreRecordDto.getInfoDto());
 

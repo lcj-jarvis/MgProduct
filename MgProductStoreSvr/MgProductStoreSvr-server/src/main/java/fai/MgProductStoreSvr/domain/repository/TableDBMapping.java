@@ -17,6 +17,7 @@ public class TableDBMapping {
         public static final String MG_STORE_SALE_SKU = "mgStoreSaleSKU";
         public static final String MG_SKU_SUMMARY = "mgSkuSummary";
         public static final String MG_REFUND_RECORD = "mgRefundRecord";
+        public static final String MG_STORE_SAGA = "mgStoreSaga";
     }
 
     /**
@@ -33,6 +34,7 @@ public class TableDBMapping {
         , MG_HOLDING_RECORD(Table.MG_HOLDING_RECORD, DB.MG_PRODUCT_STORE)
         , MG_STORE_ORDER_RECORD(Table.MG_STORE_ORDER_RECORD, DB.MG_PRODUCT_STORE)
         , MG_REFUND_RECORD(Table.MG_REFUND_RECORD, DB.MG_PRODUCT_STORE)
+        , MG_STORE_SAGA(Table.MG_STORE_SAGA, DB.MG_PRODUCT_STORE)
 
 
         , MG_SPU_BIZ_SUMMARY(Table.MG_SPU_BIZ_SUMMARY, DB.MG_PRODUCT_STORE_SUMMARY)

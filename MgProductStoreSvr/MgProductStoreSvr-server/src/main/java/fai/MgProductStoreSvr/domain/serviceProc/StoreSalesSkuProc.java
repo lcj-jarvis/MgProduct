@@ -338,6 +338,10 @@ public class StoreSalesSkuProc {
         // 记录补偿
         if (prop != null) {
             storeSalesSkuSaga = new Param();
+            for (Param info : listRef.value) {
+                info.setInt(StoreSalesSkuEntity.Info.AID, aid);
+                info.setInt(StoreSalesSkuEntity.Info.PD_ID, pdId);
+            }
             storeSalesSkuSaga.setList(StoreSagaEntity.PropInfo.StoreSaleSKU.DATA_LIST, listRef.value);
             storeSalesSkuSaga.setParam(StoreSagaEntity.PropInfo.StoreSaleSKU.DO_BATCH_UPDATER, doBatchUpdater.getData());
             prop.setParam(StoreSagaEntity.PropInfo.STORE_SALE_SKU, storeSalesSkuSaga);

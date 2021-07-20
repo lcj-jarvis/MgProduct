@@ -198,19 +198,10 @@ public class ProductBindTagProc {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "args error;flow=%d;aid=%d;", m_flow, aid);
         }
-        ParamMatcher matcher = new ParamMatcher(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        matcher.and(ProductBindTagEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
+        ParamMatcher matcher = new ParamMatcher(ProductBindTagEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
         matcher.and(ProductBindTagEntity.Info.RL_TAG_ID, ParamMatcher.IN, delRlTagIds);
-        Ref<Integer> refRowCount = new Ref<>();
-        rt = m_dao.delete(matcher, refRowCount);
-        if(rt != Errno.OK) {
-            throw new MgException(rt, "del info error;flow=%d;aid=%d;rlPdId=%d;rlTagIds=%s;", m_flow, aid, rlPdId, delRlTagIds);
-        }
-        Log.logStd("delPdBindTagList ok;flow=%d;aid=%d;rlPdId=%d;rlTagIds=%s;", m_flow, aid, rlPdId, delRlTagIds);
-        return refRowCount.value;
+        return delPdBindTag(aid, unionPriId, matcher);
     }
-
 
     public void addPdBindTagList(int aid, int unionPriId, int rlPdId, int pdId, FaiList<Integer> addRlTagIds) {
         int rt;
@@ -242,15 +233,30 @@ public class ProductBindTagProc {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "args error;flow=%d;aid=%d;", m_flow, aid);
         }
-        ParamMatcher matcher = new ParamMatcher(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        matcher.and(ProductBindTagEntity.Info.RL_PD_ID, ParamMatcher.IN, delRlPdIds);
+        ParamMatcher matcher = new ParamMatcher(ProductBindTagEntity.Info.RL_PD_ID, ParamMatcher.IN, delRlPdIds);
+        return delPdBindTag(aid, unionPriId, matcher);
+    }
+
+    public int delPdBindTag(Integer aid, Integer unionPriId, ParamMatcher matcher) {
+        int rt;
+        if (matcher == null) {
+            matcher = new ParamMatcher();
+        }
+        matcher.remove(ProductBindTagEntity.Info.AID);
+        matcher.remove(ProductBindTagEntity.Info.UNION_PRI_ID);
+        if (aid != null) {
+            matcher.and(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, aid);
+        }
+        if (unionPriId != null) {
+            matcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        }
+
         Ref<Integer> refRowCount = new Ref<>();
         rt = m_dao.delete(matcher, refRowCount);
         if(rt != Errno.OK) {
-            throw new MgException(rt, "del info error;flow=%d;aid=%d;rlPdIds=%s;", m_flow, aid, delRlPdIds);
+            throw new MgException(rt, "del info error;flow=%d;aid=%d;matcher=%s;", m_flow, aid, matcher);
         }
-        Log.logStd("delPdBindTagList ok;flow=%d;aid=%d;rlPdIds=%s;", m_flow, aid, delRlPdIds);
+        Log.logStd("delPdBindTagList ok;flow=%d;aid=%d;matcher=%s;", m_flow, aid, matcher);
         return refRowCount.value;
     }
 
@@ -260,14 +266,22 @@ public class ProductBindTagProc {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "del error;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
         }
-        ParamMatcher matcher = new ParamMatcher(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(ProductBindTagEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
-        Ref<Integer> refRowCount = new Ref<>();
-        rt = m_dao.delete(matcher, refRowCount);
-        if(rt != Errno.OK) {
-            throw new MgException(rt, "del info error;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
+        ParamMatcher matcher = new ParamMatcher(ProductBindTagEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        return delPdBindTag(aid, null, matcher);
+    }
+
+    /**
+     * 清空指定aid+unionPriId的数据
+     * @param aid
+     * @param unionPriIds
+     */
+    public void clearAcct(int aid, FaiList<Integer> unionPriIds) {
+        int rt;
+        if(Util.isEmptyList(unionPriIds)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "del error;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
         }
-        Log.logStd("delPdBindTagList ok;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
-        return refRowCount.value;
+        ParamMatcher matcher = new ParamMatcher(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+        delPdBindTag(aid, null, matcher);
     }
 }

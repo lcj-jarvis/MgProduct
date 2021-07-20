@@ -570,7 +570,7 @@ public class ProductBasicService extends MgProductInfService {
     }
 
     /**
-     *  修改商品数据 包括 规格、库存
+     *  修改商品数据 包括 规格、库存、分类、标签
      */
     public int setProductInfo(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, Integer rlPdId, ParamUpdater recvUpdater) throws IOException, TransactionException {
         int rt = Errno.ERROR;
@@ -629,7 +629,18 @@ public class ProductBasicService extends MgProductInfService {
                         basicData.remove(ProductBasicEntity.BindPropInfo.ADD_PROP_LIST);
                         basicData.remove(ProductBasicEntity.BindPropInfo.DEL_PROP_LIST);
                     }
-
+                    //3、标签关联表
+                    FaiList<Integer> addRlTagIds = basicData.getList(ProductBasicEntity.BindTagInfo.ADD_RL_TAG_IDS);
+                    FaiList<Integer> delRlTagIds = basicData.getList(ProductBasicEntity.BindTagInfo.DEL_RL_TAG_IDS);
+                    if (!Util.isEmptyList(addRlTagIds) || !Util.isEmptyList(delRlTagIds)) {
+                        ProductBasicProc basicProc = new ProductBasicProc(flow);
+                        rt = basicProc.setPdBindTag(aid, unionPriId, rlPdId, addRlTagIds, delRlTagIds, tx.getXid());
+                        if (rt != Errno.OK) {
+                            return rt;
+                        }
+                        basicData.remove(ProductBasicEntity.BindTagInfo.ADD_RL_TAG_IDS);
+                        basicData.remove(ProductBasicEntity.BindTagInfo.DEL_RL_TAG_IDS);
+                    }
 
                     // check again
                     if (!Str.isEmpty(basicData)) {

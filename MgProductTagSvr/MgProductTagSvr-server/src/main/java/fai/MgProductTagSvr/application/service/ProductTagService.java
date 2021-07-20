@@ -385,7 +385,7 @@ public class ProductTagService {
         FaiBuffer sendBuf = new FaiBuffer(true);
         list.toBuffer(sendBuf, ProductTagRelDto.Key.INFO_LIST, ProductTagRelDto.getInfoDto());
         if (searchArg != null) {
-            boolean needTotalSize = searchArg.totalSize != null && searchArg.totalSize.value != null;
+            boolean needTotalSize = (searchArg.totalSize != null && searchArg.totalSize.value != null);
             if (needTotalSize) {
                 sendBuf.putInt(ProductTagRelDto.Key.TOTAL_SIZE, searchArg.totalSize.value);
             }

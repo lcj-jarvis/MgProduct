@@ -313,6 +313,13 @@ public class ProductBasicService extends ServicePub {
                         // 删除当前unionPriId的数据
                         bindGroupProc.delPdBindGroup(aid, unionPriId, null);
                     }
+
+                    if(useProductTag()) {
+                        // 删除标签关联
+                        ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
+                        // 删除当前unionPriId的数据
+                        bindTagProc.delPdBindTag(aid, unionPriId, null);
+                    }
                 }
                 commit = true;
                 tc.commit();
@@ -374,6 +381,14 @@ public class ProductBasicService extends ServicePub {
                 if(useProductGroup()) {
                     ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
                     bindGroupProc.clearAcct(aid, unionPriIds);
+                }
+
+                //删除标签关联
+                if(useProductTag()) {
+                    // 删除标签关联
+                    ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
+                    // 删除当前unionPriId的数据
+                    bindTagProc.clearAcct(aid, unionPriIds);
                 }
 
                 commit = true;
@@ -1008,6 +1023,14 @@ public class ProductBasicService extends ServicePub {
                     ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
                     bindGroupProc.addPdBindGroupList(aid, unionPriId, rlPdId, pdId, rlGroupIds);
                     Log.logStd("add bind groupIds ok;flow=%d;aid=%d;uid=%d;rlPdId=%d;pdId=%d;rlGroupIds=%s;", flow, aid, unionPriId, rlPdId, pdId, rlGroupIds);
+                }
+
+                // 新增商品分类绑定关系
+                FaiList<Integer> rlTagIds = info.getList(ProductRelEntity.Info.RL_TAG_IDS);
+                if(useProductTag() && !Util.isEmptyList(rlTagIds)) {
+                    ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
+                    bindTagProc.addPdBindTagList(aid, unionPriId, rlPdId, pdId, rlTagIds);
+                    Log.logStd("add bind rlTagIds ok;flow=%d;aid=%d;uid=%d;rlPdId=%d;pdId=%d;rlTagIds=%s;", flow, aid, unionPriId, rlPdId, pdId, rlTagIds);
                 }
 
                 // xid不为空，则开启了分布式事务，saga添加一条记录

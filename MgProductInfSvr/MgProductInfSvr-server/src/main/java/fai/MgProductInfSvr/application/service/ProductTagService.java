@@ -1,12 +1,6 @@
 package fai.MgProductInfSvr.application.service;
 
 import fai.MgProductInfSvr.domain.serviceproc.ProductTagProc;
-import fai.MgProductInfSvr.domain.serviceproc.ProductTagProc;
-import fai.MgProductInfSvr.domain.serviceproc.ProductTagProc;
-import fai.MgProductInfSvr.domain.serviceproc.ProductTagProc;
-import fai.MgProductInfSvr.interfaces.dto.ProductTagDto;
-import fai.MgProductInfSvr.interfaces.dto.ProductTagDto;
-import fai.MgProductInfSvr.interfaces.dto.ProductTagDto;
 import fai.MgProductInfSvr.interfaces.dto.ProductTagDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
@@ -34,7 +28,7 @@ public class ProductTagService extends MgProductInfService {
         // 获取unionPriId
         int unionPriId = getUnionPriId(flow, aid, tid, siteId, lgid, keepPriId1);
 
-        // 添加商品分类数据,获取新增商品的库id和库业务id
+        // 添加商品标签数据,获取新增商品的库id和库业务id
         ProductTagProc tagProc = new ProductTagProc(flow);
         Ref<Integer> tagIdRef = new Ref<>();
         Ref<Integer> rlTagIdRef = new Ref<>();
@@ -122,6 +116,9 @@ public class ProductTagService extends MgProductInfService {
         }
         FaiBuffer sendBuf = new FaiBuffer(true);
         list.toBuffer(sendBuf, ProductTagDto.Key.INFO_LIST, ProductTagDto.getPdRelTagDto());
+        if (searchArg.totalSize != null && searchArg.totalSize.value != null) {
+            sendBuf.putInt(ProductTagDto.Key.TOTAL_SIZE, searchArg.totalSize.value);
+        }
         session.write(sendBuf);
         Log.logDbg("get list ok;flow=%d;aid=%d;uid=%d;size=%d;", flow, aid, unionPriId, list.size());
         return Errno.OK;

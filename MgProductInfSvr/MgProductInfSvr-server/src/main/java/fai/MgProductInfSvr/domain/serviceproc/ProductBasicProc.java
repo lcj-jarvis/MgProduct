@@ -526,7 +526,7 @@ public class ProductBasicProc {
     }
 
     public int delPdBindTag(int aid, int unionPriId, FaiList<Integer> delRlPdIds) {
-        int rt = Errno.ERROR;
+        int rt;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);

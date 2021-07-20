@@ -2321,6 +2321,9 @@ public class MgProductBasicCli extends FaiClient {
 
 
     /**==========================================操作商品与标签关联开始===========================================================*/
+    /**
+     * 获取aid，uid，rlPdIds获取商品和标签关联的数据
+     */
     public int getPdBindTag(int aid, int unionPriId, FaiList<Integer> rlPdIds, FaiList<Param> pdBindTags) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
@@ -2358,8 +2361,8 @@ public class MgProductBasicCli extends FaiClient {
         }
     }
 
-    public int setPdBindTag(int aid, int unionPriId, int rlPdId, FaiList<Integer> addTagIds, FaiList<Integer> delTagIds) {
-        return setPdBindTag(aid, unionPriId, rlPdId, addTagIds, delTagIds, null);
+    public int setPdBindTag(int aid, int unionPriId, int rlPdId, FaiList<Integer> addRlTagIds, FaiList<Integer> delRlTagIds) {
+        return setPdBindTag(aid, unionPriId, rlPdId, addRlTagIds, delRlTagIds, null);
     }
 
     /**
@@ -2376,7 +2379,7 @@ public class MgProductBasicCli extends FaiClient {
         return setPdBindTag(aid, unionPriId, rlPdId, addTagIds, delTagIds, xid);
     }
 
-    private int setPdBindTag(int aid, int unionPriId, int rlPdId, FaiList<Integer> addTagIds, FaiList<Integer> delTagIds, String xid) {
+    private int setPdBindTag(int aid, int unionPriId, int rlPdId, FaiList<Integer> addRlTagIds, FaiList<Integer> delRlTagIds, String xid) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2385,13 +2388,13 @@ public class MgProductBasicCli extends FaiClient {
                 Log.logErr("args error");
                 return m_rt;
             }
-            if(addTagIds == null) {
-                addTagIds = new FaiList<Integer>();
+            if(addRlTagIds == null) {
+                addRlTagIds = new FaiList<Integer>();
             }
-            if(delTagIds == null) {
-                delTagIds = new FaiList<Integer>();
+            if(delRlTagIds == null) {
+                delRlTagIds = new FaiList<Integer>();
             }
-            if(addTagIds.isEmpty() && delTagIds.isEmpty()) {
+            if(addRlTagIds.isEmpty() && delRlTagIds.isEmpty()) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error;addList and delList all empty");
                 return m_rt;
@@ -2406,8 +2409,8 @@ public class MgProductBasicCli extends FaiClient {
                 sendBody.putString(ProductDto.Key.XID, xid);
                 command = MgProductBasicCmd.BindTagCmd.TRANSACTION_SET_PD_BIND_TAG;
             }
-            addTagIds.toBuffer(sendBody, ProductBindTagDto.Key.RL_TAG_IDS);
-            delTagIds.toBuffer(sendBody, ProductBindTagDto.Key.DEL_RL_TAG_IDS);
+            addRlTagIds.toBuffer(sendBody, ProductBindTagDto.Key.RL_TAG_IDS);
+            delRlTagIds.toBuffer(sendBody, ProductBindTagDto.Key.DEL_RL_TAG_IDS);
 
             sendAndReceive(aid, command, sendBody, false);
             return m_rt;
@@ -2521,15 +2524,15 @@ public class MgProductBasicCli extends FaiClient {
         }
     }
 
+    public int getAllPdBindTag(int aid, int unionPriId, FaiList<Param> list) {
+        return getPdBindTagByCondition(aid, unionPriId, null, list);
+    }
+
     public int getPdBindTagFromDb(int aid, int unionPriId, SearchArg searchArg, FaiList<Param> list) {
         if (searchArg == null) {
             searchArg = new SearchArg();
         }
         return getPdBindTagByCondition(aid, unionPriId, searchArg, list);
-    }
-
-    public int getAllPdBindTag(int aid, int unionPriId, FaiList<Param> list) {
-        return getPdBindTagByCondition(aid, unionPriId, null, list);
     }
 
     private int getPdBindTagByCondition(int aid, int unionPriId, SearchArg searchArg, FaiList<Param> pdBindTags) {

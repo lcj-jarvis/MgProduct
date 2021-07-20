@@ -466,9 +466,9 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                               @ArgAid int aid,
                               @ArgBodyInteger(ProductBindTagDto.Key.UNION_PRI_ID) int unionPriId,
                               @ArgBodyInteger(ProductBindTagDto.Key.RL_PD_ID) int rlPdId,
-                              @ArgList(keyMatch = ProductBindTagDto.Key.RL_TAG_IDS) FaiList<Integer> addTagIds,
-                              @ArgList(keyMatch = ProductBindTagDto.Key.DEL_RL_TAG_IDS) FaiList<Integer> delTagIds) throws IOException {
-        return tagBindService.setPdBindTag(session, flow, aid, unionPriId, rlPdId, addTagIds, delTagIds);
+                              @ArgList(keyMatch = ProductBindTagDto.Key.RL_TAG_IDS) FaiList<Integer> addRlTagIds,
+                              @ArgList(keyMatch = ProductBindTagDto.Key.DEL_RL_TAG_IDS) FaiList<Integer> delRlTagIds) throws IOException {
+        return tagBindService.setPdBindTag(session, flow, aid, unionPriId, rlPdId, addRlTagIds, delRlTagIds);
     }
 
     @WrittenCmd
@@ -480,9 +480,9 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                          @ArgBodyInteger(ProductBindTagDto.Key.UNION_PRI_ID) int unionPriId,
                                          @ArgBodyInteger(ProductBindTagDto.Key.RL_PD_ID) int rlPdId,
                                          @ArgBodyXid(value = ProductDto.Key.XID, useDefault = true) String xid,
-                                         @ArgList(keyMatch = ProductBindTagDto.Key.RL_TAG_IDS) FaiList<Integer> addTagIds,
-                                         @ArgList(keyMatch = ProductBindTagDto.Key.DEL_RL_TAG_IDS) FaiList<Integer> delTagIds) throws IOException {
-        return tagBindService.transactionSetPdBindTag(session, flow, aid, unionPriId, rlPdId, xid, addTagIds, delTagIds);
+                                         @ArgList(keyMatch = ProductBindTagDto.Key.RL_TAG_IDS) FaiList<Integer> addRlTagIds,
+                                         @ArgList(keyMatch = ProductBindTagDto.Key.DEL_RL_TAG_IDS) FaiList<Integer> delRlTagIds) throws IOException {
+        return tagBindService.transactionSetPdBindTag(session, flow, aid, unionPriId, rlPdId, xid, addRlTagIds, delRlTagIds);
     }
 
     @WrittenCmd
@@ -539,6 +539,7 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
         return tagBindService.getBindTagFromDb(session, flow, aid, unionPriId, searchArg);
     }
     /**==========================================操作商品与标签关联结束===========================================================*/
+
     private ProductBasicService service = ServiceProxy.create(new ProductBasicService());
     private ProductBindGroupService groupBindService = ServiceProxy.create(new ProductBindGroupService());
     private ProductBindPropService propBindService = ServiceProxy.create(new ProductBindPropService());

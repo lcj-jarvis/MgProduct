@@ -354,7 +354,7 @@ public class ProductBindTagService extends ServicePub {
         }
 
         FaiBuffer sendBuf = new FaiBuffer(true);
-        rlPdIds.toBuffer(sendBuf, ProductBindTagDto.Key.INFO_LIST, ProductBindTagDto.getInfoDto());
+        rlPdIds.toBuffer(sendBuf, ProductBindTagDto.Key.RL_PD_IDS);
         session.write(sendBuf);
         Log.logDbg("get ok;flow=%d;aid=%d;uid=%d;rlTagIds=%s;", flow, aid, unionPriId, rlTagIds);
         return Errno.OK;

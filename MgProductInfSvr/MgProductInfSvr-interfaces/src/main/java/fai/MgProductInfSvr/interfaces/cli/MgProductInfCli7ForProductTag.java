@@ -103,7 +103,7 @@ public class MgProductInfCli7ForProductTag extends MgProductInfCli6ForProductLib
             int siteId = mgProductArg.getSiteId();
             int lgId = mgProductArg.getLgId();
             int keepPriId1 = mgProductArg.getKeepPriId1();
-            FaiList<Integer> delRelTagIds = mgProductArg.getDelRlTagIds();
+            FaiList<Integer> delRlTagIds = mgProductArg.getDelRlTagIds();
 
             if (aid == 0) {
                 m_rt = Errno.ARGS_ERROR;
@@ -111,7 +111,7 @@ public class MgProductInfCli7ForProductTag extends MgProductInfCli6ForProductLib
                 return m_rt;
             }
 
-            if (Util.isEmptyList(delRelTagIds)) {
+            if (Util.isEmptyList(delRlTagIds)) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "rlTagIds is null;aid=%d;", aid);
                 return m_rt;
@@ -121,7 +121,7 @@ public class MgProductInfCli7ForProductTag extends MgProductInfCli6ForProductLib
                     new Pair(ProductTagDto.Key.SITE_ID, siteId),
                     new Pair(ProductTagDto.Key.LGID, lgId),
                     new Pair(ProductTagDto.Key.KEEP_PRIID1, keepPriId1));
-            delRelTagIds.toBuffer(sendBody, ProductTagDto.Key.RL_TAG_IDS);
+            delRlTagIds.toBuffer(sendBody, ProductTagDto.Key.RL_TAG_IDS);
 
             // send and recv
             sendAndRecv(aid, MgProductInfCmd.TagCmd.DEL_TAG_LIST, sendBody, false, false);
@@ -201,13 +201,19 @@ public class MgProductInfCli7ForProductTag extends MgProductInfCli6ForProductLib
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
+            if (list == null) {
+                list = new FaiList<Param>();
+            }
             list.clear();
+
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductTagDto.Key.TID, tid),
                     new Pair(ProductTagDto.Key.SITE_ID, siteId),
                     new Pair(ProductTagDto.Key.LGID, lgId),
                     new Pair(ProductTagDto.Key.KEEP_PRIID1, keepPriId1));
-            searchArg.toBuffer(sendBody, ProductTagDto.Key.SEARCH_ARG);
+            if (searchArg != null) {
+                searchArg.toBuffer(sendBody, ProductTagDto.Key.SEARCH_ARG);
+            }
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.TagCmd.GET_TAG_LIST, sendBody, true);
             if (m_rt != Errno.OK) {
@@ -221,6 +227,15 @@ public class MgProductInfCli7ForProductTag extends MgProductInfCli6ForProductLib
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
             }
+            if (searchArg != null && searchArg.totalSize != null) {
+                recvBody.getInt(keyRef, searchArg.totalSize);
+                if (keyRef.value != ProductTagDto.Key.TOTAL_SIZE) {
+                    m_rt = Errno.CODEC_ERROR;
+                    Log.logErr(m_rt, "recv total size null");
+                    return m_rt;
+                }
+            }
+
             return m_rt;
         } finally {
             close();
@@ -332,6 +347,12 @@ public class MgProductInfCli7ForProductTag extends MgProductInfCli6ForProductLib
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
+            if (searchArg == null) {
+                searchArg = new SearchArg();
+            }
+            if (rlTagList == null) {
+                rlTagList = new FaiList<Param>();
+            }
             rlTagList.clear();
 
             // packaging send data
@@ -352,6 +373,14 @@ public class MgProductInfCli7ForProductTag extends MgProductInfCli6ForProductLib
             if (m_rt != Errno.OK || keyRef.value != ProductTagDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
+            }
+            if (searchArg.totalSize != null) {
+                recvBody.getInt(keyRef, searchArg.totalSize);
+                if (keyRef.value != ProductTagDto.Key.TOTAL_SIZE) {
+                    m_rt = Errno.CODEC_ERROR;
+                    Log.logErr(m_rt, "recv total size null");
+                    return m_rt;
+                }
             }
             return m_rt;
         } finally {
@@ -458,7 +487,7 @@ public class MgProductInfCli7ForProductTag extends MgProductInfCli6ForProductLib
             addRlTagIds.toBuffer(sendBody, ProductBasicDto.Key.BIND_TAG_IDS);
             delRlTagIds.toBuffer(sendBody, ProductBasicDto.Key.DEL_BIND_TAG_IDS);
             // send and recv
-            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.SET_PD_BIND_TAG, sendBody, false, false);
+            sendAndRecv(aid, MgProductInfCmd.BasicCmd.SET_PD_BIND_TAG, sendBody, false, false);
             return m_rt;
         } finally {
             close();
@@ -467,7 +496,7 @@ public class MgProductInfCli7ForProductTag extends MgProductInfCli6ForProductLib
     }
 
     /**
-     * 删除商品绑定的标签数据(rlPdId)
+     * 删除商品绑定的标签数据(根据rlPdIds)
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
      *                 .setRlPdIds(rlPdIds)               // 必填

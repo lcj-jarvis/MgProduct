@@ -286,6 +286,11 @@ public class StoreService {
                             if (rt != Errno.OK) {
                                 return rt;
                             }
+                            // 修改补偿状态
+                            rt = storeSagaProc.setStatus(xid, branchId, StoreSagaValObj.Status.ROLLBACK_OK);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
                         }
                         // ----------------------------------- 补偿操作 end ------------------------------------
                         commit = true;

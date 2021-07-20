@@ -100,7 +100,7 @@ public class ProductStoreService extends MgProductInfService {
             }
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-            rt = productStoreProc.setSkuStoreSales(aid, tid, unionPriId, pdId, rlPdId, updaterList);
+            rt = productStoreProc.setSkuStoreSales(aid, tid, unionPriId, null, pdId, rlPdId, updaterList);
             if(rt != Errno.OK) {
                 return rt;
             }

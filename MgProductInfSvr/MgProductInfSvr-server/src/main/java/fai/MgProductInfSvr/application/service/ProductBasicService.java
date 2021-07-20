@@ -719,7 +719,7 @@ public class ProductBasicService extends MgProductInfService {
                         updaterList.add(new ParamUpdater(storeInfo));
                     }
                     ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-                    rt = productStoreProc.setSkuStoreSales(aid, tid, unionPriId, pdId, rlPdId, updaterList);
+                    rt = productStoreProc.setSkuStoreSales(aid, tid, unionPriId, tx.getXid(), pdId, rlPdId, updaterList);
                     if(rt != Errno.OK) {
                         // TODO 分布式事务
                         if (!Str.isEmpty(basicData) || !Util.isEmptyList(specSkuList)) {

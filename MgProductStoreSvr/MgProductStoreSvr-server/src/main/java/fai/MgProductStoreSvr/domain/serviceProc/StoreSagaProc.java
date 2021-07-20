@@ -30,6 +30,11 @@ public class StoreSagaProc {
      * @return {@link Errno}
      */
     public int add(int aid, String xid, Long branchId, Param prop) {
+        int rt;
+        if (!Str.isEmpty(prop)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args err;prop is empty;flow=%d;aid=%d;", m_flow, aid);
+        }
         Calendar now = Calendar.getInstance();
         Param info = new Param();
         info.setInt(StoreSagaEntity.Info.AID, aid);
@@ -39,7 +44,7 @@ public class StoreSagaProc {
         info.setInt(StoreSagaEntity.Info.STATUS, StoreSagaValObj.Status.INIT);
         info.setCalendar(StoreSagaEntity.Info.SYS_CREATE_TIME, now);
         info.setCalendar(StoreSagaEntity.Info.SYS_UPDATE_TIME, now);
-        int rt = addInfo(info);
+        rt = addInfo(info);
         if (rt != Errno.OK) {
             Log.logErr(rt, "storeSaga insert err;flow=%d;aid=%d;addInfo=%s", m_flow, aid, info);
         }

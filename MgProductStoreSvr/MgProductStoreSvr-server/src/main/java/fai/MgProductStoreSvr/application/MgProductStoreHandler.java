@@ -411,13 +411,25 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_DEL_PD_ALL_STORE_SALES)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductStoreCmd.StoreSalesSkuCmd.BATCH_DEL_PD_ALL_STORE_SALES_ROLLBACK)
     private int batchDelPdAllStoreSales(final FaiSession session,
                                         @ArgFlow final int flow,
                                         @ArgAid final int aid,
                                         @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
                                         @ArgList(keyMatch = StoreSalesSkuDto.Key.ID_LIST)
-                                                FaiList<Integer> pdIdList) throws IOException {
-        return m_storeService.batchDelPdAllStoreSales(session, flow, aid, tid, pdIdList);
+                                                FaiList<Integer> pdIdList,
+                                        @ArgBodyXid(value = StoreSalesSkuDto.Key.XID, useDefault = true) String xid) throws IOException {
+        return m_storeService.batchDelPdAllStoreSales(session, flow, aid, tid, pdIdList, xid);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_DEL_PD_ALL_STORE_SALES_ROLLBACK)
+    private int batchDelPdAllStoreSalesRollback(final FaiSession session,
+                                                @ArgFlow final int flow,
+                                                @ArgAid final int aid,
+                                                @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                                @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return m_storeService.batchDelPdAllStoreSalesRollback(session, flow, aid, xid, branchId);
     }
 
     @WrittenCmd

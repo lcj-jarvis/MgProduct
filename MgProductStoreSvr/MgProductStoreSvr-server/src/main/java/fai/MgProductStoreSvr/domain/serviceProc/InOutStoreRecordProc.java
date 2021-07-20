@@ -829,13 +829,41 @@ public class InOutStoreRecordProc {
         matcher.and(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(InOutStoreRecordEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
 
-        ParamUpdater updater = new ParamUpdater(new Param().setInt(InOutStoreRecordEntity.Info.STATUS, InOutStoreRecordValObj.Status.DEL));
+        Calendar now = Calendar.getInstance();
+        ParamUpdater updater = new ParamUpdater(new Param().setInt(InOutStoreRecordEntity.Info.STATUS, InOutStoreRecordValObj.Status.DEL)
+                .setCalendar(InOutStoreRecordEntity.Info.SYS_UPDATE_TIME, now));
         int rt = m_daoCtrl.update(updater, matcher);
         if(rt != Errno.OK){
             Log.logErr(rt, "soft delete err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
             return rt;
         }
         Log.logStd("ok;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+        return rt;
+    }
+
+    /**
+     * Saga 模式 补偿 batchDel 方法
+     *
+     * @param aid aid
+     * @param pdIdList 商品ids
+     * @return {@link Errno}
+     */
+    public int batchDelRollback(int aid, FaiList<Integer> pdIdList) {
+        int rt;
+        if (Util.isEmptyList(pdIdList)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "arg err;pdIdList is empty;flow=%d;aid=%d", m_flow, aid);
+            return rt;
+        }
+        ParamUpdater updater = new ParamUpdater(new Param().setInt(InOutStoreRecordEntity.Info.STATUS, InOutStoreRecordValObj.Status.DEFAULT));
+        ParamMatcher matcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(InOutStoreRecordEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        rt = m_daoCtrl.update(updater, matcher);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "batchDelRollback err;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        Log.logStd("batchDelRollback ok;flow=%d;aid=%d", m_flow, aid);
         return rt;
     }
 

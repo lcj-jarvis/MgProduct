@@ -521,11 +521,15 @@ public class MgProductInfHandler extends FaiHandler {
                                    @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
                                    @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
                                    @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
+                                   @ArgBodyXid(value = MgProductDto.Key.XID, useDefault = true) String xid,
                                    @ArgParam(classDef = MgProductDto.class, methodDef = "getInfoDto",
                                            keyMatch = ProductBasicDto.Key.UNION_INFO) Param addInfo,
                                    @ArgParam(keyMatch = MgProductDto.Key.IN_OUT_STORE_RECORD_INFO,
-                                           classDef = ProductStoreDto.InOutStoreRecord.class, methodDef = "getInfoDto") Param inStoreRecordInfo) throws IOException {
-        return basicService.addProductInfo(session, flow, aid, tid, siteId, lgId, keepPriId1, addInfo, inStoreRecordInfo);
+                                           classDef = ProductStoreDto.InOutStoreRecord.class, methodDef = "getInfoDto") Param inStoreRecordInfo) throws IOException, TransactionException {
+        if(!Str.isEmpty(xid)) {
+            RootContext.bind(xid, flow); // 方便后面使用GlobalTransactionContext.getCurrentOrCreate
+        }
+        return basicService.addProductInfo(session, flow, aid, tid, siteId, lgId, keepPriId1, xid, addInfo, inStoreRecordInfo);
     }
 
     @WrittenCmd
@@ -632,10 +636,14 @@ public class MgProductInfHandler extends FaiHandler {
                                @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
                                @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
                                @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
+                               @ArgBodyXid(value = MgProductDto.Key.XID, useDefault = true) String xid,
                                @ArgList(keyMatch = ProductBasicDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
                                @ArgBodyBoolean(value = ProductBasicDto.Key.SOFT_DEL,
-                               useDefault = true, defaultValue = false) boolean softDel) throws IOException {
-        return basicService.batchDelProduct(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIds, softDel);
+                               useDefault = true, defaultValue = false) boolean softDel) throws IOException, TransactionException {
+        if(!Str.isEmpty(xid)) {
+            RootContext.bind(xid, flow); // 方便后面使用GlobalTransactionContext.getCurrentOrCreate
+        }
+        return basicService.batchDelProduct(session, flow, aid, tid, siteId, lgId, keepPriId1, xid, rlPdIds, softDel);
     }
 
     @WrittenCmd

@@ -1536,7 +1536,8 @@ public class ProductSpecService extends ServicePub {
             for (Map.Entry<Integer, List<Param>> pdIdSpecListEntry : pdIdSpecListMap.entrySet()) {
                 int pdId = pdIdSpecListEntry.getKey();
                 List<Param> pdScInfoList = pdIdSpecListEntry.getValue();
-                FaiList<FaiList<Integer>> skuList = genSkuList(new FaiList<>(pdScInfoList), null, ProductSpecSkuValObj.Limit.SINGLE_PRODUCT_MAX_SIZE, ProductSpecSkuValObj.Limit.InPdScValIdSkuList.MAX_SIZE, true);
+                FaiList<FaiList<Integer>> skuList = genSkuList(new FaiList<>(pdScInfoList), null, ProductSpecSkuValObj.Limit.SINGLE_PRODUCT_MAX_SIZE,
+                        ProductSpecSkuValObj.Limit.InPdScValIdSkuList.MAX_SIZE, true);
                 if (skuList == null) {
                     return rt = Errno.SIZE_LIMIT;
                 }

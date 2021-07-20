@@ -282,8 +282,12 @@ public class StoreSalesSkuProc {
     public int batchSet(int aid, int unionPriId, int pdId, FaiList<ParamUpdater> updaterList) {
         return batchSet(aid, Arrays.asList(unionPriId), pdId, updaterList);
     }
-    
+
     public int batchSet(int aid, List<Integer> unionPriIdList, int pdId, FaiList<ParamUpdater> updaterList) {
+        return batchSet(aid, unionPriIdList, pdId, updaterList, null);
+    }
+    
+    public int batchSet(int aid, List<Integer> unionPriIdList, int pdId, FaiList<ParamUpdater> updaterList, Param prop) {
         if(aid <= 0 || pdId <=0 || updaterList == null || updaterList.isEmpty()){
             Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;updaterList=%s;", m_flow, aid, pdId, updaterList);
             return Errno.ARGS_ERROR;
@@ -317,7 +321,7 @@ public class StoreSalesSkuProc {
             long skuId = info.getInt(StoreSalesSkuEntity.Info.SKU_ID);
             oldDataMap.put(new SkuBizKey(unionPriId, skuId), info);
         }
-        listRef.value = null; // help gc
+
         // 移除主键
         maxUpdaterKeys.remove(StoreSalesSkuEntity.Info.AID);
         maxUpdaterKeys.remove(StoreSalesSkuEntity.Info.SKU_ID);
@@ -329,6 +333,20 @@ public class StoreSalesSkuProc {
             doBatchUpdater.getData().setString(key, "?");
         });
         doBatchUpdater.getData().setString(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, "?");
+
+        Param storeSalesSkuSaga;
+        // 记录补偿
+        if (prop != null) {
+            storeSalesSkuSaga = new Param();
+            for (Param info : listRef.value) {
+                info.setInt(StoreSalesSkuEntity.Info.AID, aid);
+                info.setInt(StoreSalesSkuEntity.Info.PD_ID, pdId);
+            }
+            storeSalesSkuSaga.setList(StoreSagaEntity.PropInfo.StoreSaleSKU.DATA_LIST, listRef.value);
+            storeSalesSkuSaga.setParam(StoreSagaEntity.PropInfo.StoreSaleSKU.DO_BATCH_UPDATER, doBatchUpdater.getData());
+            prop.setParam(StoreSagaEntity.PropInfo.STORE_SALE_SKU, storeSalesSkuSaga);
+        }
+        listRef.value = null; // help gc
         // prepare matcher
         ParamMatcher doBatchMatcher = new ParamMatcher();
         doBatchMatcher.and(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, "?");
@@ -373,6 +391,31 @@ public class StoreSalesSkuProc {
         }
         Log.logDbg("flow=%d;aid=%d;pdId=%s;doBatchUpdater.json=%s;dataList=%s;",  m_flow, aid, pdId, doBatchUpdater, dataList);
         Log.logStd("ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
+        return rt;
+    }
+
+    /**
+     * batchSet 的补偿方法
+     */
+    public int batchSetRollback(int aid, Param prop) {
+        Param storeSaleSku = prop.getParam(StoreSagaEntity.PropInfo.STORE_SALE_SKU);
+        ParamUpdater doBatchUpdater = new ParamUpdater(storeSaleSku.getParam(StoreSagaEntity.PropInfo.StoreSaleSKU.DO_BATCH_UPDATER));
+        // prepare matcher
+        ParamMatcher doBatchMatcher = new ParamMatcher();
+        doBatchMatcher.and(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.EQ, "?");
+        FaiList<Param> dataList = storeSaleSku.getList(StoreSagaEntity.PropInfo.StoreSaleSKU.DATA_LIST);
+        Calendar now = Calendar.getInstance();
+        for (Param data : dataList) {
+            data.setCalendar(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, now);
+        }
+        int rt = m_daoCtrl.batchUpdate(doBatchUpdater, doBatchMatcher, dataList);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "batchSetRollback err;flow=%d;aid=%d", m_flow, aid);
+            return rt;
+        }
         return rt;
     }
 

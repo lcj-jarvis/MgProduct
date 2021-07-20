@@ -41,6 +41,8 @@ public class StoreSagaEntity {
         public static final class StoreSaleSKU {
             public static final String UNION_PRI_ID = "unionPriId";
             public static final String SKU_ID = "skuId";
+            public static final String DO_BATCH_UPDATER = "doBatchUpdater";
+            public static final String DATA_LIST = "dataList";
         }
 
     }

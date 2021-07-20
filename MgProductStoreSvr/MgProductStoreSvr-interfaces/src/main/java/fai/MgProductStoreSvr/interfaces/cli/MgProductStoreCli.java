@@ -254,7 +254,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
     /**
      * 修改商品规格库存销售sku
      */
-    public int setSkuStoreSales(int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList){
+    public int setSkuStoreSales(int aid, int tid, int unionPriId, String xid, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -273,6 +273,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(StoreSalesSkuDto.Key.TID, tid);
             sendBody.putInt(StoreSalesSkuDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putString(StoreSalesSkuDto.Key.XID, xid);
             sendBody.putInt(StoreSalesSkuDto.Key.PD_ID, pdId);
             sendBody.putInt(StoreSalesSkuDto.Key.RL_PD_ID, rlPdId);
             m_rt = updaterList.toBuffer(sendBody, StoreSalesSkuDto.Key.UPDATER_LIST, StoreSalesSkuDto.getInfoDto());

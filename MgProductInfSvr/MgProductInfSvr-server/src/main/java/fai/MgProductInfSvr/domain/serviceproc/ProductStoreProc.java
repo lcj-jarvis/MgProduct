@@ -18,14 +18,14 @@ public class ProductStoreProc extends AbstractProductProc{
     /**
      * 刷新 sku 库存销售
      */
-    public int refreshSkuStoreSales(int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<Param> pdScSkuInfoList) {
+    public int refreshSkuStoreSales(int aid, int tid, int unionPriId, String xid, int pdId, int rlPdId, FaiList<Param> pdScSkuInfoList) {
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;unionPriId=%d;pdId=%s;rlPdId=%s;", m_flow, aid, unionPriId, pdId, rlPdId);
             return rt;
         }
-        rt = m_cli.refreshSkuStoreSales(aid, tid, unionPriId, pdId, rlPdId, pdScSkuInfoList);
+        rt = m_cli.refreshSkuStoreSales(aid, tid, unionPriId, xid, pdId, rlPdId, pdScSkuInfoList);
         if (rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;pdId=%s;rlPdId=%s;", m_flow, aid, unionPriId, pdId, rlPdId);
             return rt;

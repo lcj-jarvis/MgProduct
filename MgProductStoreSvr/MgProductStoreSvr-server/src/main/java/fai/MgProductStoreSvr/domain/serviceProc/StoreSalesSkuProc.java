@@ -84,6 +84,30 @@ public class StoreSalesSkuProc {
         Log.logStd("ok;flow=%d;aid=%d;addPdIdList=%s;", m_flow, aid, addPdIdList);
         return rt;
     }
+
+    /**
+     * batchAdd 的补偿方法 (这个方法只适合特定业务)
+     */
+    public int batchAddRollback(int aid, Integer pdId, Integer unionPriId, FaiList<Long> addSkuIdList) {
+        int rt;
+        if (Util.isEmptyList(addSkuIdList)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "arg err;addSkuIdList is empty;flow=%d;aid=%d", m_flow, aid);
+            return rt;
+        }
+        ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
+        matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, addSkuIdList);
+        rt = m_daoCtrl.delete(matcher);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "batchAddRollback err;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        Log.logStd("batchAddRollback ok;flow=%d;aid=%d", m_flow, aid);
+        return rt;
+    }
+
     public int batchSynchronousSPU2SKU(int aid, Map<Integer, Map<Long, Param>> unionPriId_skuId_salesStoreDataMapMap, Set<String> maxUpdateFieldSet) {
         if(aid <= 0 || unionPriId_skuId_salesStoreDataMapMap == null || unionPriId_skuId_salesStoreDataMapMap.isEmpty() || maxUpdateFieldSet == null || maxUpdateFieldSet.isEmpty()){
             Log.logErr("arg error;flow=%d;aid=%s;unionPriId_skuId_salesStoreDataMapMap=%s;maxUpdateFieldSet=%s;", m_flow, aid, unionPriId_skuId_salesStoreDataMapMap, maxUpdateFieldSet);
@@ -168,17 +192,24 @@ public class StoreSalesSkuProc {
         Log.logStd("ok;flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
-    public int batchDel(int aid, int pdId, FaiList<Long> delSkuIdList) {
+    public int batchDel(int aid, int pdId, FaiList<Long> delSkuIdList, boolean isSaga) {
         if(aid <= 0 || pdId <= 0 || delSkuIdList == null || delSkuIdList.isEmpty()){
             Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;delSkuIdList=%s;", m_flow, aid, pdId, delSkuIdList);
             return Errno.ARGS_ERROR;
         }
-        int rt = Errno.ERROR;
+        int rt;
         ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
         matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, delSkuIdList);
 
-        rt = m_daoCtrl.delete(matcher);
+        // 非分布式事务，走正常删除逻辑
+        if (!isSaga) {
+            rt = m_daoCtrl.delete(matcher);
+        } else {
+            // 分布式事务，将 aid 修改为负数
+            ParamUpdater updater = new ParamUpdater(new Param().setInt(StoreSalesSkuEntity.Info.AID, -aid));
+            rt = m_daoCtrl.update(updater, matcher);
+        }
         if(rt != Errno.OK){
             Log.logStd(rt, "dao.delete err;flow=%s;aid=%s;pdId=%s;delSkuIdList=%s;", m_flow, aid, pdId, delSkuIdList);
             return rt;
@@ -224,6 +255,34 @@ public class StoreSalesSkuProc {
         ParamUpdater updater = new ParamUpdater(new Param().setInt(StoreSalesSkuEntity.Info.AID, aid));
         ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, -aid);
         matcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        rt = m_daoCtrl.update(updater, matcher);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "batchDelRollback err;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        Log.logStd("batchDelRollback ok;flow=%d;aid=%d", m_flow, aid);
+        return rt;
+    }
+
+    /**
+     * Saga 模式 补偿 batchDel 方法
+     *
+     * @param aid aid
+     * @param pdId 商品id
+     * @param delSkuIdList skuIds
+     * @return {@link Errno}
+     */
+    public int batchDelRollback(int aid, Integer pdId, FaiList<Long> delSkuIdList) {
+        int rt;
+        if (Util.isEmptyList(delSkuIdList)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "arg err;delSkuIdList is empty;flow=%d;aid=%d", m_flow, aid);
+            return rt;
+        }
+        ParamUpdater updater = new ParamUpdater(new Param().setInt(StoreSalesSkuEntity.Info.AID, aid));
+        ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, -aid);
+        matcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
+        matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, delSkuIdList);
         rt = m_daoCtrl.update(updater, matcher);
         if (rt != Errno.OK) {
             Log.logErr(rt, "batchDelRollback err;flow=%d;aid=%d;", m_flow, aid);

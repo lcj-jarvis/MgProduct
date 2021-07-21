@@ -564,11 +564,6 @@ public class StoreService {
                         commit = false;
                         tc.setAutoCommit(false);
                         // 补偿那些修改的上报信息
-                        rt = reportSummary(aid, prop.getList(StoreSagaEntity.PropInfo.PD_ID_SET), ReportValObj.Flag.REPORT_COUNT|ReportValObj.Flag.REPORT_PRICE,
-                                prop.getList(StoreSagaEntity.PropInfo.SKU_ID_SET), storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
-                        if (rt != Errno.OK){
-                            return rt;
-                        }
                         FaiList<Param> sagaSpuBizSumList = prop.getList(StoreSagaEntity.PropInfo.SPU_BIZ_SUMMARY);
                         if (!Util.isEmptyList(sagaSpuBizSumList)) {
                             rt = spuBizSummaryProc.sagaDel(aid, sagaSpuBizSumList);
@@ -589,6 +584,11 @@ public class StoreService {
                             if (rt != Errno.OK) {
                                 return rt;
                             }
+                        }
+                        rt = reportSummary(aid, prop.getList(StoreSagaEntity.PropInfo.PD_ID_SET), ReportValObj.Flag.REPORT_COUNT|ReportValObj.Flag.REPORT_PRICE,
+                                prop.getList(StoreSagaEntity.PropInfo.SKU_ID_SET), storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
+                        if (rt != Errno.OK){
+                            return rt;
                         }
                         commit = true;
                     }

@@ -12,6 +12,9 @@ import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuValObj;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecValObj;
 import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity;
+import fai.comm.fseata.client.core.exception.TransactionException;
+import fai.comm.fseata.client.tm.GlobalTransactionContext;
+import fai.comm.fseata.client.tm.api.GlobalTransaction;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.middleground.MgErrno;
@@ -461,7 +464,7 @@ public class ProductSpecService extends MgProductInfService {
      * 修改产品规格总接口
      * 批量修改(包括增、删、改)指定商品的商品规格总接口；会自动生成sku规格，并且会调用商品库存服务的“刷新商品库存销售sku”
      */
-    public int unionSetPdScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> addList, FaiList<Integer> delList, FaiList<ParamUpdater> updaterList) throws IOException {
+    public int unionSetPdScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> addList, FaiList<Integer> delList, FaiList<ParamUpdater> updaterList) throws IOException, TransactionException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -487,37 +490,46 @@ public class ProductSpecService extends MgProductInfService {
             }
             int pdId = idRef.value;
 
-            ProductSpecProc productSpecProc = new ProductSpecProc(flow);
-            FaiList<Param> pdScSkuInfoList = new FaiList<>();
-            Log.logDbg("whalelog updaterList=%s", updaterList);
-            // TODO 分布式事务
-            // 针对规格的操作
-            rt = productSpecProc.unionSetPdScInfoList(aid, tid, unionPriId, pdId, addList, delList, updaterList, pdScSkuInfoList);
-            if(rt != Errno.OK) {
-                return rt;
-            }
-            FaiList<Param> storeSalesSkuList = new FaiList<>(pdScSkuInfoList.size());
-            for (Param productSpuInfo : pdScSkuInfoList) {
-                long skuId = productSpuInfo.getLong(ProductSpecSkuEntity.Info.SKU_ID);
-                int skuFlag = productSpuInfo.getInt(ProductSpecSkuEntity.Info.FLAG);
-                int flag = 0;
-                if(Misc.checkBit(skuFlag, ProductSpecSkuValObj.FLag.SPU)){
-                    // flag |= StoreSalesSkuValObj.FLag.SPU;
-                    // 暂时先跳过表示为spu的sku数据的刷新
-                    continue;
+            GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
+            tx.begin(aid, 60000, "mgProduct-unionSetPdScInfoList", flow);
+            try {
+                ProductSpecProc productSpecProc = new ProductSpecProc(flow);
+                FaiList<Param> pdScSkuInfoList = new FaiList<>();
+                Log.logDbg("whalelog updaterList=%s", updaterList);
+                // TODO 分布式事务
+                // 针对规格的操作
+                rt = productSpecProc.unionSetPdScInfoList(aid, tid, unionPriId, pdId, addList, delList, updaterList, pdScSkuInfoList);
+                if(rt != Errno.OK) {
+                    return rt;
                 }
-                storeSalesSkuList.add(
-                        new Param()
-                        .setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId)
-                        .setInt(StoreSalesSkuEntity.Info.FLAG, flag)
-                );
-            }
+                FaiList<Param> storeSalesSkuList = new FaiList<>(pdScSkuInfoList.size());
+                for (Param productSpuInfo : pdScSkuInfoList) {
+                    long skuId = productSpuInfo.getLong(ProductSpecSkuEntity.Info.SKU_ID);
+                    int skuFlag = productSpuInfo.getInt(ProductSpecSkuEntity.Info.FLAG);
+                    int flag = 0;
+                    if(Misc.checkBit(skuFlag, ProductSpecSkuValObj.FLag.SPU)){
+                        // flag |= StoreSalesSkuValObj.FLag.SPU;
+                        // 暂时先跳过表示为spu的sku数据的刷新
+                        continue;
+                    }
+                    storeSalesSkuList.add(
+                            new Param()
+                                    .setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId)
+                                    .setInt(StoreSalesSkuEntity.Info.FLAG, flag)
+                    );
+                }
 
-            ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-            // 刷新sku，修改库存
-            rt = productStoreProc.refreshSkuStoreSales(aid, tid, unionPriId, pdId, rlPdId, storeSalesSkuList);
-            if(rt != Errno.OK) {
-                return rt;
+                ProductStoreProc productStoreProc = new ProductStoreProc(flow);
+                // 刷新sku，修改库存
+                rt = productStoreProc.refreshSkuStoreSales(aid, tid, unionPriId, tx.getXid() ,pdId, rlPdId, storeSalesSkuList);
+                if(rt != Errno.OK) {
+                    return rt;
+                }
+                tx.commit();
+            } finally {
+                if (rt != Errno.OK) {
+                    tx.rollback();
+                }
             }
             rt = Errno.OK;
             FaiBuffer sendBuf = new FaiBuffer(true);

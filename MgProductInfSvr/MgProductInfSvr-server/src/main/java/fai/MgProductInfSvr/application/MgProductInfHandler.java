@@ -358,12 +358,16 @@ public class MgProductInfHandler extends FaiHandler {
                                     @ArgBodyInteger(ProductSpecDto.Key.SITE_ID) int siteId,
                                     @ArgBodyInteger(ProductSpecDto.Key.LGID) int lgId,
                                     @ArgBodyInteger(ProductSpecDto.Key.KEEP_PRIID1) int keepPriId1,
+                                    @ArgBodyXid(value = MgProductDto.Key.XID, useDefault = true) String xid,
                                     @ArgBodyInteger(ProductSpecDto.Key.RL_PD_ID) int rlPdId,
                                     @ArgList(classDef = ProductSpecDto.Spec.class, methodDef = "getInfoDto",
                                             keyMatch = ProductSpecDto.Key.INFO_LIST, useDefault = true) FaiList<Param> addList,
                                     @ArgList(keyMatch = ProductSpecDto.Key.ID_LIST, useDefault = true) FaiList<Integer> delList,
                                     @ArgList(classDef = ProductSpecDto.Spec.class, methodDef = "getInfoDto",
-                                            keyMatch = ProductSpecDto.Key.UPDATER_LIST, useDefault = true) FaiList<ParamUpdater> updaterList) throws IOException {
+                                            keyMatch = ProductSpecDto.Key.UPDATER_LIST, useDefault = true) FaiList<ParamUpdater> updaterList) throws IOException, TransactionException {
+        if (!Str.isEmpty(xid)) {
+            RootContext.bind(xid, flow);
+        }
         return specService.unionSetPdScInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, addList, delList, updaterList);
     }
 
@@ -536,11 +540,11 @@ public class MgProductInfHandler extends FaiHandler {
     public int bindProductRel(final FaiSession session,
                                 @ArgFlow final int flow,
                                 @ArgAid final int aid,
-                                @ArgBodyXid(value = MgProductDto.Key.XID, useDefault = true) String xid,
                                 @ArgBodyInteger(MgProductDto.Key.TID) int tid,
                                 @ArgBodyInteger(MgProductDto.Key.SITE_ID) int siteId,
                                 @ArgBodyInteger(MgProductDto.Key.LGID) int lgId,
                                 @ArgBodyInteger(MgProductDto.Key.KEEP_PRIID1) int keepPriId1,
+                                @ArgBodyXid(value = MgProductDto.Key.XID, useDefault = true) String xid,
                                 @ArgParam(classDef = MgProductDto.class, methodDef = "getInfoDto",
                                         keyMatch = MgProductDto.Key.INFO) Param addInfo,
                                 @ArgParam(classDef = ProductBasicDto.class, methodDef = "getProductRelDto",
@@ -590,10 +594,14 @@ public class MgProductInfHandler extends FaiHandler {
                               @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
                               @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
                               @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
+                              @ArgBodyXid(value = MgProductDto.Key.XID, useDefault = true) String xid,
                               @ArgBodyInteger( ProductBasicDto.Key.RL_PD_ID) Integer rlPdId,
                               @ArgParamUpdater(classDef = MgProductDto.class, methodDef = "getInfoDto",
                                       keyMatch = ProductBasicDto.Key.UPDATER) ParamUpdater updater) throws IOException, TransactionException {
-        return basicService.setProductInfo(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, updater);
+        if (!Str.isEmpty(xid)) {
+            RootContext.bind(xid, flow);
+        }
+        return basicService.setProductInfo(session, flow, aid, tid, siteId, lgId, keepPriId1, xid, rlPdId, updater);
     }
 
     @WrittenCmd

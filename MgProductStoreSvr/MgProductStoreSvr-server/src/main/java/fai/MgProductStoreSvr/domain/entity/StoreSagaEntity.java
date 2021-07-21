@@ -43,6 +43,8 @@ public class StoreSagaEntity {
             public static final String SKU_ID = "skuId";
             public static final String DO_BATCH_UPDATER = "doBatchUpdater";
             public static final String DATA_LIST = "dataList";
+            public static final String DEL_SKU_ID_LIST = "delSkuIdList";
+            public static final String ADD_SKU_ID_LIST = "addSkuIdList";
         }
 
     }

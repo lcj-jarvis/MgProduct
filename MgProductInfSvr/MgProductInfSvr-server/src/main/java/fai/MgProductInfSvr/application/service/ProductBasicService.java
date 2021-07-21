@@ -571,7 +571,7 @@ public class ProductBasicService extends MgProductInfService {
     /**
      *  修改商品数据 包括 规格、库存
      */
-    public int setProductInfo(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, Integer rlPdId, ParamUpdater recvUpdater) throws IOException, TransactionException {
+    public int setProductInfo(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, String xid, Integer rlPdId, ParamUpdater recvUpdater) throws IOException, TransactionException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -721,10 +721,6 @@ public class ProductBasicService extends MgProductInfService {
                     ProductStoreProc productStoreProc = new ProductStoreProc(flow);
                     rt = productStoreProc.setSkuStoreSales(aid, tid, unionPriId, tx.getXid(), pdId, rlPdId, updaterList);
                     if(rt != Errno.OK) {
-                        // TODO 分布式事务
-                        if (!Str.isEmpty(basicData) || !Util.isEmptyList(specSkuList)) {
-                            Oss.logAlarm("setProductInfo error;an error occurred while modifying the storeSaleSku info");
-                        }
                         return rt;
                     }
                 }

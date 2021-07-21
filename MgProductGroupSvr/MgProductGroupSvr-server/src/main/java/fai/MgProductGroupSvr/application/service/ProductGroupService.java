@@ -1,5 +1,6 @@
 package fai.MgProductGroupSvr.application.service;
 
+import fai.MgBackupSvr.interfaces.entity.MgBackupEntity;
 import fai.MgProductGroupSvr.domain.common.LockUtil;
 import fai.MgProductGroupSvr.domain.common.ProductGroupCheck;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupEntity;
@@ -12,21 +13,20 @@ import fai.MgProductGroupSvr.domain.repository.ProductGroupRelCache;
 import fai.MgProductGroupSvr.domain.serviceproc.ProductGroupProc;
 import fai.MgProductGroupSvr.domain.serviceproc.ProductGroupRelProc;
 import fai.MgProductGroupSvr.interfaces.dto.ProductGroupRelDto;
+import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
-import fai.mgproduct.comm.CloneDef;
+import fai.middleground.infutil.app.CloneDef;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.annotation.SuccessRt;
 import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.repository.BackupStatusCtrl;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 import fai.middleground.svrutil.service.ServicePub;
 
 import java.io.IOException;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.locks.Lock;
+import java.util.*;
 
 public class ProductGroupService extends ServicePub {
 
@@ -42,8 +42,7 @@ public class ProductGroupService extends ServicePub {
         int rlGroupId = 0;
         int maxSort = 0;
 
-        Lock lock = LockUtil.getLock(aid);
-        lock.lock();
+        LockUtil.lock(aid);
         try {
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             ProductGroupRelProc groupRelProc = new ProductGroupRelProc(flow, aid, transactionCtrl);
@@ -88,7 +87,7 @@ public class ProductGroupService extends ServicePub {
                 transactionCtrl.closeDao();
             }
         }finally {
-            lock.unlock();
+            LockUtil.unlock(aid);
         }
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
@@ -251,8 +250,7 @@ public class ProductGroupService extends ServicePub {
             return rt;
         }
 
-        Lock lock = LockUtil.getLock(aid);
-        lock.lock();
+        LockUtil.lock(aid);
         try {
             FaiList<ParamUpdater> groupUpdaterList = new FaiList<ParamUpdater>();
             TransactionCtrl transactionCtrl = new TransactionCtrl();
@@ -291,7 +289,7 @@ public class ProductGroupService extends ServicePub {
                 transactionCtrl.closeDao();
             }
         }finally {
-            lock.unlock();
+            LockUtil.unlock(aid);
         }
 
         rt = Errno.OK;
@@ -310,8 +308,7 @@ public class ProductGroupService extends ServicePub {
             return rt;
         }
 
-        Lock lock = LockUtil.getLock(aid);
-        lock.lock();
+        LockUtil.lock(aid);
         try {
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             boolean commit = false;
@@ -345,7 +342,7 @@ public class ProductGroupService extends ServicePub {
                 transactionCtrl.closeDao();
             }
         }finally {
-            lock.unlock();
+            LockUtil.unlock(aid);
         }
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
@@ -359,8 +356,7 @@ public class ProductGroupService extends ServicePub {
         int rt;
         FaiList<Integer> rlGroupIds = new FaiList<>();
         int maxSort = 0;
-        Lock lock = LockUtil.getLock(aid);
-        lock.lock();
+        LockUtil.lock(aid);
         try {
             TransactionCtrl tc = new TransactionCtrl();
             tc.setAutoCommit(false);
@@ -437,7 +433,7 @@ public class ProductGroupService extends ServicePub {
                 ProductGroupRelCache.DataStatusCache.update(aid, unionPriId, groupInfoList.size());
             }
         } finally {
-            lock.unlock();
+            LockUtil.unlock(aid);
         }
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
@@ -501,8 +497,7 @@ public class ProductGroupService extends ServicePub {
             cloneUidMap.put(fromUnionPriId, toUnionPriId);
         }
 
-        Lock lock = LockUtil.getLock(aid);
-        lock.lock();
+        LockUtil.lock(aid);
         try {
             boolean commit = false;
             TransactionCtrl tc = new TransactionCtrl();
@@ -526,7 +521,7 @@ public class ProductGroupService extends ServicePub {
                 tc.closeDao();
             }
         }finally {
-            lock.unlock();
+            LockUtil.unlock(aid);
         }
 
         rt = Errno.OK;
@@ -540,8 +535,7 @@ public class ProductGroupService extends ServicePub {
     public int incrementalClone(FaiSession session, int flow, int toAid, int toUnionPriId, int fromAid, int fromUnionPriId) throws IOException {
         int rt;
 
-        Lock lock = LockUtil.getLock(toAid);
-        lock.lock();
+        LockUtil.lock(toAid);
         try {
             boolean commit = false;
             TransactionCtrl tc = new TransactionCtrl();
@@ -628,7 +622,7 @@ public class ProductGroupService extends ServicePub {
                 tc.closeDao();
             }
         }finally {
-            lock.unlock();
+            LockUtil.unlock(toAid);
         }
 
         rt = Errno.OK;
@@ -639,6 +633,236 @@ public class ProductGroupService extends ServicePub {
     }
 
     @SuccessRt(value = Errno.OK)
+    public int backupData(FaiSession session, int flow, int aid, FaiList<Integer> unionPirIds, Param backupInfo) throws IOException {
+        int rt;
+        if(aid <= 0 || Str.isEmpty(backupInfo)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+            return rt;
+        }
+
+        int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+        int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
+        if(backupId == 0 || backupFlag == 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, backupInfo error;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+            return rt;
+        }
+
+        LockUtil.BackupLock.lock(aid);
+        try {
+            String backupStatus = backupStatusCtrl.getStatus(BackupStatusCtrl.Action.BACKUP, aid, backupId);
+            if(backupStatus != null) {
+                if(backupStatusCtrl.isDoing(backupStatus)) {
+                    rt = Errno.ALREADY_EXISTED;
+                    throw new MgException(rt, "backup is doing;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+                }else if(backupStatusCtrl.isFinish(backupStatus)) {
+                    rt = Errno.OK;
+                    Log.logStd(rt, "backup is already ok;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+                    FaiBuffer sendBuf = new FaiBuffer(true);
+                    session.write(sendBuf);
+                    return Errno.OK;
+                }else if(backupStatusCtrl.isFail(backupStatus)) {
+                    rt = Errno.ALREADY_EXISTED;
+                    Log.logStd(rt, "backup is fail, going retry;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+                }
+            }
+            // 设置备份执行中
+            backupStatusCtrl.setStatusIsDoing(BackupStatusCtrl.Action.BACKUP, aid, backupId);
+
+            TransactionCtrl tc = new TransactionCtrl();
+            ProductGroupRelProc relProc = new ProductGroupRelProc(flow, aid, tc);
+            ProductGroupProc proc = new ProductGroupProc(flow, aid, tc);
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+
+                // 可能之前备份没有成功，先操作删除之前的备份
+                deleteBackupData(relProc, proc, aid, backupId, backupFlag);
+
+                // 备份业务关系表数据，返回需要备份的分类ids
+                Set<Integer> bakGroupIds = relProc.backupData(aid, unionPirIds, backupId, backupFlag);
+
+                // 备份分类表数据
+                proc.backupData(aid, backupId, backupFlag, bakGroupIds);
+                commit = true;
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }finally {
+                if(commit) {
+                    tc.commit();
+                    backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.BACKUP, aid, backupId);
+                }else {
+                    tc.rollback();
+                    backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.BACKUP, aid, backupId);
+                }
+                tc.closeDao();
+            }
+        }finally {
+            LockUtil.BackupLock.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("backupData ok;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+        return rt;
+    }
+
+    @SuccessRt(Errno.OK)
+    public int restoreBackupData(FaiSession session, int flow, int aid, FaiList<Integer> unionPirIds, Param backupInfo) throws IOException {
+        int rt;
+        if(aid <= 0 || Str.isEmpty(backupInfo)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+            return rt;
+        }
+
+        int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+        int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
+        if(backupId == 0 || backupFlag == 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, backupInfo error;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+            return rt;
+        }
+
+        LockUtil.BackupLock.lock(aid);
+        try {
+            String backupStatus = backupStatusCtrl.getStatus(BackupStatusCtrl.Action.RESTORE, aid, backupId);
+            if(backupStatus != null) {
+                if(backupStatusCtrl.isDoing(backupStatus)) {
+                    rt = Errno.ALREADY_EXISTED;
+                    throw new MgException(rt, "restore is doing;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+                }else if(backupStatusCtrl.isFinish(backupStatus)) {
+                    rt = Errno.OK;
+                    Log.logStd(rt, "restore is already ok;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+                    FaiBuffer sendBuf = new FaiBuffer(true);
+                    session.write(sendBuf);
+                    return Errno.OK;
+                }else if(backupStatusCtrl.isFail(backupStatus)) {
+                    rt = Errno.ALREADY_EXISTED;
+                    Log.logStd(rt, "restore is fail, going retry;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+                }
+            }
+            // 设置备份执行中
+            backupStatusCtrl.setStatusIsDoing(BackupStatusCtrl.Action.RESTORE, aid, backupId);
+
+            TransactionCtrl tc = new TransactionCtrl();
+            ProductGroupRelProc relProc = new ProductGroupRelProc(flow, aid, tc);
+            ProductGroupProc proc = new ProductGroupProc(flow, aid, tc);
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+
+                // 还原关系表数据
+                relProc.restoreBackupData(aid, unionPirIds, backupId, backupFlag);
+
+                // 还原分类表数据
+                proc.restoreBackupData(aid, unionPirIds, backupId, backupFlag);
+
+                commit = true;
+            }finally {
+                if(commit) {
+                    tc.commit();
+                    backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.RESTORE, aid, backupId);
+                }else {
+                    tc.rollback();
+                    backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.RESTORE, aid, backupId);
+                }
+                tc.closeDao();
+            }
+        }finally {
+            LockUtil.BackupLock.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("restore backupData ok;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+        return rt;
+    }
+
+    @SuccessRt(Errno.OK)
+    public int delBackupData(FaiSession session, int flow, int aid, Param backupInfo) throws IOException {
+        int rt;
+        if(aid <= 0 || Str.isEmpty(backupInfo)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+            return rt;
+        }
+
+        int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+        int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
+        if(backupId == 0 || backupFlag == 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, backupInfo error;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+            return rt;
+        }
+
+        LockUtil.BackupLock.lock(aid);
+        try {
+            String backupStatus = backupStatusCtrl.getStatus(BackupStatusCtrl.Action.DELETE, aid, backupId);
+            if(backupStatus != null) {
+                if(backupStatusCtrl.isDoing(backupStatus)) {
+                    rt = Errno.ALREADY_EXISTED;
+                    throw new MgException(rt, "del backup is doing;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+                }else if(backupStatusCtrl.isFinish(backupStatus)) {
+                    rt = Errno.OK;
+                    Log.logStd(rt, "del backup is already ok;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+                    FaiBuffer sendBuf = new FaiBuffer(true);
+                    session.write(sendBuf);
+                    return Errno.OK;
+                }else if(backupStatusCtrl.isFail(backupStatus)) {
+                    rt = Errno.ALREADY_EXISTED;
+                    Log.logStd(rt, "del backup is fail, going retry;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+                }
+            }
+            // 设置备份执行中
+            backupStatusCtrl.setStatusIsDoing(BackupStatusCtrl.Action.BACKUP, aid, backupId);
+
+            TransactionCtrl tc = new TransactionCtrl();
+            ProductGroupRelProc relProc = new ProductGroupRelProc(flow, aid, tc);
+            ProductGroupProc proc = new ProductGroupProc(flow, aid, tc);
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+
+                // 删除备份
+                deleteBackupData(relProc, proc, aid, backupId, backupFlag);
+
+                commit = true;
+            }finally {
+                if(commit) {
+                    tc.commit();
+                    backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.DELETE, aid, backupId);
+                }else {
+                    tc.rollback();
+                    backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.DELETE, aid, backupId);
+                }
+                tc.closeDao();
+            }
+        }finally {
+            LockUtil.BackupLock.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("del backupData ok;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+        return rt;
+    }
+
+    private void deleteBackupData(ProductGroupRelProc relProc, ProductGroupProc proc, int aid, int backupId, int backupFlag) {
+
+        relProc.delBackupData(aid, backupId, backupFlag);
+
+        proc.delBackupData(aid, backupId, backupFlag);
+    }
+
+    @SuccessRt(value = Errno.OK)
     public int clearCache(FaiSession session, int flow, int aid) throws IOException {
         int rt;
         if(aid <= 0) {
@@ -646,13 +870,12 @@ public class ProductGroupService extends ServicePub {
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
             return rt;
         }
-        Lock lock = LockUtil.getLock(aid);
-        lock.lock();
+        LockUtil.lock(aid);
         try {
             CacheCtrl.clearCacheVersion(aid);
             ProductGroupCache.delCache(aid);
         }finally {
-            lock.unlock();
+            LockUtil.unlock(aid);
         }
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
@@ -695,4 +918,11 @@ public class ProductGroupService extends ServicePub {
         relInfo.setInt(ProductGroupRelEntity.Info.SORT, sort);
         relInfo.setInt(ProductGroupRelEntity.Info.RL_FLAG, rlFlag);
     }
+
+    public void initBackupStatus(RedisCacheManager cache) {
+        backupStatusCtrl = new BackupStatusCtrl(BAK_TYPE, cache);
+    }
+
+    private BackupStatusCtrl backupStatusCtrl;
+    private static final String BAK_TYPE = "mgPdGroup";
 }

@@ -1,7 +1,9 @@
 package fai.MgProductGroupSvr.domain.common;
 
+import fai.MgProductGroupSvr.application.MgProductGroupSvr;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.distributedkit.lock.PosDistributedLockPool;
+import fai.comm.distributedkit.lock.SimpleDistributedLock;
 import fai.comm.distributedkit.lock.support.FaiLockGenerator;
 
 import java.util.concurrent.TimeUnit;
@@ -9,15 +11,20 @@ import java.util.concurrent.locks.Lock;
 
 public class LockUtil {
 
-	public static void init(RedisCacheManager cache, int lockLease, int readLockLength) {
-		m_lockGenerator = new FaiLockGenerator(cache);
-		m_lockLease = lockLease;
-		GroupLock.init(cache, lockLease, readLockLength);
-		GroupRelLock.init(cache, lockLease, readLockLength);
+	public static void init(RedisCacheManager cache, MgProductGroupSvr.LockOption lockOption) {
+		m_lockOption = lockOption;
+		GroupLock.init(cache);
+		GroupRelLock.init(cache);
+		BackupLock.init(cache);
+		m_lock = new SimpleDistributedLock(cache, LOCK_TYPE, lockOption.getLockLease(), m_retryLockTime, lockOption.getLockLength());
 	}
 
-	public static Lock getLock(int aid) {
-		return m_lockGenerator.gen(LOCK_TYPE, String.valueOf(aid), m_lockLease, TimeUnit.MILLISECONDS, m_retryLockTime);
+	public static void lock(int aid) {
+		m_lock.lock(aid);
+	}
+
+	public static void unlock(int aid) {
+		m_lock.unlock(aid);
 	}
 
 	public static class GroupLock {
@@ -29,12 +36,12 @@ public class LockUtil {
 			m_readLock.unlock(aid);
 		}
 
-		public static void init(RedisCacheManager cache, int lockLease, int readLockLength) {
-			m_readLock = new PosDistributedLockPool(cache, READ_LOCK_TYPE, readLockLength, readLockLength*2, lockLease, TimeUnit.MILLISECONDS, m_retryLockTime);
+		public static void init(RedisCacheManager cache) {
+			m_readLock = new SimpleDistributedLock(cache, READ_LOCK_TYPE, m_lockOption.getLockLease(), m_retryLockTime, m_lockOption.getReadLockLength());
 		}
-		private static PosDistributedLockPool m_readLock;
+		private static SimpleDistributedLock m_readLock;
 
-		private static String READ_LOCK_TYPE = "PDGROUP_READ_LOCK";
+		private static String READ_LOCK_TYPE = "pdGroupRead";
 	}
 
 	public static class GroupRelLock {
@@ -46,16 +53,36 @@ public class LockUtil {
 			m_readLock.unlock(aid);
 		}
 
-		public static void init(RedisCacheManager cache, int lockLease, int readLockLength) {
-			m_readLock = new PosDistributedLockPool(cache, READ_LOCK_TYPE, readLockLength, readLockLength*2, lockLease, TimeUnit.MILLISECONDS, m_retryLockTime);
+		public static void init(RedisCacheManager cache) {
+			m_readLock = new SimpleDistributedLock(cache, READ_LOCK_TYPE, m_lockOption.getLockLease(), m_retryLockTime, m_lockOption.getReadLockLength());
 		}
-		private static PosDistributedLockPool m_readLock;
+		private static SimpleDistributedLock m_readLock;
 
-		private static String READ_LOCK_TYPE = "PDGROUPREL_READ_LOCK";
+		private static String READ_LOCK_TYPE = "pdGroupRelRead";
 	}
 
-	private static String LOCK_TYPE = "MGPRODUCTGROUP_SVR_LOCK";
+	/**
+	 * 备份锁
+	 */
+	public static class BackupLock {
+		public static void lock(int aid) {
+			bakLock.lock(aid);
+		}
+
+		public static void unlock(int aid) {
+			bakLock.unlock(aid);
+		}
+
+		public static void init(RedisCacheManager cache) {
+			bakLock = new SimpleDistributedLock(cache, LOCK_TYPE, m_lockOption.getLockLease(), m_retryLockTime, m_lockOption.getBakLockLength());
+		}
+
+		private static SimpleDistributedLock bakLock;
+		private static String LOCK_TYPE = "mgPdGroupBak";
+	}
+
+	private static String LOCK_TYPE = "mgPdGroupSvr";
 	private static long m_retryLockTime = 100L;
-	private static int m_lockLease = 1000;
-	private static FaiLockGenerator m_lockGenerator;
+	private static MgProductGroupSvr.LockOption m_lockOption;
+	private static SimpleDistributedLock m_lock;
 }

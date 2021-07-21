@@ -18,6 +18,7 @@ public class MgProductGroupSvr {
 
         // get svr option
         SvrOption svrOption = server.getConfig().getConfigObject(SvrOption.class);
+        LockOption lockOption = server.getConfig().getConfigObject(LockOption.class);
         String dbInstance = svrOption.getDbInstance();
         Log.logStd("dbInstance: %s;", dbInstance);
         if(Str.isEmpty(dbInstance)) {
@@ -52,14 +53,10 @@ public class MgProductGroupSvr {
         JedisPool jedisPool = JedisPoolFactory.createJedisPool(redisConfig);
         RedisCacheManager m_cache = new RedisCacheManager(jedisPool, redisConfig.getExpire(), redisConfig.getExpireRandom());
 
-        int lockLease = svrOption.getLockLease();
-        Log.logStd("lockLease=%d;", lockLease);
-        int readLockLength = svrOption.getReadLockLength();
-        Log.logStd("readLockLength=%d;", readLockLength);
 
-        init(daoPool, m_cache, lockLease, readLockLength);
+        init(daoPool, m_cache, lockOption);
 
-        server.setHandler(new MgProductGroupHandler(server));
+        server.setHandler(new MgProductGroupHandler(server, m_cache));
         server.start();
     }
 
@@ -86,17 +83,17 @@ public class MgProductGroupSvr {
     /**
      * svr初始化
      */
-    public static void init(DaoPool daoPool, RedisCacheManager cache, int lockLease, int readLockLength) {
-        LockUtil.init(cache, lockLease, readLockLength);
+    public static void init(DaoPool daoPool, RedisCacheManager cache, LockOption lockOption) {
+        LockUtil.init(cache, lockOption);
         CacheCtrl.init(cache);
         ProductGroupDaoCtrl.init(daoPool, cache);
         ProductGroupRelDaoCtrl.init(daoPool, cache);
+        ProductGroupBakDaoCtrl.init(daoPool);
+        ProductGroupRelBakDaoCtrl.init(daoPool);
     }
 
     @ParamKeyMapping(path = ".svr")
     public static class SvrOption {
-        private int lockLease = 1000;
-        private int readLockLength = 300;
         private boolean debug = false;
         private String dbInstance;
         private int dbMaxSize = 10;
@@ -107,22 +104,6 @@ public class MgProductGroupSvr {
 
         public void setDbMaxSize(int dbMaxSize) {
             this.dbMaxSize = dbMaxSize;
-        }
-
-        public int getLockLease() {
-            return lockLease;
-        }
-
-        public void setLockLease(int lockLease) {
-            this.lockLease = lockLease;
-        }
-
-        public int getReadLockLength() {
-            return readLockLength;
-        }
-
-        public void setReadLockLength(int readLockLength) {
-            this.readLockLength = readLockLength;
         }
 
         public boolean getDebug() {
@@ -139,6 +120,46 @@ public class MgProductGroupSvr {
 
         public void setDbInstance(String dbInstance) {
             this.dbInstance = dbInstance;
+        }
+    }
+
+    @ParamKeyMapping(path = ".svr.lock")
+    public static class LockOption {
+        private int lockLease = 1000;
+        private int lockLength = 500;
+        private int bakLockLength = 100;
+        private int readLockLength = 200;
+
+        public int getLockLength() {
+            return lockLength;
+        }
+
+        public void setLockLength(int lockLength) {
+            this.lockLength = lockLength;
+        }
+
+        public int getBakLockLength() {
+            return bakLockLength;
+        }
+
+        public void setBakLockLength(int bakLockLength) {
+            this.bakLockLength = bakLockLength;
+        }
+
+        public int getLockLease() {
+            return lockLease;
+        }
+
+        public void setLockLease(int lockLease) {
+            this.lockLease = lockLease;
+        }
+
+        public int getReadLockLength() {
+            return readLockLength;
+        }
+
+        public void setReadLockLength(int readLockLength) {
+            this.readLockLength = readLockLength;
         }
     }
 }

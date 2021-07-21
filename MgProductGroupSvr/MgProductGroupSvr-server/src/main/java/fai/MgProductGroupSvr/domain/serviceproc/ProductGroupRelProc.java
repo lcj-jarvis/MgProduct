@@ -7,7 +7,6 @@ import fai.MgProductGroupSvr.domain.entity.ProductGroupRelValObj;
 import fai.MgProductGroupSvr.domain.repository.ProductGroupRelBakDaoCtrl;
 import fai.MgProductGroupSvr.domain.repository.ProductGroupRelCache;
 import fai.MgProductGroupSvr.domain.repository.ProductGroupRelDaoCtrl;
-import fai.app.SiteBackupDef;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;

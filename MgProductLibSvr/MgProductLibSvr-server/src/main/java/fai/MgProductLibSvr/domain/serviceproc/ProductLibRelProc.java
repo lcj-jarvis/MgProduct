@@ -78,7 +78,8 @@ public class ProductLibRelProc {
         }
 
         //判断是否超出数量限制
-        FaiList<Param> list = getLibRelList(aid, unionPriId,null,true);
+        //FaiList<Param> list = getLibRelList(aid, unionPriId,null,true);
+        FaiList<Param> list = getListFromCacheOrDb(aid, unionPriId,null);
         int count = list.size();
         boolean isOverLimit = (count >= ProductLibRelValObj.Limit.COUNT_MAX) ||
                 (count + relLibInfoList.size() >  ProductLibRelValObj.Limit.COUNT_MAX);
@@ -122,81 +123,73 @@ public class ProductLibRelProc {
         return rlLibId;
     }
 
-    public FaiList<Param> getLibRelList(int aid, int unionPriId, SearchArg searchArg, boolean getFromCache) {
-        return getListByConditions(aid, unionPriId, searchArg, getFromCache);
-    }
-
     /**
      * 按照条件查询数据，默认是查询同一个aid和unionPriId下的全部数据
      * @param searchArg 查询条件
-     * @param getFromCache 是否需要从缓存中查询
-     * @return
      */
-    private FaiList<Param> getListByConditions(int aid, int unionPriId, SearchArg searchArg, boolean getFromCache) {
+    public FaiList<Param> getListFromCacheOrDb(int aid, int unionPriId, SearchArg searchArg) {
         FaiList<Param> list;
-        if (getFromCache) {
-            // 从缓存获取数据
-            list = ProductLibRelCache.InfoCache.getCacheList(aid, unionPriId);
-            if(!Util.isEmptyList(list)) {
-                return list;
-            }
-            //加读锁防止缓存穿透
-            LockUtil.LibRelLock.readLock(aid);
+        // 从缓存获取数据
+        list = ProductLibRelCache.InfoCache.getCacheList(aid, unionPriId);
+        if (!Util.isEmptyList(list)) {
+            return list;
         }
+        //加读锁防止缓存穿透
+        LockUtil.LibRelLock.readLock(aid);
         try {
-            if (getFromCache) {
-                // check again
-                list = ProductLibRelCache.InfoCache.getCacheList(aid, unionPriId);
-                if(!Util.isEmptyList(list)) {
-                    return list;
-                }
-            }
-
-            //无searchArg
-            if (searchArg == null) {
-                searchArg = new SearchArg();
-            }
-            //有searchArg，无查询条件
-            if (searchArg.matcher == null) {
-                searchArg.matcher = new ParamMatcher();
-            }
-
-            //避免查询过来的条件已经包含这两个查询条件,就先删除，防止重复添加查询条件
-            searchArg.matcher.remove(ProductLibRelEntity.Info.AID);
-            searchArg.matcher.remove(ProductLibRelEntity.Info.UNION_PRI_ID);
-            //有searchArg，有查询条件，加多两个查询条件
-            searchArg.matcher.and(ProductLibRelEntity.Info.AID, ParamMatcher.EQ, aid);
-            searchArg.matcher.and(ProductLibRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-
-            //为了克隆需要,因为克隆可能获取其他aid的数据，所以根据传进来的aid设置tableName（并不影响其他业务）
-            m_relDaoCtrl.setTableName(aid);
-
-            Ref<FaiList<Param>> listRef = new Ref<>();
-            int rt = m_relDaoCtrl.select(searchArg, listRef);
-
-            //恢复之前的表名
-            m_relDaoCtrl.restoreTableName();
-
-            if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-                throw new MgException(rt, "get error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
-            }
-            list = listRef.value;
-            if(list == null) {
-                list = new FaiList<Param>();
-            }
-            if (list.isEmpty()) {
-                rt = Errno.NOT_FOUND;
-                Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            //check again
+            list = ProductLibRelCache.InfoCache.getCacheList(aid, unionPriId);
+            if (!Util.isEmptyList(list)) {
                 return list;
             }
+
+            list = getListFromDb(aid, unionPriId, searchArg);
             //添加到缓存（直接查DB的不需要添加缓存）
-            if (getFromCache) {
-                ProductLibRelCache.InfoCache.addCacheList(aid, unionPriId, list);
-            }
-        }finally {
-            if (getFromCache) {
-                LockUtil.LibRelLock.readUnLock(aid);
-            }
+            ProductLibRelCache.InfoCache.addCacheList(aid, unionPriId, list);
+        } finally {
+            LockUtil.LibRelLock.readUnLock(aid);
+        }
+        return list;
+    }
+
+    public FaiList<Param> getListFromDb(int aid, int unionPriId, SearchArg searchArg) {
+        FaiList<Param> list;
+        //无searchArg
+        if (searchArg == null) {
+            searchArg = new SearchArg();
+        }
+        //有searchArg，无查询条件
+        if (searchArg.matcher == null) {
+            searchArg.matcher = new ParamMatcher();
+        }
+
+        //避免查询过来的条件已经包含这两个查询条件,就先删除，防止重复添加查询条件
+        searchArg.matcher.remove(ProductLibRelEntity.Info.AID);
+        searchArg.matcher.remove(ProductLibRelEntity.Info.UNION_PRI_ID);
+        //有searchArg，有查询条件，加多两个查询条件
+        searchArg.matcher.and(ProductLibRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductLibRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+
+        //为了克隆需要,因为克隆可能获取其他aid的数据，所以根据传进来的aid设置tableName（并不影响其他业务）
+        m_relDaoCtrl.setTableName(aid);
+
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        int rt = m_relDaoCtrl.select(searchArg, listRef);
+
+        //恢复之前的表名
+        m_relDaoCtrl.restoreTableName();
+
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "get error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+        }
+        list = listRef.value;
+        if(list == null) {
+            list = new FaiList<Param>();
+        }
+        if (list.isEmpty()) {
+            rt = Errno.NOT_FOUND;
+            Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return list;
         }
         return list;
     }
@@ -209,7 +202,7 @@ public class ProductLibRelProc {
      * 根据库业务id获取所有的库id
      */
     public FaiList<Integer> getLibIdsByRlLibIds(int aid, int unionPriId, FaiList<Integer> rlLibIds) {
-        FaiList<Param> list = getListByConditions(aid, unionPriId, null,true);
+        FaiList<Param> list = getListFromCacheOrDb(aid, unionPriId, null);
         FaiList<Integer> libIdList = new FaiList<Integer>();
         if(list.isEmpty()) {
             return libIdList;
@@ -244,7 +237,7 @@ public class ProductLibRelProc {
     public void setLibRelList(int aid, int unionPriId, FaiList<ParamUpdater> updaterList, FaiList<ParamUpdater> libUpdaterList) {
         int rt;
         // 保存修改之前库表的数据
-        FaiList<Param> oldInfoList = getListByConditions(aid, unionPriId, null,true);
+        FaiList<Param> oldInfoList = getListFromCacheOrDb(aid, unionPriId, null);
         // 保存修改的数据
         FaiList<Param> dataList = new FaiList<Param>();
         Calendar now = Calendar.getInstance();
@@ -315,7 +308,7 @@ public class ProductLibRelProc {
         }
         long now = System.currentTimeMillis();
         statusInfo = new Param();
-        int totalSize = getLibRelList(aid, unionPriId,null,true).size();
+        int totalSize = getListFromCacheOrDb(aid, unionPriId, null).size();
         statusInfo.setInt(DataStatus.Info.TOTAL_SIZE, totalSize);
         statusInfo.setLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME, now);
         statusInfo.setLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME, 0L);

@@ -5,10 +5,10 @@ import fai.MgProductTagSvr.interfaces.dto.ProductTagRelDto;
 import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
-import fai.mgproduct.comm.CloneDef;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 import fai.middleground.infutil.MgConfPool;
+import fai.middleground.infutil.app.CloneDef;
 
 /**
  * @author LuChaoJi

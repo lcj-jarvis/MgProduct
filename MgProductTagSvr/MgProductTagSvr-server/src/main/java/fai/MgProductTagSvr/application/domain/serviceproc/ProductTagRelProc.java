@@ -82,7 +82,7 @@ public class ProductTagRelProc {
         }
 
         //判断是否超出数量限制
-        FaiList<Param> list = getTagRelList(aid, unionPriId,null,true);
+        FaiList<Param> list = getListFromCacheOrDb(aid, unionPriId, null);
         int count = list.size();
         boolean isOverLimit = count + relTagInfoList.size() > ProductTagRelValObj.Limit.COUNT_MAX;
         if(isOverLimit) {
@@ -107,15 +107,11 @@ public class ProductTagRelProc {
         }
     }
 
-    public FaiList<Param> getTagRelList(int aid, int unionPriId, SearchArg searchArg, boolean getFromCache) {
-        return getListByConditions(aid, unionPriId, searchArg, getFromCache);
-    }
-
     /**
      * 根据标签业务id获取所有的标签id
      */
     public FaiList<Integer> getTagIdsByRlTagIds(int aid, int unionPriId, FaiList<Integer> rlTagIds) {
-        FaiList<Param> list = getListByConditions(aid, unionPriId, null,true);
+        FaiList<Param> list = getListFromCacheOrDb(aid, unionPriId, null);
         FaiList<Integer> tagIdList = new FaiList<Integer>();
         if(list.isEmpty()) {
             return tagIdList;
@@ -126,78 +122,75 @@ public class ProductTagRelProc {
     }
     
     /**
-     * 按照条件查询数据，默认是查询同一个aid和unionPriId下的全部数据
+     * 按照条件查询数据，默认是查询同一个aid和unionPriId下的全部数据.如果没有缓存，再查db
      * @param searchArg 查询条件
-     * @param getFromCache 是否需要从缓存中查询
      */
-    private FaiList<Param> getListByConditions(int aid, int unionPriId, SearchArg searchArg, boolean getFromCache) {
+    public FaiList<Param> getListFromCacheOrDb(int aid, int unionPriId, SearchArg searchArg) {
         FaiList<Param> list;
-        if (getFromCache) {
-            // 从缓存获取数据
-            list = ProductTagRelCache.InfoCache.getCacheList(aid, unionPriId);
-            if(!Util.isEmptyList(list)) {
-                return list;
-            }
+        // 从缓存获取数据
+        list = ProductTagRelCache.InfoCache.getCacheList(aid, unionPriId);
+        if (!Util.isEmptyList(list)) {
+            return list;
         }
 
         LockUtil.TagRelLock.readLock(aid);
         try {
-            if (getFromCache) {
-                // check again
-                list = ProductTagRelCache.InfoCache.getCacheList(aid, unionPriId);
-                if(!Util.isEmptyList(list)) {
-                    return list;
-                }
-            }
-
-            //无searchArg
-            if (searchArg == null) {
-                searchArg = new SearchArg();
-            }
-
-            //有searchArg，无查询条件
-            if (searchArg.matcher == null) {
-                searchArg.matcher = new ParamMatcher();
-            }
-
-            //避免查询过来的条件已经包含这两个查询条件,就先删除，防止重复添加查询条件
-            searchArg.matcher.remove(ProductTagRelEntity.Info.AID);
-            searchArg.matcher.remove(ProductTagRelEntity.Info.UNION_PRI_ID);
-
-            //有searchArg，有查询条件，加多两个查询条件
-            searchArg.matcher.and(ProductTagRelEntity.Info.AID, ParamMatcher.EQ, aid);
-            searchArg.matcher.and(ProductTagRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-
-            //为了克隆需要,因为克隆可能获取其他aid的数据，所以根据传进来的aid设置tableName（并不影响其他业务）
-            m_relDaoCtrl.setTableName(aid);
-
-            Ref<FaiList<Param>> listRef = new Ref<>();
-            int rt = m_relDaoCtrl.select(searchArg, listRef);
-
-            //恢复之前的表名
-            m_relDaoCtrl.restoreTableName();
-
-            if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-                throw new MgException(rt, "get error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
-            }
-            list = listRef.value;
-            if(list == null) {
-                list = new FaiList<Param>();
-            }
-            if (list.isEmpty()) {
-                rt = Errno.NOT_FOUND;
-                Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            // check again
+            list = ProductTagRelCache.InfoCache.getCacheList(aid, unionPriId);
+            if (!Util.isEmptyList(list)) {
                 return list;
             }
-
+            //没有缓存，去查db
+            list = getListFromDb(aid, unionPriId, searchArg);
             //添加到缓存（直接查DB的不需要添加缓存）
-            if (getFromCache) {
-                ProductTagRelCache.InfoCache.addCacheList(aid, unionPriId, list);
-            }
-        }finally {
+            ProductTagRelCache.InfoCache.addCacheList(aid, unionPriId, list);
+        } finally {
             LockUtil.TagRelLock.readUnLock(aid);
         }
+        return list;
+    }
 
+    public FaiList<Param> getListFromDb(int aid, int unionPriId, SearchArg searchArg){
+        FaiList<Param> list;
+        //无searchArg
+        if (searchArg == null) {
+            searchArg = new SearchArg();
+        }
+
+        //有searchArg，无查询条件
+        if (searchArg.matcher == null) {
+            searchArg.matcher = new ParamMatcher();
+        }
+
+        //避免查询过来的条件已经包含这两个查询条件,就先删除，防止重复添加查询条件
+        searchArg.matcher.remove(ProductTagRelEntity.Info.AID);
+        searchArg.matcher.remove(ProductTagRelEntity.Info.UNION_PRI_ID);
+
+        //有searchArg，有查询条件，加多两个查询条件
+        searchArg.matcher.and(ProductTagRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductTagRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+
+        //为了克隆需要,因为克隆可能获取其他aid的数据，所以根据传进来的aid设置tableName（并不影响其他业务）
+        m_relDaoCtrl.setTableName(aid);
+
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        int rt = m_relDaoCtrl.select(searchArg, listRef);
+
+        //恢复之前的表名
+        m_relDaoCtrl.restoreTableName();
+
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "get error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+        }
+        list = listRef.value;
+        if(list == null) {
+            list = new FaiList<Param>();
+        }
+        if (list.isEmpty()) {
+            rt = Errno.NOT_FOUND;
+            Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return list;
+        }
         return list;
     }
 
@@ -210,7 +203,6 @@ public class ProductTagRelProc {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "args err;flow=%d;aid=%d;idList=%s", m_flow, aid, rlTagIds);
         }
-
         ParamMatcher matcher = new ParamMatcher(ProductTagRelEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductTagRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         matcher.and(ProductTagRelEntity.Info.RL_TAG_ID, ParamMatcher.IN, rlTagIds);
@@ -247,7 +239,7 @@ public class ProductTagRelProc {
     public void setTagRelList(int aid, int unionPriId, FaiList<ParamUpdater> updaterList, FaiList<ParamUpdater> tagUpdaterList) {
         int rt;
         // 保存修改之前标签表的数据
-        FaiList<Param> oldInfoList = getListByConditions(aid, unionPriId, null,true);
+        FaiList<Param> oldInfoList = getListFromCacheOrDb(aid, unionPriId, null);
         // 保存修改的数据
         FaiList<Param> dataList = new FaiList<Param>();
         Calendar now = Calendar.getInstance();
@@ -319,7 +311,7 @@ public class ProductTagRelProc {
         }
         long now = System.currentTimeMillis();
         statusInfo = new Param();
-        int totalSize = getTagRelList(aid, unionPriId,null,true).size();
+        int totalSize = getListFromCacheOrDb(aid, unionPriId, null).size();
         statusInfo.setInt(DataStatus.Info.TOTAL_SIZE, totalSize);
         statusInfo.setLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME, now);
         statusInfo.setLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME, 0L);

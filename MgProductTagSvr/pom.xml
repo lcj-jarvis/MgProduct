@@ -7,14 +7,15 @@
         <module>MgProductTagSvr-interfaces</module>
         <module>MgProductTagSvr-server</module>
     </modules>
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--父工程-->
     <parent>
         <artifactId>MgProductParent</artifactId>
         <groupId>MgProduct</groupId>
         <version>1.0.0</version>
     </parent>
-    <modelVersion>4.0.0</modelVersion>
 
     <artifactId>MgProductTagSvr</artifactId>
     <packaging>pom</packaging>
-
 </project>

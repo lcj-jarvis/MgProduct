@@ -1259,10 +1259,10 @@ public class MgProductInfHandler extends FaiHandler {
     public int addProductTag(final FaiSession session,
                              @ArgFlow final int flow,
                              @ArgAid final int aid,
-                             @ArgBodyInteger(ProductLibDto.Key.TID) int tid,
-                             @ArgBodyInteger(ProductLibDto.Key.SITE_ID) int siteId,
-                             @ArgBodyInteger(ProductLibDto.Key.LGID) int lgid,
-                             @ArgBodyInteger(ProductLibDto.Key.KEEP_PRIID1) int keepPriId1,
+                             @ArgBodyInteger(ProductTagDto.Key.TID) int tid,
+                             @ArgBodyInteger(ProductTagDto.Key.SITE_ID) int siteId,
+                             @ArgBodyInteger(ProductTagDto.Key.LGID) int lgid,
+                             @ArgBodyInteger(ProductTagDto.Key.KEEP_PRIID1) int keepPriId1,
                              @ArgParam(keyMatch = ProductTagDto.Key.INFO, methodDef = "getPdTagDto",
                                      classDef = ProductTagDto.class) Param addInfo) throws IOException {
         return tagService.addProductTag(session, flow, aid, tid, siteId, lgid, keepPriId1, addInfo);

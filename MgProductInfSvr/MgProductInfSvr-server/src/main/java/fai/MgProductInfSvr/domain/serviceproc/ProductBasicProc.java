@@ -479,4 +479,66 @@ public class ProductBasicProc {
 
     private int m_flow;
     private MgProductBasicCli m_cli;
+
+
+    /********************************************商品和标签的关联开始********************************************************/
+    /**
+     * 获取aid，unionPriId，rlPdIds下的所有商品和标签关联的所有数据
+     */
+    public int getPdBindTags(int aid, int unionPriId, FaiList<Integer> rlPdIds, FaiList<Param> result) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.getPdBindTag(aid, unionPriId, rlPdIds, result);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            Log.logErr(rt, "getPdBindTag error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        return rt;
+    }
+
+    public int setPdBindTag(int aid, int unionPriId, int rlPdId, FaiList<Integer> addRlTagIds, FaiList<Integer> delRlTagIds) {
+        return setPdBindTag(aid, unionPriId, rlPdId, addRlTagIds, delRlTagIds, null);
+    }
+
+    public int setPdBindTag(int aid, int unionPriId, int rlPdId, FaiList<Integer> addRlTagIds, FaiList<Integer> delRlTagIds, String xid) {
+        int rt;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        if (Str.isEmpty(xid)) {
+            // 如果没有xid，则执行非分布式事务的方法
+            rt = m_cli.setPdBindTag(aid, unionPriId, rlPdId, addRlTagIds, delRlTagIds);
+        } else {
+            // 如果有xid，则执行分布式事务的方法
+            rt = m_cli.transactionSetPdBindTag(aid, unionPriId, rlPdId, addRlTagIds, delRlTagIds, xid);
+        }
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "setPdBindTag error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        return rt;
+    }
+
+    public int delPdBindTag(int aid, int unionPriId, FaiList<Integer> delRlPdIds) {
+        int rt;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.delPdBindTag(aid, unionPriId, delRlPdIds);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            Log.logErr(rt, "delPdBindTag error;flow=%d;aid=%d;unionPriId=%d;rlPdIds=%s;", m_flow, aid, unionPriId, delRlPdIds);
+            return rt;
+        }
+        return rt;
+    }
+    /********************************************商品和标签的关联结束********************************************************/
+
 }

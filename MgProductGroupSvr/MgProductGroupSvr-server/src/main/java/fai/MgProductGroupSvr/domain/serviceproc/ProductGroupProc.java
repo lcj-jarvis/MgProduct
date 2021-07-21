@@ -1,9 +1,11 @@
 package fai.MgProductGroupSvr.domain.serviceproc;
 
+import fai.MgBackupSvr.interfaces.entity.MgBackupEntity;
 import fai.MgProductGroupSvr.domain.common.LockUtil;
 import fai.MgProductGroupSvr.domain.common.ProductGroupCheck;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupEntity;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupValObj;
+import fai.MgProductGroupSvr.domain.repository.ProductGroupBakDaoCtrl;
 import fai.MgProductGroupSvr.domain.repository.ProductGroupCache;
 import fai.MgProductGroupSvr.domain.repository.ProductGroupDaoCtrl;
 import fai.comm.util.*;
@@ -12,12 +14,15 @@ import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.Calendar;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class ProductGroupProc {
     public ProductGroupProc(int flow, int aid, TransactionCtrl transactionCrtl) {
         this.m_flow = flow;
         this.m_daoCtrl = ProductGroupDaoCtrl.getInstance(flow, aid);
+        this.m_bakDao = ProductGroupBakDaoCtrl.getInstance(flow, aid);
         init(transactionCrtl);
     }
 
@@ -266,12 +271,195 @@ public class ProductGroupProc {
             throw new MgException(rt, "args err;flow=%d;aid=%d;idList=%s", m_flow, aid, delIdList);
         }
 
-        ParamMatcher matcher = new ParamMatcher(ProductGroupEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(ProductGroupEntity.Info.GROUP_ID, ParamMatcher.IN, delIdList);
+        ParamMatcher matcher = new ParamMatcher(ProductGroupEntity.Info.GROUP_ID, ParamMatcher.IN, delIdList);
+
+        delGroupList(aid, matcher);
+    }
+
+    private void delGroupList(int aid, ParamMatcher matcher) {
+        int rt;
+        if(matcher == null || matcher.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "matcher is null;aid=%d;", aid);
+        }
+        matcher.and(ProductGroupEntity.Info.AID, ParamMatcher.EQ, aid);
+
         rt = m_daoCtrl.delete(matcher);
         if(rt != Errno.OK){
-            throw new MgException(rt, "delGroupList error;flow=%d;aid=%d;delIdList=%s", m_flow, aid, delIdList);
+            throw new MgException(rt, "delGroupList error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher.toJson());
         }
+        Log.logStd("delGroupList ok;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher.toJson());
+    }
+
+    public void backupData(int aid, int backupId, int backupFlag, Set<Integer> bakGroupIds) {
+        int rt;
+        if(m_bakDao.isAutoCommit()) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "bakDao is auto commit;aid=%d;bakGroupIds=%s;backupId=%d;backupFlag=%d;", aid, bakGroupIds, backupId, backupFlag);
+        }
+        if(Util.isEmptyList(bakGroupIds)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "bak groupIds is empty;aid=%d;bakGroupIds=%s;backupId=%d;backupFlag=%d;", aid, bakGroupIds, backupId, backupFlag);
+        }
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductGroupEntity.Info.GROUP_ID, ParamMatcher.IN, new FaiList<Integer>(bakGroupIds));
+        FaiList<Param> fromList = searchFromDb(aid, searchArg);
+
+        Set<String> newBakUniqueKeySet = new HashSet<>((int) (fromList.size() / 0.75f) + 1); // 初始容量直接定为所需的最大容量，去掉不必要的扩容
+        FaiList<Calendar> updateTimeList = new FaiList<>();
+        for (Param fromInfo : fromList) {
+            fromInfo.setInt(MgBackupEntity.Comm.BACKUP_ID, backupId);
+            newBakUniqueKeySet.add(getBakUniqueKey(fromInfo));
+            updateTimeList.add(fromInfo.getCalendar(ProductGroupEntity.Info.UPDATE_TIME));
+        }
+
+        // 查出已有的备份数据，通过updateTime确定数据是否已备份
+        SearchArg oldBakArg = new SearchArg();
+        oldBakArg.matcher = searchArg.matcher.clone();
+        oldBakArg.matcher.and(ProductGroupEntity.Info.UPDATE_TIME, ParamMatcher.IN, updateTimeList);
+        FaiList<Param> oldBakList = searchBakList(aid, oldBakArg);
+
+        Set<String> oldBakUniqueKeySet = new HashSet<String>((int)(oldBakList.size()/0.75f)+1);
+        for (Param oldBak : oldBakList) {
+            oldBakUniqueKeySet.add(getBakUniqueKey(oldBak));
+        }
+        // 获取交集，说明剩下的这些是要合并的备份数据
+        oldBakUniqueKeySet.retainAll(newBakUniqueKeySet);
+        if(!oldBakUniqueKeySet.isEmpty()){
+            // 合并标记
+            ParamUpdater mergeUpdater = new ParamUpdater(MgBackupEntity.Comm.BACKUP_ID_FLAG, backupFlag, true);
+
+            // 合并条件
+            ParamMatcher mergeMatcher = new ParamMatcher(ProductGroupEntity.Info.AID, ParamMatcher.EQ, "?");
+            mergeMatcher.and(ProductGroupEntity.Info.GROUP_ID, ParamMatcher.EQ, "?");
+            mergeMatcher.and(ProductGroupEntity.Info.UPDATE_TIME, ParamMatcher.EQ, "?");
+
+            FaiList<Param> dataList = new FaiList<Param>();
+            for (String bakUniqueKey : oldBakUniqueKeySet) {
+                String[] keys = bakUniqueKey.split(DELIMITER);
+                Calendar updateTime = Calendar.getInstance();
+                updateTime.setTimeInMillis(Long.valueOf(keys[1]));
+                Param data = new Param();
+
+                // mergeUpdater start
+                data.setInt(MgBackupEntity.Comm.BACKUP_ID_FLAG, backupFlag);
+                // mergeUpdater end
+
+                // mergeMatcher start
+                data.setInt(ProductGroupEntity.Info.AID, aid);
+                data.setInt(ProductGroupEntity.Info.GROUP_ID, Integer.valueOf(keys[0]));
+                data.setCalendar(ProductGroupEntity.Info.UPDATE_TIME, updateTime);
+                // mergeMatcher end
+
+                dataList.add(data);
+            }
+            rt = m_bakDao.doBatchUpdate(mergeUpdater, mergeMatcher, dataList, false);
+            if(rt != Errno.OK) {
+                throw new MgException(rt, "merge bak update err;aid=%d;bakGroupIds=%s;backupId=%d;backupFlag=%d;", aid, bakGroupIds, backupId, backupFlag);
+            }
+        }
+
+        // 移除掉合并的数据，剩下的就是需要新增的备份数据
+        newBakUniqueKeySet.removeAll(oldBakUniqueKeySet);
+
+        for (int j = fromList.size(); --j >= 0;) {
+            Param formInfo = fromList.get(j);
+            if(newBakUniqueKeySet.contains(getBakUniqueKey(formInfo))){
+                // 置起当前备份标识
+                formInfo.setInt(MgBackupEntity.Comm.BACKUP_ID_FLAG, backupFlag);
+                continue;
+            }
+            fromList.remove(j);
+        }
+
+        if(fromList.isEmpty()) {
+            Log.logStd("backupData ok, need add bak empty;aid=%d;bakGroupIds=%s;backupId=%d;backupFlag=%d;", aid, bakGroupIds, backupId, backupFlag);
+            return;
+        }
+
+        // 批量插入备份表
+        rt = m_bakDao.batchInsert(fromList);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "batchInsert bak err;aid=%d;bakGroupIds=%s;backupId=%d;backupFlag=%d;", aid, bakGroupIds, backupId, backupFlag);
+        }
+
+        Log.logStd("backupData ok;aid=%d;bakGroupIds=%s;backupId=%d;backupFlag=%d;", aid, bakGroupIds, backupId, backupFlag);
+    }
+
+    public void delBackupData(int aid, int backupId, int backupFlag) {
+        ParamMatcher updateMatcher = new ParamMatcher(ProductGroupEntity.Info.AID, ParamMatcher.EQ, aid);
+        updateMatcher.and(MgBackupEntity.Comm.BACKUP_ID, ParamMatcher.GE, 0);
+        updateMatcher.and(MgBackupEntity.Comm.BACKUP_ID_FLAG, ParamMatcher.LAND, backupFlag, backupFlag);
+
+        // 先将 backupFlag 对应的备份数据取消置起
+        ParamUpdater updater = new ParamUpdater(MgBackupEntity.Comm.BACKUP_ID_FLAG, backupFlag, false);
+        int rt = m_bakDao.update(updater, updateMatcher);
+        if(rt != Errno.OK) {
+            throw new MgException("do update err;aid=%d;backupId=%d;backupFlag=%d;", aid, backupId, backupFlag);
+        }
+
+        // 删除 backupIdFlag 为0的数据，backupIdFlag为0 说明没有一个现存备份关联到了这个数据
+        ParamMatcher delMatcher = new ParamMatcher(ProductGroupEntity.Info.AID, ParamMatcher.EQ, aid);
+        delMatcher.and(MgBackupEntity.Comm.BACKUP_ID_FLAG, ParamMatcher.EQ, 0);
+        rt = m_bakDao.delete(delMatcher);
+        if(rt != Errno.OK) {
+            throw new MgException("do del err;aid=%d;backupId=%d;backupFlag=%d;", aid, backupId, backupFlag);
+        }
+
+        Log.logStd("delete ok;aid=%d;backupId=%d;backupFlag=%d;", aid, backupId, backupFlag);
+    }
+
+    public void restoreBackupData(int aid, FaiList<Integer> unionPriIds, int backupId, int backupFlag) {
+        int rt;
+        if(m_daoCtrl.isAutoCommit()) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "dao is auto commit;aid=%d;backupId=%d;backupFlag=%d;", aid, backupId, backupFlag);
+        }
+
+        // 先删除原表数据
+        ParamMatcher delMatcher = new ParamMatcher(ProductGroupEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.IN, unionPriIds);
+        delGroupList(aid, delMatcher);
+
+        // 查出备份数据
+        SearchArg bakSearchArg = new SearchArg();
+        bakSearchArg.matcher = new ParamMatcher(MgBackupEntity.Comm.BACKUP_ID_FLAG, ParamMatcher.LAND, backupFlag, backupFlag);
+        bakSearchArg.matcher.and(ProductGroupEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.IN, unionPriIds);
+        FaiList<Param> fromList = searchBakList(aid, bakSearchArg);
+        for(Param fromInfo : fromList) {
+            fromInfo.remove(MgBackupEntity.Comm.BACKUP_ID);
+            fromInfo.remove(MgBackupEntity.Comm.BACKUP_ID_FLAG);
+        }
+
+        // 批量插入
+        rt = m_daoCtrl.batchInsert(fromList);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "restore insert err;aid=%d;backupId=%d;backupFlag=%d;", aid, backupId, backupFlag);
+        }
+
+        // 处理idBuilder
+        m_daoCtrl.restoreMaxId(false);
+        m_daoCtrl.clearIdBuilderCache(aid);
+    }
+
+    public FaiList<Param> searchBakList(int aid, SearchArg searchArg) {
+        if(searchArg == null) {
+            searchArg = new SearchArg();
+        }
+        if(searchArg.matcher == null) {
+            searchArg.matcher = new ParamMatcher();
+        }
+        searchArg.matcher.and(ProductGroupEntity.Info.AID, ParamMatcher.EQ, aid);
+
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        int rt = m_bakDao.select(searchArg, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "get error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        if (listRef.value.isEmpty()) {
+            rt = Errno.NOT_FOUND;
+            Log.logDbg(rt, "not found;flow=%d;aid=%d;", m_flow, aid);
+        }
+        return listRef.value;
     }
 
     public FaiList<Param> getGroupList(int aid) {
@@ -381,8 +569,21 @@ public class ProductGroupProc {
         if(!transactionCrtl.register(m_daoCtrl)) {
             throw new MgException("registered ProductGroupDao err;");
         }
+
+        if(!transactionCrtl.register(m_bakDao)) {
+            throw new MgException("registered ProductGroupBakDaoCtrl err;");
+        }
     }
+
+    private static String getBakUniqueKey(Param fromInfo) {
+        return fromInfo.getInt(ProductGroupEntity.Info.GROUP_ID) +
+                DELIMITER +
+                fromInfo.getCalendar(ProductGroupEntity.Info.UPDATE_TIME).getTimeInMillis();
+    }
+
+    private final static String DELIMITER = "-";
 
     private int m_flow;
     private ProductGroupDaoCtrl m_daoCtrl;
+    private ProductGroupBakDaoCtrl m_bakDao;
 }

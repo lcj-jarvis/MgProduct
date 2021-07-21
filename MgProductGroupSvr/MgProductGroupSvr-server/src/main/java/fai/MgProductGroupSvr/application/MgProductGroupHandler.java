@@ -1,8 +1,10 @@
 package fai.MgProductGroupSvr.application;
 
+import fai.MgBackupSvr.interfaces.dto.MgBackupDto;
 import fai.MgProductGroupSvr.application.service.ProductGroupService;
 import fai.MgProductGroupSvr.interfaces.cmd.MgProductGroupCmd;
 import fai.MgProductGroupSvr.interfaces.dto.ProductGroupRelDto;
+import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
@@ -10,7 +12,7 @@ import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
 import fai.comm.netkit.NKDef;
 import fai.comm.util.*;
-import fai.mgproduct.comm.CloneDef;
+import fai.middleground.infutil.app.CloneDef;
 import fai.middleground.svrutil.service.MiddleGroundHandler;
 import fai.middleground.svrutil.service.ServiceProxy;
 
@@ -18,8 +20,9 @@ import java.io.IOException;
 
 public class MgProductGroupHandler extends MiddleGroundHandler {
 
-	public MgProductGroupHandler(FaiServer server) {
+	public MgProductGroupHandler(FaiServer server, RedisCacheManager cache) {
 		super(server);
+		groupService.initBackupStatus(cache);
 	}
 	
 	@WrittenCmd
@@ -122,6 +125,38 @@ public class MgProductGroupHandler extends MiddleGroundHandler {
 						 @ArgBodyBoolean(ProductGroupRelDto.Key.FROM_AID) int fromAid,
 						 @ArgBodyBoolean(ProductGroupRelDto.Key.FROM_UNION_PRI_ID) int fromUnionPriId) throws IOException {
 		return groupService.incrementalClone(session, flow, aid, unionPriId, fromAid, fromUnionPriId);
+	}
+
+	@WrittenCmd
+	@Cmd(MgProductGroupCmd.GroupCmd.BACKUP)
+	public int backupData(final FaiSession session,
+						  @ArgFlow final int flow,
+						  @ArgAid int aid,
+						  @ArgList(keyMatch = ProductGroupRelDto.Key.UNION_PRI_ID) FaiList<Integer> unionPriIds,
+						  @ArgParam(classDef = MgBackupDto.class, methodDef = "getInfoDto",
+						  keyMatch = ProductGroupRelDto.Key.BACKUP_INFO) Param backupInfo) throws IOException {
+		return groupService.backupData(session, flow, aid, unionPriIds, backupInfo);
+	}
+
+	@WrittenCmd
+	@Cmd(MgProductGroupCmd.GroupCmd.RESTORE)
+	public int restoreBackupData(final FaiSession session,
+						  @ArgFlow final int flow,
+						  @ArgAid int aid,
+						  @ArgList(keyMatch = ProductGroupRelDto.Key.UNION_PRI_ID) FaiList<Integer> unionPriIds,
+						  @ArgParam(classDef = MgBackupDto.class, methodDef = "getInfoDto",
+								  keyMatch = ProductGroupRelDto.Key.BACKUP_INFO) Param backupInfo) throws IOException {
+		return groupService.restoreBackupData(session, flow, aid, unionPriIds, backupInfo);
+	}
+
+	@WrittenCmd
+	@Cmd(MgProductGroupCmd.GroupCmd.DEL_BACKUP)
+	public int delBackupData(final FaiSession session,
+								 @ArgFlow final int flow,
+								 @ArgAid int aid,
+								 @ArgParam(classDef = MgBackupDto.class, methodDef = "getInfoDto",
+										 keyMatch = ProductGroupRelDto.Key.BACKUP_INFO) Param backupInfo) throws IOException {
+		return groupService.delBackupData(session, flow, aid, backupInfo);
 	}
 
 	@Cmd(NKDef.Protocol.Cmd.CLEAR_CACHE)

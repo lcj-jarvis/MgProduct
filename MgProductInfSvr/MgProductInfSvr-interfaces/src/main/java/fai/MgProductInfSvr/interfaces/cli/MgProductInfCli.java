@@ -6,7 +6,7 @@ import fai.MgProductInfSvr.interfaces.utils.MgProductArg;
 import fai.comm.util.*;
 
 // 对外统一提供的接口类,接口都在各个父类中
-public class MgProductInfCli extends MgProductInfCli6ForProductLib {
+public class MgProductInfCli extends MgProductInfCli7ForProductTag {
     public MgProductInfCli(int flow) {
         super(flow);
     }

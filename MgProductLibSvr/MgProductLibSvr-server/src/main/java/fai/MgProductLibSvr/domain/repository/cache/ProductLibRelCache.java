@@ -26,7 +26,7 @@ public class ProductLibRelCache extends CacheCtrl{
 
         /**
          * 添加FaiList<Param>到缓存
-         * 缓存的形式：cachkey rlLibId  Param rlLibId Param ....
+         * 缓存的形式：cacheKey rlLibId  Param rlLibId Param ....
          */
         public static void addCacheList(int aid, int unionId, FaiList<Param> list) {
             if(list == null || list.isEmpty()) {
@@ -39,19 +39,19 @@ public class ProductLibRelCache extends CacheCtrl{
         /**
          * 删除缓存的FaiList<Param>
          */
-        public static void delCacheList(int aid, int uninoId, FaiList<Integer> rlGroupIds) {
-            if(rlGroupIds == null || rlGroupIds.isEmpty()) {
+        public static void delCacheList(int aid, int unionId, FaiList<Integer> rlLibIds) {
+            if(rlLibIds == null || rlLibIds.isEmpty()) {
                 return;
             }
-            String cacheKey = getCacheKey(aid, uninoId);
+            String cacheKey = getCacheKey(aid, unionId);
             if(!m_cache.exists(cacheKey)) {
                 return;
             }
-            String[] rlGroupIdStrs = new String[rlGroupIds.size()];
-            for(int i = 0; i < rlGroupIds.size(); i++) {
-                rlGroupIdStrs[i] = String.valueOf(rlGroupIds.get(i));
+            String[] rlLibIdStrs = new String[rlLibIds.size()];
+            for(int i = 0; i < rlLibIds.size(); i++) {
+                rlLibIdStrs[i] = String.valueOf(rlLibIds.get(i));
             }
-            m_cache.hdel(cacheKey, rlGroupIdStrs);
+            m_cache.hdel(cacheKey, rlLibIdStrs);
         }
 
         /**
@@ -67,8 +67,8 @@ public class ProductLibRelCache extends CacheCtrl{
             }
             for(ParamUpdater updater : updaterList) {
                 Param info = updater.getData();
-                int rlGroupId = info.getInt(ProductLibRelEntity.Info.RL_LIB_ID, 0);
-                m_cache.hsetParam(cacheKey, String.valueOf(rlGroupId), updater, ProductLibRelDto.Key.INFO, ProductLibRelDto.getInfoDto());
+                int rlLibId = info.getInt(ProductLibRelEntity.Info.RL_LIB_ID, 0);
+                m_cache.hsetParam(cacheKey, String.valueOf(rlLibId), updater, ProductLibRelDto.Key.INFO, ProductLibRelDto.getInfoDto());
             }
         }
 
@@ -89,8 +89,8 @@ public class ProductLibRelCache extends CacheCtrl{
                 return;
             }
             String cacheKey = getCacheKey(aid, unionId);
-            int rlGroupId = info.getInt(ProductLibRelEntity.Info.RL_LIB_ID, 0);
-            m_cache.hsetParam(true, cacheKey, String.valueOf(rlGroupId), info, ProductLibRelDto.Key.INFO, ProductLibRelDto.getInfoDto());
+            int rlLibId = info.getInt(ProductLibRelEntity.Info.RL_LIB_ID, 0);
+            m_cache.hsetParam(true, cacheKey, String.valueOf(rlLibId), info, ProductLibRelDto.Key.INFO, ProductLibRelDto.getInfoDto());
         }
 
         /**

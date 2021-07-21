@@ -13,6 +13,7 @@ import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.Calendar;
+import java.util.Map;
 
 /**
  * @author LuChaoJi
@@ -76,9 +77,10 @@ public class ProductLibProc {
             if(!Util.isEmptyList(list)) {
                 return list;
             }
+            //防止缓存穿透
+            LockUtil.LibLock.readLock(aid);
         }
 
-        LockUtil.LibLock.readLock(aid);
         try {
             if (getFromCache) {
                 // check again
@@ -92,20 +94,24 @@ public class ProductLibProc {
             if (searchArg == null) {
                 searchArg = new SearchArg();
             }
-
             //有searchArg，无查询条件
             if (searchArg.matcher == null) {
                 searchArg.matcher = new ParamMatcher();
             }
-
             //如果查询过来的条件已经包含这两个查询条件,就先删除
             searchArg.matcher.remove(ProductLibEntity.Info.AID);
-
             //有searchArg，有查询条件，加多一个查询条件
             searchArg.matcher.and(ProductLibRelEntity.Info.AID, ParamMatcher.EQ, aid);
 
+            //为了克隆需要，因为克隆可能获取其他aid的数据，所以根据传进来的aid设置tableName（并不影响其他的业务）
+            m_daoCtrl.setTableName(aid);
+
             Ref<FaiList<Param>> listRef = new Ref<>();
             int rt = m_daoCtrl.select(searchArg, listRef);
+
+            //查完之后恢复最初的tableName
+            m_daoCtrl.restoreTableName();
+
             if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
                 throw new MgException(rt, "get error;flow=%d;aid=%d;", m_flow, aid);
             }
@@ -123,9 +129,10 @@ public class ProductLibProc {
                 ProductLibCache.addCacheList(aid, list);
             }
         }finally {
-            LockUtil.LibLock.readUnLock(aid);
+            if (getFromCache) {
+                LockUtil.LibLock.readUnLock(aid);
+            }
         }
-
         return list;
     }
 
@@ -186,6 +193,7 @@ public class ProductLibProc {
             //只更新部分信息，和sql语句的参数一致
             Param data = new Param();
             data.assign(oldInfo, ProductLibEntity.Info.LIB_NAME);
+            data.assign(oldInfo, ProductLibEntity.Info.LIB_TYPE);
             data.assign(oldInfo, ProductLibEntity.Info.FLAG);
             data.setCalendar(ProductLibEntity.Info.UPDATE_TIME, now);
             data.assign(oldInfo, ProductLibEntity.Info.AID);
@@ -204,6 +212,7 @@ public class ProductLibProc {
         //设置要修改的信息（这里没有修改库类型）
         Param item = new Param();
         item.setString(ProductLibEntity.Info.LIB_NAME, "?");
+        item.setString(ProductLibEntity.Info.LIB_TYPE, "?");
         item.setString(ProductLibEntity.Info.FLAG, "?");
         item.setString(ProductLibEntity.Info.UPDATE_TIME, "?");
         ParamUpdater doBatchUpdater = new ParamUpdater(item);
@@ -260,5 +269,72 @@ public class ProductLibProc {
             throw new MgException(rt, "batch insert product lib error;flow=%d;aid=%d;", m_flow, aid);
 
         }
+    }
+
+    /**
+     * 从fromAid、fromUnionPriId中克隆数据到toAid、toUnionPriId下，并且设置toAid、toUnionPriId的自增id
+     * @param toAid 克隆到哪个aid下
+     * @param fromAid 从哪个aid下克隆
+     * @param cloneUnionPriIds key：fromUnionPriId 从哪个uid下克隆
+     *                         value: toUnionPriId 克隆到哪个uid下
+     *
+     */
+    public void cloneData(int toAid, int fromAid, Map<Integer, Integer> cloneUnionPriIds) {
+        int rt;
+        if(cloneUnionPriIds == null || cloneUnionPriIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "cloneUnionPriIds is null;flow=%d;aid=%d;fromAid=%d;uids=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
+        }
+        if(m_daoCtrl.isAutoCommit()) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "dao is auto commit;flow=%d;aid=%d;fromAid=%d;uids=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
+        }
+
+        FaiList<Integer> fromUnionPriIds = new FaiList<>(cloneUnionPriIds.keySet());
+        ParamMatcher matcher = new ParamMatcher(ProductLibEntity.Info.AID, ParamMatcher.EQ, fromAid);
+        matcher.and(ProductLibEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.IN, fromUnionPriIds);
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+
+        // 根据fromAid设置表名，默认表名是根据aid生成的.查询出所有被克隆的数据
+        m_daoCtrl.setTableName(fromAid);
+        Ref<FaiList<Param>> dataListRef = new Ref<>();
+        rt = m_daoCtrl.select(searchArg, dataListRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException("select clone data err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
+        }
+
+        // 根据aid设置表名
+        m_daoCtrl.setTableName(toAid);
+        //删除掉已经存在的数据
+        FaiList<Integer> toUnionPriIds = new FaiList<>(cloneUnionPriIds.values());
+        ParamMatcher delMatcher = new ParamMatcher(ProductLibEntity.Info.AID, ParamMatcher.EQ, toAid);
+        delMatcher.and(ProductLibEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.IN, toUnionPriIds);
+        rt = m_daoCtrl.delete(delMatcher);
+        if(rt != Errno.OK) {
+            throw new MgException("del old data err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
+        }
+
+        // 组装数据
+        for(Param data : dataListRef.value) {
+            int fromUnionPriId = data.getInt(ProductLibEntity.Info.SOURCE_UNIONPRIID);
+            int toUnionPriId = cloneUnionPriIds.get(fromUnionPriId);
+            data.setInt(ProductLibEntity.Info.AID, toAid);
+            data.setInt(ProductLibEntity.Info.SOURCE_UNIONPRIID, toUnionPriId);
+        }
+        // 批量插入
+        if(!dataListRef.value.isEmpty()) {
+            rt = m_daoCtrl.batchInsert(dataListRef.value);
+            if(rt != Errno.OK) {
+                throw new MgException("batch insert err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
+            }
+        }
+
+        //设置自增id
+        rt = m_daoCtrl.restoreMaxId(false);
+        if(rt != Errno.OK) {
+            throw new MgException("restoreMaxId err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
+        }
+        m_daoCtrl.clearIdBuilderCache(toAid);
     }
 }

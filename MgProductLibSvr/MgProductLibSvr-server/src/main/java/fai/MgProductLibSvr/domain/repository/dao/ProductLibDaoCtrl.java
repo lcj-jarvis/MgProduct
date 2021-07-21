@@ -1,5 +1,7 @@
 package fai.MgProductLibSvr.domain.repository.dao;
 
+import fai.MgProductLibSvr.domain.entity.ProductLibEntity;
+import fai.MgProductLibSvr.interfaces.dto.ProductLibRelDto;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.distributedkit.idBuilder.domain.IdBuilderConfig;
 import fai.comm.distributedkit.idBuilder.wrapper.IdBuilderWrapper;
@@ -22,13 +24,17 @@ public class ProductLibDaoCtrl extends DaoCtrl {
             .buildTableName(TABLE_PREFIX)
             .buildAssistTableSuffix("idBuilder")
             .buildInitValue(ID_BUILDER_INIT)
+            .buildPrimaryMatchField(ProductLibEntity.Info.AID)
+            .buildAutoIncField(ProductLibEntity.Info.LIB_ID)
             .build();
+    private String tableName;
 
     /**
      * 对外暴露getInstance方法获取对象。
      */
     private ProductLibDaoCtrl(int flow, int aid) {
         super(flow, aid);
+        tableName = TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
     }
 
     public static void init(DaoPool daoPool, RedisCacheManager cache) {
@@ -71,7 +77,18 @@ public class ProductLibDaoCtrl extends DaoCtrl {
 
     @Override
     protected String getTableName() {
-        return TABLE_PREFIX + "_" + String.format("%04d", getAid() % 1000);
+        return tableName;
     }
 
+    public void setTableName(int aid) {
+        this.tableName = TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
+    }
+
+    public void restoreTableName() {
+        this.tableName = TABLE_PREFIX + "_" + String.format("%04d", this.aid % 1000);
+    }
+
+    public int restoreMaxId(boolean needLock) {
+        return m_idBuilder.restoreMaxId(aid, flow, tableName, m_dao, needLock);
+    }
 }

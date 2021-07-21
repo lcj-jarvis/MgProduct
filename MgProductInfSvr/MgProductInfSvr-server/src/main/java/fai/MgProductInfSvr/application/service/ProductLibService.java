@@ -50,18 +50,9 @@ public class ProductLibService extends MgProductInfService{
 
         ProductLibProc libProc = new ProductLibProc(flow);
         libProc.delLibList(aid, unionPriId, rlLibIds);
-
-        /*ProductBasicProc basicProc = new ProductBasicProc(flow);
-        int rt = basicProc.delPdBindGroup(aid, unionPriId, rlLibIds);
-        if(rt != Errno.OK) {
-            Oss.logAlarm("del pd bind group err;aid=" + aid);
-            Log.logErr("del pd bind group err;aid=%d;uid=%d;rlLibIds=%s;", aid, unionPriId, rlLibIds);
-            return rt;
-        }*/
-
         FaiBuffer sendBuf = new FaiBuffer(true);
         session.write(sendBuf);
-        Log.logStd("set list ok;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
+        Log.logStd("delete list ok;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
         return Errno.OK;
     }
 
@@ -126,12 +117,13 @@ public class ProductLibService extends MgProductInfService{
     /**
      * 获取所有的库业务表的数据
      */
-    public int getPdRelLibList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1) throws IOException {
+    public int getPdRelLibList(FaiSession session, int flow, int aid, int tid,
+                               int siteId, int lgId, int keepPriId1, SearchArg searchArg) throws IOException {
         // 获取unionPriId
         int unionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
         ProductLibProc libProc = new ProductLibProc(flow);
 
-        FaiList<Param> list = libProc.getRelLibList(aid, unionPriId);
+        FaiList<Param> list = libProc.getRelLibList(aid, unionPriId, searchArg);
         if(list.isEmpty()) {
             return Errno.NOT_FOUND;
         }

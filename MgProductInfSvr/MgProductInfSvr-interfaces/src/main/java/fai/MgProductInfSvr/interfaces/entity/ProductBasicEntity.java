@@ -33,6 +33,19 @@ public class ProductBasicEntity {
     }
 
     /**
+     * 商品与标签关联Entity
+     */
+    public static class BindTagInfo {
+        public static final String AID = "aid"; // int 企业id
+        public static final String RL_TAG_ID = "rlTagId"; // int 标签业务 id
+        public static final String RL_PD_ID = "rlPdId"; // int 商品业务 id
+        public static final String PD_ID = "pdId"; // int 商品id
+        public static final String CREATE_TIME = "sysCreateTime"; // datetime 创建时间
+        public static final String DEL_RL_TAG_IDS = "delRlTagIds"; // 删除用的ids
+        public static final String ADD_RL_TAG_IDS = "addRlTagIds"; // 添加用的ids
+    }
+
+    /**
      * 商品Entity
      */
     public static class ProductInfo {

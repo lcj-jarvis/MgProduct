@@ -24,4 +24,5 @@ public class BasicSagaEntity {
         public static final String RL_GROUP_IDS = ProductRelEntity.Info.RL_GROUP_IDS;
         public static final String RL_PROPS = ProductRelEntity.Info.RL_PROPS;
     }
+
 }

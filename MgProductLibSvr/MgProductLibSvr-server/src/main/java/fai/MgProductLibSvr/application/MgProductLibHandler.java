@@ -12,6 +12,7 @@ import fai.comm.util.FaiList;
 import fai.comm.util.Param;
 import fai.comm.util.ParamUpdater;
 import fai.comm.util.SearchArg;
+import fai.mgproduct.comm.CloneDef;
 import fai.middleground.svrutil.service.MiddleGroundHandler;
 import fai.middleground.svrutil.service.ServiceProxy;
 
@@ -109,4 +110,27 @@ public class MgProductLibHandler extends MiddleGroundHandler {
                                  @ArgList(keyMatch = ProductLibRelDto.Key.RL_LIB_IDS) FaiList<Integer> delRlLibIds) throws IOException {
         return  libService.unionSetLibList(session, flow, aid, unionPriId, tid, addInfoList, updaterList, delRlLibIds);
     }
+
+    @WrittenCmd
+    @Cmd(MgProductLibCmd.LibCmd.CLONE)
+    public int cloneData(final FaiSession session,
+                         @ArgFlow final int flow,
+                         @ArgAid int aid,
+                         @ArgBodyBoolean(ProductLibRelDto.Key.FROM_AID) int fromAid,
+                         @ArgList(classDef = CloneDef.Dto.class, methodDef = "getDto",
+                                 keyMatch = ProductLibRelDto.Key.CLONE_UNION_PRI_IDS) FaiList<Param> cloneUnionPriIds) throws IOException {
+        return libService.cloneData(session, flow, aid, fromAid, cloneUnionPriIds);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductLibCmd.LibCmd.INCR_CLONE)
+    public int incrementalClone(final FaiSession session,
+                                @ArgFlow final int flow,
+                                @ArgAid int aid,
+                                @ArgBodyBoolean(ProductLibRelDto.Key.UNION_PRI_ID) int unionPriId,
+                                @ArgBodyBoolean(ProductLibRelDto.Key.FROM_AID) int fromAid,
+                                @ArgBodyBoolean(ProductLibRelDto.Key.FROM_UNION_PRI_ID) int fromUnionPriId) throws IOException {
+        return libService.incrementalClone(session, flow, aid, unionPriId, fromAid, fromUnionPriId);
+    }
+
 }

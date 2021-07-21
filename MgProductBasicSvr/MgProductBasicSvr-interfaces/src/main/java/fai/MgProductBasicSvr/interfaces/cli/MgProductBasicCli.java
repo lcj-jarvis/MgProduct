@@ -1,14 +1,12 @@
 package fai.MgProductBasicSvr.interfaces.cli;
 
 import fai.MgProductBasicSvr.interfaces.cmd.MgProductBasicCmd;
-import fai.MgProductBasicSvr.interfaces.dto.ProductBindGroupDto;
-import fai.MgProductBasicSvr.interfaces.dto.ProductBindPropDto;
-import fai.MgProductBasicSvr.interfaces.dto.ProductDto;
-import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
+import fai.MgProductBasicSvr.interfaces.dto.*;
 import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
+import fai.mgproduct.comm.Util;
 
 public class MgProductBasicCli extends FaiClient {
     public MgProductBasicCli(int flow) {
@@ -2320,4 +2318,321 @@ public class MgProductBasicCli extends FaiClient {
             stat.end(m_rt != Errno.OK, m_rt);
         }
     }
+
+
+    /**==========================================操作商品与标签关联开始===========================================================*/
+    /**
+     * 获取aid，uid，rlPdIds获取商品和标签关联的数据
+     */
+    public int getPdBindTag(int aid, int unionPriId, FaiList<Integer> rlPdIds, FaiList<Param> pdBindTags) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (pdBindTags == null) {
+                pdBindTags = new FaiList<Param>();
+            }
+            pdBindTags.clear();
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductBindTagDto.Key.UNION_PRI_ID, unionPriId);
+            rlPdIds.toBuffer(sendBody,ProductBindTagDto.Key.RL_PD_IDS);
+            //send and receive
+            Param result = sendAndReceive(aid, MgProductBasicCmd.BindTagCmd.GET_LIST, sendBody, true);
+            Boolean success = result.getBoolean("success");
+            if (!success) {
+                return m_rt;
+            }
+
+            // recv info
+            FaiBuffer recvBody = (FaiBuffer) result.getObject("recvBody");
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = pdBindTags.fromBuffer(recvBody, keyRef, ProductBindTagDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductBindTagDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+
+        }
+    }
+
+    public int setPdBindTag(int aid, int unionPriId, int rlPdId, FaiList<Integer> addRlTagIds, FaiList<Integer> delRlTagIds) {
+        return setPdBindTag(aid, unionPriId, rlPdId, addRlTagIds, delRlTagIds, null);
+    }
+
+    /**
+     * 根据delTagIds删除旧的商品和标签关联，新增addTagIds的商品和标签的关联 - 分布式事务
+     * @param aid 用户id
+     * @param unionPriId 联合主键
+     * @param rlPdId 商品业务id
+     * @param addTagIds 想绑定的标签id的集合
+     * @param delTagIds 想删除绑定的标签id的集合
+     * @param xid 全局事务id
+     * @return {@link Errno}
+     */
+    public int transactionSetPdBindTag(int aid, int unionPriId, int rlPdId, FaiList<Integer> addTagIds, FaiList<Integer> delTagIds, String xid) {
+        return setPdBindTag(aid, unionPriId, rlPdId, addTagIds, delTagIds, xid);
+    }
+
+    private int setPdBindTag(int aid, int unionPriId, int rlPdId, FaiList<Integer> addRlTagIds, FaiList<Integer> delRlTagIds, String xid) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr("args error");
+                return m_rt;
+            }
+            if(addRlTagIds == null) {
+                addRlTagIds = new FaiList<Integer>();
+            }
+            if(delRlTagIds == null) {
+                delRlTagIds = new FaiList<Integer>();
+            }
+            if(addRlTagIds.isEmpty() && delRlTagIds.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;addList and delList all empty");
+                return m_rt;
+            }
+
+            int command = MgProductBasicCmd.BindTagCmd.BATCH_SET;
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductBindTagDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductBindTagDto.Key.RL_PD_ID, rlPdId);
+            if (xid != null && !"".equals(xid)) {
+                sendBody.putString(ProductDto.Key.XID, xid);
+                command = MgProductBasicCmd.BindTagCmd.TRANSACTION_SET_PD_BIND_TAG;
+            }
+            addRlTagIds.toBuffer(sendBody, ProductBindTagDto.Key.RL_TAG_IDS);
+            delRlTagIds.toBuffer(sendBody, ProductBindTagDto.Key.DEL_RL_TAG_IDS);
+
+            sendAndReceive(aid, command, sendBody, false);
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    public int delPdBindTag(int aid, int unionPriId, FaiList<Integer> delRlPdIds) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(Util.isEmptyList(delRlPdIds)) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;delList is empty");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductBindTagDto.Key.UNION_PRI_ID, unionPriId);
+            delRlPdIds.toBuffer(sendBody, ProductBindTagDto.Key.RL_PD_IDS);
+
+            //send and receive
+            sendAndReceive(aid, MgProductBasicCmd.BindTagCmd.DEL, sendBody, false);
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+
+        }
+    }
+
+    public int getRlPdIdsByRlTagIds(int aid, int unionPriId, FaiList<Integer> rlTagIds, FaiList<Integer> rlPdIds) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if(Util.isEmptyList(rlTagIds)) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;delList is empty");
+                return m_rt;
+            }
+            if (rlPdIds == null) {
+                rlPdIds = new FaiList<Integer>();
+            }
+            rlPdIds.clear();
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductBindTagDto.Key.UNION_PRI_ID, unionPriId);
+            rlTagIds.toBuffer(sendBody, ProductBindTagDto.Key.RL_TAG_IDS);
+
+            Param result = sendAndReceive(aid, MgProductBasicCmd.BindTagCmd.GET_PD_BY_TAG, sendBody, true);
+            Boolean success = result.getBoolean("success");
+            if (!success) {
+                return m_rt;
+            }
+
+            // recv info
+            FaiBuffer recvBody = (FaiBuffer) result.getObject("recvBody");
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = rlPdIds.fromBuffer(recvBody, keyRef);
+            if (m_rt != Errno.OK || keyRef.value != ProductBindTagDto.Key.RL_PD_IDS) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+
+        }
+    }
+
+    public int getBindTagDataStatus(int aid, int unionPriId, Param statusInfo) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            statusInfo.clear();
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductBindTagDto.Key.UNION_PRI_ID, unionPriId);
+
+            Param result = sendAndReceive(aid, MgProductBasicCmd.BindTagCmd.GET_DATA_STATUS, sendBody, true);
+            Boolean success = result.getBoolean("success");
+            if (!success) {
+                return m_rt;
+            }
+
+            // recv info
+            FaiBuffer recvBody = (FaiBuffer) result.getObject("recvBody");
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = statusInfo.fromBuffer(recvBody, keyRef, DataStatus.Dto.getDataStatusDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductBindTagDto.Key.DATA_STATUS) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK), m_rt);
+
+        }
+    }
+
+    public int getAllPdBindTag(int aid, int unionPriId, FaiList<Param> list) {
+        return getPdBindTagByCondition(aid, unionPriId, null, list);
+    }
+
+    public int getPdBindTagFromDb(int aid, int unionPriId, SearchArg searchArg, FaiList<Param> list) {
+        if (searchArg == null) {
+            searchArg = new SearchArg();
+        }
+        return getPdBindTagByCondition(aid, unionPriId, searchArg, list);
+    }
+
+    private int getPdBindTagByCondition(int aid, int unionPriId, SearchArg searchArg, FaiList<Param> pdBindTags) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (pdBindTags == null) {
+                pdBindTags = new FaiList<Param>();
+            }
+            pdBindTags.clear();
+            int command = MgProductBasicCmd.BindTagCmd.GET_ALL_DATA;
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductBindTagDto.Key.UNION_PRI_ID, unionPriId);
+
+            if (searchArg != null) {
+                command = MgProductBasicCmd.BindTagCmd.SEARCH_FROM_DB;
+                searchArg.toBuffer(sendBody, ProductBindTagDto.Key.SEARCH_ARG);
+            }else {
+                searchArg = new SearchArg();
+            }
+
+            Param result = sendAndReceive(aid, command, sendBody,true);
+            Boolean success = result.getBoolean("success");
+            if (!success) {
+                return m_rt;
+            }
+
+            // recv info
+            FaiBuffer recvBody = (FaiBuffer) result.getObject("recvBody");
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = pdBindTags.fromBuffer(recvBody, keyRef, ProductBindTagDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductBindTagDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            if (searchArg.totalSize != null) {
+                recvBody.getInt(keyRef, searchArg.totalSize);
+                if (keyRef.value != ProductBindTagDto.Key.TOTAL_SIZE) {
+                    m_rt = Errno.CODEC_ERROR;
+                    Log.logErr(m_rt, "recv total size null");
+                    return m_rt;
+                }
+            }
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    /**
+     * 发送和接收数据，并且验证发送和接收是否成功
+     *
+     * @param sendBody          发送的数据体
+     * @param verifyReceiveBody true表示要验证接收的数据是否为null，false表示不用验证
+     * @return true 表示发送和接收成功，false表示发送和接收失败
+     */
+    private Param sendAndReceive(int aid, int command, FaiBuffer sendBody, boolean verifyReceiveBody) {
+
+        Param param = new Param(true);
+        FaiProtocol sendProtocol = new FaiProtocol();
+        sendProtocol.setAid(aid);
+        sendProtocol.setCmd(command);
+        sendProtocol.addEncodeBody(sendBody);
+        //send
+        m_rt = send(sendProtocol);
+        if (m_rt != Errno.OK) {
+            Log.logErr(m_rt, "send err");
+            return param.setBoolean("success", false);
+        }
+
+        // recv
+        FaiProtocol recvProtocol = new FaiProtocol();
+        m_rt = recv(recvProtocol);
+        if (m_rt != Errno.OK) {
+            Log.logErr(m_rt, "recv err");
+            return param.setBoolean("success", false);
+        }
+        m_rt = recvProtocol.getResult();
+        if (m_rt != Errno.OK) {
+            if (m_rt != Errno.NOT_FOUND) {
+                Log.logErr(m_rt, "recv result err");
+            }
+            return param.setBoolean("success", false);
+        }
+
+        if (!verifyReceiveBody) {
+            return param.setBoolean("success", true);
+        }
+
+        FaiBuffer recvBody = recvProtocol.getDecodeBody();
+        if (recvBody == null) {
+            m_rt = Errno.CODEC_ERROR;
+            Log.logErr(m_rt, "recv body null");
+            return param.setBoolean("success", false);
+        }
+        return param.setBoolean("success", true).setObject("recvBody", recvBody);
+    }
+    /**==========================================操作商品与标签关联结束===========================================================*/
+
 }

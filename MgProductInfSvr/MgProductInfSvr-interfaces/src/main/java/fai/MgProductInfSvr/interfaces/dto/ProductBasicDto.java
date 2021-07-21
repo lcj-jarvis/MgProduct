@@ -123,6 +123,19 @@ public class ProductBasicDto {
         return g_bindGroupDef;
     }
 
+    /*** 商品设置的分类 ***/
+    private static ParamDef g_bindTagDef = new ParamDef();
+    static {
+        g_bindTagDef.add(ProductBasicEntity.BindTagInfo.AID, 0);
+        g_bindTagDef.add(ProductBasicEntity.BindTagInfo.RL_TAG_ID, 1);
+        g_bindTagDef.add(ProductBasicEntity.BindTagInfo.RL_PD_ID, 2);
+        g_bindTagDef.add(ProductBasicEntity.BindTagInfo.PD_ID, 3);
+        g_bindTagDef.add(ProductBasicEntity.BindTagInfo.CREATE_TIME, 4);
+    }
+    public static ParamDef getBindTagDto() {
+        return g_bindTagDef;
+    }
+
     public static class Key {
         public static final int BIND_PROP_INFO  = 1;
         public static final int TID  = 2;
@@ -147,6 +160,10 @@ public class ProductBasicDto {
         public static final int UPDATER = 21;
         public static final int UNION_INFO = 22;
         public static final int IN_OUT_RECOED = 23;
+
+        public static final int BIND_TAG_LIST = 24;
+        public static final int BIND_TAG_IDS = 25;
+        public static final int DEL_BIND_TAG_IDS = 26;
     }
 
 

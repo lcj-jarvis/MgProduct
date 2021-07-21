@@ -23,6 +23,12 @@ public class MgProductBasicCmd {
         public static final int NUM17 = 5017; /** @see BasicCmd#GET_ALL_PD_REL */
         public static final int NUM18 = 5018; /** @see BasicCmd#SEARCH_PD_REL_FROM_DB */
         public static final int NUM19 = 5019; /** @see BasicCmd#GET_PD_LIST */
+
+        public static final int NUM20 = 5020; /** @see BindTagCmd#GET_LIST */
+        public static final int NUM21 = 5021; /** @see BindTagCmd#GET_PD_BY_TAG */
+        public static final int NUM22 = 5022; /** @see BindTagCmd#GET_DATA_STATUS */
+        public static final int NUM23 = 5023; /** @see BindTagCmd#GET_ALL_DATA */
+        public static final int NUM24 = 5024; /** @see BindTagCmd#SEARCH_FROM_DB */
     }
 
     // 1000 到 5000 的范围
@@ -48,6 +54,11 @@ public class MgProductBasicCmd {
         public static final int NUM18 = 1018; /** @see BindPropCmd#SET_PD_BIND_PROP_ROLLBACK */
         public static final int NUM19 = 1019; /** @see BasicCmd#CLEAR_ACCT */
         public static final int NUM20 = 1020; /** @see BasicCmd#ADD_REL_BIND_ROLLBACK */
+
+        public static final int NUM21 = 1021; /** @see BindTagCmd#BATCH_SET */
+        public static final int NUM22 = 1022; /** @see BindTagCmd#DEL */
+        public static final int NUM23 = 1023; /** @see BindTagCmd#TRANSACTION_SET_PD_BIND_TAG */
+        public static final int NUM24 = 1024; /** @see BindTagCmd#SET_PD_BIND_TAG_ROLLBACK */
     }
 
     /**
@@ -78,6 +89,19 @@ public class MgProductBasicCmd {
         public static final int DEL = WriteCmdNum.NUM11;
         public static final int TRANSACTION_SET_PD_BIND_GROUP = WriteCmdNum.NUM16;
         public static final int SET_PD_BIND_GROUP_ROLLBACK = WriteCmdNum.NUM15;
+    }
+
+    public static class BindTagCmd {
+        public static final int GET_LIST = ReadCmdNum.NUM20;
+        public static final int GET_PD_BY_TAG = ReadCmdNum.NUM21;
+        public static final int GET_DATA_STATUS = ReadCmdNum.NUM22;
+        public static final int GET_ALL_DATA = ReadCmdNum.NUM23;
+        public static final int SEARCH_FROM_DB = ReadCmdNum.NUM24;
+
+        public static final int BATCH_SET = WriteCmdNum.NUM21;
+        public static final int DEL = WriteCmdNum.NUM22;
+        public static final int TRANSACTION_SET_PD_BIND_TAG = WriteCmdNum.NUM23;
+        public static final int SET_PD_BIND_TAG_ROLLBACK = WriteCmdNum.NUM24;
     }
 
     public static class BasicCmd {

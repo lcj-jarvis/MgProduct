@@ -2,6 +2,7 @@ package fai.MgProductBasicSvr.domain.serviceproc;
 
 import fai.MgProductBasicSvr.domain.entity.ProductBindGroupEntity;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductBindGroupCache;
+import fai.MgProductBasicSvr.domain.repository.cache.ProductBindTagCache;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductBindGroupDaoCtrl;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
@@ -48,7 +49,7 @@ public class ProductBindGroupProc {
             info.setCalendar(ProductBindGroupEntity.Info.CREATE_TIME, now);
             addList.add(info);
         }
-        rt = m_dao.batchInsert(addList, null, true);
+        rt = m_dao.batchInsert(addList, null, false);
         if(rt != Errno.OK) {
             throw new MgException(rt, "batch insert product bind group error;flow=%d;aid=%d;", m_flow, aid);
         }
@@ -227,7 +228,7 @@ public class ProductBindGroupProc {
 
     private FaiList<Param> getList(int aid, int unionPriId, HashSet<Integer> rlPdIds) {
         if(rlPdIds == null || rlPdIds.isEmpty()) {
-            throw new MgException(Errno.ARGS_ERROR, "arrgs error, rlPdIds is empty;aid=%d;unionPriId=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
+            throw new MgException(Errno.ARGS_ERROR, "args error, rlPdIds is empty;aid=%d;unionPriId=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
         }
         // 缓存中获取
         List<String> rlPdIdStrs = rlPdIds.stream().map(String::valueOf).collect(Collectors.toList());

@@ -79,6 +79,12 @@
         </dependency>
 
         <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProductTagSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductTagSvr-interfaces-ver}</version>
+        </dependency>
+
+        <dependency>
             <groupId>fai-comm-jnetkit</groupId>
             <artifactId>fai-comm-jnetkit</artifactId>
             <version>${fai-comm-jnetkit-ver}</version>
@@ -194,6 +200,12 @@
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
             <version>1.2.16</version>
+        </dependency>
+        <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProductTagSvr-interfaces</artifactId>
+            <version>1.0.0</version>
+            <scope>compile</scope>
         </dependency>
         <!-- 注册与发现end -->
 

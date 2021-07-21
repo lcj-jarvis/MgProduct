@@ -51,6 +51,7 @@
         <fai-middleground-infutil-ver>1.0.0</fai-middleground-infutil-ver>
         <fai-middleground-svrutil-ver>1.0.1</fai-middleground-svrutil-ver>
         <MgCommon-MgPrimaryKeySvr-interfaces-ver>1.0.1</MgCommon-MgPrimaryKeySvr-interfaces-ver>
+        <MgCommon-MgBackupSvr-interfaces-ver>1.0.0</MgCommon-MgBackupSvr-interfaces-ver>
         <MgProduct-MgProductInfSvr-interfaces-ver>1.0.0</MgProduct-MgProductInfSvr-interfaces-ver>
         <MgProduct-MgProductPropSvr-interfaces-ver>1.0.0</MgProduct-MgProductPropSvr-interfaces-ver>
         <MgProduct-MgProductSearchSvr-interfaces-ver>1.0.0</MgProduct-MgProductSearchSvr-interfaces-ver>
@@ -59,6 +60,7 @@
         <MgProduct-MgProductStoreSvr-interfaces-ver>1.0.0</MgProduct-MgProductStoreSvr-interfaces-ver>
         <MgProduct-MgProductGroupSvr-interfaces-ver>1.0.0</MgProduct-MgProductGroupSvr-interfaces-ver>
         <MgProduct-MgProductLibSvr-interfaces-ver>1.0.0</MgProduct-MgProductLibSvr-interfaces-ver>
+        <MgProduct-MgProductTagSvr-interfaces-ver>1.0.0</MgProduct-MgProductTagSvr-interfaces-ver>
         <MgProduct-MgProductComm-ver>1.0.0</MgProduct-MgProductComm-ver>
         <MgProduct-MgProductInfUtil-ver>1.0.0</MgProduct-MgProductInfUtil-ver>
     </properties>

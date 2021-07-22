@@ -53,6 +53,7 @@ public class MgProductStoreCmd {
 		public static final int NUM23 = 1023;
 		public static final int NUM24 = 1024;
 		public static final int NUM25 = 1025;
+		public static final int NUM26 = 1026;
 	}
 
 	////////////////// cmd对外定义，实际做cmd读写分离 ////////////////////
@@ -95,6 +96,7 @@ public class MgProductStoreCmd {
 		public static final int IMPORT_STORE_SALES_ROLLBACK = WriteCmdNum.NUM23;
 		public static final int BATCH_DEL_PD_ALL_STORE_SALES_ROLLBACK = WriteCmdNum.NUM24;
 		public static final int SET_SKU_STORE_SALES_ROLLBACK = WriteCmdNum.NUM25;
+		public static final int REFRESH_ROLLBACK = WriteCmdNum.NUM26;
     }
 
 	/**

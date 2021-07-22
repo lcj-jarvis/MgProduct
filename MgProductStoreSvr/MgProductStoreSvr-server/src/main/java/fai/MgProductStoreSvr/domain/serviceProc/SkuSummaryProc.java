@@ -2,6 +2,7 @@ package fai.MgProductStoreSvr.domain.serviceProc;
 
 import fai.MgProductStoreSvr.domain.entity.SkuSummaryEntity;
 import fai.MgProductStoreSvr.domain.entity.StoreSagaEntity;
+import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuEntity;
 import fai.MgProductStoreSvr.domain.repository.SkuSummaryDaoCtrl;
 import fai.comm.util.*;
 import fai.mgproduct.comm.Util;
@@ -267,11 +268,19 @@ public class SkuSummaryProc {
         return rt;
     }
 
-    public int batchDel(int aid, int pdId, FaiList<Long> skuIdList) {
+    public int batchDel(int aid, int pdId, FaiList<Long> skuIdList, boolean isSaga) {
         ParamMatcher matcher = new ParamMatcher(SkuSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(SkuSummaryEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
         matcher.and(SkuSummaryEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
-        int rt = m_daoCtrl.delete(matcher);
+        int rt;
+        if (!isSaga) {
+            // 非分布式事务，走正常的删除逻辑
+            rt = m_daoCtrl.delete(matcher);
+        } else {
+            // 分布式事务，将 aid 修改成负数
+            ParamUpdater updater = new ParamUpdater(new Param().setInt(StoreSalesSkuEntity.Info.AID, aid));
+            rt = m_daoCtrl.update(updater, matcher);
+        }
         if(rt != Errno.OK){
             Log.logStd(rt, "delete err;flow=%s;aid=%s;pdId=%s;skuIdList=%s;", m_flow, aid, pdId, skuIdList);
             return rt;
@@ -297,6 +306,34 @@ public class SkuSummaryProc {
         ParamUpdater updater = new ParamUpdater(new Param().setInt(SkuSummaryEntity.Info.AID, aid));
         ParamMatcher matcher = new ParamMatcher(SkuSummaryEntity.Info.AID, ParamMatcher.EQ, -aid);
         matcher.and(SkuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        rt = m_daoCtrl.update(updater, matcher);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "batchDelRollback err;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        Log.logStd("batchDelRollback ok;flow=%d;aid=%d", m_flow, aid);
+        return rt;
+    }
+
+    /**
+     * Saga 模式 补偿 batchDel 方法
+     *
+     * @param aid aid
+     * @param pdId 商品id
+     * @param delSkuIdList skuId
+     * @return {@link Errno}
+     */
+    public int batchDelRollback(int aid, Integer pdId, FaiList<Long> delSkuIdList) {
+        int rt;
+        if (Util.isEmptyList(delSkuIdList)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "arg err;delSkuIdList is empty;flow=%d;aid=%d", m_flow, aid);
+            return rt;
+        }
+        ParamUpdater updater = new ParamUpdater(new Param().setInt(SkuSummaryEntity.Info.AID, aid));
+        ParamMatcher matcher = new ParamMatcher(SkuSummaryEntity.Info.AID, ParamMatcher.EQ, -aid);
+        matcher.and(SkuSummaryEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
+        matcher.and(SkuSummaryEntity.Info.SKU_ID, ParamMatcher.IN, delSkuIdList);
         rt = m_daoCtrl.update(updater, matcher);
         if (rt != Errno.OK) {
             Log.logErr(rt, "batchDelRollback err;flow=%d;aid=%d;", m_flow, aid);

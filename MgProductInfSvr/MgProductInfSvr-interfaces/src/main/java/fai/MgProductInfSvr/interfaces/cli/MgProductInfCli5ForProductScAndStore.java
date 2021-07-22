@@ -1062,12 +1062,16 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
         }
     }
 
-
+    // TODO 先做重载后面优化接口参数
+    public int unionSetPdScInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> addList, FaiList<Integer> delList, FaiList<ParamUpdater> updaterList) {
+        return unionSetPdScInfoList(aid, tid, siteId, lgId, keepPriId1, null, rlPdId, addList, delList, updaterList);
+    }
 
     /**
      * 修改产品规格总接口 <br/>
      * 批量修改(包括增、删、改)指定商品的商品规格总接口；会自动生成sku规格，并且会调用商品库存服务的“刷新商品库存销售sku”
      *
+     * @param xid         分布式事务全局id 选填
      * @param rlPdId      商品业务id {@link ProductSpecEntity.SpecInfo#RL_PD_ID}
      * @param addList     Param 见 {@link ProductSpecEntity.SpecInfo} <br/>
      *                    {@link ProductSpecEntity.SpecInfo#NAME} 必填 <br/>
@@ -1078,7 +1082,7 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
      *                    {@link ProductSpecEntity.SpecInfo#PD_SC_ID} 必填 <br/>
      * @return {@link Errno}
      */
-    public int unionSetPdScInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> addList, FaiList<Integer> delList, FaiList<ParamUpdater> updaterList) {
+    public int unionSetPdScInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, String xid, int rlPdId, FaiList<Param> addList, FaiList<Integer> delList, FaiList<ParamUpdater> updaterList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1094,6 +1098,9 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
             }
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductSpecDto.Key.TID, tid), new Pair(ProductSpecDto.Key.SITE_ID, siteId), new Pair(ProductSpecDto.Key.LGID, lgId), new Pair(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1));
+            if (!Str.isEmpty(xid)) {
+                sendBody.putString(MgProductDto.Key.XID, xid);
+            }
             sendBody.putInt(ProductSpecDto.Key.RL_PD_ID, rlPdId);
             if (addList != null) {
                 if (addList.isEmpty()) {

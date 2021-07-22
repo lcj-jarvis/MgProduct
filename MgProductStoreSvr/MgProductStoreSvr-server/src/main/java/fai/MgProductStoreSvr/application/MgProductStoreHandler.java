@@ -65,16 +65,28 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.REFRESH)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductStoreCmd.StoreSalesSkuCmd.REFRESH_ROLLBACK)
     private int refreshSkuStoreSales(final FaiSession session,
                                      @ArgFlow final int flow,
                                      @ArgAid final int aid,
                                      @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
                                      @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
+                                     @ArgBodyXid(value = StoreSalesSkuDto.Key.XID, useDefault = true) final String xid,
                                      @ArgBodyInteger(StoreSalesSkuDto.Key.PD_ID) final int pdId,
                                      @ArgBodyInteger(StoreSalesSkuDto.Key.RL_PD_ID) final int rlPdId,
                                      @ArgList(classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto", keyMatch = StoreSalesSkuDto.Key.INFO_LIST)
                                              FaiList<Param> pdScSkuInfoList) throws IOException {
-        return m_storeSalesSkuService.refreshSkuStoreSales(session, flow, aid, tid, unionPriId, pdId, rlPdId, pdScSkuInfoList);
+        return m_storeSalesSkuService.refreshSkuStoreSales(session, flow, aid, tid, unionPriId, xid, pdId, rlPdId, pdScSkuInfoList);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.REFRESH_ROLLBACK)
+    private int refreshSkuStoreSalesRollback(final FaiSession session,
+                                             @ArgFlow final int flow,
+                                             @ArgAid final int aid,
+                                             @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                             @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return m_storeSalesSkuService.refreshSkuStoreSalesRollback(session, flow, aid, xid, branchId);
     }
 
     @WrittenCmd

@@ -245,14 +245,7 @@ public class ProductGroupProc {
             throw new MgException(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductGroupValObj.Limit.COUNT_MAX);
         }
         FaiList<Integer> ids = new FaiList<>();
-        // 校验参数名是否已经存在
         for(Param info : groupList) {
-            String name = info.getString(ProductGroupEntity.Info.GROUP_NAME);
-            Param existInfo = Misc.getFirst(list, ProductGroupEntity.Info.GROUP_NAME, name);
-            if(!Str.isEmpty(existInfo)) {
-                rt = Errno.ALREADY_EXISTED;
-                throw new MgException(rt, "group name is existed;flow=%d;aid=%d;name=%s;", m_flow, aid, name);
-            }
             int groupId = creatAndSetId(aid, info);
             ids.add(groupId);
         }
@@ -276,7 +269,7 @@ public class ProductGroupProc {
         delGroupList(aid, matcher);
     }
 
-    private void delGroupList(int aid, ParamMatcher matcher) {
+    public void delGroupList(int aid, ParamMatcher matcher) {
         int rt;
         if(matcher == null || matcher.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -425,15 +418,18 @@ public class ProductGroupProc {
         bakSearchArg.matcher = new ParamMatcher(MgBackupEntity.Comm.BACKUP_ID_FLAG, ParamMatcher.LAND, backupFlag, backupFlag);
         bakSearchArg.matcher.and(ProductGroupEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.IN, unionPriIds);
         FaiList<Param> fromList = searchBakList(aid, bakSearchArg);
+
         for(Param fromInfo : fromList) {
             fromInfo.remove(MgBackupEntity.Comm.BACKUP_ID);
             fromInfo.remove(MgBackupEntity.Comm.BACKUP_ID_FLAG);
         }
 
-        // 批量插入
-        rt = m_daoCtrl.batchInsert(fromList);
-        if(rt != Errno.OK) {
-            throw new MgException(rt, "restore insert err;aid=%d;backupId=%d;backupFlag=%d;", aid, backupId, backupFlag);
+        if(!fromList.isEmpty()) {
+            // 批量插入
+            rt = m_daoCtrl.batchInsert(fromList);
+            if(rt != Errno.OK) {
+                throw new MgException(rt, "restore insert err;aid=%d;backupId=%d;backupFlag=%d;", aid, backupId, backupFlag);
+            }
         }
 
         // 处理idBuilder

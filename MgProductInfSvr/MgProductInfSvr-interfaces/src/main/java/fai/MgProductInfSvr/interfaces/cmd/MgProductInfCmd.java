@@ -123,18 +123,20 @@ public class MgProductInfCmd {
         public static final int NUM44 = 1044; /**@see StoreSalesSkuCmd#BATCH_ADD_LIST */
         public static final int NUM45 = 1045; /**@see Cmd#CLEAR_REL_DATA */
         public static final int NUM46 = 1046; /**@see Cmd#CLEAR_ACCT */
-
         public static final int NUM47 = 1047; /**@see LibCmd#ADD_LIB */
         public static final int NUM48 = 1048; /**@see LibCmd#DEL_LIB_LIST */
         public static final int NUM49 = 1049; /**@see LibCmd#SET_LIB_LIST */
         public static final int NUM50 = 1050; /**@see LibCmd#UNION_SET_LIB_LIST */
-
         public static final int NUM51 = 1051; /**@see TagCmd#ADD_TAG */
         public static final int NUM52 = 1052; /**@see TagCmd#DEL_TAG_LIST */
         public static final int NUM53 = 1053; /**@see TagCmd#SET_TAG_LIST */
         public static final int NUM54 = 1054; /**@see TagCmd#UNION_SET_TAG_LIST */
-
         public static final int NUM55 = 1055; /**@see BasicCmd#SET_PD_BIND_TAG */
+        public static final int NUM56 = 1056; /**@see Cmd#CLONE_DATA */
+        public static final int NUM57 = 1057; /**@see Cmd#INC_CLONE */
+        public static final int NUM58 = 1058; /**@see Cmd#BACKUP */
+        public static final int NUM59 = 1059; /**@see Cmd#RESTORE */
+        public static final int NUM60 = 1060; /**@see Cmd#DEL_BACKUP */
 
     }
 
@@ -359,5 +361,10 @@ public class MgProductInfCmd {
         public static final int IMPORT_PRODUCT = WriteCmdNum.NUM34;
         public static final int CLEAR_REL_DATA = WriteCmdNum.NUM45;
         public static final int CLEAR_ACCT = WriteCmdNum.NUM46;
+        public static final int CLONE_DATA = WriteCmdNum.NUM56;
+        public static final int INC_CLONE = WriteCmdNum.NUM57;
+        public static final int BACKUP = WriteCmdNum.NUM58;
+        public static final int RESTORE = WriteCmdNum.NUM59;
+        public static final int DEL_BACKUP = WriteCmdNum.NUM60;
     }
 }

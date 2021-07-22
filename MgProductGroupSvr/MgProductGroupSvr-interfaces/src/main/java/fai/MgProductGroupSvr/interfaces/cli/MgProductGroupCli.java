@@ -9,7 +9,7 @@ import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 import fai.middleground.infutil.MgConfPool;
-import fai.middleground.infutil.app.CloneDef;
+import fai.comm.middleground.app.CloneDef;
 
 public class MgProductGroupCli extends FaiClient {
     public MgProductGroupCli(int flow) {
@@ -564,7 +564,7 @@ public class MgProductGroupCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductGroupRelDto.Key.FROM_AID, fromAid);
-            cloneUnionPriIds.toBuffer(sendBody, ProductGroupRelDto.Key.CLONE_UNION_PRI_IDS, CloneDef.Dto.getDto());
+            cloneUnionPriIds.toBuffer(sendBody, ProductGroupRelDto.Key.CLONE_UNION_PRI_IDS, CloneDef.Dto.getInternalDto());
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setAid(aid);
             sendProtocol.setCmd(MgProductGroupCmd.GroupCmd.CLONE);

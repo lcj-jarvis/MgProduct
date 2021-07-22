@@ -5,10 +5,10 @@ import fai.MgProductLibSvr.interfaces.dto.ProductLibRelDto;
 import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
-import fai.middleground.infutil.app.CloneDef;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 import fai.middleground.infutil.MgConfPool;
+import fai.comm.middleground.app.CloneDef;
 
 
 /**
@@ -440,7 +440,7 @@ public class MgProductLibCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductLibRelDto.Key.FROM_AID, fromAid);
-            cloneUnionPriIds.toBuffer(sendBody, ProductLibRelDto.Key.CLONE_UNION_PRI_IDS, CloneDef.Dto.getDto());
+            cloneUnionPriIds.toBuffer(sendBody, ProductLibRelDto.Key.CLONE_UNION_PRI_IDS, CloneDef.Dto.getInternalDto());
             //发送数据
             sendAndReceive(aid, MgProductLibCmd.LibCmd.CLONE, sendBody, false);
 

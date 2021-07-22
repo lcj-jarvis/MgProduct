@@ -12,7 +12,7 @@ import fai.comm.util.FaiList;
 import fai.comm.util.Param;
 import fai.comm.util.ParamUpdater;
 import fai.comm.util.SearchArg;
-import fai.mgproduct.comm.CloneDef;
+import fai.middleground.infutil.app.CloneDef;
 import fai.middleground.svrutil.service.MiddleGroundHandler;
 import fai.middleground.svrutil.service.ServiceProxy;
 

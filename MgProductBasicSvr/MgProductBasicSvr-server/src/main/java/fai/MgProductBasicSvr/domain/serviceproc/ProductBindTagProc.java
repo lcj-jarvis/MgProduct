@@ -24,8 +24,6 @@ public class ProductBindTagProc {
 
     private int m_flow;
     private ProductBindTagDaoCtrl m_dao;
-    public static final String ERROR_LOG = "get error;flow=%d;aid=%d;unionPriId=%d;";
-    public static final String DEBUG_LOG = "not found;flow=%d;aid=%d;unionPriId=%d;";
 
     public ProductBindTagProc(int flow, int aid, TransactionCtrl tc) {
         this.m_flow = flow;
@@ -43,7 +41,12 @@ public class ProductBindTagProc {
         }
     }
 
+    /**
+     * 缓存结构有问题，先不测.采用hash缓存，无论field字段是rlTagId或者rlPdId都会被覆盖。缓存中查出来的实际数量会和db的不一致
+     * @return
+     */
     public FaiList<Param> getPdBindTagList(int aid, int unionPriId, FaiList<Integer> rlPdIdList) {
+        //去重
         Set<Integer> rlPdIds = new HashSet<>(rlPdIdList);
         //获取缓存的所有数据
         FaiList<Param> cacheList = ProductBindTagCache.getCacheList(aid, unionPriId);
@@ -69,24 +72,23 @@ public class ProductBindTagProc {
 
             //获取未缓存的rlPdId
             FaiList<Integer> noCacheRlPdIds = new FaiList<>();
+            //缓存的rlPdId
+            FaiList<Integer> cacheRlPdIds = new FaiList<>();
             cacheList.forEach(param -> {
                 Integer rlPdId = param.getInt(ProductBindTagEntity.Info.RL_PD_ID);
-                if (!rlPdIds.contains(rlPdId)) {
+                cacheRlPdIds.add(rlPdId);
+            });
+            FaiList<Integer> allRlPdIds = new FaiList<>(rlPdIds);
+            allRlPdIds.forEach(rlPdId -> {
+                if (!cacheRlPdIds.contains(rlPdId)) {
                     noCacheRlPdIds.add(rlPdId);
                 }
             });
 
-            //查询条件
+            //查询未缓存的
             SearchArg searchArg = new SearchArg();
             searchArg.matcher = new ParamMatcher(ProductBindTagEntity.Info.RL_PD_ID, ParamMatcher.IN, noCacheRlPdIds);
-            //日志信息
-            Param logDesc = new Param();
-            logDesc.setString("error", ERROR_LOG + "rlPdIds=%s;");
-            logDesc.setString("debug", DEBUG_LOG+ "rlPdIds=%s;");
-            Object[] logArgs = {m_flow, aid, unionPriId, noCacheRlPdIds};
-            logDesc.setObject("logArgs", logArgs);
-
-            FaiList<Param> noCacheList = getListByConditions(aid, unionPriId, searchArg, null, logDesc);
+            FaiList<Param> noCacheList = getListByConditions(aid, unionPriId, searchArg, null);
             if (!noCacheList.isEmpty()) {
                 //添加缓存
                 ProductBindTagCache.addCacheList(aid, unionPriId, noCacheList);
@@ -99,7 +101,7 @@ public class ProductBindTagProc {
         return cacheList;
     }
 
-    public FaiList<Param> getListByConditions(Integer aid, Integer unionPriId, SearchArg searchArg, FaiList<String> onlyNeedFields, Param logDesc) {
+    public FaiList<Param> getListByConditions(Integer aid, Integer unionPriId, SearchArg searchArg, FaiList<String> onlyNeedFields) {
         //无searchArg
         if (searchArg == null) {
             searchArg = new SearchArg();
@@ -115,61 +117,33 @@ public class ProductBindTagProc {
         searchArg.matcher.and(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
 
-        //设置日志
-        Object[] logArgs = {m_flow, aid, unionPriId};
-        String errorLog = ERROR_LOG;
-        String debugLog = DEBUG_LOG;
-        String errorLogKey = "error";
-        String debugLogKey = "debug";
-        String logArgsKey = "logArgs";
-        if (logDesc != null) {
-            if (logDesc.getString(errorLogKey)!= null) {
-                errorLog = logDesc.getString(errorLogKey);
-            }
-            if (logDesc.getString(debugLogKey)!= null) {
-                debugLog = logDesc.getString(debugLogKey);
-            }
-            if (logDesc.getObject(logArgsKey) != null) {
-                logArgs = (Object[]) logDesc.getObject(logArgsKey);
-            }
-        }
-
         //查询
         Ref<FaiList<Param>> tmpRef = new Ref<FaiList<Param>>();
         int rt = m_dao.select(searchArg, tmpRef, onlyNeedFields);
         FaiList<Param> result = new FaiList<>();
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            throw new MgException(rt, errorLog, logArgs);
+            throw new MgException(rt, "get error;flow=%d;aid=%d;unionPriId=%d;matcher=%s", m_flow, aid, unionPriId, searchArg.matcher);
         }
         if(tmpRef.value != null && !tmpRef.value.isEmpty()) {
             result.addAll(tmpRef.value);
         }
         if (result.isEmpty()) {
             rt = Errno.NOT_FOUND;
-            Log.logDbg(rt, debugLog, logArgs);
+            Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;matcher=%s", m_flow, aid, unionPriId, searchArg.matcher);
         }
         return result;
     }
 
-
-    public FaiList<Integer> getRlPdIdsByTagId(int aid, int unionPriId, FaiList<Integer> rlTagIds) {
+    public FaiList<Integer> getRlPdIdsByTagIds(int aid, int unionPriId, FaiList<Integer> rlTagIds) {
         //查询条件
         SearchArg searchArg = new SearchArg();
-        searchArg.matcher = new ParamMatcher(ProductBindTagEntity.Info.RL_PD_ID, ParamMatcher.IN, rlTagIds);
-        //日志信息
-        Param logDesc = new Param();
-        logDesc.setString("error", ERROR_LOG + "rlTagIds=%s;");
-        logDesc.setString("debug", DEBUG_LOG + "rlTagIds=%s;");
-        Object[] logArgs = {m_flow, aid, unionPriId, rlTagIds};
-        logDesc.setObject("logArgs", logArgs);
-
+        searchArg.matcher = new ParamMatcher(ProductBindTagEntity.Info.RL_TAG_ID, ParamMatcher.IN, rlTagIds);
         FaiList<Integer> rlPdIds = new FaiList<>();
-        FaiList<Param> result = getListByConditions(aid, unionPriId, searchArg, null, logDesc);
+        FaiList<Param> result = getListByConditions(aid, unionPriId, searchArg, null);
         result.forEach(param -> {
             Integer rlPdId = param.getInt(ProductBindTagEntity.Info.RL_PD_ID);
             rlPdIds.add(rlPdId);
         });
-
         return rlPdIds;
     }
 
@@ -182,7 +156,7 @@ public class ProductBindTagProc {
         }
         long now = System.currentTimeMillis();
         statusInfo = new Param();
-        FaiList<Param> result = getListByConditions(aid, unionPriId, null, null, null);
+        FaiList<Param> result = getListByConditions(aid, unionPriId, null, null);
         int count = result.size();
         statusInfo.setInt(DataStatus.Info.TOTAL_SIZE, count);
         statusInfo.setLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME, now);
@@ -272,8 +246,6 @@ public class ProductBindTagProc {
 
     /**
      * 清空指定aid+unionPriId的数据
-     * @param aid
-     * @param unionPriIds
      */
     public void clearAcct(int aid, FaiList<Integer> unionPriIds) {
         int rt;

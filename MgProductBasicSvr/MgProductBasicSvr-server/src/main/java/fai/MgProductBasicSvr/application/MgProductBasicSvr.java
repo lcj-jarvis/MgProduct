@@ -89,12 +89,14 @@ public class MgProductBasicSvr {
         ProductRelDaoCtrl.init(daoPool, cache);
         ProductBindPropDaoCtrl.init(daoPool);
         ProductBindGroupDaoCtrl.init(daoPool);
+        ProductBindTagDaoCtrl.init(daoPool);
         SagaDaoCtrl.init(daoPool);
 
         // 缓存初始化
         CacheCtrl.init(cache);
 
         LockUtil.init(cache, lockLease);
+        LockUtil.PdBindTagLock.init(cache, lockLease);
     }
 
     @ParamKeyMapping(path = ".svr")

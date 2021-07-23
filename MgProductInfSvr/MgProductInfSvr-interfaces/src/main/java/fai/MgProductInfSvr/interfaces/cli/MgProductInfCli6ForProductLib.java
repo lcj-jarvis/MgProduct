@@ -318,7 +318,7 @@ public class MgProductInfCli6ForProductLib extends MgProductInfCli5ForProductScA
      * @param relLibList 保存所有库业务表的数据
      * @return  {@link Errno}
      */
-    public int getPdRlLibList(MgProductArg mgProductArg, FaiList<Param> relLibList) {
+    public int getRlLibList(MgProductArg mgProductArg, FaiList<Param> relLibList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {

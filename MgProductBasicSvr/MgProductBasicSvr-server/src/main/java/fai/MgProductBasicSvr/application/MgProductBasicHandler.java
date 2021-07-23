@@ -461,12 +461,12 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
 
     /**==========================================操作商品与标签关联开始===========================================================*/
     @Cmd(MgProductBasicCmd.BindTagCmd.GET_LIST)
-    public int getPdsBindTag(final FaiSession session,
+    public int getPdBindTag(final FaiSession session,
                                @ArgFlow final int flow,
                                @ArgAid int aid,
                                @ArgBodyInteger(ProductBindTagDto.Key.UNION_PRI_ID) int unionPriId,
                                @ArgList(keyMatch = ProductBindTagDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
-        return tagBindService.getPdsBindTag(session, flow, aid, unionPriId, rlPdIds);
+        return tagBindService.getPdBindTag(session, flow, aid, unionPriId, rlPdIds);
     }
 
     @WrittenCmd
@@ -549,7 +549,6 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
         return tagBindService.getBindTagFromDb(session, flow, aid, unionPriId, searchArg);
     }
     /**==========================================操作商品与标签关联结束===========================================================*/
-
     private ProductBasicService service = ServiceProxy.create(new ProductBasicService());
     private ProductBindGroupService groupBindService = ServiceProxy.create(new ProductBindGroupService());
     private ProductBindPropService propBindService = ServiceProxy.create(new ProductBindPropService());

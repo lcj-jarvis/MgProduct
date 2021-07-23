@@ -12,7 +12,7 @@ import fai.comm.util.FaiList;
 import fai.comm.util.Param;
 import fai.comm.util.ParamUpdater;
 import fai.comm.util.SearchArg;
-import fai.middleground.infutil.app.CloneDef;
+import fai.comm.middleground.app.CloneDef;
 import fai.middleground.svrutil.service.MiddleGroundHandler;
 import fai.middleground.svrutil.service.ServiceProxy;
 
@@ -117,7 +117,7 @@ public class MgProductLibHandler extends MiddleGroundHandler {
                          @ArgFlow final int flow,
                          @ArgAid int aid,
                          @ArgBodyBoolean(ProductLibRelDto.Key.FROM_AID) int fromAid,
-                         @ArgList(classDef = CloneDef.Dto.class, methodDef = "getDto",
+                         @ArgList(classDef = CloneDef.Dto.class, methodDef = "getInternalDto",
                                  keyMatch = ProductLibRelDto.Key.CLONE_UNION_PRI_IDS) FaiList<Param> cloneUnionPriIds) throws IOException {
         return libService.cloneData(session, flow, aid, fromAid, cloneUnionPriIds);
     }

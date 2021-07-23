@@ -7,7 +7,6 @@ import fai.MgProductGroupSvr.domain.entity.ProductGroupRelValObj;
 import fai.MgProductGroupSvr.domain.repository.ProductGroupRelBakDaoCtrl;
 import fai.MgProductGroupSvr.domain.repository.ProductGroupRelCache;
 import fai.MgProductGroupSvr.domain.repository.ProductGroupRelDaoCtrl;
-import fai.app.SiteBackupDef;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
@@ -104,20 +103,23 @@ public class ProductGroupRelProc {
         }
     }
 
-    public void insert4IncrementalClone(int aid, int unionPriId, FaiList<Param> list) {
+    public void insert4Clone(int aid, FaiList<Integer> unionPriIds, FaiList<Param> list) {
         if(Util.isEmptyList(list)) {
-            Log.logStd("incrementalClone list is empty;aid=%d;uid=%d;", aid, unionPriId);
+            Log.logStd("incrementalClone list is empty;aid=%d;uid=%s;", aid, unionPriIds);
             return;
         }
         int rt = m_relDao.batchInsert(list, null, false);
         if(rt != Errno.OK) {
             throw new MgException(rt, "batch insert group rel error;flow=%d;aid=%d;", m_flow, aid);
         }
-        rt = m_relDao.restoreMaxId(unionPriId, false);
-        if(rt != Errno.OK) {
-            throw new MgException("restoreMaxId err;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
+
+        for(Integer unionPriId : unionPriIds) {
+            rt = m_relDao.restoreMaxId(unionPriId, false);
+            if(rt != Errno.OK) {
+                throw new MgException("restoreMaxId err;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
+            }
+            m_relDao.clearIdBuilderCache(aid, unionPriId);
         }
-        m_relDao.clearIdBuilderCache(aid, unionPriId);
     }
 
     public FaiList<Integer> batchAddGroupRel(int aid, int unionPriId, FaiList<Param> infoList) {
@@ -209,7 +211,7 @@ public class ProductGroupRelProc {
         delGroupRelList(aid, matcher);
     }
 
-    private void delGroupRelList(int aid, ParamMatcher matcher) {
+    public void delGroupRelList(int aid, ParamMatcher matcher) {
         int rt;
         if(matcher == null || matcher.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -266,6 +268,9 @@ public class ProductGroupRelProc {
         Set<Integer> groupIds = new HashSet<>();
         for(int unionPriId : unionPriIds) {
             FaiList<Param> fromList = searchFromDb(aid, unionPriId, null);
+            if(fromList.isEmpty()) {
+                continue;
+            }
 
             Set<String> newBakUniqueKeySet = new HashSet<>((int) (fromList.size() / 0.75f) + 1); // 初始容量直接定为所需的最大容量，去掉不必要的扩容
             FaiList<Calendar> updateTimeList = new FaiList<>();
@@ -398,10 +403,12 @@ public class ProductGroupRelProc {
             fromInfo.remove(MgBackupEntity.Comm.BACKUP_ID_FLAG);
         }
 
-        // 批量插入
-        rt = m_relDao.batchInsert(fromList);
-        if(rt != Errno.OK) {
-            throw new MgException(rt, "restore insert err;aid=%d;uids=%s;backupId=%d;backupFlag=%d;", aid, unionPriIds, backupId, backupFlag);
+        if(!fromList.isEmpty()) {
+            // 批量插入
+            rt = m_relDao.batchInsert(fromList);
+            if(rt != Errno.OK) {
+                throw new MgException(rt, "restore insert err;aid=%d;uids=%s;backupId=%d;backupFlag=%d;", aid, unionPriIds, backupId, backupFlag);
+            }
         }
 
         // 处理idBuilder

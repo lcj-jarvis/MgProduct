@@ -296,11 +296,11 @@ public class ProductTagService {
         try {
             ProductTagRelProc relTagProc = new ProductTagRelProc(flow, aid, transactionCtrl);
             //查询所有的标签业务表的数据
-            relTagList = relTagProc.getTagRelList(aid, unionPriId, null,true);
+            relTagList = relTagProc.getListFromCacheOrDb(aid, unionPriId, null);
 
             ProductTagProc tagProc = new ProductTagProc(flow, aid, transactionCtrl);
             //查询所有的标签表的数据
-            tagList = tagProc.getTagList(aid,null, true);
+            tagList = tagProc.getListFromCacheOrDb(aid,null);
         }finally {
             transactionCtrl.closeDao();
         }
@@ -350,11 +350,17 @@ public class ProductTagService {
         return rt;
     }
 
+    /**
+     * 获取所有的标签业务表的数据
+     */
     @SuccessRt(value = Errno.OK)
     public int getAllTagRel(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
         return getTagRelByConditions(session, flow, aid, unionPriId,null,true);
     }
 
+    /**
+     * 根据查询条件查询标签业务表的数据
+     */
     @SuccessRt(value = Errno.OK)
     public int getTagRelFromDb(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg) throws IOException {
         return getTagRelByConditions(session, flow, aid, unionPriId, searchArg, false);
@@ -364,8 +370,6 @@ public class ProductTagService {
      * 根据条件查询标签业务表的数据
      * @param searchArg 查询的条件。为null的话，查询的条件就会是aid和unionPriId
      * @param getFromCache 是否需要查缓存
-     * @return
-     * @throws IOException
      */
     private int getTagRelByConditions(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg, boolean getFromCache) throws IOException {
         int rt;
@@ -378,7 +382,11 @@ public class ProductTagService {
         TransactionCtrl transactionCtrl = new TransactionCtrl();
         try {
             ProductTagRelProc relProc = new ProductTagRelProc(flow, aid, transactionCtrl);
-            list = relProc.getTagRelList(aid, unionPriId, searchArg, getFromCache);
+            if (getFromCache) {
+                list = relProc.getListFromCacheOrDb(aid, unionPriId, searchArg);
+            } else {
+                list = relProc.getListFromDb(aid, unionPriId, searchArg);
+            }
         }finally {
             transactionCtrl.closeDao();
         }
@@ -610,7 +618,7 @@ public class ProductTagService {
     }
 
     /**
-     * 增量克隆，即tagId是自增的
+     * 增量克隆，即tagId是在已经存在的原来的tagId基础下自增的，不是直接克隆过来的
      */
     @SuccessRt(value = Errno.OK)
     public int incrementalClone(FaiSession session, int flow, int toAid, int toUnionPriId, int fromAid, int fromUnionPriId) throws IOException {
@@ -625,11 +633,11 @@ public class ProductTagService {
             Map<Integer, Param> tagId_RelInfo = new HashMap<>();
             
             //查出要克隆的数据
-            FaiList<Param> fromRelList = tagRelProc.getTagRelList(fromAid, fromUnionPriId, null, false);
-            
+            FaiList<Param> fromRelList = tagRelProc.getListFromDb(fromAid, fromUnionPriId, null);
+
             if(!fromRelList.isEmpty()) {
                 // 查出已存在的数据
-                FaiList<Param> existedList = tagRelProc.getTagRelList(toAid, toUnionPriId, null, false);
+                FaiList<Param> existedList = tagRelProc.getListFromDb(toAid, toUnionPriId, null);
                 for(Param fromInfo : fromRelList) {
                     int rlTagId = fromInfo.getInt(ProductTagRelEntity.Info.RL_TAG_ID);
                     boolean existed = Misc.getFirst(existedList, ProductTagRelEntity.Info.RL_TAG_ID, rlTagId) != null;
@@ -657,7 +665,7 @@ public class ProductTagService {
             tagSearch.matcher = new ParamMatcher(ProductTagEntity.Info.TAG_ID, ParamMatcher.IN,
                     new FaiList<>(tagId_RelInfo.keySet()));
             ProductTagProc tagProc = new ProductTagProc(flow, toAid, tc);
-            FaiList<Param> fromTagList = tagProc.getTagList(fromAid, tagSearch, false);
+            FaiList<Param> fromTagList = tagProc.getListFromDb(fromAid, tagSearch);
             // 这里必定是会查到数据才对
             if(fromTagList.isEmpty()) {
                 rt = Errno.ERROR;

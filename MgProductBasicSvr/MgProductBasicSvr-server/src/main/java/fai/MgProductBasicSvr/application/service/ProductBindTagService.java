@@ -29,9 +29,12 @@ import java.util.concurrent.locks.Lock;
  */
 public class ProductBindTagService extends ServicePub {
 
-
+    /**
+     * 根据aid，unionPriId，rlPdIds获取到商品和标签关联的数据。
+     * 先从缓存中获取，再从db中获取剩下的rlPdIds(缓存中不存在)的商品关联标签的数据
+     */
     @SuccessRt(value = Errno.OK)
-    public int getPdsBindTag(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlPdIds) throws IOException {
+    public int getPdBindTag(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlPdIds) throws IOException {
         if(Util.isEmptyList(rlPdIds)) {
             int rt = Errno.ARGS_ERROR;
             Log.logErr(rt, "args error, rlPdIds is empty;aid=%d;unionPriId=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
@@ -58,7 +61,10 @@ public class ProductBindTagService extends ServicePub {
     }
 
     /**
-     * 先删除再添加
+     * 先根据aid，unionPriId，delRlTagIds删除商品关联标签的数据，
+     * 再根据addRlTagIds添加新的商品关联标签的数据
+     * @param addRlTagIds 要删除的多个rlTagId
+     * @param delRlTagIds 要添加的多个rlTagId
      */
     @SuccessRt(value = Errno.OK)
     public int setPdBindTag(FaiSession session, int flow, int aid, int unionPriId, int rlPdId,
@@ -126,15 +132,6 @@ public class ProductBindTagService extends ServicePub {
 
     /**
      * 分布式事务Saga模式，先删除后添加标签
-     * @param session
-     * @param flow
-     * @param aid
-     * @param unionPriId
-     * @param rlPdId
-     * @param xid
-     * @param addRlTagIds
-     * @param delRlTagIds
-     * @return
      */
     @SuccessRt(value = Errno.OK)
     public int transactionSetPdBindTag(FaiSession session, int flow, int aid, int unionPriId, int rlPdId, String xid, FaiList<Integer> addRlTagIds, FaiList<Integer> delRlTagIds) throws IOException {
@@ -209,6 +206,9 @@ public class ProductBindTagService extends ServicePub {
         return Errno.OK;
     }
 
+    /**
+     * 分布式事务transactionSetPdBindTag方法对应的回滚的方法
+     */
     @SuccessRt(value = Errno.OK)
     public int setPdBindTagRollback(FaiSession session, int flow, int aid, String xid, Long branchId) throws IOException {
         int rt = Errno.ERROR;
@@ -292,6 +292,7 @@ public class ProductBindTagService extends ServicePub {
 
     /**
      * 根据rlPdIds删除商品和标签的关联数据
+     * @param  delRlPdIds 要删除的多个rlPdId
      */
     @SuccessRt(value = Errno.OK)
     public int delBindTagList(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> delRlPdIds) throws IOException {
@@ -333,6 +334,9 @@ public class ProductBindTagService extends ServicePub {
         return Errno.OK;
     }
 
+    /**
+     * 根据rlTagIds查询RlPdIds
+     */
     @SuccessRt(value = Errno.OK)
     public int getRlPdIdsByRlTagIds(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlTagIds) throws IOException {
         if(Util.isEmptyList(rlTagIds)) {
@@ -344,7 +348,7 @@ public class ProductBindTagService extends ServicePub {
         TransactionCtrl tc = new TransactionCtrl();
         try {
             ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
-            rlPdIds = bindTagProc.getRlPdIdsByTagId(aid, unionPriId, rlTagIds);
+            rlPdIds = bindTagProc.getRlPdIdsByTagIds(aid, unionPriId, rlTagIds);
             if(Util.isEmptyList(rlPdIds)) {
                 Log.logDbg("not found;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
                 return Errno.NOT_FOUND;
@@ -360,6 +364,9 @@ public class ProductBindTagService extends ServicePub {
         return Errno.OK;
     }
 
+    /**
+     * 获取标签的数据状态
+     */
     @SuccessRt(value = Errno.OK)
     public int getBindTagDataStatus(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
         int rt;
@@ -385,6 +392,9 @@ public class ProductBindTagService extends ServicePub {
         return rt;
     }
 
+    /**
+     * 获取aid和unionPriId下的所有的商品和标签的关联数据
+     */
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getAllPdBindTag(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
         int rt;
@@ -398,7 +408,7 @@ public class ProductBindTagService extends ServicePub {
         try {
             ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
             // 查aid + unionPriId 下所有数据
-            list = bindTagProc.getListByConditions(aid, unionPriId, null, ProductBindTagEntity.MANAGE_FIELDS, null);
+            list = bindTagProc.getListByConditions(aid, unionPriId, null, ProductBindTagEntity.MANAGE_FIELDS);
         }finally {
             tc.closeDao();
         }
@@ -411,6 +421,10 @@ public class ProductBindTagService extends ServicePub {
         return rt;
     }
 
+    /**
+     * 根据aid，unionPriId，searchArg从db中查询商品和标签的关联数据
+     * @param searchArg 查询的条件
+     */
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getBindTagFromDb(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg) throws IOException {
         int rt;
@@ -423,7 +437,7 @@ public class ProductBindTagService extends ServicePub {
         TransactionCtrl tc = new TransactionCtrl();
         try {
             ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
-            list = bindTagProc.getListByConditions(aid, unionPriId, searchArg, ProductBindTagEntity.MANAGE_FIELDS, null);
+            list = bindTagProc.getListByConditions(aid, unionPriId, searchArg, ProductBindTagEntity.MANAGE_FIELDS);
         }finally {
             tc.closeDao();
         }

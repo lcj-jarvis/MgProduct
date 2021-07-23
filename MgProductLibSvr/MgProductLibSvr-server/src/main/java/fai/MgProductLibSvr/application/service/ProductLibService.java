@@ -15,7 +15,7 @@ import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
-import fai.middleground.infutil.app.CloneDef;
+import fai.comm.middleground.app.CloneDef;
 import fai.middleground.svrutil.annotation.SuccessRt;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
@@ -283,11 +283,11 @@ public class ProductLibService {
         try {
             ProductLibRelProc relLibProc = new ProductLibRelProc(flow, aid, transactionCtrl);
             //查询所有的库业务表的数据
-            relLibList = relLibProc.getLibRelList(aid, unionPriId, null,true);
+            relLibList = relLibProc.getListFromCacheOrDb(aid, unionPriId, null);
 
             ProductLibProc libProc = new ProductLibProc(flow, aid, transactionCtrl);
             //查询所有的库表的数据
-            libList = libProc.getLibList(aid,null, true);
+            libList = libProc.getListFromCacheOrDb(aid, null);
         }finally {
             transactionCtrl.closeDao();
         }
@@ -343,6 +343,51 @@ public class ProductLibService {
     }
 
     @SuccessRt(value = Errno.OK)
+    public int getLibRelFromDb(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg) throws IOException {
+        return getLibRelByConditions(session, flow, aid, unionPriId, searchArg, false);
+    }
+
+    /**
+     * 根据条件查询库业务表的数据
+     * @param searchArg 查询的条件。为null的话，查询的条件就会是aid和unionPriId
+     * @param getFromCache 是否需要查缓存
+     */
+    private int getLibRelByConditions(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg, boolean getFromCache) throws IOException {
+        int rt;
+        if(aid <= 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
+            return rt;
+        }
+        FaiList<Param> list;
+        TransactionCtrl transactionCtrl = new TransactionCtrl();
+        try {
+            ProductLibRelProc relProc = new ProductLibRelProc(flow, aid, transactionCtrl);
+            if (getFromCache) {
+                list = relProc.getListFromCacheOrDb(aid, unionPriId, searchArg);
+            } else {
+                list = relProc.getListFromDb(aid, unionPriId, searchArg);
+            }
+        }finally {
+            transactionCtrl.closeDao();
+        }
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        list.toBuffer(sendBuf, ProductLibRelDto.Key.INFO_LIST, ProductLibRelDto.getInfoDto());
+        if (searchArg != null) {
+            boolean needTotalSize = searchArg.totalSize != null && searchArg.totalSize.value != null;
+            if (needTotalSize) {
+                sendBuf.putInt(ProductLibRelDto.Key.TOTAL_SIZE, searchArg.totalSize.value);
+            }
+        }
+
+        session.write(sendBuf);
+        rt = Errno.OK;
+        Log.logDbg("get list ok;flow=%d;aid=%d;unionPriId=%d;size=%d;", flow, aid, unionPriId, list.size());
+
+        return rt;
+    }
+
+    @SuccessRt(value = Errno.OK)
     public int getLibRelDataStatus(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
         int rt;
         if(aid <= 0) {
@@ -364,49 +409,6 @@ public class ProductLibService {
         session.write(sendBuf);
         rt = Errno.OK;
         Log.logDbg("getLibRelDataStatus ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
-        return rt;
-    }
-
-    @SuccessRt(value = Errno.OK)
-    public int getLibRelFromDb(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg) throws IOException {
-        return getLibRelByConditions(session, flow, aid, unionPriId, searchArg, false);
-    }
-
-    /**
-     * 根据条件查询库业务表的数据
-     * @param searchArg 查询的条件。为null的话，查询的条件就会是aid和unionPriId
-     * @param getFromCache 是否需要查缓存
-     * @return
-     * @throws IOException
-     */
-    private int getLibRelByConditions(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg, boolean getFromCache) throws IOException {
-        int rt;
-        if(aid <= 0) {
-            rt = Errno.ARGS_ERROR;
-            Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
-            return rt;
-        }
-        FaiList<Param> list;
-        TransactionCtrl transactionCtrl = new TransactionCtrl();
-        try {
-            ProductLibRelProc relProc = new ProductLibRelProc(flow, aid, transactionCtrl);
-            list = relProc.getLibRelList(aid, unionPriId, searchArg, getFromCache);
-        }finally {
-            transactionCtrl.closeDao();
-        }
-        FaiBuffer sendBuf = new FaiBuffer(true);
-        list.toBuffer(sendBuf, ProductLibRelDto.Key.INFO_LIST, ProductLibRelDto.getInfoDto());
-        if (searchArg != null) {
-            boolean needTotalSize = searchArg.totalSize != null && searchArg.totalSize.value != null;
-            if (needTotalSize) {
-                sendBuf.putInt(ProductLibRelDto.Key.TOTAL_SIZE, searchArg.totalSize.value);
-            }
-        }
-
-        session.write(sendBuf);
-        rt = Errno.OK;
-        Log.logDbg("get list ok;flow=%d;aid=%d;unionPriId=%d;size=%d;", flow, aid, unionPriId, list.size());
-
         return rt;
     }
 
@@ -594,9 +596,9 @@ public class ProductLibService {
         Map<Integer, Integer> cloneUidMap = new HashMap<>();
         for(Param cloneUidInfo : cloneUnionPriIds) {
             //克隆到哪个UnionPriId下
-            Integer toUnionPriId = cloneUidInfo.getInt(CloneDef.Info.TO_UNIONPRIID);
+            Integer toUnionPriId = cloneUidInfo.getInt(CloneDef.Info.TO_PRIMARY_KEY);
             //从哪个UnionPriId下克隆
-            Integer fromUnionPriId = cloneUidInfo.getInt(CloneDef.Info.FROM_UNIONPRIID);
+            Integer fromUnionPriId = cloneUidInfo.getInt(CloneDef.Info.FROM_PRIMARY_KEY);
             if(toUnionPriId == null || fromUnionPriId == null) {
                 rt = Errno.ARGS_ERROR;
                 Log.logErr("args error, cloneUnionPriIds is error;flow=%d;toAid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
@@ -656,11 +658,11 @@ public class ProductLibService {
             Map<Integer, Param> libId_RelInfo = new HashMap<>();
 
             //查出要克隆的数据
-            FaiList<Param> fromRelList = libRelProc.getLibRelList(fromAid, fromUnionPriId, null, false);
+            FaiList<Param> fromRelList = libRelProc.getListFromDb(fromAid, fromUnionPriId, null);
 
             if(!fromRelList.isEmpty()) {
                 // 查出已存在的数据
-                FaiList<Param> existedList = libRelProc.getLibRelList(toAid, toUnionPriId, null, false);
+                FaiList<Param> existedList = libRelProc.getListFromDb(toAid, toUnionPriId, null);
                 for(Param fromInfo : fromRelList) {
                     int rlLibId = fromInfo.getInt(ProductLibRelEntity.Info.RL_LIB_ID);
                     boolean existed = Misc.getFirst(existedList, ProductLibRelEntity.Info.RL_LIB_ID, rlLibId) != null;
@@ -688,7 +690,7 @@ public class ProductLibService {
             libSearch.matcher = new ParamMatcher(ProductLibEntity.Info.LIB_ID, ParamMatcher.IN,
                     new FaiList<>(libId_RelInfo.keySet()));
             ProductLibProc libProc = new ProductLibProc(flow, toAid, tc);
-            FaiList<Param> fromLibList = libProc.getLibList(fromAid, libSearch, false);
+            FaiList<Param> fromLibList = libProc.getListFromDb(fromAid, libSearch);
             // 这里必定是会查到数据才对
             if(fromLibList.isEmpty()) {
                 rt = Errno.ERROR;

@@ -5,10 +5,10 @@ import fai.MgProductTagSvr.interfaces.dto.ProductTagRelDto;
 import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
-import fai.middleground.infutil.app.CloneDef;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 import fai.middleground.infutil.MgConfPool;
+import fai.comm.middleground.app.CloneDef;
 
 /**
  * @author LuChaoJi
@@ -439,7 +439,7 @@ public class MgProductTagCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductTagRelDto.Key.FROM_AID, fromAid);
-            cloneUnionPriIds.toBuffer(sendBody, ProductTagRelDto.Key.CLONE_UNION_PRI_IDS, CloneDef.Dto.getDto());
+            //cloneUnionPriIds.toBuffer(sendBody, ProductTagRelDto.Key.CLONE_UNION_PRI_IDS, CloneDef.Dto.getDto());
             //发送数据
             sendAndReceive(aid, MgProductTagCmd.TagCmd.CLONE, sendBody, false);
 

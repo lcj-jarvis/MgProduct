@@ -1,9 +1,15 @@
 package fai.MgProductBasicSvr.domain.repository.cache;
 
+import fai.MgProductBasicSvr.interfaces.dto.ProductBindGroupDto;
 import fai.comm.cache.redis.RedisCacheManager;
-import fai.comm.util.Parser;
+import fai.comm.cache.redis.client.RedisClientExecutor;
+import fai.comm.cache.redis.pool.JedisPool;
+import fai.comm.util.*;
+import redis.clients.jedis.Jedis;
 
+import java.nio.ByteBuffer;
 import java.util.Calendar;
+import java.util.List;
 
 /**
  * 方便统一初始化各个CacheCtrl的RedisCacheManager
@@ -49,8 +55,49 @@ public class CacheCtrl {
 	 */
 	private static final String LUA_GET_OR_SET_EXPIRE = "local val = redis.call('get', KEYS[1]); if not val then redis.call('set', KEYS[1], ARGV[1]); val = ARGV[1]; end; redis.call('expire', KEYS[1], ARGV[2]); return val;";
 
-	public static void init(RedisCacheManager cache) {
+
+	protected static Object eval(byte[] script, int keyCount, byte[]... params) {
+
+		return new RedisClientExecutor<Object>(m_jedisPool) {
+			@Override
+			public Object  execute(Jedis jedis) {
+				return jedis.eval(script, keyCount, params);
+			}
+		}.run();
+	}
+
+	public static FaiList<Param> getFaiList(FaiList<String> cacheKeys) {
+		byte[][] keyBytes = new byte[cacheKeys.size()][];
+		for(int i = 0; i < cacheKeys.size(); i++) {
+			keyBytes[i] = cacheKeys.get(i).getBytes();
+		}
+
+		FaiList<Param> list = new FaiList<>();
+		List<byte[]> res = (List<byte[]>)eval(GET_KEYS_SCRIPT.getBytes(), keyBytes.length, keyBytes);
+		for(int i = 0; i < res.size(); i++) {
+			byte[] bytes = res.get(i);
+			if(bytes ==null) {
+				continue;
+			}
+			FaiList<Param> curList = new FaiList<>();
+			ByteBuffer buf = ByteBuffer.wrap(bytes);
+			Ref<Integer> keyRef = new Ref<Integer>();
+			int rt = curList.fromBuffer(buf, keyRef, ProductBindGroupDto.getInfoDto());
+			if (rt != Errno.OK || keyRef.value != ProductBindGroupDto.Key.INFO) {
+				curList = null;
+				Log.logErr("list from buffer err");
+			}
+			list.addAll(curList);
+		}
+		return list;
+	}
+
+	private static final String GET_KEYS_SCRIPT = "local result = {};for i = 1,#(KEYS) do result[i]= redis.call('get',KEYS[i]) end; return result";
+
+	public static void init(RedisCacheManager cache, JedisPool jedisPool) {
 		m_cache = cache;
+		m_jedisPool = jedisPool;
 	}
 	protected static RedisCacheManager m_cache;
+	protected static JedisPool m_jedisPool;
 }

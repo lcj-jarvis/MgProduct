@@ -56,7 +56,7 @@ public class MgProductBasicSvr {
         int lockLease = svrOption.getLockLease();
         Log.logStd("lockLease=%d;", lockLease);
 
-        init(daoPool, m_cache, lockLease);
+        init(daoPool, m_cache, lockLease, jedisPool);
 
         server.setHandler(new MgProductBasicHandler(server));
         server.start();
@@ -83,7 +83,7 @@ public class MgProductBasicSvr {
         return daoPool;
     }
 
-    public static void init(DaoPool daoPool, RedisCacheManager cache, int lockLease) {
+    public static void init(DaoPool daoPool, RedisCacheManager cache, int lockLease, JedisPool jedisPool) {
         // 初始化daopool
         ProductDaoCtrl.init(daoPool, cache);
         ProductRelDaoCtrl.init(daoPool, cache);
@@ -93,7 +93,7 @@ public class MgProductBasicSvr {
         SagaDaoCtrl.init(daoPool);
 
         // 缓存初始化
-        CacheCtrl.init(cache);
+        CacheCtrl.init(cache, jedisPool);
 
         LockUtil.init(cache, lockLease);
         LockUtil.PdBindTagLock.init(cache, lockLease);

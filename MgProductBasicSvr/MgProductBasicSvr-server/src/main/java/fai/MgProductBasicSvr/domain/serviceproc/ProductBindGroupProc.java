@@ -2,7 +2,6 @@ package fai.MgProductBasicSvr.domain.serviceproc;
 
 import fai.MgProductBasicSvr.domain.entity.ProductBindGroupEntity;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductBindGroupCache;
-import fai.MgProductBasicSvr.domain.repository.cache.ProductBindTagCache;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductBindGroupDaoCtrl;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
@@ -13,6 +12,7 @@ import fai.middleground.svrutil.repository.TransactionCtrl;
 import java.util.Calendar;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ProductBindGroupProc {
@@ -125,6 +125,24 @@ public class ProductBindGroupProc {
         return refRowCount.value;
     }
 
+    public int delPdBindGroupListByRlGroupIds(int aid, int unionPriId, FaiList<Integer> rlGroupIds) {
+        int rt;
+        if(Util.isEmptyList(rlGroupIds)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args error;flow=%d;aid=%d;uid=%d;rlGroupIds=%s;", m_flow, aid, unionPriId, rlGroupIds);
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(ProductBindGroupEntity.Info.RL_GROUP_ID, ParamMatcher.IN, rlGroupIds);
+        Ref<Integer> refRowCount = new Ref<>();
+        rt = m_dao.delete(matcher, refRowCount);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "del info error;flow=%d;aid=%d;uid=%d;rlPdIds=%s;", m_flow, aid, unionPriId, rlGroupIds);
+        }
+        Log.logStd("delPdBindGroupList ok;flow=%d;aid=%d;uid=%d;rlPdIds=%s;", m_flow, aid, unionPriId, rlGroupIds);
+        return refRowCount.value;
+    }
+
     // 清空指定aid+unionPriId的数据
     public void clearAcct(int aid, FaiList<Integer> unionPriIds) {
         int rt;
@@ -231,15 +249,9 @@ public class ProductBindGroupProc {
             throw new MgException(Errno.ARGS_ERROR, "args error, rlPdIds is empty;aid=%d;unionPriId=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
         }
         // 缓存中获取
-        List<String> rlPdIdStrs = rlPdIds.stream().map(String::valueOf).collect(Collectors.toList());
-        FaiList<Param> list = ProductBindGroupCache.getCacheList(aid, unionPriId, rlPdIdStrs);
+        FaiList<Param> list = ProductBindGroupCache.getCacheList(aid, unionPriId, new FaiList<>(rlPdIds));
         if(list == null) {
             list = new FaiList<Param>();
-        }
-        list.remove(null);
-        // 查到的数据量和pdIds的数据量一致，则说明都有缓存
-        if(list.size() == rlPdIds.size()) {
-            return list;
         }
 
         // 拿到未缓存的pdId list
@@ -248,6 +260,10 @@ public class ProductBindGroupProc {
         for(Param info : list) {
             Integer rlPdId = info.getInt(ProductBindGroupEntity.Info.RL_PD_ID);
             noCacheIds.remove(rlPdId);
+        }
+
+        if(noCacheIds.isEmpty()) {
+            return list;
         }
 
         // db中获取
@@ -262,8 +278,11 @@ public class ProductBindGroupProc {
         }
         if(tmpRef.value != null && !tmpRef.value.isEmpty()) {
             list.addAll(tmpRef.value);
-            // 添加到缓存
-            ProductBindGroupCache.addCacheList(aid, unionPriId, tmpRef.value);
+            Map<Integer, List<Param>> groupByRlPdId = tmpRef.value.stream().collect(Collectors.groupingBy(x -> x.getInt(ProductBindGroupEntity.Info.RL_PD_ID)));
+            for(Integer rlPdId : groupByRlPdId.keySet()) {
+                // 添加到缓存
+                ProductBindGroupCache.addCacheList(aid, unionPriId, rlPdId, new FaiList<>(groupByRlPdId.get(rlPdId) ));
+            }
         }
 
         if (list.isEmpty()) {

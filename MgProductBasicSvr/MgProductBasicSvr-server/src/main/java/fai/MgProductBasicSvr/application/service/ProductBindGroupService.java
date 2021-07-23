@@ -95,7 +95,7 @@ public class ProductBindGroupService extends ServicePub {
                 commit = true;
                 tc.commit();
                 // 删除缓存
-                ProductBindGroupCache.delCache(aid, unionPriId);
+                ProductBindGroupCache.delCache(aid, unionPriId, rlPdId);
                 ProductBindGroupCache.DataStatusCache.update(aid, unionPriId, addCount);
             }finally {
                 if(!commit) {
@@ -168,7 +168,7 @@ public class ProductBindGroupService extends ServicePub {
                 commit = true;
                 tc.commit();
                 // 删除缓存
-                ProductBindGroupCache.delCache(aid, unionPriId);
+                ProductBindGroupCache.delCache(aid, unionPriId, rlPdId);
                 ProductBindGroupCache.DataStatusCache.update(aid, unionPriId, addCount);
             } finally {
                 if (!commit) {
@@ -298,7 +298,7 @@ public class ProductBindGroupService extends ServicePub {
         }
 
         FaiBuffer sendBuf = new FaiBuffer(true);
-        rlPdIds.toBuffer(sendBuf, ProductBindGroupDto.Key.INFO_LIST, ProductBindGroupDto.getInfoDto());
+        rlPdIds.toBuffer(sendBuf, ProductBindGroupDto.Key.RL_PD_IDS);
         session.write(sendBuf);
         Log.logDbg("get ok;flow=%d;aid=%d;uid=%d;rlGroupIds=%s;", flow, aid, unionPriId, rlGroupIds);
         return Errno.OK;
@@ -318,13 +318,13 @@ public class ProductBindGroupService extends ServicePub {
         TransactionCtrl tc = new TransactionCtrl();
         try {
             ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
-            delCount = bindGroupProc.delPdBindGroupList(aid, unionPriId, rlGroupIds);
+            delCount = bindGroupProc.delPdBindGroupListByRlGroupIds(aid, unionPriId, rlGroupIds);
 
         }finally {
             tc.closeDao();
         }
         // 删除缓存
-        ProductBindGroupCache.delCache(aid, unionPriId);
+        ProductBindGroupCache.clearCacheVersion(aid);
         ProductBindGroupCache.DataStatusCache.update(aid, unionPriId, -delCount);
 
         FaiBuffer sendBuf = new FaiBuffer(true);

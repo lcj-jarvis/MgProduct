@@ -118,7 +118,6 @@ public class ProductBasicService extends ServicePub {
                 if(!softDel) {
                     if(useProductGroup()) {
                         ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
-                        ProductBindGroupCache.setExpire(aid, unionPriId);
                         delGroupCount = bindGroupProc.delPdBindGroupList(aid, unionPriId, rlPdIds);
                     }
 
@@ -140,7 +139,7 @@ public class ProductBasicService extends ServicePub {
                 ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, -delCount); // 更新数据状态缓存
                 if(!softDel) {
                     // 处理商品分类关联数据缓存
-                    ProductBindGroupCache.delCache(aid, unionPriId);
+                    ProductBindGroupCache.delCacheList(aid, unionPriId, rlPdIds);
                     ProductBindGroupCache.DataStatusCache.update(aid, unionPriId, -delGroupCount);
                     // 处理商品标签关联数据缓存
                     HashSet<Integer> cacheRlPdIds = new HashSet<>(rlPdIds);
@@ -257,7 +256,7 @@ public class ProductBasicService extends ServicePub {
                     // 参数关联缓存
                     ProductBindPropCache.delCache(aid, curUnionPriId, curRlPdId);
                     // 分类关联缓存
-                    ProductBindGroupCache.delCache(aid, curUnionPriId);
+                    ProductBindGroupCache.delCache(aid, curUnionPriId, curRlPdId);
                     //标签关联缓存
                     ProductBindTagCache.delCacheList(aid, curUnionPriId, rlPdIdList);
                 }

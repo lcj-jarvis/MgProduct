@@ -1,44 +1,54 @@
 package fai.MgProductBasicSvr.domain.repository.cache;
 
-import fai.MgProductBasicSvr.domain.entity.ProductBindGroupEntity;
 import fai.MgProductBasicSvr.interfaces.dto.ProductBindGroupDto;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
+import fai.mgproduct.comm.Util;
 
 import java.util.HashSet;
-import java.util.List;
 
 public class ProductBindGroupCache extends CacheCtrl {
 
-    public static FaiList<Param> getCacheList(int aid, int unionPriId, List<String> rlPdIds) {
-        String cacheKey = getCacheKey(aid, unionPriId);
+    public static FaiList<Param> getCacheList(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
         FaiList<Param> list = null;
+        if(Util.isEmptyList(rlPdIds)) {
+            return null;
+        }
+        FaiList<String> cacheKeys = new FaiList<>();
+        for(Integer rlPdId : rlPdIds) {
+            cacheKeys.add(getCacheKey(aid, unionPriId, rlPdId));
+        }
         try {
-            list = m_cache.hmget(cacheKey, ProductBindGroupDto.Key.INFO, ProductBindGroupDto.getInfoDto(), rlPdIds);
+            list = getFaiList(cacheKeys);
         } catch (Exception e) {
             Log.logErr(e,"getCacheList error;aid=%d;unionPriId=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
         }
+
         return list;
     }
 
-    public static void setExpire(int aid, int unionPriId) {
-        String cacheKey = getCacheKey(aid, unionPriId);
-        m_cache.expire(cacheKey, EXPIRE_SECOND);
-    }
-
-    public static void addCacheList(int aid, int unionPriId, FaiList<Param> list) {
+    public static void addCacheList(int aid, int unionPriId, int rlPdId, FaiList<Param> list) {
         if(list == null || list.isEmpty()) {
             return;
         }
-        String cacheKey = getCacheKey(aid, unionPriId);
-        m_cache.hmsetFaiList(cacheKey, ProductBindGroupEntity.Info.RL_GROUP_ID, Var.Type.INT, list, ProductBindGroupDto.Key.INFO, ProductBindGroupDto.getInfoDto());
+        String cacheKey = getCacheKey(aid, unionPriId, rlPdId);
+        m_cache.setFaiList(cacheKey, list, ProductBindGroupDto.Key.INFO, ProductBindGroupDto.getInfoDto());
     }
 
-    public static void delCache(int aid, int unionPriId) {
-        String cacheKey = getCacheKey(aid, unionPriId);
-        if(m_cache.exists(cacheKey)) {
-            m_cache.del(cacheKey);
+    public static void delCacheList(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
+        if(Util.isEmptyList(rlPdIds)) {
+            return;
         }
+        String[] cacheKeys = new String[rlPdIds.size()];
+        for(int i = 0; i < rlPdIds.size(); i++) {
+            cacheKeys[i] = getCacheKey(aid, unionPriId, rlPdIds.get(i));
+        }
+
+        m_cache.del(cacheKeys);
+    }
+
+    public static void delCache(int aid, int unionPriId, Integer rlPdId) {
+        m_cache.del(getCacheKey(aid, unionPriId, rlPdId));
     }
 
     /** 数据状态缓存 **/
@@ -94,10 +104,9 @@ public class ProductBindGroupCache extends CacheCtrl {
         private static final String DATA_STATUS_CACHE_KEY = "MG_pdBindGroupDS";
     }
 
-    public static String getCacheKey(int aid, int unionPriId) {
-        return wrapCacheVersion(CACHE_KEY + "-" + aid + "-" + unionPriId, aid);
+    public static String getCacheKey(int aid, int unionPriId, int rlPdId) {
+        return wrapCacheVersion(CACHE_KEY + "-" + aid + "-" + unionPriId + "-" + rlPdId, aid);
     }
 
     private static final String CACHE_KEY = "MG_productBindGroup";
-    private static final int EXPIRE_SECOND = 10;
 }

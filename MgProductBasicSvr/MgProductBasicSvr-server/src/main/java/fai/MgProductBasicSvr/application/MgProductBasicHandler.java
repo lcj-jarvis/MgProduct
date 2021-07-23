@@ -414,7 +414,7 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                               @ArgFlow final int flow,
                               @ArgAid int aid,
                               @ArgBodyInteger(ProductBindGroupDto.Key.UNION_PRI_ID) int unionPriId,
-                              @ArgList(keyMatch = ProductBindGroupDto.Key.RL_GROUP_IDS) FaiList<Integer> delGroupIds) throws IOException {
+                              @ArgList(keyMatch = ProductBindGroupDto.Key.DEL_RL_GROUP_IDS) FaiList<Integer> delGroupIds) throws IOException {
         return groupBindService.delBindGroupList(session, flow, aid, unionPriId, delGroupIds);
     }
 

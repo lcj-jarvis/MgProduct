@@ -350,11 +350,17 @@ public class ProductTagService {
         return rt;
     }
 
+    /**
+     * 获取所有的标签业务表的数据
+     */
     @SuccessRt(value = Errno.OK)
     public int getAllTagRel(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
         return getTagRelByConditions(session, flow, aid, unionPriId,null,true);
     }
 
+    /**
+     * 根据查询条件查询标签业务表的数据
+     */
     @SuccessRt(value = Errno.OK)
     public int getTagRelFromDb(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg) throws IOException {
         return getTagRelByConditions(session, flow, aid, unionPriId, searchArg, false);
@@ -364,7 +370,6 @@ public class ProductTagService {
      * 根据条件查询标签业务表的数据
      * @param searchArg 查询的条件。为null的话，查询的条件就会是aid和unionPriId
      * @param getFromCache 是否需要查缓存
-     * @throws IOException
      */
     private int getTagRelByConditions(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg, boolean getFromCache) throws IOException {
         int rt;
@@ -613,7 +618,7 @@ public class ProductTagService {
     }
 
     /**
-     * 增量克隆，即tagId是自增的
+     * 增量克隆，即tagId是在已经存在的原来的tagId基础下自增的，不是直接克隆过来的
      */
     @SuccessRt(value = Errno.OK)
     public int incrementalClone(FaiSession session, int flow, int toAid, int toUnionPriId, int fromAid, int fromUnionPriId) throws IOException {

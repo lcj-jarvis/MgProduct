@@ -226,7 +226,6 @@ public class ProductLibProc {
             throw new MgException(rt, "args err, infoList is empty;flow=%d;aid=%d;libInfo=%s", m_flow, aid, libInfoList);
         }
 
-        //FaiList<Param> list = getLibList(aid,null,true);
         FaiList<Param> list = getListFromCacheOrDb(aid,null);
         int count = list.size();
         //判断是否超出数量限制

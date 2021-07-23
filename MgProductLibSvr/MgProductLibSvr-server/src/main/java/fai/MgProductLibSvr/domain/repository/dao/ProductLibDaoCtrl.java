@@ -24,6 +24,8 @@ public class ProductLibDaoCtrl extends DaoCtrl {
             .buildTableName(TABLE_PREFIX)
             .buildAssistTableSuffix("idBuilder")
             .buildInitValue(ID_BUILDER_INIT)
+            //测试的时候，不使用缓存的自增id，因为返回的自增id为一个aid下缓存的
+            //.buildUseCache(false)
             .buildPrimaryMatchField(ProductLibEntity.Info.AID)
             .buildAutoIncField(ProductLibEntity.Info.LIB_ID)
             .build();

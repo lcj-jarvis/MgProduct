@@ -22,6 +22,8 @@ public class ProductLibRelDaoCtrl extends DaoCtrl {
     private static IdBuilderConfig idBuilderConfig = new IdBuilderConfig.HeavyweightBuilder()
             .buildTableName(TABLE_PREFIX)
             .buildAssistTableSuffix("idBuilder")
+            //测试的时候，不使用缓存的自增id，因为返回的自增id为一个aid下缓存的
+            //.buildUseCache(false)
             .buildPrimaryMatchField(ProductLibRelEntity.Info.AID)
             .buildForeignMatchField(ProductLibRelEntity.Info.UNION_PRI_ID)
             .buildAutoIncField(ProductLibRelEntity.Info.RL_LIB_ID)

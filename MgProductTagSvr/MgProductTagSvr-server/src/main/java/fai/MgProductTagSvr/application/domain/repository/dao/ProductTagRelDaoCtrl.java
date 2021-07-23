@@ -25,6 +25,8 @@ public class ProductTagRelDaoCtrl extends DaoCtrl {
             .buildPrimaryMatchField(ProductTagRelEntity.Info.AID)
             .buildForeignMatchField(ProductTagRelEntity.Info.UNION_PRI_ID)
             .buildAutoIncField(ProductTagRelEntity.Info.RL_TAG_ID)
+            //测试的时候，不使用缓存的自增id，因为返回的自增id为一个aid下缓存的
+            //.buildUseCache(false)
             .buildInitValue(ID_BUILDER_INIT)
             .build();
     private String tableName;

@@ -207,7 +207,7 @@ public class ProductBindPropService extends ServicePub {
     /**
      * transactionSetPdBindProp 的补偿方法
      */
-    public int setPdBindPropRollback(FaiSession session, int aid, int flow, String xid, Long branchId) throws IOException {
+    public int setPdBindPropRollback(FaiSession session, int flow, int aid, String xid, Long branchId) throws IOException {
         int rt = Errno.ERROR;
         Lock lock = LockUtil.getLock(aid);
         lock.lock();
@@ -222,7 +222,9 @@ public class ProductBindPropService extends ServicePub {
                 SagaProc sagaProc = new SagaProc(flow, aid, tc);
                 Param sagaInfo = sagaProc.getInfoWithAdd(xid, branchId);
                 if (sagaInfo == null) {
-                    return Errno.OK;
+                    commit = true;
+                    rt = Errno.OK;
+                    return rt;
                 }
 
                 // 获取补偿信息
@@ -230,6 +232,8 @@ public class ProductBindPropService extends ServicePub {
                 int status = sagaInfo.getInt(BasicSagaEntity.Info.STATUS);
                 // 幂等性保证
                 if (status == BasicSagaValObj.Status.ROLLBACK_OK) {
+                    commit = true;
+                    rt = Errno.OK;
                     return rt;
                 }
 
@@ -252,10 +256,11 @@ public class ProductBindPropService extends ServicePub {
                 }
 
                 // 修改 saga 状态
-                sagaProc.setStatus(xid, branchId, status);
+                sagaProc.setStatus(xid, branchId, BasicSagaValObj.Status.ROLLBACK_OK);
 
                 commit = true;
                 tc.commit();
+                rt = Errno.OK;
             } finally {
                 if (!commit) {
                     tc.rollback();

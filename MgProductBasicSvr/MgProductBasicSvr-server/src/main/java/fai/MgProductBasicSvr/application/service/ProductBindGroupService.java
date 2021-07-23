@@ -1,10 +1,10 @@
 package fai.MgProductBasicSvr.application.service;
 
 import fai.MgProductBasicSvr.domain.common.LockUtil;
-import fai.MgProductBasicSvr.domain.entity.ProductBindGroupEntity;
-import fai.MgProductBasicSvr.domain.entity.ProductEntity;
 import fai.MgProductBasicSvr.domain.entity.BasicSagaEntity;
 import fai.MgProductBasicSvr.domain.entity.BasicSagaValObj;
+import fai.MgProductBasicSvr.domain.entity.ProductBindGroupEntity;
+import fai.MgProductBasicSvr.domain.entity.ProductEntity;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductBindGroupCache;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductBindGroupProc;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductRelProc;
@@ -206,6 +206,7 @@ public class ProductBindGroupService extends ServicePub {
                 // 获取 saga 表中的数据
                 Param sagaInfo = sagaProc.getInfoWithAdd(xid, branchId);
                 if (sagaInfo == null) {
+                    commit = true;
                     rt = Errno.OK;
                     return rt;
                 }
@@ -215,35 +216,37 @@ public class ProductBindGroupService extends ServicePub {
                 int status = sagaInfo.getInt(BasicSagaEntity.Info.STATUS);
                 // 幂等性保证
                 if (status == BasicSagaValObj.Status.ROLLBACK_OK) {
+                    commit = true;
+                    rt = Errno.OK;
                     return rt;
                 }
 
                 /* 获取补偿信息 start */
                 int pdId = rollbackInfo.getInt(ProductBindGroupEntity.Info.PD_ID);
                 unionPriId = rollbackInfo.getInt(ProductBindGroupEntity.Info.UNION_PRI_ID);
-                int curAid = sagaInfo.getInt(ProductBindGroupEntity.Info.AID);
                 int rlPdId = rollbackInfo.getInt(ProductBindGroupEntity.Info.RL_PD_ID);
                 addCount = rollbackInfo.getInt(ProductEntity.Business.ADD_COUNT);
                 // 之前添加的分类ids
                 FaiList<Integer> addGroupIds = rollbackInfo.getList(ProductBindGroupEntity.Business.ADD_GROUP_IDS);
                 // 之前删除的分类ids
-                FaiList<Integer> delGroupList = rollbackInfo.getList(ProductBindGroupEntity.Business.DEL_GROUP_IDS);
+                FaiList<Integer> delGroupIds = rollbackInfo.getList(ProductBindGroupEntity.Business.DEL_GROUP_IDS);
                 /* 获取补偿信息 end */
 
                 ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
                 // 补偿，删除之前添加的分类绑定
                 if (!Util.isEmptyList(addGroupIds)) {
-                    bindGroupProc.delPdBindGroupList(curAid, unionPriId, pdId, addGroupIds);
+                    bindGroupProc.delPdBindGroupList(aid, unionPriId, rlPdId, addGroupIds);
                 }
                 // 补偿，添加之前删除的分类绑定
-                if (!Util.isEmptyList(delGroupList)) {
-                    bindGroupProc.addPdBindGroupList(curAid, unionPriId, rlPdId, pdId, delGroupList);
+                if (!Util.isEmptyList(delGroupIds)) {
+                    bindGroupProc.addPdBindGroupList(aid, unionPriId, rlPdId, pdId, delGroupIds);
                 }
                 // 修改Saga状态
                 sagaProc.setStatus(xid, branchId, BasicSagaValObj.Status.ROLLBACK_OK);
 
                 commit = true;
                 tc.commit();
+                rt = Errno.OK;
             } finally {
                 if (!commit) {
                     tc.rollback();
@@ -251,6 +254,7 @@ public class ProductBindGroupService extends ServicePub {
                     // 告知数据状态发生变化，由于之前的逻辑是修改完后直接删除整个缓存并没有更新缓存，所以在这里不做分类绑定的缓存补偿
                     ProductBindGroupCache.DataStatusCache.update(aid, unionPriId, -addCount);
                 }
+                tc.closeDao();
             }
         } finally {
             lock.unlock();

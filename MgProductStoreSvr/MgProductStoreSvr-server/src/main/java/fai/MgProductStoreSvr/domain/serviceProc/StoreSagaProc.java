@@ -31,9 +31,10 @@ public class StoreSagaProc {
      */
     public int add(int aid, String xid, Long branchId, Param prop) {
         int rt;
-        if (!Str.isEmpty(prop)) {
+        if (Str.isEmpty(prop)) {
             rt = Errno.ARGS_ERROR;
             Log.logErr(rt, "args err;prop is empty;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
         }
         Calendar now = Calendar.getInstance();
         Param info = new Param();

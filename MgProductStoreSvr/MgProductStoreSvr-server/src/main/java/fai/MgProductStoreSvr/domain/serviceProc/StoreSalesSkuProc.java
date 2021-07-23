@@ -397,11 +397,27 @@ public class StoreSalesSkuProc {
         // 记录补偿
         if (prop != null) {
             storeSalesSkuSaga = new Param();
-            for (Param info : listRef.value) {
-                info.setInt(StoreSalesSkuEntity.Info.AID, aid);
-                info.setInt(StoreSalesSkuEntity.Info.PD_ID, pdId);
+            FaiList<Param> oldDataList = listRef.value;
+            Calendar now = Calendar.getInstance();
+            FaiList<Param> dataList = new FaiList<>(listRef.value.size());
+            // 这是为了记录的 dataList 中字段能对应上 doBatchUpdater
+            for (Param oldData : oldDataList) {
+                Integer uid = oldData.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+                Long skuId = oldData.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                Param data = new Param();
+                {
+                    maxUpdaterKeys.forEach(key -> data.assign(oldData, key));
+                    data.setCalendar(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, now);
+                }
+                { // for prepare matcher
+                    data.setInt(StoreSalesSkuEntity.Info.AID, aid);
+                    data.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, uid);
+                    data.setInt(StoreSalesSkuEntity.Info.PD_ID, pdId);
+                    data.setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId);
+                }
+                dataList.add(data);
             }
-            storeSalesSkuSaga.setList(StoreSagaEntity.PropInfo.StoreSaleSKU.DATA_LIST, listRef.value);
+            storeSalesSkuSaga.setList(StoreSagaEntity.PropInfo.StoreSaleSKU.DATA_LIST, dataList);
             storeSalesSkuSaga.setParam(StoreSagaEntity.PropInfo.StoreSaleSKU.DO_BATCH_UPDATER, doBatchUpdater.getData());
             prop.setParam(StoreSagaEntity.PropInfo.STORE_SALE_SKU, storeSalesSkuSaga);
         }

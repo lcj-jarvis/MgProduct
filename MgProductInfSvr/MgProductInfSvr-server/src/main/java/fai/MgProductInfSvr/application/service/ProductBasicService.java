@@ -593,7 +593,6 @@ public class ProductBasicService extends MgProductInfService {
                 return rt;
             }
             int unionPriId = idRef.value;
-
             // 获取全局事务
             GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
             // 开启事务

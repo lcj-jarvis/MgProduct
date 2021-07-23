@@ -104,7 +104,6 @@ public class SagaProc {
      * @param xid 全局事务id
      * @param branchId 分支事务id
      * @param status 修改状态
-     * @return {@link Errno}
      */
     public void setStatus(String xid, Long branchId, int status) {
         Param updateInfo = new Param();

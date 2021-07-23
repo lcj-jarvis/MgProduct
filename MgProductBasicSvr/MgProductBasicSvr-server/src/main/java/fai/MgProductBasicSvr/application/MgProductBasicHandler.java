@@ -70,6 +70,16 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
         return propBindService.transactionSetPdBindProp(session, flow, aid, unionPriId, tid, rlPdId, xid, addList, delList);
     }
 
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BindPropCmd.SET_PD_BIND_PROP_ROLLBACK)
+    public int setPdBindPropRollback(final FaiSession session,
+                                     @ArgFlow final int flow,
+                                     @ArgAid final int aid,
+                                     @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                     @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return propBindService.setPdBindPropRollback(session, flow, aid, xid, branchId);
+    }
+
     @Cmd(MgProductBasicCmd.BindPropCmd.GET_LIST_BY_PROP)
     public int getRlPdByPropVal(final FaiSession session,
                              @ArgFlow final int flow,

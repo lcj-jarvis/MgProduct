@@ -12,7 +12,7 @@ import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
 import fai.comm.netkit.NKDef;
 import fai.comm.util.*;
-import fai.middleground.infutil.app.CloneDef;
+import fai.comm.middleground.app.CloneDef;
 import fai.middleground.svrutil.service.MiddleGroundHandler;
 import fai.middleground.svrutil.service.ServiceProxy;
 
@@ -110,8 +110,8 @@ public class MgProductGroupHandler extends MiddleGroundHandler {
 	public int cloneData(final FaiSession session,
 							@ArgFlow final int flow,
 							@ArgAid int aid,
-							@ArgBodyBoolean(ProductGroupRelDto.Key.FROM_AID) int fromAid,
-							@ArgList(classDef = CloneDef.Dto.class, methodDef = "getDto",
+							@ArgBodyInteger(ProductGroupRelDto.Key.FROM_AID) int fromAid,
+							@ArgList(classDef = CloneDef.Dto.class, methodDef = "getInternalDto",
 									keyMatch = ProductGroupRelDto.Key.CLONE_UNION_PRI_IDS) FaiList<Param> cloneUnionPriIds) throws IOException {
 		return groupService.cloneData(session, flow, aid, fromAid, cloneUnionPriIds);
 	}
@@ -121,9 +121,9 @@ public class MgProductGroupHandler extends MiddleGroundHandler {
 	public int incrementalClone(final FaiSession session,
 						 @ArgFlow final int flow,
 						 @ArgAid int aid,
-						 @ArgBodyBoolean(ProductGroupRelDto.Key.UNION_PRI_ID) int unionPriId,
-						 @ArgBodyBoolean(ProductGroupRelDto.Key.FROM_AID) int fromAid,
-						 @ArgBodyBoolean(ProductGroupRelDto.Key.FROM_UNION_PRI_ID) int fromUnionPriId) throws IOException {
+						 @ArgBodyInteger(ProductGroupRelDto.Key.UNION_PRI_ID) int unionPriId,
+						 @ArgBodyInteger(ProductGroupRelDto.Key.FROM_AID) int fromAid,
+						 @ArgBodyInteger(ProductGroupRelDto.Key.FROM_UNION_PRI_ID) int fromUnionPriId) throws IOException {
 		return groupService.incrementalClone(session, flow, aid, unionPriId, fromAid, fromUnionPriId);
 	}
 

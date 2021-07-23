@@ -5,6 +5,7 @@ import fai.comm.util.Param;
 import fai.comm.util.ParamUpdater;
 import fai.comm.util.SearchArg;
 
+import java.sql.BatchUpdateException;
 import java.util.Calendar;
 
 public class MgProductArg {
@@ -16,6 +17,10 @@ public class MgProductArg {
     private FaiList<Param> primaryKeys;
 
     private String xid;
+    private int fromAid;
+    private Param option;
+    private Param fromPrimaryKey;
+    private int rlBackupId;
 
     private FaiList<Param> addList;
     private boolean isBiz;
@@ -75,6 +80,10 @@ public class MgProductArg {
         this.keepPriId1 = builder.keepPriId1;
 
         this.xid = builder.xid;
+        this.fromAid = builder.fromAid;
+        this.option = builder.option;
+        this.fromPrimaryKey = builder.fromPrimaryKey;
+        this.rlBackupId = builder.rlBackupId;
 
         this.primaryKeys = builder.primaryKeys;
         this.updaterList = builder.updaterList;
@@ -129,6 +138,22 @@ public class MgProductArg {
 
     public String getXid() {
         return xid;
+    }
+
+    public int getFromAid() {
+        return fromAid;
+    }
+
+    public Param getOption() {
+        return option;
+    }
+
+    public Param getFromPrimaryKey() {
+        return fromPrimaryKey;
+    }
+
+    public int getRlBackupId() {
+        return rlBackupId;
     }
 
     public int getAid() {
@@ -335,6 +360,10 @@ public class MgProductArg {
         protected int keepPriId1;
 
         protected String xid;
+        protected int fromAid;
+        protected Param option;
+        protected Param fromPrimaryKey;
+        protected int rlBackupId;
 
         protected FaiList<Param> addList;
         protected FaiList<Param> primaryKeys;
@@ -349,6 +378,10 @@ public class MgProductArg {
 
         public abstract Builder setXid(String xid);
 
+        public abstract Builder setFromAid(int fromAid);
+        public abstract Builder setOption(Param option);
+        public abstract Builder setFromPrimaryKey(Param fromPrimaryKey);
+        public abstract Builder setRlBackupId(int rlBackupId);
         public abstract Builder setAddList(FaiList<Param> addList);
         public abstract Builder setPrimaryList(FaiList<Param> primaryKeys);
         public abstract Builder setUpdaterList(FaiList<ParamUpdater> updaterList);
@@ -575,6 +608,30 @@ public class MgProductArg {
         @Override
         public Builder setXid(String xid) {
             this.xid = xid;
+            return this;
+        }
+
+        @Override
+        public Builder setFromAid(int fromAid) {
+            this.fromAid = fromAid;
+            return this;
+        }
+
+        @Override
+        public Builder setOption(Param option) {
+            this.option = option;
+            return this;
+        }
+
+        @Override
+        public Builder setFromPrimaryKey(Param fromPrimaryKey) {
+            this.fromPrimaryKey = fromPrimaryKey;
+            return this;
+        }
+
+        @Override
+        public Builder setRlBackupId(int rlBackupId) {
+            this.rlBackupId = rlBackupId;
             return this;
         }
 

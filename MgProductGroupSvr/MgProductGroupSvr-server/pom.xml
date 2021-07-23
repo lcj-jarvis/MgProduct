@@ -12,12 +12,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>fai-comm-middleground</groupId>
-            <artifactId>fai-comm-middleground</artifactId>
-            <version>${fai-comm-middleground-ver}</version>
-        </dependency>
-
-        <dependency>
             <groupId>fai-middleground-svrutil</groupId>
             <artifactId>fai-middleground-svrutil</artifactId>
             <version>1.1.0</version>

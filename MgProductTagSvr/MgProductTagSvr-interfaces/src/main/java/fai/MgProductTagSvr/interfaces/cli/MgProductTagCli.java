@@ -8,7 +8,7 @@ import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 import fai.middleground.infutil.MgConfPool;
-import fai.middleground.infutil.app.CloneDef;
+import fai.comm.middleground.app.CloneDef;
 
 /**
  * @author LuChaoJi

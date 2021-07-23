@@ -1,6 +1,5 @@
 package fai.MgProductInfSvr.application;
 
-import fai.MgProductBasicSvr.interfaces.dto.ProductDto;
 import fai.MgProductInfSvr.application.service.*;
 import fai.MgProductInfSvr.interfaces.cmd.MgProductInfCmd;
 import fai.MgProductInfSvr.interfaces.dto.*;
@@ -14,6 +13,7 @@ import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
 import fai.comm.netkit.NKDef;
 import fai.comm.util.*;
+import fai.comm.middleground.app.CloneDef;
 import fai.middleground.svrutil.service.ServiceProxy;
 
 import java.io.IOException;
@@ -1104,6 +1104,75 @@ public class MgProductInfHandler extends FaiHandler {
         return mgProductInfService.clearCache(session, flow, aid);
     }
 
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.Cmd.CLONE_DATA)
+    public int cloneData(final FaiSession session,
+                         @ArgFlow final int flow,
+                         @ArgAid final int aid,
+                         @ArgParam(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
+                                 keyMatch = MgProductDto.Key.PRIMARY_KEY) Param primaryKey,
+                         @ArgBodyInteger(MgProductDto.Key.FROM_AID) int fromAid,
+                         @ArgList(classDef = CloneDef.Dto.class, methodDef = "getExternalDto",
+                                 keyMatch = MgProductDto.Key.PRIMARY_KEYS) FaiList<Param> clonePrimaryKeys,
+                         @ArgParam(classDef = MgProductDto.class, methodDef = "getOptionDto",
+                                 keyMatch = MgProductDto.Key.OPTION, useDefault = true) Param cloneOption) throws IOException {
+        return mgProductInfService.cloneData(session, flow, aid, primaryKey, fromAid, clonePrimaryKeys, cloneOption);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.Cmd.INC_CLONE)
+    public int incrementalClone(final FaiSession session,
+                         @ArgFlow final int flow,
+                         @ArgAid final int aid,
+                         @ArgParam(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
+                                 keyMatch = MgProductDto.Key.PRIMARY_KEY) Param primaryKey,
+                         @ArgBodyInteger(MgProductDto.Key.FROM_AID) int fromAid,
+                         @ArgParam(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
+                                 keyMatch = MgProductDto.Key.FROM_PRIMARY_KEY) Param fromPrimaryKey,
+                         @ArgParam(classDef = MgProductDto.class, methodDef = "getOptionDto",
+                                 keyMatch = MgProductDto.Key.OPTION, useDefault = true) Param cloneOption) throws IOException {
+        return mgProductInfService.incrementalClone(session, flow, aid, primaryKey, fromAid, fromPrimaryKey, cloneOption);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.Cmd.BACKUP)
+    public int backupData(final FaiSession session,
+                                @ArgFlow final int flow,
+                                @ArgAid final int aid,
+                                @ArgParam(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
+                                        keyMatch = MgProductDto.Key.PRIMARY_KEY) Param primaryKey,
+                                @ArgList(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
+                                  keyMatch = MgProductDto.Key.PRIMARY_KEYS) FaiList<Param> backupPrimaryKeys,
+                                @ArgBodyInteger(MgProductDto.Key.RL_BACKUPID) int rlBackupId) throws IOException {
+        return mgProductInfService.backupData(session, flow, aid, primaryKey, backupPrimaryKeys, rlBackupId);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.Cmd.RESTORE)
+    public int restoreBackupData(final FaiSession session,
+                          @ArgFlow final int flow,
+                          @ArgAid final int aid,
+                          @ArgParam(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
+                                  keyMatch = MgProductDto.Key.PRIMARY_KEY) Param primaryKey,
+                          @ArgList(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
+                                  keyMatch = MgProductDto.Key.PRIMARY_KEYS) FaiList<Param> backupPrimaryKeys,
+                          @ArgBodyInteger(MgProductDto.Key.RL_BACKUPID) int rlBackupId,
+                          @ArgParam(classDef = MgProductDto.class, methodDef = "getOptionDto",
+                                  keyMatch = MgProductDto.Key.OPTION, useDefault = true) Param restoreOption) throws IOException {
+        return mgProductInfService.restoreBackupData(session, flow, aid, primaryKey, backupPrimaryKeys, rlBackupId, restoreOption);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.Cmd.DEL_BACKUP)
+    public int delBackupData(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid final int aid,
+                                 @ArgParam(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
+                                         keyMatch = MgProductDto.Key.PRIMARY_KEY) Param primaryKey,
+                                 @ArgBodyInteger(MgProductDto.Key.RL_BACKUPID) int rlBackupId) throws IOException {
+        return mgProductInfService.delBackup(session, flow, aid, primaryKey, rlBackupId);
+    }
+
     /*** 商品分类 start ***/
     @Cmd(MgProductInfCmd.GroupCmd.GET_GROUP_LIST)
     public int getPdGroupList(final FaiSession session,
@@ -1387,7 +1456,8 @@ public class MgProductInfHandler extends FaiHandler {
     }
     /**商品和标签的关联 end*/
 
-    MgProductInfService mgProductInfService = new MgProductInfService();
+    //MgProductInfService mgProductInfService = new MgProductInfService();
+    MgProductInfService mgProductInfService = ServiceProxy.create(new MgProductInfService());
 
     ProductSearchService searchService = new ProductSearchService();
     ProductBasicService basicService = new ProductBasicService();

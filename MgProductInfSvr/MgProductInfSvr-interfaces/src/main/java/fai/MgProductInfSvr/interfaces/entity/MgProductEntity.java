@@ -31,4 +31,15 @@ public class MgProductEntity {
         public static final String PD_ID = "pdId";                          // int 商品id 商品中台内部使用
         public static final String RL_PD_ID = "rlPdId";                     // int 商品业务id 商品中台内部使用
     }
+
+    /**
+     * 商品中台所有数据选项, 之后但凡是有业务控制要操作哪些数据的，都用这个
+     */
+    public final class Option {
+        public static final String BASIC = "basic";  // 基础数据
+        public static final String GROUP = "group";  // 分类数据
+        public static final String LIB = "lib";      // 商品库数据
+        public static final String TAG = "tag";      // 标签数据
+        public static final String PROP = "prop";    // 参数数据
+    }
 }

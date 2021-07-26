@@ -1080,7 +1080,7 @@ public class StoreSalesSkuService extends StoreService {
             session.write(sendBuf);
             Log.logStd("ok;flow=%s;aid=%s;unionPriId=%s;rlOrderCode=%s;skuIdCountMap=%s;", flow, aid, unionPriId, rlOrderCode, skuIdCountMap);
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end(rt != Errno.OK && rt < MgProductErrno.MIN_VALUE, rt);
         }
         return rt;
     }

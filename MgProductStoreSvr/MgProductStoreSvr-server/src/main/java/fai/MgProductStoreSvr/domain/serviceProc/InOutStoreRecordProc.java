@@ -824,15 +824,26 @@ public class InOutStoreRecordProc {
         return rt;
     }
 
-    public int batchDel(int aid, FaiList<Integer> pdIdList) {
+    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean isSaga) {
+        int rt = Errno.ERROR;
         ParamMatcher matcher = new ParamMatcher();
         matcher.and(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(InOutStoreRecordEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
 
         Calendar now = Calendar.getInstance();
-        ParamUpdater updater = new ParamUpdater(new Param().setInt(InOutStoreRecordEntity.Info.STATUS, InOutStoreRecordValObj.Status.DEL)
-                .setCalendar(InOutStoreRecordEntity.Info.SYS_UPDATE_TIME, now));
-        int rt = m_daoCtrl.update(updater, matcher);
+        if (!isSaga) {
+            // 非分布式事务，则修改状态
+            ParamUpdater updater = new ParamUpdater(new Param().setInt(InOutStoreRecordEntity.Info.STATUS, InOutStoreRecordValObj.Status.DEL)
+                    .setCalendar(InOutStoreRecordEntity.Info.SYS_UPDATE_TIME, now));
+            rt = m_daoCtrl.update(updater, matcher);
+        } else  {
+            // 分布式事务，将 aid 变成负数，这样做的原因：区分逻辑删除，因为以后要定期删除 -aid 的数据，如果分布式事务也使用 status 就无法区分哪些是应该被删除的数据
+            ParamUpdater updater = new ParamUpdater(new Param().setInt(InOutStoreRecordEntity.Info.AID, -aid)
+                    .setCalendar(InOutStoreRecordEntity.Info.SYS_UPDATE_TIME, now)
+            );
+            rt = m_daoCtrl.update(updater, matcher);
+        }
+
         if(rt != Errno.OK){
             Log.logErr(rt, "soft delete err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
             return rt;
@@ -855,8 +866,11 @@ public class InOutStoreRecordProc {
             Log.logErr(rt, "arg err;pdIdList is empty;flow=%d;aid=%d", m_flow, aid);
             return rt;
         }
-        ParamUpdater updater = new ParamUpdater(new Param().setInt(InOutStoreRecordEntity.Info.STATUS, InOutStoreRecordValObj.Status.DEFAULT));
-        ParamMatcher matcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
+        Calendar now = Calendar.getInstance();
+        ParamUpdater updater = new ParamUpdater(new Param().setInt(InOutStoreRecordEntity.Info.AID, aid)
+                .setCalendar(InOutStoreRecordEntity.Info.SYS_UPDATE_TIME, now)
+        );
+        ParamMatcher matcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, -aid);
         matcher.and(InOutStoreRecordEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
         rt = m_daoCtrl.update(updater, matcher);
         if (rt != Errno.OK) {

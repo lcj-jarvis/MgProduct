@@ -180,7 +180,7 @@ public class StoreService {
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = inOutStoreRecordProc.batchDel(aid, pdIdList);
+                        rt = inOutStoreRecordProc.batchDel(aid, pdIdList, isSaga);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -194,7 +194,10 @@ public class StoreService {
                             Param prop = new Param();
                             prop.setList(StoreSagaEntity.PropInfo.PD_ID_SET, pdIdList);
                             StoreSagaProc storeSagaProc = new StoreSagaProc(flow, aid, transactionCtrl);
-                            storeSagaProc.add(aid, xid, RootContext.getBranchId(), prop);
+                            rt = storeSagaProc.add(aid, xid, RootContext.getBranchId(), prop);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
                         }
                         commit = true;
                     }finally {
@@ -265,7 +268,7 @@ public class StoreService {
                         Param prop = Param.parseParam(sagaInfo.getString(StoreSagaEntity.Info.PROP));
                         // ----------------------------------- 补偿操作 start ----------------------------------
                         if (!Str.isEmpty(prop)) {
-                            FaiList<Integer> pdIdList = sagaInfo.getParam(StoreSagaEntity.Info.PROP).getList(StoreSagaEntity.PropInfo.PD_ID_SET);
+                            FaiList<Integer> pdIdList = prop.getList(StoreSagaEntity.PropInfo.PD_ID_SET);
                             rt = skuSummaryProc.batchDelRollback(aid, pdIdList);
                             if (rt != Errno.OK) {
                                 return rt;
@@ -587,9 +590,10 @@ public class StoreService {
                         }
                         rt = reportSummary(aid, prop.getList(StoreSagaEntity.PropInfo.PD_ID_SET), ReportValObj.Flag.REPORT_COUNT|ReportValObj.Flag.REPORT_PRICE,
                                 prop.getList(StoreSagaEntity.PropInfo.SKU_ID_SET), storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
-                        if (rt != Errno.OK){
+                        if (rt != Errno.OK && rt != Errno.NOT_FOUND){
                             return rt;
                         }
+                        rt = Errno.OK;
                         commit = true;
                     }
                 } finally {

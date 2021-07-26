@@ -334,7 +334,7 @@ public class StoreSalesSkuService extends StoreService {
                             }
                         }
                         // 2、补偿之前添加的数据
-                        if (!Util.isEmptyList(delSkuIdList)) {
+                        if (!Util.isEmptyList(addSkuIdList)) {
                             rt = storeSalesSkuProc.batchAddRollback(aid, pdId, unionPriId, addSkuIdList);
                             if (rt != Errno.OK) {
                                 return rt;
@@ -364,7 +364,8 @@ public class StoreSalesSkuService extends StoreService {
                         }
                         rt = reportSummary(aid, pdIds, ReportValObj.Flag.REPORT_COUNT| ReportValObj.Flag.REPORT_PRICE,
                                 null, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
-                        if (rt != Errno.OK) {
+                        // 允许 rt = Errno.NOT_FOUND , 存在这种场景，因为前面的补偿将添加的汇总给删除了，可能会存在 NOT_FOUND 情况
+                        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
                             return rt;
                         }
                         // 4、修改补偿状态
@@ -827,7 +828,8 @@ public class StoreSalesSkuService extends StoreService {
                             FaiList<Long> skuIdList = prop.getList(StoreSagaEntity.PropInfo.SKU_ID_SET);
                             rt = reportSummary(aid, pdIdList, ReportValObj.Flag.REPORT_PRICE|ReportValObj.Flag.REPORT_COUNT,
                                     skuIdList, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
-                            if(rt != Errno.OK){
+                            // 允许 rt = Errno.NOT_FOUND , 存在这种场景，因为前面的补偿将添加的汇总给删除了，可能会存在 NOT_FOUND 情况
+                            if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                                 return rt;
                             }
                             // 3、修改补偿状态

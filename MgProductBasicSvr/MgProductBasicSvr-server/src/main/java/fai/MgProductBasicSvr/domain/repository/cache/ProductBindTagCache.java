@@ -1,58 +1,68 @@
 package fai.MgProductBasicSvr.domain.repository.cache;
 
-import fai.MgProductBasicSvr.domain.entity.ProductBindTagEntity;
 import fai.MgProductBasicSvr.interfaces.dto.ProductBindTagDto;
-import fai.comm.util.*;
+import fai.comm.util.FaiList;
+import fai.comm.util.Log;
+import fai.comm.util.Param;
+import fai.comm.util.ParamUpdater;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 
 import java.util.HashSet;
-import java.util.List;
 
 public class ProductBindTagCache extends CacheCtrl {
 
-    public static boolean exist(int aid, int unionPriId, int rlPdId) {
-        String cacheKey = getCacheKey(aid, unionPriId);
-        return m_cache.hexists(cacheKey.getBytes(), String.valueOf(rlPdId).getBytes());
-    }
-
-    public static FaiList<Param> getCacheList(int aid, int unionPriId) {
-        String cacheKey = getCacheKey(aid, unionPriId);
+    public static FaiList<Param> getCacheList(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
         FaiList<Param> list = null;
-        try {
-            list = m_cache.hgetAllFaiList(cacheKey, ProductBindTagDto.Key.INFO, ProductBindTagDto.getInfoDto());
-        } catch (Exception e) {
-            Log.logErr(e,"getCacheList error;aid=%d;unionPriId=%d;", aid, unionPriId);
+        if(Util.isEmptyList(rlPdIds)) {
+            return null;
         }
+        FaiList<String> cacheKeys = new FaiList<>();
+        for(Integer rlPdId : rlPdIds) {
+            cacheKeys.add(getCacheKey(aid, unionPriId, rlPdId));
+        }
+        try {
+            list = getFaiList(cacheKeys, ProductBindTagDto.getInfoDto(), ProductBindTagDto.Key.INFO);
+        } catch (Exception e) {
+            Log.logErr(e,"getCacheList error;aid=%d;unionPriId=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
+        }
+
         return list;
     }
 
-    public static void setExpire(int aid, int unionPriId) {
-        String cacheKey = getCacheKey(aid, unionPriId);
-        m_cache.expire(cacheKey, EXPIRE_SECOND);
+    public static void setExpire(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
+        for (Integer rlPdId : rlPdIds) {
+            String cacheKey = getCacheKey(aid, unionPriId, rlPdId);
+            m_cache.expire(cacheKey, EXPIRE_SECOND);
+
+        }
     }
-    
-    public static void addCacheList(int aid, int unionPriId, FaiList<Param> list) {
+
+    /**
+     *  aid + uid + rlPdId ---》 list
+     * @param aid
+     * @param unionPriId
+     * @param rlPdId
+     * @param list
+     */
+    public static void addCacheList(int aid, int unionPriId, int rlPdId, FaiList<Param> list) {
         if(Util.isEmptyList(list)) {
             return;
         }
-        String cacheKey = getCacheKey(aid, unionPriId);
-        m_cache.hmsetFaiList(cacheKey, ProductBindTagEntity.Info.RL_PD_ID, Var.Type.INT, list, ProductBindTagDto.Key.INFO, ProductBindTagDto.getInfoDto());
+        String cacheKey = getCacheKey(aid, unionPriId, rlPdId);
+        m_cache.setFaiList(cacheKey, list, ProductBindTagDto.Key.INFO, ProductBindTagDto.getInfoDto());
     }
 
     public static void delCacheList(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
         if(Util.isEmptyList(rlPdIds)) {
             return;
         }
-        String cacheKey = getCacheKey(aid, unionPriId);
-        if(!m_cache.exists(cacheKey)) {
-            return;
+        for (Integer rlPdId : rlPdIds) {
+            String cacheKey = getCacheKey(aid, unionPriId, rlPdId);
+            if (m_cache.exists(cacheKey)) {
+                m_cache.del(cacheKey);
+            }
         }
-        String[] rlLibIdStrs = new String[rlPdIds.size()];
-        for(int i = 0; i < rlPdIds.size(); i++) {
-            rlLibIdStrs[i] = String.valueOf(rlPdIds.get(i));
-        }
-        m_cache.hdel(cacheKey, rlLibIdStrs);
     }
 
     /** 数据状态缓存 **/
@@ -117,8 +127,8 @@ public class ProductBindTagCache extends CacheCtrl {
         private static final String DATA_STATUS_CACHE_KEY = "MG_pdBindTagDS";
     }
 
-    public static String getCacheKey(int aid, int unionPriId) {
-        return wrapCacheVersion(CACHE_KEY + "-" + aid + "-" + unionPriId, aid);
+    public static String getCacheKey(int aid, int unionPriId, int rlPdId) {
+        return wrapCacheVersion(CACHE_KEY + "-" + aid + "-" + unionPriId + "-" + rlPdId, aid);
     }
 
     private static final String CACHE_KEY = "MG_productBindTag";

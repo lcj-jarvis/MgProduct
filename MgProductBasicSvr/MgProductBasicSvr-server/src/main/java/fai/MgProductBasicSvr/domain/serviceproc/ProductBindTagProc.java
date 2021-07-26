@@ -1,6 +1,7 @@
 package fai.MgProductBasicSvr.domain.serviceproc;
 
 import fai.MgProductBasicSvr.domain.common.LockUtil;
+import fai.MgProductBasicSvr.domain.entity.ProductBindGroupEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductBindTagEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductBindTagEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductBindTagEntity;
@@ -12,9 +13,8 @@ import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
-import java.util.Calendar;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author LuChaoJi
@@ -41,15 +41,11 @@ public class ProductBindTagProc {
         }
     }
 
-    /**
-     * 缓存结构有问题，先不测.采用hash缓存，无论field字段是rlTagId或者rlPdId都会被覆盖。缓存中查出来的实际数量会和db的不一致
-     * @return
-     */
     public FaiList<Param> getPdBindTagList(int aid, int unionPriId, FaiList<Integer> rlPdIdList) {
         //去重
-        Set<Integer> rlPdIds = new HashSet<>(rlPdIdList);
+        FaiList<Integer> rlPdIds = new FaiList<>(new HashSet<>(rlPdIdList));
         //获取缓存的所有数据
-        FaiList<Param> cacheList = ProductBindTagCache.getCacheList(aid, unionPriId);
+        FaiList<Param> cacheList = ProductBindTagCache.getCacheList(aid, unionPriId, rlPdIds);
         if (cacheList == null) {
             cacheList = new FaiList<>();
         }
@@ -61,7 +57,7 @@ public class ProductBindTagProc {
         LockUtil.PdBindTagLock.readLock(aid);
         try {
             //双检，防止缓存穿透
-            cacheList = ProductBindTagCache.getCacheList(aid, unionPriId);
+            cacheList = ProductBindTagCache.getCacheList(aid, unionPriId, rlPdIds);
             if (cacheList == null) {
                 cacheList = new FaiList<>();
             }
@@ -78,8 +74,7 @@ public class ProductBindTagProc {
                 Integer rlPdId = param.getInt(ProductBindTagEntity.Info.RL_PD_ID);
                 cacheRlPdIds.add(rlPdId);
             });
-            FaiList<Integer> allRlPdIds = new FaiList<>(rlPdIds);
-            allRlPdIds.forEach(rlPdId -> {
+            rlPdIds.forEach(rlPdId -> {
                 if (!cacheRlPdIds.contains(rlPdId)) {
                     noCacheRlPdIds.add(rlPdId);
                 }
@@ -89,9 +84,15 @@ public class ProductBindTagProc {
             SearchArg searchArg = new SearchArg();
             searchArg.matcher = new ParamMatcher(ProductBindTagEntity.Info.RL_PD_ID, ParamMatcher.IN, noCacheRlPdIds);
             FaiList<Param> noCacheList = getListByConditions(aid, unionPriId, searchArg, null);
+
+            Map<Integer, List<Param>> groupByRlPdIds = noCacheList.stream()
+                    .collect(Collectors.groupingBy(x -> x.getInt(ProductBindGroupEntity.Info.RL_PD_ID)));
+
             if (!noCacheList.isEmpty()) {
                 //添加缓存
-                ProductBindTagCache.addCacheList(aid, unionPriId, noCacheList);
+                for (Integer rlPdId:groupByRlPdIds.keySet()) {
+                    ProductBindTagCache.addCacheList(aid, unionPriId, rlPdId, new FaiList<>(groupByRlPdIds.get(rlPdId)));
+                }
                 //组装完整的结果
                 cacheList.addAll(noCacheList);
             }

@@ -440,7 +440,7 @@ public class MgProductLibCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductLibRelDto.Key.FROM_AID, fromAid);
-           // cloneUnionPriIds.toBuffer(sendBody, ProductLibRelDto.Key.CLONE_UNION_PRI_IDS, CloneDef.Dto.getDto());
+            cloneUnionPriIds.toBuffer(sendBody, ProductLibRelDto.Key.CLONE_UNION_PRI_IDS, CloneDef.Dto.getInternalDto());
             //发送数据
             sendAndReceive(aid, MgProductLibCmd.LibCmd.CLONE, sendBody, false);
 

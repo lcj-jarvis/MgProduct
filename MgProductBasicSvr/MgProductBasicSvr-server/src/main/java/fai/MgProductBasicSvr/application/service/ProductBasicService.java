@@ -123,7 +123,7 @@ public class ProductBasicService extends ServicePub {
 
                     if(useProductTag()) {
                         ProductBindTagProc bindGroupProc = new ProductBindTagProc(flow, aid, tc);
-                        ProductBindTagCache.setExpire(aid, unionPriId);
+                        ProductBindTagCache.setExpire(aid, unionPriId, rlPdIds);
                         delGroupCount = bindGroupProc.delPdBindTagList(aid, unionPriId, rlPdIds);
                     }
 

@@ -117,7 +117,7 @@ public class MgProductTagHandler extends MiddleGroundHandler {
                          @ArgFlow final int flow,
                          @ArgAid int aid,
                          @ArgBodyBoolean(ProductTagRelDto.Key.FROM_AID) int fromAid,
-                         @ArgList(classDef = CloneDef.Dto.class, methodDef = "getDto",
+                         @ArgList(classDef = CloneDef.Dto.class, methodDef = "getInternalDto",
                                  keyMatch = ProductTagRelDto.Key.CLONE_UNION_PRI_IDS) FaiList<Param> cloneUnionPriIds) throws IOException {
         return tagService.cloneData(session, flow, aid, fromAid, cloneUnionPriIds);
     }

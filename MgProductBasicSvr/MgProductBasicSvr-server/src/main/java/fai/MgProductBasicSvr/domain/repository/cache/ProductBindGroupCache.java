@@ -19,7 +19,7 @@ public class ProductBindGroupCache extends CacheCtrl {
             cacheKeys.add(getCacheKey(aid, unionPriId, rlPdId));
         }
         try {
-            list = getFaiList(cacheKeys);
+            list = getFaiList(cacheKeys, ProductBindGroupDto.getInfoDto(), ProductBindGroupDto.Key.INFO);
         } catch (Exception e) {
             Log.logErr(e,"getCacheList error;aid=%d;unionPriId=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
         }

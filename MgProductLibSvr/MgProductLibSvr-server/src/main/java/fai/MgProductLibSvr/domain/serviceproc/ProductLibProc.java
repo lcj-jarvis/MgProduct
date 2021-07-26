@@ -130,23 +130,19 @@ public class ProductLibProc {
         m_daoCtrl.clearIdBuilderCache(aid);
     }
 
-    /**
-     * 根据aid和libId删除库表的数据
-     */
-    public void delLibList(int aid, FaiList<Integer> libIdList) {
+    public void delLibList(int aid, ParamMatcher matcher) {
         int rt;
-        if(libIdList == null || libIdList.isEmpty()) {
+        if(matcher == null || matcher.isEmpty()) {
             rt = Errno.ARGS_ERROR;
-            throw new MgException(rt, "args err;flow=%d;aid=%d;idList=%s", m_flow, aid, libIdList);
+            throw new MgException(rt, "matcher is null;aid=%d;", aid);
         }
+        matcher.and(ProductLibEntity.Info.AID, ParamMatcher.EQ, aid);
 
-        ParamMatcher matcher = new ParamMatcher(ProductLibEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(ProductLibEntity.Info.LIB_ID, ParamMatcher.IN, libIdList);
         rt = m_daoCtrl.delete(matcher);
         if(rt != Errno.OK){
-            throw new MgException(rt, "delLibList error;flow=%d;aid=%d;libIdList=%s", m_flow, aid, libIdList);
-
+            throw new MgException(rt, "delTagList error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher.toJson());
         }
+        Log.logStd("delTagList ok;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher.toJson());
     }
 
     /**

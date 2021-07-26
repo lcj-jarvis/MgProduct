@@ -1,6 +1,5 @@
 package fai.MgProductBasicSvr.domain.repository.cache;
 
-import fai.MgProductBasicSvr.interfaces.dto.ProductBindGroupDto;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.cache.redis.client.RedisClientExecutor;
 import fai.comm.cache.redis.pool.JedisPool;
@@ -66,7 +65,7 @@ public class CacheCtrl {
 		}.run();
 	}
 
-	public static FaiList<Param> getFaiList(FaiList<String> cacheKeys) {
+	public static FaiList<Param> getFaiList(FaiList<String> cacheKeys, ParamDef infoDtoDef, int infoKey) {
 		byte[][] keyBytes = new byte[cacheKeys.size()][];
 		for(int i = 0; i < cacheKeys.size(); i++) {
 			keyBytes[i] = cacheKeys.get(i).getBytes();
@@ -82,8 +81,8 @@ public class CacheCtrl {
 			FaiList<Param> curList = new FaiList<>();
 			ByteBuffer buf = ByteBuffer.wrap(bytes);
 			Ref<Integer> keyRef = new Ref<Integer>();
-			int rt = curList.fromBuffer(buf, keyRef, ProductBindGroupDto.getInfoDto());
-			if (rt != Errno.OK || keyRef.value != ProductBindGroupDto.Key.INFO) {
+			int rt = curList.fromBuffer(buf, keyRef, infoDtoDef);
+			if (rt != Errno.OK || keyRef.value != infoKey) {
 				curList = null;
 				Log.logErr("list from buffer err");
 			}

@@ -81,7 +81,6 @@ public class ProductTagProc {
         }
 
         //获取一个aid下的所有标签
-        //FaiList<Param> list = getTagList(aid,null,true);
         FaiList<Param> list = getListFromCacheOrDb(aid,null);
         int count = list.size();
         //判断是否超出数量限制
@@ -185,23 +184,19 @@ public class ProductTagProc {
         return list;
     }
 
-    /**
-     * 根据aid和tagId删除标签表的数据
-     */
-    public void delTagList(int aid, FaiList<Integer> tagIdList) {
+    public void delTagList(int aid, ParamMatcher matcher) {
         int rt;
-        if(Util.isEmptyList(tagIdList)) {
+        if(matcher == null || matcher.isEmpty()) {
             rt = Errno.ARGS_ERROR;
-            throw new MgException(rt, "args err;flow=%d;aid=%d;idList=%s", m_flow, aid, tagIdList);
+            throw new MgException(rt, "matcher is null;aid=%d;", aid);
         }
+        matcher.and(ProductTagEntity.Info.AID, ParamMatcher.EQ, aid);
 
-        ParamMatcher matcher = new ParamMatcher(ProductTagEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(ProductTagEntity.Info.TAG_ID, ParamMatcher.IN, tagIdList);
         rt = m_daoCtrl.delete(matcher);
         if(rt != Errno.OK){
-            throw new MgException(rt, "delTagList error;flow=%d;aid=%d;tagIdList=%s", m_flow, aid, tagIdList);
-
+            throw new MgException(rt, "delTagList error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher.toJson());
         }
+        Log.logStd("delTagList ok;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher.toJson());
     }
 
     /**

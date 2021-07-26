@@ -186,11 +186,14 @@ public class ProductTagService {
                 delTagIdList = relProc.getTagIdsByRlTagIds(aid, unionPriId, rlTagIds);
 
                 // 删除标签业务表数据
-                relProc.delRelTagList(aid, unionPriId, rlTagIds);
+                ParamMatcher matcher = new ParamMatcher(ProductTagRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+                matcher.and(ProductTagRelEntity.Info.RL_TAG_ID, ParamMatcher.IN, rlTagIds);
+                relProc.delRelTagList(aid, matcher);
 
                 // 删除标签表数据
                 ProductTagProc tagProc = new ProductTagProc(flow, aid, transactionCtrl);
-                tagProc.delTagList(aid, delTagIdList);
+
+                tagProc.delTagList(aid, new ParamMatcher(ProductTagEntity.Info.TAG_ID, ParamMatcher.IN, delTagIdList));
 
                 commit = true;
                 // commit之前设置10s过期时间，避免脏数据，保持一致性
@@ -470,10 +473,12 @@ public class ProductTagService {
                     delTagIdList = relTagProc.getTagIdsByRlTagIds(aid, unionPriId, delRlTagIds);
 
                     // 删除标签业务表数据
-                    relTagProc.delRelTagList(aid, unionPriId, delRlTagIds);
+                    ParamMatcher matcher = new ParamMatcher(ProductTagRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+                    matcher.and(ProductTagRelEntity.Info.RL_TAG_ID, ParamMatcher.IN, delRlTagIds);
+                    relTagProc.delRelTagList(aid, matcher);
 
                     // 删除标签表数据
-                    tagProc.delTagList(aid, delTagIdList);
+                    tagProc.delTagList(aid, new ParamMatcher(ProductTagEntity.Info.TAG_ID, ParamMatcher.IN, delTagIdList));
                 }
 
                 // 修改
@@ -561,23 +566,50 @@ public class ProductTagService {
     @SuccessRt(value = Errno.OK)
     public int cloneData(FaiSession session, int flow, int toAid, int fromAid, FaiList<Param> cloneUnionPriIds) throws IOException {
         int rt;
+        doClone(flow, toAid, fromAid, cloneUnionPriIds, false);
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("cloneData ok;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
+        return rt;
+    }
+
+    /**
+     * 增量克隆，即tagId是在已经存在的原来的tagId基础下自增的，不是直接克隆过来的
+     */
+    @SuccessRt(value = Errno.OK)
+    public int incrementalClone(FaiSession session, int flow, int toAid, int toUnionPriId, int fromAid, int fromUnionPriId) throws IOException {
+        int rt;
+        Param clonePrimary = new Param();
+        clonePrimary.setInt(CloneDef.Info.FROM_PRIMARY_KEY, fromUnionPriId);
+        clonePrimary.setInt(CloneDef.Info.TO_PRIMARY_KEY, toUnionPriId);
+        FaiList<Param> cloneUnionPriIds = new FaiList<>();
+        cloneUnionPriIds.add(clonePrimary);
+
+        doClone(flow, toAid, fromAid, cloneUnionPriIds, true);
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("incrementalClone ok;flow=%d;toAid=%d;toUid=%d;fromAid=%d;fromUid=%d;", flow, toAid, toUnionPriId, fromAid, fromUnionPriId);
+        return rt;
+    }
+
+    private void doClone(int flow, int toAid, int fromAid, FaiList<Param> cloneUnionPriIds, boolean incrementalClone) {
+        int rt;
         if(Util.isEmptyList(cloneUnionPriIds)) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr("args error, cloneUnionPriIds is empty;flow=%d;toAid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
-            return rt;
+            throw new MgException(rt, "args error, cloneUnionPriIds is empty;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
         }
-        
-        //保存克隆关系的映射
+
+        // 组装 fromUnionPriId -> toUnionPriId 映射关系
         Map<Integer, Integer> cloneUidMap = new HashMap<>();
         for(Param cloneUidInfo : cloneUnionPriIds) {
-            //克隆到哪个UnionPriId下
             Integer toUnionPriId = cloneUidInfo.getInt(CloneDef.Info.TO_PRIMARY_KEY);
-            //从哪个UnionPriId下克隆
             Integer fromUnionPriId = cloneUidInfo.getInt(CloneDef.Info.FROM_PRIMARY_KEY);
             if(toUnionPriId == null || fromUnionPriId == null) {
                 rt = Errno.ARGS_ERROR;
-                Log.logErr("args error, cloneUnionPriIds is error;flow=%d;toAid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
-                return rt;
+                throw new MgException(rt, "args error, cloneUnionPriIds is error;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
             }
             cloneUidMap.put(fromUnionPriId, toUnionPriId);
         }
@@ -589,108 +621,94 @@ public class ProductTagService {
             TransactionCtrl tc = new TransactionCtrl();
             tc.setAutoCommit(false);
             try {
-                // 业务关系数据克隆
                 ProductTagRelProc tagRelProc = new ProductTagRelProc(flow, toAid, tc);
-                tagRelProc.cloneData(toAid, fromAid, cloneUidMap);
-
-                // 标签数据克隆
                 ProductTagProc tagProc = new ProductTagProc(flow, toAid, tc);
-                tagProc.cloneData(toAid, fromAid, cloneUidMap);
 
-                commit = true;
-            }finally {
-                if(commit) {
-                    tc.commit();
-                }else {
-                    tc.rollback();
+                if(!incrementalClone) {
+                    FaiList<Integer> toUnionPriIds = new FaiList<>(cloneUidMap.values());
+                    // 删除原有的业务关系表数据
+                    ParamMatcher delMatcher = new ParamMatcher(ProductTagRelEntity.Info.AID, ParamMatcher.EQ, toAid);
+                    delMatcher.and(ProductTagRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, toUnionPriIds);
+                    tagRelProc.delRelTagList(toAid, delMatcher);
+
+                    // 删除原有的标签表数据
+                    delMatcher = new ParamMatcher(ProductTagEntity.Info.AID, ParamMatcher.EQ, toAid);
+                    delMatcher.and(ProductTagEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.IN, toUnionPriIds);
+                    tagProc.delTagList(toAid, delMatcher);
                 }
-                tc.closeDao();
-            }
-        }finally {
-            lock.unlock();
-        }
 
-        rt = Errno.OK;
-        FaiBuffer sendBuf = new FaiBuffer(true);
-        session.write(sendBuf);
-        Log.logStd("cloneData ok;flow=%d;toAid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
-        return rt;
-    }
+                // TagId -> addRelList
+                Map<Integer, FaiList<Param>> tagId_RelList = new HashMap<>();
+                // TagId -> sourceUnionPriId
+                Map<Integer, Integer> tagId_SourceUid = new HashMap<>();
+                // 查出要克隆的业务关系表数据
+                for(Map.Entry<Integer, Integer> entry: cloneUidMap.entrySet()) {
+                    int fromUnionPriId = entry.getKey();
+                    int toUnionPriId = entry.getValue();
+                    FaiList<Param> fromRelList = tagRelProc.getListFromDb(fromAid, fromUnionPriId, null);
 
-    /**
-     * 增量克隆，即tagId是在已经存在的原来的tagId基础下自增的，不是直接克隆过来的
-     */
-    @SuccessRt(value = Errno.OK)
-    public int incrementalClone(FaiSession session, int flow, int toAid, int toUnionPriId, int fromAid, int fromUnionPriId) throws IOException {
-        int rt;
-        Lock lock = LockUtil.getLock(toAid);
-        lock.lock();
-        try {
-            boolean commit = false;
-            TransactionCtrl tc = new TransactionCtrl();
-            // 业务关系数据克隆
-            ProductTagRelProc tagRelProc = new ProductTagRelProc(flow, toAid, tc);
-            Map<Integer, Param> tagId_RelInfo = new HashMap<>();
-            
-            //查出要克隆的数据
-            FaiList<Param> fromRelList = tagRelProc.getListFromDb(fromAid, fromUnionPriId, null);
+                    if(fromRelList.isEmpty()) {
+                        continue;
+                    }
 
-            if(!fromRelList.isEmpty()) {
-                // 查出已存在的数据
-                FaiList<Param> existedList = tagRelProc.getListFromDb(toAid, toUnionPriId, null);
-                for(Param fromInfo : fromRelList) {
-                    int rlTagId = fromInfo.getInt(ProductTagRelEntity.Info.RL_TAG_ID);
-                    boolean existed = Misc.getFirst(existedList, ProductTagRelEntity.Info.RL_TAG_ID, rlTagId) != null;
-                    // 如果rlTagId尚未存在，则需做增量
-                    if(!existed) {
+                    // 查出已存在的数据 for 增量克隆
+                    FaiList<Param> existedList = null;
+                    if(incrementalClone) {
+                        existedList = tagRelProc.getListFromDb(toAid, toUnionPriId, null);
+                    }
+                    for(Param fromInfo : fromRelList) {
+                        int rlTagId = fromInfo.getInt(ProductTagRelEntity.Info.RL_TAG_ID);
+                        // 如果是增量克隆，但是rlTagId已存在，则跳过
+                        if(incrementalClone && Misc.getFirst(existedList, ProductTagRelEntity.Info.RL_TAG_ID, rlTagId) != null) {
+                            continue;
+                        }
                         Param data = fromInfo.clone();
                         data.setInt(ProductTagRelEntity.Info.AID, toAid);
                         data.setInt(ProductTagRelEntity.Info.UNION_PRI_ID, toUnionPriId);
                         int tagId = data.getInt(ProductTagRelEntity.Info.TAG_ID);
-                        tagId_RelInfo.put(tagId, data);
+                        FaiList<Param> addList = tagId_RelList.get(tagId);
+                        if(addList == null) {
+                            addList = new FaiList<>();
+                            tagId_RelList.put(tagId, addList);
+                            tagId_SourceUid.put(tagId, toUnionPriId);
+                        }
+                        addList.add(data);
                     }
+
                 }
-            }
-            // 没有需要做增量的数据
-            if(tagId_RelInfo.isEmpty()) {
-                rt = Errno.OK;
-                FaiBuffer sendBuf = new FaiBuffer(true);
-                session.write(sendBuf);
-                Log.logStd("ok, incremental is empty;flow=%d;toAid=%d;toUid=%d;fromAid=%d;fromUid=%d;", flow, toAid, toUnionPriId, fromAid, fromUnionPriId);
-                return rt;
-            }
 
-            //查出对应的标签表数据
-            SearchArg tagSearch = new SearchArg();
-            tagSearch.matcher = new ParamMatcher(ProductTagEntity.Info.TAG_ID, ParamMatcher.IN,
-                    new FaiList<>(tagId_RelInfo.keySet()));
-            ProductTagProc tagProc = new ProductTagProc(flow, toAid, tc);
-            FaiList<Param> fromTagList = tagProc.getListFromDb(fromAid, tagSearch);
-            // 这里必定是会查到数据才对
-            if(fromTagList.isEmpty()) {
-                rt = Errno.ERROR;
-                Log.logErr(rt, "get from tag list err;flow=%d;toAid=%d;toUid=%d;fromAid=%d;fromUid=%d;", flow, toAid, toUnionPriId, fromAid, fromUnionPriId);
-                return rt;
-            }
+                // 没有要克隆的数据
+                if(tagId_RelList.isEmpty()) {
+                    return;
+                }
 
-            // 这里保持 fromTagIds 和 addTagList的顺序一致，是为了后面能得到fromTagId 和 toTagId的映射关系
-            FaiList<Integer> fromTagIds = new FaiList<>();
-            FaiList<Param> addTagList = new FaiList<>();
-            for(Param fromInfo : fromTagList) {
-                Param data = fromInfo.clone();
-                data.setInt(ProductTagEntity.Info.AID, toAid);
-                //移除查出来的tagId，使用自增的tagId
-                int fromTagId = (Integer) data.remove(ProductTagEntity.Info.TAG_ID);
-                //保存fromTagId
-                fromTagIds.add(fromTagId);
-                addTagList.add(data);
-            }
-            tc.setAutoCommit(false);
-            try {
+                // 根据 fromAid 和 tagId 查出对应的标签表数据
+                SearchArg tagSearch = new SearchArg();
+                tagSearch.matcher = new ParamMatcher(ProductTagEntity.Info.TAG_ID, ParamMatcher.IN, new FaiList<>(tagId_RelList.keySet()));
+
+                FaiList<Param> fromTagList = tagProc.getListFromDb(fromAid, tagSearch);
+                // 这里必定是会查到数据才对
+                if(fromTagList.isEmpty()) {
+                    rt = Errno.ERROR;
+                    throw new MgException(rt, "get from Tag list err;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
+                }
+
+                // 这里 保持 fromTagIds 和 addTagList的顺序一致，是为了后面能得到fromTagId 和 toTagId的映射关系
+                FaiList<Integer> fromTagIds = new FaiList<>();
+                FaiList<Param> addTagList = new FaiList<>();
+                for(Param fromInfo : fromTagList) {
+                    Param data = fromInfo.clone();
+                    data.setInt(ProductTagEntity.Info.AID, toAid);
+                    int fromTagId = (Integer) data.remove(ProductTagEntity.Info.TAG_ID);
+                    int sourceUnionPriId = tagId_SourceUid.get(fromTagId);
+                    data.setInt(ProductTagEntity.Info.SOURCE_UNIONPRIID, sourceUnionPriId);
+                    fromTagIds.add(fromTagId);
+                    addTagList.add(data);
+                }
+
                 Map<Integer, Integer> fromTagId_toTagId = new HashMap<>();
                 FaiList<Integer> tagIds = new FaiList<>();
                 tagProc.addTagBatch(toAid, addTagList, tagIds);
-
                 // 组装fromTagId 和 toTagId的映射关系
                 for(int i = 0; i < tagIds.size(); i++) {
                     fromTagId_toTagId.put(fromTagIds.get(i), tagIds.get(i));
@@ -698,14 +716,18 @@ public class ProductTagService {
 
                 // 组装业务关系表增量克隆数据，设置toTagId
                 FaiList<Param> addRelList = new FaiList<>();
-                for(Integer fromTagId : tagId_RelInfo.keySet()) {
-                    Param relInfo = tagId_RelInfo.get(fromTagId);
-                    int tagId = fromTagId_toTagId.get(fromTagId);
-                    relInfo.setInt(ProductTagRelEntity.Info.TAG_ID, tagId);
-                    addRelList.add(relInfo);
+                for(Integer fromTagId : tagId_RelList.keySet()) {
+                    FaiList<Param> tmpAddList = tagId_RelList.get(fromTagId);
+                    for(Param relInfo : tmpAddList) {
+                        //新的自增的tagId
+                        int tagId = fromTagId_toTagId.get(fromTagId);
+                        relInfo.setInt(ProductTagRelEntity.Info.TAG_ID, tagId);
+                        addRelList.add(relInfo);
+                    }
                 }
-                // 插入增量克隆数据
-                tagRelProc.addIncrementalClone(toAid, toUnionPriId, addRelList);
+                // 插入业务关系表克隆数据
+                tagRelProc.addIncrementalClone(toAid, new FaiList<>(cloneUidMap.values()), addRelList);
+
                 commit = true;
             }finally {
                 if(commit) {
@@ -719,11 +741,7 @@ public class ProductTagService {
             lock.unlock();
         }
 
-        rt = Errno.OK;
-        FaiBuffer sendBuf = new FaiBuffer(true);
-        session.write(sendBuf);
-        Log.logStd("incrementalClone ok;flow=%d;toAid=%d;toUid=%d;fromAid=%d;fromUid=%d;", flow, toAid, toUnionPriId, fromAid, fromUnionPriId);
-        return rt;
+        Log.logStd("cloneData ok;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
     }
 
     /**

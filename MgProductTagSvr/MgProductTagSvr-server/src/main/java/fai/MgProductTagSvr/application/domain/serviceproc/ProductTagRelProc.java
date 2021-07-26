@@ -1,6 +1,7 @@
 package fai.MgProductTagSvr.application.domain.serviceproc;
 
 import fai.MgProductTagSvr.application.domain.common.LockUtil;
+import fai.MgProductTagSvr.application.domain.entity.ProductTagEntity;
 import fai.MgProductTagSvr.application.domain.entity.ProductTagRelEntity;
 import fai.MgProductTagSvr.application.domain.entity.ProductTagRelValObj;
 import fai.MgProductTagSvr.application.domain.repository.cache.ProductTagRelCache;
@@ -194,22 +195,19 @@ public class ProductTagRelProc {
         return list;
     }
 
-    /**
-     * 根据标签业务id删除标签业务表的数据
-     */
-    public void delRelTagList(int aid, int unionPriId, FaiList<Integer> rlTagIds) {
+    public void delRelTagList(int aid, ParamMatcher matcher) {
         int rt;
-        if(Util.isEmptyList(rlTagIds)) {
+        if(matcher == null || matcher.isEmpty()) {
             rt = Errno.ARGS_ERROR;
-            throw new MgException(rt, "args err;flow=%d;aid=%d;idList=%s", m_flow, aid, rlTagIds);
+            throw new MgException(rt, "matcher is null;aid=%d;", aid);
         }
-        ParamMatcher matcher = new ParamMatcher(ProductTagRelEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(ProductTagRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        matcher.and(ProductTagRelEntity.Info.RL_TAG_ID, ParamMatcher.IN, rlTagIds);
+        matcher.and(ProductTagEntity.Info.AID, ParamMatcher.EQ, aid);
+
         rt = m_relDaoCtrl.delete(matcher);
         if(rt != Errno.OK){
-            throw new MgException(rt, "delTagList error;flow=%d;aid=%d;delRlIdList=%s", m_flow, aid, rlTagIds);
+            throw new MgException(rt, "delTagList error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher.toJson());
         }
+        Log.logStd("delTagList ok;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher.toJson());
     }
 
     /**
@@ -393,19 +391,23 @@ public class ProductTagRelProc {
     /**
      * 标签业务表添加增量克隆的数据
      */
-    public void addIncrementalClone(int aid, int unionPriId, FaiList<Param> list) {
+    public void addIncrementalClone(int aid, FaiList<Integer> unionPriIds, FaiList<Param> list) {
         if(Util.isEmptyList(list)) {
-            Log.logStd("incrementalClone list is empty;aid=%d;uid=%d;", aid, unionPriId);
+            Log.logStd("incrementalClone list is empty;aid=%d;uid=%s;", aid, unionPriIds);
             return;
         }
         int rt = m_relDaoCtrl.batchInsert(list, null, false);
         if(rt != Errno.OK) {
-            throw new MgException(rt, "batch insert tag rel error;flow=%d;aid=%d;", m_flow, aid);
+            throw new MgException(rt, "batch insert group rel error;flow=%d;aid=%d;", m_flow, aid);
         }
-        rt = m_relDaoCtrl.restoreMaxId(unionPriId, false);
-        if(rt != Errno.OK) {
-            throw new MgException("restoreMaxId err;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
+
+        for(Integer unionPriId : unionPriIds) {
+            rt = m_relDaoCtrl.restoreMaxId(unionPriId, false);
+            if(rt != Errno.OK) {
+                throw new MgException("restoreMaxId err;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
+            }
+            m_relDaoCtrl.clearIdBuilderCache(aid, unionPriId);
         }
-        m_relDaoCtrl.clearIdBuilderCache(aid, unionPriId);
     }
+
 }

@@ -313,7 +313,7 @@ public class ProductBindTagService extends ServicePub {
                 commit = true;
 
                 //commit之前设置10s过期时间，避免脏数据，保持一致性
-                ProductBindTagCache.setExpire(aid, unionPriId);
+                ProductBindTagCache.setExpire(aid, unionPriId, delRlPdIds);
             }finally {
                 if (commit) {
                     // 删除缓存

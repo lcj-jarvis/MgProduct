@@ -43,7 +43,7 @@ public class MgProductInfService extends ServicePub {
     /**
      * 获取备份服务数据
      */
-    protected Param getBackupInfo(int flow, int aid, int tid, int rlBackupId) {
+    protected Param getBackupInfo(int flow, int aid, int tid, int siteId, int rlBackupId) {
         int rt = Errno.ERROR;
         MgBackupCli cli = new MgBackupCli(flow);
         if(!cli.init()) {
@@ -52,7 +52,7 @@ public class MgProductInfService extends ServicePub {
         }
 
         Param info = new Param();
-        rt = cli.getBackupInfo(aid, tid, rlBackupId, info);
+        rt = cli.getBackupInfo(aid, tid, siteId, rlBackupId, info);
         if(rt != Errno.OK) {
             throw new MgException(rt, "getBackupInfo error;flow=%d;aid=%d;tid=%d;rlBackupId=%d;", flow, aid, tid, rlBackupId);
         }
@@ -342,6 +342,7 @@ public class MgProductInfService extends ServicePub {
             return rt;
         }
         int tid = primaryKey.getInt(MgPrimaryKeyEntity.Info.TID);
+        int siteId = primaryKey.getInt(MgPrimaryKeyEntity.Info.SITE_ID);
 
         // 获取unionPriId
         FaiList<Param> list = getPrimaryKeyListWithOutAdd(flow, aid, backupPrimaryKeys);
@@ -351,7 +352,7 @@ public class MgProductInfService extends ServicePub {
         }
 
         // 获取备份服务数据
-        Param backupInfo = getBackupInfo(flow, aid, tid, rlBackupId);
+        Param backupInfo = getBackupInfo(flow, aid, tid, siteId, rlBackupId);
 
         // 备份分类数据
         ProductGroupProc groupProc = new ProductGroupProc(flow);
@@ -381,6 +382,7 @@ public class MgProductInfService extends ServicePub {
             return rt;
         }
         int tid = primaryKey.getInt(MgPrimaryKeyEntity.Info.TID);
+        int siteId = primaryKey.getInt(MgPrimaryKeyEntity.Info.SITE_ID);
 
         // 获取unionPriId
         FaiList<Param> list = getPrimaryKeyListWithOutAdd(flow, aid, restorePrimaryKeys);
@@ -390,7 +392,7 @@ public class MgProductInfService extends ServicePub {
         }
 
         // 获取备份服务数据
-        Param backupInfo = getBackupInfo(flow, aid, tid, rlBackupId);
+        Param backupInfo = getBackupInfo(flow, aid, tid, siteId, rlBackupId);
 
         // 默认操作所有数据
         boolean restoreAll = Str.isEmpty(restoreOption);
@@ -425,9 +427,10 @@ public class MgProductInfService extends ServicePub {
             return rt;
         }
         int tid = primaryKey.getInt(MgPrimaryKeyEntity.Info.TID);
+        int siteId = primaryKey.getInt(MgPrimaryKeyEntity.Info.SITE_ID);
 
         // 获取备份服务数据
-        Param backupInfo = getBackupInfo(flow, aid, tid, rlBackupId);
+        Param backupInfo = getBackupInfo(flow, aid, tid, siteId, rlBackupId);
 
         // 删除分类数据备份
         ProductGroupProc groupProc = new ProductGroupProc(flow);

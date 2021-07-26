@@ -65,4 +65,6 @@ public class MgProductErrno {
          */
         public static final int REPEAT_IMPORT = 1208;
     }
+
+    public static final int MIN_VALUE = 1000;
 }

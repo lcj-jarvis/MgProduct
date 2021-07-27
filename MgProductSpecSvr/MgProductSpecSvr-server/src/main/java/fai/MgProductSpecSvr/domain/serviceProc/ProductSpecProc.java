@@ -211,23 +211,64 @@ public class ProductSpecProc {
         Log.logStd("ok!flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
-    public int batchDel(int aid, FaiList<Integer> pdIdList) {
+    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean isSaga) {
         if(aid <= 0 || pdIdList == null || pdIdList.isEmpty()){
             Log.logErr("batchDel arg error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
             return Errno.ARGS_ERROR;
         }
-        int rt = Errno.ERROR;
+        int rt;
         ParamMatcher matcher = new ParamMatcher(ProductSpecEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductSpecEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
         cacheManage.addNeedDelCachedPdIdList(aid, pdIdList);
-        rt = m_daoCtrl.delete(matcher);
-        if(rt != Errno.OK) {
-            Log.logErr(rt, "batchDel error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
-            return rt;
+        if (!isSaga) {
+            // 非分布式事务，走正常的删除逻辑
+            rt = m_daoCtrl.delete(matcher);
+            if (rt != Errno.OK) {
+                Log.logErr(rt, "batchDel error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                return rt;
+            }
+        } else {
+            // 分布式事务，将 aid 变成负数，方便补偿的进行
+            Calendar now = Calendar.getInstance();
+            ParamUpdater updater = new ParamUpdater(new Param().setInt(ProductSpecEntity.Info.AID, -aid)
+                    .setCalendar(ProductSpecEntity.Info.SYS_UPDATE_TIME, now)
+            );
+            rt = m_daoCtrl.update(updater, matcher);
+            if (rt != Errno.OK) {
+                Log.logErr(rt, "specSaga batchDel error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                return rt;
+            }
         }
+
         Log.logStd("batchDel ok;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
         return rt;
     }
+
+    /**
+     * batchDel 的补偿方法
+     */
+    public int batchDelRollback(int aid, FaiList<Integer> pdIdList) {
+        int rt;
+        if (Util.isEmptyList(pdIdList)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "arg err;pdIdList is empty;");
+            return rt;
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductSpecEntity.Info.AID, ParamMatcher.EQ, -aid);
+        matcher.and(ProductSpecEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        Calendar now = Calendar.getInstance();
+        ParamUpdater updater = new ParamUpdater(new Param().setInt(ProductSpecEntity.Info.AID, -aid)
+                .setCalendar(ProductSpecEntity.Info.SYS_UPDATE_TIME, now)
+        );
+        rt = m_daoCtrl.update(updater, matcher);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "batchDel rollback error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+            return rt;
+        }
+        Log.logStd("batchDel rollback ok;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
+        return rt;
+    }
+
     public int batchDel(int aid, int pdId, FaiList<Integer> pdScIdList, Ref<Boolean> needRefreshSkuRef) {
         if(aid <= 0 || pdId <=0 || (pdScIdList != null && pdScIdList.isEmpty())){
             Log.logErr("batchDel arg error;flow=%d;aid=%s;pdId=%s;tpScDtIdList=%s;", m_flow, aid, pdId, pdScIdList);

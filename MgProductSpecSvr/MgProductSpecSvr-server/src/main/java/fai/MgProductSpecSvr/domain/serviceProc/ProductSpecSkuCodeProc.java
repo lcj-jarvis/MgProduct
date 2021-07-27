@@ -3,6 +3,7 @@ package fai.MgProductSpecSvr.domain.serviceProc;
 import fai.MgProductSpecSvr.domain.comm.LockUtil;
 import fai.MgProductSpecSvr.domain.comm.Utils;
 import fai.MgProductSpecSvr.domain.entity.ProductSpecSkuCodeEntity;
+import fai.MgProductSpecSvr.domain.entity.ProductSpecSkuEntity;
 import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuCodeCacheCtrl;
 import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuCodeDaoCtrl;
 import fai.comm.util.*;
@@ -266,17 +267,26 @@ public class ProductSpecSkuCodeProc {
         skuIdSetPlaceholder.append(")");
     }
 
-    public int batchDel(int aid, Integer unionPriId, FaiList<Long> skuIdList){
+    public int batchDel(int aid, Integer unionPriId, FaiList<Long> skuIdList) {
+        return batchDel(aid, unionPriId, skuIdList, false);
+    }
+
+    /**
+     * 删除 mgProductSpecSkuCode_0xxx 中的数据
+     */
+    public int batchDel(int aid, Integer unionPriId, FaiList<Long> skuIdList, boolean isSaga){
         if(skuIdList.isEmpty()){
             return Errno.OK;
         }
-        int rt = Errno.ERROR;
+        int rt;
         ParamMatcher matcher = new ParamMatcher(ProductSpecSkuCodeEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductSpecSkuCodeEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
         cacheManage.setSkuIdListDirty(aid, skuIdList);
         if(unionPriId != null){
+            // 如果指定了 unionPriId ，则设置指定的 unionPriId 为脏数据
             cacheManage.setDataStatusDirty(aid, unionPriId);
         }else{
+            // 没有指定 unionPriId， 则通过 aid + skuId 查询 unionPriIds （已经去重）,遍历设置为脏数据
             Dao.SelectArg selectArg = new Dao.SelectArg();
             selectArg.field = " distinct " + ProductSpecSkuCodeEntity.Info.UNION_PRI_ID ;
             selectArg.searchArg.matcher = matcher;
@@ -291,12 +301,43 @@ public class ProductSpecSkuCodeProc {
                 cacheManage.setDataStatusDirty(aid, _unionPriId);
             }
         }
-        rt = m_daoCtrl.delete(matcher);
+        if (!isSaga) {
+            // 非分布式事务，进入正常的删除逻辑
+            rt = m_daoCtrl.delete(matcher);
+        } else {
+            // 分布式事务，不删除数据，将 aid 变成负数，方便补偿进行
+            ParamUpdater updater = new ParamUpdater(new Param().setInt(ProductSpecSkuEntity.Info.AID, -aid));
+            rt = m_daoCtrl.update(updater, matcher);
+        }
         if(rt != Errno.OK){
             Log.logErr(rt, "delete err;flow=%s;aid=%s;skuIdList=%s;", m_flow, aid, skuIdList);
             return rt;
         }
         Log.logStd("ok;flow=%s;aid=%s;skuIdList=%s;", m_flow, aid, skuIdList);
+        return rt;
+    }
+
+    /**
+     * batchDel 的补偿方法
+     */
+    public int batchDelRollback(int aid, FaiList<Long> delSkuIdList) {
+        int rt;
+        if (Util.isEmptyList(delSkuIdList)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "arg err;delSkuIdList is empty;flow=%d;aid=%d", m_flow, aid);
+            return rt;
+        }
+        // match
+        ParamMatcher matcher = new ParamMatcher(ProductSpecSkuCodeEntity.Info.AID, ParamMatcher.EQ, -aid);
+        matcher.and(ProductSpecSkuCodeEntity.Info.SKU_ID, ParamMatcher.IN, delSkuIdList);
+        // updater
+        ParamUpdater updater = new ParamUpdater(new Param().setInt(ProductSpecSkuEntity.Info.AID, aid));
+        rt = m_daoCtrl.update(updater, matcher);
+        if(rt != Errno.OK){
+            Log.logErr(rt, "sagaDel rollback err;flow=%s;aid=%s;skuIdList=%s;", m_flow, aid, delSkuIdList);
+            return rt;
+        }
+        Log.logStd("ok;flow=%s;aid=%s;skuIdList=%s;", m_flow, aid, delSkuIdList);
         return rt;
     }
 

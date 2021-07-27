@@ -746,10 +746,18 @@ public class MgProductSpecCli extends MgProductInternalCli {
     public int batchDelPdAllSc(int aid, int tid, FaiList<Integer> pdIdList){
         return batchDelPdAllSc(aid, tid, pdIdList, false);
     }
+
+    public int batchDelPdAllSc(int aid, int tid, FaiList<Integer> pdIdList, boolean softDel) {
+        return batchDelPdAllSc(aid, tid, pdIdList, null, softDel);
+    }
+
+    public int batchDelPdAllSc(int aid, int tid, FaiList<Integer> pdIdList, String xid) {
+        return batchDelPdAllSc(aid, tid, pdIdList, xid, false);
+    }
     /**
      * 批量删除商品所有规格
      */
-    public int batchDelPdAllSc(int aid, int tid, FaiList<Integer> pdIdList, boolean softDel){
+    public int batchDelPdAllSc(int aid, int tid, FaiList<Integer> pdIdList, String xid, boolean softDel){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -762,6 +770,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductSpecDto.Key.TID, tid);
             pdIdList.toBuffer(sendBody, ProductSpecDto.Key.PD_ID_LIST);
+            sendBody.putString(CommonDto.Key.XID, xid);
             sendBody.putBoolean(ProductSpecDto.Key.SOFT_DEL, softDel);
 
             FaiProtocol sendProtocol = new FaiProtocol();

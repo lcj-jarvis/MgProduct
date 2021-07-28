@@ -277,7 +277,7 @@ public class ProductSpecSkuProc {
         return rt;
     }
 
-    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean softDel) {
+    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean softDel, boolean isSaga) {
         if(aid <= 0 || pdIdList == null || pdIdList.isEmpty()){
             Log.logErr("arg error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
             return Errno.ARGS_ERROR;
@@ -295,19 +295,85 @@ public class ProductSpecSkuProc {
             deletedSkuIdSet.addAll(skuIdList);
             cacheManage.addNeedDelCachedPdIdList(aid, pdIdList);
         }
-        int rt = Errno.ERROR;
-        if(softDel){
-            ParamUpdater updater = new ParamUpdater();
-            updater.getData().setInt(ProductSpecSkuEntity.Info.STATUS, ProductSpecSkuValObj.Status.DEL);
-            rt = m_daoCtrl.update(updater, delMatcher);
+        int rt;
+        if (!isSaga) {
+            // 非分布式事务进入这里，根据是否是软删除进行操作
+            if(softDel){
+                ParamUpdater updater = new ParamUpdater();
+                updater.getData().setInt(ProductSpecSkuEntity.Info.STATUS, ProductSpecSkuValObj.Status.DEL);
+                rt = m_daoCtrl.update(updater, delMatcher);
+                if(rt != Errno.OK) {
+                    Log.logErr(rt, "dao.update error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                    return rt;
+                }
+            }else{
+                rt = m_daoCtrl.delete(delMatcher);
+                if(rt != Errno.OK) {
+                    Log.logErr(rt, "dao.delete error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                    return rt;
+                }
+            }
+        } else {
+            Calendar now = Calendar.getInstance();
+            if (softDel) {
+                ParamUpdater updater = new ParamUpdater(new Param().setInt(ProductSpecSkuEntity.Info.STATUS, ProductSpecSkuValObj.Status.DEL)
+                        .setCalendar(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME, now)
+                );
+                rt = m_daoCtrl.update(updater, delMatcher);
+                if(rt != Errno.OK) {
+                    Log.logErr(rt, "dao.sagaDel&softDel error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                    return rt;
+                }
+            } else {
+                // 分布式事务，不删除数据，将 aid 变成负数，方便补偿进行
+                ParamUpdater updater = new ParamUpdater(new Param().setInt(ProductSpecSkuEntity.Info.AID, -aid)
+                        .setCalendar(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME, now)
+                );
+                rt = m_daoCtrl.update(updater, delMatcher);
+                if(rt != Errno.OK) {
+                    Log.logErr(rt, "dao.sagaDel error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                    return rt;
+                }
+            }
+        }
+
+        Log.logStd("ok;flow=%d;aid=%d;pdIdList=%s;softDel=%s;", m_flow, aid, pdIdList, softDel);
+        return rt;
+    }
+
+    /**
+     * batchDel 的补偿方法
+     */
+    public int batchDelRollback(int aid, FaiList<Integer> pdIdList, Boolean softDel) {
+        int rt;
+        if (Util.isEmptyList(pdIdList)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "arg err;pdIdList is empty;flow=%d;aid=%", m_flow, aid);
+            return rt;
+        }
+        Calendar now = Calendar.getInstance();
+        if (softDel) {
+            // 软删除 补偿，matcher 也相对不同，aid 为正数
+            ParamMatcher matcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+            matcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+            ParamUpdater updater = new ParamUpdater(new Param().setInt(ProductSpecSkuEntity.Info.STATUS, ProductSpecSkuValObj.Status.DEFAULT)
+                    .setCalendar(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME, now)
+            );
+            rt = m_daoCtrl.update(updater, matcher);
             if(rt != Errno.OK) {
-                Log.logErr(rt, "dao.update error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                Log.logErr(rt, "softDel rollback error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
                 return rt;
             }
-        }else{
-            rt = m_daoCtrl.delete(delMatcher);
+        } else {
+            // 非软删除 补偿，将 aid 变为回正数
+            ParamMatcher matcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, -aid);
+            matcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+            ParamUpdater updater = new ParamUpdater(new Param().setInt(ProductSpecSkuEntity.Info.AID, aid)
+                    .setCalendar(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME, now)
+            );
+            rt = m_daoCtrl.update(updater, matcher);
             if(rt != Errno.OK) {
-                Log.logErr(rt, "dao.delete error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                Log.logErr(rt, "sagaDel rollback error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
                 return rt;
             }
         }

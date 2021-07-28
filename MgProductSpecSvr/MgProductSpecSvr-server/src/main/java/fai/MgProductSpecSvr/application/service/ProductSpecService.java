@@ -9,6 +9,9 @@ import fai.MgProductSpecSvr.interfaces.dto.ProductSpecDto;
 import fai.MgProductSpecSvr.interfaces.dto.ProductSpecSkuCodeDao;
 import fai.MgProductSpecSvr.interfaces.dto.ProductSpecSkuDto;
 import fai.MgProductSpecSvr.interfaces.entity.Condition;
+import fai.comm.fseata.client.core.context.RootContext;
+import fai.comm.fseata.client.core.model.BranchStatus;
+import fai.comm.fseata.client.core.rpc.def.CommDef;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
@@ -509,7 +512,7 @@ public class ProductSpecService extends ServicePub {
     /**
      * 批量删除
      */
-    public int batchDelPdAllSc(FaiSession session, int flow, int aid, int tid, FaiList<Integer> pdIdList, boolean softDel) throws IOException {
+    public int batchDelPdAllSc(FaiSession session, int flow, int aid, int tid, FaiList<Integer> pdIdList, String xid, boolean softDel) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -519,13 +522,14 @@ public class ProductSpecService extends ServicePub {
                 return rt;
             }
 
+            boolean isSaga = !Str.isEmpty(xid);
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
                 ProductSpecDaoCtrl productSpecDaoCtrl = ProductSpecDaoCtrl.getInstance(flow, aid);
                 ProductSpecSkuDaoCtrl productSpecSkuDaoCtrl = ProductSpecSkuDaoCtrl.getInstance(flow, aid);
                 ProductSpecSkuCodeDaoCtrl productSpecSkuCodeDaoCtrl = ProductSpecSkuCodeDaoCtrl.getInstance(flow, aid);
                 if(!transactionCtrl.register(productSpecDaoCtrl, productSpecSkuCodeDaoCtrl, productSpecSkuDaoCtrl)){
-                    return rt=Errno.ERROR;
+                    return rt;
                 }
 
                 ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(productSpecSkuDaoCtrl, flow);
@@ -536,18 +540,31 @@ public class ProductSpecService extends ServicePub {
                     try {
                         transactionCtrl.setAutoCommit(false);
                         if(!softDel){
-                            rt = productSpecProc.batchDel(aid, pdIdList);
+                            rt = productSpecProc.batchDel(aid, pdIdList, isSaga);
                             if(rt != Errno.OK){
                                 return rt;
                             }
                         }
-                        rt = productSpecSkuProc.batchDel(aid, pdIdList, softDel);
+                        rt = productSpecSkuProc.batchDel(aid, pdIdList, softDel, isSaga);
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = productSpecSkuCodeProc.batchDel(aid, null, productSpecSkuProc.getDeletedSkuIdList());
+                        rt = productSpecSkuCodeProc.batchDel(aid, null, productSpecSkuProc.getDeletedSkuIdList(), isSaga);
                         if(rt != Errno.OK){
                             return rt;
+                        }
+                        if (isSaga) {
+                            // 记录补偿
+                            SpecSagaProc specSagaProc = new SpecSagaProc(flow, aid, transactionCtrl);
+                            Param prop = new Param();
+                            FaiList<Long> delSkuIdList = new FaiList<>(productSpecSkuProc.getDeletedSkuIdList());
+                            prop.setList(SpecSagaEntity.PropInfo.DEL_SKU_ID_LIST, delSkuIdList);
+                            prop.setList(SpecSagaEntity.PropInfo.PD_ID_LIST, pdIdList);
+                            prop.setBoolean(SpecSagaEntity.PropInfo.SOFT_DEL, softDel);
+                            rt = specSagaProc.add(aid, xid, RootContext.getBranchId(), prop);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
                         }
                     }finally {
                         if(rt != Errno.OK){
@@ -573,6 +590,107 @@ public class ProductSpecService extends ServicePub {
             session.write(rt);
             Log.logStd("ok;flow=%d;aid=%d;pdIdList=%s;softDel=%s;", flow, aid, pdIdList, softDel);
         }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * batchDelPdAllSc 的补偿方法
+     */
+    public int batchDelPdAllScRollback(FaiSession session, int flow, int aid, String xid, Long branchId) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            LockUtil.lock(aid);
+            try {
+                TransactionCtrl tc = new TransactionCtrl();
+                boolean commit = false;
+                SpecSagaProc specSagaProc = new SpecSagaProc(flow, aid, tc);
+                ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(flow, aid, tc);
+                ProductSpecProc productSpecProc = new ProductSpecProc(flow, aid, tc);
+                ProductSpecSkuCodeProc productSpecSkuCodeProc = new ProductSpecSkuCodeProc(flow, aid, tc);
+                try {
+                    tc.setAutoCommit(false);
+
+                    // 1、查询补偿信息
+                    Ref<Param> sagaInfoRef = new Ref<>();
+                    rt = specSagaProc.getInfoWithAdd(xid, branchId, sagaInfoRef);
+                    if (rt != Errno.OK) {
+                        // 如果rt=NOT_FOUND，说明出现空补偿或悬挂现象，插入saga记录占位后return OK告知分布式事务组件回滚成功
+                        if (rt == Errno.NOT_FOUND) {
+                            commit = true;
+                            rt = Errno.OK;
+                            Log.reportErr(flow, rt,"get SagaInfo not found; xid=%s, branchId=%s", xid, branchId);
+                        }
+                        return rt;
+                    }
+
+                    Param sagaInfo = sagaInfoRef.value;
+                    Integer status = sagaInfo.getInt(SpecSagaEntity.Info.STATUS);
+                    // 幂等性保证
+                    if (status == SpecSagaValObj.Status.ROLLBACK_OK) {
+                        commit = true;
+                        Log.logStd(rt, "rollback already ok! saga=%s;", sagaInfo);
+                        return rt = Errno.OK;
+                    }
+                    Param prop = Param.parseParam(sagaInfo.getString(SpecSagaEntity.Info.PROP));
+                    // 2、补偿
+                    if (!Str.isEmpty(prop)) {
+                        // (1)、补偿 mgProductSpecSkuCode_0xxx 表
+                        FaiList<Long> delSkuIdList = prop.getList(SpecSagaEntity.PropInfo.DEL_SKU_ID_LIST);
+                        if (!Util.isEmptyList(delSkuIdList)) {
+                            rt = productSpecSkuCodeProc.batchDelRollback(aid, delSkuIdList);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                        }
+                        FaiList<Integer> pdIdList = prop.getList(SpecSagaEntity.PropInfo.PD_ID_LIST);
+                        if (!Util.isEmptyList(pdIdList)) {
+                            // (2)、补偿 mgProductSpecSku_0xxx 表
+                            Boolean softDel = prop.getBoolean(SpecSagaEntity.PropInfo.SOFT_DEL);
+                            rt = productSpecSkuProc.batchDelRollback(aid, pdIdList, softDel);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                            if (!softDel) {
+                                // (3)、补偿 mgProductSpec_0xxx 表
+                                rt = productSpecProc.batchDelRollback(aid, pdIdList);
+                                if (rt != Errno.OK) {
+                                    return rt;
+                                }
+                            }
+                        }
+                    }
+                    // 3、修改 saga 记录状态
+                    rt = specSagaProc.setStatus(xid, branchId, SpecSagaValObj.Status.ROLLBACK_OK);
+                    if (rt != Errno.OK) {
+                        return rt;
+                    }
+                    commit = true;
+                    tc.commit();
+                } finally {
+                    if (!commit) {
+                        tc.rollback();
+                    }
+                    productSpecProc.deleteDirtyCache(aid);
+                    productSpecSkuProc.deleteDirtyCache(aid);
+                    productSpecSkuCodeProc.deleteDirtyCache(aid);
+                    tc.closeDao();
+                }
+            } finally {
+                LockUtil.unlock(aid);
+            }
+        } finally {
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            if (rt != Errno.OK) {
+                //失败，需要重试
+                sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, BranchStatus.PhaseTwo_RollbackFailed_Retryable.getCode());
+            }else{
+                //成功，不需要重试
+                sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, BranchStatus.PhaseTwo_Rollbacked.getCode());
+            }
+            session.write(sendBuf);
             stat.end(rt != Errno.OK, rt);
         }
         return rt;

@@ -16,8 +16,11 @@ import java.util.Calendar;
 public class StoreSagaProc {
 
     public StoreSagaProc(int flow, int aid, TransactionCtrl tc) {
-        this.m_flow = flow;
         this.m_dao = StoreSagaDaoCtrl.getInstanceWithRegistered(flow, aid, tc);
+        if(m_dao == null){
+            throw new RuntimeException(String.format("StoreSagaDaoCtrl init err;flow=%s;aid=%s;", flow, aid));
+        }
+        this.m_flow = flow;
     }
 
     /**
@@ -65,6 +68,7 @@ public class StoreSagaProc {
      *
      * @param xid      全局事务id
      * @param branchId 分支事务id
+     * @param infoRef 接收查询结果
      * @return {@link Errno}
      */
     public int getInfoWithAdd(String xid, Long branchId, Ref<Param> infoRef) {

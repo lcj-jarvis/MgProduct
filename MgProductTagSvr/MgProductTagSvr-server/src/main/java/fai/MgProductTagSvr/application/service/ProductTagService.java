@@ -1,5 +1,6 @@
 package fai.MgProductTagSvr.application.service;
 
+import fai.MgBackupSvr.interfaces.entity.MgBackupEntity;
 import fai.MgProductTagSvr.application.domain.common.LockUtil;
 import fai.MgProductTagSvr.application.domain.common.ProductTagCheck;
 import fai.MgProductTagSvr.application.domain.entity.ProductTagEntity;
@@ -11,6 +12,7 @@ import fai.MgProductTagSvr.application.domain.repository.cache.ProductTagRelCach
 import fai.MgProductTagSvr.application.domain.serviceproc.ProductTagProc;
 import fai.MgProductTagSvr.application.domain.serviceproc.ProductTagRelProc;
 import fai.MgProductTagSvr.interfaces.dto.ProductTagRelDto;
+import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.app.CloneDef;
 import fai.comm.util.*;
@@ -18,12 +20,15 @@ import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.annotation.SuccessRt;
 import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.repository.BackupStatusCtrl;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -41,7 +46,6 @@ public class ProductTagService {
      * @return
      */
     private int addTagBatch(int flow, int aid, int unionPriId, int tid,
-                            TransactionCtrl transactionCtrl,
                             ProductTagProc tagProc,
                             ProductTagRelProc relTagProc,
                             FaiList<Param> addInfoList,
@@ -49,14 +53,12 @@ public class ProductTagService {
                             FaiList<Param> relTagInfoList,
                             FaiList<Integer> relTagIds) {
         int rt;
-        ProductTagRelProc tagRelProc = new ProductTagRelProc(flow, aid, transactionCtrl);
-
         // 获取参数中最大的sort
-        int maxSort = tagRelProc.getMaxSort(aid, unionPriId);
+        int maxSort = relTagProc.getMaxSort(aid, unionPriId);
         if(maxSort < 0) {
             rt = Errno.ERROR;
             Log.logErr(rt, "getMaxSort error;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
-            return rt;
+            throw new MgException(rt, "getMaxSort error;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
         }
 
         for (Param addInfo : addInfoList) {
@@ -75,25 +77,18 @@ public class ProductTagService {
         }
 
         //将事务设置为非自动提交
-        if (transactionCtrl.isAutoCommit()) {
+        /*if (transactionCtrl.isAutoCommit()) {
             transactionCtrl.setAutoCommit(false);
-        }
+        }*/
 
         //保存tagId
         FaiList<Integer> tagIds = new FaiList<>();
-        if (tagProc == null) {
-            tagProc = new ProductTagProc(flow, aid, transactionCtrl);
-        }
         //批量添加标签表的数据
         tagProc.addTagBatch(aid, tagInfoList, tagIds);
-
         for (int i = 0; i < tagIds.size(); i++) {
             Param relTagInfo = relTagInfoList.get(i);
             //设置tagId
             relTagInfo.setInt(ProductTagRelEntity.Info.TAG_ID, tagIds.get(i));
-        }
-        if (relTagProc == null) {
-            relTagProc = new ProductTagRelProc(flow, aid, transactionCtrl);
         }
         //批量添加标签表的数据
         relTagProc.addTagRelBatch(aid, unionPriId, relTagInfoList, relTagIds);
@@ -128,7 +123,7 @@ public class ProductTagService {
             ProductTagRelProc tagRelProc = new ProductTagRelProc(flow, aid, transactionCtrl);
             int maxSort = 0;
             try {
-                maxSort = addTagBatch(flow, aid, unionPriId, tid, transactionCtrl, tagProc, tagRelProc, addInfoList,
+                maxSort = addTagBatch(flow, aid, unionPriId, tid, tagProc, tagRelProc, addInfoList,
                         tagInfoList, relTagInfoList, relTagIds);
                 commit = true;
             } finally {
@@ -494,7 +489,7 @@ public class ProductTagService {
 
                 // 添加
                 if (!Util.isEmptyList(addInfoList)) {
-                    maxSort = addTagBatch(flow, aid, unionPriId, tid, tc, tagProc, relTagProc,
+                    maxSort = addTagBatch(flow, aid, unionPriId, tid, tagProc, relTagProc,
                             addInfoList, tagInfoList, relInfoList, rlTagIds);
                 }
 
@@ -781,4 +776,217 @@ public class ProductTagService {
         relTagInfo.setCalendar(ProductTagRelEntity.Info.CREATE_TIME, createTime);
         relTagInfo.setCalendar(ProductTagRelEntity.Info.UPDATE_TIME, updateTime);
     }
+
+    @SuccessRt(value = Errno.OK)
+    public int backupData(FaiSession session, int flow, int aid, FaiList<Integer> unionPriIds, Param backupInfo) throws IOException {
+        if (verifyBackupArgs(flow, aid, unionPriIds, backupInfo, true)) {
+            return Errno.ARGS_ERROR;
+        }
+
+        int rt;
+        LockUtil.BackupLock.lock(aid);
+        try {
+            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+            int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
+            rt = checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.BACKUP, aid, backupInfo);
+            if (rt == Errno.OK) {
+                FaiBuffer sendBuf = new FaiBuffer(true);
+                session.write(sendBuf);
+                return Errno.OK;
+            }
+
+            TransactionCtrl tc = new TransactionCtrl();
+            ProductTagRelProc relProc = new ProductTagRelProc(flow, aid, tc);
+            ProductTagProc proc = new ProductTagProc(flow, aid, tc);
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+
+                // 可能之前备份没有成功，先操作删除之前的备份
+                deleteBackupData(relProc, proc, aid, backupId, backupFlag);
+
+                // 备份业务关系表数据，返回需要备份的标签ids
+                Set<Integer> bakTagIds = relProc.backupData(aid, unionPriIds, backupId, backupFlag);
+
+                if(!bakTagIds.isEmpty()) {
+                    // 备份标签表数据
+                    proc.backupData(aid, backupId, backupFlag, bakTagIds);
+                }
+                commit = true;
+            }finally {
+                if(commit) {
+                    tc.commit();
+                    backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.BACKUP, aid, backupId);
+                }else {
+                    tc.rollback();
+                    backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.BACKUP, aid, backupId);
+                }
+                tc.closeDao();
+            }
+        }finally {
+            LockUtil.BackupLock.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("backupData ok;flow=%d;aid=%d;unionPriIds=%s;backupInfo=%s;", flow, aid, unionPriIds, backupInfo);
+        return rt;
+    }
+
+    private void deleteBackupData(ProductTagRelProc relProc, ProductTagProc proc, int aid, int backupId, int backupFlag) {
+        relProc.delBackupData(aid, backupId, backupFlag);
+        proc.delBackupData(aid, backupId, backupFlag);
+    }
+
+    @SuccessRt(value = Errno.OK)
+    public int restoreBackupData(FaiSession session, int flow, int aid, FaiList<Integer> unionPriIds, Param backupInfo) throws IOException {
+        if (verifyBackupArgs(flow, aid, unionPriIds, backupInfo, true)) {
+            return Errno.ARGS_ERROR;
+        }
+        int rt;
+        LockUtil.BackupLock.lock(aid);
+        try {
+            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+            int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
+            rt = checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.RESTORE, aid, backupInfo);
+            if (rt == Errno.OK) {
+                FaiBuffer sendBuf = new FaiBuffer(true);
+                session.write(sendBuf);
+                return Errno.OK;
+            }
+
+            TransactionCtrl tc = new TransactionCtrl();
+            ProductTagRelProc relProc = new ProductTagRelProc(flow, aid, tc);
+            ProductTagProc proc = new ProductTagProc(flow, aid, tc);
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+
+                // 还原关系表数据
+                relProc.restoreBackupData(aid, unionPriIds, backupId, backupFlag);
+
+                // 还原标签表数据
+                proc.restoreBackupData(aid, unionPriIds, backupId, backupFlag);
+
+                commit = true;
+            }finally {
+                if(commit) {
+                    tc.commit();
+                    backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.RESTORE, aid, backupId);
+                }else {
+                    tc.rollback();
+                    backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.RESTORE, aid, backupId);
+                }
+                tc.closeDao();
+            }
+        }finally {
+            LockUtil.BackupLock.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("restore backupData ok;flow=%d;aid=%d;unionPriIds=%s;backupInfo=%s;", flow, aid, unionPriIds, backupInfo);
+        return rt;
+    }
+
+    @SuccessRt(value = Errno.OK)
+    public int delBackupData(FaiSession session, int flow, int aid, Param backupInfo) throws IOException {
+        if (verifyBackupArgs(flow, aid, null, backupInfo, false)) {
+            return Errno.ARGS_ERROR;
+        }
+
+        int rt;
+        LockUtil.BackupLock.lock(aid);
+        try {
+            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+            int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
+
+            rt = checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.DELETE, aid, backupInfo);
+            if (rt == Errno.OK) {
+                FaiBuffer sendBuf = new FaiBuffer(true);
+                session.write(sendBuf);
+                return Errno.OK;
+            }
+
+            TransactionCtrl tc = new TransactionCtrl();
+            ProductTagRelProc relProc = new ProductTagRelProc(flow, aid, tc);
+            ProductTagProc proc = new ProductTagProc(flow, aid, tc);
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+
+                // 删除备份
+                deleteBackupData(relProc, proc, aid, backupId, backupFlag);
+
+                commit = true;
+            }finally {
+                if(commit) {
+                    tc.commit();
+                    backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.DELETE, aid, backupId);
+                }else {
+                    tc.rollback();
+                    backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.DELETE, aid, backupId);
+                }
+                tc.closeDao();
+            }
+        }finally {
+            LockUtil.BackupLock.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("del backupData ok;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+        return rt;
+    }
+
+    private boolean verifyBackupArgs(int flow, int aid, FaiList<Integer> unionPriIds, Param backupInfo, boolean needVerifyUnionPriIds) {
+        if(aid <= 0 || Str.isEmpty(backupInfo)) {
+            Log.logErr("args error;flow=%d;aid=%d;unionPriIds=%s;backupInfo=%s;", flow, aid, unionPriIds, backupInfo);
+            return true;
+        }
+
+        int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+        int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
+        if(backupId == 0 || backupFlag == 0) {
+            Log.logErr("args error, backupInfo error;flow=%d;aid=%d;unionPriIds=%s;backupInfo=%s;", flow, aid, unionPriIds, backupInfo);
+            return true;
+        }
+
+        if (needVerifyUnionPriIds) {
+            if(Util.isEmptyList(unionPriIds)) {
+                throw new MgException(Errno.ARGS_ERROR, "uids is empty;aid=%d;uids=%s;backupId=%d;backupFlag=%d;", aid, unionPriIds, backupId, backupFlag);
+            }
+        }
+        return false;
+    }
+
+    public int checkAndSetBackupStatus(int flow, BackupStatusCtrl.Action action, int aid, Param backupInfo) {
+        int rt = Errno.ALREADY_EXISTED;
+        int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+        String backupStatus = backupStatusCtrl.getStatus(action, aid, backupId);
+        if (backupStatus != null) {
+            if (backupStatusCtrl.isDoing(backupStatus)) {
+                throw new MgException(rt, action + " is doing;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+            } else if (backupStatusCtrl.isFinish(backupStatus)) {
+                rt = Errno.OK;
+                Log.logStd(rt, action + " is already ok;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+                return rt;
+            } else if (backupStatusCtrl.isFail(backupStatus)) {
+                Log.logStd(rt, action + " is fail, going retry;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+            }
+        }
+        // 设置备份执行中
+        backupStatusCtrl.setStatusIsDoing(action, aid, backupId);
+        return rt;
+    }
+
+    public void initBackupStatus(RedisCacheManager cache) {
+        backupStatusCtrl = new BackupStatusCtrl(BAK_TYPE, cache);
+    }
+
+    private BackupStatusCtrl backupStatusCtrl;
+    private static final String BAK_TYPE = "mgPdTag";
 }

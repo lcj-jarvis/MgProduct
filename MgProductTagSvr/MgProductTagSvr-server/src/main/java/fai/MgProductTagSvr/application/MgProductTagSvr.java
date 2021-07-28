@@ -63,7 +63,7 @@ public class MgProductTagSvr {
 
         init(daoPool, m_cache, lockLease);
 
-        server.setHandler(new MgProductTagHandler(server));
+        server.setHandler(new MgProductTagHandler(server, m_cache));
         server.start();
     }
 

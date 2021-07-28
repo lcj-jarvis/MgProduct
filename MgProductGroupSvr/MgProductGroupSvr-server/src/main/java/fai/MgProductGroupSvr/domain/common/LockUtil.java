@@ -2,12 +2,7 @@ package fai.MgProductGroupSvr.domain.common;
 
 import fai.MgProductGroupSvr.application.MgProductGroupSvr;
 import fai.comm.cache.redis.RedisCacheManager;
-import fai.comm.distributedkit.lock.PosDistributedLockPool;
 import fai.comm.distributedkit.lock.SimpleDistributedLock;
-import fai.comm.distributedkit.lock.support.FaiLockGenerator;
-
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
 
 public class LockUtil {
 

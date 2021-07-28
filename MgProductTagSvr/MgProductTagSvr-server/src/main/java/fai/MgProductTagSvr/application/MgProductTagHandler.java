@@ -1,8 +1,10 @@
 package fai.MgProductTagSvr.application;
 
+import fai.MgBackupSvr.interfaces.dto.MgBackupDto;
 import fai.MgProductTagSvr.application.service.ProductTagService;
 import fai.MgProductTagSvr.interfaces.cmd.MgProductTagCmd;
 import fai.MgProductTagSvr.interfaces.dto.ProductTagRelDto;
+import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
@@ -24,8 +26,9 @@ import java.io.IOException;
  */
 public class MgProductTagHandler extends MiddleGroundHandler {
 
-    public MgProductTagHandler(FaiServer server) {
+    public MgProductTagHandler(FaiServer server, RedisCacheManager cacheManager) {
         super(server);
+        tagService.initBackupStatus(cacheManager);
     }
 
     ProductTagService tagService = ServiceProxy.create(new ProductTagService());
@@ -131,6 +134,38 @@ public class MgProductTagHandler extends MiddleGroundHandler {
                                 @ArgBodyBoolean(ProductTagRelDto.Key.FROM_AID) int fromAid,
                                 @ArgBodyBoolean(ProductTagRelDto.Key.FROM_UNION_PRI_ID) int fromUnionPriId) throws IOException {
         return tagService.incrementalClone(session, flow, aid, unionPriId, fromAid, fromUnionPriId);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductTagCmd.TagCmd.BACKUP)
+    public int backupData(final FaiSession session,
+                          @ArgFlow final int flow,
+                          @ArgAid int aid,
+                          @ArgList(keyMatch = ProductTagRelDto.Key.UNION_PRI_ID) FaiList<Integer> unionPriIds,
+                          @ArgParam(classDef = MgBackupDto.class, methodDef = "getInfoDto",
+                                  keyMatch = ProductTagRelDto.Key.BACKUP_INFO) Param backupInfo) throws IOException {
+        return tagService.backupData(session, flow, aid, unionPriIds, backupInfo);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductTagCmd.TagCmd.RESTORE)
+    public int restoreBackupData(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid int aid,
+                                 @ArgList(keyMatch = ProductTagRelDto.Key.UNION_PRI_ID) FaiList<Integer> unionPriIds,
+                                 @ArgParam(classDef = MgBackupDto.class, methodDef = "getInfoDto",
+                                         keyMatch = ProductTagRelDto.Key.BACKUP_INFO) Param backupInfo) throws IOException {
+        return tagService.restoreBackupData(session, flow, aid, unionPriIds, backupInfo);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductTagCmd.TagCmd.DEL_BACKUP)
+    public int delBackupData(final FaiSession session,
+                             @ArgFlow final int flow,
+                             @ArgAid int aid,
+                             @ArgParam(classDef = MgBackupDto.class, methodDef = "getInfoDto",
+                                     keyMatch = ProductTagRelDto.Key.BACKUP_INFO) Param backupInfo) throws IOException {
+        return tagService.delBackupData(session, flow, aid, backupInfo);
     }
 
 }

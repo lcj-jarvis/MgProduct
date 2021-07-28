@@ -23,7 +23,7 @@
         <dependency>
             <groupId>fai-middleground-svrutil</groupId>
             <artifactId>fai-middleground-svrutil</artifactId>
-            <version>${fai-middleground-svrutil-ver}</version>
+            <version>1.1.0</version>
         </dependency>
 
         <dependency>

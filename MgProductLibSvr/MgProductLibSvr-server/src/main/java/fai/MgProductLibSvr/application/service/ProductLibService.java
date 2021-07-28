@@ -39,7 +39,6 @@ public class ProductLibService {
      * @return
      */
     private int addLibBatch(int flow, int aid, int unionPriId, int tid,
-                       TransactionCtrl transactionCtrl,
                        ProductLibProc libProc,
                        ProductLibRelProc relLibProc,
                        FaiList<Param> addInfoList,
@@ -48,14 +47,12 @@ public class ProductLibService {
                        FaiList<Integer> relLibIds) {
 
         int rt;
-        ProductLibRelProc libRelProc = new ProductLibRelProc(flow, aid, transactionCtrl);
-
         // 获取参数中最大的sort
-        int maxSort = libRelProc.getMaxSort(aid, unionPriId);
+        int maxSort = relLibProc.getMaxSort(aid, unionPriId);
         if(maxSort < 0) {
             rt = Errno.ERROR;
             Log.logErr(rt, "getMaxSort error;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
-            return rt;
+            throw new MgException(rt, "getMaxSort error;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
         }
 
         for (Param addInfo : addInfoList) {
@@ -74,15 +71,12 @@ public class ProductLibService {
         }
 
         //将事务设置为非自动提交
-        if (transactionCtrl.isAutoCommit()) {
+        /*if (transactionCtrl.isAutoCommit()) {
             transactionCtrl.setAutoCommit(false);
-        }
+        }*/
 
         //保存libId
         FaiList<Integer> libIds = new FaiList<>();
-        if (libProc == null) {
-            libProc = new ProductLibProc(flow, aid, transactionCtrl);
-        }
         //批量添加库表的数据
         libProc.addLibBatch(aid, libInfoList, libIds);
 
@@ -90,9 +84,6 @@ public class ProductLibService {
             Param relLibInfo = relLibInfoList.get(i);
             //设置libId
             relLibInfo.setInt(ProductLibRelEntity.Info.LIB_ID, libIds.get(i));
-        }
-        if (relLibProc == null) {
-            relLibProc = new ProductLibRelProc(flow, aid, transactionCtrl);
         }
         //批量添加库表的数据
         relLibProc.addLibRelBatch(aid, unionPriId, relLibInfoList, relLibIds);
@@ -124,7 +115,7 @@ public class ProductLibService {
             ProductLibRelProc libRelProc = new ProductLibRelProc(flow, aid, transactionCtrl);
             int maxSort = 0;
             try {
-                maxSort = addLibBatch(flow, aid, unionPriId, tid, transactionCtrl, libProc, libRelProc, addInfoList,
+                maxSort = addLibBatch(flow, aid, unionPriId, tid, libProc, libRelProc, addInfoList,
                                       libInfoList, relLibInfoList, relLibIds);
                 commit = true;
             } finally {
@@ -518,7 +509,7 @@ public class ProductLibService {
 
                 // 添加
                 if (!Util.isEmptyList(addInfoList)) {
-                   maxSort = addLibBatch(flow, aid, unionPriId, tid, tc, libProc, relLibProc,
+                   maxSort = addLibBatch(flow, aid, unionPriId, tid, libProc, relLibProc,
                                 addInfoList, libInfoList, relInfoList, rlLibIds);
                 }
 

@@ -1,5 +1,6 @@
 package fai.MgProductLibSvr.application.service;
 
+import fai.MgBackupSvr.interfaces.entity.MgBackupEntity;
 import fai.MgProductLibSvr.domain.common.LockUtil;
 import fai.MgProductLibSvr.domain.common.ProductLibCheck;
 import fai.MgProductLibSvr.domain.entity.ProductLibEntity;
@@ -11,6 +12,7 @@ import fai.MgProductLibSvr.domain.repository.cache.ProductLibRelCache;
 import fai.MgProductLibSvr.domain.serviceproc.ProductLibProc;
 import fai.MgProductLibSvr.domain.serviceproc.ProductLibRelProc;
 import fai.MgProductLibSvr.interfaces.dto.ProductLibRelDto;
+import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
@@ -18,6 +20,7 @@ import fai.mgproduct.comm.Util;
 import fai.comm.middleground.app.CloneDef;
 import fai.middleground.svrutil.annotation.SuccessRt;
 import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.repository.BackupStatusCtrl;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
@@ -758,4 +761,213 @@ public class ProductLibService {
         Log.logStd("cloneData ok;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
     }
 
+    @SuccessRt(value = Errno.OK)
+    public int backupData(FaiSession session, int flow, int aid, FaiList<Integer> unionPriIds, Param backupInfo) throws IOException {
+        if (verifyBackupArgs(flow, aid, unionPriIds, backupInfo, true)) {
+            return Errno.ARGS_ERROR;
+        }
+
+        int rt;
+        LockUtil.BackupLock.lock(aid);
+        try {
+            if (checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.BACKUP, aid, backupInfo)) {
+                FaiBuffer sendBuf = new FaiBuffer(true);
+                session.write(sendBuf);
+                return Errno.OK;
+            }
+
+            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+            int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
+            TransactionCtrl tc = new TransactionCtrl();
+            ProductLibRelProc relProc = new ProductLibRelProc(flow, aid, tc);
+            ProductLibProc proc = new ProductLibProc(flow, aid, tc);
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+
+                // 可能之前备份没有成功，先操作删除之前的备份
+                deleteBackupData(relProc, proc, aid, backupId, backupFlag);
+
+                // 备份业务关系表数据，返回需要备份的库ids
+                Set<Integer> bakLibIds = relProc.backupData(aid, unionPriIds, backupId, backupFlag);
+
+                if(!bakLibIds.isEmpty()) {
+                    // 备份库表数据
+                    proc.backupData(aid, backupId, backupFlag, bakLibIds);
+                }
+                commit = true;
+            }finally {
+                if(commit) {
+                    tc.commit();
+                    backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.BACKUP, aid, backupId);
+                }else {
+                    tc.rollback();
+                    backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.BACKUP, aid, backupId);
+                }
+                tc.closeDao();
+            }
+        }finally {
+            LockUtil.BackupLock.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("backupData ok;flow=%d;aid=%d;unionPriIds=%s;backupInfo=%s;", flow, aid, unionPriIds, backupInfo);
+        return rt;
+    }
+
+    private void deleteBackupData(ProductLibRelProc relProc, ProductLibProc proc, int aid, int backupId, int backupFlag) {
+        relProc.delBackupData(aid, backupId, backupFlag);
+        proc.delBackupData(aid, backupId, backupFlag);
+    }
+
+    @SuccessRt(value = Errno.OK)
+    public int restoreBackupData(FaiSession session, int flow, int aid, FaiList<Integer> unionPriIds, Param backupInfo) throws IOException {
+        if (verifyBackupArgs(flow, aid, unionPriIds, backupInfo, true)) {
+            return Errno.ARGS_ERROR;
+        }
+        int rt;
+        LockUtil.BackupLock.lock(aid);
+        try {
+            if (checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.RESTORE, aid, backupInfo)) {
+                FaiBuffer sendBuf = new FaiBuffer(true);
+                session.write(sendBuf);
+                return Errno.OK;
+            }
+
+            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+            int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
+            TransactionCtrl tc = new TransactionCtrl();
+            ProductLibRelProc relProc = new ProductLibRelProc(flow, aid, tc);
+            ProductLibProc proc = new ProductLibProc(flow, aid, tc);
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+
+                // 还原关系表数据
+                relProc.restoreBackupData(aid, unionPriIds, backupId, backupFlag);
+
+                // 还原库表数据
+                proc.restoreBackupData(aid, unionPriIds, backupId, backupFlag);
+
+                commit = true;
+            }finally {
+                if(commit) {
+                    tc.commit();
+                    backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.RESTORE, aid, backupId);
+                }else {
+                    tc.rollback();
+                    backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.RESTORE, aid, backupId);
+                }
+                tc.closeDao();
+            }
+        }finally {
+            LockUtil.BackupLock.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("restore backupData ok;flow=%d;aid=%d;unionPriIds=%s;backupInfo=%s;", flow, aid, unionPriIds, backupInfo);
+        return rt;
+    }
+
+    @SuccessRt(value = Errno.OK)
+    public int delBackupData(FaiSession session, int flow, int aid, Param backupInfo) throws IOException {
+        if (verifyBackupArgs(flow, aid, null, backupInfo, false)) {
+            return Errno.ARGS_ERROR;
+        }
+
+        int rt;
+        LockUtil.BackupLock.lock(aid);
+        try {
+            if (checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.DELETE, aid, backupInfo)) {
+                FaiBuffer sendBuf = new FaiBuffer(true);
+                session.write(sendBuf);
+                return Errno.OK;
+            }
+
+            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+            int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
+            TransactionCtrl tc = new TransactionCtrl();
+            ProductLibRelProc relProc = new ProductLibRelProc(flow, aid, tc);
+            ProductLibProc proc = new ProductLibProc(flow, aid, tc);
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+
+                // 删除备份
+                deleteBackupData(relProc, proc, aid, backupId, backupFlag);
+
+                commit = true;
+            }finally {
+                if(commit) {
+                    tc.commit();
+                    backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.DELETE, aid, backupId);
+                }else {
+                    tc.rollback();
+                    backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.DELETE, aid, backupId);
+                }
+                tc.closeDao();
+            }
+        }finally {
+            LockUtil.BackupLock.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("del backupData ok;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+        return rt;
+    }
+
+    private boolean verifyBackupArgs(int flow, int aid, FaiList<Integer> unionPriIds, Param backupInfo, boolean needVerifyUnionPriIds) {
+        if(aid <= 0 || Str.isEmpty(backupInfo)) {
+            Log.logErr("args error;flow=%d;aid=%d;unionPriIds=%s;backupInfo=%s;", flow, aid, unionPriIds, backupInfo);
+            return true;
+        }
+
+        int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+        int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
+        if(backupId == 0 || backupFlag == 0) {
+            Log.logErr("args error, backupInfo error;flow=%d;aid=%d;unionPriIds=%s;backupInfo=%s;", flow, aid, unionPriIds, backupInfo);
+            return true;
+        }
+
+        if (needVerifyUnionPriIds) {
+            if(Util.isEmptyList(unionPriIds)) {
+                throw new MgException(Errno.ARGS_ERROR, "uids is empty;aid=%d;uids=%s;backupId=%d;backupFlag=%d;", aid, unionPriIds, backupId, backupFlag);
+            }
+        }
+        return false;
+    }
+
+    private boolean checkAndSetBackupStatus(int flow, BackupStatusCtrl.Action action, int aid, Param backupInfo) {
+        int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+        String backupStatus = backupStatusCtrl.getStatus(action, aid, backupId);
+        if (backupStatus != null) {
+            int rt = Errno.ALREADY_EXISTED;
+            if (backupStatusCtrl.isDoing(backupStatus)) {
+                throw new MgException(rt, action + " is doing;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+            } else if (backupStatusCtrl.isFinish(backupStatus)) {
+                rt = Errno.OK;
+                Log.logStd(rt, action + " is already ok;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+                return true;
+            } else if (backupStatusCtrl.isFail(backupStatus)) {
+                Log.logStd(rt, action + " is fail, going retry;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+                return false;
+            }
+        }
+        // 设置备份执行中
+        backupStatusCtrl.setStatusIsDoing(action, aid, backupId);
+        return false;
+    }
+
+    public void initBackupStatus(RedisCacheManager cache) {
+        backupStatusCtrl = new BackupStatusCtrl(BAK_TYPE, cache);
+    }
+
+    private BackupStatusCtrl backupStatusCtrl;
+    private static final String BAK_TYPE = "mgPdLib";
 }

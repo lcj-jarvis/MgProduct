@@ -15,6 +15,7 @@ import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -121,8 +122,7 @@ public class ProductTagProc {
     }
 
     /**
-     * 按照条件查询数据，默认是查询同一个aid下的全部数据.
-     * (该方法方便后期扩展只查DB的情形)
+     * 按照条件查询数据，默认是查询同一个aid下的全部数据.先查缓存，再查DB
      * @param searchArg 查询条件
      */
     public FaiList<Param> getListFromCacheOrDb(int aid, SearchArg searchArg) {
@@ -149,6 +149,11 @@ public class ProductTagProc {
         return list;
     }
 
+    /**
+     * 按照条件查询数据，默认是查询同一个aid下的全部数据.
+     * (该方法方便后期扩展只查DB的情形)
+     * @param searchArg 查询条件
+     */
     public FaiList<Param> getListFromDb(int aid, SearchArg searchArg) {
         FaiList<Param> list;
         //无searchArg
@@ -322,38 +327,9 @@ public class ProductTagProc {
         }
         // 获取交集，说明剩下的这些是要合并的备份数据
         oldBakUniqueKeySet.retainAll(newBakUniqueKeySet);
-        if(!oldBakUniqueKeySet.isEmpty()){
-            // 合并标记
-            ParamUpdater mergeUpdater = new ParamUpdater(MgBackupEntity.Comm.BACKUP_ID_FLAG, backupFlag, true);
-
-            // 合并条件
-            ParamMatcher mergeMatcher = new ParamMatcher(ProductTagEntity.Info.AID, ParamMatcher.EQ, "?");
-            mergeMatcher.and(ProductTagEntity.Info.TAG_ID, ParamMatcher.EQ, "?");
-            mergeMatcher.and(ProductTagEntity.Info.UPDATE_TIME, ParamMatcher.EQ, "?");
-
-            FaiList<Param> dataList = new FaiList<Param>();
-            for (String bakUniqueKey : oldBakUniqueKeySet) {
-                String[] keys = bakUniqueKey.split(DELIMITER);
-                Calendar updateTime = Calendar.getInstance();
-                updateTime.setTimeInMillis(Long.parseLong(keys[1]));
-                Param data = new Param();
-
-                // mergeUpdater start
-                data.setInt(MgBackupEntity.Comm.BACKUP_ID_FLAG, backupFlag);
-                // mergeUpdater end
-
-                // mergeMatcher start
-                data.setInt(ProductTagEntity.Info.AID, aid);
-                data.setInt(ProductTagEntity.Info.TAG_ID, Integer.valueOf(keys[0]));
-                data.setCalendar(ProductTagEntity.Info.UPDATE_TIME, updateTime);
-                // mergeMatcher end
-
-                dataList.add(data);
-            }
-            rt = m_bakDao.doBatchUpdate(mergeUpdater, mergeMatcher, dataList, false);
-            if(rt != Errno.OK) {
-                throw new MgException(rt, "merge bak update err;aid=%d;bakTagIds=%s;backupId=%d;backupFlag=%d;", aid, bakTagIds, backupId, backupFlag);
-            }
+        rt = updateBackup(aid, backupFlag, oldBakUniqueKeySet);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "merge bak update err;aid=%d;bakTagIds=%s;backupId=%d;backupFlag=%d;", aid, bakTagIds, backupId, backupFlag);
         }
 
         // 移除掉合并的数据，剩下的就是需要新增的备份数据
@@ -381,6 +357,42 @@ public class ProductTagProc {
         }
 
         Log.logStd("backupData ok;aid=%d;bakTagIds=%s;backupId=%d;backupFlag=%d;", aid, bakTagIds, backupId, backupFlag);
+    }
+
+
+    public int updateBackup(int aid, int backupFlag, Collection<String> oldBakUniqueKeySet) {
+        if (oldBakUniqueKeySet.isEmpty()) {
+            return Errno.OK;
+        }
+
+        int rt;
+        // 合并标记
+        ParamUpdater mergeUpdater = new ParamUpdater(MgBackupEntity.Comm.BACKUP_ID_FLAG, backupFlag, true);
+        // 合并条件
+        ParamMatcher mergeMatcher = new ParamMatcher(ProductTagEntity.Info.AID, ParamMatcher.EQ, "?");
+        mergeMatcher.and(ProductTagEntity.Info.TAG_ID, ParamMatcher.EQ, "?");
+        mergeMatcher.and(ProductTagEntity.Info.UPDATE_TIME, ParamMatcher.EQ, "?");
+        FaiList<Param> dataList = new FaiList<Param>();
+        for (String bakUniqueKey : oldBakUniqueKeySet) {
+            String[] keys = bakUniqueKey.split(DELIMITER);
+            Calendar updateTime = Calendar.getInstance();
+            updateTime.setTimeInMillis(Long.parseLong(keys[1]));
+            Param data = new Param();
+
+            // mergeUpdater start
+            data.setInt(MgBackupEntity.Comm.BACKUP_ID_FLAG, backupFlag);
+            // mergeUpdater end
+
+            // mergeMatcher start
+            data.setInt(ProductTagEntity.Info.AID, aid);
+            data.setInt(ProductTagEntity.Info.TAG_ID, Integer.valueOf(keys[0]));
+            data.setCalendar(ProductTagEntity.Info.UPDATE_TIME, updateTime);
+            // mergeMatcher end
+
+            dataList.add(data);
+        }
+        rt = m_bakDao.doBatchUpdate(mergeUpdater, mergeMatcher, dataList, false);
+        return rt;
     }
 
     public FaiList<Param> getBakList(int aid, SearchArg searchArg) {

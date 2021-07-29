@@ -1,19 +1,20 @@
 package fai.MgProductLibSvr.domain.serviceproc;
 
+import fai.MgBackupSvr.interfaces.entity.MgBackupEntity;
 import fai.MgProductLibSvr.domain.common.LockUtil;
 import fai.MgProductLibSvr.domain.common.ProductLibCheck;
 import fai.MgProductLibSvr.domain.entity.ProductLibEntity;
 import fai.MgProductLibSvr.domain.entity.ProductLibRelEntity;
 import fai.MgProductLibSvr.domain.entity.ProductLibValObj;
 import fai.MgProductLibSvr.domain.repository.cache.ProductLibCache;
+import fai.MgProductLibSvr.domain.repository.dao.ProductLibBakDaoCtrl;
 import fai.MgProductLibSvr.domain.repository.dao.ProductLibDaoCtrl;
 import fai.comm.util.*;
 import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
-import java.util.Calendar;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author LuChaoJi
@@ -23,10 +24,12 @@ public class ProductLibProc {
 
     private int m_flow;
     private ProductLibDaoCtrl m_daoCtrl;
+    private ProductLibBakDaoCtrl m_bakDao;
 
     public ProductLibProc(int flow, int aid, TransactionCtrl transactionCrtl) {
         this.m_flow = flow;
         this.m_daoCtrl = ProductLibDaoCtrl.getInstance(flow, aid);
+        this.m_bakDao = ProductLibBakDaoCtrl.getInstance(flow, aid);
         init(transactionCrtl);
     }
 
@@ -140,9 +143,9 @@ public class ProductLibProc {
 
         rt = m_daoCtrl.delete(matcher);
         if(rt != Errno.OK){
-            throw new MgException(rt, "delTagList error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher.toJson());
+            throw new MgException(rt, "delLibList error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher.toJson());
         }
-        Log.logStd("delTagList ok;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher.toJson());
+        Log.logStd("delLibList ok;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher.toJson());
     }
 
     /**
@@ -257,70 +260,186 @@ public class ProductLibProc {
         }
     }
 
-    /**
-     * 从fromAid、fromUnionPriId中克隆数据到toAid、toUnionPriId下，并且设置toAid、toUnionPriId的自增id
-     * @param toAid 克隆到哪个aid下
-     * @param fromAid 从哪个aid下克隆
-     * @param cloneUnionPriIds key：fromUnionPriId 从哪个uid下克隆
-     *                         value: toUnionPriId 克隆到哪个uid下
-     *
-     */
-    public void cloneData(int toAid, int fromAid, Map<Integer, Integer> cloneUnionPriIds) {
-        int rt;
-        if(cloneUnionPriIds == null || cloneUnionPriIds.isEmpty()) {
-            rt = Errno.ARGS_ERROR;
-            throw new MgException(rt, "cloneUnionPriIds is null;flow=%d;aid=%d;fromAid=%d;uids=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
+    public void delBackupData(int aid, int backupId, int backupFlag) {
+        ParamMatcher updateMatcher = new ParamMatcher(ProductLibEntity.Info.AID, ParamMatcher.EQ, aid);
+        updateMatcher.and(MgBackupEntity.Comm.BACKUP_ID, ParamMatcher.GE, 0);
+        updateMatcher.and(MgBackupEntity.Comm.BACKUP_ID_FLAG, ParamMatcher.LAND, backupFlag, backupFlag);
+
+        // 先将 backupFlag 对应的备份数据取消置起
+        ParamUpdater updater = new ParamUpdater(MgBackupEntity.Comm.BACKUP_ID_FLAG, backupFlag, false);
+        int rt = m_bakDao.update(updater, updateMatcher);
+        if (rt != Errno.OK) {
+            throw new MgException("do update err;aid=%d;backupId=%d;backupFlag=%d;", aid, backupId, backupFlag);
         }
+
+        //删除 backupIdFlag 为0的数据，backupIdFlag为0 说明没有一个现存备份关联到了这个数据
+        ParamMatcher delMatcher = new ParamMatcher(ProductLibEntity.Info.AID, ParamMatcher.EQ, aid);
+        delMatcher.and(MgBackupEntity.Comm.BACKUP_ID_FLAG, ParamMatcher.EQ, 0);
+        rt = m_bakDao.delete(delMatcher);
+        if (rt != Errno.OK) {
+            throw new MgException("do del err;aid=%d;backupId=%d;backupFlag=%d;", aid, backupId, backupFlag);
+        }
+    }
+
+    public void backupData(int aid, int backupId, int backupFlag, Set<Integer> bakLibIds) {
+        int rt;
+        if (m_bakDao.isAutoCommit()) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "bakDao is auto commit;aid=%d;bakLibIds=%s;backupId=%d;backupFlag=%d;", aid, bakLibIds, backupId, backupFlag);
+        }
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductLibEntity.Info.LIB_ID, ParamMatcher.IN, new FaiList<Integer>(bakLibIds));
+        FaiList<Param> fromList = getListFromDb(aid, searchArg);
+
+        // 初始容量直接定为所需的最大容量，去掉不必要的扩容
+        Set<String> newBakUniqueKeySet = new HashSet<>((int) (fromList.size() / 0.75f) + 1);
+        FaiList<Calendar> updateTimeList = new FaiList<>();
+        for (Param fromInfo : fromList) {
+            fromInfo.setInt(MgBackupEntity.Comm.BACKUP_ID, backupId);
+            newBakUniqueKeySet.add(getBakUniqueKey(fromInfo));
+            updateTimeList.add(fromInfo.getCalendar(ProductLibEntity.Info.UPDATE_TIME));
+        }
+
+        // 查出已有的备份数据，通过updateTime确定数据是否已备份
+        SearchArg oldBakArg = new SearchArg();
+        oldBakArg.matcher = searchArg.matcher.clone();
+        oldBakArg.matcher.and(ProductLibEntity.Info.UPDATE_TIME, ParamMatcher.IN, updateTimeList);
+        FaiList<Param> oldBakList = getBakList(aid, oldBakArg);
+
+        Set<String> oldBakUniqueKeySet = new HashSet<>((int) (oldBakList.size() / 0.75f) + 1);
+        for (Param oldBak : oldBakList) {
+            oldBakUniqueKeySet.add(getBakUniqueKey(oldBak));
+        }
+        // 获取交集，说明剩下的这些是要合并的备份数据
+        oldBakUniqueKeySet.retainAll(newBakUniqueKeySet);
+        rt = updateBackup(aid, backupFlag, oldBakUniqueKeySet);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "merge bak update err;aid=%d;bakLibIds=%s;backupId=%d;backupFlag=%d;", aid, bakLibIds, backupId, backupFlag);
+        }
+
+        // 移除掉合并的数据，剩下的就是需要新增的备份数据
+        newBakUniqueKeySet.removeAll(oldBakUniqueKeySet);
+
+        for (int j = fromList.size(); --j >= 0; ) {
+            Param formInfo = fromList.get(j);
+            if (newBakUniqueKeySet.contains(getBakUniqueKey(formInfo))) {
+                // 置起当前备份标识
+                formInfo.setInt(MgBackupEntity.Comm.BACKUP_ID_FLAG, backupFlag);
+                continue;
+            }
+            fromList.remove(j);
+        }
+
+        if (fromList.isEmpty()) {
+            Log.logStd("backupData ok, need add bak empty;aid=%d;bakLibIds=%s;backupId=%d;backupFlag=%d;", aid, bakLibIds, backupId, backupFlag);
+            return;
+        }
+
+        // 批量插入备份表
+        rt = m_bakDao.batchInsert(fromList);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "batchInsert bak err;aid=%d;bakLibIds=%s;backupId=%d;backupFlag=%d;", aid, bakLibIds, backupId, backupFlag);
+        }
+
+        Log.logStd("backupData ok;aid=%d;bakLibIds=%s;backupId=%d;backupFlag=%d;", aid, bakLibIds, backupId, backupFlag);
+    }
+
+
+    public int updateBackup(int aid, int backupFlag, Collection<String> oldBakUniqueKeySet) {
+        if (oldBakUniqueKeySet.isEmpty()) {
+            return Errno.OK;
+        }
+
+        int rt;
+        // 合并标记
+        ParamUpdater mergeUpdater = new ParamUpdater(MgBackupEntity.Comm.BACKUP_ID_FLAG, backupFlag, true);
+        // 合并条件
+        ParamMatcher mergeMatcher = new ParamMatcher(ProductLibEntity.Info.AID, ParamMatcher.EQ, "?");
+        mergeMatcher.and(ProductLibEntity.Info.LIB_ID, ParamMatcher.EQ, "?");
+        mergeMatcher.and(ProductLibEntity.Info.UPDATE_TIME, ParamMatcher.EQ, "?");
+        FaiList<Param> dataList = new FaiList<Param>();
+        for (String bakUniqueKey : oldBakUniqueKeySet) {
+            String[] keys = bakUniqueKey.split(DELIMITER);
+            Calendar updateTime = Calendar.getInstance();
+            updateTime.setTimeInMillis(Long.parseLong(keys[1]));
+            Param data = new Param();
+
+            // mergeUpdater start
+            data.setInt(MgBackupEntity.Comm.BACKUP_ID_FLAG, backupFlag);
+            // mergeUpdater end
+
+            // mergeMatcher start
+            data.setInt(ProductLibEntity.Info.AID, aid);
+            data.setInt(ProductLibEntity.Info.LIB_ID, Integer.valueOf(keys[0]));
+            data.setCalendar(ProductLibEntity.Info.UPDATE_TIME, updateTime);
+            // mergeMatcher end
+
+            dataList.add(data);
+        }
+        rt = m_bakDao.doBatchUpdate(mergeUpdater, mergeMatcher, dataList, false);
+        return rt;
+    }
+
+    public FaiList<Param> getBakList(int aid, SearchArg searchArg) {
+        if(searchArg == null) {
+            searchArg = new SearchArg();
+        }
+        if(searchArg.matcher == null) {
+            searchArg.matcher = new ParamMatcher();
+        }
+        searchArg.matcher.and(ProductLibEntity.Info.AID, ParamMatcher.EQ, aid);
+
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        int rt = m_bakDao.select(searchArg, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "get error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        if (listRef.value.isEmpty()) {
+            rt = Errno.NOT_FOUND;
+            Log.logDbg(rt, "not found;flow=%d;aid=%d;", m_flow, aid);
+        }
+        return listRef.value;
+    }
+
+    private static String getBakUniqueKey(Param fromInfo) {
+        return fromInfo.getInt(ProductLibEntity.Info.LIB_ID) +
+                DELIMITER +
+                fromInfo.getCalendar(ProductLibEntity.Info.UPDATE_TIME).getTimeInMillis();
+    }
+    private final static String DELIMITER = "-";
+
+    public void restoreBackupData(int aid, FaiList<Integer> unionPriIds, int backupId, int backupFlag) {
+        int rt;
         if(m_daoCtrl.isAutoCommit()) {
             rt = Errno.ERROR;
-            throw new MgException(rt, "dao is auto commit;flow=%d;aid=%d;fromAid=%d;uids=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
+            throw new MgException(rt, "dao is auto commit;aid=%d;backupId=%d;backupFlag=%d;", aid, backupId, backupFlag);
         }
 
-        FaiList<Integer> fromUnionPriIds = new FaiList<>(cloneUnionPriIds.keySet());
-        ParamMatcher matcher = new ParamMatcher(ProductLibEntity.Info.AID, ParamMatcher.EQ, fromAid);
-        matcher.and(ProductLibEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.IN, fromUnionPriIds);
-        SearchArg searchArg = new SearchArg();
-        searchArg.matcher = matcher;
+        // 先删除原表数据
+        ParamMatcher delMatcher = new ParamMatcher(ProductLibEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.IN, unionPriIds);
+        delLibList(aid, delMatcher);
 
-        // 根据fromAid设置表名，默认表名是根据aid生成的.查询出所有被克隆的数据
-        m_daoCtrl.setTableName(fromAid);
-        Ref<FaiList<Param>> dataListRef = new Ref<>();
-        rt = m_daoCtrl.select(searchArg, dataListRef);
-        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            throw new MgException("select clone data err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
+        // 查出备份数据
+        SearchArg bakSearchArg = new SearchArg();
+        bakSearchArg.matcher = new ParamMatcher(MgBackupEntity.Comm.BACKUP_ID_FLAG, ParamMatcher.LAND, backupFlag, backupFlag);
+        bakSearchArg.matcher.and(ProductLibEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.IN, unionPriIds);
+        FaiList<Param> fromList = getBakList(aid, bakSearchArg);
+
+        for(Param fromInfo : fromList) {
+            fromInfo.remove(MgBackupEntity.Comm.BACKUP_ID);
+            fromInfo.remove(MgBackupEntity.Comm.BACKUP_ID_FLAG);
         }
 
-        // 根据aid设置表名
-        m_daoCtrl.setTableName(toAid);
-        //删除掉已经存在的数据
-        FaiList<Integer> toUnionPriIds = new FaiList<>(cloneUnionPriIds.values());
-        ParamMatcher delMatcher = new ParamMatcher(ProductLibEntity.Info.AID, ParamMatcher.EQ, toAid);
-        delMatcher.and(ProductLibEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.IN, toUnionPriIds);
-        rt = m_daoCtrl.delete(delMatcher);
-        if(rt != Errno.OK) {
-            throw new MgException("del old data err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
-        }
-
-        // 组装数据
-        for(Param data : dataListRef.value) {
-            int fromUnionPriId = data.getInt(ProductLibEntity.Info.SOURCE_UNIONPRIID);
-            int toUnionPriId = cloneUnionPriIds.get(fromUnionPriId);
-            data.setInt(ProductLibEntity.Info.AID, toAid);
-            data.setInt(ProductLibEntity.Info.SOURCE_UNIONPRIID, toUnionPriId);
-        }
-        // 批量插入
-        if(!dataListRef.value.isEmpty()) {
-            rt = m_daoCtrl.batchInsert(dataListRef.value);
+        if(!fromList.isEmpty()) {
+            // 批量插入
+            rt = m_daoCtrl.batchInsert(fromList);
             if(rt != Errno.OK) {
-                throw new MgException("batch insert err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
+                throw new MgException(rt, "restore insert err;aid=%d;backupId=%d;backupFlag=%d;", aid, backupId, backupFlag);
             }
         }
 
-        //设置自增id
-        rt = m_daoCtrl.restoreMaxId(false);
-        if(rt != Errno.OK) {
-            throw new MgException("restoreMaxId err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
-        }
-        m_daoCtrl.clearIdBuilderCache(toAid);
+        // 处理idBuilder
+        m_daoCtrl.restoreMaxId(false);
+        m_daoCtrl.clearIdBuilderCache(aid);
     }
 }

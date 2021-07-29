@@ -15,10 +15,7 @@ import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
-import java.util.Calendar;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author LuChaoJi
@@ -49,6 +46,27 @@ public class ProductTagRelProc {
 
     public void clearIdBuilderCache(int aid, int unionPriId) {
         m_relDaoCtrl.clearIdBuilderCache(aid, unionPriId);
+    }
+
+    /**
+     * 创建自增的标签id
+     */
+    private int createAndSetId(int aid, int unionPriId, Param relTagInfo) {
+        Integer rlTagId = relTagInfo.getInt(ProductTagRelEntity.Info.RL_TAG_ID, 0);
+        if(rlTagId <= 0) {
+            rlTagId = m_relDaoCtrl.buildId(aid, unionPriId, false);
+            if (rlTagId == null) {
+                throw new MgException(Errno.ERROR, "rlTagId build error;flow=%d;aid=%d;", m_flow, aid);
+            }
+        }else {
+            rlTagId = m_relDaoCtrl.updateId(aid, unionPriId, rlTagId, false);
+            if (rlTagId == null) {
+                throw new MgException(Errno.ERROR, "pdId update error;flow=%d;aid=%d;", m_flow, aid);
+            }
+        }
+        relTagInfo.setInt(ProductTagRelEntity.Info.RL_TAG_ID, rlTagId);
+
+        return rlTagId;
     }
 
     /**
@@ -218,27 +236,6 @@ public class ProductTagRelProc {
     }
 
     /**
-     * 创建自增的标签id
-     */
-    private int createAndSetId(int aid, int unionPriId, Param relTagInfo) {
-        Integer rlTagId = relTagInfo.getInt(ProductTagRelEntity.Info.RL_TAG_ID, 0);
-        if(rlTagId <= 0) {
-            rlTagId = m_relDaoCtrl.buildId(aid, unionPriId, false);
-            if (rlTagId == null) {
-                throw new MgException(Errno.ERROR, "rlTagId build error;flow=%d;aid=%d;", m_flow, aid);
-            }
-        }else {
-            rlTagId = m_relDaoCtrl.updateId(aid, unionPriId, rlTagId, false);
-            if (rlTagId == null) {
-                throw new MgException(Errno.ERROR, "pdId update error;flow=%d;aid=%d;", m_flow, aid);
-            }
-        }
-        relTagInfo.setInt(ProductTagRelEntity.Info.RL_TAG_ID, rlTagId);
-
-        return rlTagId;
-    }
-
-    /**
      * 修改标签业务表(只修改部分字段)
      */
     public void setTagRelList(int aid, int unionPriId, FaiList<ParamUpdater> updaterList, FaiList<ParamUpdater> tagUpdaterList) {
@@ -326,76 +323,6 @@ public class ProductTagRelProc {
     }
 
     /**
-     * 从fromAid、fromUnionPriId中克隆数据到toAid、toUnionPriId下，并且设置toAid、toUnionPriId的自增id
-     * @param toAid 克隆到哪个aid下
-     * @param fromAid 从哪个aid下克隆
-     * @param cloneUnionPriIds key：fromUnionPriId 从哪个uid下克隆
-     *                         value: toUnionPriId 克隆到哪个uid下
-     *
-     */
-    public void cloneData(int toAid, int fromAid, Map<Integer, Integer> cloneUnionPriIds) {
-        int rt;
-        if(cloneUnionPriIds == null || cloneUnionPriIds.isEmpty()) {
-            rt = Errno.ARGS_ERROR;
-            throw new MgException(rt, "cloneUnionPriIds is null;flow=%d;aid=%d;fromAid=%d;uids=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
-        }
-        if(m_relDaoCtrl.isAutoCommit()) {
-            rt = Errno.ERROR;
-            throw new MgException(rt, "dao is auto commit;flow=%d;aid=%d;fromAid=%d;uids=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
-        }
-
-        //获取到所有被克隆的unionPriIds
-        FaiList<Integer> fromUnionPriIds = new FaiList<>(cloneUnionPriIds.keySet());
-        ParamMatcher matcher = new ParamMatcher(ProductTagRelEntity.Info.AID, ParamMatcher.EQ, fromAid);
-        matcher.and(ProductTagRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, fromUnionPriIds);
-        SearchArg searchArg = new SearchArg();
-        searchArg.matcher = matcher;
-
-        // 根据fromAid设置表名，默认表名是根据aid生成的
-        m_relDaoCtrl.setTableName(fromAid);
-        Ref<FaiList<Param>> dataListRef = new Ref<>();
-        rt = m_relDaoCtrl.select(searchArg, dataListRef);
-        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            throw new MgException("select clone data err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
-        }
-
-        // 根据aid设置表名
-        m_relDaoCtrl.setTableName(toAid);
-        //克隆之前先删掉已经存在的数据
-        FaiList<Integer> toUnionPriIds = new FaiList<>(cloneUnionPriIds.values());
-        ParamMatcher delMatcher = new ParamMatcher(ProductTagRelEntity.Info.AID, ParamMatcher.EQ, toAid);
-        delMatcher.and(ProductTagRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, toUnionPriIds);
-        rt = m_relDaoCtrl.delete(delMatcher);
-        if(rt != Errno.OK) {
-            throw new MgException("del old data err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
-        }
-
-        // 组装数据
-        for(Param data : dataListRef.value) {
-            int fromUnionPriId = data.getInt(ProductTagRelEntity.Info.UNION_PRI_ID);
-            int toUnionPriId = cloneUnionPriIds.get(fromUnionPriId);
-            data.setInt(ProductTagRelEntity.Info.AID, toAid);
-            data.setInt(ProductTagRelEntity.Info.UNION_PRI_ID, toUnionPriId);
-        }
-        // 批量插入
-        if(!dataListRef.value.isEmpty()) {
-            rt = m_relDaoCtrl.batchInsert(dataListRef.value);
-            if(rt != Errno.OK) {
-                throw new MgException("batch insert err;flow=%d;aid=%d;fromAid=%d;cloneUnionPriIds=%s;", m_flow, toAid, fromAid, cloneUnionPriIds);
-            }
-        }
-
-        //设置toAid和toUnionPriId的自增id
-        for(int unionPriId : toUnionPriIds) {
-            rt = m_relDaoCtrl.restoreMaxId(unionPriId, false);
-            if(rt != Errno.OK) {
-                throw new MgException("restoreMaxId err;flow=%d;aid=%d;fromAid=%d;curUid=%d;cloneUnionPriIds=%s;", m_flow, toAid, fromAid, unionPriId, cloneUnionPriIds);
-            }
-            m_relDaoCtrl.clearIdBuilderCache(toAid, unionPriId);
-        }
-    }
-
-    /**
      * 标签业务表添加增量克隆的数据
      */
     public void addIncrementalClone(int aid, FaiList<Integer> unionPriIds, FaiList<Param> list) {
@@ -473,40 +400,9 @@ public class ProductTagRelProc {
             }
             // 获取交集，说明剩下的这些是要合并的备份数据
             oldBakUniqueKeySet.retainAll(newBakUniqueKeySet);
-            if(!oldBakUniqueKeySet.isEmpty()){
-                // 合并标记
-                ParamUpdater mergeUpdater = new ParamUpdater(MgBackupEntity.Comm.BACKUP_ID_FLAG, backupFlag, true);
-
-                // 合并条件
-                ParamMatcher mergeMatcher = new ParamMatcher(ProductTagRelEntity.Info.AID, ParamMatcher.EQ, "?");
-                mergeMatcher.and(ProductTagRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
-                mergeMatcher.and(ProductTagRelEntity.Info.TAG_ID, ParamMatcher.EQ, "?");
-                mergeMatcher.and(ProductTagRelEntity.Info.UPDATE_TIME, ParamMatcher.EQ, "?");
-
-                FaiList<Param> dataList = new FaiList<Param>();
-                for (String bakUniqueKey : oldBakUniqueKeySet) {
-                    String[] keys = bakUniqueKey.split(DELIMITER);
-                    Calendar updateTime = Calendar.getInstance();
-                    updateTime.setTimeInMillis(Long.parseLong(keys[2]));
-                    Param data = new Param();
-
-                    // mergeUpdater start
-                    data.setInt(MgBackupEntity.Comm.BACKUP_ID_FLAG, backupFlag);
-                    // mergeUpdater end
-
-                    // mergeMatcher start
-                    data.setInt(ProductTagRelEntity.Info.AID, aid);
-                    data.setInt(ProductTagRelEntity.Info.UNION_PRI_ID, Integer.valueOf(keys[0]));
-                    data.setInt(ProductTagRelEntity.Info.TAG_ID, Integer.valueOf(keys[1]));
-                    data.setCalendar(ProductTagRelEntity.Info.UPDATE_TIME, updateTime);
-                    // mergeMatcher end
-
-                    dataList.add(data);
-                }
-                rt = m_bakDao.doBatchUpdate(mergeUpdater, mergeMatcher, dataList, false);
-                if(rt != Errno.OK) {
-                    throw new MgException(rt, "merge bak update err;aid=%d;uid=%s;backupId=%d;backupFlag=%d;", aid, unionPriId, backupId, backupFlag);
-                }
+            rt = updateBackup(aid, backupFlag, oldBakUniqueKeySet);
+            if(rt != Errno.OK) {
+                throw new MgException(rt, "merge bak update err;aid=%d;uid=%s;backupId=%d;backupFlag=%d;", aid, unionPriId, backupId, backupFlag);
             }
 
             // 移除掉合并的数据，剩下的就是需要新增的备份数据
@@ -534,6 +430,48 @@ public class ProductTagRelProc {
         Log.logStd("backupData ok;aid=%d;uids=%s;backupId=%d;backupFlag=%d;", aid, unionPriIds, backupId, backupFlag);
 
         return tagIds;
+    }
+
+    /**
+     * 解耦合，方便以后扩展
+     * @param oldBakUniqueKeySet  由getBakUniqueKey(Param fromInfo)方法获得的bakUniqueKey组成的集合
+     */
+    public int updateBackup(int aid, int backupFlag, Collection<String> oldBakUniqueKeySet) {
+        if (oldBakUniqueKeySet.isEmpty()) {
+            return Errno.OK;
+        }
+        int rt;
+        // 合并标记
+        ParamUpdater mergeUpdater = new ParamUpdater(MgBackupEntity.Comm.BACKUP_ID_FLAG, backupFlag, true);
+
+        // 合并条件
+        ParamMatcher mergeMatcher = new ParamMatcher(ProductTagRelEntity.Info.AID, ParamMatcher.EQ, "?");
+        mergeMatcher.and(ProductTagRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
+        mergeMatcher.and(ProductTagRelEntity.Info.TAG_ID, ParamMatcher.EQ, "?");
+        mergeMatcher.and(ProductTagRelEntity.Info.UPDATE_TIME, ParamMatcher.EQ, "?");
+
+        FaiList<Param> dataList = new FaiList<Param>();
+        for (String bakUniqueKey : oldBakUniqueKeySet) {
+            String[] keys = bakUniqueKey.split(DELIMITER);
+            Calendar updateTime = Calendar.getInstance();
+            updateTime.setTimeInMillis(Long.parseLong(keys[2]));
+            Param data = new Param();
+
+            // mergeUpdater start
+            data.setInt(MgBackupEntity.Comm.BACKUP_ID_FLAG, backupFlag);
+            // mergeUpdater end
+
+            // mergeMatcher start
+            data.setInt(ProductTagRelEntity.Info.AID, aid);
+            data.setInt(ProductTagRelEntity.Info.UNION_PRI_ID, Integer.valueOf(keys[0]));
+            data.setInt(ProductTagRelEntity.Info.TAG_ID, Integer.valueOf(keys[1]));
+            data.setCalendar(ProductTagRelEntity.Info.UPDATE_TIME, updateTime);
+            // mergeMatcher end
+
+            dataList.add(data);
+        }
+        rt = m_bakDao.doBatchUpdate(mergeUpdater, mergeMatcher, dataList, false);
+        return rt;
     }
 
     public FaiList<Param> getBakList(int aid, SearchArg searchArg) {

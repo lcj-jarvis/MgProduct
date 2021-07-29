@@ -24,7 +24,6 @@ import fai.middleground.svrutil.repository.BackupStatusCtrl;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
@@ -786,15 +785,14 @@ public class ProductTagService {
         int rt;
         LockUtil.BackupLock.lock(aid);
         try {
-            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
-            int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
-            rt = checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.BACKUP, aid, backupInfo);
-            if (rt == Errno.OK) {
+            if (checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.BACKUP, aid, backupInfo)) {
                 FaiBuffer sendBuf = new FaiBuffer(true);
                 session.write(sendBuf);
                 return Errno.OK;
             }
 
+            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+            int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
             TransactionCtrl tc = new TransactionCtrl();
             ProductTagRelProc relProc = new ProductTagRelProc(flow, aid, tc);
             ProductTagProc proc = new ProductTagProc(flow, aid, tc);
@@ -847,15 +845,14 @@ public class ProductTagService {
         int rt;
         LockUtil.BackupLock.lock(aid);
         try {
-            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
-            int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
-            rt = checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.RESTORE, aid, backupInfo);
-            if (rt == Errno.OK) {
+            if (checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.RESTORE, aid, backupInfo)) {
                 FaiBuffer sendBuf = new FaiBuffer(true);
                 session.write(sendBuf);
                 return Errno.OK;
             }
 
+            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+            int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
             TransactionCtrl tc = new TransactionCtrl();
             ProductTagRelProc relProc = new ProductTagRelProc(flow, aid, tc);
             ProductTagProc proc = new ProductTagProc(flow, aid, tc);
@@ -900,16 +897,14 @@ public class ProductTagService {
         int rt;
         LockUtil.BackupLock.lock(aid);
         try {
-            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
-            int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
-
-            rt = checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.DELETE, aid, backupInfo);
-            if (rt == Errno.OK) {
+            if (checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.DELETE, aid, backupInfo)) {
                 FaiBuffer sendBuf = new FaiBuffer(true);
                 session.write(sendBuf);
                 return Errno.OK;
             }
 
+            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+            int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
             TransactionCtrl tc = new TransactionCtrl();
             ProductTagRelProc relProc = new ProductTagRelProc(flow, aid, tc);
             ProductTagProc proc = new ProductTagProc(flow, aid, tc);
@@ -963,24 +958,25 @@ public class ProductTagService {
         return false;
     }
 
-    public int checkAndSetBackupStatus(int flow, BackupStatusCtrl.Action action, int aid, Param backupInfo) {
-        int rt = Errno.ALREADY_EXISTED;
+    private boolean checkAndSetBackupStatus(int flow, BackupStatusCtrl.Action action, int aid, Param backupInfo) {
         int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
         String backupStatus = backupStatusCtrl.getStatus(action, aid, backupId);
         if (backupStatus != null) {
+            int rt = Errno.ALREADY_EXISTED;
             if (backupStatusCtrl.isDoing(backupStatus)) {
                 throw new MgException(rt, action + " is doing;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
             } else if (backupStatusCtrl.isFinish(backupStatus)) {
                 rt = Errno.OK;
                 Log.logStd(rt, action + " is already ok;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
-                return rt;
+                return true;
             } else if (backupStatusCtrl.isFail(backupStatus)) {
                 Log.logStd(rt, action + " is fail, going retry;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+                return false;
             }
         }
         // 设置备份执行中
         backupStatusCtrl.setStatusIsDoing(action, aid, backupId);
-        return rt;
+        return false;
     }
 
     public void initBackupStatus(RedisCacheManager cache) {

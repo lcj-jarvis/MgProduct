@@ -23,6 +23,8 @@ public class LockUtil {
 		m_lockLease = lockLease;
 		LibLock.init(cache, lockLease);
 		LibRelLock.init(cache, lockLease);
+		BackupLock.init(cache, lockLease);
+
 	}
 
 	public static Lock getLock(int aid) {
@@ -61,5 +63,25 @@ public class LockUtil {
 		private static SimpleDistributedLock m_readLock;
 
 		private static final String READ_LOCK_TYPE = "LIBREL_READ_LOCK";
+	}
+
+	/**
+	 * 备份锁
+	 */
+	public static class BackupLock {
+		public static void lock(int aid) {
+			bakLock.lock(aid);
+		}
+
+		public static void unlock(int aid) {
+			bakLock.unlock(aid);
+		}
+
+		public static void init(RedisCacheManager cache, int lockLease) {
+			bakLock = new SimpleDistributedLock(cache, LOCK_TYPE, lockLease, M_RETRY_LOCK_TIME);
+		}
+
+		private static SimpleDistributedLock bakLock;
+		private static final String  LOCK_TYPE = "mgPdLibBak";
 	}
 }

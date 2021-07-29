@@ -12,6 +12,7 @@ import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ProductSpecProc {
     public ProductSpecProc(ProductSpecDaoCtrl daoCtrl, int flow) {
@@ -25,7 +26,7 @@ public class ProductSpecProc {
         }
         m_flow = flow;
     }
-    public int batchAdd(int aid, Map<Integer, List<Param>> pdIdSpecListMap, Ref<Boolean> needRefreshSkuRef) {
+    public int batchAdd(int aid, Map<Integer, List<Param>> pdIdSpecListMap, Ref<Boolean> needRefreshSkuRef, Ref<FaiList<Param>> sagaSpecRef) {
         int rt = Errno.ARGS_ERROR;
         if(aid <= 0){
             Log.logErr(rt,"arg error;flow=%d;aid=%s;", m_flow, aid);
@@ -38,6 +39,8 @@ public class ProductSpecProc {
             Log.logErr("pdScId error;flow=%d;aid=%s;tpScId=%s;", m_flow, aid, pdScId);
             return Errno.ERROR;
         }
+        // 分布式事务 记录添加主键使用
+        FaiList<Param> priKeyList = new FaiList<>();
         for (Map.Entry<Integer, List<Param>> pdIdSpecListEntry : pdIdSpecListMap.entrySet()) {
             Integer pdId = pdIdSpecListEntry.getKey();
             List<Param> infoList = pdIdSpecListEntry.getValue();
@@ -56,6 +59,13 @@ public class ProductSpecProc {
                 data.assign( info, ProductSpecEntity.Info.SOURCE_UNION_PRI_ID);
                 data.assign( info, ProductSpecEntity.Info.SORT);
                 data.assign( info, ProductSpecEntity.Info.FLAG);
+                // 记录补偿
+                if (sagaSpecRef != null) {
+                    Param sagaInfo = new Param();
+                    sagaInfo.setInt(ProductSpecEntity.Info.PD_ID, pdId);
+                    sagaInfo.assign(info, ProductSpecEntity.Info.SC_STR_ID);
+                    priKeyList.add(sagaInfo);
+                }
                 FaiList<Param> inPdScValList = info.getList(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST);
                 for (Param inPdScValInfo : inPdScValList) {
                     // 判断是否勾选，c:true
@@ -74,6 +84,9 @@ public class ProductSpecProc {
                 data.setCalendar(ProductSpecEntity.Info.SYS_UPDATE_TIME, now);
                 dataList.add(data);
             }
+        }
+        if (sagaSpecRef != null) {
+            sagaSpecRef.value = priKeyList;
         }
         cacheManage.addNeedDelCachedPdIdSet(aid, pdIdSpecListMap.keySet());
         if(m_daoCtrl.updateId(pdScId) == null){
@@ -95,7 +108,45 @@ public class ProductSpecProc {
     public int batchAdd(int aid, int pdId, FaiList<Param> infoList, Ref<Boolean> needRefreshSkuRef) {
         return batchAdd(aid, Collections.singletonMap(pdId, infoList), needRefreshSkuRef);
     }
+    public int batchAdd(int aid, Map<Integer, List<Param>> pdIdSpecListMap, Ref<Boolean> needRefreshSkuRef) {
+        return batchAdd(aid, pdIdSpecListMap, needRefreshSkuRef, null);
+    }
 
+    /**
+     * batchAdd 的补偿方法
+     *
+     * @param aid aid
+     * @param specPriKey 主键集合(包含pdId、scStrId)
+     * @return {@link Errno}
+     */
+    public int batchAddRollback(int aid, FaiList<Param> specPriKey) {
+        int rt = Errno.ERROR;
+        if (Util.isEmptyList(specPriKey)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args err;specPriKey is empty;");
+            return rt;
+        }
+        // 根据 pdId 分组，减少在循环里操作db的次数
+        Map<Integer, List<Param>> listMap = specPriKey.stream().collect(Collectors.groupingBy(spec -> spec.getInt(ProductSpecEntity.Info.PD_ID)));
+        for (Map.Entry<Integer, List<Param>> entry : listMap.entrySet()) {
+            Integer pdId = entry.getKey();
+            List<Param> list = entry.getValue();
+            FaiList<Integer> scStrIdList = new FaiList<>();
+            for (Param info : list) {
+                scStrIdList.addNotNull(info.getInt(ProductSpecEntity.Info.SC_STR_ID));
+            }
+            ParamMatcher matcher = new ParamMatcher(ProductSpecEntity.Info.AID, ParamMatcher.EQ, aid);
+            matcher.and(ProductSpecEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
+            matcher.and(ProductSpecEntity.Info.SC_STR_ID, ParamMatcher.IN, scStrIdList);
+            rt = m_daoCtrl.delete(matcher);
+            if (rt != Errno.OK) {
+                Log.logErr(rt, "batchAddRollback dao.delete error;flow=%d;aid=%d;pdId=%d;scStrIdList=%s", m_flow, aid, pdId, scStrIdList);
+                return rt;
+            }
+        }
+        Log.logStd("batchAddRollback ok;flow=%d;aid=%d", m_flow, aid);
+        return rt;
+    }
     /**
      * 批量同步，有就更新，没有就添加
      * @param aid
@@ -257,7 +308,7 @@ public class ProductSpecProc {
         ParamMatcher matcher = new ParamMatcher(ProductSpecEntity.Info.AID, ParamMatcher.EQ, -aid);
         matcher.and(ProductSpecEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
         Calendar now = Calendar.getInstance();
-        ParamUpdater updater = new ParamUpdater(new Param().setInt(ProductSpecEntity.Info.AID, -aid)
+        ParamUpdater updater = new ParamUpdater(new Param().setInt(ProductSpecEntity.Info.AID, aid)
                 .setCalendar(ProductSpecEntity.Info.SYS_UPDATE_TIME, now)
         );
         rt = m_daoCtrl.update(updater, matcher);
@@ -568,6 +619,11 @@ public class ProductSpecProc {
         }
         Log.logDbg(rt,"getList ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
         return rt;
+    }
+
+    public void restoreMaxId(int aid, boolean needLock) {
+        m_daoCtrl.restoreMaxId(needLock);
+        m_daoCtrl.clearIdBuilderCache(aid);
     }
 
     public void clearIdBuilderCache(int aid) {

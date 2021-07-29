@@ -25,10 +25,14 @@ public class ProductSpecSkuProc {
         }
         m_flow = flow;
     }
+    public int batchAdd(int aid, int pdId, FaiList<Param> infoList) {
+        return batchAdd(aid, Collections.singletonMap(pdId, infoList), null);
+    }
     public int batchAdd(int aid, Map<Integer, FaiList<Param>> pdIdPdScSkuListMap, Map<Integer, Map<String, Long>> pdIdInPdScStrIdListJsonSkuIdMap) {
         return batchAdd(aid, pdIdPdScSkuListMap, pdIdInPdScStrIdListJsonSkuIdMap, null);
     }
-    public int batchAdd(int aid, Map<Integer, FaiList<Param>> pdIdPdScSkuListMap, Map<Integer, Map<String, Long>> pdIdInPdScStrIdListJsonSkuIdMap, Ref<FaiList<Long>> skuIdListRef) {
+    public int batchAdd(int aid, Map<Integer, FaiList<Param>> pdIdPdScSkuListMap, Map<Integer, Map<String, Long>> pdIdInPdScStrIdListJsonSkuIdMap,
+                        Ref<FaiList<Long>> skuIdListRef) {
         int rt = Errno.ARGS_ERROR;
         if(aid <= 0){
             Log.logErr("error;flow=%d;aid=%s;", m_flow, aid);
@@ -109,8 +113,30 @@ public class ProductSpecSkuProc {
         Log.logStd("ok;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIdPdScSkuListMap.keySet());
         return rt;
     }
-    public int batchAdd(int aid, int pdId, FaiList<Param> infoList) {
-        return batchAdd(aid, Collections.singletonMap(pdId, infoList), null);
+
+    /**
+     * batchAdd 的补偿方法
+     *
+     * @param aid aid
+     * @param skuList skuList
+     * @return {@link Errno}
+     */
+    public int batchAddRollback(int aid, FaiList<Long> skuList) {
+        int rt;
+        if (Util.isEmptyList(skuList)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args err;skuList is empty");
+            return rt;
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductSpecSkuEntity.Info.SKU_ID, ParamMatcher.IN, skuList);
+        rt = m_daoCtrl.delete(matcher);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "batchAddRollback dao.delete error;flow=%d;aid=%d;skuIdList=%s", m_flow, aid, skuList);
+            return rt;
+        }
+        Log.logStd("batchAddRollback ok;flow=%d;aid=%d", m_flow, aid);
+        return rt;
     }
 
     /**
@@ -959,6 +985,10 @@ public class ProductSpecSkuProc {
     public boolean deleteDirtyCache(int aid) {
         return cacheManage.deleteDirtyCache(aid);
     }
+    public void restoreMaxId(int aid, boolean needLock) {
+        m_daoCtrl.restoreMaxId(needLock);
+        m_daoCtrl.clearIdBuilderCache(aid);
+    }
 
     /**
      * 获取被删除的skuIdList
@@ -971,8 +1001,6 @@ public class ProductSpecSkuProc {
     private CacheManage cacheManage = new CacheManage();
     private ProductSpecSkuDaoCtrl m_daoCtrl;
     private Set<Long> deletedSkuIdSet = new HashSet<>();
-
-
 
 
     private static class CacheManage{

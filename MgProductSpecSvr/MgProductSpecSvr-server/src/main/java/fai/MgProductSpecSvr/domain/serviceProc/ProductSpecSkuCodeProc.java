@@ -44,6 +44,33 @@ public class ProductSpecSkuCodeProc {
         return rt;
     }
 
+    /**
+     * batchAdd 的补偿方法
+     *
+     * @param aid aid
+     * @param unionPriId unionPriId
+     * @param skuCodeList skuCodeList
+     * @return {@link Errno}
+     */
+    public int batchAddRollback(int aid, Integer unionPriId, FaiList<String> skuCodeList) {
+        int rt;
+        if (Util.isEmptyList(skuCodeList)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args err;skuCodeList is empty");
+            return rt;
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductSpecSkuCodeEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductSpecSkuCodeEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(ProductSpecSkuCodeEntity.Info.SKU_CODE, ParamMatcher.IN, skuCodeList);
+        rt = m_daoCtrl.delete(matcher);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "batchAddRollback dao.delete error;flow=%d;aid=%d;skuCodeList=%s", m_flow, aid, skuCodeList);
+            return rt;
+        }
+        Log.logStd("batchAddRollback ok;flow=%d;aid=%d", m_flow, aid);
+        return rt;
+    }
+
     public int refresh(int aid, int unionPriId, int pdId, Map<String, Long> newSkuCodeSkuIdMap, FaiList<Long> needDelSkuCodeSkuIdList, FaiList<Param> skuCodeSortList, HashSet<Long> changeSkuCodeSkuIdSet) {
         if(newSkuCodeSkuIdMap.isEmpty() && needDelSkuCodeSkuIdList.isEmpty()){
             return Errno.OK;

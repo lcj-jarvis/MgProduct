@@ -18,8 +18,14 @@ public class SpecSagaEntity {
     }
 
     public static final class PropInfo {
+
+        public static final String SPEC = "spec";                    // 商品规格表的补偿信息
+        public static final String SPEC_SKU = "specSku";             // 商品规格SKU表的补偿信息
+        public static final String SPEC_SKU_CODE = "specSkuCode";    // 商品规格skuCode表的补偿信息
+
         public static final String PD_ID_LIST = "pdIdList";
         public static final String DEL_SKU_ID_LIST = "delSkuIdList";
         public static final String SOFT_DEL = "softDel";
+        public static final String UNION_PRI_ID = "unionPriId";
     }
 }

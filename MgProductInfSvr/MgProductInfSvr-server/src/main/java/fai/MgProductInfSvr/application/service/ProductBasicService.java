@@ -400,7 +400,7 @@ public class ProductBasicService extends MgProductInfService {
                 }
                 if (!storeSaleSkuList.isEmpty()) {
                     ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-                    rt = productStoreProc.importStoreSales(aid, tid, unionPriId, tx.getXid(), storeSaleSkuList, inStoreRecordInfo);
+                    rt = productStoreProc.importStoreSales(aid, tid, unionPriId, xid, storeSaleSkuList, inStoreRecordInfo);
                     if (rt != Errno.OK) {
                         return rt;
                     }
@@ -1006,6 +1006,7 @@ public class ProductBasicService extends MgProductInfService {
             boolean commit = false;
             GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
             tx.begin(aid, 60000, "mgProduct-addProduct", flow);
+            xid = tx.getXid();
             try {
                 if (addInfo.isEmpty()) {
                     rt = Errno.ARGS_ERROR;
@@ -1029,21 +1030,8 @@ public class ProductBasicService extends MgProductInfService {
                 }
 
                 ProductBasicProc basicProc = new ProductBasicProc(flow);
-                if (!rlPdIdList.isEmpty()) {
-                    FaiList<Param> alreadyExistsList = new FaiList<>();
-                    rt = basicProc.getRelListByRlIds(aid, ownerUnionPriId, rlPdIdList, alreadyExistsList);
-                    if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
-                        Log.logErr(rt, "productBasicProc.getRelListByRlIds err;aid=%d;tid=%d;unionPriId=%d;rlPdIdList=%s;", aid, ownerTid, ownerUnionPriId, rlPdIdList);
-                        return rt;
-                    }
-                    if (!alreadyExistsList.isEmpty()) {
-                        rt = Errno.ARGS_ERROR;
-                        Log.logErr(rt, "rlPdId is exist;aid=%d;tid=%d;unionPriId=%d;rlPdId=%s;", aid, ownerTid, ownerUnionPriId, rlPdIdList);
-                        return rt;
-                    }
-                }
-
                 // 添加商品数据
+                // TODO 分布式事务支持
                 rt = basicProc.addProductAndRel(aid, ownerTid, ownerUnionPriId, basicInfo, pdIdRef, rlPdIdRef);
                 if (rt != Errno.OK) {
                     return rt;
@@ -1054,10 +1042,8 @@ public class ProductBasicService extends MgProductInfService {
                 // 添加商品与分类的绑定
                 FaiList<Integer> rlGroupIds = basicInfo.getList(ProductBasicEntity.ProductInfo.RL_GROUP_IDS);
                 if (!Util.isEmptyList(rlGroupIds)) {
-                    rt = basicProc.setPdBindGroup(aid, ownerUnionPriId, rlPdIdRef.value, rlGroupIds, null);
+                    rt = basicProc.setPdBindGroup(aid, ownerUnionPriId, rlPdIdRef.value, rlGroupIds, null, xid);
                     if (rt != Errno.OK) {
-                        // TODO 因为未加入分布式事务，只能先告警
-                        Oss.logAlarm("addProductInfo error;there is an error in the binding groupInfo");
                         return rt;
                     }
                 }
@@ -1077,10 +1063,8 @@ public class ProductBasicService extends MgProductInfService {
                         info.setInt(ProductBindPropEntity.Info.UNION_PRI_ID, ownerUnionPriId);
                         addList.add(info);
                     }
-                    rt = basicProc.setPdBindPropInfo(aid, ownerTid, ownerUnionPriId, rlPdIdRef.value, addList, null);
+                    rt = basicProc.setPdBindPropInfo(aid, ownerTid, ownerUnionPriId, rlPdIdRef.value, addList, null, xid);
                     if (rt != Errno.OK) {
-                        // TODO 因为未加入分布式事务，只能先告警
-                        Oss.logAlarm("addProductInfo error;there is an error in the binding propInfo");
                         return rt;
                     }
                 }
@@ -1116,10 +1100,8 @@ public class ProductBasicService extends MgProductInfService {
                     FaiList<Param> skuIdInfoList = new FaiList<>();
                     // 导入
                     if (!importSpecList.isEmpty()) {
-                        rt = specProc.importPdScWithSku(aid, ownerTid, ownerUnionPriId, importSpecList, importSpecSkuList, skuIdInfoList);
+                        rt = specProc.importPdScWithSku(aid, ownerTid, ownerUnionPriId, xid, importSpecList, importSpecSkuList, skuIdInfoList);
                         if (rt != Errno.OK) {
-                            // TODO 因为未加入分布式事务，只能先告警
-                            Oss.logAlarm("addProductInfo error;an error occurred in adding the product specification");
                             return rt;
                         }
                     }
@@ -1194,7 +1176,7 @@ public class ProductBasicService extends MgProductInfService {
                 // 导入
                 if (!storeSaleSkuList.isEmpty()) {
                     ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-                    rt = productStoreProc.importStoreSales(aid, ownerTid, ownerUnionPriId, tx.getXid(), storeSaleSkuList, inStoreRecordInfo);
+                    rt = productStoreProc.importStoreSales(aid, ownerTid, ownerUnionPriId, xid, storeSaleSkuList, inStoreRecordInfo);
                     if (rt != Errno.OK) {
                         return rt;
                     }

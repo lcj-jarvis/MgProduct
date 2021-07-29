@@ -291,6 +291,7 @@ public class StoreSalesSkuService extends StoreService {
                                 rt = Errno.OK;
                                 Log.reportErr(flow, rt,"get SagaInfo not found; xid=%s, branchId=%s", xid, branchId);
                             }
+                            return rt;
                         }
 
                         Param sagaInfo = sagaInfoRef.value;
@@ -775,7 +776,7 @@ public class StoreSalesSkuService extends StoreService {
                     StoreSagaProc storeSagaProc = new StoreSagaProc(flow, aid, tc);
                     try {
                         Ref<Param> sagaInfoRef = new Ref<>();
-                        // 查询补偿信息
+                        // 获取补偿信息
                         rt = storeSagaProc.getInfoWithAdd(xid, branchId, sagaInfoRef);
                         if (rt != Errno.OK) {
                             if (rt == Errno.NOT_FOUND) {

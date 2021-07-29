@@ -1603,11 +1603,12 @@ public class ProductSpecService extends ServicePub {
      * @param specList 商品规格
      * @param specSkuList 商品规格sku
      */
-    public int importPdScWithSku(FaiSession session, int flow, int aid, int tid, int unionPriId, FaiList<Param> specList, FaiList<Param> specSkuList) throws IOException {
+    public int importPdScWithSku(FaiSession session, int flow, int aid, String xid, int tid, int unionPriId, FaiList<Param> specList, FaiList<Param> specSkuList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
             Param nameIdMap = new Param(true);
+            // 检查并替换商品规格的名称和规格值，例：橙色 -> 15 (scStrId)，nameIdMap 是 名称为 key，规格字符串id为 value (橙色:15)
             rt = checkAndReplaceAddPdScInfoList(flow, aid, tid, unionPriId, null, specList, nameIdMap);
             if(rt != Errno.OK){
                 return rt;
@@ -1619,11 +1620,14 @@ public class ProductSpecService extends ServicePub {
             {
                 for (Param specSkuInfo : specSkuList) {
                     int pdId = specSkuInfo.getInt(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.PD_ID);
-                    Map<String, Param> inPdScStrIdListJsonSpecSkuMap = pdIdInPdScStrIdListJsonSpecSkuMap.get(pdId);
-                    if(inPdScStrIdListJsonSpecSkuMap == null){
-                        inPdScStrIdListJsonSpecSkuMap = new HashMap<>();
-                        pdIdInPdScStrIdListJsonSpecSkuMap.put(pdId, inPdScStrIdListJsonSpecSkuMap);
-                    }
+                    /**
+                     * 下方的 lambda 表达
+                     * if(inPdScStrIdListJsonSpecSkuMap == null){
+                     *                         inPdScStrIdListJsonSpecSkuMap = new HashMap<>();
+                     *                         pdIdInPdScStrIdListJsonSpecSkuMap.put(pdId, inPdScStrIdListJsonSpecSkuMap);
+                     *                     }
+                     */
+                    Map<String, Param> inPdScStrIdListJsonSpecSkuMap = pdIdInPdScStrIdListJsonSpecSkuMap.computeIfAbsent(pdId, k -> new HashMap<>());
                     boolean spu = specSkuInfo.getBoolean(fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity.Info.SPU, false);
                     if(spu){
                         // 空字符串代表spu
@@ -1654,6 +1658,7 @@ public class ProductSpecService extends ServicePub {
             for (Map.Entry<Integer, List<Param>> pdIdSpecListEntry : pdIdSpecListMap.entrySet()) {
                 int pdId = pdIdSpecListEntry.getKey();
                 List<Param> pdScInfoList = pdIdSpecListEntry.getValue();
+                // 根据规格值生成 sku 列表
                 FaiList<FaiList<Integer>> skuList = genSkuList(new FaiList<>(pdScInfoList), null, ProductSpecSkuValObj.Limit.SINGLE_PRODUCT_MAX_SIZE,
                         ProductSpecSkuValObj.Limit.InPdScValIdSkuList.MAX_SIZE, true);
                 if (skuList == null) {
@@ -1662,7 +1667,7 @@ public class ProductSpecService extends ServicePub {
                 // 是否允许 inPdScValList 为空，即是否是单规格
                 boolean allowInPdScValListIsEmpty = false;
 
-                if(pdScInfoList != null && pdScInfoList.size() == 1 && skuList.size() == 1) {
+                if(pdScInfoList.size() == 1 && skuList.size() == 1) {
                     allowInPdScValListIsEmpty = Misc.checkBit(pdScInfoList.get(0).getInt(ProductSpecEntity.Info.FLAG, 0), ProductSpecValObj.FLag.ALLOW_IN_PD_SC_VAL_LIST_IS_EMPTY);
                 }
                 Map<String, Param> inPdScStrIdListJsonSpecSkuMap = pdIdInPdScStrIdListJsonSpecSkuMap.get(pdId);
@@ -1706,19 +1711,38 @@ public class ProductSpecService extends ServicePub {
                 try {
                     LockUtil.lock(aid);
                     try {
+                        // 开启分布式事务标志
+                        boolean isSaga = !Str.isEmpty(xid);
                         transactionCtrl.setAutoCommit(false);
-                        rt = productSpecProc.batchAdd(aid, pdIdSpecListMap, null);
+                        Ref<FaiList<Param>> sagaSpecRef = null;
+                        if (isSaga) {
+                            sagaSpecRef = new Ref<>();
+                        }
+                        // 添加 商品规格表数据 mgProductSpec_0xxx
+                        rt = productSpecProc.batchAdd(aid, pdIdSpecListMap, null, sagaSpecRef);
                         if(rt != Errno.OK){
                             return rt;
                         }
+                        // 添加 商品规格sku表数据 mgProductSpecSku_0xxx
                         rt = productSpecSkuProc.batchAdd(aid, pdIdPdScSkuListMap, pdIdInPdScStrIdListJsonSkuIdMap, skuIdListRef);
                         if(rt != Errno.OK){
                             return rt;
                         }
                         FaiList<Param> skuCodeInfoList = new FaiList<>();
+                        FaiList<String> sagaSkuCodeList = new FaiList<>();
                         for (Map.Entry<Integer, Map<String, Param>> entryMap : pdIdInPdScStrIdListJsonSpecSkuMap.entrySet()) {
                             Integer pdId = entryMap.getKey();
+                            /*
+                             * inPdScStrIdListJsonSkuIdMap 结构
+                             *      key ((String)inPdScStrIdList) : value (skuId)
+                             *                            [18,19] : 24
+                             */
                             Map<String, Long> inPdScStrIdListJsonSkuIdMap = pdIdInPdScStrIdListJsonSkuIdMap.get(pdId);
+                            /*
+                             * inPdScStrIdListJsonSpecSkuMap 结构
+                             *      key ((String)inPdScStrIdList) : value (specSkuInfo)
+                             *                            [18,19] : {aid:"xxx", pdId:"xxx",.......}
+                             */
                             Map<String, Param> inPdScStrIdListJsonSpecSkuMap = entryMap.getValue();
                             for (Map.Entry<String, Param> inPdScStrIdListJsonSpecSkuEntry : inPdScStrIdListJsonSpecSkuMap.entrySet()) {
                                 String inPdScStrIdListJson = inPdScStrIdListJsonSpecSkuEntry.getKey();
@@ -1738,11 +1762,31 @@ public class ProductSpecService extends ServicePub {
                                                     .setString(ProductSpecSkuCodeEntity.Info.SKU_CODE, skuCode)
                                     );
                                 }
+                                if (isSaga) {
+                                    sagaSkuCodeList.addAll(skuCodeList);
+                                }
                             }
                         }
                         if(!skuCodeInfoList.isEmpty()){
                             rt = productSpecSkuCodeProc.batchAdd(aid, unionPriId, skuCodeInfoList);
                             if(rt != Errno.OK){
+                                return rt;
+                            }
+                        }
+                        // 记录补偿信息
+                        if (isSaga) {
+                            SpecSagaProc specSagaProc = new SpecSagaProc(flow, aid, transactionCtrl);
+                            Param prop = new Param();
+                            FaiList<Param> sagaSpecList = sagaSpecRef.value;
+                            // 记录商品规格表的补偿信息
+                            prop.setList(SpecSagaEntity.PropInfo.SPEC, sagaSpecList);
+                            // 记录商品规格SKU表的补偿信息
+                            prop.setList(SpecSagaEntity.PropInfo.SPEC_SKU, skuIdListRef.value);
+                            // 记录商品规格skuCode表的补偿信息
+                            prop.setList(SpecSagaEntity.PropInfo.SPEC_SKU_CODE, sagaSkuCodeList);
+                            prop.setInt(SpecSagaEntity.PropInfo.UNION_PRI_ID, unionPriId);
+                            rt = specSagaProc.add(aid, xid, RootContext.getBranchId(), prop);
+                            if (rt != Errno.OK) {
                                 return rt;
                             }
                         }
@@ -1779,6 +1823,107 @@ public class ProductSpecService extends ServicePub {
             sendPdSkuScInfoList(session, rtPdSkuList);
             Log.logStd("ok;flow=%d;aid=%d;", flow, aid);
         }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * importPdScWithSku 的补偿方法
+     */
+    public int importPdScWithSkuRollback(FaiSession session, int flow, int aid, String xid, Long branchId) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            TransactionCtrl tc = new TransactionCtrl();
+            try {
+                boolean commit = false;
+                LockUtil.lock(aid);
+                try {
+                    tc.setAutoCommit(false);
+                    ProductSpecProc productSpecProc = new ProductSpecProc(flow, aid, tc);
+                    ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(flow, aid, tc);
+                    ProductSpecSkuCodeProc productSpecSkuCodeProc = new ProductSpecSkuCodeProc(flow, aid, tc);
+                    SpecSagaProc specSagaProc = new SpecSagaProc(flow, aid, tc);
+                    try {
+                        Ref<Param> sagaInfoRef = new Ref<>();
+                        // 获取补偿记录
+                        rt = specSagaProc.getInfoWithAdd(xid, branchId, sagaInfoRef);
+                        if (rt != Errno.OK) {
+                            if (rt == Errno.NOT_FOUND) {
+                                commit = true;
+                                rt = Errno.OK;
+                                Log.reportErr(flow, rt,"get SagaInfo not found; xid=%s, branchId=%s", xid, branchId);
+                            }
+                            return rt;
+                        }
+                        Param sagaInfo = sagaInfoRef.value;
+                        Integer status = sagaInfo.getInt(SpecSagaEntity.Info.STATUS);
+                        // 幂等性保证
+                        if (status == SpecSagaValObj.Status.ROLLBACK_OK) {
+                            commit = true;
+                            Log.logStd(rt, "rollback already ok! saga=%s;", sagaInfo);
+                            return rt = Errno.OK;
+                        }
+                        Param prop = Param.parseParam(sagaInfo.getString(SpecSagaEntity.Info.PROP));
+                        if (!Str.isEmpty(prop)) {
+                            // 1、补偿 商品规格表
+                            FaiList<Param> specPriKey = prop.getList(SpecSagaEntity.PropInfo.SPEC);
+                            if (!Util.isEmptyList(specPriKey)) {
+                                rt = productSpecProc.batchAddRollback(aid, specPriKey);
+                                if (rt != Errno.OK) {
+                                    return rt;
+                                }
+                            }
+                            // 2、补偿 商品规格SKU表
+                            FaiList<Long> skuList = prop.getList(SpecSagaEntity.PropInfo.SPEC_SKU);
+                            if (!Util.isEmptyList(skuList)) {
+                                rt = productSpecSkuProc.batchAddRollback(aid, skuList);
+                                if (rt != Errno.OK) {
+                                    return rt;
+                                }
+                            }
+                            // 3、补偿 商品规格SkuCode表
+                            FaiList<String> skuCodeList = prop.getList(SpecSagaEntity.PropInfo.SPEC_SKU_CODE);
+                            if (!Util.isEmptyList(skuCodeList)) {
+                                Integer unionPriId = prop.getInt(SpecSagaEntity.PropInfo.UNION_PRI_ID);
+                                rt = productSpecSkuCodeProc.batchAddRollback(aid, unionPriId, skuCodeList);
+                                if (rt != Errno.OK) {
+                                    return rt;
+                                }
+                            }
+                            // 4、恢复 商品规格表 和 商品规格SKU 表的自增id
+                            productSpecProc.restoreMaxId(aid, false);
+                            productSpecSkuProc.restoreMaxId(aid, false);
+                            // 5、修改 Saga 的状态
+                            rt = specSagaProc.setStatus(xid, branchId, SpecSagaValObj.Status.ROLLBACK_OK);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                            commit = true;
+                            tc.commit();
+                        }
+                    } finally {
+                        if (!commit) {
+                            tc.rollback();
+                        }
+                    }
+                } finally {
+                    LockUtil.unlock(aid);
+                }
+            } finally {
+                tc.closeDao();
+            }
+        } finally {
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            if (rt != Errno.OK) {
+                //失败，需要重试
+                sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, BranchStatus.PhaseTwo_RollbackFailed_Retryable.getCode());
+            }else{
+                //成功，不需要重试
+                sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, BranchStatus.PhaseTwo_Rollbacked.getCode());
+            }
+            session.write(sendBuf);
             stat.end(rt != Errno.OK, rt);
         }
         return rt;
@@ -2373,5 +2518,4 @@ public class ProductSpecService extends ServicePub {
             }
         }
     }
-
 }

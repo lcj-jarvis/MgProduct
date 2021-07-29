@@ -21,6 +21,9 @@ import fai.MgProductStoreSvr.interfaces.entity.SkuSummaryEntity;
 import fai.MgProductStoreSvr.interfaces.entity.SpuBizSummaryEntity;
 import fai.MgProductStoreSvr.interfaces.entity.SpuSummaryEntity;
 import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity;
+import fai.comm.fseata.client.core.exception.TransactionException;
+import fai.comm.fseata.client.tm.GlobalTransactionContext;
+import fai.comm.fseata.client.tm.api.GlobalTransaction;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
@@ -995,11 +998,12 @@ public class MgProductInfService extends ServicePub {
      * @param ownerSiteId 创建商品的 ownerSiteId
      * @param ownerLgId 创建商品的 ownerLgId
      * @param ownerKeepPriId1 创建商品的 ownerKeepPriId1
+     * @param xid
      * @param productList 商品信息集合
      * @param inStoreRecordInfo 入库记录信息
      * @param useMgProductBasicInfo 是否接入使用商品中台基础信息
      */
-    public int importProduct(FaiSession session, int flow, int aid, int ownerTid, int ownerSiteId, int ownerLgId, int ownerKeepPriId1, FaiList<Param> productList, Param inStoreRecordInfo, boolean useMgProductBasicInfo) throws IOException {
+    public int importProduct(FaiSession session, int flow, int aid, int ownerTid, int ownerSiteId, int ownerLgId, int ownerKeepPriId1, String xid, FaiList<Param> productList, Param inStoreRecordInfo, boolean useMgProductBasicInfo) throws IOException, TransactionException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         FaiList<Param> errProductList = new FaiList<>();
@@ -1019,7 +1023,6 @@ public class MgProductInfService extends ServicePub {
                 Log.logErr("args error, ownerTid is not valid;flow=%d;aid=%d;ownerTid=%d;", flow, aid, ownerTid);
                 return rt;
             }
-
             // 获取unionPriId
             Ref<Integer> idRef = new Ref<Integer>();
             rt = getUnionPriId(flow, aid, ownerTid, ownerSiteId, ownerLgId, ownerKeepPriId1, idRef);
@@ -1027,321 +1030,334 @@ public class MgProductInfService extends ServicePub {
                 return rt;
             }
             int ownerUnionPriId = idRef.value;
-            HashSet<String> skuCodeSet = new HashSet<>();
-            // 检查导入的数据，并分开正确的数据和错误的数据
-            checkImportProductList(productList, skuCodeSet, errProductList, useMgProductBasicInfo);
 
-            ProductSpecProc productSpecProc = new ProductSpecProc(flow);
-            skuCodeSet.removeAll(Collections.singletonList(null)); // 移除所有null值
-            if(!skuCodeSet.isEmpty()){ // 校验 skuCode 是否已经存在
-                Ref<FaiList<String>> existsSkuCodeListRef = new Ref<>();
-                rt = productSpecProc.getExistsSkuCodeList(aid, ownerTid, ownerUnionPriId, new FaiList<>(skuCodeSet), existsSkuCodeListRef);
-                if(rt != Errno.OK){
-                    return rt;
-                }
-                HashSet<String> existsSkuCodeSet = new HashSet<>(existsSkuCodeListRef.value);
-                // 过滤掉已经存在skuCode的商品数据
-                filterExistsSkuCode(productList, existsSkuCodeSet, errProductList);
-            }
-            // 组装批量添加的商品基础信息
-            FaiList<Param> batchAddBasicInfoList = new FaiList<>(productList.size());
-            FaiList<Integer> rlPdIdList = new FaiList<>();
-            for (Param productInfo : productList) {
-                Param basicInfo = productInfo.getParam(MgProductEntity.Info.BASIC);
-                if(!useMgProductBasicInfo){
-                    int rlPdId = basicInfo.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID, 0);
-                    batchAddBasicInfoList.add(
-                            new Param().setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId)
-                                    .setBoolean(ProductRelEntity.Info.INFO_CHECK, false)
-                    );
-                    productInfo.setInt(MgProductEntity.Info.RL_PD_ID, rlPdId);
-                    rlPdIdList.add(rlPdId);
-                }else{
-                    // TODO 业务方接入商品基础信息到中台时需要删除下面报错同时实现组装逻辑
-                    rt = Errno.ARGS_ERROR;
-                    Log.logErr(rt,"args error;flow=%d;aid=%d;ownerTid=%d;productInfo=%s;", flow, aid, ownerTid, productInfo);
-                    return rt;
-                }
-            }
+            GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
+            tx.begin(aid, 60000, "mgProduct-importProduct", flow);
+            xid = tx.getXid();
+            boolean commit = false;
+            try {
+                HashSet<String> skuCodeSet = new HashSet<>();
+                // 检查导入的数据，并分开正确的数据和错误的数据
+                checkImportProductList(productList, skuCodeSet, errProductList, useMgProductBasicInfo);
 
-            if(batchAddBasicInfoList.isEmpty()){
-                rt = Errno.ERROR;
-                Log.logErr(rt,"batchAddBasicInfoList empty;flow=%d;aid=%d;ownerTid=%d;", flow, aid, ownerTid);
-                Log.logDbg("whalelog;flow=%d;aid=%d;ownerTid=%d;errProductList=%s;", flow, aid, ownerTid, errProductList);
-                return rt;
-            }
-
-            ProductBasicProc productBasicProc = new ProductBasicProc(flow);
-            Set<Integer> alreadyExistsRlPdIdSet = new HashSet<>();
-            if(!rlPdIdList.isEmpty()){
-                FaiList<Param> alreadyExistsList = new FaiList<>();
-                rt = productBasicProc.getRelListByRlIds(aid, ownerUnionPriId, rlPdIdList, alreadyExistsList);
-                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
-                    Log.logErr(rt, "productBasicProc.getRelListByRlIds err;aid=%s;ownerTid=%s;ownerUnionPriId=%s;rlPdIdList=%s;", aid, ownerTid, ownerUnionPriId, rlPdIdList);
-                    return rt;
-                }
-                alreadyExistsRlPdIdSet = new HashSet<>(alreadyExistsList.size()*4/3+1);
-                for (Param info : alreadyExistsList) {
-                    int alreadyRlPdId = info.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID);
-                    alreadyExistsRlPdIdSet.add(alreadyRlPdId);
-                }
-            }
-            // 移除已经存在的商品
-            if(!alreadyExistsRlPdIdSet.isEmpty()){
-                for(Iterator<Param> iterator = batchAddBasicInfoList.iterator();iterator.hasNext();){
-                    Param info = iterator.next();
-                    if(alreadyExistsRlPdIdSet.contains(info.getInt(ProductRelEntity.Info.RL_PD_ID))){
-                        iterator.remove();
+                ProductSpecProc productSpecProc = new ProductSpecProc(flow);
+                skuCodeSet.removeAll(Collections.singletonList(null)); // 移除所有null值
+                if(!skuCodeSet.isEmpty()){ // 校验 skuCode 是否已经存在
+                    Ref<FaiList<String>> existsSkuCodeListRef = new Ref<>();
+                    rt = productSpecProc.getExistsSkuCodeList(aid, ownerTid, ownerUnionPriId, new FaiList<>(skuCodeSet), existsSkuCodeListRef);
+                    if(rt != Errno.OK){
+                        return rt;
                     }
+                    HashSet<String> existsSkuCodeSet = new HashSet<>(existsSkuCodeListRef.value);
+                    // 过滤掉已经存在skuCode的商品数据
+                    filterExistsSkuCode(productList, existsSkuCodeSet, errProductList);
                 }
-                for(Iterator<Param> iterator = productList.iterator();iterator.hasNext();){
-                    Param product = iterator.next();
-                    if(alreadyExistsRlPdIdSet.contains(product.getInt(MgProductEntity.Info.RL_PD_ID))){
-                        product.setInt(MgProductEntity.Info.ERRNO, MgProductErrno.Import.REPEAT_IMPORT);
-                        errProductList.add(product);
-                        iterator.remove();
-                    }
-                }
-            }
-
-            if(batchAddBasicInfoList.isEmpty()){
-                rt = Errno.ERROR;
-                Log.logErr(rt,"batchAddBasicInfoList 2 empty;flow=%d;aid=%d;ownerTid=%d;", flow, aid, ownerTid);
-                Log.logDbg("whalelog;flow=%d;aid=%d;ownerTid=%d;errProductList=%s;", flow, aid, ownerTid, errProductList);
-                return rt;
-            }
-
-            FaiList<Param> idInfoList = new FaiList<>();
-            // 批量添加商品数据
-            rt = productBasicProc.batchAddProductAndRel(aid, ownerTid, ownerUnionPriId, batchAddBasicInfoList, idInfoList);
-            if(rt != Errno.OK){
-                for (Param product : productList) {
-                    product.setInt(MgProductEntity.Info.ERRNO, rt);
-                }
-                errProductList.addAll(productList);
-                Log.logErr(rt, "productBasicProc.batchAddProductAndRel err;aid=%s;ownerTid=%s;ownerUnionPriId=%s;batchAddBasicInfoList=%s;", aid, ownerTid, ownerUnionPriId, batchAddBasicInfoList);
-                return rt;
-            }
-            if(idInfoList.size() != batchAddBasicInfoList.size()){
-                rt = Errno.ERROR;
-                Log.logErr(rt,"size err;aid=%s;ownerTid=%s;ownerUnionPriId=%s;idInfoList.size=%s;batchAddBasicInfoList.size=%s;", aid, ownerTid, ownerUnionPriId, idInfoList.size(), batchAddBasicInfoList.size());
-                return rt;
-            }
-            Set<Integer> addedPdIdSet = new HashSet<>();
-            if(!useMgProductBasicInfo){
-                Map<Integer, Integer> ownerRlPdId_pdIdMap = new HashMap<>(idInfoList.size()*4/3+1);
-                for (Param info : idInfoList) {
-                    Integer rlPdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
-                    Integer pdId = info.getInt(ProductRelEntity.Info.PD_ID);
-                    addedPdIdSet.add(pdId);
-                    ownerRlPdId_pdIdMap.put(rlPdId, pdId);
-                }
+                // 组装批量添加的商品基础信息
+                FaiList<Param> batchAddBasicInfoList = new FaiList<>(productList.size());
+                FaiList<Integer> rlPdIdList = new FaiList<>();
                 for (Param productInfo : productList) {
                     Param basicInfo = productInfo.getParam(MgProductEntity.Info.BASIC);
-                    int rlPdId = basicInfo.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID, 0);
-                    int pdId = ownerRlPdId_pdIdMap.getOrDefault(rlPdId, 0);
-                    if(pdId == 0){
-                        rt = Errno.ERROR;
-                        Log.logErr(rt,"basic add err;aid=%s;ownerTid=%s;ownerUnionPriId=%s;rlPdId=%s;", aid, ownerTid, ownerUnionPriId, rlPdId);
+                    if(!useMgProductBasicInfo){
+                        int rlPdId = basicInfo.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID, 0);
+                        batchAddBasicInfoList.add(
+                                new Param().setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId)
+                                        .setBoolean(ProductRelEntity.Info.INFO_CHECK, false)
+                        );
+                        productInfo.setInt(MgProductEntity.Info.RL_PD_ID, rlPdId);
+                        rlPdIdList.add(rlPdId);
+                    }else{
+                        // TODO 业务方接入商品基础信息到中台时需要删除下面报错同时实现组装逻辑
+                        rt = Errno.ARGS_ERROR;
+                        Log.logErr(rt,"args error;flow=%d;aid=%d;ownerTid=%d;productInfo=%s;", flow, aid, ownerTid, productInfo);
                         return rt;
                     }
-                    productInfo.setInt(MgProductEntity.Info.PD_ID, pdId);
-                    productInfo.setInt(MgProductEntity.Info.RL_PD_ID, rlPdId);
                 }
-            }else{
-                // TODO 业务方接入商品基础信息到中台时需要实现
-                rt = Errno.ARGS_ERROR;
-                Log.logErr(rt,"args error;flow=%d;aid=%d;ownerTid=%d;", flow, aid, ownerTid);
-                return rt;
-            }
-            Map<BizPriKey, Integer> bizPriKeyMap = new HashMap<>();
-            // 绑定业务关联
-            {
-                FaiList<Param> batchBindPdRelList = new FaiList<>();
-                for (Param productInfo : productList) {
-                    FaiList<Param> storeSales = productInfo.getListNullIsEmpty(MgProductEntity.Info.STORE_SALES);
-                    if(Util.isEmptyList(storeSales)){
-                        continue;
-                    }
-                    int pdId = productInfo.getInt(MgProductEntity.Info.PD_ID);
-                    int ownerRlPdId = productInfo.getInt(MgProductEntity.Info.RL_PD_ID);
 
-                    Map<Integer, Integer> unionPriIdRlPdIdMap = new HashMap<>();
-                    // 先批量绑定关联
-                    for (Param storeSale : storeSales) {
-                        Integer tid = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.TID, ownerTid);
-                        Integer siteId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.SITE_ID, ownerSiteId);
-                        Integer lgId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.LGID, ownerLgId);
-                        Integer keepPriId1 = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, ownerKeepPriId1);
-                        int rlPdId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.RL_PD_ID, ownerRlPdId);
-                        BizPriKey bizPriKey = new BizPriKey(tid, siteId, lgId, keepPriId1);
-                        Integer unionPriId = bizPriKeyMap.get(bizPriKey);
-                        if(unionPriId == null){
-                            unionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
-                            bizPriKeyMap.put(bizPriKey, unionPriId);
-                        }
-                        if(unionPriId != ownerUnionPriId){
-                            unionPriIdRlPdIdMap.put(unionPriId, rlPdId);
+                if(batchAddBasicInfoList.isEmpty()){
+                    rt = Errno.ERROR;
+                    Log.logErr(rt,"batchAddBasicInfoList empty;flow=%d;aid=%d;ownerTid=%d;", flow, aid, ownerTid);
+                    Log.logDbg("whalelog;flow=%d;aid=%d;ownerTid=%d;errProductList=%s;", flow, aid, ownerTid, errProductList);
+                    return rt;
+                }
+
+                ProductBasicProc productBasicProc = new ProductBasicProc(flow);
+                Set<Integer> alreadyExistsRlPdIdSet = new HashSet<>();
+                if(!rlPdIdList.isEmpty()){
+                    FaiList<Param> alreadyExistsList = new FaiList<>();
+                    rt = productBasicProc.getRelListByRlIds(aid, ownerUnionPriId, rlPdIdList, alreadyExistsList);
+                    if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                        Log.logErr(rt, "productBasicProc.getRelListByRlIds err;aid=%s;ownerTid=%s;ownerUnionPriId=%s;rlPdIdList=%s;", aid, ownerTid, ownerUnionPriId, rlPdIdList);
+                        return rt;
+                    }
+                    alreadyExistsRlPdIdSet = new HashSet<>(alreadyExistsList.size()*4/3+1);
+                    for (Param info : alreadyExistsList) {
+                        int alreadyRlPdId = info.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID);
+                        alreadyExistsRlPdIdSet.add(alreadyRlPdId);
+                    }
+                }
+                // 移除已经存在的商品
+                if(!alreadyExistsRlPdIdSet.isEmpty()){
+                    for(Iterator<Param> iterator = batchAddBasicInfoList.iterator();iterator.hasNext();){
+                        Param info = iterator.next();
+                        if(alreadyExistsRlPdIdSet.contains(info.getInt(ProductRelEntity.Info.RL_PD_ID))){
+                            iterator.remove();
                         }
                     }
-                    if(!unionPriIdRlPdIdMap.isEmpty()){
-                        FaiList<Param> bindPdRelList = new FaiList<>(unionPriIdRlPdIdMap.size());
-                        for (Map.Entry<Integer, Integer> unionPriIdRlPdIdEntry : unionPriIdRlPdIdMap.entrySet()) {
-                            int unionPriId = unionPriIdRlPdIdEntry.getKey();
-                            int rlPdId = unionPriIdRlPdIdEntry.getValue();
-                            bindPdRelList.add(
+                    for(Iterator<Param> iterator = productList.iterator();iterator.hasNext();){
+                        Param product = iterator.next();
+                        if(alreadyExistsRlPdIdSet.contains(product.getInt(MgProductEntity.Info.RL_PD_ID))){
+                            product.setInt(MgProductEntity.Info.ERRNO, MgProductErrno.Import.REPEAT_IMPORT);
+                            errProductList.add(product);
+                            iterator.remove();
+                        }
+                    }
+                }
+
+                if(batchAddBasicInfoList.isEmpty()){
+                    rt = Errno.ERROR;
+                    Log.logErr(rt,"batchAddBasicInfoList 2 empty;flow=%d;aid=%d;ownerTid=%d;", flow, aid, ownerTid);
+                    Log.logDbg("whalelog;flow=%d;aid=%d;ownerTid=%d;errProductList=%s;", flow, aid, ownerTid, errProductList);
+                    return rt;
+                }
+
+                FaiList<Param> idInfoList = new FaiList<>();
+                // 批量添加商品数据
+                rt = productBasicProc.batchAddProductAndRel(aid, ownerTid, ownerUnionPriId, batchAddBasicInfoList, idInfoList);
+                if(rt != Errno.OK){
+                    for (Param product : productList) {
+                        product.setInt(MgProductEntity.Info.ERRNO, rt);
+                    }
+                    errProductList.addAll(productList);
+                    Log.logErr(rt, "productBasicProc.batchAddProductAndRel err;aid=%s;ownerTid=%s;ownerUnionPriId=%s;batchAddBasicInfoList=%s;", aid, ownerTid, ownerUnionPriId, batchAddBasicInfoList);
+                    return rt;
+                }
+                if(idInfoList.size() != batchAddBasicInfoList.size()){
+                    rt = Errno.ERROR;
+                    Log.logErr(rt,"size err;aid=%s;ownerTid=%s;ownerUnionPriId=%s;idInfoList.size=%s;batchAddBasicInfoList.size=%s;", aid, ownerTid, ownerUnionPriId, idInfoList.size(), batchAddBasicInfoList.size());
+                    return rt;
+                }
+                Set<Integer> addedPdIdSet = new HashSet<>();
+                if(!useMgProductBasicInfo){
+                    Map<Integer, Integer> ownerRlPdId_pdIdMap = new HashMap<>(idInfoList.size()*4/3+1);
+                    for (Param info : idInfoList) {
+                        Integer rlPdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
+                        Integer pdId = info.getInt(ProductRelEntity.Info.PD_ID);
+                        addedPdIdSet.add(pdId);
+                        ownerRlPdId_pdIdMap.put(rlPdId, pdId);
+                    }
+                    for (Param productInfo : productList) {
+                        Param basicInfo = productInfo.getParam(MgProductEntity.Info.BASIC);
+                        int rlPdId = basicInfo.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID, 0);
+                        int pdId = ownerRlPdId_pdIdMap.getOrDefault(rlPdId, 0);
+                        if(pdId == 0){
+                            rt = Errno.ERROR;
+                            Log.logErr(rt,"basic add err;aid=%s;ownerTid=%s;ownerUnionPriId=%s;rlPdId=%s;", aid, ownerTid, ownerUnionPriId, rlPdId);
+                            return rt;
+                        }
+                        productInfo.setInt(MgProductEntity.Info.PD_ID, pdId);
+                        productInfo.setInt(MgProductEntity.Info.RL_PD_ID, rlPdId);
+                    }
+                }else{
+                    // TODO 业务方接入商品基础信息到中台时需要实现
+                    rt = Errno.ARGS_ERROR;
+                    Log.logErr(rt,"args error;flow=%d;aid=%d;ownerTid=%d;", flow, aid, ownerTid);
+                    return rt;
+                }
+                Map<BizPriKey, Integer> bizPriKeyMap = new HashMap<>();
+                // 绑定业务关联
+                {
+                    FaiList<Param> batchBindPdRelList = new FaiList<>();
+                    for (Param productInfo : productList) {
+                        FaiList<Param> storeSales = productInfo.getListNullIsEmpty(MgProductEntity.Info.STORE_SALES);
+                        if(Util.isEmptyList(storeSales)){
+                            continue;
+                        }
+                        int pdId = productInfo.getInt(MgProductEntity.Info.PD_ID);
+                        int ownerRlPdId = productInfo.getInt(MgProductEntity.Info.RL_PD_ID);
+
+                        Map<Integer, Integer> unionPriIdRlPdIdMap = new HashMap<>();
+                        // 先批量绑定关联
+                        for (Param storeSale : storeSales) {
+                            Integer tid = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.TID, ownerTid);
+                            Integer siteId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.SITE_ID, ownerSiteId);
+                            Integer lgId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.LGID, ownerLgId);
+                            Integer keepPriId1 = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, ownerKeepPriId1);
+                            int rlPdId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.RL_PD_ID, ownerRlPdId);
+                            BizPriKey bizPriKey = new BizPriKey(tid, siteId, lgId, keepPriId1);
+                            Integer unionPriId = bizPriKeyMap.get(bizPriKey);
+                            if(unionPriId == null){
+                                unionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
+                                bizPriKeyMap.put(bizPriKey, unionPriId);
+                            }
+                            if(unionPriId != ownerUnionPriId){
+                                unionPriIdRlPdIdMap.put(unionPriId, rlPdId);
+                            }
+                        }
+                        if(!unionPriIdRlPdIdMap.isEmpty()){
+                            FaiList<Param> bindPdRelList = new FaiList<>(unionPriIdRlPdIdMap.size());
+                            for (Map.Entry<Integer, Integer> unionPriIdRlPdIdEntry : unionPriIdRlPdIdMap.entrySet()) {
+                                int unionPriId = unionPriIdRlPdIdEntry.getKey();
+                                int rlPdId = unionPriIdRlPdIdEntry.getValue();
+                                bindPdRelList.add(
+                                        new Param()
+                                                .setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId)
+                                                .setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId)
+                                                .setBoolean(ProductRelEntity.Info.INFO_CHECK, false)
+                                );
+                            }
+                            batchBindPdRelList.add(
                                     new Param()
-                                            .setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId)
-                                            .setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId)
-                                            .setBoolean(ProductRelEntity.Info.INFO_CHECK, false)
+                                            .setInt(ProductRelEntity.Info.PD_ID, pdId)
+                                            .setList(ProductRelEntity.Info.BIND_LIST, bindPdRelList)
                             );
                         }
-                        batchBindPdRelList.add(
-                                new Param()
-                                        .setInt(ProductRelEntity.Info.PD_ID, pdId)
-                                        .setList(ProductRelEntity.Info.BIND_LIST, bindPdRelList)
-                        );
+                    }
+                    if(!batchBindPdRelList.isEmpty()){
+                        rt = productBasicProc.batchBindProductsRel(aid, ownerTid, batchBindPdRelList);
+                        if(rt != Errno.OK){
+                            Log.logErr(rt, "batchBindProductsRel err;aid=%s;ownerTid=%s;batchBindPdRelList=%s", aid, ownerTid, batchBindPdRelList);
+                            return rt;
+                        }
                     }
                 }
-                if(!batchBindPdRelList.isEmpty()){
-                    rt = productBasicProc.batchBindProductsRel(aid, ownerTid, batchBindPdRelList);
-                    if(rt != Errno.OK){
-                        Log.logErr(rt, "batchBindProductsRel err;aid=%s;ownerTid=%s;batchBindPdRelList=%s", aid, ownerTid, batchBindPdRelList);
-                        return rt;
-                    }
-                }
-            }
-            Log.logStd("begin;flow=%s;aid=%s;ownerTid=%s;ownerUnionPriId=%s;addedPdIdSet=%s;",flow, aid, ownerTid, ownerUnionPriId, addedPdIdSet);
-            Map<Integer/*pdId*/, Map<String/*InPdScStrNameListJson*/, Long/*skuId*/>> pdIdInPdScStrNameListJsonSkuIdMap = new HashMap<>();
-            Map<Integer/*pdId*/, Map<Long/*skuId*/, FaiList<Integer>/*inPdScStrIdList*/>> pdIdSkuIdInPdScStrIdMap = new HashMap<>();
-            // 导入商品规格和商品规格sku
-            {
-                // 组装批量导入的数据
-                FaiList<Param> importSpecList = new FaiList<>();
-                FaiList<Param> importSpecSkuList = new FaiList<>();
-                for (Param productInfo : productList) {
-                    FaiList<Param> specList = productInfo.getListNullIsEmpty(MgProductEntity.Info.SPEC);
-                    if(specList.isEmpty()){
-                        continue;
-                    }
-                    int pdId = productInfo.getInt(MgProductEntity.Info.PD_ID);
-                    for (Param specInfo : specList) {
-                        Param importSpecInfo = new Param();
-                        importSpecInfo.assign(specInfo, ProductSpecEntity.SpecInfo.NAME, fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity.Info.NAME);
-                        importSpecInfo.assign(specInfo, ProductSpecEntity.SpecInfo.IN_PD_SC_VAL_LIST, fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity.Info.IN_PD_SC_VAL_LIST);
-                        importSpecInfo.assign(specInfo, ProductSpecEntity.SpecInfo.SORT, fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity.Info.SORT);
-                        importSpecInfo.assign(specInfo, ProductSpecEntity.SpecInfo.FLAG, fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity.Info.FLAG);
-                        importSpecInfo.setInt(fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity.Info.PD_ID, pdId);
-                        importSpecList.add(importSpecInfo);
-                    }
-                    FaiList<Param> specSkuList = productInfo.getListNullIsEmpty(MgProductEntity.Info.SPEC_SKU);
-                    for (Param specSkuInfo : specSkuList) {
-                        Param importSpecSkuInfo = new Param();
-                        importSpecSkuInfo.assign(specSkuInfo, ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_NAME_LIST, ProductSpecSkuEntity.Info.IN_PD_SC_STR_NAME_LIST);
-                        importSpecSkuInfo.assign(specSkuInfo, ProductSpecEntity.SpecSkuInfo.SKU_CODE_LIST, ProductSpecSkuEntity.Info.SKU_CODE_LIST);
-                        importSpecSkuInfo.setInt(ProductSpecSkuEntity.Info.PD_ID, pdId);
-                        // spu数据
-                        importSpecSkuInfo.assign(specSkuInfo, ProductSpecEntity.SpecSkuInfo.SPU, ProductSpecSkuEntity.Info.SPU);
-                        importSpecSkuList.add(importSpecSkuInfo);
-                    }
-                }
-                FaiList<Param> skuIdInfoList = new FaiList<>();
-                // 导入
-                if(!importSpecList.isEmpty()){
-                    rt = productSpecProc.importPdScWithSku(aid, ownerTid, ownerUnionPriId, importSpecList, importSpecSkuList, skuIdInfoList);
-                    if(rt != Errno.OK){
-                        return rt;
-                    }
-                }
-                for (Param skuIdInfo : skuIdInfoList) {
-                    int pdId = skuIdInfo.getInt(ProductSpecSkuEntity.Info.PD_ID);
-                    Map<String, Long> inPdScStrNameListJsonSkuIdMap = pdIdInPdScStrNameListJsonSkuIdMap.get(pdId);
-                    Map<Long, FaiList<Integer>> skuIdInPdScStrIdMap = pdIdSkuIdInPdScStrIdMap.get(pdId);
-                    if(inPdScStrNameListJsonSkuIdMap == null){
-                        inPdScStrNameListJsonSkuIdMap = new HashMap<>();
-                        pdIdInPdScStrNameListJsonSkuIdMap.put(pdId, inPdScStrNameListJsonSkuIdMap);
-                        skuIdInPdScStrIdMap = new HashMap<>();
-                        pdIdSkuIdInPdScStrIdMap.put(pdId, skuIdInPdScStrIdMap);
-                    }
-                    int flag = skuIdInfo.getInt(ProductSpecSkuEntity.Info.FLAG, 0);
-                    if(Misc.checkBit(flag, ProductSpecSkuValObj.FLag.SPU)){ // spu的数据跳过
-                        continue;
-                    }
-                    long skuId = skuIdInfo.getLong(ProductSpecSkuEntity.Info.SKU_ID);
-                    FaiList<String> inPdScStrNameList = skuIdInfo.getList(ProductSpecSkuEntity.Info.IN_PD_SC_STR_NAME_LIST);
-                    String inPdScStrNameListJson = inPdScStrNameList.toJson();
-                    inPdScStrNameListJsonSkuIdMap.put(inPdScStrNameListJson, skuId);
-
-                    skuIdInPdScStrIdMap.put(skuId, skuIdInfo.getList(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST));
-                }
-            }
-            // 导入库存销售sku信息并初始化库存
-            {
-                FaiList<Param> storeSaleSkuList = new FaiList<>();
-
-                for (Param productInfo : productList) {
-                    FaiList<Param> storeSales = productInfo.getListNullIsEmpty(MgProductEntity.Info.STORE_SALES);
-                    if(Util.isEmptyList(storeSales)){
-                        continue;
-                    }
-                    int rlPdId = productInfo.getInt(MgProductEntity.Info.RL_PD_ID);
-                    int pdId = productInfo.getInt(MgProductEntity.Info.PD_ID);
-                    Map<String, Long> inPdScStrNameListJsonSkuIdMap = pdIdInPdScStrNameListJsonSkuIdMap.get(pdId);
-                    Map<Long, FaiList<Integer>> skuIdInPdScStrIdMap = pdIdSkuIdInPdScStrIdMap.get(pdId);
-                    if(inPdScStrNameListJsonSkuIdMap == null){
-                        Log.logStd("inPdScStrNameListJsonSkuIdMap empty;flow=%s;aid=%s;productInfo=%s;",flow, aid, productInfo);
-                        continue;
-                    }
-                    Set<String> unionPriIdSkuIdSet = new HashSet<>();
-                    for (Param storeSale : storeSales) {
-                        FaiList<String> inPdScStrNameList = storeSale.getList(ProductStoreEntity.StoreSalesSkuInfo.IN_PD_SC_STR_NAME_LIST);
-                        Long skuId = inPdScStrNameListJsonSkuIdMap.get(inPdScStrNameList.toJson());
-                        if(skuId == null){
-                            Log.logStd("skuId empty;flow=%s;aid=%s;productInfo=%s;inPdScStrNameList=%s;",flow, aid, productInfo, inPdScStrNameList);
+                Log.logStd("begin;flow=%s;aid=%s;ownerTid=%s;ownerUnionPriId=%s;addedPdIdSet=%s;",flow, aid, ownerTid, ownerUnionPriId, addedPdIdSet);
+                Map<Integer/*pdId*/, Map<String/*InPdScStrNameListJson*/, Long/*skuId*/>> pdIdInPdScStrNameListJsonSkuIdMap = new HashMap<>();
+                Map<Integer/*pdId*/, Map<Long/*skuId*/, FaiList<Integer>/*inPdScStrIdList*/>> pdIdSkuIdInPdScStrIdMap = new HashMap<>();
+                // 导入商品规格和商品规格sku
+                {
+                    // 组装批量导入的数据
+                    FaiList<Param> importSpecList = new FaiList<>();
+                    FaiList<Param> importSpecSkuList = new FaiList<>();
+                    for (Param productInfo : productList) {
+                        FaiList<Param> specList = productInfo.getListNullIsEmpty(MgProductEntity.Info.SPEC);
+                        if(specList.isEmpty()){
                             continue;
                         }
-
-                        FaiList<Integer> inPdScStrIdList = skuIdInPdScStrIdMap.get(skuId);
-
-                        Integer tid = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.TID, ownerTid);
-                        Integer siteId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.SITE_ID, ownerSiteId);
-                        Integer lgId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.LGID, ownerLgId);
-                        Integer keepPriId1 = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, ownerKeepPriId1);
-                        Integer unionPriId = bizPriKeyMap.get(new BizPriKey(tid, siteId, lgId, keepPriId1));
-
-                        if(!unionPriIdSkuIdSet.add(unionPriId+"-"+skuId)){
-                            Log.logStd("skuId already;flow=%s;aid=%s;unionPriId=%s;skuId=%s;rlPdId=%s;storeSale=%s;",flow, aid, unionPriId, skuId, rlPdId, storeSale);
+                        int pdId = productInfo.getInt(MgProductEntity.Info.PD_ID);
+                        for (Param specInfo : specList) {
+                            Param importSpecInfo = new Param();
+                            importSpecInfo.assign(specInfo, ProductSpecEntity.SpecInfo.NAME, fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity.Info.NAME);
+                            importSpecInfo.assign(specInfo, ProductSpecEntity.SpecInfo.IN_PD_SC_VAL_LIST, fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity.Info.IN_PD_SC_VAL_LIST);
+                            importSpecInfo.assign(specInfo, ProductSpecEntity.SpecInfo.SORT, fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity.Info.SORT);
+                            importSpecInfo.assign(specInfo, ProductSpecEntity.SpecInfo.FLAG, fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity.Info.FLAG);
+                            importSpecInfo.setInt(fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity.Info.PD_ID, pdId);
+                            importSpecList.add(importSpecInfo);
+                        }
+                        FaiList<Param> specSkuList = productInfo.getListNullIsEmpty(MgProductEntity.Info.SPEC_SKU);
+                        for (Param specSkuInfo : specSkuList) {
+                            Param importSpecSkuInfo = new Param();
+                            importSpecSkuInfo.assign(specSkuInfo, ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_NAME_LIST, ProductSpecSkuEntity.Info.IN_PD_SC_STR_NAME_LIST);
+                            importSpecSkuInfo.assign(specSkuInfo, ProductSpecEntity.SpecSkuInfo.SKU_CODE_LIST, ProductSpecSkuEntity.Info.SKU_CODE_LIST);
+                            importSpecSkuInfo.setInt(ProductSpecSkuEntity.Info.PD_ID, pdId);
+                            // spu数据
+                            importSpecSkuInfo.assign(specSkuInfo, ProductSpecEntity.SpecSkuInfo.SPU, ProductSpecSkuEntity.Info.SPU);
+                            importSpecSkuList.add(importSpecSkuInfo);
+                        }
+                    }
+                    FaiList<Param> skuIdInfoList = new FaiList<>();
+                    // 导入
+                    if(!importSpecList.isEmpty()){
+                        rt = productSpecProc.importPdScWithSku(aid, ownerTid, ownerUnionPriId, xid, importSpecList, importSpecSkuList, skuIdInfoList);
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
+                    }
+                    for (Param skuIdInfo : skuIdInfoList) {
+                        int pdId = skuIdInfo.getInt(ProductSpecSkuEntity.Info.PD_ID);
+                        Map<String, Long> inPdScStrNameListJsonSkuIdMap = pdIdInPdScStrNameListJsonSkuIdMap.get(pdId);
+                        Map<Long, FaiList<Integer>> skuIdInPdScStrIdMap = pdIdSkuIdInPdScStrIdMap.get(pdId);
+                        if(inPdScStrNameListJsonSkuIdMap == null){
+                            inPdScStrNameListJsonSkuIdMap = new HashMap<>();
+                            pdIdInPdScStrNameListJsonSkuIdMap.put(pdId, inPdScStrNameListJsonSkuIdMap);
+                            skuIdInPdScStrIdMap = new HashMap<>();
+                            pdIdSkuIdInPdScStrIdMap.put(pdId, skuIdInPdScStrIdMap);
+                        }
+                        int flag = skuIdInfo.getInt(ProductSpecSkuEntity.Info.FLAG, 0);
+                        if(Misc.checkBit(flag, ProductSpecSkuValObj.FLag.SPU)){ // spu的数据跳过
                             continue;
                         }
+                        long skuId = skuIdInfo.getLong(ProductSpecSkuEntity.Info.SKU_ID);
+                        FaiList<String> inPdScStrNameList = skuIdInfo.getList(ProductSpecSkuEntity.Info.IN_PD_SC_STR_NAME_LIST);
+                        String inPdScStrNameListJson = inPdScStrNameList.toJson();
+                        inPdScStrNameListJsonSkuIdMap.put(inPdScStrNameListJson, skuId);
 
-                        Param importStoreSaleSkuInfo = new Param();
-                        importStoreSaleSkuInfo.setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId);
-                        importStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.PD_ID, pdId);
-                        importStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId);
-                        importStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, ownerUnionPriId);
-                        importStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.RL_PD_ID, rlPdId);
-                        importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.SKU_TYPE, StoreSalesSkuEntity.Info.SKU_TYPE);
-                        importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.SORT, StoreSalesSkuEntity.Info.SORT);
-                        importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.COUNT, StoreSalesSkuEntity.Info.COUNT);
+                        skuIdInPdScStrIdMap.put(skuId, skuIdInfo.getList(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST));
+                    }
+                }
+                // 导入库存销售sku信息并初始化库存
+                {
+                    FaiList<Param> storeSaleSkuList = new FaiList<>();
+
+                    for (Param productInfo : productList) {
+                        FaiList<Param> storeSales = productInfo.getListNullIsEmpty(MgProductEntity.Info.STORE_SALES);
+                        if(Util.isEmptyList(storeSales)){
+                            continue;
+                        }
+                        int rlPdId = productInfo.getInt(MgProductEntity.Info.RL_PD_ID);
+                        int pdId = productInfo.getInt(MgProductEntity.Info.PD_ID);
+                        Map<String, Long> inPdScStrNameListJsonSkuIdMap = pdIdInPdScStrNameListJsonSkuIdMap.get(pdId);
+                        Map<Long, FaiList<Integer>> skuIdInPdScStrIdMap = pdIdSkuIdInPdScStrIdMap.get(pdId);
+                        if(inPdScStrNameListJsonSkuIdMap == null){
+                            Log.logStd("inPdScStrNameListJsonSkuIdMap empty;flow=%s;aid=%s;productInfo=%s;",flow, aid, productInfo);
+                            continue;
+                        }
+                        Set<String> unionPriIdSkuIdSet = new HashSet<>();
+                        for (Param storeSale : storeSales) {
+                            FaiList<String> inPdScStrNameList = storeSale.getList(ProductStoreEntity.StoreSalesSkuInfo.IN_PD_SC_STR_NAME_LIST);
+                            Long skuId = inPdScStrNameListJsonSkuIdMap.get(inPdScStrNameList.toJson());
+                            if(skuId == null){
+                                Log.logStd("skuId empty;flow=%s;aid=%s;productInfo=%s;inPdScStrNameList=%s;",flow, aid, productInfo, inPdScStrNameList);
+                                continue;
+                            }
+
+                            FaiList<Integer> inPdScStrIdList = skuIdInPdScStrIdMap.get(skuId);
+
+                            Integer tid = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.TID, ownerTid);
+                            Integer siteId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.SITE_ID, ownerSiteId);
+                            Integer lgId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.LGID, ownerLgId);
+                            Integer keepPriId1 = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, ownerKeepPriId1);
+                            Integer unionPriId = bizPriKeyMap.get(new BizPriKey(tid, siteId, lgId, keepPriId1));
+
+                            if(!unionPriIdSkuIdSet.add(unionPriId+"-"+skuId)){
+                                Log.logStd("skuId already;flow=%s;aid=%s;unionPriId=%s;skuId=%s;rlPdId=%s;storeSale=%s;",flow, aid, unionPriId, skuId, rlPdId, storeSale);
+                                continue;
+                            }
+
+                            Param importStoreSaleSkuInfo = new Param();
+                            importStoreSaleSkuInfo.setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId);
+                            importStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.PD_ID, pdId);
+                            importStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId);
+                            importStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, ownerUnionPriId);
+                            importStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.RL_PD_ID, rlPdId);
+                            importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.SKU_TYPE, StoreSalesSkuEntity.Info.SKU_TYPE);
+                            importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.SORT, StoreSalesSkuEntity.Info.SORT);
+                            importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.COUNT, StoreSalesSkuEntity.Info.COUNT);
 //                        importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.REMAIN_COUNT, StoreSalesSkuEntity.Info.REMAIN_COUNT);
 //                        importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.HOLDING_COUNT, StoreSalesSkuEntity.Info.HOLDING_COUNT);
-                        importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.PRICE, StoreSalesSkuEntity.Info.PRICE);
-                        importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.ORIGIN_PRICE, StoreSalesSkuEntity.Info.ORIGIN_PRICE);
-                        importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.DURATION, StoreSalesSkuEntity.Info.DURATION);
-                        importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.VIRTUAL_COUNT, StoreSalesSkuEntity.Info.VIRTUAL_COUNT);
-                        importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.FLAG, StoreSalesSkuEntity.Info.FLAG);
-                        importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.COST_PRICE, StoreSalesSkuEntity.Info.COST_PRICE);
-                        importStoreSaleSkuInfo.setList(StoreSalesSkuEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList);
-                        storeSaleSkuList.add(importStoreSaleSkuInfo);
+                            importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.PRICE, StoreSalesSkuEntity.Info.PRICE);
+                            importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.ORIGIN_PRICE, StoreSalesSkuEntity.Info.ORIGIN_PRICE);
+                            importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.DURATION, StoreSalesSkuEntity.Info.DURATION);
+                            importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.VIRTUAL_COUNT, StoreSalesSkuEntity.Info.VIRTUAL_COUNT);
+                            importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.FLAG, StoreSalesSkuEntity.Info.FLAG);
+                            importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.COST_PRICE, StoreSalesSkuEntity.Info.COST_PRICE);
+                            importStoreSaleSkuInfo.setList(StoreSalesSkuEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList);
+                            storeSaleSkuList.add(importStoreSaleSkuInfo);
+                        }
+                    }
+                    // 导入
+                    if(!storeSaleSkuList.isEmpty()){
+                        ProductStoreProc productStoreProc = new ProductStoreProc(flow);
+                        rt = productStoreProc.importStoreSales(aid, ownerTid, ownerUnionPriId, xid, storeSaleSkuList, inStoreRecordInfo);
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
                     }
                 }
-                // 导入
-                if(!storeSaleSkuList.isEmpty()){
-                    ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-                    rt = productStoreProc.importStoreSales(aid, ownerTid, ownerUnionPriId, null, storeSaleSkuList, inStoreRecordInfo);
-                    if(rt != Errno.OK){
-                        return rt;
-                    }
+                commit = true;
+                tx.commit();
+            } finally {
+                if (!commit) {
+                    tx.rollback();
                 }
             }
             Log.logStd("end;flow=%s;aid=%s;ownerTid=%s;ownerUnionPriId=%s;",flow, aid, ownerTid, ownerUnionPriId);

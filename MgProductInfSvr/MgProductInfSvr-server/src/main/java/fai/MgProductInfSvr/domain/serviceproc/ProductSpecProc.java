@@ -421,14 +421,14 @@ public class ProductSpecProc extends AbstractProductProc {
      * @param specSkuList 商品规格sku 集合
      * @param skuIdInfoList 需要返回的skuId信息集合 不是全部
      */
-    public int importPdScWithSku(int aid, int tid, int unionPriId, FaiList<Param> specList, FaiList<Param> specSkuList, FaiList<Param> skuIdInfoList){
-        int rt = Errno.ERROR;
+    public int importPdScWithSku(int aid, int tid, int unionPriId, String xid, FaiList<Param> specList, FaiList<Param> specSkuList, FaiList<Param> skuIdInfoList){
+        int rt;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
-        rt = m_cli.importPdScWithSku(aid, tid, unionPriId, specList, specSkuList, skuIdInfoList);
+        rt = m_cli.importPdScWithSku(aid, tid, unionPriId, xid, specList, specSkuList, skuIdInfoList);
         if(rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;specList=%s;specSkuList=%s;", m_flow, aid, specList, specSkuList);
             return rt;

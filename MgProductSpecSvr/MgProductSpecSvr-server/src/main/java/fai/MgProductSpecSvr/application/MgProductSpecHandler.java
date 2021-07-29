@@ -192,16 +192,28 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductSpecCmd.ProductSpecCmd.IMPORT_PD_SC_WITH_SKU)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductSpecCmd.ProductSpecCmd.IMPORT_PD_SC_WITH_SKU_ROLLBACK)
     private int importPdScWithSku(final FaiSession session,
                                   @ArgFlow final int flow,
                                   @ArgAid final int aid,
+                                  @ArgBodyXid(value = CommonDto.Key.XID, useDefault = true) String xid,
                                   @ArgBodyInteger(ProductSpecDto.Key.TID) final int tid,
                                   @ArgBodyInteger(ProductSpecDto.Key.UNION_PRI_ID) final int unionPriId,
                                   @ArgList(classDef = ProductSpecDto.class, methodDef = "getInfoDto", keyMatch = ProductSpecDto.Key.INFO_LIST)
                                           FaiList<Param> specList,
                                   @ArgList(classDef = ProductSpecSkuDto.class, methodDef = "getInfoDto", keyMatch = ProductSpecDto.Key.SKU_INFO_LIST/*特意不同*/)
                                           FaiList<Param> specSkuList) throws IOException {
-        return m_productSpecService.importPdScWithSku(session, flow, aid, tid, unionPriId, specList, specSkuList);
+        return m_productSpecService.importPdScWithSku(session, flow, aid, xid, tid, unionPriId, specList, specSkuList);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductSpecCmd.ProductSpecCmd.IMPORT_PD_SC_WITH_SKU_ROLLBACK)
+    private int importPdScWithSkuRollback(final FaiSession session,
+                                          @ArgFlow final int flow,
+                                          @ArgAid final int aid,
+                                          @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                          @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException{
+        return m_productSpecService.importPdScWithSkuRollback(session, flow, aid, xid, branchId);
     }
 
     @Cmd(MgProductSpecCmd.ProductSpecCmd.GET_LIST)

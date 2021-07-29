@@ -1062,12 +1062,16 @@ public class MgProductInfHandler extends FaiHandler {
                              @ArgBodyInteger(MgProductDto.Key.SITE_ID) int siteId,
                              @ArgBodyInteger(MgProductDto.Key.LGID) int lgId,
                              @ArgBodyInteger(MgProductDto.Key.KEEP_PRIID1) int keepPriId1,
+                             @ArgBodyXid(value = MgProductDto.Key.XID, useDefault = true) String xid,
                              @ArgList(keyMatch = MgProductDto.Key.INFO_LIST,
                                      classDef = MgProductDto.class, methodDef = "getInfoDto") FaiList<Param> productList,
                              @ArgParam(keyMatch = MgProductDto.Key.IN_OUT_STORE_RECORD_INFO,
                                      classDef = ProductStoreDto.InOutStoreRecord.class, methodDef = "getInfoDto") Param inStoreRecordInfo,
-                             @ArgBodyBoolean(value = MgProductDto.Key.USE_BASIC, useDefault = true) boolean useMgProductBasicInfo) throws IOException {
-        return mgProductInfService.importProduct(session, flow, aid, tid, siteId, lgId, keepPriId1, productList, inStoreRecordInfo, useMgProductBasicInfo);
+                             @ArgBodyBoolean(value = MgProductDto.Key.USE_BASIC, useDefault = true) boolean useMgProductBasicInfo) throws IOException, TransactionException {
+        if (!Str.isEmpty(xid)) {
+            RootContext.bind(xid, flow);
+        }
+        return mgProductInfService.importProduct(session, flow, aid, tid, siteId, lgId, keepPriId1, xid, productList, inStoreRecordInfo, useMgProductBasicInfo);
     }
 
     @WrittenCmd

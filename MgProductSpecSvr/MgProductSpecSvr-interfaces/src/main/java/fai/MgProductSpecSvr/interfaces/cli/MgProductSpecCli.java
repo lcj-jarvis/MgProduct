@@ -1865,11 +1865,12 @@ public class MgProductSpecCli extends MgProductInternalCli {
 
     /**
      * 导入商品规格和sku信息
+     * @param xid
      * @param specList 商品规格 集合
      * @param specSkuList 商品规格sku 集合
      * @param skuIdInfoList 需要返回的skuId信息集合 不是全部
      */
-    public int importPdScWithSku(int aid, int tid, int unionPriId, FaiList<Param> specList, FaiList<Param> specSkuList, FaiList<Param> skuIdInfoList){
+    public int importPdScWithSku(int aid, int tid, int unionPriId, String xid, FaiList<Param> specList, FaiList<Param> specSkuList, FaiList<Param> skuIdInfoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1890,6 +1891,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             }
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putString(CommonDto.Key.XID, xid);
             sendBody.putInt(ProductSpecDto.Key.TID, tid);
             sendBody.putInt(ProductSpecDto.Key.UNION_PRI_ID, unionPriId);
             specList.toBuffer(sendBody, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.getInfoDto());

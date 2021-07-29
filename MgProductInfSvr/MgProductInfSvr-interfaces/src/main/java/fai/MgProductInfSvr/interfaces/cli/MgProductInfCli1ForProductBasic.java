@@ -321,6 +321,8 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(MgProductDto.Key.TID, tid), new Pair(MgProductDto.Key.SITE_ID, siteId), new Pair(MgProductDto.Key.LGID, lgId), new Pair(MgProductDto.Key.KEEP_PRIID1, keepPriId1));
+            String xid = mgProductArg.getXid();
+            sendBody.putString(MgProductDto.Key.XID, xid);
             m_rt = productList.toBuffer(sendBody, MgProductDto.Key.INFO_LIST, MgProductDto.getInfoDto());
             if(m_rt != Errno.OK){
                 Log.logErr(m_rt, "productList.toBuffer error;productList=%s;", productList);

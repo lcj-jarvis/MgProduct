@@ -26,6 +26,9 @@ public class MgProductLibCmd {
         public static final int NUM4 = 1003;/** @see LibCmd#UNION_SET_LIB_LIST*/
         public static final int NUM5 = 1004;/** @see LibCmd#CLONE*/
         public static final int NUM6 = 1005;/** @see LibCmd#INCR_CLONE*/
+        public static final int NUM7 = 1006; /** @see LibCmd#BACKUP*/
+        public static final int NUM8 = 1007; /** @see LibCmd#RESTORE*/
+        public static final int NUM9 = 1008; /** @see LibCmd#DEL_BACKUP*/
     }
 
     public static class LibCmd {
@@ -36,6 +39,9 @@ public class MgProductLibCmd {
         public static final int UNION_SET_LIB_LIST = WriteCmdNum.NUM4;
         public static final int CLONE = WriteCmdNum.NUM5;
         public static final int INCR_CLONE = WriteCmdNum.NUM6;
+        public static final int BACKUP = WriteCmdNum.NUM7;
+        public static final int RESTORE = WriteCmdNum.NUM8;
+        public static final int DEL_BACKUP = WriteCmdNum.NUM9;
 
         //读操作
         public static final int GET_LIST = ReadCmdNum.NUM;

@@ -1,5 +1,6 @@
 package fai.MgProductLibSvr.application;
 
+import fai.MgBackupSvr.interfaces.dto.MgBackupDto;
 import fai.MgProductLibSvr.application.service.ProductLibService;
 import fai.MgProductLibSvr.interfaces.cmd.MgProductLibCmd;
 import fai.MgProductLibSvr.interfaces.dto.ProductLibRelDto;
@@ -133,4 +134,35 @@ public class MgProductLibHandler extends MiddleGroundHandler {
         return libService.incrementalClone(session, flow, aid, unionPriId, fromAid, fromUnionPriId);
     }
 
+    @WrittenCmd
+    @Cmd(MgProductLibCmd.LibCmd.BACKUP)
+    public int backupData(final FaiSession session,
+                          @ArgFlow final int flow,
+                          @ArgAid int aid,
+                          @ArgList(keyMatch = ProductLibRelDto.Key.UNION_PRI_ID) FaiList<Integer> unionPriIds,
+                          @ArgParam(classDef = MgBackupDto.class, methodDef = "getInfoDto",
+                                  keyMatch = ProductLibRelDto.Key.BACKUP_INFO) Param backupInfo) throws IOException {
+        return libService.backupData(session, flow, aid, unionPriIds, backupInfo);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductLibCmd.LibCmd.RESTORE)
+    public int restoreBackupData(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid int aid,
+                                 @ArgList(keyMatch = ProductLibRelDto.Key.UNION_PRI_ID) FaiList<Integer> unionPriIds,
+                                 @ArgParam(classDef = MgBackupDto.class, methodDef = "getInfoDto",
+                                         keyMatch = ProductLibRelDto.Key.BACKUP_INFO) Param backupInfo) throws IOException {
+        return libService.restoreBackupData(session, flow, aid, unionPriIds, backupInfo);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductLibCmd.LibCmd.DEL_BACKUP)
+    public int delBackupData(final FaiSession session,
+                             @ArgFlow final int flow,
+                             @ArgAid int aid,
+                             @ArgParam(classDef = MgBackupDto.class, methodDef = "getInfoDto",
+                                     keyMatch = ProductLibRelDto.Key.BACKUP_INFO) Param backupInfo) throws IOException {
+        return libService.delBackupData(session, flow, aid, backupInfo);
+    }
 }

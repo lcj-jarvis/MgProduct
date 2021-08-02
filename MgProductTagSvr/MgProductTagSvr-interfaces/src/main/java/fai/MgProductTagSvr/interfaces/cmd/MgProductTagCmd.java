@@ -25,7 +25,10 @@ public class MgProductTagCmd {
         public static final int NUM2 = 1002;/** @see TagCmd#BATCH_DEL */
         public static final int NUM4 = 1003;/** @see TagCmd#UNION_SET_TAG_LIST*/
         public static final int NUM5 = 1004;/** @see TagCmd#CLONE*/
-        public static final int NUM6 = 1005;/** @see TagCmd#INCR_CLONE*/
+        public static final int NUM6 = 1005; /** @see TagCmd#INCR_CLONE*/
+        public static final int NUM7 = 1006; /** @see TagCmd#BACKUP*/
+        public static final int NUM8 = 1007; /** @see TagCmd#RESTORE*/
+        public static final int NUM9 = 1008; /** @see TagCmd#DEL_BACKUP*/
 
     }
 
@@ -37,7 +40,10 @@ public class MgProductTagCmd {
         public static final int UNION_SET_TAG_LIST = WriteCmdNum.NUM4;
         public static final int CLONE = WriteCmdNum.NUM5;
         public static final int INCR_CLONE = WriteCmdNum.NUM6;
-
+        public static final int BACKUP = WriteCmdNum.NUM7;
+        public static final int RESTORE = WriteCmdNum.NUM8;
+        public static final int DEL_BACKUP = WriteCmdNum.NUM9;
+        
         //读命令
         public static final int GET_LIST = ReadCmdNum.NUM;
         public static final int GET_REL_DATA_STATUS = ReadCmdNum.NUM1;

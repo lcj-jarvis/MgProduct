@@ -1,5 +1,6 @@
 package fai.MgProductLibSvr.interfaces.cli;
 
+import fai.MgBackupSvr.interfaces.dto.MgBackupDto;
 import fai.MgProductLibSvr.interfaces.cmd.MgProductLibCmd;
 import fai.MgProductLibSvr.interfaces.dto.ProductLibRelDto;
 import fai.comm.netkit.FaiClient;
@@ -440,7 +441,7 @@ public class MgProductLibCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductLibRelDto.Key.FROM_AID, fromAid);
-           // cloneUnionPriIds.toBuffer(sendBody, ProductLibRelDto.Key.CLONE_UNION_PRI_IDS, CloneDef.Dto.getDto());
+            cloneUnionPriIds.toBuffer(sendBody, ProductLibRelDto.Key.CLONE_UNION_PRI_IDS, CloneDef.Dto.getInternalDto());
             //发送数据
             sendAndReceive(aid, MgProductLibCmd.LibCmd.CLONE, sendBody, false);
 
@@ -480,6 +481,45 @@ public class MgProductLibCli extends FaiClient {
             //发送数据
             sendAndReceive(aid, MgProductLibCmd.LibCmd.INCR_CLONE, sendBody, false);
 
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    public int backupData(int aid, FaiList<Integer> unionPriIds, Param backupInfo) {
+        return operateBackup(aid, unionPriIds, backupInfo, MgProductLibCmd.LibCmd.BACKUP);
+    }
+
+    public int restoreBackupData(int aid, FaiList<Integer> unionPriIds, Param backupInfo) {
+        return operateBackup(aid, unionPriIds, backupInfo, MgProductLibCmd.LibCmd.RESTORE);
+    }
+
+    public int delBackupData(int aid, Param backupInfo) {
+        return operateBackup(aid, null, backupInfo, MgProductLibCmd.LibCmd.DEL_BACKUP);
+    }
+
+    private int operateBackup(int aid, FaiList<Integer> unionPriIds, Param backupInfo, int cmd) {
+        if (!useProductLib()) {
+            return Errno.OK;
+        }
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0 || Util.isEmptyList(unionPriIds) || Str.isEmpty(backupInfo)) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;aid=%d;uids=%s;backupInfo=%s;", aid, unionPriIds, backupInfo);
+                return m_rt;
+            }
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            if (!Util.isEmptyList(unionPriIds)) {
+                unionPriIds.toBuffer(sendBody, ProductLibRelDto.Key.UNION_PRI_ID);
+            }
+            backupInfo.toBuffer(sendBody, ProductLibRelDto.Key.BACKUP_INFO, MgBackupDto.getInfoDto());
+            sendAndReceive(aid, cmd, sendBody, false);
             m_rt = Errno.OK;
             return m_rt;
         } finally {

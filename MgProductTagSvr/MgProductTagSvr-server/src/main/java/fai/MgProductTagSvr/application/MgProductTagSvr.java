@@ -2,7 +2,9 @@ package fai.MgProductTagSvr.application;
 
 import fai.MgProductTagSvr.application.domain.common.LockUtil;
 import fai.MgProductTagSvr.application.domain.repository.cache.CacheCtrl;
+import fai.MgProductTagSvr.application.domain.repository.dao.ProductTagBakDaoCtrl;
 import fai.MgProductTagSvr.application.domain.repository.dao.ProductTagDaoCtrl;
+import fai.MgProductTagSvr.application.domain.repository.dao.ProductTagRelBakDaoCtrl;
 import fai.MgProductTagSvr.application.domain.repository.dao.ProductTagRelDaoCtrl;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.cache.redis.config.RedisClientConfig;
@@ -63,7 +65,7 @@ public class MgProductTagSvr {
 
         init(daoPool, m_cache, lockLease);
 
-        server.setHandler(new MgProductTagHandler(server));
+        server.setHandler(new MgProductTagHandler(server, m_cache));
         server.start();
     }
 
@@ -85,10 +87,12 @@ public class MgProductTagSvr {
     }
 
     public static void init(DaoPool daoPool, RedisCacheManager cache, int lockLease) {
-        ProductTagDaoCtrl.init(daoPool, cache);
-        ProductTagRelDaoCtrl.init(daoPool, cache);
         LockUtil.init(cache, lockLease);
         CacheCtrl.init(cache);
+        ProductTagBakDaoCtrl.init(daoPool);
+        ProductTagRelBakDaoCtrl.init(daoPool);
+        ProductTagDaoCtrl.init(daoPool, cache);
+        ProductTagRelDaoCtrl.init(daoPool, cache);
     }
 
     @ParamKeyMapping(path = ".svr")

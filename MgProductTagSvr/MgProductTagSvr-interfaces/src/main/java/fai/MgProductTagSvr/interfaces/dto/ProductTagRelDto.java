@@ -68,5 +68,7 @@ public class ProductTagRelDto {
         public static final int FROM_AID = 12;
         public static final int CLONE_UNION_PRI_IDS = 13;
         public static final int FROM_UNION_PRI_ID = 14;
+
+        public static final int BACKUP_INFO = 15;
     }
 }

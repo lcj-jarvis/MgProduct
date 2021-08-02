@@ -276,8 +276,16 @@ public class MgProductInfService extends ServicePub {
         }
 
         //TODO 克隆基础数据
-        //TODO 克隆库数据
-        //TODO 克隆标签数据
+        //克隆库数据
+        if(cloneAll || cloneOption.getBoolean(MgProductEntity.Option.LIB, false)) {
+            ProductLibProc libProc = new ProductLibProc(flow);
+            libProc.cloneData(aid, fromAid, cloneUnionPriIds);
+        }
+        //克隆标签数据
+        if(cloneAll || cloneOption.getBoolean(MgProductEntity.Option.TAG, false)) {
+            ProductTagProc tagProc = new ProductTagProc(flow);
+            tagProc.cloneData(aid, fromAid, cloneUnionPriIds);
+        }
         //TODO 克隆参数数据
 
         rt = Errno.OK;
@@ -322,8 +330,16 @@ public class MgProductInfService extends ServicePub {
         }
 
         //TODO 克隆基础数据
-        //TODO 克隆库数据
-        //TODO 克隆标签数据
+        //克隆库数据
+        if(cloneAll || cloneOption.getBoolean(MgProductEntity.Option.LIB, false)) {
+            ProductLibProc libProc = new ProductLibProc(flow);
+            libProc.incrementalClone(aid, unionPriId, fromAid, fromUnionPriId);
+        }
+        //克隆标签数据
+        if(cloneAll || cloneOption.getBoolean(MgProductEntity.Option.TAG, false)) {
+            ProductTagProc tagProc = new ProductTagProc(flow);
+            tagProc.incrementalClone(aid, unionPriId, fromAid, fromUnionPriId);
+        }
         //TODO 克隆参数数据
 
         rt = Errno.OK;
@@ -362,8 +378,12 @@ public class MgProductInfService extends ServicePub {
         groupProc.backupData(aid, unionPriIds, backupInfo);
 
         //TODO 备份基础数据
-        //TODO 备份库数据
-        //TODO 备份标签数据
+        //备份库数据
+        ProductLibProc libProc = new ProductLibProc(flow);
+        libProc.backupData(aid, unionPriIds, backupInfo);
+        //备份标签数据
+        ProductTagProc tagProc = new ProductTagProc(flow);
+        tagProc.backupData(aid, unionPriIds, backupInfo);
         //TODO 备份参数数据
 
         rt = Errno.OK;
@@ -407,8 +427,16 @@ public class MgProductInfService extends ServicePub {
         }
 
         //TODO 还原基础数据
-        //TODO 还原库数据
-        //TODO 还原标签数据
+        //还原库数据
+        if (restoreAll || restoreOption.getBoolean(MgProductEntity.Option.LIB, false)) {
+            ProductLibProc libProc = new ProductLibProc(flow);
+            libProc.restoreBackup(aid, unionPriIds, backupInfo);
+        }
+        //还原标签数据
+        if (restoreAll || restoreOption.getBoolean(MgProductEntity.Option.LIB, false)) {
+            ProductTagProc tagProc = new ProductTagProc(flow);
+            tagProc.restoreBackup(aid, unionPriIds, backupInfo);
+        }
         //TODO 还原参数数据
 
         rt = Errno.OK;
@@ -440,8 +468,12 @@ public class MgProductInfService extends ServicePub {
         groupProc.delBackup(aid, backupInfo);
 
         //TODO 删除基础数据备份
-        //TODO 删除库数据备份
-        //TODO 删除标签数据备份
+        //删除库数据备份
+        ProductLibProc libProc = new ProductLibProc(flow);
+        libProc.delBackup(aid, backupInfo);
+        //删除标签数据备份
+        ProductTagProc tagProc = new ProductTagProc(flow);
+        tagProc.delBackup(aid, backupInfo);
         //TODO 删除参数数据备份
 
         rt = Errno.OK;

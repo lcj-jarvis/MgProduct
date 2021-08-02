@@ -1,5 +1,6 @@
 package fai.MgProductLibSvr.application.service;
 
+import fai.MgBackupSvr.interfaces.entity.MgBackupEntity;
 import fai.MgProductLibSvr.domain.common.LockUtil;
 import fai.MgProductLibSvr.domain.common.ProductLibCheck;
 import fai.MgProductLibSvr.domain.entity.ProductLibEntity;
@@ -11,6 +12,7 @@ import fai.MgProductLibSvr.domain.repository.cache.ProductLibRelCache;
 import fai.MgProductLibSvr.domain.serviceproc.ProductLibProc;
 import fai.MgProductLibSvr.domain.serviceproc.ProductLibRelProc;
 import fai.MgProductLibSvr.interfaces.dto.ProductLibRelDto;
+import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
@@ -18,6 +20,7 @@ import fai.mgproduct.comm.Util;
 import fai.comm.middleground.app.CloneDef;
 import fai.middleground.svrutil.annotation.SuccessRt;
 import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.repository.BackupStatusCtrl;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
@@ -39,7 +42,6 @@ public class ProductLibService {
      * @return
      */
     private int addLibBatch(int flow, int aid, int unionPriId, int tid,
-                       TransactionCtrl transactionCtrl,
                        ProductLibProc libProc,
                        ProductLibRelProc relLibProc,
                        FaiList<Param> addInfoList,
@@ -48,14 +50,12 @@ public class ProductLibService {
                        FaiList<Integer> relLibIds) {
 
         int rt;
-        ProductLibRelProc libRelProc = new ProductLibRelProc(flow, aid, transactionCtrl);
-
         // 获取参数中最大的sort
-        int maxSort = libRelProc.getMaxSort(aid, unionPriId);
+        int maxSort = relLibProc.getMaxSort(aid, unionPriId);
         if(maxSort < 0) {
             rt = Errno.ERROR;
             Log.logErr(rt, "getMaxSort error;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
-            return rt;
+            throw new MgException(rt, "getMaxSort error;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
         }
 
         for (Param addInfo : addInfoList) {
@@ -74,15 +74,12 @@ public class ProductLibService {
         }
 
         //将事务设置为非自动提交
-        if (transactionCtrl.isAutoCommit()) {
+        /*if (transactionCtrl.isAutoCommit()) {
             transactionCtrl.setAutoCommit(false);
-        }
+        }*/
 
         //保存libId
         FaiList<Integer> libIds = new FaiList<>();
-        if (libProc == null) {
-            libProc = new ProductLibProc(flow, aid, transactionCtrl);
-        }
         //批量添加库表的数据
         libProc.addLibBatch(aid, libInfoList, libIds);
 
@@ -90,9 +87,6 @@ public class ProductLibService {
             Param relLibInfo = relLibInfoList.get(i);
             //设置libId
             relLibInfo.setInt(ProductLibRelEntity.Info.LIB_ID, libIds.get(i));
-        }
-        if (relLibProc == null) {
-            relLibProc = new ProductLibRelProc(flow, aid, transactionCtrl);
         }
         //批量添加库表的数据
         relLibProc.addLibRelBatch(aid, unionPriId, relLibInfoList, relLibIds);
@@ -124,7 +118,7 @@ public class ProductLibService {
             ProductLibRelProc libRelProc = new ProductLibRelProc(flow, aid, transactionCtrl);
             int maxSort = 0;
             try {
-                maxSort = addLibBatch(flow, aid, unionPriId, tid, transactionCtrl, libProc, libRelProc, addInfoList,
+                maxSort = addLibBatch(flow, aid, unionPriId, tid, libProc, libRelProc, addInfoList,
                                       libInfoList, relLibInfoList, relLibIds);
                 commit = true;
             } finally {
@@ -179,11 +173,13 @@ public class ProductLibService {
                 delLibIdList = relProc.getLibIdsByRlLibIds(aid, unionPriId, rlLibIds);
 
                 // 删除库业务表数据
-                relProc.delRelLibList(aid, unionPriId, rlLibIds);
+                ParamMatcher matcher = new ParamMatcher(ProductLibRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+                matcher.and(ProductLibRelEntity.Info.RL_LIB_ID, ParamMatcher.IN, rlLibIds);
+                relProc.delRelLibList(aid, matcher);
 
                 // 删除库表数据
                 ProductLibProc libProc = new ProductLibProc(flow, aid, transactionCtrl);
-                libProc.delLibList(aid, delLibIdList);
+                libProc.delLibList(aid, new ParamMatcher(ProductLibEntity.Info.LIB_ID, ParamMatcher.IN, delLibIdList));
 
                 commit = true;
                 // commit之前设置10s过期时间，避免脏数据，保持一致性
@@ -495,10 +491,12 @@ public class ProductLibService {
                     delLibIdList = relLibProc.getLibIdsByRlLibIds(aid, unionPriId, delRlLibIds);
 
                     // 删除库业务表数据
-                    relLibProc.delRelLibList(aid, unionPriId, delRlLibIds);
+                    ParamMatcher matcher = new ParamMatcher(ProductLibRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+                    matcher.and(ProductLibRelEntity.Info.RL_LIB_ID, ParamMatcher.IN, delRlLibIds);
+                    relLibProc.delRelLibList(aid, matcher);
 
                     // 删除库表数据
-                    libProc.delLibList(aid, delLibIdList);
+                    libProc.delLibList(aid, new ParamMatcher(new ParamMatcher(ProductLibEntity.Info.LIB_ID, ParamMatcher.IN, delLibIdList)));
                 }
 
                 // 修改
@@ -514,7 +512,7 @@ public class ProductLibService {
 
                 // 添加
                 if (!Util.isEmptyList(addInfoList)) {
-                   maxSort = addLibBatch(flow, aid, unionPriId, tid, tc, libProc, relLibProc,
+                   maxSort = addLibBatch(flow, aid, unionPriId, tid, libProc, relLibProc,
                                 addInfoList, libInfoList, relInfoList, rlLibIds);
                 }
 
@@ -586,23 +584,50 @@ public class ProductLibService {
     @SuccessRt(value = Errno.OK)
     public int cloneData(FaiSession session, int flow, int toAid, int fromAid, FaiList<Param> cloneUnionPriIds) throws IOException {
         int rt;
+        doClone(flow, toAid, fromAid, cloneUnionPriIds, false);
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("cloneData ok;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
+        return rt;
+    }
+
+    /**
+     * 增量克隆，即libId是自增的
+     */
+    @SuccessRt(value = Errno.OK)
+    public int incrementalClone(FaiSession session, int flow, int toAid, int toUnionPriId, int fromAid, int fromUnionPriId) throws IOException {
+        int rt;
+        Param clonePrimary = new Param();
+        clonePrimary.setInt(CloneDef.Info.FROM_PRIMARY_KEY, fromUnionPriId);
+        clonePrimary.setInt(CloneDef.Info.TO_PRIMARY_KEY, toUnionPriId);
+        FaiList<Param> cloneUnionPriIds = new FaiList<>();
+        cloneUnionPriIds.add(clonePrimary);
+
+        doClone(flow, toAid, fromAid, cloneUnionPriIds, true);
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("incrementalClone ok;flow=%d;toAid=%d;toUid=%d;fromAid=%d;fromUid=%d;", flow, toAid, toUnionPriId, fromAid, fromUnionPriId);
+        return rt;
+    }
+
+    private void doClone(int flow, int toAid, int fromAid, FaiList<Param> cloneUnionPriIds, boolean incrementalClone) {
+        int rt;
         if(Util.isEmptyList(cloneUnionPriIds)) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr("args error, cloneUnionPriIds is empty;flow=%d;toAid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
-            return rt;
+            throw new MgException(rt, "args error, cloneUnionPriIds is empty;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
         }
 
-        //保存克隆关系的映射
+        // 组装 fromUnionPriId -> toUnionPriId 映射关系
         Map<Integer, Integer> cloneUidMap = new HashMap<>();
         for(Param cloneUidInfo : cloneUnionPriIds) {
-            //克隆到哪个UnionPriId下
             Integer toUnionPriId = cloneUidInfo.getInt(CloneDef.Info.TO_PRIMARY_KEY);
-            //从哪个UnionPriId下克隆
             Integer fromUnionPriId = cloneUidInfo.getInt(CloneDef.Info.FROM_PRIMARY_KEY);
             if(toUnionPriId == null || fromUnionPriId == null) {
                 rt = Errno.ARGS_ERROR;
-                Log.logErr("args error, cloneUnionPriIds is error;flow=%d;toAid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
-                return rt;
+                throw new MgException(rt, "args error, cloneUnionPriIds is error;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
             }
             cloneUidMap.put(fromUnionPriId, toUnionPriId);
         }
@@ -614,108 +639,93 @@ public class ProductLibService {
             TransactionCtrl tc = new TransactionCtrl();
             tc.setAutoCommit(false);
             try {
-                // 业务关系数据克隆
                 ProductLibRelProc libRelProc = new ProductLibRelProc(flow, toAid, tc);
-                libRelProc.cloneData(toAid, fromAid, cloneUidMap);
-
-                // 库数据克隆
                 ProductLibProc libProc = new ProductLibProc(flow, toAid, tc);
-                libProc.cloneData(toAid, fromAid, cloneUidMap);
 
-                commit = true;
-            }finally {
-                if(commit) {
-                    tc.commit();
-                }else {
-                    tc.rollback();
+                if(!incrementalClone) {
+                    FaiList<Integer> toUnionPriIds = new FaiList<>(cloneUidMap.values());
+                    // 删除原有的业务关系表数据
+                    ParamMatcher delMatcher = new ParamMatcher(ProductLibRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, toUnionPriIds);
+                    libRelProc.delRelLibList(toAid, delMatcher);
+
+                    // 删除原有的库表数据
+                    delMatcher = new ParamMatcher(ProductLibEntity.Info.AID, ParamMatcher.EQ, toAid);
+                    delMatcher.and(ProductLibEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.IN, toUnionPriIds);
+                    libProc.delLibList(toAid, delMatcher);
                 }
-                tc.closeDao();
-            }
-        }finally {
-            lock.unlock();
-        }
 
-        rt = Errno.OK;
-        FaiBuffer sendBuf = new FaiBuffer(true);
-        session.write(sendBuf);
-        Log.logStd("cloneData ok;flow=%d;toAid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
-        return rt;
-    }
+                // LibId -> addRelList
+                Map<Integer, FaiList<Param>> libId_RelList = new HashMap<>();
+                // LibId -> sourceUnionPriId
+                Map<Integer, Integer> libId_SourceUid = new HashMap<>();
+                // 查出要克隆的业务关系表数据
+                for(Map.Entry<Integer, Integer> entry: cloneUidMap.entrySet()) {
+                    int fromUnionPriId = entry.getKey();
+                    int toUnionPriId = entry.getValue();
+                    FaiList<Param> fromRelList = libRelProc.getListFromDb(fromAid, fromUnionPriId, null);
 
-    /**
-     * 增量克隆，即libId是自增的
-     */
-    @SuccessRt(value = Errno.OK)
-    public int incrementalClone(FaiSession session, int flow, int toAid, int toUnionPriId, int fromAid, int fromUnionPriId) throws IOException {
-        int rt;
-        Lock lock = LockUtil.getLock(toAid);
-        lock.lock();
-        try {
-            boolean commit = false;
-            TransactionCtrl tc = new TransactionCtrl();
-            // 业务关系数据克隆
-            ProductLibRelProc libRelProc = new ProductLibRelProc(flow, toAid, tc);
-            Map<Integer, Param> libId_RelInfo = new HashMap<>();
+                    if(fromRelList.isEmpty()) {
+                        continue;
+                    }
 
-            //查出要克隆的数据
-            FaiList<Param> fromRelList = libRelProc.getListFromDb(fromAid, fromUnionPriId, null);
-
-            if(!fromRelList.isEmpty()) {
-                // 查出已存在的数据
-                FaiList<Param> existedList = libRelProc.getListFromDb(toAid, toUnionPriId, null);
-                for(Param fromInfo : fromRelList) {
-                    int rlLibId = fromInfo.getInt(ProductLibRelEntity.Info.RL_LIB_ID);
-                    boolean existed = Misc.getFirst(existedList, ProductLibRelEntity.Info.RL_LIB_ID, rlLibId) != null;
-                    // 如果rlLibId尚未存在，则需做增量
-                    if(!existed) {
+                    // 查出已存在的数据 for 增量克隆
+                    FaiList<Param> existedList = null;
+                    if(incrementalClone) {
+                        existedList = libRelProc.getListFromDb(toAid, toUnionPriId, null);
+                    }
+                    for(Param fromInfo : fromRelList) {
+                        int rlLibId = fromInfo.getInt(ProductLibRelEntity.Info.RL_LIB_ID);
+                        // 如果是增量克隆，但是rlLibId已存在，则跳过
+                        if(incrementalClone && Misc.getFirst(existedList, ProductLibRelEntity.Info.RL_LIB_ID, rlLibId) != null) {
+                            continue;
+                        }
                         Param data = fromInfo.clone();
                         data.setInt(ProductLibRelEntity.Info.AID, toAid);
                         data.setInt(ProductLibRelEntity.Info.UNION_PRI_ID, toUnionPriId);
                         int libId = data.getInt(ProductLibRelEntity.Info.LIB_ID);
-                        libId_RelInfo.put(libId, data);
+                        FaiList<Param> addList = libId_RelList.get(libId);
+                        if(addList == null) {
+                            addList = new FaiList<>();
+                            libId_RelList.put(libId, addList);
+                            libId_SourceUid.put(libId, toUnionPriId);
+                        }
+                        addList.add(data);
                     }
+
                 }
-            }
-            // 没有需要做增量的数据
-            if(libId_RelInfo.isEmpty()) {
-                rt = Errno.OK;
-                FaiBuffer sendBuf = new FaiBuffer(true);
-                session.write(sendBuf);
-                Log.logStd("ok, incremental is empty;flow=%d;toAid=%d;toUid=%d;fromAid=%d;fromUid=%d;", flow, toAid, toUnionPriId, fromAid, fromUnionPriId);
-                return rt;
-            }
 
-            //查出对应的标签表数据
-            SearchArg libSearch = new SearchArg();
-            libSearch.matcher = new ParamMatcher(ProductLibEntity.Info.LIB_ID, ParamMatcher.IN,
-                    new FaiList<>(libId_RelInfo.keySet()));
-            ProductLibProc libProc = new ProductLibProc(flow, toAid, tc);
-            FaiList<Param> fromLibList = libProc.getListFromDb(fromAid, libSearch);
-            // 这里必定是会查到数据才对
-            if(fromLibList.isEmpty()) {
-                rt = Errno.ERROR;
-                Log.logErr(rt, "get from lib list err;flow=%d;toAid=%d;toUid=%d;fromAid=%d;fromUid=%d;", flow, toAid, toUnionPriId, fromAid, fromUnionPriId);
-                return rt;
-            }
+                // 没有要克隆的数据
+                if(libId_RelList.isEmpty()) {
+                    return;
+                }
 
-            // 这里保持 fromLibIds 和 addLibList的顺序一致，是为了后面能得到fromLibId 和 toLibId的映射关系
-            FaiList<Integer> fromLibIds = new FaiList<>();
-            FaiList<Param> addLibList = new FaiList<>();
-            for(Param fromInfo : fromLibList) {
-                Param data = fromInfo.clone();
-                data.setInt(ProductLibEntity.Info.AID, toAid);
-                //移除查出来的libId，使用自增的libId
-                int fromLibId = (Integer) data.remove(ProductLibEntity.Info.LIB_ID);
-                //保存fromLibId
-                fromLibIds.add(fromLibId);
-                addLibList.add(data);
-            }
-            tc.setAutoCommit(false);
-            try {
+                // 根据 fromAid 和 libId 查出对应的库表数据
+                SearchArg libSearch = new SearchArg();
+                libSearch.matcher = new ParamMatcher(ProductLibEntity.Info.LIB_ID, ParamMatcher.IN, new FaiList<>(libId_RelList.keySet()));
+
+                FaiList<Param> fromLibList = libProc.getListFromDb(fromAid, libSearch);
+                // 这里必定是会查到数据才对
+                if(fromLibList.isEmpty()) {
+                    rt = Errno.ERROR;
+                    throw new MgException(rt, "get from Lib list err;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
+                }
+
+                // 这里 保持 fromLibIds 和 addLibList的顺序一致，是为了后面能得到fromLibId 和 toLibId的映射关系
+                FaiList<Integer> fromLibIds = new FaiList<>();
+                FaiList<Param> addLibList = new FaiList<>();
+                for(Param fromInfo : fromLibList) {
+                    Param data = fromInfo.clone();
+                    data.setInt(ProductLibEntity.Info.AID, toAid);
+                    int fromLibId = (Integer) data.remove(ProductLibEntity.Info.LIB_ID);
+                    int sourceUnionPriId = libId_SourceUid.get(fromLibId);
+                    data.setInt(ProductLibEntity.Info.SOURCE_UNIONPRIID, sourceUnionPriId);
+                    fromLibIds.add(fromLibId);
+                    addLibList.add(data);
+                }
+
                 Map<Integer, Integer> fromLibId_toLibId = new HashMap<>();
                 FaiList<Integer> libIds = new FaiList<>();
                 libProc.addLibBatch(toAid, addLibList, libIds);
-
                 // 组装fromLibId 和 toLibId的映射关系
                 for(int i = 0; i < libIds.size(); i++) {
                     fromLibId_toLibId.put(fromLibIds.get(i), libIds.get(i));
@@ -723,14 +733,18 @@ public class ProductLibService {
 
                 // 组装业务关系表增量克隆数据，设置toLibId
                 FaiList<Param> addRelList = new FaiList<>();
-                for(Integer fromLibId : libId_RelInfo.keySet()) {
-                    Param relInfo = libId_RelInfo.get(fromLibId);
-                    int libId = fromLibId_toLibId.get(fromLibId);
-                    relInfo.setInt(ProductLibRelEntity.Info.LIB_ID, libId);
-                    addRelList.add(relInfo);
+                for(Integer fromLibId : libId_RelList.keySet()) {
+                    FaiList<Param> tmpAddList = libId_RelList.get(fromLibId);
+                    for(Param relInfo : tmpAddList) {
+                        //新的自增的libId
+                        int libId = fromLibId_toLibId.get(fromLibId);
+                        relInfo.setInt(ProductLibRelEntity.Info.LIB_ID, libId);
+                        addRelList.add(relInfo);
+                    }
                 }
-                // 插入增量克隆数据
-                libRelProc.addIncrementalClone(toAid, toUnionPriId, addRelList);
+                // 插入业务关系表克隆数据
+                libRelProc.addIncrementalClone(toAid, new FaiList<>(cloneUidMap.values()), addRelList);
+
                 commit = true;
             }finally {
                 if(commit) {
@@ -744,11 +758,216 @@ public class ProductLibService {
             lock.unlock();
         }
 
+        Log.logStd("cloneData ok;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
+    }
+
+    @SuccessRt(value = Errno.OK)
+    public int backupData(FaiSession session, int flow, int aid, FaiList<Integer> unionPriIds, Param backupInfo) throws IOException {
+        if (verifyBackupArgs(flow, aid, unionPriIds, backupInfo, true)) {
+            return Errno.ARGS_ERROR;
+        }
+
+        int rt;
+        LockUtil.BackupLock.lock(aid);
+        try {
+            if (checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.BACKUP, aid, backupInfo)) {
+                FaiBuffer sendBuf = new FaiBuffer(true);
+                session.write(sendBuf);
+                return Errno.OK;
+            }
+
+            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+            int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
+            TransactionCtrl tc = new TransactionCtrl();
+            ProductLibRelProc relProc = new ProductLibRelProc(flow, aid, tc);
+            ProductLibProc proc = new ProductLibProc(flow, aid, tc);
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+
+                // 可能之前备份没有成功，先操作删除之前的备份
+                deleteBackupData(relProc, proc, aid, backupId, backupFlag);
+
+                // 备份业务关系表数据，返回需要备份的库ids
+                Set<Integer> bakLibIds = relProc.backupData(aid, unionPriIds, backupId, backupFlag);
+
+                if(!bakLibIds.isEmpty()) {
+                    // 备份库表数据
+                    proc.backupData(aid, backupId, backupFlag, bakLibIds);
+                }
+                commit = true;
+            }finally {
+                if(commit) {
+                    tc.commit();
+                    backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.BACKUP, aid, backupId);
+                }else {
+                    tc.rollback();
+                    backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.BACKUP, aid, backupId);
+                }
+                tc.closeDao();
+            }
+        }finally {
+            LockUtil.BackupLock.unlock(aid);
+        }
+
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
         session.write(sendBuf);
-        Log.logStd("incrementalClone ok;flow=%d;toAid=%d;toUid=%d;fromAid=%d;fromUid=%d;", flow, toAid, toUnionPriId, fromAid, fromUnionPriId);
+        Log.logStd("backupData ok;flow=%d;aid=%d;unionPriIds=%s;backupInfo=%s;", flow, aid, unionPriIds, backupInfo);
         return rt;
     }
 
+    private void deleteBackupData(ProductLibRelProc relProc, ProductLibProc proc, int aid, int backupId, int backupFlag) {
+        relProc.delBackupData(aid, backupId, backupFlag);
+        proc.delBackupData(aid, backupId, backupFlag);
+    }
+
+    @SuccessRt(value = Errno.OK)
+    public int restoreBackupData(FaiSession session, int flow, int aid, FaiList<Integer> unionPriIds, Param backupInfo) throws IOException {
+        if (verifyBackupArgs(flow, aid, unionPriIds, backupInfo, true)) {
+            return Errno.ARGS_ERROR;
+        }
+        int rt;
+        LockUtil.BackupLock.lock(aid);
+        try {
+            if (checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.RESTORE, aid, backupInfo)) {
+                FaiBuffer sendBuf = new FaiBuffer(true);
+                session.write(sendBuf);
+                return Errno.OK;
+            }
+
+            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+            int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
+            TransactionCtrl tc = new TransactionCtrl();
+            ProductLibRelProc relProc = new ProductLibRelProc(flow, aid, tc);
+            ProductLibProc proc = new ProductLibProc(flow, aid, tc);
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+
+                // 还原关系表数据
+                relProc.restoreBackupData(aid, unionPriIds, backupId, backupFlag);
+
+                // 还原库表数据
+                proc.restoreBackupData(aid, unionPriIds, backupId, backupFlag);
+
+                commit = true;
+            }finally {
+                if(commit) {
+                    tc.commit();
+                    backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.RESTORE, aid, backupId);
+                }else {
+                    tc.rollback();
+                    backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.RESTORE, aid, backupId);
+                }
+                tc.closeDao();
+            }
+        }finally {
+            LockUtil.BackupLock.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("restore backupData ok;flow=%d;aid=%d;unionPriIds=%s;backupInfo=%s;", flow, aid, unionPriIds, backupInfo);
+        return rt;
+    }
+
+    @SuccessRt(value = Errno.OK)
+    public int delBackupData(FaiSession session, int flow, int aid, Param backupInfo) throws IOException {
+        if (verifyBackupArgs(flow, aid, null, backupInfo, false)) {
+            return Errno.ARGS_ERROR;
+        }
+
+        int rt;
+        LockUtil.BackupLock.lock(aid);
+        try {
+            if (checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.DELETE, aid, backupInfo)) {
+                FaiBuffer sendBuf = new FaiBuffer(true);
+                session.write(sendBuf);
+                return Errno.OK;
+            }
+
+            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+            int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
+            TransactionCtrl tc = new TransactionCtrl();
+            ProductLibRelProc relProc = new ProductLibRelProc(flow, aid, tc);
+            ProductLibProc proc = new ProductLibProc(flow, aid, tc);
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+
+                // 删除备份
+                deleteBackupData(relProc, proc, aid, backupId, backupFlag);
+
+                commit = true;
+            }finally {
+                if(commit) {
+                    tc.commit();
+                    backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.DELETE, aid, backupId);
+                }else {
+                    tc.rollback();
+                    backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.DELETE, aid, backupId);
+                }
+                tc.closeDao();
+            }
+        }finally {
+            LockUtil.BackupLock.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("del backupData ok;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+        return rt;
+    }
+
+    private boolean verifyBackupArgs(int flow, int aid, FaiList<Integer> unionPriIds, Param backupInfo, boolean needVerifyUnionPriIds) {
+        if(aid <= 0 || Str.isEmpty(backupInfo)) {
+            Log.logErr("args error;flow=%d;aid=%d;unionPriIds=%s;backupInfo=%s;", flow, aid, unionPriIds, backupInfo);
+            return true;
+        }
+
+        int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+        int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
+        if(backupId == 0 || backupFlag == 0) {
+            Log.logErr("args error, backupInfo error;flow=%d;aid=%d;unionPriIds=%s;backupInfo=%s;", flow, aid, unionPriIds, backupInfo);
+            return true;
+        }
+
+        if (needVerifyUnionPriIds) {
+            if(Util.isEmptyList(unionPriIds)) {
+                throw new MgException(Errno.ARGS_ERROR, "uids is empty;aid=%d;uids=%s;backupId=%d;backupFlag=%d;", aid, unionPriIds, backupId, backupFlag);
+            }
+        }
+        return false;
+    }
+
+    private boolean checkAndSetBackupStatus(int flow, BackupStatusCtrl.Action action, int aid, Param backupInfo) {
+        int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+        String backupStatus = backupStatusCtrl.getStatus(action, aid, backupId);
+        if (backupStatus != null) {
+            int rt = Errno.ALREADY_EXISTED;
+            if (backupStatusCtrl.isDoing(backupStatus)) {
+                throw new MgException(rt, action + " is doing;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+            } else if (backupStatusCtrl.isFinish(backupStatus)) {
+                rt = Errno.OK;
+                Log.logStd(rt, action + " is already ok;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+                return true;
+            } else if (backupStatusCtrl.isFail(backupStatus)) {
+                Log.logStd(rt, action + " is fail, going retry;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+                return false;
+            }
+        }
+        // 设置备份执行中
+        backupStatusCtrl.setStatusIsDoing(action, aid, backupId);
+        return false;
+    }
+
+    public void initBackupStatus(RedisCacheManager cache) {
+        backupStatusCtrl = new BackupStatusCtrl(BAK_TYPE, cache);
+    }
+
+    private BackupStatusCtrl backupStatusCtrl;
+    private static final String BAK_TYPE = "mgPdLib";
 }

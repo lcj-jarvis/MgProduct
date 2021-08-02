@@ -709,7 +709,7 @@ public class ProductGroupService extends ServicePub {
 
                 // 备份业务关系表数据，返回需要备份的分类ids
                 Set<Integer> bakGroupIds = relProc.backupData(aid, unionPirIds, backupId, backupFlag);
-
+            
                 if(!bakGroupIds.isEmpty()) {
                     // 备份分类表数据
                     proc.backupData(aid, backupId, backupFlag, bakGroupIds);
@@ -845,7 +845,7 @@ public class ProductGroupService extends ServicePub {
                 }
             }
             // 设置备份执行中
-            backupStatusCtrl.setStatusIsDoing(BackupStatusCtrl.Action.BACKUP, aid, backupId);
+            backupStatusCtrl.setStatusIsDoing(BackupStatusCtrl.Action.DELETE, aid, backupId);
 
             TransactionCtrl tc = new TransactionCtrl();
             ProductGroupRelProc relProc = new ProductGroupRelProc(flow, aid, tc);

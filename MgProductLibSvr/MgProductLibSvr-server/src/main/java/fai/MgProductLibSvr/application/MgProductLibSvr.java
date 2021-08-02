@@ -2,7 +2,9 @@ package fai.MgProductLibSvr.application;
 
 import fai.MgProductLibSvr.domain.common.LockUtil;
 import fai.MgProductLibSvr.domain.repository.cache.CacheCtrl;
+import fai.MgProductLibSvr.domain.repository.dao.ProductLibBakDaoCtrl;
 import fai.MgProductLibSvr.domain.repository.dao.ProductLibDaoCtrl;
+import fai.MgProductLibSvr.domain.repository.dao.ProductLibRelBakDaoCtrl;
 import fai.MgProductLibSvr.domain.repository.dao.ProductLibRelDaoCtrl;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.cache.redis.config.RedisClientConfig;
@@ -86,10 +88,12 @@ public class MgProductLibSvr {
     }
 
     public static void init(DaoPool daoPool, RedisCacheManager cache, int lockLease) {
-        ProductLibDaoCtrl.init(daoPool, cache);
-        ProductLibRelDaoCtrl.init(daoPool, cache);
         LockUtil.init(cache, lockLease);
         CacheCtrl.init(cache);
+        ProductLibDaoCtrl.init(daoPool, cache);
+        ProductLibRelDaoCtrl.init(daoPool, cache);
+        ProductLibBakDaoCtrl.init(daoPool);
+        ProductLibRelBakDaoCtrl.init(daoPool);
     }
 
     @ParamKeyMapping(path = ".svr")

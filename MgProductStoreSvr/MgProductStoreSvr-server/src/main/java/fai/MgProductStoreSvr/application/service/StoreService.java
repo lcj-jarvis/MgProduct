@@ -335,6 +335,7 @@ public class StoreService {
                 if(rt == Errno.NOT_FOUND) {
                     rt = Errno.OK;
                     Log.logStd("clearBizData, data not found;flow=%s;aid=%s;unionPriId=%s", flow, aid, unionPriId);
+                    session.write(rt);
                     return rt;
                 }
 

@@ -257,7 +257,7 @@ public class ProductGroupProc {
         return ids;
     }
 
-    public void delGroupList(int aid, FaiList<Integer> delIdList) {
+    public void delGroupList(int aid, FaiList<Integer> delIdList, boolean softDel) {
         int rt;
         if(delIdList == null || delIdList.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -266,7 +266,29 @@ public class ProductGroupProc {
 
         ParamMatcher matcher = new ParamMatcher(ProductGroupEntity.Info.GROUP_ID, ParamMatcher.IN, delIdList);
 
-        delGroupList(aid, matcher);
+        if (softDel) {
+            softDelGroupList(aid, matcher);
+        } else {
+            delGroupList(aid, matcher);
+        }
+    }
+
+    private void softDelGroupList(int aid, ParamMatcher matcher) {
+        int rt;
+        if(matcher == null || matcher.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "matcher is null;aid=%d;", aid);
+        }
+        matcher.and(ProductGroupEntity.Info.AID, ParamMatcher.EQ, aid);
+
+        ParamUpdater updater = new ParamUpdater(new Param().setInt(ProductGroupEntity.Info.STATUS, ProductGroupValObj.Status.DEL)
+                .setCalendar(ProductGroupEntity.Info.UPDATE_TIME, Calendar.getInstance())
+        );
+        rt = m_daoCtrl.update(updater, matcher);
+        if(rt != Errno.OK){
+            throw new MgException(rt, "softDelGroupList error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher.toJson());
+        }
+        Log.logStd("delGroupList ok;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher.toJson());
     }
 
     public void delGroupList(int aid, ParamMatcher matcher) {

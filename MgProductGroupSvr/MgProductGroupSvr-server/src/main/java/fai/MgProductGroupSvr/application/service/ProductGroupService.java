@@ -322,11 +322,9 @@ public class ProductGroupService extends ServicePub {
                 // 删除分类业务表数据
                 relProc.delGroupList(aid, unionPriId, rlGroupIdList, softDel);
 
-                if (!softDel) {
-                    // 删除分类表数据
-                    ProductGroupProc groupProc = new ProductGroupProc(flow, aid, transactionCtrl);
-                    groupProc.delGroupList(aid, delGroupIdList);
-                }
+                // 删除分类表数据
+                ProductGroupProc groupProc = new ProductGroupProc(flow, aid, transactionCtrl);
+                groupProc.delGroupList(aid, delGroupIdList, softDel);
 
                 commit = true;
                 // commit之前设置10s过期时间，避免脏数据
@@ -378,11 +376,8 @@ public class ProductGroupService extends ServicePub {
                     // 删除分类业务表数据
                     relProc.delGroupList(aid, unionPriId, delList, softDel);
 
-                    // 非软删除的时候才需要删除基础表信息
-                    if (!softDel) {
-                        // 删除分类表数据
-                        groupProc.delGroupList(aid, delGroupIdList);
-                    }
+                    // 删除分类表数据
+                    groupProc.delGroupList(aid, delGroupIdList, softDel);
                 }
                 // 修改
                 if (!Util.isEmptyList(updaterList)) {
@@ -936,6 +931,7 @@ public class ProductGroupService extends ServicePub {
         groupInfo.setInt(ProductGroupEntity.Info.PARENT_ID, parentId);
         groupInfo.setString(ProductGroupEntity.Info.ICON_LIST, iconList);
         groupInfo.setInt(ProductGroupEntity.Info.FLAG, flag);
+        groupInfo.setInt(ProductGroupEntity.Info.STATUS, status);
 
         // 分类业务关系表数据
         relInfo.setInt(ProductGroupRelEntity.Info.AID, aid);

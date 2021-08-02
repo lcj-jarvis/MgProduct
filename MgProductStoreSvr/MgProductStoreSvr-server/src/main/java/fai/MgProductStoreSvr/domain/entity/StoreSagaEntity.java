@@ -15,6 +15,7 @@ public class StoreSagaEntity {
         public static final String STATUS = "status";
         public static final String SYS_CREATE_TIME = "sysCreateTime";
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";
+        public static final String ORIGINAL_UPDATE_TIME = "originalUpdateTime";
     }
 
     public static final class PropInfo {

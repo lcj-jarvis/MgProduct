@@ -161,11 +161,13 @@ public class ProductGroupRelProc {
             oldInfo = updater.update(oldInfo, true);
             Param data = new Param();
 
-            //只能修改rlFlag和sort
+            //只能修改rlFlag、sort、status
             int sort = oldInfo.getInt(ProductGroupRelEntity.Info.SORT, 0);
             int rlFlag = oldInfo.getInt(ProductGroupRelEntity.Info.RL_FLAG, 0);
+            int status = oldInfo.getInt(ProductGroupRelEntity.Info.STATUS, 0);
             data.setInt(ProductGroupRelEntity.Info.SORT, sort);
             data.setInt(ProductGroupRelEntity.Info.RL_FLAG, rlFlag);
+            data.setInt(ProductGroupRelEntity.Info.STATUS, status);
             data.setCalendar(ProductGroupRelEntity.Info.UPDATE_TIME, now);
 
             data.assign(oldInfo, ProductGroupRelEntity.Info.AID);
@@ -191,6 +193,7 @@ public class ProductGroupRelProc {
         ParamUpdater doBatchUpdater = new ParamUpdater(item);
         item.setString(ProductGroupRelEntity.Info.SORT, "?");
         item.setString(ProductGroupRelEntity.Info.RL_FLAG, "?");
+        item.setString(ProductGroupRelEntity.Info.STATUS, "?");
         item.setString(ProductGroupRelEntity.Info.UPDATE_TIME, "?");
         rt = m_relDao.doBatchUpdate(doBatchUpdater, doBatchMatcher, dataList, true);
         if(rt != Errno.OK){
@@ -198,7 +201,7 @@ public class ProductGroupRelProc {
         }
     }
 
-    public void delGroupList(int aid, int unionPriId, FaiList<Integer> delRlIdList) {
+    public void delGroupList(int aid, int unionPriId, FaiList<Integer> delRlIdList, boolean softDel) {
         int rt;
         if(delRlIdList == null || delRlIdList.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -208,7 +211,24 @@ public class ProductGroupRelProc {
         ParamMatcher matcher = new ParamMatcher(ProductGroupRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         matcher.and(ProductGroupRelEntity.Info.RL_GROUP_ID, ParamMatcher.IN, delRlIdList);
 
-        delGroupRelList(aid, matcher);
+        if (softDel) {
+            softDelGroupRelList(aid, matcher);
+        } else {
+            delGroupRelList(aid, matcher);
+        }
+    }
+
+    private void softDelGroupRelList(int aid, ParamMatcher matcher) {
+        int rt;
+        if (matcher == null || matcher.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args err, matcher is null;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher);
+        }
+        ParamUpdater updater = new ParamUpdater(new Param().setInt(ProductGroupRelEntity.Info.STATUS, ProductGroupRelValObj.Status.DEL));
+        rt = m_relDao.update(updater, matcher);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "soft del error;flow=%d;aid=%d;", m_flow, aid);
+        }
     }
 
     public void delGroupRelList(int aid, ParamMatcher matcher) {

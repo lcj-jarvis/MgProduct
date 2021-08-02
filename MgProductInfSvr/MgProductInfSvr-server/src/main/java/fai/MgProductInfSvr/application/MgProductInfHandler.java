@@ -1213,8 +1213,9 @@ public class MgProductInfHandler extends FaiHandler {
                               @ArgBodyInteger(ProductGroupDto.Key.SITE_ID) int siteId,
                               @ArgBodyInteger(ProductGroupDto.Key.LGID) int lgid,
                               @ArgBodyInteger(ProductGroupDto.Key.KEEP_PRIID1) int keepPriId1,
-                              @ArgList(keyMatch = ProductGroupDto.Key.RL_GROUP_IDS) FaiList<Integer> rlGroupIds) throws IOException {
-        return groupService.delPdGroupList(session, flow, aid, tid, siteId, lgid, keepPriId1, rlGroupIds);
+                              @ArgList(keyMatch = ProductGroupDto.Key.RL_GROUP_IDS) FaiList<Integer> rlGroupIds,
+                              @ArgBodyBoolean(ProductGroupDto.Key.SOFT_DEL) boolean softDel) throws IOException {
+        return groupService.delPdGroupList(session, flow, aid, tid, siteId, lgid, keepPriId1, rlGroupIds, softDel);
     }
 
     @WrittenCmd
@@ -1226,12 +1227,13 @@ public class MgProductInfHandler extends FaiHandler {
                                  @ArgBodyInteger(ProductGroupDto.Key.SITE_ID) int siteId,
                                  @ArgBodyInteger(ProductGroupDto.Key.LGID) int lgId,
                                  @ArgBodyInteger(ProductGroupDto.Key.KEEP_PRIID1) int keepPriId1,
+                                 @ArgBodyBoolean(ProductGroupDto.Key.SOFT_DEL) boolean softDel,
                                  @ArgList(keyMatch = ProductGroupDto.Key.INFO, methodDef = "getPdGroupDto",
                                          classDef = ProductGroupDto.class) FaiList<Param> addList,
                                  @ArgList(keyMatch = ProductGroupDto.Key.UPDATERLIST, methodDef = "getPdGroupDto",
                                          classDef = ProductGroupDto.class) FaiList<ParamUpdater> updaterList,
                                  @ArgList(keyMatch = ProductGroupDto.Key.RL_GROUP_IDS) FaiList<Integer> delList) throws IOException{
-        return groupService.unionSetGroupList(session, flow, aid, tid, siteId, lgId, keepPriId1, addList, updaterList, delList);
+        return groupService.unionSetGroupList(session, flow, aid, tid, siteId, lgId, keepPriId1, addList, updaterList, delList, softDel);
     }
 
     @WrittenCmd

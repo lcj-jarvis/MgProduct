@@ -259,6 +259,7 @@ public class MgProductInfCli3ForProductGroup extends MgProductInfCli2ForProductP
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
      *                 .setRlGroupIds(rlGroupIds)  // 必填 分类业务id集合
+     *                 .setSoftDel(softDel)        // 选填 软删除
      *                 .build();
      * @return {@link Errno}
      */
@@ -285,6 +286,8 @@ public class MgProductInfCli3ForProductGroup extends MgProductInfCli2ForProductP
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductGroupDto.Key.TID, tid), new Pair(ProductGroupDto.Key.SITE_ID, siteId), new Pair(ProductGroupDto.Key.LGID, lgId), new Pair(ProductGroupDto.Key.KEEP_PRIID1, keepPriId1));
             rlGroupIds.toBuffer(sendBody, ProductGroupDto.Key.RL_GROUP_IDS);
+            boolean softDel = mgProductArg.getSoftDel();
+            sendBody.putBoolean(ProductGroupDto.Key.SOFT_DEL, softDel);
 
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.GroupCmd.DEL_GROUP_LIST, sendBody, false, false);
@@ -303,6 +306,7 @@ public class MgProductInfCli3ForProductGroup extends MgProductInfCli2ForProductP
      *              .setAddList(addList)         // 选填
      *              .setUpdaterList(updaterList) // 选填
      *              .setRlGroupIds(rlGroupIds)   // 选填
+     *              .setSoftDel(softDel)         // 选填
      *              .build();
      * addList: 详见{@link ProductGroupEntity.GroupInfo}
      * updaterList: 详见{@link ProductGroupEntity.GroupInfo}
@@ -324,8 +328,10 @@ public class MgProductInfCli3ForProductGroup extends MgProductInfCli2ForProductP
             int siteId = mgProductArg.getSiteId();
             int lgId = mgProductArg.getLgId();
             int keepPriId1 = mgProductArg.getKeepPriId1();
+            boolean softDel = mgProductArg.getSoftDel();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductGroupDto.Key.TID, tid), new Pair(ProductGroupDto.Key.SITE_ID, siteId), new Pair(ProductGroupDto.Key.LGID, lgId), new Pair(ProductGroupDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putBoolean(ProductGroupDto.Key.SOFT_DEL, softDel);
             FaiList<Param> addList = mgProductArg.getAddList();
             if (addList == null) {
                 addList = new FaiList<Param>();

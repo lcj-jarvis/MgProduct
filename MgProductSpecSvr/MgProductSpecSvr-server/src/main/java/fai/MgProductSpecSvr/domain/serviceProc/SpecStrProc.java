@@ -15,12 +15,16 @@ public class SpecStrProc {
         m_flow = flow;
     }
 
+    public int getListWithBatchAdd(int aid, FaiList<String> nameList, Param nameIdMap) {
+        return getListWithBatchAdd(aid, nameList, nameIdMap, null);
+    }
     /**
      * 需要外部加锁
      * 根据规格字符串获取对应的id, 不存在的话就生成。
      * @param nameIdMap 规格字符串和对应id的映射
+     * @param sagaNeedAddList saga 模式下记录添加的规格名称
      */
-    public int getListWithBatchAdd(int aid, FaiList<String> nameList, Param nameIdMap) {
+    public int getListWithBatchAdd(int aid, FaiList<String> nameList, Param nameIdMap, Ref<FaiList<String>> sagaNeedAddList) {
         if(aid <= 0 || nameList == null || nameList.isEmpty() || nameIdMap == null){
             Log.logErr("arg err;aid=%d;nameList=%s;nameIdMap=%s;", aid, nameList, nameIdMap);
             return Errno.ARGS_ERROR;
@@ -42,8 +46,16 @@ public class SpecStrProc {
         }
 
         FaiList<Param> needBatchAddList = new FaiList<>(nameSet.size());
+        FaiList<String> sagaNameList = new FaiList<>();
         for (String name : nameSet) {
+            if (sagaNeedAddList != null) {
+                sagaNameList.add(name);
+            }
             needBatchAddList.add(new Param().setString(SpecStrEntity.Info.NAME, name));
+        }
+        // 记录补偿
+        if (!sagaNameList.isEmpty()) {
+            sagaNeedAddList.value = sagaNameList;
         }
         if(!needBatchAddList.isEmpty()){
             rt = batchAdd(aid, needBatchAddList, nameIdMap);
@@ -104,8 +116,8 @@ public class SpecStrProc {
             listRef.value = resultList;
             return Errno.OK;
         }
-        int rt = Errno.ERROR;
-        FaiList<Param> dbInfoList = null;
+        int rt;
+        FaiList<Param> dbInfoList;
         try {
             LockUtil.readLock(aid);
             // double check

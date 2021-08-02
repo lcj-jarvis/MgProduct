@@ -300,7 +300,7 @@ public class ProductGroupService extends ServicePub {
     }
 
     @SuccessRt(value = Errno.OK)
-    public int delGroupList(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlGroupIdList) throws IOException {
+    public int delGroupList(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlGroupIdList, boolean softDel) throws IOException {
         int rt;
         if(rlGroupIdList == null || rlGroupIdList.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -320,11 +320,13 @@ public class ProductGroupService extends ServicePub {
                 delGroupIdList = relProc.getIdsByRlIds(aid, unionPriId, rlGroupIdList);
 
                 // 删除分类业务表数据
-                relProc.delGroupList(aid, unionPriId, rlGroupIdList);
+                relProc.delGroupList(aid, unionPriId, rlGroupIdList, softDel);
 
-                // 删除分类表数据
-                ProductGroupProc groupProc = new ProductGroupProc(flow, aid, transactionCtrl);
-                groupProc.delGroupList(aid, delGroupIdList);
+                if (!softDel) {
+                    // 删除分类表数据
+                    ProductGroupProc groupProc = new ProductGroupProc(flow, aid, transactionCtrl);
+                    groupProc.delGroupList(aid, delGroupIdList);
+                }
 
                 commit = true;
                 // commit之前设置10s过期时间，避免脏数据
@@ -352,7 +354,7 @@ public class ProductGroupService extends ServicePub {
     }
 
     @SuccessRt(value = Errno.OK)
-    public int unionSetGroupList(FaiSession session, int flow, int aid, int unionPriId, int tid, FaiList<Param> addList, FaiList<ParamUpdater> updaterList, FaiList<Integer> delList) throws IOException {
+    public int unionSetGroupList(FaiSession session, int flow, int aid, int unionPriId, int tid, FaiList<Param> addList, FaiList<ParamUpdater> updaterList, FaiList<Integer> delList, boolean softDel) throws IOException {
         int rt;
         FaiList<Integer> rlGroupIds = new FaiList<>();
         int maxSort = 0;
@@ -374,10 +376,13 @@ public class ProductGroupService extends ServicePub {
                     delGroupIdList = relProc.getIdsByRlIds(aid, unionPriId, delList);
 
                     // 删除分类业务表数据
-                    relProc.delGroupList(aid, unionPriId, delList);
+                    relProc.delGroupList(aid, unionPriId, delList, softDel);
 
-                    // 删除分类表数据
-                    groupProc.delGroupList(aid, delGroupIdList);
+                    // 非软删除的时候才需要删除基础表信息
+                    if (!softDel) {
+                        // 删除分类表数据
+                        groupProc.delGroupList(aid, delGroupIdList);
+                    }
                 }
                 // 修改
                 if (!Util.isEmptyList(updaterList)) {
@@ -917,12 +922,15 @@ public class ProductGroupService extends ServicePub {
         int flag = recvInfo.getInt(ProductGroupEntity.Info.FLAG, ProductGroupValObj.Default.FLAG);
         int sort = recvInfo.getInt(ProductGroupRelEntity.Info.SORT, ProductGroupRelValObj.Default.SORT);
         int rlFlag = recvInfo.getInt(ProductGroupRelEntity.Info.RL_FLAG, ProductGroupRelValObj.Default.RL_FLAG);
+        int groupType = recvInfo.getInt(ProductGroupRelEntity.Info.GROUP_TYPE, ProductGroupRelValObj.GroupType.PRODUCT);
+        int status = recvInfo.getInt(ProductGroupRelEntity.Info.STATUS, ProductGroupRelValObj.Status.DEFAULT);
 
         // 分类表数据
         groupInfo.setInt(ProductGroupEntity.Info.AID, aid);
         groupInfo.setInt(ProductGroupEntity.Info.SOURCE_TID, tid);
         groupInfo.setInt(ProductGroupEntity.Info.SOURCE_UNIONPRIID, unionPriId);
         groupInfo.setString(ProductGroupEntity.Info.GROUP_NAME, groupName);
+        groupInfo.setInt(ProductGroupEntity.Info.GROUP_TYPE, groupType);
         groupInfo.setCalendar(ProductGroupEntity.Info.CREATE_TIME, createTime);
         groupInfo.setCalendar(ProductGroupEntity.Info.UPDATE_TIME, updateTime);
         groupInfo.setInt(ProductGroupEntity.Info.PARENT_ID, parentId);
@@ -936,6 +944,8 @@ public class ProductGroupService extends ServicePub {
         relInfo.setCalendar(ProductGroupRelEntity.Info.UPDATE_TIME, updateTime);
         relInfo.setInt(ProductGroupRelEntity.Info.SORT, sort);
         relInfo.setInt(ProductGroupRelEntity.Info.RL_FLAG, rlFlag);
+        relInfo.setInt(ProductGroupRelEntity.Info.GROUP_TYPE, groupType);
+        relInfo.setInt(ProductGroupRelEntity.Info.STATUS, status);
     }
 
     public void initBackupStatus(RedisCacheManager cache) {

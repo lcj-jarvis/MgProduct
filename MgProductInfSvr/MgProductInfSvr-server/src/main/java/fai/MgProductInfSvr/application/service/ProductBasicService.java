@@ -598,6 +598,7 @@ public class ProductBasicService extends MgProductInfService {
             // 开启事务
             try {
                 tx.begin(aid, 60000, "mgProduct-setProductInfo", flow);
+                xid = tx.getXid();
                 // 分配修改内容
                 Param updaterData = recvUpdater.getData();
                 /** 基础信息修改 start */
@@ -609,7 +610,7 @@ public class ProductBasicService extends MgProductInfService {
                     FaiList<Integer> addRlGroupIds = basicData.getList(ProductBasicEntity.BindGroupInfo.ADD_RL_GROUP_IDS);
                     if (!Util.isEmptyList(delRlGroupIds) || !Util.isEmptyList(addRlGroupIds)) {
                         ProductBasicProc basicProc = new ProductBasicProc(flow);
-                        rt = basicProc.setPdBindGroup(aid, unionPriId, rlPdId, addRlGroupIds, delRlGroupIds, tx.getXid());
+                        rt = basicProc.setPdBindGroup(aid, unionPriId, rlPdId, addRlGroupIds, delRlGroupIds, xid);
                         if (rt != Errno.OK) {
                             return rt;
                         }
@@ -621,7 +622,7 @@ public class ProductBasicService extends MgProductInfService {
                     FaiList<Param> delPropList = basicData.getList(ProductBasicEntity.BindPropInfo.DEL_PROP_LIST);
                     if (!Util.isEmptyList(addPropList) || !Util.isEmptyList(delPropList)) {
                         ProductBasicProc basicProc = new ProductBasicProc(flow);
-                        rt = basicProc.setPdBindPropInfo(aid, tid, unionPriId, rlPdId, addPropList, delPropList, tx.getXid());
+                        rt = basicProc.setPdBindPropInfo(aid, tid, unionPriId, rlPdId, addPropList, delPropList, xid);
                         if (rt != Errno.OK) {
                             return rt;
                         }
@@ -633,7 +634,7 @@ public class ProductBasicService extends MgProductInfService {
                     FaiList<Integer> delRlTagIds = basicData.getList(ProductBasicEntity.BindTagInfo.DEL_RL_TAG_IDS);
                     if (!Util.isEmptyList(addRlTagIds) || !Util.isEmptyList(delRlTagIds)) {
                         ProductBasicProc basicProc = new ProductBasicProc(flow);
-                        rt = basicProc.setPdBindTag(aid, unionPriId, rlPdId, addRlTagIds, delRlTagIds, tx.getXid());
+                        rt = basicProc.setPdBindTag(aid, unionPriId, rlPdId, addRlTagIds, delRlTagIds, xid);
                         if (rt != Errno.OK) {
                             return rt;
                         }
@@ -671,7 +672,7 @@ public class ProductBasicService extends MgProductInfService {
                         specSkuUpdaterList.add(new ParamUpdater(specSkuInfo));
                     }
                     ProductSpecProc productSpecProc = new ProductSpecProc(flow);
-                    rt = productSpecProc.setPdSkuScInfoList(aid, tid, unionPriId, pdId, specSkuUpdaterList);
+                    rt = productSpecProc.setPdSkuScInfoList(aid, tid, unionPriId, xid, pdId, specSkuUpdaterList);
                     if(rt != Errno.OK) {
                         // TODO 分布式事务
                         if (!Str.isEmpty(basicData)) {

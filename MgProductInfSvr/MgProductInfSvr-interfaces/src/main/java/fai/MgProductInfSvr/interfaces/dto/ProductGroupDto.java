@@ -22,6 +22,8 @@ public class ProductGroupDto {
         g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.GROUP_NAME, 11, Var.Type.STRING);
         g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.ICON_LIST, 12, Var.Type.STRING);
         g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.FLAG, 13, Var.Type.INT);
+        g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.GROUP_TYPE, 14, Var.Type.INT);
+        g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.STATUS, 15, Var.Type.INT);
     }
 
     public static ParamDef getPdGroupDto() {
@@ -41,5 +43,6 @@ public class ProductGroupDto {
         public static final int RL_GROUP_IDS = 10;
         public static final int SEARCH_ARG = 11;
         public static final int UPDATERLIST = 12;
+        public static final int SOFT_DEL = 13;
     }
 }

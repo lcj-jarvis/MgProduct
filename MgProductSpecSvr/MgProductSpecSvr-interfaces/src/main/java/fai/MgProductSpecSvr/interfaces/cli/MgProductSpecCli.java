@@ -938,13 +938,19 @@ public class MgProductSpecCli extends MgProductInternalCli {
         }
     }
 
+    public int setPdSkuScInfoList(int aid, int tid, int unionPriId, String xid, int pdId, FaiList<ParamUpdater> updaterList) {
+        return setPdSkuScInfoList(aid, tid, unionPriId, xid, pdId, updaterList, null);
+    }
     public int setPdSkuScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<ParamUpdater> updaterList) {
         return setPdSkuScInfoList(aid, tid, unionPriId, pdId, updaterList, null);
+    }
+    public int setPdSkuScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<ParamUpdater> updaterList, FaiList<Param> rtPdScSkuInfoList) {
+        return setPdSkuScInfoList(aid, tid, unionPriId, null, pdId, updaterList, rtPdScSkuInfoList);
     }
     /**
      * 批量修改产品规格SKU
      */
-    public int setPdSkuScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<ParamUpdater> updaterList, FaiList<Param> rtPdScSkuInfoList) {
+    public int setPdSkuScInfoList(int aid, int tid, int unionPriId, String xid, int pdId, FaiList<ParamUpdater> updaterList, FaiList<Param> rtPdScSkuInfoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -963,6 +969,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductSpecSkuDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(ProductSpecSkuDto.Key.TID, tid);
+            sendBody.putString(CommonDto.Key.XID, xid);
             sendBody.putInt(ProductSpecSkuDto.Key.PD_ID, pdId);
             m_rt = updaterList.toBuffer(sendBody, ProductSpecSkuDto.Key.UPDATER_LIST, ProductSpecSkuDto.getInfoDto());
             if(m_rt != Errno.OK){

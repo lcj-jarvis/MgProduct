@@ -919,9 +919,12 @@ public class ProductGroupService extends ServicePub {
         int rlFlag = recvInfo.getInt(ProductGroupRelEntity.Info.RL_FLAG, ProductGroupRelValObj.Default.RL_FLAG);
         int groupType = recvInfo.getInt(ProductGroupRelEntity.Info.GROUP_TYPE, ProductGroupRelValObj.GroupType.PRODUCT);
         int status = recvInfo.getInt(ProductGroupRelEntity.Info.STATUS, ProductGroupRelValObj.Status.DEFAULT);
+        int groupId = recvInfo.getInt(ProductGroupEntity.Info.GROUP_ID, 0);
+        int rlGroupId = recvInfo.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID, 0);
 
         // 分类表数据
         groupInfo.setInt(ProductGroupEntity.Info.AID, aid);
+        groupInfo.setInt(ProductGroupEntity.Info.GROUP_ID, groupId);
         groupInfo.setInt(ProductGroupEntity.Info.SOURCE_TID, tid);
         groupInfo.setInt(ProductGroupEntity.Info.SOURCE_UNIONPRIID, unionPriId);
         groupInfo.setString(ProductGroupEntity.Info.GROUP_NAME, groupName);
@@ -935,6 +938,7 @@ public class ProductGroupService extends ServicePub {
 
         // 分类业务关系表数据
         relInfo.setInt(ProductGroupRelEntity.Info.AID, aid);
+        relInfo.setInt(ProductGroupRelEntity.Info.RL_GROUP_ID, rlGroupId);
         relInfo.setInt(ProductGroupRelEntity.Info.UNION_PRI_ID, unionPriId);
         relInfo.setCalendar(ProductGroupRelEntity.Info.CREATE_TIME, createTime);
         relInfo.setCalendar(ProductGroupRelEntity.Info.UPDATE_TIME, updateTime);

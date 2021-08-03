@@ -22,7 +22,7 @@ public class ProductGroupDto {
         g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.GROUP_NAME, 11, Var.Type.STRING);
         g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.ICON_LIST, 12, Var.Type.STRING);
         g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.FLAG, 13, Var.Type.INT);
-        g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.GROUP_TYPE, 14, Var.Type.INT);
+        g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.SYS_TYPE, 14, Var.Type.INT);
         g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.STATUS, 15, Var.Type.INT);
     }
 

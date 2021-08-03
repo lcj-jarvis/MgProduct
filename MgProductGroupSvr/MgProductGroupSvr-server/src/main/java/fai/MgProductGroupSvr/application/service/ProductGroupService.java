@@ -66,7 +66,7 @@ public class ProductGroupService extends ServicePub {
             transactionCtrl.setAutoCommit(false);
             ProductGroupProc groupProc = new ProductGroupProc(flow, aid, transactionCtrl);
             try {
-                groupId = groupProc.addGroup(aid, groupInfo);
+                groupId = groupProc.addGroup(aid, groupInfo, unionPriId, tid);
                 relInfo.setInt(ProductGroupRelEntity.Info.GROUP_ID, groupId);
 
                 rlGroupId = groupRelProc.addGroupRelInfo(aid, unionPriId, relInfo);
@@ -465,7 +465,7 @@ public class ProductGroupService extends ServicePub {
             Param relInfo = new Param();
             assemblyGroupInfo(flow, aid, unionPriId, tid, addInfo, groupInfo, relInfo);
             ProductGroupProc groupProc = new ProductGroupProc(flow, aid, tc);
-            int groupId = groupProc.addGroup(aid, groupInfo);
+            int groupId = groupProc.addGroup(aid, groupInfo, unionPriId, tid);
             relInfo.setInt(ProductGroupRelEntity.Info.GROUP_ID, groupId);
 
             groupInfoList.add(groupInfo);
@@ -917,7 +917,7 @@ public class ProductGroupService extends ServicePub {
         int flag = recvInfo.getInt(ProductGroupEntity.Info.FLAG, ProductGroupValObj.Default.FLAG);
         int sort = recvInfo.getInt(ProductGroupRelEntity.Info.SORT, ProductGroupRelValObj.Default.SORT);
         int rlFlag = recvInfo.getInt(ProductGroupRelEntity.Info.RL_FLAG, ProductGroupRelValObj.Default.RL_FLAG);
-        int groupType = recvInfo.getInt(ProductGroupRelEntity.Info.GROUP_TYPE, ProductGroupRelValObj.GroupType.PRODUCT);
+        int groupType = recvInfo.getInt(ProductGroupRelEntity.Info.SYS_TYPE, ProductGroupRelValObj.SysType.PRODUCT);
         int status = recvInfo.getInt(ProductGroupRelEntity.Info.STATUS, ProductGroupRelValObj.Status.DEFAULT);
         int groupId = recvInfo.getInt(ProductGroupEntity.Info.GROUP_ID, 0);
         int rlGroupId = recvInfo.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID, 0);
@@ -928,7 +928,7 @@ public class ProductGroupService extends ServicePub {
         groupInfo.setInt(ProductGroupEntity.Info.SOURCE_TID, tid);
         groupInfo.setInt(ProductGroupEntity.Info.SOURCE_UNIONPRIID, unionPriId);
         groupInfo.setString(ProductGroupEntity.Info.GROUP_NAME, groupName);
-        groupInfo.setInt(ProductGroupEntity.Info.GROUP_TYPE, groupType);
+        groupInfo.setInt(ProductGroupEntity.Info.SYS_TYPE, groupType);
         groupInfo.setCalendar(ProductGroupEntity.Info.CREATE_TIME, createTime);
         groupInfo.setCalendar(ProductGroupEntity.Info.UPDATE_TIME, updateTime);
         groupInfo.setInt(ProductGroupEntity.Info.PARENT_ID, parentId);
@@ -944,7 +944,7 @@ public class ProductGroupService extends ServicePub {
         relInfo.setCalendar(ProductGroupRelEntity.Info.UPDATE_TIME, updateTime);
         relInfo.setInt(ProductGroupRelEntity.Info.SORT, sort);
         relInfo.setInt(ProductGroupRelEntity.Info.RL_FLAG, rlFlag);
-        relInfo.setInt(ProductGroupRelEntity.Info.GROUP_TYPE, groupType);
+        relInfo.setInt(ProductGroupRelEntity.Info.SYS_TYPE, groupType);
         relInfo.setInt(ProductGroupRelEntity.Info.STATUS, status);
     }
 

@@ -15,7 +15,7 @@ public class ProductGroupValObj {
 		public static final int COUNT_MAX = 2000;
 	}
 
-	public static class GroupType {
+	public static class SysType {
 		public static final int PRODUCT = 1;
 		public static final int SERVICE = 2;
 	}

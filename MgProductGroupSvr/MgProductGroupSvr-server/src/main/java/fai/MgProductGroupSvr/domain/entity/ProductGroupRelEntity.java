@@ -8,7 +8,7 @@ public class ProductGroupRelEntity {
 		public static final String AID = "aid"; // int 企业id
 		public static final String RL_GROUP_ID = "rlGroupId"; // int 分类业务id
 		public static final String GROUP_ID = "groupId"; // int 分类id
-		public static final String GROUP_TYPE = "groupType"; // int 分类类型
+		public static final String SYS_TYPE = "sysType"; // int 商品中台系统类型
 		public static final String UNION_PRI_ID = "unionPriId"; // int 联合主键id
 		public static final String SORT = "sort"; // int 排序
 		public static final String RL_FLAG = "rlFlag"; // int
@@ -24,7 +24,7 @@ public class ProductGroupRelEntity {
 		MANAGE_FIELDS.add(Info.AID);
 		MANAGE_FIELDS.add(Info.RL_GROUP_ID);
 		MANAGE_FIELDS.add(Info.GROUP_ID);
-		MANAGE_FIELDS.add(Info.GROUP_TYPE);
+		MANAGE_FIELDS.add(Info.SYS_TYPE);
 		MANAGE_FIELDS.add(Info.UNION_PRI_ID);
 		MANAGE_FIELDS.add(Info.SORT);
 		MANAGE_FIELDS.add(Info.RL_FLAG);

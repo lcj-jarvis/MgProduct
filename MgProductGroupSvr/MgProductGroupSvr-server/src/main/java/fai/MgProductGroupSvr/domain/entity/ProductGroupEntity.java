@@ -9,7 +9,7 @@ public class ProductGroupEntity {
 		public static final String SOURCE_UNIONPRIID = "sourceUnionPriId"; // int 创建分类的联合主键 id
 		public static final String PARENT_ID = "parentId"; // int 分类父id
 		public static final String GROUP_NAME = "groupName"; // varchar(100) 分类名称
-		public static final String GROUP_TYPE = "groupType"; // int 分类类型
+		public static final String SYS_TYPE = "sysType"; // int 商品中台系统类型
 		public static final String ICON_LIST = "iconList"; // varchar(255) 分类ICON
 		public static final String FLAG = "flag"; // int
 		public static final String STATUS = "status"; // int

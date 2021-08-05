@@ -36,6 +36,15 @@ public class MgProductInfHandler extends FaiHandler {
         return searchService.searchList(session, flow, aid, tid, siteId, lgId, keepPriId1, searchParamString);
     }
 
+    @Cmd(MgProductInfCmd.Cmd.GET_INFO_4ES)
+    public int getPdInfo4Es(final FaiSession session,
+                            @ArgFlow final int flow,
+                            @ArgAid final int aid,
+                            @ArgBodyInteger(MgProductDto.Key.UNIONPRI_ID) int unionPriId,
+                            @ArgBodyInteger(MgProductDto.Key.PD_ID) int pdId) throws IOException {
+        return mgProductInfService.getPdInfo4ES(session, flow, aid, unionPriId, pdId);
+    }
+
     @Cmd(MgProductInfCmd.PropCmd.GET_LIST)
     public int getPropList(final FaiSession session,
                            @ArgFlow final int flow,

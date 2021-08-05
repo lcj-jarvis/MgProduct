@@ -483,6 +483,28 @@ public class MgProductInfService extends ServicePub {
         return rt;
     }
 
+    @SuccessRt({Errno.OK, Errno.NOT_FOUND})
+    public int getPdInfo4ES(FaiSession session, int flow, int aid, int unionPriId, int pdId) throws IOException {
+        int rt;
+        if(aid < 0 || unionPriId < 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error;flow=%d;aid=%d;uid=%s;pdId=%s;", flow, aid, unionPriId, pdId);
+            return rt;
+        }
+        ProductBasicProc productBasicProc = new ProductBasicProc(flow);
+        Param info = new Param();
+        rt = productBasicProc.getInfoByPdId(aid, unionPriId, pdId, info);
+        if(rt != Errno.OK) {
+            return rt;
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        info.toBuffer(sendBuf, MgProductDto.Key.INFO, MgProductDto.getEsPdInfoDto());
+        session.write(sendBuf);
+        return rt;
+    }
+
     public int clearCache(FaiSession session, int flow, int aid) throws IOException {
         int returnRt = Errno.OK;
         Oss.SvrStat stat = new Oss.SvrStat(flow);

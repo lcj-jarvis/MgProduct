@@ -49,7 +49,7 @@
         <!--中台-->
         <fai-comm-middleground-ver>1.0.0</fai-comm-middleground-ver>
         <fai-middleground-infutil-ver>1.0.0</fai-middleground-infutil-ver>
-        <fai-middleground-svrutil-ver>1.0.1</fai-middleground-svrutil-ver>
+        <fai-middleground-svrutil-ver>1.1.0</fai-middleground-svrutil-ver>
         <MgCommon-MgPrimaryKeySvr-interfaces-ver>1.0.2</MgCommon-MgPrimaryKeySvr-interfaces-ver>
         <MgCommon-MgBackupSvr-interfaces-ver>1.0.0</MgCommon-MgBackupSvr-interfaces-ver>
         <MgProduct-MgProductInfSvr-interfaces-ver>1.0.0</MgProduct-MgProductInfSvr-interfaces-ver>

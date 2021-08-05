@@ -327,4 +327,34 @@ public class MgProductInfCli extends MgProductInfCli7ForProductTag {
             stat.end(m_rt != Errno.OK, m_rt);
         }
     }
+
+    public int getProduct4ES(int aid, int unionPriId, int pdId, Param info) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            // packaging send data
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(MgProductDto.Key.UNIONPRI_ID, unionPriId), new Pair(MgProductDto.Key.PD_ID, pdId));
+            // send and recv
+            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.Cmd.GET_INFO_4ES, sendBody, true);
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = info.fromBuffer(recvBody, keyRef, MgProductDto.getEsPdInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != MgProductDto.Key.INFO) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
 }

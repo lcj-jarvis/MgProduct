@@ -79,6 +79,7 @@ public class ProductBasicService extends ServicePub {
                 Log.logErr(rt, "data error;flow=%d;aid=%d;uid=%d;pdId=%d;rlPdId=%d;", flow, aid, unionPriId, pdId, rlPdId);
                 return rt;
             }
+            pdInfo.remove(ProductEntity.Info.STATUS);
             relInfo.assign(pdInfo);
         }
 
@@ -555,6 +556,53 @@ public class ProductBasicService extends ServicePub {
         FaiBuffer sendBuf = new FaiBuffer(true);
         session.write(sendBuf);
         Log.logStd("set products ok;flow=%d;aid=%d;uid=%d;rlPdIds=%s;", flow, aid, unionPriId, rlPdIds);
+
+        return rt;
+    }
+
+    /**
+     * 根据商品id，获取商品数据
+     */
+    @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
+    public int getInfoByPdId(FaiSession session, int flow, int aid, int unionPriId, int pdId) throws IOException {
+        int rt;
+        if(pdId <= 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, rlPdId is not valid;aid=%d;uid=%d;rlPdId=%d;", aid, unionPriId, pdId);
+            return rt;
+        }
+        Param info = new Param();
+        //统一控制事务
+        TransactionCtrl tc = new TransactionCtrl();
+        try {
+            ProductProc pdProc = new ProductProc(flow, aid, tc);
+            Param pdInfo = pdProc.getProductInfo(aid, pdId);
+            if(Str.isEmpty(pdInfo)) {
+                return Errno.NOT_FOUND;
+            }
+            info.assign(pdInfo);
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+
+            // TODO 先走db，后面改缓存结构
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+            searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+            searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
+            FaiList<Param> list = relProc.searchFromDb(aid, unionPriId, searchArg, null);
+            if(list.isEmpty()) {
+                return Errno.NOT_FOUND;
+            }
+            Param relInfo = list.get(0);
+            info.assign(relInfo);
+
+        } finally {
+            tc.closeDao();
+        }
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        info.toBuffer(sendBuf, ProductRelDto.Key.INFO, ProductRelDto.getRelAndPdDto());
+        session.write(sendBuf);
+        rt = Errno.OK;
+        Log.logDbg("get ok;flow=%d;aid=%d;unionPriId=%d;pdId=%d;", flow, aid, unionPriId, pdId);
 
         return rt;
     }

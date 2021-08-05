@@ -342,6 +342,24 @@ public class ProductBasicProc {
         return rt;
     }
 
+    public int getInfoByPdId(int aid, int unionPriId, int pdId, Param info) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.getPdInfoByPdId(aid, unionPriId, pdId, info);
+        if(rt != Errno.OK) {
+            if(rt != Errno.NOT_FOUND) {
+                Log.logErr(rt, "getRelInfoByRlId error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            }
+            return rt;
+        }
+
+        return rt;
+    }
+
     /**
      * 根据业务商品id集合，获取商品业务关系数据集合
      */

@@ -1,6 +1,7 @@
 package fai.MgProductInfSvr.interfaces.dto;
 
 import fai.MgProductInfSvr.interfaces.entity.MgProductEntity;
+import fai.MgProductInfSvr.interfaces.entity.ProductBasicEntity;
 import fai.comm.util.ParamDef;
 import fai.comm.util.Var;
 
@@ -66,6 +67,20 @@ public class MgProductDto {
         return g_optionDef;
     }
 
+
+    // for es
+    public static ParamDef g_esPdInfoDef = new ParamDef();
+    static {
+        g_esPdInfoDef.add(ProductBasicEntity.ProductInfo.AID, 0, Var.Type.INT);
+        g_esPdInfoDef.add(ProductBasicEntity.ProductInfo.UNION_PRI_ID, 1, Var.Type.INT);
+        g_esPdInfoDef.add(ProductBasicEntity.ProductInfo.PD_ID, 2, Var.Type.INT);
+        g_esPdInfoDef.add(ProductBasicEntity.ProductInfo.NAME, 3, Var.Type.STRING);
+        g_esPdInfoDef.add(ProductBasicEntity.ProductInfo.STATUS, 4, Var.Type.INT);
+    }
+    public static ParamDef getEsPdInfoDto() {
+        return g_esPdInfoDef;
+    }
+
     public static class Key {
         public static final int TID  = 1;
         public static final int SITE_ID  = 2;
@@ -86,5 +101,7 @@ public class MgProductDto {
         public static final int FROM_AID = 17;
         public static final int OPTION = 18;
         public static final int RL_BACKUPID = 19;
+        public static final int UNIONPRI_ID = 20;
+        public static final int PD_ID = 21;
     }
 }

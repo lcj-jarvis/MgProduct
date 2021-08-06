@@ -5,6 +5,10 @@ import fai.comm.util.Param;
 
 import java.util.Collection;
 
+/**
+ * 废弃，改用 fai.middleground.svrutil.misc.Utils
+ */
+@Deprecated
 public class Util {
     private Util(){
     }

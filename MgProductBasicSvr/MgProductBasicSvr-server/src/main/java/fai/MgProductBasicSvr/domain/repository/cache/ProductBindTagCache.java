@@ -12,7 +12,7 @@ import java.util.HashSet;
 
 public class ProductBindTagCache extends CacheCtrl {
 
-    public static FaiList<Param> getCacheList(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
+    public static FaiList<Param> getCacheList(int aid, int unionPriId, HashSet<Integer> rlPdIds) {
         FaiList<Param> list = null;
         if(Util.isEmptyList(rlPdIds)) {
             return null;
@@ -51,6 +51,13 @@ public class ProductBindTagCache extends CacheCtrl {
         }
         String cacheKey = getCacheKey(aid, unionPriId, rlPdId);
         m_cache.setFaiList(cacheKey, list, ProductBindTagDto.Key.INFO, ProductBindTagDto.getInfoDto());
+    }
+
+    public static void delCache(int aid, int unionPriId, int rlPdId) {
+        String cacheKey = getCacheKey(aid, unionPriId, rlPdId);
+        if (m_cache.exists(cacheKey)) {
+            m_cache.del(cacheKey);
+        }
     }
 
     public static void delCacheList(int aid, int unionPriId, FaiList<Integer> rlPdIds) {

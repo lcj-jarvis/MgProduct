@@ -49,17 +49,20 @@ public class MgProductBasicCmd {
         public static final int NUM12 = 1012; /** @see BasicCmd#SET_SINGLE_PD */
         public static final int NUM13 = 1013; /** @see BasicCmd#SET_PDS */
         public static final int NUM14 = 1014; /** @see BasicCmd#CLEAR_REL_DATA */
-        public static final int NUM15 = 1015; /** @see BindGroupCmd#SET_PD_BIND_GROUP_ROLLBACK */
-        public static final int NUM16 = 1016; /** @see BindGroupCmd#TRANSACTION_SET_PD_BIND_GROUP */
-        public static final int NUM17 = 1017; /** @see BindPropCmd#TRANSACTION_SET_PD_BIND_PROP */
-        public static final int NUM18 = 1018; /** @see BindPropCmd#SET_PD_BIND_PROP_ROLLBACK */
+        //public static final int NUM15 = 1015; /** @see BindGroupCmd#SET_PD_BIND_GROUP_ROLLBACK */
+        //public static final int NUM16 = 1016; /** @see BindGroupCmd#TRANSACTION_SET_PD_BIND_GROUP */
+        //public static final int NUM17 = 1017; /** @see BindPropCmd#TRANSACTION_SET_PD_BIND_PROP */
+        //public static final int NUM18 = 1018; /** @see BindPropCmd#SET_PD_BIND_PROP_ROLLBACK */
         public static final int NUM19 = 1019; /** @see BasicCmd#CLEAR_ACCT */
         public static final int NUM20 = 1020; /** @see BasicCmd#ADD_REL_BIND_ROLLBACK */
 
         public static final int NUM21 = 1021; /** @see BindTagCmd#BATCH_SET */
         public static final int NUM22 = 1022; /** @see BindTagCmd#DEL */
-        public static final int NUM23 = 1023; /** @see BindTagCmd#TRANSACTION_SET_PD_BIND_TAG */
-        public static final int NUM24 = 1024; /** @see BindTagCmd#SET_PD_BIND_TAG_ROLLBACK */
+        //public static final int NUM23 = 1023; /** @see BindTagCmd#TRANSACTION_SET_PD_BIND_TAG */
+        //public static final int NUM24 = 1024; /** @see BindTagCmd#SET_PD_BIND_TAG_ROLLBACK */
+        public static final int NUM25 = 1025; /** @see BasicCmd#ADD_PD_AND_REL_ROLLBACK */
+        public static final int NUM26 = 1026; /** @see BasicCmd#SET_SINGLE_PD_ROLLBACK */
+        public static final int NUM27 = 1027; /** @see BasicCmd#DEL_PDS_ROLLBACK */
     }
 
     /**
@@ -75,8 +78,6 @@ public class MgProductBasicCmd {
         public static final int BATCH_SET = WriteCmdNum.NUM;
         public static final int DEL_BY_VAL_IDS = WriteCmdNum.NUM9;
         public static final int DEL_BY_PROP_IDS = WriteCmdNum.NUM10;
-        public static final int TRANSACTION_SET_PD_BIND_PROP = WriteCmdNum.NUM17;
-        public static final int SET_PD_BIND_PROP_ROLLBACK = WriteCmdNum.NUM18;
     }
 
     public static class BindGroupCmd {
@@ -88,8 +89,6 @@ public class MgProductBasicCmd {
 
         public static final int BATCH_SET = WriteCmdNum.NUM8;
         public static final int DEL = WriteCmdNum.NUM11;
-        public static final int TRANSACTION_SET_PD_BIND_GROUP = WriteCmdNum.NUM16;
-        public static final int SET_PD_BIND_GROUP_ROLLBACK = WriteCmdNum.NUM15;
     }
 
     public static class BindTagCmd {
@@ -101,8 +100,6 @@ public class MgProductBasicCmd {
 
         public static final int BATCH_SET = WriteCmdNum.NUM21;
         public static final int DEL = WriteCmdNum.NUM22;
-        public static final int TRANSACTION_SET_PD_BIND_TAG = WriteCmdNum.NUM23;
-        public static final int SET_PD_BIND_TAG_ROLLBACK = WriteCmdNum.NUM24;
     }
 
     public static class BasicCmd {
@@ -130,6 +127,9 @@ public class MgProductBasicCmd {
         public static final int CLEAR_REL_DATA = WriteCmdNum.NUM14;
         public static final int CLEAR_ACCT = WriteCmdNum.NUM19;
         public static final int ADD_REL_BIND_ROLLBACK = WriteCmdNum.NUM20;
+        public static final int ADD_PD_AND_REL_ROLLBACK = WriteCmdNum.NUM25;
+        public static final int SET_SINGLE_PD_ROLLBACK = WriteCmdNum.NUM26;
+        public static final int DEL_PDS_ROLLBACK = WriteCmdNum.NUM27;
     }
 
 }

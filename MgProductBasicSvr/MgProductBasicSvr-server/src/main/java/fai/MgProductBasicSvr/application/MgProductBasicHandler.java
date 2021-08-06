@@ -53,33 +53,6 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
         return propBindService.setPdBindProp(session, flow, aid, unionPriId, tid, rlPdId, addList, delList);
     }
 
-    @WrittenCmd
-    @Cmd(MgProductBasicCmd.BindPropCmd.TRANSACTION_SET_PD_BIND_PROP)
-    @SagaTransaction(clientName = "MgProductBasicCli", rollbackCmd = MgProductBasicCmd.BindPropCmd.SET_PD_BIND_PROP_ROLLBACK)
-    public int transactionSetPdBindProp(final FaiSession session,
-                                        @ArgFlow final int flow,
-                                        @ArgAid final int aid,
-                                        @ArgBodyInteger(ProductBindPropDto.Key.UNION_PRI_ID) int unionPriId,
-                                        @ArgBodyInteger(ProductBindPropDto.Key.TID) int tid,
-                                        @ArgBodyInteger(ProductBindPropDto.Key.RL_PD_ID) int rlPdId,
-                                        @ArgBodyXid(value = ProductDto.Key.XID, useDefault = true) String xid,
-                                        @ArgList(classDef = ProductBindPropDto.class, methodDef = "getInfoDto",
-                                                keyMatch = ProductBindPropDto.Key.PROP_BIND) FaiList<Param> addList,
-                                        @ArgList(classDef = ProductBindPropDto.class, methodDef = "getInfoDto",
-                                                keyMatch = ProductBindPropDto.Key.DEL_PROP_BIND) FaiList<Param> delList) throws IOException {
-        return propBindService.transactionSetPdBindProp(session, flow, aid, unionPriId, tid, rlPdId, xid, addList, delList);
-    }
-
-    @WrittenCmd
-    @Cmd(MgProductBasicCmd.BindPropCmd.SET_PD_BIND_PROP_ROLLBACK)
-    public int setPdBindPropRollback(final FaiSession session,
-                                     @ArgFlow final int flow,
-                                     @ArgAid final int aid,
-                                     @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
-                                     @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
-        return propBindService.setPdBindPropRollback(session, flow, aid, xid, branchId);
-    }
-
     @Cmd(MgProductBasicCmd.BindPropCmd.GET_LIST_BY_PROP)
     public int getRlPdByPropVal(final FaiSession session,
                              @ArgFlow final int flow,
@@ -166,14 +139,26 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductBasicCmd.BasicCmd.ADD_PD_AND_REL)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductBasicCmd.BasicCmd.ADD_PD_AND_REL_ROLLBACK)
     public int addProductAndRel(final FaiSession session,
                                 @ArgFlow final int flow,
                                 @ArgAid final int aid,
+                                @ArgBodyXid(value = ProductRelDto.Key.XID, useDefault = true) String xid,
                                 @ArgBodyInteger(ProductRelDto.Key.TID) int tid,
                                 @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
                                 @ArgParam(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
                                 keyMatch = ProductRelDto.Key.INFO) Param info) throws IOException {
-        return service.addProductAndRel(session, flow, aid, tid, unionPriId, info);
+        return service.addProductAndRel(session, flow, aid, xid, tid, unionPriId, info);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BasicCmd.ADD_PD_AND_REL_ROLLBACK)
+    public int addProductAndRelRollback(final FaiSession session,
+                                      @ArgFlow final int flow,
+                                      @ArgAid final int aid,
+                                      @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                      @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return service.addProductAndRelRollback(session, flow, aid, xid, branchId);
     }
 
     @WrittenCmd
@@ -212,7 +197,7 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                               @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
                               @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
         return service.bindProductRelRollback(session, flow, aid, xid, branchId);
-}
+    }
 
     @WrittenCmd
     @Cmd(MgProductBasicCmd.BasicCmd.BATCH_ADD_REL_BIND)
@@ -240,15 +225,27 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductBasicCmd.BasicCmd.DEL_PDS)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductBasicCmd.BasicCmd.DEL_PDS_ROLLBACK)
     public int delProductList(final FaiSession session,
                               @ArgFlow final int flow,
                               @ArgAid final int aid,
+                              @ArgBodyXid(value = ProductRelDto.Key.XID, useDefault = true) String xid,
                               @ArgBodyInteger(ProductRelDto.Key.TID) int tid,
                               @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
                               @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
                               @ArgBodyBoolean(value = ProductRelDto.Key.SOFT_DEL,
                               useDefault = true, defaultValue = false) boolean softDel) throws IOException {
-        return service.delProductList(session, flow, aid, tid, unionPriId, rlPdIds, softDel);
+        return service.delProductList(session, flow, aid, xid, tid, unionPriId, rlPdIds, softDel);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BasicCmd.DEL_PDS_ROLLBACK)
+    public int delProductListRollback(final FaiSession session,
+                                      @ArgFlow final int flow,
+                                      @ArgAid final int aid,
+                                      @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                      @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return service.delProductListRollback(session, flow, aid, xid, branchId);
     }
 
     @WrittenCmd
@@ -285,14 +282,26 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductBasicCmd.BasicCmd.SET_SINGLE_PD)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductBasicCmd.BasicCmd.SET_SINGLE_PD_ROLLBACK)
     public int setSinglePd(final FaiSession session,
                                  @ArgFlow final int flow,
                                  @ArgAid final int aid,
+                                 @ArgBodyXid(value = ProductRelDto.Key.XID, useDefault = true) String xid,
                                  @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
                                  @ArgBodyInteger(ProductRelDto.Key.RL_PD_ID) Integer rlPdId,
                                  @ArgParamUpdater(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
                                  keyMatch = ProductRelDto.Key.UPDATER) ParamUpdater recvUpdater) throws IOException {
-        return service.setSingle(session, flow, aid, unionPriId, rlPdId, recvUpdater);
+        return service.setSingle(session, flow, aid, xid, unionPriId, rlPdId, recvUpdater);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BasicCmd.SET_SINGLE_PD_ROLLBACK)
+    public int setSinglePdRollback(final FaiSession session,
+                                      @ArgFlow final int flow,
+                                      @ArgAid final int aid,
+                                      @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                      @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return service.setSinglePdRollback(session, flow, aid, xid, branchId);
     }
 
     @WrittenCmd
@@ -394,30 +403,6 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
     }
 
     @WrittenCmd
-    @Cmd(MgProductBasicCmd.BindGroupCmd.TRANSACTION_SET_PD_BIND_GROUP)
-    @SagaTransaction(clientName = "MgProductBasicCli", rollbackCmd = MgProductBasicCmd.BindGroupCmd.SET_PD_BIND_GROUP_ROLLBACK)
-    public int transactionSetPdBindGroup(final FaiSession session,
-                                         @ArgFlow final int flow,
-                                         @ArgAid int aid,
-                                         @ArgBodyInteger(ProductBindGroupDto.Key.UNION_PRI_ID) int unionPriId,
-                                         @ArgBodyInteger(ProductBindGroupDto.Key.RL_PD_ID) int rlPdId,
-                                         @ArgBodyXid(value = ProductDto.Key.XID, useDefault = true) String xid,
-                                         @ArgList(keyMatch = ProductBindGroupDto.Key.RL_GROUP_IDS) FaiList<Integer> addGroupIds,
-                                         @ArgList(keyMatch = ProductBindGroupDto.Key.DEL_RL_GROUP_IDS) FaiList<Integer> delGroupIds) throws IOException {
-        return groupBindService.transactionSetPdBindGroup(session, flow, aid, unionPriId, rlPdId, xid, addGroupIds, delGroupIds);
-    }
-
-    @WrittenCmd
-    @Cmd(MgProductBasicCmd.BindGroupCmd.SET_PD_BIND_GROUP_ROLLBACK)
-    public int setPdBindGroupRollback(final FaiSession session,
-                                      @ArgFlow int flow,
-                                      @ArgAid int aid,
-                                      @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
-                                      @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
-        return groupBindService.setPdBindGroupRollback(session, flow, aid, xid, branchId);
-    }
-
-    @WrittenCmd
     @Cmd(MgProductBasicCmd.BindGroupCmd.DEL)
     public int delPdBindGroup(final FaiSession session,
                               @ArgFlow final int flow,
@@ -488,30 +473,6 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                               @ArgList(keyMatch = ProductBindTagDto.Key.RL_TAG_IDS) FaiList<Integer> addRlTagIds,
                               @ArgList(keyMatch = ProductBindTagDto.Key.DEL_RL_TAG_IDS) FaiList<Integer> delRlTagIds) throws IOException {
         return tagBindService.setPdBindTag(session, flow, aid, unionPriId, rlPdId, addRlTagIds, delRlTagIds);
-    }
-
-    @WrittenCmd
-    @Cmd(MgProductBasicCmd.BindTagCmd.TRANSACTION_SET_PD_BIND_TAG)
-    @SagaTransaction(clientName = "MgProductBasicCli", rollbackCmd = MgProductBasicCmd.BindTagCmd.SET_PD_BIND_TAG_ROLLBACK)
-    public int transactionSetPdBindTag(final FaiSession session,
-                                         @ArgFlow final int flow,
-                                         @ArgAid int aid,
-                                         @ArgBodyInteger(ProductBindTagDto.Key.UNION_PRI_ID) int unionPriId,
-                                         @ArgBodyInteger(ProductBindTagDto.Key.RL_PD_ID) int rlPdId,
-                                         @ArgBodyXid(value = ProductDto.Key.XID, useDefault = true) String xid,
-                                         @ArgList(keyMatch = ProductBindTagDto.Key.RL_TAG_IDS) FaiList<Integer> addRlTagIds,
-                                         @ArgList(keyMatch = ProductBindTagDto.Key.DEL_RL_TAG_IDS) FaiList<Integer> delRlTagIds) throws IOException {
-        return tagBindService.transactionSetPdBindTag(session, flow, aid, unionPriId, rlPdId, xid, addRlTagIds, delRlTagIds);
-    }
-
-    @WrittenCmd
-    @Cmd(MgProductBasicCmd.BindTagCmd.SET_PD_BIND_TAG_ROLLBACK)
-    public int setPdBindTagRollback(final FaiSession session,
-                                      @ArgFlow int flow,
-                                      @ArgAid int aid,
-                                      @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
-                                      @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
-        return tagBindService.setPdBindTagRollback(session, flow, aid, xid, branchId);
     }
 
     @WrittenCmd

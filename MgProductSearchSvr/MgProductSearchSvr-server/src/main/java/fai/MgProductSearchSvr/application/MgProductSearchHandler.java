@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import fai.MgProductInfSvr.interfaces.dto.MgProductSearchDto;
 import fai.MgProductSearchSvr.application.service.MgProductSearchService;
+import fai.MgProductSearchSvr.domain.repository.cache.MgProductSearchCache;
 import fai.MgProductSearchSvr.interfaces.cmd.MgProductSearchCmd;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.jnetkit.server.fai.FaiServer;
@@ -19,9 +20,12 @@ public class MgProductSearchHandler extends MiddleGroundHandler {
 
     public MgProductSearchHandler(FaiServer server, RedisCacheManager cache, ParamCacheRecycle cacheRecycle) {
         super(server);
-        m_cache = cache;
-        service = ServiceProxy.create(new MgProductSearchService());
-        service.initMgProductSearchService(cache, cacheRecycle);
+        searchService = ServiceProxy.create(new MgProductSearchService());
+
+        //初始化缓存
+        MgProductSearchCache.init(cache, cacheRecycle);
+
+        //searchService.initMgProductSearchService(cache, cacheRecycle)
     }
 
     @Cmd(MgProductSearchCmd.SearchCmd.SEARCH_LIST)
@@ -32,8 +36,8 @@ public class MgProductSearchHandler extends MiddleGroundHandler {
                            @ArgBodyInteger(MgProductSearchDto.Key.TID) int tid,
                            @ArgBodyInteger(MgProductSearchDto.Key.PRODUCT_COUNT) int productCount,
                            @ArgBodyString(MgProductSearchDto.Key.SEARCH_PARAM_STRING) String searchParamString) throws IOException {
-        return service.searchList(session, flow, aid, unionPriId, tid, productCount, searchParamString);
+        return searchService.searchList(session, flow, aid, unionPriId, tid, productCount, searchParamString);
     }
-    private RedisCacheManager m_cache;
-    private MgProductSearchService service;
+
+    private MgProductSearchService searchService;
 }

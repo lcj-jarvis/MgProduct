@@ -74,8 +74,8 @@ public class MgProductSearch {
         MG_PRODUCT("pd"),    // 对应 mgProduct， 商品基础表
         MG_PRODUCT_REL("pdr"),  // 对应 mgProductRel， 商品关系表
         MG_PRODUCT_BIND_PROP("pbp"),  // 对应 mgProductBindProp，参数值绑定商品关系表
-        MG_PRODUCT_BIND_GROUP("pbg"),  // 对应 mgProductGroupRel，分类绑定商品关系表
-        MG_PRODUCT_LABLE_REL("plr"), // 对应 mgProductLableRel，标签绑定商品关系表
+        MG_PRODUCT_BIND_GROUP("pbg"),  // 对应 mgProductBindGroup，分类绑定商品关系表
+        MG_PRODUCT_BIND_TAG("pbt"), // 对应 mgProductBindTag，标签绑定商品关系表
         MG_SPU_BIZ_SUMMARY("sbs");  // 对应 mgSpuBizSummary，商品 spu 销售汇总表
 
         public String searchTableName;
@@ -207,61 +207,40 @@ public class MgProductSearch {
     }
 
 
-    // 判断是否搜索访客态的数据
+    // 判断是否搜索访客态的数据，即是否只查管理态的数据
     public boolean getIsOnlySearchManageData(String tableName){
-        boolean isOnlySearchManageData = true;
-        if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName.equals(tableName)){
-            //  searchKeyWord 都是管理态修改的数据
-            // 判断排序字段是否包含访客态字段
-            return isOnlySearchManageData;
-        }
-        if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_REL.searchTableName.equals(tableName)){
-            //  rlPdIdList、 typeList 、 rlLibIdList 、 upSalesStatus、 addTimeBegin、 addTimeEnd 都是管理态修改的数据
-            // 判断排序字段是否包含访客态字段
-            return isOnlySearchManageData;
-        }
-
-        if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.searchTableName.equals(tableName)){
-            // rlPropValIdList 都是管理态修改的数据
-            // 判断排序字段是否包含访客态字段
-            // 访客态字段:  ProductBindPropEntity.VISITOR_FIELDS
-            return isOnlySearchManageData;
-        }
-
-        if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.searchTableName.equals(tableName)){
-            // rlGroupIdList 都是管理态修改的数据
-            // 判断排序字段是否包含访客态字段
-            //  访客态字段: ProductBindGroupEntity.VISITOR_FIELDS
-            return isOnlySearchManageData;
-        }
-
-        if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_LABLE_REL.searchTableName.equals(tableName)){
-            // rlLableId 都是管理态修改的数据
-            // 判断排序字段是否包含访客态字段
-            return isOnlySearchManageData;
-        }
-
         if(MgProductSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.searchTableName.equals(tableName)){
             // priceBegin 、 priceEnd 都是管理态修改的数据
             // salesBegin 、salesEnd、remainCountBegin、remainCountEnd 是访客可能变动的数据
             // 访客态字段: SpuBizSummaryEntity.VISITOR_FIELDS
             if(salesBegin != null || salesEnd != null){
-                isOnlySearchManageData = false;
+                return false;
             }
             if(remainCountBegin != null || remainCountEnd != null){
-                isOnlySearchManageData = false;
+                return false;
             }
 
             // 判断排序字段是否包含访客字段
             ParamComparator paramComparator = getParamComparator();
             String comparatorTable = getFirstComparatorTable();
             String firstComparatorKey = getFirstComparatorKey();
-            if(!paramComparator.isEmpty() && MgProductSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.searchTableName.equals(comparatorTable) && ProductStoreEntity.SpuBizSummaryInfo.VISITOR_FIELDS.contains(firstComparatorKey)){
-                isOnlySearchManageData = false;
-            }
-            return isOnlySearchManageData;
+            return paramComparator.isEmpty() ||
+                   !MgProductSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.searchTableName.equals(comparatorTable) ||
+                   !ProductStoreEntity.SpuBizSummaryInfo.VISITOR_FIELDS.contains(firstComparatorKey);
         }
-        return isOnlySearchManageData;
+
+        /**
+         * MG_PRODUCT: searchKeyWord 都是管理态修改的数据
+         * MG_PRODUCT_REL: rlPdIdList、 typeList 、 rlLibIdList 、 upSalesStatus、 addTimeBegin、 addTimeEnd 都是管理态修改的数据
+         * MG_PRODUCT_BIND_PROP: rlPropValIdList 都是管理态修改的数据
+         * MG_PRODUCT_BIND_GROUP: rlGroupIdList 都是管理态修改的数据
+         * MG_PRODUCT_BIND_TAG: rlTagId 都是管理态修改的数据
+         */
+        return MgProductSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName.equals(tableName) ||
+               MgProductSearch.SearchTableNameEnum.MG_PRODUCT_REL.searchTableName.equals(tableName) ||
+               MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.searchTableName.equals(tableName) ||
+               MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.searchTableName.equals(tableName) ||
+               MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.searchTableName.equals(tableName);
     }
 
     // 根据 matcher 判断是否有搜索条件

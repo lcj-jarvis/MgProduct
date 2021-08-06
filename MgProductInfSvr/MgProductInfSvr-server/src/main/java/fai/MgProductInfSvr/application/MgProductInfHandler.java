@@ -1223,8 +1223,9 @@ public class MgProductInfHandler extends FaiHandler {
                               @ArgBodyInteger(ProductGroupDto.Key.LGID) int lgid,
                               @ArgBodyInteger(ProductGroupDto.Key.KEEP_PRIID1) int keepPriId1,
                               @ArgList(keyMatch = ProductGroupDto.Key.RL_GROUP_IDS) FaiList<Integer> rlGroupIds,
+                              @ArgBodyInteger(ProductGroupDto.Key.SYS_TYPE) int sysType,
                               @ArgBodyBoolean(ProductGroupDto.Key.SOFT_DEL) boolean softDel) throws IOException {
-        return groupService.delPdGroupList(session, flow, aid, tid, siteId, lgid, keepPriId1, rlGroupIds, softDel);
+        return groupService.delPdGroupList(session, flow, aid, tid, siteId, lgid, keepPriId1, rlGroupIds, sysType, softDel);
     }
 
     @WrittenCmd
@@ -1241,8 +1242,9 @@ public class MgProductInfHandler extends FaiHandler {
                                          classDef = ProductGroupDto.class) FaiList<Param> addList,
                                  @ArgList(keyMatch = ProductGroupDto.Key.UPDATERLIST, methodDef = "getPdGroupDto",
                                          classDef = ProductGroupDto.class) FaiList<ParamUpdater> updaterList,
-                                 @ArgList(keyMatch = ProductGroupDto.Key.RL_GROUP_IDS) FaiList<Integer> delList) throws IOException{
-        return groupService.unionSetGroupList(session, flow, aid, tid, siteId, lgId, keepPriId1, addList, updaterList, delList, softDel);
+                                 @ArgList(keyMatch = ProductGroupDto.Key.RL_GROUP_IDS) FaiList<Integer> delList,
+                                 @ArgBodyInteger(ProductGroupDto.Key.SYS_TYPE) int sysType) throws IOException{
+        return groupService.unionSetGroupList(session, flow, aid, tid, siteId, lgId, keepPriId1, addList, updaterList, delList, sysType, softDel);
     }
 
     @WrittenCmd

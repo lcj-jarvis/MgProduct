@@ -71,12 +71,12 @@ public class ProductGroupService extends MgProductInfService {
     }
 
     @SuccessRt(value = Errno.OK)
-    public int delPdGroupList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlGroupIds, boolean softDel) throws IOException {
+    public int delPdGroupList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlGroupIds, int sysType, boolean softDel) throws IOException {
         // 获取unionPriId
         int unionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
 
         ProductGroupProc groupProc = new ProductGroupProc(flow);
-        groupProc.delGroupList(aid, unionPriId, rlGroupIds, softDel);
+        groupProc.delGroupList(aid, unionPriId, rlGroupIds, sysType, softDel);
 
         ProductBasicProc basicProc = new ProductBasicProc(flow);
         int rt = basicProc.delPdBindGroup(aid, unionPriId, rlGroupIds);
@@ -94,12 +94,12 @@ public class ProductGroupService extends MgProductInfService {
 
     @SuccessRt(value = Errno.OK)
     public int unionSetGroupList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> addList,
-                                 FaiList<ParamUpdater> updaterList, FaiList<Integer> delList, boolean softDel) throws IOException {
+                                 FaiList<ParamUpdater> updaterList, FaiList<Integer> delList, int sysType, boolean softDel) throws IOException {
         // 获取unionPriId
         int unionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
         ProductGroupProc groupProc = new ProductGroupProc(flow);
 
-        FaiList<Integer> rlGroupIds = groupProc.unionSetGroupList(aid, tid, unionPriId, addList, updaterList, delList, softDel);
+        FaiList<Integer> rlGroupIds = groupProc.unionSetGroupList(aid, tid, unionPriId, addList, updaterList, delList, sysType, softDel);
 
         // TODO 分布式事务， 如果删除了分类，则要将基础信息中的分类绑定信息删除
         if (!Util.isEmptyList(delList)) {

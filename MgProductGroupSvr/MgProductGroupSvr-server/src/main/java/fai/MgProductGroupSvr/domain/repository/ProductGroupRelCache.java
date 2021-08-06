@@ -5,8 +5,6 @@ import fai.MgProductGroupSvr.interfaces.dto.ProductGroupRelDto;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 
-import java.util.Calendar;
-
 public class ProductGroupRelCache extends CacheCtrl {
 
     public static class InfoCache {
@@ -20,8 +18,8 @@ public class ProductGroupRelCache extends CacheCtrl {
                 return;
             }
             String cacheKey = getCacheKey(aid, uninoId);
-            int rlGroupId = info.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID, 0);
-            m_cache.hsetParam(true, cacheKey, String.valueOf(rlGroupId), info, ProductGroupRelDto.Key.INFO, ProductGroupRelDto.getInfoDto());
+            int groupId = info.getInt(ProductGroupRelEntity.Info.GROUP_ID, 0);
+            m_cache.hsetParam(true, cacheKey, String.valueOf(groupId), info, ProductGroupRelDto.Key.INFO, ProductGroupRelDto.getInfoDto());
         }
 
         public static void addCacheList(int aid, int uninoId, FaiList<Param> list) {
@@ -29,7 +27,7 @@ public class ProductGroupRelCache extends CacheCtrl {
                 return;
             }
             String cacheKey = getCacheKey(aid, uninoId);
-            m_cache.hmsetFaiList(cacheKey, ProductGroupRelEntity.Info.RL_GROUP_ID, Var.Type.INT, list, ProductGroupRelDto.Key.INFO, ProductGroupRelDto.getInfoDto());
+            m_cache.hmsetFaiList(cacheKey, ProductGroupRelEntity.Info.GROUP_ID, Var.Type.INT, list, ProductGroupRelDto.Key.INFO, ProductGroupRelDto.getInfoDto());
         }
 
         public static void delCacheList(int aid, int uninoId, FaiList<Integer> rlGroupIds) {
@@ -57,8 +55,8 @@ public class ProductGroupRelCache extends CacheCtrl {
             }
             for(ParamUpdater updater : updaterList) {
                 Param info = updater.getData();
-                int rlGroupId = info.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID, 0);
-                m_cache.hsetParam(cacheKey, String.valueOf(rlGroupId), updater, ProductGroupRelDto.Key.INFO, ProductGroupRelDto.getInfoDto());
+                int groupId = info.getInt(ProductGroupRelEntity.Info.GROUP_ID, 0);
+                m_cache.hsetParam(cacheKey, String.valueOf(groupId), updater, ProductGroupRelDto.Key.INFO, ProductGroupRelDto.getInfoDto());
             }
         }
 

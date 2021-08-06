@@ -300,7 +300,7 @@ public class ProductGroupService extends ServicePub {
     }
 
     @SuccessRt(value = Errno.OK)
-    public int delGroupList(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlGroupIdList, boolean softDel) throws IOException {
+    public int delGroupList(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlGroupIdList, int sysType, boolean softDel) throws IOException {
         int rt;
         if(rlGroupIdList == null || rlGroupIdList.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -317,10 +317,10 @@ public class ProductGroupService extends ServicePub {
                 transactionCtrl.setAutoCommit(false);
                 ProductGroupRelProc relProc = new ProductGroupRelProc(flow, aid, transactionCtrl);
                 // 先获取要删除的分类id
-                delGroupIdList = relProc.getIdsByRlIds(aid, unionPriId, rlGroupIdList);
+                delGroupIdList = relProc.getIdsByRlIds(aid, unionPriId, rlGroupIdList, sysType);
 
                 // 删除分类业务表数据
-                relProc.delGroupList(aid, unionPriId, rlGroupIdList, softDel);
+                relProc.delGroupList(aid, unionPriId, rlGroupIdList, sysType, softDel);
 
                 // 删除分类表数据
                 ProductGroupProc groupProc = new ProductGroupProc(flow, aid, transactionCtrl);
@@ -334,8 +334,8 @@ public class ProductGroupService extends ServicePub {
                 if(commit) {
                     transactionCtrl.commit();
                     ProductGroupCache.delCacheList(aid, delGroupIdList);
-                    ProductGroupRelCache.InfoCache.delCacheList(aid, unionPriId, rlGroupIdList);
-                    ProductGroupRelCache.DataStatusCache.update(aid, unionPriId, rlGroupIdList.size(), false);
+                    ProductGroupRelCache.InfoCache.delCacheList(aid, unionPriId, delGroupIdList);
+                    ProductGroupRelCache.DataStatusCache.update(aid, unionPriId, delGroupIdList.size(), false);
                 }else {
                     transactionCtrl.rollback();
                 }
@@ -352,7 +352,7 @@ public class ProductGroupService extends ServicePub {
     }
 
     @SuccessRt(value = Errno.OK)
-    public int unionSetGroupList(FaiSession session, int flow, int aid, int unionPriId, int tid, FaiList<Param> addList, FaiList<ParamUpdater> updaterList, FaiList<Integer> delList, boolean softDel) throws IOException {
+    public int unionSetGroupList(FaiSession session, int flow, int aid, int unionPriId, int tid, FaiList<Param> addList, FaiList<ParamUpdater> updaterList, FaiList<Integer> delList, int sysType, boolean softDel) throws IOException {
         int rt;
         FaiList<Integer> rlGroupIds = new FaiList<>();
         int maxSort = 0;
@@ -371,10 +371,10 @@ public class ProductGroupService extends ServicePub {
                 // 删除
                 if (!Util.isEmptyList(delList)) {
                     // 先获取要删除的分类id
-                    delGroupIdList = relProc.getIdsByRlIds(aid, unionPriId, delList);
+                    delGroupIdList = relProc.getIdsByRlIds(aid, unionPriId, delList, sysType);
 
                     // 删除分类业务表数据
-                    relProc.delGroupList(aid, unionPriId, delList, softDel);
+                    relProc.delGroupList(aid, unionPriId, delList, sysType, softDel);
 
                     // 删除分类表数据
                     groupProc.delGroupList(aid, delGroupIdList, softDel);
@@ -409,7 +409,7 @@ public class ProductGroupService extends ServicePub {
                 ProductGroupCache.setExpire(aid);
                 ProductGroupRelCache.InfoCache.setExpire(aid, unionPriId);
                 ProductGroupCache.delCacheList(aid, delGroupIdList);
-                ProductGroupRelCache.InfoCache.delCacheList(aid, unionPriId, delList);
+                ProductGroupRelCache.InfoCache.delCacheList(aid, unionPriId, delGroupIdList);
                 ProductGroupRelCache.DataStatusCache.update(aid, unionPriId, delList.size(), false);
             }
             if (!Util.isEmptyList(updaterList)) {
@@ -917,7 +917,7 @@ public class ProductGroupService extends ServicePub {
         int flag = recvInfo.getInt(ProductGroupEntity.Info.FLAG, ProductGroupValObj.Default.FLAG);
         int sort = recvInfo.getInt(ProductGroupRelEntity.Info.SORT, ProductGroupRelValObj.Default.SORT);
         int rlFlag = recvInfo.getInt(ProductGroupRelEntity.Info.RL_FLAG, ProductGroupRelValObj.Default.RL_FLAG);
-        int groupType = recvInfo.getInt(ProductGroupRelEntity.Info.SYS_TYPE, ProductGroupRelValObj.SysType.PRODUCT);
+        int sysType = recvInfo.getInt(ProductGroupRelEntity.Info.SYS_TYPE, 0);
         int status = recvInfo.getInt(ProductGroupRelEntity.Info.STATUS, ProductGroupRelValObj.Status.DEFAULT);
         int groupId = recvInfo.getInt(ProductGroupEntity.Info.GROUP_ID, 0);
         int rlGroupId = recvInfo.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID, 0);
@@ -928,7 +928,7 @@ public class ProductGroupService extends ServicePub {
         groupInfo.setInt(ProductGroupEntity.Info.SOURCE_TID, tid);
         groupInfo.setInt(ProductGroupEntity.Info.SOURCE_UNIONPRIID, unionPriId);
         groupInfo.setString(ProductGroupEntity.Info.GROUP_NAME, groupName);
-        groupInfo.setInt(ProductGroupEntity.Info.SYS_TYPE, groupType);
+        groupInfo.setInt(ProductGroupEntity.Info.SYS_TYPE, sysType);
         groupInfo.setCalendar(ProductGroupEntity.Info.CREATE_TIME, createTime);
         groupInfo.setCalendar(ProductGroupEntity.Info.UPDATE_TIME, updateTime);
         groupInfo.setInt(ProductGroupEntity.Info.PARENT_ID, parentId);
@@ -944,7 +944,7 @@ public class ProductGroupService extends ServicePub {
         relInfo.setCalendar(ProductGroupRelEntity.Info.UPDATE_TIME, updateTime);
         relInfo.setInt(ProductGroupRelEntity.Info.SORT, sort);
         relInfo.setInt(ProductGroupRelEntity.Info.RL_FLAG, rlFlag);
-        relInfo.setInt(ProductGroupRelEntity.Info.SYS_TYPE, groupType);
+        relInfo.setInt(ProductGroupRelEntity.Info.SYS_TYPE, sysType);
         relInfo.setInt(ProductGroupRelEntity.Info.STATUS, status);
     }
 

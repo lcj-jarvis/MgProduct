@@ -233,7 +233,7 @@ public class MgProductGroupCli extends FaiClient {
         }
     }
 
-    public int delGroupList(int aid, int unionPriId, FaiList<Integer> idList, boolean softDel) {
+    public int delGroupList(int aid, int unionPriId, FaiList<Integer> idList, int sysType, boolean softDel) {
         if (!useProductGroup()) {
             return Errno.OK;
         }
@@ -255,6 +255,7 @@ public class MgProductGroupCli extends FaiClient {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductGroupRelDto.Key.UNION_PRI_ID, unionPriId);
             idList.toBuffer(sendBody, ProductGroupRelDto.Key.RL_GROUP_IDS);
+            sendBody.putInt(ProductGroupRelDto.Key.SYS_TYPE, sysType);
             sendBody.putBoolean(ProductGroupRelDto.Key.SOFT_DEL, softDel);
 
             FaiProtocol sendProtocol = new FaiProtocol();
@@ -472,7 +473,7 @@ public class MgProductGroupCli extends FaiClient {
         }
     }
 
-    public int unionSetGroupList(int aid, int tid, int unionPriId, FaiList<Param> addList, FaiList<ParamUpdater> updaterList, FaiList<Integer> delList, boolean softDel, Ref<FaiList<Integer>> rlGroupIdsRef) {
+    public int unionSetGroupList(int aid, int tid, int unionPriId, FaiList<Param> addList, FaiList<ParamUpdater> updaterList, FaiList<Integer> delList, int sysType, boolean softDel, Ref<FaiList<Integer>> rlGroupIdsRef) {
         if (!useProductGroup()) {
             return Errno.OK;
         }
@@ -502,6 +503,7 @@ public class MgProductGroupCli extends FaiClient {
                 delList = new FaiList<Integer>();
             }
             delList.toBuffer(sendBody, ProductGroupRelDto.Key.RL_GROUP_IDS);
+            sendBody.putInt(ProductGroupRelDto.Key.SYS_TYPE, sysType);
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setAid(aid);
             sendProtocol.setCmd(MgProductGroupCmd.GroupCmd.UNION_SET_GROUP_LIST);

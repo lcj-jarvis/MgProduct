@@ -12,7 +12,7 @@ public class ProductGroupRelDto {
         g_groupRelDtoDef.add(ProductGroupRelEntity.Info.AID, 0, Var.Type.INT);
         g_groupRelDtoDef.add(ProductGroupRelEntity.Info.RL_GROUP_ID, 1, Var.Type.INT);
         g_groupRelDtoDef.add(ProductGroupRelEntity.Info.GROUP_ID, 2, Var.Type.INT);
-        g_groupRelDtoDef.add(ProductGroupRelEntity.Info.GROUP_TYPE, 3, Var.Type.INT);
+        g_groupRelDtoDef.add(ProductGroupRelEntity.Info.SYS_TYPE, 3, Var.Type.INT);
         g_groupRelDtoDef.add(ProductGroupRelEntity.Info.UNION_PRI_ID, 4, Var.Type.INT);
         g_groupRelDtoDef.add(ProductGroupRelEntity.Info.SORT, 5, Var.Type.INT);
         g_groupRelDtoDef.add(ProductGroupRelEntity.Info.RL_FLAG, 6, Var.Type.INT);
@@ -42,7 +42,7 @@ public class ProductGroupRelDto {
         g_groupAllDtoDef.add(ProductGroupRelEntity.Info.UNION_PRI_ID, 11, Var.Type.INT);
         g_groupAllDtoDef.add(ProductGroupRelEntity.Info.SORT, 12, Var.Type.INT);
         g_groupAllDtoDef.add(ProductGroupRelEntity.Info.RL_FLAG, 13, Var.Type.INT);
-        g_groupAllDtoDef.add(ProductGroupRelEntity.Info.GROUP_TYPE, 14, Var.Type.INT);
+        g_groupAllDtoDef.add(ProductGroupRelEntity.Info.SYS_TYPE, 14, Var.Type.INT);
         g_groupAllDtoDef.add(ProductGroupRelEntity.Info.STATUS, 15, Var.Type.INT);
     }
     public static ParamDef getAllInfoDto() {
@@ -66,5 +66,6 @@ public class ProductGroupRelDto {
         public static final int FROM_UNION_PRI_ID = 14;
         public static final int BACKUP_INFO = 15;
         public static final int SOFT_DEL = 16;
+        public static final int SYS_TYPE = 17;
     }
 }

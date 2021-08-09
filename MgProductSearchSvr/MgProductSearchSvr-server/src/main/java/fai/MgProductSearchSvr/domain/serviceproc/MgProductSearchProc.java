@@ -21,13 +21,14 @@ import java.util.function.Function;
  */
 public class MgProductSearchProc {
 
-    // 根据 ProductRelEntity.Info.RL_PD_ID 去重
+    // 根据 ProductRelEntity.Info.PD_ID 去重
     public FaiList<Param> removeRepeatedByKey(FaiList<Param> resultList, String resultListKey){
         FaiList<Param> filterList = new FaiList<Param>();
         if(resultList.isEmpty()){
             return filterList;
         }
-        HashSet<Integer> idSetList = new HashSet<Integer>();  // 去重集合
+        // 去重集合
+        HashSet<Integer> idSetList = new HashSet<Integer>();
         for(Param info : resultList){
             int id = info.getInt(resultListKey);
             if(idSetList.contains(id)){
@@ -52,9 +53,12 @@ public class MgProductSearchProc {
     }
 
     // 根据 set 的缓存重新过滤数据
+    // 先获取包含在resultList中searchKey对应的数据，保存到Set中。
+    // 再遍历searchList，保存searchList中包含在Set中的数据到List中，最后返回List。
     public FaiList<Param> searchListFilterBySearchResultList(FaiList<Param> resultList, String resultListKey, FaiList<Param> searchList, String searchListKey){
         FaiList<Param> filterList = new FaiList<Param>();
-        HashSet<Integer> resultSetList = faiListToHashIdSet(resultList, resultListKey);  // 转换为 set 的集合
+        // 转换为 set 的集合
+        HashSet<Integer> resultSetList = faiListToHashIdSet(resultList, resultListKey);
         for(Param info : searchList){
             if(resultSetList.contains(info.getInt(searchListKey))){
                 filterList.add(info);
@@ -84,6 +88,8 @@ public class MgProductSearchProc {
     public FaiList<Param> getSearchResult(ParamMatcher searchMatcher, FaiList<Param> searchList, FaiList<Param> resultList, String searchKey){
         // 非第一次搜索，进入 set<id> 的过滤逻辑，减少搜索集合，提高性能
         if(resultList != null && !resultList.isEmpty()){
+            // 先获取包含在resultList中searchKey对应的数据，保存到Set中。
+            // 再遍历searchList，保存searchList中包含在Set中的数据到List中，最后返回List。
             searchList = searchListFilterBySearchResultList(resultList, searchKey, searchList, searchKey);
         }
         if(searchList.isEmpty()){
@@ -98,7 +104,7 @@ public class MgProductSearchProc {
 
     public Param getDataStatusInfoFromEachSvr(int aid, int unionPriId, int tid, int flow, String tableName, MgProductBasicCli mgProductBasicCli, MgProductStoreCli mgProductStoreCli){
         /*
-        //先不考虑优化
+        // 先不考虑优化
         MgProductSearch.SearchTableNameEnum searchTableName = MgProductSearch.SearchTableNameEnum.MG_PRODUCT;
         int rt = Errno.OK;
         switch (searchTableName) {
@@ -182,6 +188,9 @@ public class MgProductSearchProc {
         return remoteDataStatusInfo;
     }
 
+    /**
+     * 返回联合多个表进行查询得到的结果（实际上是逐个表进行查询，然后取结果的交集）
+     */
     public FaiList<Param> getSearchDataAndSearchResultList(int flow, int aid, int tid, int unionPriId, Param searchSorterInfo, FaiList<Param> resultList, MgProductBasicCli mgProductBasicCli, MgProductStoreCli mgProductStoreCli){
         String tableName = searchSorterInfo.getString(SearchSorterInfo.SEARCH_TABLE);
         // 所有的表都有这个字段，用这个字段作为 filter 的过滤条件
@@ -191,6 +200,7 @@ public class MgProductSearchProc {
         int dataLoadFromDbThreshold = getLoadFromDbThreshold(tableName);
         boolean needLoadFromDb = dataCount > dataLoadFromDbThreshold;
         if(!needLoadFromDb && searchMatcher.isEmpty() && !resultList.isEmpty()){
+            // 获取resultList中的idList
             FaiList<Integer> idList = toIdList(resultList, searchKey);
             searchMatcher.and(searchKey, ParamMatcher.IN, idList);
         }
@@ -203,6 +213,7 @@ public class MgProductSearchProc {
             if(localMgProductSearchData.containsKey(cacheKey)){
                 FaiList<Param> searchList = localMgProductSearchData.get(cacheKey);
                 searchSorterInfo.setList(SearchSorterInfo.SEARCH_DATA_LIST, searchList);
+                // 可以理解为先取resultList中对应searchKey的数据和searchList取交集，然后再取searchMatcher中满足条件的。
                 resultList = getSearchResult(searchMatcher, searchList, resultList, searchKey);
                 //Log.logDbg("needGetDataFromRemote=%s;tableName=%s;searchDataList=%s;", needGetDataFromRemote, tableName, searchSorterInfo.getList(SearchSorterInfo.SEARCH_DATA_LIST));
                 return resultList;
@@ -213,6 +224,7 @@ public class MgProductSearchProc {
             }
         }
 
+        // TODO 以下的内容拆分成独立的方法，解耦合
         // 需要发包获取数据
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = searchMatcher;
@@ -221,10 +233,10 @@ public class MgProductSearchProc {
             FaiList<Integer> idList = toIdList(resultList, searchKey);
             searchArg.matcher.and(searchKey, ParamMatcher.IN, idList);
         }
-        FaiList<Param> searchDataList = new FaiList<Param>();   // 需要真正获取的数据
+        // 需要真正获取的数据
+        FaiList<Param> searchDataList = new FaiList<Param>();
 
         if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName.equals(tableName)){
-            // 从远端获取数据, 待完善
             if(needLoadFromDb){
                 int rt = mgProductBasicCli.searchPdFromDb(aid, searchArg, searchDataList);
                 if(rt != Errno.OK){
@@ -242,7 +254,6 @@ public class MgProductSearchProc {
 
 
         if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_REL.searchTableName.equals(tableName)){
-            // 从远端获取数据, 待完善
             if(needLoadFromDb){
                 int rt = mgProductBasicCli.searchPdRelFromDb(aid, unionPriId, searchArg, searchDataList);
                 if(rt != Errno.OK){
@@ -259,7 +270,6 @@ public class MgProductSearchProc {
         }
 
         if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.searchTableName.equals(tableName)){
-            // 从远端获取数据, 待完善
             if(needLoadFromDb){
                 int rt = mgProductBasicCli.searchBindPropFromDb(aid, unionPriId, searchArg, searchDataList);
                 if(rt != Errno.OK){
@@ -276,7 +286,6 @@ public class MgProductSearchProc {
         }
 
         if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.searchTableName.equals(tableName)){
-            // 从远端获取数据, 待完善
             if(needLoadFromDb){
                 int rt = mgProductBasicCli.searchBindGroupFromDb(aid, unionPriId, searchArg, searchDataList);
                 if(rt != Errno.OK){
@@ -293,15 +302,22 @@ public class MgProductSearchProc {
         }
 
         if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.searchTableName.equals(tableName)){
-            // 从远端获取数据, 待完善
             if(needLoadFromDb){
+                int rt = mgProductBasicCli.getPdBindTagFromDb(aid, unionPriId, searchArg, searchDataList);
+                if(rt != Errno.OK){
+                    Log.logErr(rt,"searchBindTagFromDb err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
+                }
+                //Log.logDbg("searchBindGroupFromDb, searchDataList=%s;", searchDataList);
             }else{
-
+                int rt = mgProductBasicCli.getAllPdBindTag(aid, unionPriId, searchDataList);
+                if(rt != Errno.OK){
+                    Log.logErr(rt,"getAllBindTagData err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
+                }
+                //Log.logDbg("getAllBindGroupData, searchDataList=%s;", searchDataList);
             }
         }
 
         if(MgProductSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.searchTableName.equals(tableName)){
-            // 从远端获取数据, 待完善
             if(needLoadFromDb){
                 int rt = mgProductStoreCli.searchSpuBizSummaryFromDb(aid, tid, unionPriId, searchArg, searchDataList);
                 if(rt != Errno.OK){
@@ -324,11 +340,8 @@ public class MgProductSearchProc {
             resultList = getSearchResult(searchMatcher, searchDataList, resultList, searchKey);
 
             // 设置 各个表 的全量本地缓存
-            //ParamListCache1 localMgProductSearchData = getLocalMgProductSearchDataCache(unionPriId);
-            //localMgProductSearchData.put(getLocalMgProductSearchDataCacheKey(aid, tableName), searchDataList);
             ParamListCache1 localMgProductSearchData = MgProductSearchCache.getLocalMgProductSearchDataCache(unionPriId);
             localMgProductSearchData.put(MgProductSearchCache.getLocalMgProductSearchDataCacheKey(aid, tableName), searchDataList);
-
 
             // 设置 各个表本地 缓存的时间
             Param dataStatusInfo = new Param();
@@ -336,7 +349,6 @@ public class MgProductSearchProc {
             dataStatusInfo.assign(searchSorterInfo, DataStatus.Info.VISITOR_LAST_UPDATE_TIME);
             dataStatusInfo.assign(searchSorterInfo, DataStatus.Info.TOTAL_SIZE);
 
-            //m_localDataStatusCache.put(getDataStatusCacheKey(aid, unionPriId, tableName), dataStatusInfo);
             String cacheKey = MgProductSearchCache.LocalDataStatusCache.getDataStatusCacheKey(aid, unionPriId, tableName);
             MgProductSearchCache.LocalDataStatusCache.addLocalDataStatusCache(cacheKey, dataStatusInfo);
         }else{

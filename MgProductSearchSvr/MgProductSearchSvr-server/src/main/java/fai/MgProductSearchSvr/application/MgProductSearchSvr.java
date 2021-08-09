@@ -1,5 +1,6 @@
 package fai.MgProductSearchSvr.application;
 
+import fai.MgProductSearchSvr.domain.repository.cache.MgProductSearchCache;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.cache.redis.config.RedisClientConfig;
 import fai.comm.cache.redis.pool.JedisPool;
@@ -45,7 +46,9 @@ public class MgProductSearchSvr {
         // 公共配置文件, 在svr main 的方法做一次初始化
         ConfPool.setFaiConfigGlobalConf(MgProductSearchSvr.SvrConfigGlobalConf.svrConfigGlobalConfKey, FaiConfig.EtcType.ENV);
 
-        server.setHandler(new MgProductSearchHandler(server, m_cache, cacheRecycle));
+        init(m_cache, cacheRecycle);
+
+        server.setHandler(new MgProductSearchHandler(server));
         server.start();
     }
 
@@ -82,5 +85,9 @@ public class MgProductSearchSvr {
         public void setCacheRecycleIntervalHours(int cacheRecycleIntervalHours) {
             this.cacheRecycleIntervalHours = cacheRecycleIntervalHours;
         }
+    }
+
+    public static void init(RedisCacheManager cache, ParamCacheRecycle cacheRecycle) {
+        MgProductSearchCache.init(cache, cacheRecycle);
     }
 }

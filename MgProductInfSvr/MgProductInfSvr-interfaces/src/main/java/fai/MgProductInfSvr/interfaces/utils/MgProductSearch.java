@@ -12,7 +12,7 @@ public class MgProductSearch {
     public static final class Info {
         public static final String UP_SALES_STATUS = "upSalesStatus";  // 上下架状态，默认是获取上架的状态
         public static final String RL_GROUP_ID_LIST = "rlGroupIdList";     // 商品的分类idList
-        public static final String RL_LABLE_ID_LIST = "rlLableIdList";     //  商品标签idList
+        public static final String RL_TAG_ID_LIST = "rlTagIdList";     //  商品标签idList
         public static final String RL_PD_ID_LIST = "rlPdIdList";      // 商品业务idList
         public static final String TYPE_LIST = "typeList";            // 商品类型：实物、卡密、酒店
         public static final String RL_LIB_ID_LIST = "rlLibIdList";               //  在哪些库搜索，默认是全部库
@@ -90,7 +90,7 @@ public class MgProductSearch {
     // 上下架开始
     private int upSalesStatus = UpSalesStatusEnum.ALL.upSalesStatus;           //  默认是全部的, 对应 ProductRelValObj.Status
     private FaiList<Integer> rlGroupIdList;  // 业务商品分类 IdList
-    private FaiList<Integer> rlLableIdList;   //  业务商品标签搜索
+    private FaiList<Integer> rlTagIdList;   //  业务商品标签搜索
     private FaiList<Integer> rlPdIdList;      // 业务商品 IdList
     private FaiList<Integer> typeList;       // 商品类型：实物、卡密、酒店
     private Calendar addTimeBegin;
@@ -120,7 +120,7 @@ public class MgProductSearch {
 
     // 第二的排序，需要选择是否使用
     private boolean needSecondComparatorSorting = false;   // 是否启动第二字段排序，就是默认 ProductBasicEntity.ProductInfo.RL_PD_ID 排序
-    private String secondComparatorTable = SearchTableNameEnum.MG_PRODUCT.searchTableName;   // 第二排序字段
+    private String secondComparatorTable = SearchTableNameEnum.MG_PRODUCT.searchTableName;   // 第二排序字段的table
     private String secondComparatorKey = ProductBasicEntity.ProductInfo.RL_PD_ID;                  // 第二排序字段，业务商品id，能够确定唯一的排序, 相当于创建时间排序了
     private boolean secondComparatorKeyOrderByDesc = false;   // 第二排序字段的顺序, 默认顺序
 
@@ -133,7 +133,7 @@ public class MgProductSearch {
         Param param = new Param();
         param.setInt(Info.UP_SALES_STATUS, upSalesStatus);     // 上下架
         param.setList(Info.RL_GROUP_ID_LIST, rlGroupIdList);   // 业务商品分类
-        param.setList(Info.RL_LABLE_ID_LIST, rlLableIdList);   // 业务商品标签
+        param.setList(Info.RL_TAG_ID_LIST, rlTagIdList);   // 业务商品标签
         param.setList(Info.RL_PD_ID_LIST, rlPdIdList);          // priceEnd
         param.setList(Info.TYPE_LIST, typeList);                // 商品类型：实物、卡密、酒店， 对应 ProductEntity.Info.PD_TYPE 字段
         param.setList(Info.RL_LIB_ID_LIST, rlLibIdList);           //  在哪些库搜索，默认是全部库
@@ -172,7 +172,7 @@ public class MgProductSearch {
     public void initProductSearch(Param searchParam) {
         this.upSalesStatus = searchParam.getInt(Info.UP_SALES_STATUS);   // 上下架
         this.rlGroupIdList = searchParam.getList(Info.RL_GROUP_ID_LIST); // 业务商品分类
-        this.rlLableIdList = searchParam.getList(Info.RL_LABLE_ID_LIST); // 业务商品标签
+        this.rlTagIdList = searchParam.getList(Info.RL_TAG_ID_LIST); // 业务商品标签
         this.rlPdIdList = searchParam.getList(Info.RL_PD_ID_LIST);        // 业务商品idList
         this.typeList = searchParam.getList(Info.TYPE_LIST);               // 商品类型：实物、卡密、酒店
 
@@ -231,7 +231,8 @@ public class MgProductSearch {
 
         /**
          * MG_PRODUCT: searchKeyWord 都是管理态修改的数据
-         * MG_PRODUCT_REL: rlPdIdList、 typeList 、 rlLibIdList 、 upSalesStatus、 addTimeBegin、 addTimeEnd 都是管理态修改的数据
+         * MG_PRODUCT_REL: rlPdIdList、 typeList 、 rlLibIdList 、
+         *                 upSalesStatus、 addTimeBegin、 addTimeEnd 都是管理态修改的数据
          * MG_PRODUCT_BIND_PROP: rlPropValIdList 都是管理态修改的数据
          * MG_PRODUCT_BIND_GROUP: rlGroupIdList 都是管理态修改的数据
          * MG_PRODUCT_BIND_TAG: rlTagId 都是管理态修改的数据
@@ -248,7 +249,7 @@ public class MgProductSearch {
         return getProductRemarkSearchOrMatcher(null).isEmpty() && getProductPropValSearchOrMatcher(null).isEmpty() &&
                 getProductBasicSearchOrMatcher(null).isEmpty() && getProductBasicSearchMatcher(null).isEmpty() &&
                 getProductBindPropSearchMatcher(null).isEmpty() && getProductBindGroupSearchMatcher(null).isEmpty() &&
-                getProductBindLableSearchMatcher(null).isEmpty() && getProductSpuBizSummarySearchMatcher(null).isEmpty();
+                getProductBindTagSearchMatcher(null).isEmpty() && getProductSpuBizSummarySearchMatcher(null).isEmpty();
     }
 
     // 在 "在商品 富文本 字段"  搜索
@@ -399,17 +400,17 @@ public class MgProductSearch {
         return paramMatcher;
     }
 
-    // 在 "标签业务关系表" mgProductBindLable_xxxx 搜索
-    public ParamMatcher getProductBindLableSearchMatcher(ParamMatcher paramMatcher){
+    // 在 "标签业务关系表" mgProductBindTag_xxxx 搜索
+    public ParamMatcher getProductBindTagSearchMatcher(ParamMatcher paramMatcher){
         if(paramMatcher == null){
             paramMatcher = new ParamMatcher();
         }
         // 业务商品标签
-        if(rlLableIdList != null && !rlLableIdList.isEmpty()){
-            if(rlLableIdList.size() == 1){
-                paramMatcher.and("rlLableId", ParamMatcher.EQ, rlLableIdList.get(0));
+        if(rlTagIdList != null && !rlTagIdList.isEmpty()){
+            if(rlTagIdList.size() == 1){
+                paramMatcher.and("rlTagId", ParamMatcher.EQ, rlTagIdList.get(0));
             }else{
-                paramMatcher.and("rlLableId", ParamMatcher.IN, rlLableIdList);
+                paramMatcher.and("rlTagId", ParamMatcher.IN, rlTagIdList);
             }
         }
         return paramMatcher;
@@ -479,11 +480,11 @@ public class MgProductSearch {
     }
 
 
-    public FaiList<Integer> getRlLableIdList() {
-        return rlLableIdList;
+    public FaiList<Integer> getRlTagIdList() {
+        return rlTagIdList;
     }
-    public MgProductSearch setRlLableIdList(FaiList<Integer> rlLableIdList) {
-        this.rlLableIdList = rlLableIdList;
+    public MgProductSearch setRlTagIdList(FaiList<Integer> rlTagIdList) {
+        this.rlTagIdList = rlTagIdList;
         return this;
     }
     public MgProductSearch setRlPdIdList(FaiList<Integer> rlPdIdList) {
@@ -718,7 +719,7 @@ public class MgProductSearch {
         return needSecondComparatorSorting;
     }
 
-    //  把把查询条件转换为 SearchArg
+    //  把查询条件转换为 SearchArg
     public void setSearArgStartAndLimit(SearchArg searchArg){
         if(searchArg == null){
             return;

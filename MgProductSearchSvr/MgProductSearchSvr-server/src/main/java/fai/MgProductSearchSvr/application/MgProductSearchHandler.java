@@ -18,14 +18,8 @@ import fai.middleground.svrutil.service.ServiceProxy;
 
 public class MgProductSearchHandler extends MiddleGroundHandler {
 
-    public MgProductSearchHandler(FaiServer server, RedisCacheManager cache, ParamCacheRecycle cacheRecycle) {
+    public MgProductSearchHandler(FaiServer server) {
         super(server);
-        searchService = ServiceProxy.create(new MgProductSearchService());
-
-        //初始化缓存
-        MgProductSearchCache.init(cache, cacheRecycle);
-
-        //searchService.initMgProductSearchService(cache, cacheRecycle)
     }
 
     @Cmd(MgProductSearchCmd.SearchCmd.SEARCH_LIST)
@@ -39,5 +33,5 @@ public class MgProductSearchHandler extends MiddleGroundHandler {
         return searchService.searchList(session, flow, aid, unionPriId, tid, productCount, searchParamString);
     }
 
-    private MgProductSearchService searchService;
+    private final MgProductSearchService searchService = ServiceProxy.create(new MgProductSearchService());
 }

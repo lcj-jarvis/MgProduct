@@ -1,6 +1,7 @@
 package fai.mgproduct.comm;
 
 import fai.comm.util.FaiList;
+import fai.comm.util.Param;
 
 import java.util.Collection;
 
@@ -67,4 +68,23 @@ public class Util {
 
         return resList;
     }
+
+    /**
+     * 去除 List 中的 Saga 字段
+     * @param list 原集合
+     * @return 没有 Saga 字段的集合
+     */
+    public static FaiList<Param> removeSagaColumn(FaiList<Param> list) {
+        if (Util.isEmptyList(list)) {
+            return new FaiList<Param>();
+        }
+        for (Param info : list) {
+            for (String sagaKey : SagaKeys) {
+                info.remove(sagaKey);
+            }
+        }
+        return list;
+    }
+
+    private static final String[] SagaKeys = { "xid" , "branchId", "sagaOp"};
 }

@@ -1,9 +1,9 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
-import fai.MgProductStoreSvr.domain.entity.SkuSummaryEntity;
-import fai.MgProductStoreSvr.domain.entity.StoreSagaEntity;
-import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuEntity;
+import fai.MgProductStoreSvr.domain.entity.*;
 import fai.MgProductStoreSvr.domain.repository.SkuSummaryDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.SkuSummarySagaDaoCtrl;
+import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.util.*;
 import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.repository.TransactionCtrl;
@@ -20,8 +20,9 @@ public class SkuSummaryProc {
 
     public SkuSummaryProc(int flow, int aid, TransactionCtrl transactionCtrl) {
         m_daoCtrl = SkuSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-        if(m_daoCtrl == null){
-            throw new RuntimeException(String.format("SkuSummaryDaoCtrl init err;flow=%s;aid=%s;", flow, aid));
+        m_sagaDaoCtrl = SkuSummarySagaDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+        if(m_daoCtrl == null || m_sagaDaoCtrl == null){
+            throw new RuntimeException(String.format("SkuSummaryDaoCtrl or m_sagaDaoCtrl init err;flow=%s;aid=%s;", flow, aid));
         }
         m_flow = flow;
     }
@@ -146,12 +147,12 @@ public class SkuSummaryProc {
         Log.logStd("ok;flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
-    public int report(int aid, FaiList<Param> infoList, Ref<Param> sagaInfoRef) {
+    public int report(int aid, FaiList<Param> infoList, boolean isSaga) {
         if(aid <= 0 || infoList == null || infoList.isEmpty()){
             Log.logErr("arg error;flow=%d;aid=%s;infoList=%s;", m_flow, aid, infoList);
             return Errno.ARGS_ERROR;
         }
-        int rt = Errno.ERROR;
+        int rt;
         Calendar now = Calendar.getInstance();
         FaiList<Long> skuIdList = new FaiList<>(infoList.size());
         Map<Long, Param> skuIdInfoMap = new HashMap<>(infoList.size()*4/3+1);
@@ -191,34 +192,37 @@ public class SkuSummaryProc {
             }
             batchUpdateDataList.add(data);
         }
-
-        Param sagaInfo = null;
-        if (sagaInfoRef != null) {
-            sagaInfo = sagaInfoRef.value;
-            if (Str.isEmpty(sagaInfo)) {
-                sagaInfo = new Param();
-            }
-        }
-        FaiList<Param> sagaSkuSumList = new FaiList<>();
+        FaiList<Param> addList = null;
         if(skuIdInfoMap.size() > 0){ // 批量添加
-            FaiList<Param> addList = new FaiList<>(skuIdInfoMap.size());
+            addList = new FaiList<>(skuIdInfoMap.size());
             for (Param info : skuIdInfoMap.values()) {
                 info.setCalendar(SkuSummaryEntity.Info.SYS_CREATE_TIME, now);
                 addList.add(info);
-                if (sagaInfoRef != null) {
-                    Param priKey = new Param();
-                    priKey.assign(info, SkuSummaryEntity.Info.SKU_ID);
-                    sagaSkuSumList.add(priKey);
-                }
             }
-            rt = m_daoCtrl.batchInsert(addList, null, true);
+            rt = m_daoCtrl.batchInsert(addList, null, false);
             if(rt != Errno.OK){
                 Log.logStd("dao.batchInsert error;flow=%d;aid=%s;addList=%s;", m_flow, aid, addList);
             }
         }
-        if (sagaInfoRef != null) {
-            sagaInfo.setList(StoreSagaEntity.PropInfo.SKU_SUMMARY, sagaSkuSumList);
-            sagaInfoRef.value = sagaInfo;
+        // 分布式事务 需要记录 Saga 记录
+        if (isSaga && !Util.isEmptyList(addList)) {
+            FaiList<Param> sagaList = new FaiList<>();
+            String xid = RootContext.getXID();
+            Long branchId = RootContext.getBranchId();
+            addList.forEach(addInfo -> {
+                Param saga = new Param();
+                saga.assign(addInfo, SkuSummaryEntity.Info.AID);
+                saga.assign(addInfo, SkuSummaryEntity.Info.SKU_ID);
+                saga.setString(StoreSagaEntity.Info.XID, xid);
+                saga.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
+                saga.setInt(StoreSagaEntity.Info.SAGA_OP, StoreSagaValObj.SagaOp.ADD);
+                sagaList.add(saga);
+            });
+            rt = m_sagaDaoCtrl.batchInsert(sagaList);
+            if (rt != Errno.OK) {
+                Log.logErr(rt, "insert saga error;flow=%d;aid=%d;sagaList=%s", m_flow, aid, sagaList);
+                return rt;
+            }
         }
         if(batchUpdateDataList.size() > 0){ // 批量更新
             ParamUpdater batchUpdater = new ParamUpdater();
@@ -249,16 +253,37 @@ public class SkuSummaryProc {
     public int batchDel(int aid, FaiList<Integer> pdIdList, boolean isSaga) {
         int rt;
         ParamMatcher matcher = new ParamMatcher(SkuSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
-        if (!isSaga) {
-            // 如果不是分布式事务，则走正常的删除逻辑
-            matcher.and(SkuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
-            rt = m_daoCtrl.delete(matcher);
-        } else {
-            // 分布式事务，不删除当前记录，而是将所有记录的 aid 变成负数
-            ParamUpdater updater = new ParamUpdater(new Param().setInt(SkuSummaryEntity.Info.AID, -aid));
-            matcher.and(SkuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
-            rt = m_daoCtrl.update(updater, matcher);
+        matcher.and(SkuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        if (isSaga) {
+            // 分布事务 需要记录 Saga 操作记录
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = matcher;
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            rt = m_daoCtrl.select(searchArg, listRef);
+            if (rt != Errno.OK) {
+                if (rt == Errno.NOT_FOUND) {
+                    return Errno.OK;
+                }
+                Log.logErr(rt, "select error;flow=%d;aid=%d;pdIdList=%s", m_flow, aid, pdIdList);
+                return rt;
+            }
+            FaiList<Param> sagaOpList = listRef.value;
+            String xid = RootContext.getXID();
+            Long branchId = RootContext.getBranchId();
+            // 构建数据
+            sagaOpList.forEach(sagaInfo -> {
+                sagaInfo.setString(StoreSagaEntity.Info.XID, xid);
+                sagaInfo.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
+                sagaInfo.setInt(StoreSagaEntity.Info.SAGA_OP, StoreSagaValObj.SagaOp.DEL);
+            });
+            // 添加 Saga 操作记录
+            rt = m_sagaDaoCtrl.batchInsert(sagaOpList);
+            if (rt != Errno.OK) {
+                Log.logErr(rt, "batchInsert SagaOperation error;flow=%d;aid=%d;sagaOpList=%s", m_flow, aid, sagaOpList);
+                return rt;
+            }
         }
+        rt = m_daoCtrl.delete(matcher);
         if(rt != Errno.OK){
             Log.logStd(rt, "delete err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
             return rt;
@@ -273,14 +298,36 @@ public class SkuSummaryProc {
         matcher.and(SkuSummaryEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
         matcher.and(SkuSummaryEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
         int rt;
-        if (!isSaga) {
-            // 非分布式事务，走正常的删除逻辑
-            rt = m_daoCtrl.delete(matcher);
-        } else {
-            // 分布式事务，将 aid 修改成负数
-            ParamUpdater updater = new ParamUpdater(new Param().setInt(StoreSalesSkuEntity.Info.AID, aid));
-            rt = m_daoCtrl.update(updater, matcher);
+        if (isSaga) {
+            // 分布式事务，需要记录老的数据 录入 Saga 操作记录表中
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = matcher;
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            rt = m_daoCtrl.select(searchArg, listRef);
+            if (rt != Errno.OK) {
+                if (rt == Errno.NOT_FOUND) {
+                    return Errno.OK;
+                }
+                Log.logErr(rt, "select error;flow=%d;aid=%d;pdId=%d;skuIdList=%s", m_flow, aid, pdId, skuIdList);
+                return rt;
+            }
+            FaiList<Param> sagaOpList = listRef.value;
+            String xid = RootContext.getXID();
+            Long branchId = RootContext.getBranchId();
+            // 构建数据
+            sagaOpList.forEach(sagaInfo -> {
+                sagaInfo.setString(StoreSagaEntity.Info.XID, xid);
+                sagaInfo.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
+                sagaInfo.setInt(StoreSagaEntity.Info.SAGA_OP, StoreSagaValObj.SagaOp.DEL);
+            });
+            // 添加 Saga 操作记录
+            rt = m_sagaDaoCtrl.batchInsert(sagaOpList);
+            if (rt != Errno.OK) {
+                Log.logErr(rt, "batchInsert SagaOperation error;flow=%d;aid=%d;sagaOpList=%s", m_flow, aid, sagaOpList);
+                return rt;
+            }
         }
+        rt = m_daoCtrl.delete(matcher);
         if(rt != Errno.OK){
             Log.logStd(rt, "delete err;flow=%s;aid=%s;pdId=%s;skuIdList=%s;", m_flow, aid, pdId, skuIdList);
             return rt;
@@ -293,48 +340,18 @@ public class SkuSummaryProc {
      * Saga 模式 补偿 batchDel 方法
      *
      * @param aid aid
-     * @param pdIdList 商品ids
+     * @param sagaList Saga 操作记录
      * @return {@link Errno}
      */
-    public int batchDelRollback(int aid, FaiList<Integer> pdIdList) {
+    public int batchDelRollback(int aid, FaiList<Param> sagaList) {
         int rt;
-        if (Util.isEmptyList(pdIdList)) {
+        if (Util.isEmptyList(sagaList)) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr(rt, "arg err;pdIdList is empty;flow=%d;aid=%d", m_flow, aid);
+            Log.logErr(rt, "arg err;addList is empty");
             return rt;
         }
-        ParamUpdater updater = new ParamUpdater(new Param().setInt(SkuSummaryEntity.Info.AID, aid));
-        ParamMatcher matcher = new ParamMatcher(SkuSummaryEntity.Info.AID, ParamMatcher.EQ, -aid);
-        matcher.and(SkuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
-        rt = m_daoCtrl.update(updater, matcher);
-        if (rt != Errno.OK) {
-            Log.logErr(rt, "batchDelRollback err;flow=%d;aid=%d;", m_flow, aid);
-            return rt;
-        }
-        Log.logStd("batchDelRollback ok;flow=%d;aid=%d", m_flow, aid);
-        return rt;
-    }
-
-    /**
-     * Saga 模式 补偿 batchDel 方法
-     *
-     * @param aid aid
-     * @param pdId 商品id
-     * @param delSkuIdList skuId
-     * @return {@link Errno}
-     */
-    public int batchDelRollback(int aid, Integer pdId, FaiList<Long> delSkuIdList) {
-        int rt;
-        if (Util.isEmptyList(delSkuIdList)) {
-            rt = Errno.ARGS_ERROR;
-            Log.logErr(rt, "arg err;delSkuIdList is empty;flow=%d;aid=%d", m_flow, aid);
-            return rt;
-        }
-        ParamUpdater updater = new ParamUpdater(new Param().setInt(SkuSummaryEntity.Info.AID, aid));
-        ParamMatcher matcher = new ParamMatcher(SkuSummaryEntity.Info.AID, ParamMatcher.EQ, -aid);
-        matcher.and(SkuSummaryEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
-        matcher.and(SkuSummaryEntity.Info.SKU_ID, ParamMatcher.IN, delSkuIdList);
-        rt = m_daoCtrl.update(updater, matcher);
+        Util.removeSagaColumn(sagaList);
+        rt = m_daoCtrl.batchInsert(sagaList);
         if (rt != Errno.OK) {
             Log.logErr(rt, "batchDelRollback err;flow=%d;aid=%d;", m_flow, aid);
             return rt;
@@ -347,10 +364,10 @@ public class SkuSummaryProc {
      * Saga 模式 补偿删除 根据 aid + skuIds
      *
      * @param aid aid
-     * @param sagaSkuSumList skuId
+     * @param sagaSkuSumList 含有 sku 汇总表 主键集合
      * @return {@link Errno}
      */
-    public int sagaDel(int aid, FaiList<Param> sagaSkuSumList) {
+    public int batchAddRollback(int aid, FaiList<Param> sagaSkuSumList) {
         FaiList<Long> skuIds = new FaiList<>(sagaSkuSumList.size());
         for (Param sagaSkuSum : sagaSkuSumList) {
             Long skuId = sagaSkuSum.getLong(SkuSummaryEntity.Info.SKU_ID);
@@ -400,6 +417,33 @@ public class SkuSummaryProc {
         return rt;
     }
 
+    /**
+     * 获取补偿记录
+     *
+     * @param xid xid
+     * @param branchId branchId
+     * @param skuSummarySagaListRef 接收返回的list
+     * @return {@link Errno}
+     */
+    public int getSagaList(String xid, Long branchId, Ref<FaiList<Param>> skuSummarySagaListRef) {
+        int rt;
+        if (Str.isEmpty(xid)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args err;xid is empty;flow=%d", m_flow);
+            return rt;
+        }
+        SearchArg searchArg = new SearchArg();
+        ParamMatcher matcher = new ParamMatcher(StoreSagaEntity.Info.XID, ParamMatcher.EQ, xid);
+        matcher.and(StoreSagaEntity.Info.BRANCH_ID, ParamMatcher.EQ, branchId);
+        searchArg.matcher = matcher;
+        rt = m_sagaDaoCtrl.select(searchArg, skuSummarySagaListRef);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            Log.logErr(rt, "select sagaList error;flow=%d", m_flow);
+            return rt;
+        }
+        return rt;
+    }
+
 
     public int searchListFromDao(int aid, SearchArg searchArg, Ref<FaiList<Param>> listRef) {
         int rt = Errno.ERROR;
@@ -415,4 +459,5 @@ public class SkuSummaryProc {
 
     private int m_flow;
     private SkuSummaryDaoCtrl m_daoCtrl;
+    private SkuSummarySagaDaoCtrl m_sagaDaoCtrl;
 }

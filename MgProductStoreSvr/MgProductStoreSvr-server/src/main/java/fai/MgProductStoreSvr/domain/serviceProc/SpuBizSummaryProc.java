@@ -4,9 +4,12 @@ import fai.MgProductStoreSvr.domain.comm.LockUtil;
 import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryEntity;
 import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryValObj;
 import fai.MgProductStoreSvr.domain.entity.StoreSagaEntity;
+import fai.MgProductStoreSvr.domain.entity.StoreSagaValObj;
 import fai.MgProductStoreSvr.domain.repository.DataType;
 import fai.MgProductStoreSvr.domain.repository.SpuBizSummaryCacheCtrl;
 import fai.MgProductStoreSvr.domain.repository.SpuBizSummaryDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.SpuBizSummarySagaDaoCtrl;
+import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.util.*;
 import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.repository.TransactionCtrl;
@@ -21,8 +24,9 @@ public class SpuBizSummaryProc {
 
     public SpuBizSummaryProc(int flow, int aid, TransactionCtrl transactionCtrl) {
         m_daoCtrl = SpuBizSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-        if(m_daoCtrl == null){
-            throw new RuntimeException(String.format("SpuBizSummaryDaoCtrl init err;flow=%s;aid=%s;", flow, aid));
+        m_sagaDaoCtrl = SpuBizSummarySagaDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+        if(m_daoCtrl == null || m_sagaDaoCtrl == null){
+            throw new RuntimeException(String.format("SpuBizSummaryDaoCtrl or SpuBizSummarySagaDaoCtrl init err;flow=%s;aid=%s;", flow, aid));
         }
         m_flow = flow;
     }
@@ -124,10 +128,10 @@ public class SpuBizSummaryProc {
     }
 
     public int report(int aid, int pdId, FaiList<Param> infoList) {
-        return report(aid, pdId, infoList, null);
+        return report(aid, pdId, infoList, false);
     }
 
-    public int report(int aid, int pdId, FaiList<Param> infoList, Ref<Param> sagaInfoRef) {
+    public int report(int aid, int pdId, FaiList<Param> infoList, boolean isSaga) {
         if(aid <= 0 || pdId <= 0 || infoList == null || infoList.isEmpty()){
             Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;infoList=%s;", m_flow, aid, pdId, infoList);
             return Errno.ARGS_ERROR;
@@ -204,14 +208,6 @@ public class SpuBizSummaryProc {
             pdIdList.add(pdId);
         }
 
-        Param sagaInfo = null;
-        if (sagaInfoRef != null) {
-            sagaInfo = sagaInfoRef.value;
-            if (Str.isEmpty(sagaInfo)) {
-                sagaInfo = new Param();
-            }
-        }
-        FaiList<Param> sagaSpuBizSumList = new FaiList<>();
         // 在 unionPriIdInfoMap 剩下的就是应该添加的数据
         for (Param info : unionPriIdInfoMap.values()) {
             Param addData = new Param();
@@ -250,25 +246,35 @@ public class SpuBizSummaryProc {
             addData.setCalendar(SpuBizSummaryEntity.Info.SYS_UPDATE_TIME, now);
             addData.setCalendar(SpuBizSummaryEntity.Info.SYS_CREATE_TIME, now);
             addDataList.add(addData);
-
-            // 记录补偿信息
-            if (sagaInfoRef != null) {
-                Param priKey = new Param();
-                priKey.assign(addData, SpuBizSummaryEntity.Info.PD_ID);
-                priKey.assign(addData, SpuBizSummaryEntity.Info.UNION_PRI_ID);
-                sagaSpuBizSumList.add(priKey);
-            }
         }
-        if (sagaInfoRef != null) {
-            sagaInfo.setList(StoreSagaEntity.PropInfo.SPU_BIZ_SUMMARY, sagaSpuBizSumList);
-            sagaInfoRef.value = sagaInfo;
-        }
-
         if(!addDataList.isEmpty()){
-            rt = m_daoCtrl.batchInsert(addDataList, null, true);
+            rt = m_daoCtrl.batchInsert(addDataList, null, false);
             if(rt != Errno.OK){
                 Log.logErr("batchInsert err;flow=%s;aid=%s;pdId=%s;", m_flow, aid, pdId);
                 return rt;
+            }
+            // 分布式事务需要添加 Saga 记录
+            if (isSaga) {
+                FaiList<Param> sagaList = new FaiList<>();
+                String xid = RootContext.getXID();
+                Long branchId = RootContext.getBranchId();
+                addDataList.forEach(addData -> {
+                    // 添加数据其实只需要记录主键就可以了
+                    Param saga = new Param();
+                    saga.assign(addData, SpuBizSummaryEntity.Info.AID);
+                    saga.assign(addData, SpuBizSummaryEntity.Info.PD_ID);
+                    saga.assign(addData, SpuBizSummaryEntity.Info.UNION_PRI_ID);
+                    saga.setString(StoreSagaEntity.Info.XID, xid);
+                    saga.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
+                    saga.setInt(StoreSagaEntity.Info.SAGA_OP, StoreSagaValObj.SagaOp.ADD);
+                    sagaList.add(saga);
+                });
+                // 添加 Saga 记录
+                rt = m_sagaDaoCtrl.batchInsert(sagaList, null, true);
+                if (rt != Errno.OK) {
+                    Log.logErr(rt, "insert saga error;flow=%d;aid=%d;sagaList=%s", m_flow, aid, sagaList);
+                    return rt;
+                }
             }
         }
         if(!batchUpdateDataList.isEmpty()){
@@ -313,6 +319,33 @@ public class SpuBizSummaryProc {
             initReportInfo(reportInfo);
         }
         Log.logStd(rt,"getReportList ok;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
+        return rt;
+    }
+
+    /**
+     * 获取补偿信息
+     *
+     * @param xid 全局事务id
+     * @param branchId 分支事务id
+     * @param spuBizSummarySagaListRef 接收返回的list
+     * @return {@link Errno}
+     */
+    public int getSagaList(String xid, Long branchId, Ref<FaiList<Param>> spuBizSummarySagaListRef) {
+        int rt;
+        if (Str.isEmpty(xid)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args err;xid is empty;flow=%d", m_flow);
+            return rt;
+        }
+        SearchArg searchArg = new SearchArg();
+        ParamMatcher matcher = new ParamMatcher(StoreSagaEntity.Info.XID, ParamMatcher.EQ, xid);
+        matcher.and(StoreSagaEntity.Info.BRANCH_ID, ParamMatcher.EQ, branchId);
+        searchArg.matcher = matcher;
+        rt = m_sagaDaoCtrl.select(searchArg, spuBizSummarySagaListRef);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            Log.logErr(rt, "select sagaList error;flow=%d", m_flow);
+            return rt;
+        }
         return rt;
     }
 
@@ -416,7 +449,7 @@ public class SpuBizSummaryProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
         Ref<FaiList<Param>> listRef = new Ref<>();
-        int rt = m_daoCtrl.select(searchArg, listRef, SpuBizSummaryEntity.Info.UNION_PRI_ID);
+        int rt = m_daoCtrl.select(searchArg, listRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             Log.logStd(rt, "select err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
             return rt;
@@ -430,14 +463,25 @@ public class SpuBizSummaryProc {
         // 标记管理数据为脏
         cacheManage.addDataTypeDirtyCacheKey(DataType.Manage, unionPirIdPdIdListMap.keySet());
         cacheManage.addDirtyCacheKey(aid, unionPirIdPdIdListMap);
-        if (!isSaga) {
-            // 非分布式事务，则走正常的删除逻辑
-            rt = m_daoCtrl.delete(matcher);
-        } else {
-            // 分布式事务，不删除当前记录，而是将 aid 变为负数
-            ParamUpdater updater = new ParamUpdater(new Param().setInt(SpuBizSummaryEntity.Info.AID, -aid));
-            rt = m_daoCtrl.update(updater, matcher);
+        if (isSaga) {
+            // 分布式事务，需要记录老的数据 录入 Saga 操作记录表中
+            FaiList<Param> sagaOpList = listRef.value;
+            String xid = RootContext.getXID();
+            Long branchId = RootContext.getBranchId();
+            // 构建数据
+            sagaOpList.forEach(sagaInfo -> {
+                sagaInfo.setString(StoreSagaEntity.Info.XID, xid);
+                sagaInfo.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
+                sagaInfo.setInt(StoreSagaEntity.Info.SAGA_OP, StoreSagaValObj.SagaOp.DEL);
+            });
+            // 添加 Saga 操作记录
+            rt = m_sagaDaoCtrl.batchInsert(sagaOpList);
+            if (rt != Errno.OK) {
+                Log.logErr(rt, "batchInsert SagaOperation error;flow=%d;aid=%d;sagaOpList=%s", m_flow, aid, sagaOpList);
+                return rt;
+            }
         }
+        rt = m_daoCtrl.delete(matcher);
         if(rt != Errno.OK){
             Log.logStd(rt, "delete err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
             return rt;
@@ -451,20 +495,19 @@ public class SpuBizSummaryProc {
      * Saga 模式 batchDel 的补偿方法
      *
      * @param aid aid
-     * @param pdIdList 商品id集合
+     * @param sagaList Saga 操作记录
      * @return {@link Errno}
      */
-    public int batchDelRollback(int aid, FaiList<Integer> pdIdList) {
+    public int batchDelRollback(int aid, FaiList<Param> sagaList) {
         int rt;
-        if (Util.isEmptyList(pdIdList)) {
+        if (Util.isEmptyList(sagaList)) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr(rt, "arg err;pdIdList is empty;flow=%d;aid=%d", m_flow, aid);
+            Log.logErr(rt, "arg err;delList is empty;flow=%d;aid=%d", m_flow, aid);
             return rt;
         }
-        ParamUpdater updater = new ParamUpdater(new Param().setInt(SpuBizSummaryEntity.Info.AID, aid));
-        ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, -aid);
-        matcher.and(SpuBizSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
-        rt = m_daoCtrl.update(updater, matcher);
+        // 去除 Saga 字段
+        Util.removeSagaColumn(sagaList);
+        rt = m_daoCtrl.batchInsert(sagaList);
         if (rt != Errno.OK) {
             Log.logErr(rt, "batchDelRollback err;flow=%d;aid=%d;", m_flow, aid);
             return rt;
@@ -676,16 +719,17 @@ public class SpuBizSummaryProc {
 
     private int m_flow;
     private SpuBizSummaryDaoCtrl m_daoCtrl;
+    private SpuBizSummarySagaDaoCtrl m_sagaDaoCtrl;
 
     private CacheManage cacheManage = new CacheManage();
 
     /**
      * Saga 模式下的补偿删除 ，根据 aid + pdIds + uids 删除
      * @param aid aid
-     * @param sagaSpuBizSumList 补偿主键
+     * @param sagaSpuBizSumList Saga 操作记录
      * @return {@link Errno}
      */
-    public int sagaDel(int aid, FaiList<Param> sagaSpuBizSumList) {
+    public int batchAddRollback(int aid, FaiList<Param> sagaSpuBizSumList) {
         ParamMatcher matcher1 = new ParamMatcher();
         matcher1.and(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
         ParamMatcher matcher2 = new ParamMatcher();

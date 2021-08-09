@@ -733,7 +733,7 @@ public class ProductBasicService extends MgProductInfService {
                         updaterList.add(new ParamUpdater(storeInfo));
                     }
                     ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-                    rt = productStoreProc.setSkuStoreSales(aid, tid, unionPriId, tx.getXid(), pdId, rlPdId, updaterList);
+                    rt = productStoreProc.setSkuStoreSales(aid, tid, unionPriId, xid, pdId, rlPdId, updaterList);
                     if(rt != Errno.OK) {
                         return rt;
                     }

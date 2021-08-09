@@ -13,4 +13,13 @@ public class StoreSagaValObj {
         /** 已补偿 */
         public static final int ROLLBACK_OK = 1;
     }
+
+    public static final class SagaOp {
+        /** 添加 */
+        public static final int ADD = 1;
+        /** 删除 */
+        public static final int DEL = 2;
+        /** 修改 */
+        public static final int MODIFY = 3;
+    }
 }

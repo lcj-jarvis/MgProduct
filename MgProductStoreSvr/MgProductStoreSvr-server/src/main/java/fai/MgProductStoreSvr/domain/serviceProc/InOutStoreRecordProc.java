@@ -886,19 +886,21 @@ public class InOutStoreRecordProc {
             }
             // 新增 Saga 操作记录
             FaiList<Param> sagaOpList = listRef.value;
-            String xid = RootContext.getXID();
-            Long branchId = RootContext.getBranchId();
-            // 构建数据
-            sagaOpList.forEach(sagaInfo -> {
-                sagaInfo.setString(StoreSagaEntity.Info.XID, xid);
-                sagaInfo.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
-                sagaInfo.setInt(StoreSagaEntity.Info.SAGA_OP, StoreSagaValObj.SagaOp.MODIFY);
-            });
-            // 添加 Saga 操作记录
-            rt = m_sagaDaoCtrl.batchInsert(sagaOpList);
-            if (rt != Errno.OK) {
-                Log.logErr(rt, "batchInsert SagaOperation error;flow=%d;aid=%d;sagaOpList=%s", m_flow, aid, sagaOpList);
-                return rt;
+            if (!Util.isEmptyList(sagaOpList)) {
+                String xid = RootContext.getXID();
+                Long branchId = RootContext.getBranchId();
+                // 构建数据
+                sagaOpList.forEach(sagaInfo -> {
+                    sagaInfo.setString(StoreSagaEntity.Info.XID, xid);
+                    sagaInfo.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
+                    sagaInfo.setInt(StoreSagaEntity.Info.SAGA_OP, StoreSagaValObj.SagaOp.MODIFY);
+                });
+                // 添加 Saga 操作记录
+                rt = m_sagaDaoCtrl.batchInsert(sagaOpList);
+                if (rt != Errno.OK) {
+                    Log.logErr(rt, "batchInsert SagaOperation error;flow=%d;aid=%d;sagaOpList=%s", m_flow, aid, sagaOpList);
+                    return rt;
+                }
             }
         }
         ParamUpdater updater = new ParamUpdater(new Param().setInt(InOutStoreRecordEntity.Info.STATUS, InOutStoreRecordValObj.Status.DEL));

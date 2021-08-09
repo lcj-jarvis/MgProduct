@@ -396,19 +396,21 @@ public class StoreSalesSkuProc {
         if (isSaga) {
             String xid = RootContext.getXID();
             Long branchId = RootContext.getBranchId();
-            FaiList<Param> sagaOldList = listRef.value.clone();
-            // 设置 pdId , 方便上报补偿
-            sagaOldList.forEach(oldInfo -> {
-                oldInfo.setInt(StoreSalesSkuEntity.Info.PD_ID, pdId);
-                oldInfo.setString(StoreSagaEntity.Info.XID, xid);
-                oldInfo.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
-                oldInfo.setInt(StoreSagaEntity.Info.SAGA_OP, StoreSagaValObj.SagaOp.MODIFY);
-            });
-            // 添加补偿记录
-            rt = m_sagaDaoCtrl.batchInsert(sagaOldList);
-            if (rt != Errno.OK) {
-                Log.logErr(rt, "insert saga error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, listRef.value);
-                return rt;
+            if (!Util.isEmptyList(listRef.value)) {
+                FaiList<Param> sagaOldList = listRef.value.clone();
+                // 设置 pdId , 方便上报补偿
+                sagaOldList.forEach(oldInfo -> {
+                    oldInfo.setInt(StoreSalesSkuEntity.Info.PD_ID, pdId);
+                    oldInfo.setString(StoreSagaEntity.Info.XID, xid);
+                    oldInfo.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
+                    oldInfo.setInt(StoreSagaEntity.Info.SAGA_OP, StoreSagaValObj.SagaOp.MODIFY);
+                });
+                // 添加补偿记录
+                rt = m_sagaDaoCtrl.batchInsert(sagaOldList);
+                if (rt != Errno.OK) {
+                    Log.logErr(rt, "insert saga error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, listRef.value);
+                    return rt;
+                }
             }
         }
         Map<SkuBizKey, Param> oldDataMap = new HashMap<>(listRef.value.size()*4/3+1);

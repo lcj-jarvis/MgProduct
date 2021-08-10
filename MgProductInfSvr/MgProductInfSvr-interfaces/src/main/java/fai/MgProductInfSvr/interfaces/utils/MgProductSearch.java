@@ -645,18 +645,15 @@ public class MgProductSearch {
         if(rlPdIdComparatorList != null && !rlPdIdComparatorList.isEmpty()){
             paramComparator.addKey(ProductBasicEntity.ProductInfo.RL_PD_ID, rlPdIdComparatorList);
             // 第二排序
-            if(needSecondComparatorSorting){
-                paramComparator.addKey(secondComparatorKey, secondComparatorKeyOrderByDesc);
-            }
         }else{
             // 第一排序
             if(!Str.isEmpty(this.firstComparatorTable) && !Str.isEmpty(this.firstComparatorKey)){
                 paramComparator.addKey(this.firstComparatorKey, this.firstComparatorKeyOrderByDesc);
             }
-            // 第二排序
-            if(needSecondComparatorSorting){
-                paramComparator.addKey(secondComparatorKey, secondComparatorKeyOrderByDesc);
-            }
+        }
+        // 第二排序
+        if(needSecondComparatorSorting){
+            paramComparator.addKey(secondComparatorKey, secondComparatorKeyOrderByDesc);
         }
         return paramComparator;
     }

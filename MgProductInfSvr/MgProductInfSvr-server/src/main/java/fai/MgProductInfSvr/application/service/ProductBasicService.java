@@ -569,7 +569,8 @@ public class ProductBasicService extends MgProductInfService {
                         specSkuUpdaterList.add(new ParamUpdater(specSkuInfo));
                     }
                     ProductSpecProc productSpecProc = new ProductSpecProc(flow);
-                    rt = productSpecProc.setPdSkuScInfoList(aid, tid, unionPriId, xid, pdId, specSkuUpdaterList);
+                    // TODO 规格服务暂时不支持分布式事务
+                    rt = productSpecProc.setPdSkuScInfoList(aid, tid, unionPriId, null, pdId, specSkuUpdaterList);
                     if(rt != Errno.OK) {
                         return rt;
                     }
@@ -791,7 +792,8 @@ public class ProductBasicService extends MgProductInfService {
                     return rt;
                 }
                 // 删除商品规格相关信息
-                rt = productSpecProc.batchDelPdAllSc(aid, tid, pdIdList, tx.getXid(), softDel);
+                // TODO 规格服务暂时不支持分布式事务
+                rt = productSpecProc.batchDelPdAllSc(aid, tid, pdIdList, null, softDel);
                 if (rt != Errno.OK) {
                     Log.logErr(rt, "batchDelPdAllSc err;aid=%s;tid=%s;pdIdList=%s;", aid, tid, pdIdList);
                     return rt;
@@ -992,7 +994,8 @@ public class ProductBasicService extends MgProductInfService {
             FaiList<Param> skuIdInfoList = new FaiList<>();
             // 添加
             if (!addSpecList.isEmpty()) {
-                rt = specProc.importPdScWithSku(aid, tid, unionPriId, tx.getXid(), addSpecList, addSpecSkuList, skuIdInfoList);
+                // TODO 规格暂时不支持分布式事务
+                rt = specProc.importPdScWithSku(aid, tid, unionPriId, null, addSpecList, addSpecSkuList, skuIdInfoList);
                 if (rt != Errno.OK) {
                     return rt;
                 }

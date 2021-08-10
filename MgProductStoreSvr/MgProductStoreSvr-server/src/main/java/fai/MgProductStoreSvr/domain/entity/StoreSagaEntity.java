@@ -11,7 +11,6 @@ public class StoreSagaEntity {
         public static final String AID = "aid";
         public static final String XID = "xid";
         public static final String BRANCH_ID = "branchId";
-        public static final String PROP = "prop";
         public static final String STATUS = "status";
         public static final String SAGA_OP = "sagaOp";
         public static final String SYS_CREATE_TIME = "sysCreateTime";

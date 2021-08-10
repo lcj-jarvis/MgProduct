@@ -877,9 +877,9 @@ public class InOutStoreRecordProc {
             SearchArg searchArg = new SearchArg();
             searchArg.matcher = matcher;
             Ref<FaiList<Param>> listRef = new Ref<>();
-            // 查询 主键数据
+            // 查询 主键数据 + pdId
             rt = m_sagaDaoCtrl.select(searchArg, listRef, InOutStoreRecordEntity.Info.AID, InOutStoreRecordEntity.Info.UNION_PRI_ID,
-                    InOutStoreRecordEntity.Info.SKU_ID, InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID);
+                    InOutStoreRecordEntity.Info.SKU_ID, InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, InOutStoreRecordEntity.Info.PD_ID);
             if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
                 Log.logErr(rt, "select ioStoreRecList error;flow=%d;aid=%d;pdIdList=%s", m_flow, aid, pdIdList);
                 return rt;
@@ -940,7 +940,7 @@ public class InOutStoreRecordProc {
             Log.logErr(rt, "batchDelRollback err;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
-        Log.logStd("batchDelRollback ok;flow=%d;aid=%d", m_flow, aid);
+        Log.logStd("inOutStoreRecord batchDelRollback ok;flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
 
@@ -1113,7 +1113,7 @@ public class InOutStoreRecordProc {
             Log.logErr(rt, "add inOutStore summary empty;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
-        rt = m_sumDaoCtrl.batchInsert(list);
+        rt = m_sumDaoCtrl.batchInsert(list, null, false);
         if(rt != Errno.OK) {
             Log.logErr(rt, "add inOutStore summary error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
@@ -1122,12 +1122,18 @@ public class InOutStoreRecordProc {
         if (isSaga) {
             String xid = RootContext.getXID();
             Long branchId = RootContext.getBranchId();
-            list.forEach(info -> {
-                info.setString(StoreSagaEntity.Info.XID, xid);
-                info.setInt(StoreSagaEntity.Info.SAGA_OP, StoreSagaValObj.SagaOp.ADD);
-                info.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
-            });
-            rt = m_sagaSumDaoCtrl.batchInsert(list);
+            FaiList<Param> sagaList = new FaiList<>();
+            for (Param info : list) {
+                Param sagaInfo = new Param();
+                sagaInfo.assign(info, InOutStoreSumEntity.Info.AID);
+                sagaInfo.assign(info, InOutStoreSumEntity.Info.UNION_PRI_ID);
+                sagaInfo.assign(info, InOutStoreSumEntity.Info.IN_OUT_STORE_REC_ID);
+                sagaInfo.setString(StoreSagaEntity.Info.XID, xid);
+                sagaInfo.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
+                sagaInfo.setInt(StoreSagaEntity.Info.SAGA_OP, StoreSagaValObj.SagaOp.ADD);
+                sagaList.add(sagaInfo);
+            }
+            rt = m_sagaSumDaoCtrl.batchInsert(sagaList);
             if(rt != Errno.OK) {
                 Log.logErr(rt, "insert inOutStore summary saga error;flow=%d;aid=%d;", m_flow, aid);
                 return rt;

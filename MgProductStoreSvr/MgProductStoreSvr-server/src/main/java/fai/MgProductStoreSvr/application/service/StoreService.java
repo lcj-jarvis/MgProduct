@@ -309,27 +309,33 @@ public class StoreService {
                         }
                         // 3、补偿 spu 汇总
                         if (!Util.isEmptyList(spuSummarySagaList)) {
-                            rt = spuBizSummaryProc.batchDelRollback(aid, spuSummarySagaList);
+                            rt = spuSummaryProc.batchDelRollback(aid, spuSummarySagaList);
                             if (rt != Errno.OK) {
                                 return rt;
                             }
                         }
                         // 4、补偿 商品规格销售 spu
                         if (!Util.isEmptyList(spuBizSummarySagaList)) {
-                            rt = spuBizSummaryProc.batchDelRollback(aid, spuSummarySagaList);
+                            rt = spuBizSummaryProc.batchDelRollback(aid, spuBizSummarySagaList);
                             if (rt != Errno.OK) {
                                 return rt;
                             }
                         }
                         // 5、补偿 sku 汇总
                         if (!Util.isEmptyList(skuSummarySagaList)) {
-                            rt = skuSummaryProc.batchDelRollback(aid, salesSkuSagaList);
+                            rt = skuSummaryProc.batchDelRollback(aid, skuSummarySagaList);
                             if (rt != Errno.OK) {
                                 return rt;
                             }
                         }
+                        // 6、修改 Saga 状态
+                        rt = storeSagaProc.setStatus(xid, branchId, StoreSagaValObj.Status.ROLLBACK_OK);
+                        if (rt != Errno.OK) {
+                            return rt;
+                        }
                         // ----------------------------------- 补偿操作 end ------------------------------------
                         commit = true;
+                        tc.commit();
                     } finally {
                         if (!commit) {
                             tc.rollback();

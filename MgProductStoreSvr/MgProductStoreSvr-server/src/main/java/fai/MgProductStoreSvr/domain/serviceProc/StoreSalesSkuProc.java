@@ -103,14 +103,24 @@ public class StoreSalesSkuProc {
         if (isSaga) {
             String xid = RootContext.getXID();
             Long branchId = RootContext.getBranchId();
-            dataList.forEach(data -> {
-                data.setString(StoreSagaEntity.Info.XID, xid);
-                data.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
-                data.setInt(StoreSagaEntity.Info.SAGA_OP, StoreSagaValObj.SagaOp.ADD);
-            });
-            rt = m_sagaDaoCtrl.batchInsert(dataList, null, true);
-            Log.logErr(rt, "batchAddSaga dao.error;flow=%d;aid=%d", m_flow, aid);
-            return rt;
+            FaiList<Param> sagaList = new FaiList<>();
+            for (Param info : dataList) {
+                Param sagaInfo = new Param();
+                sagaInfo.assign(info, StoreSalesSkuEntity.Info.AID);
+                sagaInfo.assign(info, StoreSalesSkuEntity.Info.UNION_PRI_ID);
+                sagaInfo.assign(info, StoreSalesSkuEntity.Info.SKU_ID);
+                // 记录 pdId 用于上报补偿
+                sagaInfo.assign(info, StoreSalesSkuEntity.Info.PD_ID);
+                sagaInfo.setString(StoreSagaEntity.Info.XID, xid);
+                sagaInfo.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
+                sagaInfo.setInt(StoreSagaEntity.Info.SAGA_OP, StoreSagaValObj.SagaOp.ADD);
+                sagaList.add(sagaInfo);
+            }
+            rt = m_sagaDaoCtrl.batchInsert(sagaList);
+            if (rt != Errno.OK) {
+                Log.logErr(rt, "batchAddSaga dao.error;flow=%d;aid=%d", m_flow, aid);
+                return rt;
+            }
         }
         Log.logStd("ok;flow=%d;aid=%d;addPdIdList=%s;", m_flow, aid, addPdIdList);
         return rt;
@@ -337,6 +347,7 @@ public class StoreSalesSkuProc {
             Log.logErr(rt, "batchDelRollback error;flow=%d;aid=%d;sagaList=%s", m_flow, aid, sagaList);
             return rt;
         }
+        Log.logStd("storeSalesSku batchDelRollback ok;flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
 
@@ -400,15 +411,16 @@ public class StoreSalesSkuProc {
                 FaiList<Param> sagaOldList = listRef.value.clone();
                 // 设置 pdId , 方便上报补偿
                 sagaOldList.forEach(oldInfo -> {
+                    oldInfo.setInt(StoreSalesSkuEntity.Info.AID, aid);
                     oldInfo.setInt(StoreSalesSkuEntity.Info.PD_ID, pdId);
                     oldInfo.setString(StoreSagaEntity.Info.XID, xid);
                     oldInfo.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
                     oldInfo.setInt(StoreSagaEntity.Info.SAGA_OP, StoreSagaValObj.SagaOp.MODIFY);
                 });
                 // 添加补偿记录
-                rt = m_sagaDaoCtrl.batchInsert(sagaOldList);
+                rt = m_sagaDaoCtrl.batchInsert(sagaOldList, null, false);
                 if (rt != Errno.OK) {
-                    Log.logErr(rt, "insert saga error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, listRef.value);
+                    Log.logErr(rt, "insert saga error;flow=%d;aid=%s;sagaOldList=%s;", m_flow, aid, sagaOldList);
                     return rt;
                 }
             }
@@ -490,7 +502,7 @@ public class StoreSalesSkuProc {
             return rt;
         }
         FaiList<ParamUpdater> updaterList = new FaiList<>();
-        storeSalesSkuSagaList.forEach(data -> updaterList.add(new ParamUpdater(data)));
+        storeSalesSkuSagaList.clone().forEach(data -> updaterList.add(new ParamUpdater(data)));
         // 获取更新最大key
         Set<String> maxUpdaterKeys = Utils.validUpdaterList(updaterList, StoreSalesSkuEntity.getValidKeys(), null);
         if(maxUpdaterKeys.contains(StoreSalesSkuEntity.Info.PRICE)){
@@ -501,6 +513,8 @@ public class StoreSalesSkuProc {
         // 移除主键
         maxUpdaterKeys.remove(StoreSalesSkuEntity.Info.AID);
         maxUpdaterKeys.remove(StoreSalesSkuEntity.Info.SKU_ID);
+        // 同时要移除 pdId
+        maxUpdaterKeys.remove(StoreSalesSkuEntity.Info.PD_ID);
 
         // prepare updater
         ParamUpdater doBatchUpdater = new ParamUpdater();

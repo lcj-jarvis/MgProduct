@@ -280,7 +280,7 @@ public class SpuSummaryProc {
                 sagaInfo.setInt(StoreSagaEntity.Info.SAGA_OP, StoreSagaValObj.SagaOp.DEL);
             });
             // 添加 Saga 操作记录
-            rt = m_sagaDaoCtrl.batchInsert(sagaOpList);
+            rt = m_sagaDaoCtrl.batchInsert(sagaOpList, null, true);
             if (rt != Errno.OK) {
                 Log.logErr(rt, "batchInsert SagaOperation error;flow=%d;aid=%d;sagaOpList=%s", m_flow, aid, sagaOpList);
                 return rt;
@@ -318,7 +318,7 @@ public class SpuSummaryProc {
             Log.logErr(rt, "batchDelRollback err;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
-        Log.logStd("batchDelRollback ok;flow=%d;aid=%d", m_flow, aid);
+        Log.logStd("spuSummary batchDelRollback ok;flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
 
@@ -339,10 +339,10 @@ public class SpuSummaryProc {
         matcher.and(SpuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
         int rt = m_daoCtrl.delete(matcher);
         if (rt != Errno.OK) {
-            Log.logErr(rt, "sagaDel err;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+            Log.logErr(rt, "batchAddRollback err;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
             return rt;
         }
-        Log.logStd(rt, "sagaDel ok;flow=%d;aid=%d", m_flow, aid);
+        Log.logStd(rt, "batchAddRollback ok;flow=%d;aid=%d", m_flow, aid);
         return rt;
     }
 

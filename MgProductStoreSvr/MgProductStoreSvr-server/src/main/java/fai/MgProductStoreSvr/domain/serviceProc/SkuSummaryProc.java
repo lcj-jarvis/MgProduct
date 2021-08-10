@@ -356,7 +356,7 @@ public class SkuSummaryProc {
             Log.logErr(rt, "batchDelRollback err;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
-        Log.logStd("batchDelRollback ok;flow=%d;aid=%d", m_flow, aid);
+        Log.logStd("skuSummary batchDelRollback ok;flow=%d;aid=%d", m_flow, aid);
         return rt;
     }
 
@@ -377,10 +377,10 @@ public class SkuSummaryProc {
         matcher.and(SkuSummaryEntity.Info.SKU_ID, ParamMatcher.IN, skuIds);
         int rt = m_daoCtrl.delete(matcher);
         if (rt != Errno.OK) {
-            Log.logErr(rt, "sagaDel err;flow=%d;aid=%d;skuIds=%s", m_flow, aid, skuIds);
+            Log.logErr(rt, "batchAddRollback err;flow=%d;aid=%d;skuIds=%s", m_flow, aid, skuIds);
             return rt;
         }
-        Log.logStd(rt, "sagaDel ok;flow=%d;aid=%d", m_flow, aid);
+        Log.logStd(rt, "batchAddRollback ok;flow=%d;aid=%d", m_flow, aid);
         return rt;
     }
 

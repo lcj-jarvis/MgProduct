@@ -883,6 +883,7 @@ public class StoreSalesSkuService extends StoreService {
                         }
                         // -------------------------------------------- 补偿操作 end -------------------------------------------
                         commit = true;
+                        tc.commit();
                     } finally {
                         if (!commit) {
                             tc.rollback();

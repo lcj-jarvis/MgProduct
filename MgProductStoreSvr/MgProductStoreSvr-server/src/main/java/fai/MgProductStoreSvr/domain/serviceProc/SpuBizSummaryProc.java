@@ -514,7 +514,7 @@ public class SpuBizSummaryProc {
             Log.logErr(rt, "batchDelRollback err;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
-        Log.logStd("batchDelRollback ok;flow=%d;aid=%d", m_flow, aid);
+        Log.logStd("spuBizSummary batchDelRollback ok;flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
 
@@ -745,10 +745,10 @@ public class SpuBizSummaryProc {
         matcher1.and(matcher2);
         int rt = m_daoCtrl.delete(matcher1);
         if (rt != Errno.OK) {
-            Log.logErr(rt, "sagaDel err;flow=%d;aid=%d;sagaSpuBizSumList=%s", m_flow, aid, sagaSpuBizSumList);
+            Log.logErr(rt, "batchAddRollback err;flow=%d;aid=%d;sagaSpuBizSumList=%s", m_flow, aid, sagaSpuBizSumList);
             return rt;
         }
-        Log.logStd("sagaDel ok;flow=%d;aid=%s", m_flow, aid);
+        Log.logStd("batchAddRollback ok;flow=%d;aid=%s", m_flow, aid);
         return rt;
     }
 

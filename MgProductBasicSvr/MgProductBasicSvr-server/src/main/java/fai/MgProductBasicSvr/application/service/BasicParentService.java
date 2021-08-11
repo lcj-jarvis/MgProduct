@@ -1,15 +1,16 @@
 package fai.MgProductBasicSvr.application.service;
 
+import fai.MgProductBasicSvr.domain.common.ESUtil;
 import fai.MgProductBasicSvr.domain.common.LockUtil;
 import fai.MgProductBasicSvr.domain.common.SagaRollback;
 import fai.MgProductBasicSvr.domain.entity.BasicSagaEntity;
 import fai.MgProductBasicSvr.domain.entity.BasicSagaValObj;
 import fai.MgProductBasicSvr.domain.repository.cache.CacheCtrl;
 import fai.MgProductBasicSvr.domain.serviceproc.SagaProc;
+import fai.app.DocOplogDef;
 import fai.comm.fseata.client.core.model.BranchStatus;
 import fai.comm.util.Log;
 import fai.comm.util.Param;
-import fai.comm.util.Str;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 import fai.middleground.svrutil.service.ServicePub;
 
@@ -63,6 +64,8 @@ public class BasicParentService extends ServicePub {
             // 更新缓存
             CacheCtrl.clearCacheVersion(aid);
             Log.logStd("do rollback ok;aid=%d;xid=%s;branchId=%s;", aid, xid, branchId);
+            // 同步数据到es
+            ESUtil.commitPre(flow, aid);
         } finally {
             LockUtil.unlock(aid);
         }

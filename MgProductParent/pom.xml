@@ -24,9 +24,9 @@
         <fai-comm-util-opt-ver>1.0.0</fai-comm-util-opt-ver>
 
         <!--arch-->
-        <fai-app-arch-ver>1.0.0</fai-app-arch-ver>
+        <fai-app-arch-ver>1.1.3</fai-app-arch-ver>
         <fai-web-arch-ver>1.0.0</fai-web-arch-ver>
-        <fai-cli-arch-ver>1.0.0</fai-cli-arch-ver>
+        <fai-cli-arch-ver>1.1.0</fai-cli-arch-ver>
         <fai-web-inf-arch-ver>1.0.0</fai-web-inf-arch-ver>
         <fai-web-kit-arch-ver>1.0.0</fai-web-kit-arch-ver>
         <fai-comm-util-arch-ver>1.0.6</fai-comm-util-arch-ver>

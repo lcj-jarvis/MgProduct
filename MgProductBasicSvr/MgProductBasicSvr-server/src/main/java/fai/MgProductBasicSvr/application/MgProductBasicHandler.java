@@ -4,10 +4,12 @@ import fai.MgProductBasicSvr.application.service.ProductBasicService;
 import fai.MgProductBasicSvr.application.service.ProductBindGroupService;
 import fai.MgProductBasicSvr.application.service.ProductBindPropService;
 import fai.MgProductBasicSvr.application.service.ProductBindTagService;
+import fai.MgProductBasicSvr.domain.common.ESUtil;
 import fai.MgProductBasicSvr.interfaces.cmd.MgProductBasicCmd;
 import fai.MgProductBasicSvr.interfaces.dto.*;
 import fai.comm.fseata.client.core.rpc.annotation.SagaTransaction;
 import fai.comm.fseata.client.core.rpc.def.CommDef;
+import fai.comm.jnetkit.server.ServerHandlerContext;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
@@ -26,6 +28,23 @@ import java.io.IOException;
 public class MgProductBasicHandler extends MiddleGroundHandler {
     public MgProductBasicHandler(FaiServer server) {
         super(server);
+    }
+
+    @Override
+    public void channelRead(final ServerHandlerContext context,
+                            final Object message) throws Exception {
+        try {
+            super.channelRead(context, message);
+        }finally {
+            afterRequest();
+        }
+    }
+
+    /**
+     * 请求结束后执行，不管请求是否报错，都会执行
+     */
+    private void afterRequest() {
+        ESUtil.clear();
     }
 
     @Cmd(MgProductBasicCmd.BindPropCmd.GET_LIST)

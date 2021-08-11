@@ -1,9 +1,11 @@
 package fai.MgProductBasicSvr.domain.serviceproc;
 
+import fai.MgProductBasicSvr.domain.common.ESUtil;
 import fai.MgProductBasicSvr.domain.entity.*;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductRelCacheCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductRelDaoCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.saga.ProductRelSagaDaoCtrl;
+import fai.app.DocOplogDef;
 import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
@@ -120,6 +122,14 @@ public class ProductRelProc {
         int rt;
         ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        // 记录要同步到es的数据
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        FaiList<String> fields = new FaiList<>();
+        fields.add(ProductRelEntity.Info.PD_ID);
+        FaiList<Param> list = searchFromDb(aid, searchArg, fields);
+        ESUtil.batchPreLog(aid, list, DocOplogDef.Operation.DELETE_ONE);
+
         if(softDel) {
             Param updateInfo = new Param();
             updateInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DEL);
@@ -134,6 +144,7 @@ public class ProductRelProc {
         // 处理下idBuilder
         restoreMaxId(aid, unionPriId, false);
         Log.logStd("clearData ok;flow=%d;aid=%d;unionPriId=%s;delCnt=%s;", m_flow, aid, unionPriId, refRowCount.value);
+
         return refRowCount.value;
     }
 
@@ -146,6 +157,11 @@ public class ProductRelProc {
         }
         ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+
+        // 记录要同步给es的数据
+        FaiList<Param> list = searchFromDb(aid, matcher, Utils.asFaiList(ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.PD_ID));
+        ESUtil.batchPreLog(aid, list, DocOplogDef.Operation.DELETE_ONE);
+
         rt = m_dao.delete(matcher);
         if(rt != Errno.OK) {
             throw new MgException(rt, "del product rel error;flow=%d;aid=%d;unionPridId=%s;", m_flow, aid, unionPriIds);
@@ -412,6 +428,8 @@ public class ProductRelProc {
 
             restoreMaxId(aid, unionPriId, false);
             Log.logStd("rollback add ok;aid=%d;uid=%d;pdIds=%s;", aid, unionPriId, pdIds);
+            // es同步数据 预处理
+            ESUtil.batchPreLog(aid, unionPriId, pdIds, DocOplogDef.Operation.DELETE_ONE);
         }
     }
 
@@ -463,6 +481,10 @@ public class ProductRelProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "updatePdRel error;flow=%d;aid=%d;dataList=%s;", m_flow, aid, dataList);
         }
+
+        // es同步数据 预处理
+        ESUtil.batchPreLog(aid, new FaiList<>(list), DocOplogDef.Operation.UPDATE_ONE);
+
         Log.logStd("updatePdRel rollback ok;flow=%d;aid=%d;dataList=%s;", m_flow, aid, dataList);
     }
 
@@ -479,10 +501,13 @@ public class ProductRelProc {
             relInfo.remove(BasicSagaEntity.Common.BRANCH_ID);
             relInfo.remove(BasicSagaEntity.Common.SAGA_OP);
         }
-        int rt = m_dao.batchInsert(new FaiList<>(list), null, true);
+        int rt = m_dao.batchInsert(new FaiList<>(list), null, false);
         if(rt != Errno.OK) {
             throw new MgException(rt, "add list error;flow=%d;aid=%d;list=%s;", m_flow, aid, list);
         }
+
+        // es同步数据 预处理
+        ESUtil.batchPreLog(aid, new FaiList<>(list), DocOplogDef.Operation.UPDATE_ONE);
 
         Log.logStd("rollback del ok;aid=%d;xid=%s;list=%s;", aid, m_xid, list);
     }
@@ -614,7 +639,7 @@ public class ProductRelProc {
     }
 
     /**
-     * 在 aid + unionPriId 下搜索
+     * 在 aid 下搜索
      */
     public FaiList<Param> searchFromDb(int aid, SearchArg searchArg, FaiList<String> selectFields) {
         if(searchArg == null) {
@@ -639,6 +664,11 @@ public class ProductRelProc {
             Log.logDbg(rt, "not found;flow=%d;aid=%d;match=%s;", m_flow, aid, searchArg.matcher.toJson());
         }
         return listRef.value;
+    }
+    public FaiList<Param> searchFromDb(int aid, ParamMatcher matcher, FaiList<String> selectFields) {
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        return searchFromDb(aid, searchArg, selectFields);
     }
 
     private int getPdRelCountFromDB(int aid, int unionPriId) {

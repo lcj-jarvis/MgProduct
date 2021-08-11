@@ -1,10 +1,12 @@
 package fai.MgProductBasicSvr.domain.serviceproc;
 
+import fai.MgProductBasicSvr.domain.common.ESUtil;
 import fai.MgProductBasicSvr.domain.common.MgProductCheck;
 import fai.MgProductBasicSvr.domain.entity.*;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductCacheCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductDaoCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.saga.ProductSagaDaoCtrl;
+import fai.app.DocOplogDef;
 import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
@@ -30,6 +32,10 @@ public class ProductProc {
             this.withSaga = withSaga;
         }
         init(tc);
+    }
+
+    public void setRelProc(ProductRelProc relProc) {
+        this.relProc = relProc;
     }
 
     public int addProduct(int aid, Param pdData) {
@@ -493,6 +499,7 @@ public class ProductProc {
         keySet.remove(BasicSagaEntity.Common.SAGA_OP);
         FaiList<String> keyList = new FaiList<>(keySet);
 
+        FaiList<Integer> pdIds = new FaiList<>();
         FaiList<Param> dataList = new FaiList<>();
         for(Param info : list) {
             int pdId = info.getInt(ProductEntity.Info.PD_ID);
@@ -519,6 +526,30 @@ public class ProductProc {
             throw new MgException(rt, "update pd error;flow=%d;aid=%d;dataList=%s;", m_flow, aid, dataList);
         }
         Log.logStd("update pd rollback ok;flow=%d;aid=%d;dataList=%s;", m_flow, aid, dataList);
+
+        // 同步数据给es 预处理
+        preLog4ES(aid, pdIds);
+    }
+
+    /**
+     * 只有rollback4Update 会调用
+     * 因为除了更新操作，新增和删除必然会操作到关系表对应的数据
+     * 所以在操作关系表数据的时候，同步给es就行了
+     */
+    private void preLog4ES(int aid, FaiList<Integer> pdIds){
+        if(Utils.isEmptyList(pdIds) || relProc == null) {
+            return;
+        }
+        SearchArg relSearch = new SearchArg();
+        relSearch.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        relSearch.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        FaiList<String> fields = new FaiList<>();
+        fields.add(ProductRelEntity.Info.UNION_PRI_ID);
+        fields.add(ProductRelEntity.Info.PD_ID);
+        // 根据pdIds，反查关系表，得到unionPirId 和 pdId的绑定关系
+        FaiList<Param> relList = relProc.searchFromDb(aid, relSearch, fields);
+
+        ESUtil.batchPreLog(aid, relList, DocOplogDef.Operation.UPDATE_ONE);
     }
 
     /**
@@ -613,4 +644,5 @@ public class ProductProc {
     private boolean withSaga;
     private ProductDaoCtrl m_dao;
     private ProductSagaDaoCtrl m_sagaDao;
+    private ProductRelProc relProc;
 }

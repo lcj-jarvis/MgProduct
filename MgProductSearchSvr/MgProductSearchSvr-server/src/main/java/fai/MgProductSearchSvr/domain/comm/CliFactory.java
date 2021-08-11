@@ -26,9 +26,8 @@ public class CliFactory {
                 cli = null;
             }
         } catch (Exception e) {
-            Log.logErr(e, "get cli error;flow=%d;", flow);
+            Log.logErr(e, "create cli error;flow=%d;", flow);
         }
         return cli;
     }
-
 }

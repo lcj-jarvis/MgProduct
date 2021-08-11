@@ -16,6 +16,8 @@ public class MgProductSearch {
         public static final String RL_PD_ID_LIST = "rlPdIdList";      // 商品业务idList
         public static final String TYPE_LIST = "typeList";            // 商品类型：实物、卡密、酒店
         public static final String RL_LIB_ID_LIST = "rlLibIdList";               //  在哪些库搜索，默认是全部库
+        public static final String RL_FLAG = "rlFlag"; // 对应哪些flag
+        public static final String ENABLE_RLFLAG_USE_LANDNE = "enableRlFlagUseLandNe";
 
         public static final String SEARCH_KEY_WORD = "searchKeyWord";        // 搜索关键词
         public static final String ENABLE_SEARCH_PRODUCT_NAME = "enableSearchProductName";  // 是否允许搜索商品名称, 默认是 false
@@ -55,7 +57,7 @@ public class MgProductSearch {
 
     //  上下架搜索参数封装
     public enum UpSalesStatusEnum{
-        ALL(0), // 全部
+        ALL(0), // 全部的状态
         UP_SALES(1),  // 上架
         DOWN_SALES(2), // 下架
         DELETE(3), // 删除
@@ -96,6 +98,8 @@ public class MgProductSearch {
     private Calendar addTimeBegin;
     private Calendar addTimeEnd;           // 如果搜索的 创建时间 开始 和 创建时间 结束是相同的，则走 EQ 的逻辑
     private FaiList<Integer> rlLibIdList;        //  在哪些库搜索，默认是全部库
+    private Integer rlFlag;                // 对应哪些rlFlag
+    private boolean enableRlFlagUseLandNe = false; // 是否允许rlFlag使用 &<>作为查询条件
     private String searchKeyWord;            //  搜索的关键字，会关联商品名称、商品对应的参数
     private boolean enableSearchProductName = false;   // 是否允许搜索商品名称, 默认是 false
     private boolean enableSearchProductProp = false;   // 是否允许搜索商品参数, 默认是 false
@@ -137,6 +141,8 @@ public class MgProductSearch {
         param.setList(Info.RL_PD_ID_LIST, rlPdIdList);          // priceEnd
         param.setList(Info.TYPE_LIST, typeList);                // 商品类型：实物、卡密、酒店， 对应 ProductEntity.Info.PD_TYPE 字段
         param.setList(Info.RL_LIB_ID_LIST, rlLibIdList);           //  在哪些库搜索，默认是全部库
+        param.setInt(Info.RL_FLAG, rlFlag); //对应商品的rlFlag
+        param.setBoolean(Info.ENABLE_RLFLAG_USE_LANDNE, enableRlFlagUseLandNe); // 是否允许rlFlag使用 &<>作为查询条件
         param.setString(Info.SEARCH_KEY_WORD, searchKeyWord);  // 商品搜索关键词
         param.setBoolean(Info.ENABLE_SEARCH_PRODUCT_NAME, enableSearchProductName);   // 是否允许搜索商品名称, 默认是 false
         param.setBoolean(Info.ENABLE_SEARCH_PRODUCT_PROP, enableSearchProductProp);   // 是否允许搜索商品参数, 默认是 false
@@ -177,6 +183,8 @@ public class MgProductSearch {
         this.typeList = searchParam.getList(Info.TYPE_LIST);               // 商品类型：实物、卡密、酒店
 
         this.rlLibIdList = searchParam.getList(Info.RL_LIB_ID_LIST);                       //  在哪些库搜索，默认是全部库
+        this.rlFlag = searchParam.getInt(Info.RL_FLAG);   // 对应商品的rlFlag
+        this.enableRlFlagUseLandNe = searchParam.getBoolean(Info.ENABLE_RLFLAG_USE_LANDNE); // 是否允许rlFlag使用 &<>作为查询条件
         this.searchKeyWord = searchParam.getString(Info.SEARCH_KEY_WORD);   // 商品搜索关键词
         this.enableSearchProductName = searchParam.getBoolean(Info.ENABLE_SEARCH_PRODUCT_NAME);  // 是否允许搜索商品名称, 默认是 false
         this.enableSearchProductProp = searchParam.getBoolean(Info.ENABLE_SEARCH_PRODUCT_PROP);  // 是否允许搜索商品参数, 默认是 false
@@ -341,13 +349,15 @@ public class MgProductSearch {
             }
         }
 
-        // 上架或者下架的
+        // 商品的状态（商品业务表）
         if (upSalesStatus == UpSalesStatusEnum.UP_AND_DOWN_SALES.upSalesStatus){
+            // 上架或者下架的，或者两种都有
             FaiList<Integer> statusList = new FaiList<Integer>();
             statusList.add(ProductBasicValObj.ProductRelValObj.Status.UP);
             statusList.add(ProductBasicValObj.ProductRelValObj.Status.DOWN);
             paramMatcher.and(ProductBasicEntity.ProductInfo.STATUS, ParamMatcher.IN, statusList);
-        }else if(upSalesStatus != UpSalesStatusEnum.ALL.upSalesStatus){   //  非全部的
+        }else if(upSalesStatus != UpSalesStatusEnum.ALL.upSalesStatus){
+            //  非全部的，单独是某种状态
             paramMatcher.and(ProductBasicEntity.ProductInfo.STATUS, ParamMatcher.EQ, upSalesStatus);
         }
 
@@ -644,7 +654,6 @@ public class MgProductSearch {
         // 商品idList 排序，设置了这个排序，其他设置的排序就无效了
         if(rlPdIdComparatorList != null && !rlPdIdComparatorList.isEmpty()){
             paramComparator.addKey(ProductBasicEntity.ProductInfo.RL_PD_ID, rlPdIdComparatorList);
-            // 第二排序
         }else{
             // 第一排序
             if(!Str.isEmpty(this.firstComparatorTable) && !Str.isEmpty(this.firstComparatorKey)){

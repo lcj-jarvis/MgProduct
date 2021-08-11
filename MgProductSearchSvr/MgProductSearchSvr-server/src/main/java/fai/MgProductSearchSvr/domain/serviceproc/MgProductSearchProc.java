@@ -18,7 +18,6 @@ import java.util.HashSet;
  * @date 2021-08-06 9:48
  */
 public class MgProductSearchProc {
-
     /**
      * 根据 ProductRelEntity.Info.PD_ID 去重
      * @param resultList 去重的集合
@@ -110,11 +109,15 @@ public class MgProductSearchProc {
         return searchList;
     }
 
+    /**
+     * 从远端获取数据
+     */
     public Param getDataStatusInfoFromEachSvr(int aid, int unionPriId, int tid, int flow, String tableName, MgProductBasicCli mgProductBasicCli, MgProductStoreCli mgProductStoreCli){
         Param remoteDataStatusInfo = new Param();
+        int rt;
         if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName.equals(tableName)){
             // 从远端获取数据, 待完善
-            int rt = mgProductBasicCli.getPdDataStatus(aid, remoteDataStatusInfo);
+            rt = mgProductBasicCli.getPdDataStatus(aid, remoteDataStatusInfo);
             if(rt != Errno.OK){
                 Log.logErr(rt,"getPdDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
             }
@@ -122,7 +125,7 @@ public class MgProductSearchProc {
         }
         if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_REL.searchTableName.equals(tableName)){
             // 从远端获取数据
-            int rt = mgProductBasicCli.getPdRelDataStatus(aid, unionPriId, remoteDataStatusInfo);
+            rt = mgProductBasicCli.getPdRelDataStatus(aid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
                 Log.logErr(rt,"getPdRelDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
             }
@@ -131,7 +134,7 @@ public class MgProductSearchProc {
 
         if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.searchTableName.equals(tableName)){
             // 从远端获取数据
-            int rt = mgProductBasicCli.getBindPropDataStatus(aid, unionPriId, remoteDataStatusInfo);
+            rt = mgProductBasicCli.getBindPropDataStatus(aid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
                 Log.logErr(rt,"getBindPropDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
             }
@@ -140,7 +143,7 @@ public class MgProductSearchProc {
 
         if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.searchTableName.equals(tableName)){
             // 从远端获取数据
-            int rt = mgProductBasicCli.getBindGroupDataStatus(aid, unionPriId, remoteDataStatusInfo);
+            rt = mgProductBasicCli.getBindGroupDataStatus(aid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
                 Log.logErr(rt,"getBindGroupDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
             }
@@ -149,7 +152,7 @@ public class MgProductSearchProc {
 
         if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.searchTableName.equals(tableName)){
             // 从远端获取数据
-            int rt = mgProductBasicCli.getBindTagDataStatus(aid, unionPriId, remoteDataStatusInfo);
+            rt = mgProductBasicCli.getBindTagDataStatus(aid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
                 Log.logErr(rt,"getBindTagDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
             }
@@ -158,7 +161,7 @@ public class MgProductSearchProc {
 
         if(MgProductSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.searchTableName.equals(tableName)){
             // 从远端获取数据, 待完善
-            int rt = mgProductStoreCli.getSpuBizSummaryDataStatus(aid, tid, unionPriId, remoteDataStatusInfo);
+            rt = mgProductStoreCli.getSpuBizSummaryDataStatus(aid, tid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
                 Log.logErr(rt,"getSpuBizSummaryDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
             }

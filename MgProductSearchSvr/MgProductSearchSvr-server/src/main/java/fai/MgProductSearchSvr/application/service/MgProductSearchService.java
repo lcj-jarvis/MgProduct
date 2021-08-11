@@ -132,7 +132,7 @@ public class MgProductSearchService {
             }
 
             // 重写排序表, 如果有 rlPdIdComparatorList，则 ProductRelEntity.Info.RL_PD_ID 是最优排序表。
-            // 或者只是需要  ProductRelEntity.Info.RL_PD_ID 排序
+            // 或者只是需要  ProductRelEntity.Info.RL_PD_ID 排序 (如果第一排序表为空，而且设置了第二排序)
             boolean rewriteComparatorTable = rlPdIdComparatorListNotEmpty || (Str.isEmpty(firstComparatorTable) && isNeedSecondComparatorSorting);
             if(rewriteComparatorTable){
                 for(int i = (searchSorterInfoList.size() - 1); i >=0; i--){
@@ -342,7 +342,6 @@ public class MgProductSearchService {
         // 首先判断本地缓存的数据和状态
         boolean needGetDataFromRemote = false;
         boolean isOnlySearchManageData = false;
-
         //  各种数据状态的本地缓存
         String cacheKey = MgProductSearchCache.LocalDataStatusCache.getDataStatusCacheKey(aid, unionPriId, searchTableName);
         Param localDataStatusCacheInfo = MgProductSearchCache.LocalDataStatusCache.getLocalDataStatusCache(cacheKey);
@@ -352,15 +351,13 @@ public class MgProductSearchService {
         if(!Str.isEmpty(localDataStatusCacheInfo) && !Str.isEmpty(remoteDataStatusInfo)){
             // 是否只查管理态的数据
             isOnlySearchManageData = mgProductSearch.getIsOnlySearchManageData(searchTableName);
-            // 管理态数据变动，影响所有的缓存, 因为管理变动可能会导致访客的数据变动
-            if(localDataStatusCacheInfo.getLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME) < remoteDataStatusInfo.getLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME)){
-                needGetDataFromRemote = true;
-            }else{
-                // 如果有搜索访客字段，并且是访客字段时间有变动，需要 reload 数据
-                if(!isOnlySearchManageData && localDataStatusCacheInfo.getLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME) < remoteDataStatusInfo.getLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME)){
-                    needGetDataFromRemote = true;
-                }
-            }
+            /*
+                （1）管理态数据变动，影响所有的缓存, 因为管理变动可能会导致访客的数据变动
+                （2）如果有搜索访客字段，并且是访客字段时间有变动，需要 reload 数据
+                 以上两种情况满足其中一个就行
+             */
+            needGetDataFromRemote = localDataStatusCacheInfo.getLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME) < remoteDataStatusInfo.getLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME) ||
+                (!isOnlySearchManageData && localDataStatusCacheInfo.getLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME) < remoteDataStatusInfo.getLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME));
         }else if (Str.isEmpty(localDataStatusCacheInfo) && !Str.isEmpty(remoteDataStatusInfo)){
             // 本地没有了数据，如果进入搜索逻辑，则需要重新reload数据
             // 赋值到新的 cache
@@ -589,7 +586,6 @@ public class MgProductSearchService {
             //  补充搜索排序表
             if(needCompare){
                 // 如果有排序，并且排序字段不是 PD_ID、RL_PD_ID
-                // TODO 这个判断条件有点问题，后面再回来看看
                 if(!rlPdIdComparatorListNotEmpty &&
                         !ProductEntity.Info.PD_ID.equals(firstComparatorKey) &&
                         !ProductRelEntity.Info.RL_PD_ID.equals(firstComparatorKey)){

@@ -11,6 +11,7 @@ import fai.MgProductPropSvr.interfaces.cli.MgProductPropCli;
 import fai.MgProductSearchSvr.domain.comm.CliFactory;
 import fai.MgProductSearchSvr.domain.repository.cache.MgProductSearchCache;
 import fai.MgProductSearchSvr.domain.serviceproc.MgProductSearchProc;
+import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
 import fai.MgProductStoreSvr.interfaces.cli.MgProductStoreCli;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.jnetkit.server.fai.FaiSession;
@@ -29,9 +30,15 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MgProductSearchService {
 
     private final MgProductSearchProc searchProc = new MgProductSearchProc();
+    private static final FaiList<String> NOT_HAVE_RLPDID_TABLE = new FaiList<>();
+
+    static {
+        NOT_HAVE_RLPDID_TABLE.add(MgProductSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName);
+        NOT_HAVE_RLPDID_TABLE.add(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU.searchTableName);
+    }
 
     /**
-     * 支持的搜索表中，除开商品基础表只有 PD_ID, 其他表都有 PD_ID、RL_PD_ID 这两个字段
+     * 支持的搜索表中，除开商品基础表和商品规格skuCode表只有 PD_ID, 其他表都有 PD_ID、RL_PD_ID 这两个字段
      */
     @SuccessRt(value=Errno.OK)
     public int searchList(FaiSession session, int flow, int aid, int unionPriId, int tid, int productCount, String searchParamString) throws IOException {
@@ -62,6 +69,8 @@ public class MgProductSearchService {
             // 初始化需要用到的 client
             MgProductBasicCli mgProductBasicCli = CliFactory.getCliInstance(flow, MgProductBasicCli.class);
             MgProductStoreCli mgProductStoreCli = CliFactory.getCliInstance(flow, MgProductStoreCli.class);
+            MgProductSpecCli mgProductSpecCli = CliFactory.getCliInstance(flow, MgProductSpecCli.class);
+
 
             // TODO 后面需要搞为异步获取数据
             // 根据搜索的table的数据大小排序，从小到大排序
@@ -73,7 +82,7 @@ public class MgProductSearchService {
 
             // 搜索各个表的数据状态
             eachTableCheckDataStatus(flow, aid, unionPriId, tid,
-                                    mgProductBasicCli, mgProductStoreCli, mgProductSearch,
+                                    mgProductBasicCli, mgProductStoreCli, mgProductSpecCli, mgProductSearch,
                                     manageDataMaxChangeTime, visitorDataMaxChangeTime, searchSorterInfoList);
             // 根据搜索的表的数据(总记录数)由小到大排序，提高搜索效率
             ParamComparator compSizeForSorter = new ParamComparator(MgProductSearchProc.SearchSorterInfo.DATA_COUNT, false);
@@ -113,22 +122,33 @@ public class MgProductSearchService {
                     }
                 }
             }
-            //  只是搜索了商品基础表，需要转化为 RL_PD_ID 的搜索，因为返回的结果是 RL_PD_ID
-            //  同时 PD_ID 和 RL_PD_ID 都在搜索表，可以作为排序字段
-            boolean onlySearchMgProductTable = Str.isEmpty(supplementSearchTable) &&
-                searchSorterInfoList.size() == 1 &&
-                searchSorterInfoList.get(0).getString(MgProductSearchProc.SearchSorterInfo.SEARCH_TABLE)
-                    .equals(MgProductSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName);
-            if(onlySearchMgProductTable){
+
+            /*
+              只是搜索了商品基础表和商品规格skuCode表，需要转化为 RL_PD_ID 的搜索（因为有可能需要rlPdId进行排序），
+              同时 PD_ID 和 RL_PD_ID 都在搜索表，可以作为排序字段
+             */
+            boolean onlySearchNotHaveRlPdIdTable = false;
+            if (Str.isEmpty(supplementSearchTable) && searchSorterInfoList.size() <= NOT_HAVE_RLPDID_TABLE.size()) {
+                int countNotHaveRlPdIdTable = 0;
+                for (Param searchSorterInfo:searchSorterInfoList) {
+                    String tableName = searchSorterInfo.getString(MgProductSearchProc.SearchSorterInfo.SEARCH_TABLE);
+                    if (NOT_HAVE_RLPDID_TABLE.contains(tableName)) {
+                        ++countNotHaveRlPdIdTable;
+                    }
+                }
+                onlySearchNotHaveRlPdIdTable = countNotHaveRlPdIdTable == searchSorterInfoList.size();
+            }
+            if (onlySearchNotHaveRlPdIdTable) {
                 // 增加商品业务关系表进行搜索
                 supplementSearchTable = MgProductSearch.SearchTableNameEnum.MG_PRODUCT_REL.searchTableName;
             }
+
 
             // 补充的表，放最后面搜索
             if(!Str.isEmpty(supplementSearchTable)){
                 // 后面会根据上一次的搜索结果，搜索会加上对应的 in PD_ID 进行搜索
                 ParamMatcher defaultMatcher = new ParamMatcher();
-                checkDataStatus(flow, aid, unionPriId, tid, mgProductBasicCli, mgProductStoreCli, supplementSearchTable, mgProductSearch, defaultMatcher, manageDataMaxChangeTime, visitorDataMaxChangeTime, searchSorterInfoList);
+                checkDataStatus(flow, aid, unionPriId, tid, mgProductBasicCli, mgProductStoreCli, mgProductSpecCli, supplementSearchTable, mgProductSearch, defaultMatcher, manageDataMaxChangeTime, visitorDataMaxChangeTime, searchSorterInfoList);
             }
 
             // 重写排序表, 如果有 rlPdIdComparatorList，则 ProductRelEntity.Info.RL_PD_ID 是最优排序表。
@@ -137,7 +157,12 @@ public class MgProductSearchService {
             if(rewriteComparatorTable){
                 for(int i = (searchSorterInfoList.size() - 1); i >=0; i--){
                     String searchTable = searchSorterInfoList.get(i).getString(MgProductSearchProc.SearchSorterInfo.SEARCH_TABLE);
-                    if(!searchTable.equals(MgProductSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName)){
+                    /*if(!searchTable.equals(MgProductSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName)){
+                        firstComparatorTable = searchTable;
+                        firstComparatorKey = ProductRelEntity.Info.RL_PD_ID;
+                        break;
+                    }*/
+                    if (!NOT_HAVE_RLPDID_TABLE.contains(searchTable)) {
                         firstComparatorTable = searchTable;
                         firstComparatorKey = ProductRelEntity.Info.RL_PD_ID;
                         break;
@@ -157,7 +182,8 @@ public class MgProductSearchService {
                 // 初始化需要搜索的数据，从本地缓存获取、或者从远端获取
                 // 开始进行 search
                 FaiList<Param> resultList = new FaiList<>();
-                FaiList<Param> comparatorResultList = null;
+                // FaiList<Param> comparatorResultList = null;
+                FaiList<Param> comparatorResultList = new FaiList<>();
                 FaiList<Param> includeRlPdIdResultList = null;
                 // 最后一次搜索的 table
                 String lastSearchTable = "";
@@ -168,18 +194,24 @@ public class MgProductSearchService {
                                   所有表的查询条件的结果（类似于联表查询）。
                     */
                     resultList = searchProc.getSearchDataAndSearchResultList(flow, aid, tid, unionPriId,
-                            searchSorterInfo, resultList, mgProductBasicCli, mgProductStoreCli);
+                            searchSorterInfo, resultList, mgProductBasicCli, mgProductStoreCli, mgProductSpecCli);
                     // Log.logDbg("searching......,searchTable=%s;resultList=%s;searchSorterInfo=%s;", searchSorterInfo.getString(SearchSorterInfo.SEARCH_TABLE), resultList, searchSorterInfo);
                     lastSearchTable = searchSorterInfo.getString(MgProductSearchProc.SearchSorterInfo.SEARCH_TABLE);
                     // Log.logDbg("lastSearchTablexxxx = %s; ", lastSearchTable);
                     if (lastSearchTable.equals(firstComparatorTable)) {
                         comparatorResultList = resultList;
                     }
-                    if (!lastSearchTable.equals(MgProductSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName)) {
+                    if (!NOT_HAVE_RLPDID_TABLE.contains(lastSearchTable)) {
                         //包含rlPdId的查询结果
                         includeRlPdIdResultList = resultList;
                         // Log.logDbg("includeRlPdIdResultList = %s; ", includeRlPdIdResultList);
                     }
+                    /*if (!lastSearchTable.equals(MgProductSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName)) {
+                        //包含rlPdId的查询结果
+                        includeRlPdIdResultList = resultList;
+                        // Log.logDbg("includeRlPdIdResultList = %s; ", includeRlPdIdResultList);
+                    }*/
+
                     // Log.logDbg("getSearchResult,lastSearchTable=%s;resultList=%s;", lastSearchTable, resultList);
                     if (resultList == null) {
                         // 搜索结果为空
@@ -202,8 +234,21 @@ public class MgProductSearchService {
                         lastSearchTable = firstComparatorTable;
                     }
                     // 判断是否需要补充 ProductRelEntity.Info.RL_PD_ID 字段进行排序
-                    if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName.equals(lastSearchTable) &&
+                    /*if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName.equals(lastSearchTable) &&
                             (ProductRelEntity.Info.RL_PD_ID.equals(firstComparatorKey) || isNeedSecondComparatorSorting)){
+                        if(includeRlPdIdResultList != null){
+                            isFixedRlPdId = true;
+                            // 设置includeRlPdIdResultList中的rlPdId到resultList中。
+                            searchProc.resultListFixedRlPdId(aid, unionPriId, flow, resultList, includeRlPdIdResultList);
+                        }else{
+                            Log.logErr(rt,"includeRlPdIdResultList null err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
+                        }
+                    }*/
+
+                    // 判断是否需要补充 ProductRelEntity.Info.RL_PD_ID 字段进行排序
+                    boolean compensateRlPdIdForSort = NOT_HAVE_RLPDID_TABLE.contains(firstComparatorTable) &&
+                        (ProductRelEntity.Info.RL_PD_ID.equals(firstComparatorKey) || isNeedSecondComparatorSorting);
+                    if(compensateRlPdIdForSort){
                         if(includeRlPdIdResultList != null){
                             isFixedRlPdId = true;
                             // 设置includeRlPdIdResultList中的rlPdId到resultList中。
@@ -222,6 +267,7 @@ public class MgProductSearchService {
                 // MgProductSearch.SearchTableNameEnum.MG_PRODUCT、
                 // MgProductSearch.SearchTableNameEnum.MG_PRODUCT_REL、
                 // MgProductSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY 没必要去重
+                // mgProductSpecSku 表中的PdId不是主键，要去重
                 boolean needRemoveRepeated = !lastSearchTable.equals(MgProductSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName) &&
                     !lastSearchTable.equals(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_REL.searchTableName) &&
                     !lastSearchTable.equals(MgProductSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.searchTableName);
@@ -249,9 +295,20 @@ public class MgProductSearchService {
 
                 // 判断是否需要补充 ProductRelEntity.Info.RL_PD_ID 字段.如果补充过了,就不用补充了
                 //Log.logDbg("resultListFixedRlPdId, lastSearchTable=%s;isFixedRlPdId=%s;resultList=%s;includeRlPdIdResultList=%s;", lastSearchTable, isFixedRlPdId, resultList, includeRlPdIdResultList);
-                if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName.equals(lastSearchTable) && !isFixedRlPdId){
+               /* if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName.equals(lastSearchTable) && !isFixedRlPdId){
                     if(includeRlPdIdResultList != null){
                         // isFixedRlPdId = true;
+                        searchProc.resultListFixedRlPdId(aid, unionPriId, flow, resultList, includeRlPdIdResultList);
+                    }else{
+                        Log.logErr(rt,"includeRlPdIdResultList null err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
+                    }
+                }*/
+
+                // 判断是否需要补充 ProductRelEntity.Info.RL_PD_ID 字段.如果补充过了,就不用补充了
+                if(NOT_HAVE_RLPDID_TABLE.contains(lastSearchTable) && !isFixedRlPdId){
+                    if(includeRlPdIdResultList != null){
+                        isFixedRlPdId = true;
+                        // 设置includeRlPdIdResultList中的rlPdId到resultList中。
                         searchProc.resultListFixedRlPdId(aid, unionPriId, flow, resultList, includeRlPdIdResultList);
                     }else{
                         Log.logErr(rt,"includeRlPdIdResultList null err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
@@ -259,7 +316,9 @@ public class MgProductSearchService {
                 }
                 // Log.logDbg("getSearchResult  3333,lastSearchTable=%s;resultList=%s;includeRlPdIdResultList=%s;", lastSearchTable, resultList, includeRlPdIdResultList);
                 // 排重，并且由 Param 转换为 idList
-                FaiList<Integer> idList = searchProc.toIdList(resultList, ProductRelEntity.Info.RL_PD_ID);
+                //FaiList<Integer> idList = searchProc.toIdList(resultList, ProductRelEntity.Info.RL_PD_ID);
+                // 将原来返回的rlPdIdList改为返回PdIdList
+                FaiList<Integer> idList = searchProc.toIdList(resultList, ProductRelEntity.Info.PD_ID);
                 resultCacheInfo.setList(MgProductSearchResult.Info.ID_LIST, idList);
 
                 // 搜索结果进入缓存
@@ -286,6 +345,7 @@ public class MgProductSearchService {
     private void eachTableCheckDataStatus(int flow, int aid, int unionPriId, int tid,
                                           MgProductBasicCli mgProductBasicCli,
                                           MgProductStoreCli mgProductStoreCli,
+                                          MgProductSpecCli mgProductSpecCli,
                                           MgProductSearch mgProductSearch,
                                           Ref<Long> manageDataMaxChangeTime,
                                           Ref<Long> visitorDataMaxChangeTime,
@@ -294,51 +354,65 @@ public class MgProductSearchService {
         ParamMatcher productBindPropDataSearchMatcher = mgProductSearch.getProductBindPropSearchMatcher(null);
         String searchTableName = MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.searchTableName;
         if(!productBindPropDataSearchMatcher.isEmpty()){
-            checkDataStatus(flow, aid, unionPriId, tid, mgProductBasicCli, mgProductStoreCli, searchTableName, mgProductSearch, productBindPropDataSearchMatcher, manageDataMaxChangeTime, visitorDataMaxChangeTime, searchSorterInfoList);
+            checkDataStatus(flow, aid, unionPriId, tid, mgProductBasicCli, mgProductStoreCli, mgProductSpecCli, searchTableName, mgProductSearch, productBindPropDataSearchMatcher, manageDataMaxChangeTime, visitorDataMaxChangeTime, searchSorterInfoList);
         }
 
         // 2、在 "商品业务销售总表" mgSpuBizSummary_xxxx 搜索
         ParamMatcher mgSpuBizSummarySearchMatcher = mgProductSearch.getProductSpuBizSummarySearchMatcher(null);
         searchTableName = MgProductSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.searchTableName;
         if(!mgSpuBizSummarySearchMatcher.isEmpty()){
-            checkDataStatus(flow, aid, unionPriId, tid, mgProductBasicCli, mgProductStoreCli, searchTableName, mgProductSearch, mgSpuBizSummarySearchMatcher, manageDataMaxChangeTime, visitorDataMaxChangeTime, searchSorterInfoList);
+            checkDataStatus(flow, aid, unionPriId, tid, mgProductBasicCli, mgProductStoreCli, mgProductSpecCli, searchTableName, mgProductSearch, mgSpuBizSummarySearchMatcher, manageDataMaxChangeTime, visitorDataMaxChangeTime, searchSorterInfoList);
         }
 
         // 3、"标签业务关系表" mgProductBindTag_xxxx 搜索， 还没有标签功能，暂时没开放
         ParamMatcher mgProductBindTagSearchMatcher = mgProductSearch.getProductBindTagSearchMatcher(null);
         searchTableName = MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.searchTableName;
         if (!mgProductBindTagSearchMatcher.isEmpty()) {
-            checkDataStatus(flow, aid, unionPriId, tid, mgProductBasicCli, mgProductStoreCli, searchTableName, mgProductSearch, mgProductBindTagSearchMatcher, manageDataMaxChangeTime, visitorDataMaxChangeTime, searchSorterInfoList);
+            checkDataStatus(flow, aid, unionPriId, tid, mgProductBasicCli, mgProductStoreCli, mgProductSpecCli, searchTableName, mgProductSearch, mgProductBindTagSearchMatcher, manageDataMaxChangeTime, visitorDataMaxChangeTime, searchSorterInfoList);
         }
         
         // 4、在 "分类业务关系表" mgProductBindGroup_xxxx 搜索
         ParamMatcher mgProductBindGroupSearchMatcher = mgProductSearch.getProductBindGroupSearchMatcher(null);
         searchTableName = MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.searchTableName;
         if(!mgProductBindGroupSearchMatcher.isEmpty()){
-            checkDataStatus(flow, aid, unionPriId, tid, mgProductBasicCli, mgProductStoreCli, searchTableName, mgProductSearch, mgProductBindGroupSearchMatcher, manageDataMaxChangeTime, visitorDataMaxChangeTime, searchSorterInfoList);
+            checkDataStatus(flow, aid, unionPriId, tid, mgProductBasicCli, mgProductStoreCli, mgProductSpecCli, searchTableName, mgProductSearch, mgProductBindGroupSearchMatcher, manageDataMaxChangeTime, visitorDataMaxChangeTime, searchSorterInfoList);
         }
 
         // 5、在 "商品业务关系表" mgProductRel_xxxx 搜索
         ParamMatcher productRelSearchMatcher = mgProductSearch.getProductRelSearchMatcher(null);
         searchTableName = MgProductSearch.SearchTableNameEnum.MG_PRODUCT_REL.searchTableName;
         if(!productRelSearchMatcher.isEmpty()){
-            checkDataStatus(flow, aid, unionPriId, tid, mgProductBasicCli, mgProductStoreCli, searchTableName, mgProductSearch, productRelSearchMatcher, manageDataMaxChangeTime, visitorDataMaxChangeTime, searchSorterInfoList);
+            checkDataStatus(flow, aid, unionPriId, tid, mgProductBasicCli, mgProductStoreCli, mgProductSpecCli, searchTableName, mgProductSearch, productRelSearchMatcher, manageDataMaxChangeTime, visitorDataMaxChangeTime, searchSorterInfoList);
         }
 
-        // 6、在 "商品基础表" mgProduct_xxxx 搜索
+        // 6、在"商品规格sku表" mgProductSpecSku_0xxx 搜索
+        ParamMatcher mgProductSpecSkuSearchMatcher = mgProductSearch.getProductSpecSkuSearchMatcher(null);
+        searchTableName = MgProductSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU.searchTableName;
+        if (!mgProductSpecSkuSearchMatcher.isEmpty()) {
+            checkDataStatus(flow, aid, unionPriId, tid, mgProductBasicCli, mgProductStoreCli, mgProductSpecCli, searchTableName, mgProductSearch, mgProductSpecSkuSearchMatcher, manageDataMaxChangeTime, visitorDataMaxChangeTime, searchSorterInfoList);
+        }
+
+        // 7、在 "商品基础表" mgProduct_xxxx 搜索
         ParamMatcher productBasicSearchMatcher = mgProductSearch.getProductBasicSearchMatcher(null);
         searchTableName = MgProductSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName;
         if(!productBasicSearchMatcher.isEmpty()){
-            checkDataStatus(flow, aid, unionPriId, tid, mgProductBasicCli, mgProductStoreCli, searchTableName, mgProductSearch, productBasicSearchMatcher, manageDataMaxChangeTime, visitorDataMaxChangeTime, searchSorterInfoList);
+            checkDataStatus(flow, aid, unionPriId, tid, mgProductBasicCli, mgProductStoreCli, mgProductSpecCli, searchTableName, mgProductSearch, productBasicSearchMatcher, manageDataMaxChangeTime, visitorDataMaxChangeTime, searchSorterInfoList);
         }
 
         // 如果搜索条件的内容为空，直接抛异常
-        if(searchSorterInfoList.isEmpty()){
+        if (searchSorterInfoList.isEmpty()) {
             throw new MgException(Errno.ARGS_ERROR, "flow=%s;aid=%d;unionPriId=%d;tid=%d;sorterSizeInfoList isEmpty", flow, aid, unionPriId, tid);
         }
     }
 
-    private void checkDataStatus(int flow, int aid, int unionPriId, int tid, MgProductBasicCli mgProductBasicCli, MgProductStoreCli mgProductStoreCli, String searchTableName, MgProductSearch mgProductSearch, ParamMatcher searchMatcher, Ref<Long> manageDataMaxChangeTime, Ref<Long> visitorDataMaxChangeTime, FaiList<Param> searchSorterInfoList){
+    private void checkDataStatus(int flow, int aid, int unionPriId, int tid,
+                                 MgProductBasicCli mgProductBasicCli,
+                                 MgProductStoreCli mgProductStoreCli,
+                                 MgProductSpecCli mgProductSpecCli,
+                                 String searchTableName,
+                                 MgProductSearch mgProductSearch, ParamMatcher searchMatcher,
+                                 Ref<Long> manageDataMaxChangeTime, Ref<Long> visitorDataMaxChangeTime,
+                                 FaiList<Param> searchSorterInfoList){
         // 首先判断本地缓存的数据和状态
         boolean needGetDataFromRemote = false;
         boolean isOnlySearchManageData = false;
@@ -347,7 +421,7 @@ public class MgProductSearchService {
         Param localDataStatusCacheInfo = MgProductSearchCache.LocalDataStatusCache.getLocalDataStatusCache(cacheKey);
 
         // 远端获取各种数据状态
-        Param remoteDataStatusInfo = searchProc.getDataStatusInfoFromEachSvr(aid, unionPriId, tid, flow, searchTableName, mgProductBasicCli, mgProductStoreCli);
+        Param remoteDataStatusInfo = searchProc.getDataStatusInfoFromEachSvr(aid, unionPriId, tid, flow, searchTableName, mgProductBasicCli, mgProductStoreCli, mgProductSpecCli);
         if(!Str.isEmpty(localDataStatusCacheInfo) && !Str.isEmpty(remoteDataStatusInfo)){
             // 是否只查管理态的数据
             isOnlySearchManageData = mgProductSearch.getIsOnlySearchManageData(searchTableName);

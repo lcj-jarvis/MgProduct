@@ -6,6 +6,7 @@ import fai.MgProductBasicSvr.interfaces.entity.ProductRelEntity;
 import fai.MgProductInfSvr.interfaces.utils.MgProductSearch;
 import fai.MgProductSearchSvr.application.MgProductSearchSvr;
 import fai.MgProductSearchSvr.domain.repository.cache.MgProductSearchCache;
+import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
 import fai.MgProductStoreSvr.interfaces.cli.MgProductStoreCli;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
@@ -112,7 +113,10 @@ public class MgProductSearchProc {
     /**
      * 从远端获取数据
      */
-    public Param getDataStatusInfoFromEachSvr(int aid, int unionPriId, int tid, int flow, String tableName, MgProductBasicCli mgProductBasicCli, MgProductStoreCli mgProductStoreCli){
+    public Param getDataStatusInfoFromEachSvr(int aid, int unionPriId, int tid, int flow, String tableName,
+                                              MgProductBasicCli mgProductBasicCli,
+                                              MgProductStoreCli mgProductStoreCli,
+                                              MgProductSpecCli mgProductSpecCli){
         Param remoteDataStatusInfo = new Param();
         int rt;
         if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName.equals(tableName)){
@@ -167,13 +171,26 @@ public class MgProductSearchProc {
             }
             // Log.logDbg("getSpuBizSummaryDataStatus,remoteDataStatusInfo=%s;", remoteDataStatusInfo);
         }
+
+        if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU.searchTableName.equals(tableName)){
+            // 从远端获取数据, 待完善
+            rt = mgProductSpecCli.getSkuCodeDataStatus(aid, unionPriId, remoteDataStatusInfo);
+            if(rt != Errno.OK){
+                Log.logErr(rt,"getSkuCodeDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
+            }
+            // Log.logDbg("getSkuCodeDataStatus,remoteDataStatusInfo=%s;", remoteDataStatusInfo);
+        }
         return remoteDataStatusInfo;
     }
 
     /**
      * 返回联合多个表进行查询得到的结果（实际上是逐个表进行查询，然后取结果的交集）
      */
-    public FaiList<Param> getSearchDataAndSearchResultList(int flow, int aid, int tid, int unionPriId, Param searchSorterInfo, FaiList<Param> resultList, MgProductBasicCli mgProductBasicCli, MgProductStoreCli mgProductStoreCli){
+    public FaiList<Param> getSearchDataAndSearchResultList(int flow, int aid, int tid, int unionPriId,
+                                                           Param searchSorterInfo, FaiList<Param> resultList,
+                                                           MgProductBasicCli mgProductBasicCli,
+                                                           MgProductStoreCli mgProductStoreCli,
+                                                           MgProductSpecCli mgProductSpecCli){
         String tableName = searchSorterInfo.getString(SearchSorterInfo.SEARCH_TABLE);
         // 所有的表都有这个字段，用这个字段作为 filter 的过滤条件
         String searchKey = ProductEntity.Info.PD_ID;
@@ -215,7 +232,7 @@ public class MgProductSearchProc {
             searchArg.matcher.and(searchKey, ParamMatcher.IN, idList);
         }
         // 需要真正获取的数据
-        FaiList<Param> searchDataList = getDataFromRemote(flow, aid, tid, unionPriId, tableName, needLoadFromDb, searchArg, mgProductBasicCli, mgProductStoreCli);
+        FaiList<Param> searchDataList = getDataFromRemote(flow, aid, tid, unionPriId, tableName, needLoadFromDb, searchArg, mgProductBasicCli, mgProductStoreCli, mgProductSpecCli);
         searchSorterInfo.setList(SearchSorterInfo.SEARCH_DATA_LIST, searchDataList);
 
         // 全量 load 数据时，才做本地缓存
@@ -247,18 +264,21 @@ public class MgProductSearchProc {
 
     public FaiList<Param> getDataFromRemote(int flow, int aid, int tid, int unionPriId,
                                             String tableName, boolean needLoadFromDb, SearchArg searchArg,
-                                            MgProductBasicCli mgProductBasicCli, MgProductStoreCli mgProductStoreCli) {
+                                            MgProductBasicCli mgProductBasicCli,
+                                            MgProductStoreCli mgProductStoreCli,
+                                            MgProductSpecCli mgProductSpecCli) {
+        int rt;
         // 需要真正获取的数据
         FaiList<Param> searchDataList = new FaiList<>();
         if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName.equals(tableName)){
             if(needLoadFromDb){
-                int rt = mgProductBasicCli.searchPdFromDb(aid, searchArg, searchDataList);
+                rt = mgProductBasicCli.searchPdFromDb(aid, searchArg, searchDataList);
                 if(rt != Errno.OK){
                     Log.logErr(rt,"searchPdFromDb err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
                 }
                 //Log.logDbg("searchPdFromDb, searchDataList=%s;", searchDataList);
             }else{
-                int rt = mgProductBasicCli.getAllPdData(aid, searchDataList);
+                rt = mgProductBasicCli.getAllPdData(aid, searchDataList);
                 if(rt != Errno.OK){
                     Log.logErr(rt,"getAllPdData err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
                 }
@@ -268,13 +288,13 @@ public class MgProductSearchProc {
 
         if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_REL.searchTableName.equals(tableName)){
             if(needLoadFromDb){
-                int rt = mgProductBasicCli.searchPdRelFromDb(aid, unionPriId, searchArg, searchDataList);
+                rt = mgProductBasicCli.searchPdRelFromDb(aid, unionPriId, searchArg, searchDataList);
                 if(rt != Errno.OK){
                     Log.logErr(rt,"searchPdRelFromDb err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
                 }
                 //Log.logDbg("searchPdRelFromDb, searchDataList=%s;", searchDataList);
             }else{
-                int rt = mgProductBasicCli.getAllPdRelData(aid, unionPriId, searchDataList);
+                rt = mgProductBasicCli.getAllPdRelData(aid, unionPriId, searchDataList);
                 if(rt != Errno.OK){
                     Log.logErr(rt,"getAllPdRelData err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
                 }
@@ -284,13 +304,13 @@ public class MgProductSearchProc {
 
         if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.searchTableName.equals(tableName)){
             if(needLoadFromDb){
-                int rt = mgProductBasicCli.searchBindPropFromDb(aid, unionPriId, searchArg, searchDataList);
+                rt = mgProductBasicCli.searchBindPropFromDb(aid, unionPriId, searchArg, searchDataList);
                 if(rt != Errno.OK){
                     Log.logErr(rt,"getBindGroupDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
                 }
                 //Log.logDbg("searchBindPropFromDb, searchDataList=%s;", searchDataList);
             }else{
-                int rt = mgProductBasicCli.getAllBindPropData(aid, unionPriId, searchDataList);
+                rt = mgProductBasicCli.getAllBindPropData(aid, unionPriId, searchDataList);
                 if(rt != Errno.OK){
                     Log.logErr(rt,"getAllBindPropData err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
                 }
@@ -300,13 +320,13 @@ public class MgProductSearchProc {
 
         if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.searchTableName.equals(tableName)){
             if(needLoadFromDb){
-                int rt = mgProductBasicCli.searchBindGroupFromDb(aid, unionPriId, searchArg, searchDataList);
+                rt = mgProductBasicCli.searchBindGroupFromDb(aid, unionPriId, searchArg, searchDataList);
                 if(rt != Errno.OK){
                     Log.logErr(rt,"searchBindGroupFromDb err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
                 }
                 //Log.logDbg("searchBindGroupFromDb, searchDataList=%s;", searchDataList);
             }else{
-                int rt = mgProductBasicCli.getAllBindGroupData(aid, unionPriId, searchDataList);
+                rt = mgProductBasicCli.getAllBindGroupData(aid, unionPriId, searchDataList);
                 if(rt != Errno.OK){
                     Log.logErr(rt,"getAllBindGroupData err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
                 }
@@ -316,13 +336,13 @@ public class MgProductSearchProc {
 
         if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.searchTableName.equals(tableName)){
             if(needLoadFromDb){
-                int rt = mgProductBasicCli.getPdBindTagFromDb(aid, unionPriId, searchArg, searchDataList);
+                rt = mgProductBasicCli.getPdBindTagFromDb(aid, unionPriId, searchArg, searchDataList);
                 if(rt != Errno.OK){
                     Log.logErr(rt,"searchBindTagFromDb err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
                 }
                 //Log.logDbg("searchBindGroupFromDb, searchDataList=%s;", searchDataList);
             }else{
-                int rt = mgProductBasicCli.getAllPdBindTag(aid, unionPriId, searchDataList);
+                rt = mgProductBasicCli.getAllPdBindTag(aid, unionPriId, searchDataList);
                 if(rt != Errno.OK){
                     Log.logErr(rt,"getAllBindTagData err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
                 }
@@ -332,17 +352,33 @@ public class MgProductSearchProc {
 
         if(MgProductSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.searchTableName.equals(tableName)){
             if(needLoadFromDb){
-                int rt = mgProductStoreCli.searchSpuBizSummaryFromDb(aid, tid, unionPriId, searchArg, searchDataList);
+                rt = mgProductStoreCli.searchSpuBizSummaryFromDb(aid, tid, unionPriId, searchArg, searchDataList);
                 if(rt != Errno.OK){
                     Log.logErr(rt,"searchSpuBizSummaryFromDb err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
                 }
                 //Log.logDbg("searchSpuBizSummaryFromDb, searchDataList=%s;", searchDataList);
             }else{
-                int rt = mgProductStoreCli.getSpuBizSummaryAllData(aid, tid, unionPriId, searchDataList);
+                rt = mgProductStoreCli.getSpuBizSummaryAllData(aid, tid, unionPriId, searchDataList);
                 if(rt != Errno.OK){
                     Log.logErr(rt,"getSpuBizSummaryAllData err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
                 }
                 //Log.logDbg("getSpuBizSummaryAllData, searchDataList=%s;", searchDataList);
+            }
+        }
+
+        if (MgProductSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU.searchTableName.equals(tableName)) {
+            if(needLoadFromDb){
+                rt = mgProductSpecCli.searchSkuCodeFromDb(aid, unionPriId, searchArg, searchDataList);
+                if(rt != Errno.OK){
+                    Log.logErr(rt,"searchSkuCodeFromDb err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
+                }
+                //Log.logDbg("searchSkuCodeFromDb, searchDataList=%s;", searchDataList);
+            }else{
+                rt = mgProductSpecCli.getSkuCodeAllData(aid, unionPriId, searchDataList);
+                if(rt != Errno.OK){
+                    Log.logErr(rt,"getSkuCodeAllData err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
+                }
+                //Log.logDbg("getSkuCodeAllData, searchDataList=%s;", searchDataList);
             }
         }
         return searchDataList;

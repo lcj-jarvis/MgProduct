@@ -110,6 +110,11 @@
             <artifactId>MgProductGroupSvr-interfaces</artifactId>
             <version>${MgProduct-MgProductGroupSvr-interfaces-ver}</version>
         </dependency>
+        <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProductSpecSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductSpecSvr-interfaces-ver}</version>
+        </dependency>
 
         <!-- 第三方的包 -->
         <dependency>

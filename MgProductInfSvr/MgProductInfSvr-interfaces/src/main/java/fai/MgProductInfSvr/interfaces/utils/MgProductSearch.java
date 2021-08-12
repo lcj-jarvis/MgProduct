@@ -1,9 +1,6 @@
 package fai.MgProductInfSvr.interfaces.utils;
 
-import fai.MgProductInfSvr.interfaces.entity.ProductBasicEntity;
-import fai.MgProductInfSvr.interfaces.entity.ProductBasicValObj;
-import fai.MgProductInfSvr.interfaces.entity.ProductPropEntity;
-import fai.MgProductInfSvr.interfaces.entity.ProductStoreEntity;
+import fai.MgProductInfSvr.interfaces.entity.*;
 import fai.comm.util.*;
 
 import java.util.Calendar;
@@ -17,7 +14,7 @@ public class MgProductSearch {
         public static final String TYPE_LIST = "typeList";            // 商品类型：实物、卡密、酒店
         public static final String RL_LIB_ID_LIST = "rlLibIdList";               //  在哪些库搜索，默认是全部库
         public static final String RL_FLAG = "rlFlag"; // 对应哪些flag
-        public static final String ENABLE_RLFLAG_USE_LANDNE = "enableRlFlagUseLandNe";
+        public static final String ENABLE_RLFLAG_USE_LANDNE = "enableRlFlagUseLandNe"; // 是否允许rlFlag使用 &<>作为查询条件
 
         public static final String SEARCH_KEY_WORD = "searchKeyWord";        // 搜索关键词
         public static final String ENABLE_SEARCH_PRODUCT_NAME = "enableSearchProductName";  // 是否允许搜索商品名称, 默认是 false
@@ -39,6 +36,8 @@ public class MgProductSearch {
 
         public static final String REMAIN_COUNT_BEGIN = "remainCountBegin";   // 搜索商品 开始 库存
         public static final String REMAIN_COUNT_END = "remainCountEnd";        // 搜索商品 结束 库存
+
+        public static final String SKU_CODE = "skuCode"; //  sku编号（条形码）
 
         public static final String START = "start";  //  分页位置
         public static final String LIMIT = "limit";  //  分页条数
@@ -78,7 +77,8 @@ public class MgProductSearch {
         MG_PRODUCT_BIND_PROP("pbp"),  // 对应 mgProductBindProp，参数值绑定商品关系表
         MG_PRODUCT_BIND_GROUP("pbg"),  // 对应 mgProductBindGroup，分类绑定商品关系表
         MG_PRODUCT_BIND_TAG("pbt"), // 对应 mgProductBindTag，标签绑定商品关系表
-        MG_SPU_BIZ_SUMMARY("sbs");  // 对应 mgSpuBizSummary，商品 spu 销售汇总表
+        MG_SPU_BIZ_SUMMARY("sbs"),  // 对应 mgSpuBizSummary，商品 spu 销售汇总表
+        MG_PRODUCT_SPEC_SKU("pss");  // 对应mgProductSpecSku，商品规格sku表
 
         public String searchTableName;
         private SearchTableNameEnum(String searchTableName) {
@@ -116,6 +116,8 @@ public class MgProductSearch {
 
     private Integer remainCountBegin;  //  最小的库存
     private Integer remainCountEnd;    //  最大的库存，如果最小库存和库存一样, 则是等于比较
+
+    private String skuCode; // sku编号（条形码）
 
     private FaiList<Integer> rlPdIdComparatorList;  // 商品idList 排序，设置了这个排序，其他设置的排序就无效了
     private String firstComparatorTable;  // 第一排序字段的table
@@ -159,6 +161,7 @@ public class MgProductSearch {
         param.setInt(Info.SALES_END, salesEnd);          // 搜索商品 结束 销量
         param.setInt(Info.REMAIN_COUNT_BEGIN, remainCountBegin);      // 搜索商品 开始 库存
         param.setInt(Info.REMAIN_COUNT_END, remainCountEnd);          // 搜索商品 结束 库存
+        param.setString(Info.SKU_CODE, skuCode); // 搜索商品的sku编号（条形码）
 
         param.setList(Info.RL_PD_ID_COMPARATOR_LIST, rlPdIdComparatorList);   // 商品idList 排序，设置了这个排序，其他设置的排序就无效了
         param.setString(Info.FIRST_COMPARATOR_TABLE, firstComparatorTable); // 第一排序table
@@ -200,6 +203,7 @@ public class MgProductSearch {
         this.salesEnd = searchParam.getInt(Info.SALES_END);               // 搜索商品 结束 销量
         this.remainCountBegin = searchParam.getInt(Info.REMAIN_COUNT_BEGIN);  // 搜索商品 开始 库存
         this.remainCountEnd = searchParam.getInt(Info.REMAIN_COUNT_END);      // 搜索商品 结束 库存
+        this.skuCode = searchParam.getString(Info.SKU_CODE); // 搜索商品的sku编号（条形码）
 
         this.rlPdIdComparatorList = searchParam.getList(Info.RL_PD_ID_COMPARATOR_LIST);   // 商品idList 排序，设置了这个排序，其他设置的排序就无效了
         this.firstComparatorTable = searchParam.getString(Info.FIRST_COMPARATOR_TABLE);   // 第一排序字段table
@@ -255,9 +259,10 @@ public class MgProductSearch {
     // 根据 matcher 判断是否有搜索条件
     public boolean isEmpty(){
         return getProductRemarkSearchOrMatcher(null).isEmpty() && getProductPropValSearchOrMatcher(null).isEmpty() &&
-                getProductBasicSearchOrMatcher(null).isEmpty() && getProductBasicSearchMatcher(null).isEmpty() &&
-                getProductBindPropSearchMatcher(null).isEmpty() && getProductBindGroupSearchMatcher(null).isEmpty() &&
-                getProductBindTagSearchMatcher(null).isEmpty() && getProductSpuBizSummarySearchMatcher(null).isEmpty();
+               getProductBasicSearchOrMatcher(null).isEmpty() && getProductBasicSearchMatcher(null).isEmpty() &&
+               getProductBindPropSearchMatcher(null).isEmpty() && getProductBindGroupSearchMatcher(null).isEmpty() &&
+               getProductBindTagSearchMatcher(null).isEmpty() && getProductSpuBizSummarySearchMatcher(null).isEmpty() &&
+               getProductSpecSkuSearchMatcher(null).isEmpty();
     }
 
     // 在 "在商品 富文本 字段"  搜索
@@ -359,6 +364,12 @@ public class MgProductSearch {
         }else if(upSalesStatus != UpSalesStatusEnum.ALL.upSalesStatus){
             //  非全部的，单独是某种状态
             paramMatcher.and(ProductBasicEntity.ProductInfo.STATUS, ParamMatcher.EQ, upSalesStatus);
+        }
+
+        // 商品的rlFlag
+        if (rlFlag != null) {
+            String operation = enableRlFlagUseLandNe ? ParamMatcher.LAND_NE: ParamMatcher.LAND;
+            paramMatcher.and(ProductBasicEntity.ProductInfo.RL_FLAG, operation, rlFlag);
         }
 
         //  商品录入时间
@@ -489,6 +500,17 @@ public class MgProductSearch {
         return paramMatcher;
     }
 
+    // 在"商品规格sku表" mgProductSpecSku_0xxx搜索
+    public ParamMatcher getProductSpecSkuSearchMatcher(ParamMatcher paramMatcher) {
+        if(paramMatcher == null){
+            paramMatcher = new ParamMatcher();
+        }
+        if (!Str.isEmpty(skuCode)) {
+            // 条形码模糊查询
+            paramMatcher.and(ProductSpecEntity.SpecSkuInfo.SKU_CODE, ParamMatcher.LK, skuCode);
+        }
+        return paramMatcher;
+    }
 
     public FaiList<Integer> getRlTagIdList() {
         return rlTagIdList;

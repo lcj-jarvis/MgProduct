@@ -1,9 +1,9 @@
 package fai.MgProductSpecSvr.domain.serviceProc;
 
-import fai.MgProductSpecSvr.domain.entity.SpecSagaEntity;
-import fai.MgProductSpecSvr.domain.entity.SpecSagaValObj;
 import fai.MgProductSpecSvr.domain.repository.SpecSagaDaoCtrl;
 import fai.comm.util.*;
+import fai.mgproduct.comm.entity.SagaEntity;
+import fai.mgproduct.comm.entity.SagaValObj;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.Calendar;
@@ -23,16 +23,15 @@ public class SpecSagaProc {
         this.m_flow = flow;
     }
 
-    public int add(int aid, String xid, Long branchId, Param prop) {
+    public int add(int aid, String xid, Long branchId) {
         Calendar now = Calendar.getInstance();
         Param data = new Param();
-        data.setInt(SpecSagaEntity.Info.AID, aid);
-        data.setString(SpecSagaEntity.Info.XID, xid);
-        data.setLong(SpecSagaEntity.Info.BRANCH_ID, branchId);
-        data.setString(SpecSagaEntity.Info.PROP, prop.toJson());
-        data.setInt(SpecSagaEntity.Info.STATUS, SpecSagaValObj.Status.INIT);
-        data.setCalendar(SpecSagaEntity.Info.SYS_CREATE_TIME, now);
-        data.setCalendar(SpecSagaEntity.Info.SYS_UPDATE_TIME, now);
+        data.setInt(SagaEntity.Info.AID, aid);
+        data.setString(SagaEntity.Info.XID, xid);
+        data.setLong(SagaEntity.Info.BRANCH_ID, branchId);
+        data.setInt(SagaEntity.Info.STATUS, SagaValObj.Status.INIT);
+        data.setCalendar(SagaEntity.Info.SYS_CREATE_TIME, now);
+        data.setCalendar(SagaEntity.Info.SYS_UPDATE_TIME, now);
         int rt = addInfo(data);
         if (rt != Errno.OK) {
             Log.logErr("specSaga dao.insert err;flow=%d;aid=%d;data=%s", m_flow, aid, data);
@@ -75,11 +74,10 @@ public class SpecSagaProc {
         // 如果找不到记录，则要添加一条空记录，允许空补偿以及防悬挂
         Log.reportErr(m_flow, Errno.NOT_FOUND, "get SagaInfo not found;xid=%s,branchId=%s", xid, branchId);
         Param info = new Param();
-        info.setString(SpecSagaEntity.Info.XID, xid);
-        info.setLong(SpecSagaEntity.Info.BRANCH_ID, branchId);
-        info.setInt(SpecSagaEntity.Info.STATUS, SpecSagaValObj.Status.INIT);
-        info.setInt(SpecSagaEntity.Info.AID, 0);
-        info.setString(SpecSagaEntity.Info.PROP, new Param().toJson());
+        info.setString(SagaEntity.Info.XID, xid);
+        info.setLong(SagaEntity.Info.BRANCH_ID, branchId);
+        info.setInt(SagaEntity.Info.STATUS, SagaValObj.Status.INIT);
+        info.setInt(SagaEntity.Info.AID, 0);
         int addRt = addInfo(info);
         if (addRt != Errno.OK) {
             return addRt;
@@ -90,8 +88,8 @@ public class SpecSagaProc {
 
     private Param getInfoFromDB(String xid, Long branchId) {
         SearchArg searchArg = new SearchArg();
-        searchArg.matcher = new ParamMatcher(SpecSagaEntity.Info.XID, ParamMatcher.EQ, xid);
-        searchArg.matcher.and(SpecSagaEntity.Info.BRANCH_ID, ParamMatcher.EQ, branchId);
+        searchArg.matcher = new ParamMatcher(SagaEntity.Info.XID, ParamMatcher.EQ, xid);
+        searchArg.matcher.and(SagaEntity.Info.BRANCH_ID, ParamMatcher.EQ, branchId);
         Ref<Param> infoRef = new Ref<>();
         m_dao.selectFirst(searchArg, infoRef);
         return infoRef.value;
@@ -106,9 +104,9 @@ public class SpecSagaProc {
      * @return {@link Errno}
      */
     public int setStatus(String xid, Long branchId, int status) {
-        ParamMatcher matcher = new ParamMatcher(SpecSagaEntity.Info.XID, ParamMatcher.EQ, xid);
-        matcher.and(SpecSagaEntity.Info.BRANCH_ID, ParamMatcher.EQ, branchId);
-        ParamUpdater updater = new ParamUpdater(new Param().setInt(SpecSagaEntity.Info.STATUS, status));
+        ParamMatcher matcher = new ParamMatcher(SagaEntity.Info.XID, ParamMatcher.EQ, xid);
+        matcher.and(SagaEntity.Info.BRANCH_ID, ParamMatcher.EQ, branchId);
+        ParamUpdater updater = new ParamUpdater(new Param().setInt(SagaEntity.Info.STATUS, status));
         int rt = m_dao.update(updater, matcher);
         if (rt != Errno.OK) {
             Log.logErr(rt, "setStatus err;flow=%d;xid=%s;branchId=%d;", m_flow, xid, branchId);

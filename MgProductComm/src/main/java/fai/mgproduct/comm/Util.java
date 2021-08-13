@@ -78,6 +78,7 @@ public class Util {
      * @param list 原集合
      * @return 没有 Saga 字段的集合
      */
+    @Deprecated
     public static FaiList<Param> removeSagaColumn(FaiList<Param> list) {
         if (Util.isEmptyList(list)) {
             return new FaiList<Param>();
@@ -91,4 +92,25 @@ public class Util {
     }
 
     private static final String[] SagaKeys = { "xid" , "branchId", "sagaOp"};
+
+    /**
+     * 删除 List 中特定字段
+     *
+     * @param list 原集合
+     * @param columns 要删除的字段
+     */
+    public static FaiList<Param> removeSpecificColumn(FaiList<Param> list, String... columns) {
+        if (Util.isEmptyList(list) || columns == null) {
+            return new FaiList<Param>();
+        }
+        if (columns.length == 0) {
+            return list;
+        }
+        for (Param info : list) {
+            for (String column : columns) {
+                info.remove(column);
+            }
+        }
+        return list;
+    }
 }

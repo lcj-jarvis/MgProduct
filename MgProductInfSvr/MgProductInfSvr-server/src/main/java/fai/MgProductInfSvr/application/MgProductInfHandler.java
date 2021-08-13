@@ -400,7 +400,7 @@ public class MgProductInfHandler extends FaiHandler {
         if (!Str.isEmpty(xid)) {
             RootContext.bind(xid, flow);
         }
-        return specService.unionSetPdScInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, rlPdId, addList, delList, updaterList);
+        return specService.unionSetPdScInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, rlPdId, xid, addList, delList, updaterList);
     }
 
     @Cmd(MgProductInfCmd.ProductSpecCmd.GET_LIST)

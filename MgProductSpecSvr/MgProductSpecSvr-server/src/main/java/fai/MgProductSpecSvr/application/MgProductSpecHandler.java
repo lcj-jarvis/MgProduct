@@ -150,12 +150,14 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductSpecCmd.ProductSpecCmd.UNION_SET)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductSpecCmd.ProductSpecCmd.UNION_SET_ROLLBACK)
     private int unionSetPdScInfoList(final FaiSession session,
                                      @ArgFlow final int flow,
                                      @ArgAid final int aid,
                                      @ArgBodyInteger(ProductSpecDto.Key.UNION_PRI_ID) final int unionPriId,
                                      @ArgBodyInteger(ProductSpecDto.Key.TID) final int tid,
                                      @ArgBodyInteger(ProductSpecDto.Key.PD_ID) final int pdId,
+                                     @ArgBodyXid(value = ProductSpecDto.Key.XID, useDefault = true) String xid,
                                      @ArgList(classDef = ProductSpecDto.class, methodDef = "getInfoDto", keyMatch = ProductSpecDto.Key.INFO_LIST, useDefault = true)
                                              FaiList<Param> addPdScInfoList,
                                      @ArgList(keyMatch = ProductSpecDto.Key.ID_LIST, useDefault = true)
@@ -163,7 +165,17 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
                                      @ArgList(classDef = ProductSpecDto.class, methodDef = "getInfoDto", keyMatch = ProductSpecDto.Key.UPDATER_LIST, useDefault = true)
                                              FaiList<ParamUpdater> updaterList) throws IOException {
 
-        return m_productSpecService.unionSetPdScInfoList(session, flow, aid, tid, unionPriId, pdId, addPdScInfoList, delPdScIdList, updaterList);
+        return m_productSpecService.unionSetPdScInfoList(session, flow, aid, tid, unionPriId, pdId, xid, addPdScInfoList, delPdScIdList, updaterList);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductSpecCmd.ProductSpecCmd.UNION_SET_ROLLBACK)
+    private int unionSetPdScInfoListRollback(final FaiSession session,
+                                             @ArgFlow final int flow,
+                                             @ArgAid final int aid,
+                                             @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                             @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return m_productSpecService.unionSetPdScInfoListRollback(session, flow, aid, xid, branchId);
     }
 
     @WrittenCmd
@@ -249,6 +261,7 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.SET_LIST)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductSpecCmd.ProductSpecSkuCmd.SET_LIST_ROLLBACK)
     private int setPdSkuScInfoList(final FaiSession session,
                                    @ArgFlow final int flow,
                                    @ArgAid final int aid,
@@ -259,6 +272,16 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
                                    @ArgList(classDef = ProductSpecSkuDto.class, methodDef = "getInfoDto", keyMatch = ProductSpecSkuDto.Key.UPDATER_LIST)
                                            FaiList<ParamUpdater> updaterList) throws IOException {
         return m_productSpecService.setPdSkuScInfoList(session, flow, aid, tid, unionPriId, xid, pdId, updaterList);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductSpecCmd.ProductSpecSkuCmd.SET_LIST_ROLLBACK)
+    private int setPdSkuScInfoListRollback(final FaiSession session,
+                                           @ArgFlow final int flow,
+                                           @ArgAid final int aid,
+                                           @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                           @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return m_productSpecService.setPdSkuScInfoListRollback(session, flow, aid, xid, branchId);
     }
 
     @WrittenCmd

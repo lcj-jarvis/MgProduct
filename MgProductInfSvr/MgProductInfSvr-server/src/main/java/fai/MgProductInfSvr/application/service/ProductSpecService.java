@@ -13,6 +13,8 @@ import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuValObj;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecValObj;
 import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity;
 import fai.comm.fseata.client.core.exception.TransactionException;
+import fai.comm.fseata.client.tm.GlobalTransactionContext;
+import fai.comm.fseata.client.tm.api.GlobalTransaction;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.middleground.MgErrno;
@@ -462,7 +464,7 @@ public class ProductSpecService extends MgProductInfService {
      * 修改产品规格总接口
      * 批量修改(包括增、删、改)指定商品的商品规格总接口；会自动生成sku规格，并且会调用商品库存服务的“刷新商品库存销售sku”
      */
-    public int unionSetPdScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, int rlPdId, FaiList<Param> addList, FaiList<Integer> delList, FaiList<ParamUpdater> updaterList) throws IOException, TransactionException {
+    public int unionSetPdScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, int rlPdId, String xid, FaiList<Param> addList, FaiList<Integer> delList, FaiList<ParamUpdater> updaterList) throws IOException, TransactionException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -488,15 +490,14 @@ public class ProductSpecService extends MgProductInfService {
             }
             int pdId = idRef.value;
 
-            /*GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
-            tx.begin(aid, 60000, "mgProduct-unionSetPdScInfoList", flow);*/
+            GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
+            tx.begin(aid, 60000, "mgProduct-unionSetPdScInfoList", flow);
+            xid = tx.getXid();
             try {
                 ProductSpecProc productSpecProc = new ProductSpecProc(flow);
                 FaiList<Param> pdScSkuInfoList = new FaiList<>();
-                Log.logDbg("whalelog updaterList=%s", updaterList);
-                // TODO 分布式事务
                 // 针对规格的操作
-                rt = productSpecProc.unionSetPdScInfoList(aid, tid, unionPriId, pdId, addList, delList, updaterList, pdScSkuInfoList);
+                rt = productSpecProc.unionSetPdScInfoList(aid, tid, unionPriId, xid, pdId, addList, delList, updaterList, pdScSkuInfoList);
                 if(rt != Errno.OK) {
                     return rt;
                 }
@@ -519,15 +520,15 @@ public class ProductSpecService extends MgProductInfService {
 
                 ProductStoreProc productStoreProc = new ProductStoreProc(flow);
                 // 刷新sku，修改库存
-                rt = productStoreProc.refreshSkuStoreSales(aid, tid, unionPriId, sysType, "" ,pdId, rlPdId, storeSalesSkuList);
+                rt = productStoreProc.refreshSkuStoreSales(aid, tid, unionPriId, sysType, xid, pdId, rlPdId, storeSalesSkuList);
                 if(rt != Errno.OK) {
                     return rt;
                 }
-                //tx.commit();
+                tx.commit();
             } finally {
-                /*if (rt != Errno.OK) {
+                if (rt != Errno.OK) {
                     tx.rollback();
-                }*/
+                }
             }
             rt = Errno.OK;
             FaiBuffer sendBuf = new FaiBuffer(true);

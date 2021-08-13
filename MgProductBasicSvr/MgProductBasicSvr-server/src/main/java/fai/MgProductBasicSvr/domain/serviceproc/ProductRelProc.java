@@ -1,25 +1,35 @@
 package fai.MgProductBasicSvr.domain.serviceproc;
 
-import fai.MgProductBasicSvr.domain.entity.ProductRelEntity;
-import fai.MgProductBasicSvr.domain.entity.ProductRelValObj;
+import fai.MgProductBasicSvr.domain.common.ESUtil;
+import fai.MgProductBasicSvr.domain.entity.*;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductRelCacheCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductRelDaoCtrl;
+import fai.MgProductBasicSvr.domain.repository.dao.saga.ProductRelSagaDaoCtrl;
+import fai.app.DocOplogDef;
+import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
-import fai.mgproduct.comm.Util;
+import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
-import java.util.Calendar;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ProductRelProc {
 
     public ProductRelProc(int flow, int aid, TransactionCtrl tc) {
+        this(flow, aid, tc, null, false);
+    }
+
+    public ProductRelProc(int flow, int aid, TransactionCtrl tc, String xid, boolean addSaga) {
         this.m_flow = flow;
         this.m_dao = ProductRelDaoCtrl.getInstance(flow, aid);
+        this.m_xid = xid;
+        if(!Str.isEmpty(m_xid)) {
+            this.m_sagaDao = ProductRelSagaDaoCtrl.getInstance(flow, aid);
+            this.addSaga = addSaga;
+        }
         init(tc);
     }
 
@@ -38,6 +48,21 @@ public class ProductRelProc {
         rt = m_dao.insert(relData);
         if(rt != Errno.OK) {
             throw new MgException(rt, "insert product rel error;flow=%d;aid=%d;uid=%d;relData=%s;", m_flow, aid, unionPriId, relData);
+        }
+        // 使用分布式事务时，记录下新增数据的主键
+        if(addSaga) {
+            Param pdRelSaga = new Param();
+            pdRelSaga.assign(relData, ProductRelEntity.Info.AID);
+            pdRelSaga.assign(relData, ProductRelEntity.Info.UNION_PRI_ID);
+            pdRelSaga.assign(relData, ProductRelEntity.Info.PD_ID);
+
+            long branchId = RootContext.getBranchId();
+            pdRelSaga.setString(BasicSagaEntity.Common.XID, m_xid);
+            pdRelSaga.setLong(BasicSagaEntity.Common.BRANCH_ID, branchId);
+            pdRelSaga.setInt(BasicSagaEntity.Common.SAGA_OP, BasicSagaValObj.SagaOp.ADD);
+
+            // 插入
+            addSaga(aid, pdRelSaga);
         }
         return rlPdId;
     }
@@ -97,11 +122,19 @@ public class ProductRelProc {
         int rt;
         ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        // 记录要同步到es的数据
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        FaiList<String> fields = new FaiList<>();
+        fields.add(ProductRelEntity.Info.PD_ID);
+        FaiList<Param> list = searchFromDb(aid, searchArg, fields);
+        ESUtil.batchPreLog(aid, list, DocOplogDef.Operation.DELETE_ONE);
+
         if(softDel) {
             Param updateInfo = new Param();
             updateInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DEL);
             ParamUpdater updater = new ParamUpdater(updateInfo);
-            return updatePdRel(aid, matcher, updater);
+            return updatePdRel(aid, matcher, updater, null);
         }
         Ref<Integer> refRowCount = new Ref<>();
         rt = m_dao.delete(matcher, refRowCount);
@@ -111,6 +144,7 @@ public class ProductRelProc {
         // 处理下idBuilder
         restoreMaxId(aid, unionPriId, false);
         Log.logStd("clearData ok;flow=%d;aid=%d;unionPriId=%s;delCnt=%s;", m_flow, aid, unionPriId, refRowCount.value);
+
         return refRowCount.value;
     }
 
@@ -123,6 +157,11 @@ public class ProductRelProc {
         }
         ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+
+        // 记录要同步给es的数据
+        FaiList<Param> list = searchFromDb(aid, matcher, Utils.asFaiList(ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.PD_ID));
+        ESUtil.batchPreLog(aid, list, DocOplogDef.Operation.DELETE_ONE);
+
         rt = m_dao.delete(matcher);
         if(rt != Errno.OK) {
             throw new MgException(rt, "del product rel error;flow=%d;aid=%d;unionPridId=%s;", m_flow, aid, unionPriIds);
@@ -152,7 +191,7 @@ public class ProductRelProc {
             Param updateInfo = new Param();
             updateInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DEL);
             ParamUpdater updater = new ParamUpdater(updateInfo);
-            return updatePdRel(aid, matcher, updater);
+            return updatePdRel(aid, matcher, updater, null);
         }
         Ref<Integer> refRowCount = new Ref<>();
         rt = m_dao.delete(matcher, refRowCount);
@@ -162,44 +201,79 @@ public class ProductRelProc {
         return refRowCount.value;
     }
 
+    public int delByPdId(int aid, int unionPriId, FaiList<Integer> pdIds) {
+        int rt;
+        if(pdIds == null || pdIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args err;flow=%d;aid=%d;uid=%d;pdIds=%s", m_flow, aid, unionPriId, pdIds);
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        Ref<Integer> refRowCount = new Ref<>();
+        rt = m_dao.delete(matcher, refRowCount);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "del product rel error;flow=%d;aid=%d;unionPridId=%d;pdIds=%d;", m_flow, aid, unionPriId, pdIds);
+        }
+        return refRowCount.value;
+    }
+
     /**
      * 根据pdId, 删除所有关联数据
+     * @return 返回被删除的数据
      */
-    public FaiList<Param> delProductRelByPdId(int aid, FaiList<Integer> pdIds, boolean softDel, boolean select) {
+    public FaiList<Param> delProductRelByPdId(int aid, FaiList<Integer> pdIds, boolean softDel) {
         int rt;
         if(pdIds == null || pdIds.isEmpty()) {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "args err;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
         }
         FaiList<Param> returnList = new FaiList<>();
-        FaiList<FaiList<Integer>> batchPdIds = Util.splitList(pdIds, BATCH_DEL_SIZE);
+        FaiList<FaiList<Integer>> batchPdIds = Utils.splitList(pdIds, BATCH_DEL_SIZE);
         for(FaiList<Integer> tmpPdIds : batchPdIds) {
             ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
             matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, tmpPdIds);
 
-            if(select) {
-                SearchArg searchArg = new SearchArg();
-                searchArg.matcher = matcher;
-                Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
-                rt = m_dao.select(searchArg, listRef, ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.RL_PD_ID);
-                if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-                    throw new MgException(rt, "get unionPriId error;flow=%d;aid=%d;tmpPdIds=%d;", m_flow, aid, tmpPdIds);
-                }
-                if(listRef.value == null || listRef.value.isEmpty()) {
-                    return null;
-                }
-                returnList.addAll(listRef.value);
+            FaiList<String> selectFields = null;
+            // 如果没有开启分布式事务，只需查unionPriId和rlPdId就行了
+            if(!addSaga) {
+                selectFields = new FaiList<>();
+                selectFields.add(ProductRelEntity.Info.UNION_PRI_ID);
+                selectFields.add(ProductRelEntity.Info.RL_PD_ID);
             }
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = matcher;
+            Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
+            rt = m_dao.select(searchArg, listRef, selectFields);
+            if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                throw new MgException(rt, "get unionPriId error;flow=%d;aid=%d;tmpPdIds=%d;", m_flow, aid, tmpPdIds);
+            }
+            FaiList<Param> oldList = listRef.value;
+            if(Utils.isEmptyList(oldList)) {
+                return null;
+            }
+            returnList.addAll(oldList);
 
             if(softDel) {
                 Param updateInfo = new Param();
                 updateInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DEL);
                 ParamUpdater updater = new ParamUpdater(updateInfo);
-                updatePdRel(aid, matcher, updater);
+                updatePdRel(aid, matcher, updater, oldList);
             }else {
                 rt = m_dao.delete(matcher);
                 if(rt != Errno.OK) {
                     throw new MgException(rt, "del product rel error;flow=%d;aid=%d;tmpPdIds=%d;", m_flow, aid, tmpPdIds);
+                }
+                // 开启了分布式事务，需要记录删除的数据
+                if(addSaga) {
+                    for(Param info : oldList) {
+                        long branchId = RootContext.getBranchId();
+                        info.setString(BasicSagaEntity.Common.XID, m_xid);
+                        info.setLong(BasicSagaEntity.Common.BRANCH_ID, branchId);
+                        info.setInt(BasicSagaEntity.Common.SAGA_OP, BasicSagaValObj.SagaOp.DEL);
+                    }
+                    // 插入
+                    addSagaList(aid, oldList);
                 }
             }
 
@@ -208,14 +282,14 @@ public class ProductRelProc {
     }
 
     public void setSingle(int aid, int unionPriId, Integer rlPdId, ParamUpdater recvUpdater) {
-        ParamUpdater updater = assignUpdate(m_flow, aid, recvUpdater);
-        if (updater == null || updater.isEmpty()) {
+        if (recvUpdater == null || recvUpdater.isEmpty()) {
             return;
         }
-        ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         matcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
 
-        updatePdRel(aid, matcher, updater);
+        updatePdRel(aid, matcher, recvUpdater, null);
     }
 
     public void setPdRels(int aid, int unionPriId, FaiList<Integer> rlPdIds, ParamUpdater recvUpdater) {
@@ -226,7 +300,7 @@ public class ProductRelProc {
         ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         matcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
 
-        updatePdRel(aid, matcher, updater);
+        updatePdRel(aid, matcher, updater, null);
     }
 
     public static ParamUpdater assignUpdate(int flow, int aid, ParamUpdater recvUpdater) {
@@ -238,12 +312,12 @@ public class ProductRelProc {
         Param recvInfo = recvUpdater.getData();
 
         Param data = new Param();
-        data.assign(recvInfo, ProductRelEntity.Info.PD_TYPE);
-        data.assign(recvInfo, ProductRelEntity.Info.LAST_SID);
-        data.assign(recvInfo, ProductRelEntity.Info.LAST_UPDATE_TIME);
-        data.assign(recvInfo, ProductRelEntity.Info.STATUS);
-        data.assign(recvInfo, ProductRelEntity.Info.UP_SALE_TIME);
-        if(data.isEmpty()) {
+        for(String field : ProductRelEntity.UPDATE_FIELDS) {
+            data.assign(recvInfo, field);
+        }
+        ParamUpdater updater = new ParamUpdater(data);
+        updater.add(recvUpdater.getOpList(ProductRelEntity.Info.FLAG));
+        if(updater.isEmpty()) {
             Log.logDbg("no pd rel field changed;flow=%d;aid=%d;", flow, aid);
             return null;
         }
@@ -251,12 +325,10 @@ public class ProductRelProc {
         data.setCalendar(ProductRelEntity.Info.LAST_UPDATE_TIME, now);
         data.setCalendar(ProductRelEntity.Info.UPDATE_TIME, now);
 
-        ParamUpdater updater = new ParamUpdater(data);
-        updater.add(recvUpdater.getOpList(ProductRelEntity.Info.FLAG));
         return updater;
     }
 
-    private int updatePdRel(int aid, ParamMatcher matcher, ParamUpdater updater) {
+    private int updatePdRel(int aid, ParamMatcher matcher, ParamUpdater updater, FaiList<Param> oldList) {
         int rt;
         if(updater == null || updater.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -267,12 +339,177 @@ public class ProductRelProc {
             throw new MgException(rt, "args err, matcher is null;flow=%d;aid=%d;", m_flow, aid);
         }
         matcher.and(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+
+
+        // 使用分布式事务时，记录下修改的数据及主键
+        if(addSaga) {
+            FaiList<ParamUpdater> updaters = new FaiList<>();
+            updaters.add(updater);
+            Set<String> validUpdaterFields = Utils.validUpdaterList(updaters, ProductRelEntity.UPDATE_FIELDS, null);
+            // 加上主键信息，一起查出来
+            validUpdaterFields.add(ProductRelEntity.Info.AID);
+            validUpdaterFields.add(ProductRelEntity.Info.UNION_PRI_ID);
+            validUpdaterFields.add(ProductRelEntity.Info.PD_ID);
+
+            if(Utils.isEmptyList(oldList)) {
+                SearchArg searchArg = new SearchArg();
+                searchArg.matcher = matcher;
+                oldList = searchFromDb(aid, searchArg, new FaiList<>(validUpdaterFields));
+            }
+
+            if(oldList.isEmpty()) {
+                Log.logStd("update not found;aid=%d;matcher=%s;update=%s;", aid, matcher.toJson(), updater.toJson());
+                return 0;
+            }
+
+            FaiList<Param> sagaList = new FaiList<>();
+            for(Param info : oldList) {
+                Param sagaInfo = new Param();
+                Utils.assign(sagaInfo, info, validUpdaterFields);
+
+                long branchId = RootContext.getBranchId();
+                sagaInfo.setString(BasicSagaEntity.Common.XID, m_xid);
+                sagaInfo.setLong(BasicSagaEntity.Common.BRANCH_ID, branchId);
+                sagaInfo.setInt(BasicSagaEntity.Common.SAGA_OP, BasicSagaValObj.SagaOp.UPDATE);
+                sagaList.add(sagaInfo);
+            }
+            // 插入
+            addSagaList(aid, sagaList);
+        }
+
         Ref<Integer> refRowCount = new Ref<>();
         rt = m_dao.update(updater, matcher, refRowCount);
         if(rt != Errno.OK) {
             throw new MgException(rt, "updatePdRel error;flow=%d;aid=%d;", m_flow, aid);
         }
         return refRowCount.value;
+    }
+
+    // saga补偿
+    public void rollback4Saga(int aid, long branchId) {
+        FaiList<Param> list = getSagaList(aid, m_xid, branchId);
+        if(list.isEmpty()) {
+            Log.logStd("rel info need rollback is empty;aid=%d;xid=%s;branchId=%s;", aid, m_xid, branchId);
+            return;
+        }
+        // 按操作分类
+        Map<Integer, List<Param>> groupBySagaOp = list.stream().collect(Collectors.groupingBy(x -> x.getInt(BasicSagaEntity.Common.SAGA_OP)));
+
+        // 回滚新增操作
+        rollback4Add(aid, groupBySagaOp.get(BasicSagaValObj.SagaOp.ADD));
+
+        // 回滚修改操作
+        rollback4Update(aid, groupBySagaOp.get(BasicSagaValObj.SagaOp.UPDATE));
+
+        // 回滚删除操作
+        rollback4Delete(aid, groupBySagaOp.get(BasicSagaValObj.SagaOp.DEL));
+    }
+
+    /**
+     * 新增的数据补偿：根据主键删除
+     */
+    private void rollback4Add(int aid, List<Param> list) {
+        if(Utils.isEmptyList(list)) {
+            return;
+        }
+        int rt;
+        Map<Integer, List<Param>> groupByUnionPriId = list.stream().collect(Collectors.groupingBy(x -> x.getInt(ProductRelEntity.Info.UNION_PRI_ID)));
+        for(Integer unionPriId : groupByUnionPriId.keySet()) {
+            List<Param> batchList = groupByUnionPriId.get(unionPriId);
+            FaiList<Integer> pdIds = Utils.getValList(new FaiList<>(batchList), ProductRelEntity.Info.PD_ID);
+
+            ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+            matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+            matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+            rt = m_dao.delete(matcher);
+            if(rt != Errno.OK) {
+                throw new MgException(rt, "del product rel error;flow=%d;aid=%d;unionPridId=%d;pdIds=%s;", m_flow, aid, unionPriId, pdIds);
+            }
+
+            restoreMaxId(aid, unionPriId, false);
+            Log.logStd("rollback add ok;aid=%d;uid=%d;pdIds=%s;", aid, unionPriId, pdIds);
+            // es同步数据 预处理
+            ESUtil.batchPreLog(aid, unionPriId, pdIds, DocOplogDef.Operation.DELETE_ONE);
+        }
+    }
+
+    /**
+     * 这边一个请求只会做一次修改操作
+     * 所有被修改的数据字段都是一致的
+     * 所以这里直接拿第一个被修改数据的字段做补偿
+     * 如果可能会有多次修改，且每次修改字段不一致的，不能采用这种方式
+     */
+    private void rollback4Update(int aid, List<Param> list) {
+        if(Utils.isEmptyList(list)) {
+            return;
+        }
+        Param first = list.get(0);
+        Set<String> keySet = first.keySet();
+        keySet.remove(ProductRelEntity.Info.AID);
+        keySet.remove(ProductRelEntity.Info.UNION_PRI_ID);
+        keySet.remove(ProductRelEntity.Info.PD_ID);
+        keySet.remove(BasicSagaEntity.Common.XID);
+        keySet.remove(BasicSagaEntity.Common.BRANCH_ID);
+        keySet.remove(BasicSagaEntity.Common.SAGA_OP);
+        FaiList<String> keyList = new FaiList<>(keySet);
+
+        FaiList<Param> dataList = new FaiList<>();
+        for(Param info : list) {
+            int unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
+            int pdId = info.getInt(ProductRelEntity.Info.PD_ID);
+            Param data = new Param();
+            // for updater
+            for(String key : keyList) {
+                data.assign(info, key);
+            }
+            // for matcher
+            data.setInt(ProductRelEntity.Info.AID, aid);
+            data.setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId);
+            data.setInt(ProductRelEntity.Info.PD_ID, pdId);
+            dataList.add(data);
+        }
+        ParamUpdater updater = new ParamUpdater();
+        for(String key : keyList) {
+            updater.getData().setString(key, "?");
+        }
+
+        ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, "?");
+        matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
+        matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.EQ, "?");
+
+        int rt = m_dao.batchUpdate(updater, matcher, dataList);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "updatePdRel error;flow=%d;aid=%d;dataList=%s;", m_flow, aid, dataList);
+        }
+
+        // es同步数据 预处理
+        ESUtil.batchPreLog(aid, new FaiList<>(list), DocOplogDef.Operation.UPDATE_ONE);
+
+        Log.logStd("updatePdRel rollback ok;flow=%d;aid=%d;dataList=%s;", m_flow, aid, dataList);
+    }
+
+    /**
+     * 删除的数据补偿：插入已删除的数据
+     */
+    private void rollback4Delete(int aid, List<Param> list) {
+        if(Utils.isEmptyList(list)) {
+            return;
+        }
+
+        for(Param relInfo : list) {
+            relInfo.remove(BasicSagaEntity.Common.XID);
+            relInfo.remove(BasicSagaEntity.Common.BRANCH_ID);
+            relInfo.remove(BasicSagaEntity.Common.SAGA_OP);
+        }
+        int rt = m_dao.batchInsert(new FaiList<>(list), null, false);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "add list error;flow=%d;aid=%d;list=%s;", m_flow, aid, list);
+        }
+
+        // es同步数据 预处理
+        ESUtil.batchPreLog(aid, new FaiList<>(list), DocOplogDef.Operation.UPDATE_ONE);
+
+        Log.logStd("rollback del ok;aid=%d;xid=%s;list=%s;", aid, m_xid, list);
     }
 
     public Param getProductRel(int aid, int unionPriId, int rlPdId) {
@@ -402,9 +639,9 @@ public class ProductRelProc {
     }
 
     /**
-     * 在 aid + unionPriId 下搜索
+     * 在 aid 下搜索
      */
-    public FaiList<Param> searchFromDb(int aid, int unionPriId, SearchArg searchArg, FaiList<String> selectFields) {
+    public FaiList<Param> searchFromDb(int aid, SearchArg searchArg, FaiList<String> selectFields) {
         if(searchArg == null) {
             searchArg = new SearchArg();
         }
@@ -412,22 +649,26 @@ public class ProductRelProc {
             searchArg.matcher = new ParamMatcher();
         }
         searchArg.matcher.and(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
-        searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         //searchArg.matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.NE, ProductRelValObj.Status.DEL);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
         int rt = m_dao.select(searchArg, listRef, selectFields);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            throw new MgException(rt, "get error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            throw new MgException(rt, "get error;flow=%d;aid=%d;match=%s;", m_flow, aid, searchArg.matcher.toJson());
         }
         if(listRef.value == null) {
             listRef.value = new FaiList<Param>();
         }
         if (listRef.value.isEmpty()) {
             rt = Errno.NOT_FOUND;
-            Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            Log.logDbg(rt, "not found;flow=%d;aid=%d;match=%s;", m_flow, aid, searchArg.matcher.toJson());
         }
         return listRef.value;
+    }
+    public FaiList<Param> searchFromDb(int aid, ParamMatcher matcher, FaiList<String> selectFields) {
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        return searchFromDb(aid, searchArg, selectFields);
     }
 
     private int getPdRelCountFromDB(int aid, int unionPriId) {
@@ -515,6 +756,49 @@ public class ProductRelProc {
         return list;
     }
 
+    private FaiList<Param> getSagaList(int aid, String xid, long branchId) {
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(BasicSagaEntity.Common.XID, ParamMatcher.EQ, xid);
+        searchArg.matcher.and(BasicSagaEntity.Common.BRANCH_ID, ParamMatcher.EQ, branchId);
+        Ref<FaiList<Param>> tmpRef = new Ref<>();
+        int rt = m_sagaDao.select(searchArg, tmpRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "get saga list error;aid=%d;xid=%s;branchId=%d;", aid, xid, branchId);
+        }
+        return tmpRef.value;
+    }
+
+    private void addSaga(int aid, Param sagaInfo) {
+        if(!addSaga || Str.isEmpty(sagaInfo)) {
+            return;
+        }
+        // 如果开启了分布式事务，那么本地事务必须关闭auto commit
+        // 因为这时候肯定要操作多张表的数据
+        if(m_sagaDao.isAutoCommit() || m_dao.isAutoCommit()) {
+            throw new MgException("dao need close auto commit;");
+        }
+        int rt = m_sagaDao.insert(sagaInfo);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "saga insert productRel error;flow=%d;aid=%d;sagaInfo=%s;", m_flow, aid, sagaInfo);
+        }
+    }
+
+    public void addSagaList(int aid, FaiList<Param> list) {
+        if(!addSaga || Utils.isEmptyList(list)) {
+            return;
+        }
+        // 如果开启了分布式事务，那么本地事务必须关闭auto commit
+        // 因为这时候肯定要操作多张表的数据
+        if(m_sagaDao.isAutoCommit() || m_dao.isAutoCommit()) {
+            throw new MgException("dao need close auto commit;");
+        }
+        int rt = m_sagaDao.batchInsert(list, null, true);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "saga insert productRel error;flow=%d;aid=%d;list=%s;", m_flow, aid, list);
+        }
+    }
+
     private void init(TransactionCtrl tc) {
         if(tc == null) {
             return;
@@ -522,9 +806,15 @@ public class ProductRelProc {
         if(!tc.register(m_dao)) {
             throw new MgException("registered ProductGroupRelDaoCtrl err;");
         }
+        if(m_sagaDao != null && !tc.register(m_sagaDao)) {
+            throw new MgException("registered ProductRelSagaDaoCtrl err;");
+        }
     }
 
     private int m_flow;
+    private boolean addSaga;
+    private String m_xid;
     private ProductRelDaoCtrl m_dao;
+    private ProductRelSagaDaoCtrl m_sagaDao;
     private static final int BATCH_DEL_SIZE = 500;
 }

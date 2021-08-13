@@ -31,9 +31,10 @@ public class ProductEntity {
 
     public static final FaiList<String> MANAGE_FIELDS; // 管理态字段
     public static final FaiList<String> VISITOR_FIELDS; // 访客态字段
+    public static final FaiList<String> UPDATE_FIELDS; // 可修改字段
 
     static {
-        MANAGE_FIELDS = new FaiList<String>();
+        MANAGE_FIELDS = new FaiList<>();
         MANAGE_FIELDS.add(Info.PD_ID);
         MANAGE_FIELDS.add(Info.NAME);
         MANAGE_FIELDS.add(Info.PD_TYPE);
@@ -41,7 +42,25 @@ public class ProductEntity {
         MANAGE_FIELDS.add(Info.FLAG1);
         MANAGE_FIELDS.setReadOnly(true);
 
-        VISITOR_FIELDS = new FaiList<String>();
+        VISITOR_FIELDS = new FaiList<>();
         VISITOR_FIELDS.setReadOnly(true);
+
+        UPDATE_FIELDS = new FaiList<>();
+        UPDATE_FIELDS.add(Info.NAME);
+        UPDATE_FIELDS.add(Info.PD_TYPE);
+        UPDATE_FIELDS.add(Info.IMG_LIST);
+        UPDATE_FIELDS.add(Info.VIDEO_LIST);
+        UPDATE_FIELDS.add(Info.UNIT);
+        UPDATE_FIELDS.add(Info.FLAG);
+        UPDATE_FIELDS.add(Info.FLAG1);
+        UPDATE_FIELDS.add(Info.KEEP_PROP1);
+        UPDATE_FIELDS.add(Info.KEEP_PROP2);
+        UPDATE_FIELDS.add(Info.KEEP_PROP3);
+        UPDATE_FIELDS.add(Info.KEEP_INT_PROP1);
+        UPDATE_FIELDS.add(Info.KEEP_INT_PROP2);
+        UPDATE_FIELDS.add(Info.UPDATE_TIME);
+        // status这个字段因为软删除统一字段，所以名称和商品业务表一致，目前就是软删除的时候可以改。如果之后其他场景要修改这个字段的话，为避免和业务表修改弄混，需要另外提供接口
+        //UPDATE_FIELDS.add(Info.STATUS);
+        UPDATE_FIELDS.setReadOnly(true);
     }
 }

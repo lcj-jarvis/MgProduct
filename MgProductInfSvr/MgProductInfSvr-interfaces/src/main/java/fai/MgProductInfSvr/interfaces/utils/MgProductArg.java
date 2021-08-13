@@ -5,7 +5,6 @@ import fai.comm.util.Param;
 import fai.comm.util.ParamUpdater;
 import fai.comm.util.SearchArg;
 
-import java.sql.BatchUpdateException;
 import java.util.Calendar;
 
 public class MgProductArg {
@@ -62,6 +61,7 @@ public class MgProductArg {
     private boolean withSpu;
     private long skuId;
     private boolean onlyGetChecked;
+    private int sysType;
 
     private FaiList<Param> skuStoreSales;
 
@@ -126,6 +126,7 @@ public class MgProductArg {
         this.withSpu = builder.withSpu;
         this.skuId = builder.skuId;
         this.onlyGetChecked = builder.onlyGetChecked;
+        this.sysType = builder.sysType;
 
         this.skuStoreSales = builder.skuStoreSales;
 
@@ -352,6 +353,10 @@ public class MgProductArg {
         return delRlTagIds;
     }
 
+    public int getSysType() {
+        return sysType;
+    }
+
     private static abstract class TopBuilder {
         protected int aid;
         protected int tid;
@@ -375,6 +380,7 @@ public class MgProductArg {
         protected ParamUpdater updater;
         protected boolean softDel;
         protected SearchArg searchArg;
+        protected int sysType;
 
         public abstract Builder setXid(String xid);
 
@@ -392,6 +398,7 @@ public class MgProductArg {
         public abstract Builder setUpdater(ParamUpdater updater);
         public abstract Builder setSoftDel(boolean softDel);
         public abstract Builder setSearchArg(SearchArg searchArg);
+        public abstract Builder setSysType(int sysType);
     }
 
     private static abstract class BasicBuilder extends TopBuilder {
@@ -737,6 +744,12 @@ public class MgProductArg {
         @Override
         public Builder setSearchArg(SearchArg searchArg) {
             this.searchArg = searchArg;
+            return this;
+        }
+
+        @Override
+        public Builder setSysType(int sysType) {
+            this.sysType = sysType;
             return this;
         }
 

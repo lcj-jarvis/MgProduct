@@ -13,4 +13,14 @@ public class ProductGroupRelValObj {
 	public static class Limit {
 		public static final int COUNT_MAX = 2000;
 	}
+
+	public static class SysType {
+		public static final int PRODUCT = 1;
+		public static final int SERVICE = 2;
+	}
+
+	public static class Status {
+		public static final int DEFAULT = 0;
+		public static final int DEL = -1;
+	}
 }

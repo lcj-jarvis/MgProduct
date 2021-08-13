@@ -24,19 +24,18 @@ public class StoreSagaProc {
     }
 
     /**
-     * 添加补偿记录
+     * 记录分布式事务信息
      *
-     * @param aid          aid
-     * @param xid          全局事务id
-     * @param branchId     分支事务id
-     * @param prop         补偿操作
+     * @param aid aid
+     * @param xid 全局事务id
+     * @param branchId 分支事务id
      * @return {@link Errno}
      */
-    public int add(int aid, String xid, Long branchId, Param prop) {
+    public int add(int aid, String xid, Long branchId) {
         int rt;
-        if (Str.isEmpty(prop)) {
+        if (Str.isEmpty(xid)) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr(rt, "args err;prop is empty;flow=%d;aid=%d;", m_flow, aid);
+            Log.logErr(rt, "args err;xid is empty;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
         Calendar now = Calendar.getInstance();
@@ -44,13 +43,13 @@ public class StoreSagaProc {
         info.setInt(StoreSagaEntity.Info.AID, aid);
         info.setString(StoreSagaEntity.Info.XID, xid);
         info.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
-        info.setString(StoreSagaEntity.Info.PROP, prop.toJson());
         info.setInt(StoreSagaEntity.Info.STATUS, StoreSagaValObj.Status.INIT);
         info.setCalendar(StoreSagaEntity.Info.SYS_CREATE_TIME, now);
         info.setCalendar(StoreSagaEntity.Info.SYS_UPDATE_TIME, now);
         rt = addInfo(info);
         if (rt != Errno.OK) {
             Log.logErr(rt, "storeSaga insert err;flow=%d;aid=%d;addInfo=%s", m_flow, aid, info);
+            return rt;
         }
         return rt;
     }
@@ -92,7 +91,6 @@ public class StoreSagaProc {
         info.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
         info.setInt(StoreSagaEntity.Info.STATUS, StoreSagaValObj.Status.INIT);
         info.setInt(StoreSagaEntity.Info.AID, 0);
-        info.setString(StoreSagaEntity.Info.PROP, new Param().toJson());
         int addRt = addInfo(info);
         if (addRt != Errno.OK) {
             return addRt;

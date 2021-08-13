@@ -1,27 +1,21 @@
 package fai.MgProductBasicSvr.application.service;
 
 import fai.MgProductBasicSvr.domain.common.LockUtil;
-import fai.MgProductBasicSvr.domain.entity.BasicSagaEntity;
-import fai.MgProductBasicSvr.domain.entity.BasicSagaValObj;
 import fai.MgProductBasicSvr.domain.entity.ProductBindGroupEntity;
-import fai.MgProductBasicSvr.domain.entity.ProductEntity;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductBindGroupCache;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductBindGroupProc;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductRelProc;
-import fai.MgProductBasicSvr.domain.serviceproc.SagaProc;
 import fai.MgProductBasicSvr.interfaces.dto.ProductBindGroupDto;
-import fai.comm.fseata.client.core.model.BranchStatus;
-import fai.comm.fseata.client.core.rpc.def.CommDef;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.annotation.SuccessRt;
+import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 import fai.middleground.svrutil.service.ServicePub;
 
 import java.io.IOException;
-import java.util.concurrent.locks.Lock;
 
 public class ProductBindGroupService extends ServicePub {
 
@@ -30,7 +24,7 @@ public class ProductBindGroupService extends ServicePub {
      */
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getPdsBindGroup(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlPdIds) throws IOException {
-        if(Util.isEmptyList(rlPdIds)) {
+        if(Utils.isEmptyList(rlPdIds)) {
             int rt = Errno.ARGS_ERROR;
             Log.logErr(rt, "args error, rlPdIds is empty;aid=%d;unionPriId=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
             return rt;
@@ -59,14 +53,13 @@ public class ProductBindGroupService extends ServicePub {
      */
     @SuccessRt(value = Errno.OK)
     public int setPdBindGroup(FaiSession session, int flow, int aid, int unionPriId, int rlPdId, FaiList<Integer> addGroupIds, FaiList<Integer> delGroupIds) throws IOException {
-        if(Util.isEmptyList(addGroupIds) && Util.isEmptyList(delGroupIds)) {
+        if(Utils.isEmptyList(addGroupIds) && Util.isEmptyList(delGroupIds)) {
             int rt = Errno.ARGS_ERROR;
             Log.logErr(rt, "args error, addGroupIds and delGroupIds is empty;aid=%d;unionPriId=%d;rlPdId=%s;", aid, unionPriId, rlPdId);
             return rt;
         }
 
-        Lock lock = LockUtil.getLock(aid);
-        lock.lock();
+        LockUtil.lock(aid);
         try {
             TransactionCtrl tc = new TransactionCtrl();
             boolean commit = false;
@@ -74,7 +67,7 @@ public class ProductBindGroupService extends ServicePub {
                 tc.setAutoCommit(false);
                 ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
                 int addCount = 0;
-                if(!Util.isEmptyList(addGroupIds)) {
+                if(!Utils.isEmptyList(addGroupIds)) {
                     ProductRelProc pdRelProc = new ProductRelProc(flow, aid, tc);
                     Param pdRelInfo = pdRelProc.getProductRel(aid, unionPriId, rlPdId);
                     if(Str.isEmpty(pdRelInfo)) {
@@ -87,7 +80,7 @@ public class ProductBindGroupService extends ServicePub {
                     addCount += addGroupIds.size();
                 }
 
-                if(!Util.isEmptyList(delGroupIds)) {
+                if(!Utils.isEmptyList(delGroupIds)) {
                     // 删除数据
                     int delCount = bindGroupProc.delPdBindGroupList(aid, unionPriId, rlPdId, delGroupIds);
                     addCount -= delCount;
@@ -104,7 +97,7 @@ public class ProductBindGroupService extends ServicePub {
                 tc.closeDao();
             }
         }finally {
-            lock.unlock();
+            LockUtil.unlock(aid);
         }
 
         FaiBuffer sendBuf = new FaiBuffer(true);
@@ -113,173 +106,13 @@ public class ProductBindGroupService extends ServicePub {
         return Errno.OK;
     }
 
-    /**
-     * Saga模式，修改绑定分类信息
-     */
-    @SuccessRt(value = Errno.OK)
-    public int transactionSetPdBindGroup(FaiSession session, int flow, int aid, int unionPriId, int rlPdId, String xid, FaiList<Integer> addGroupIds, FaiList<Integer> delGroupIds) throws IOException {
-        if(Util.isEmptyList(addGroupIds) && Util.isEmptyList(delGroupIds)) {
-            int rt = Errno.ARGS_ERROR;
-            Log.logErr(rt, "args error, addGroupIds and delGroupIds is empty;aid=%d;unionPriId=%d;rlPdId=%s;", aid, unionPriId, rlPdId);
-            return rt;
-        }
-        Lock lock = LockUtil.getLock(aid);
-        lock.lock();
-        try {
-            TransactionCtrl tc = new TransactionCtrl();
-            boolean commit = false;
-            try {
-                tc.setAutoCommit(false);
-                ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
-                int addCount = 0;
-                int pdId = 0;
-
-                if(!Util.isEmptyList(delGroupIds)) {
-                    // 删除数据
-                    int delCount = bindGroupProc.delPdBindGroupList(aid, unionPriId, rlPdId, delGroupIds);
-                    addCount -= delCount;
-                }
-
-                if(!Util.isEmptyList(addGroupIds)) {
-                    ProductRelProc pdRelProc = new ProductRelProc(flow, aid, tc);
-                    Param pdRelInfo = pdRelProc.getProductRel(aid, unionPriId, rlPdId);
-                    if(Str.isEmpty(pdRelInfo)) {
-                        Log.logErr("pd rel info is not exist;flow=%d;aid=%d;uid=%d;rlPdId=%d;", flow, aid, unionPriId, rlPdId);
-                        return Errno.NOT_FOUND;
-                    }
-                    pdId = pdRelInfo.getInt(ProductBindGroupEntity.Info.PD_ID);
-                    // 添加数据
-                    bindGroupProc.addPdBindGroupList(aid, unionPriId, rlPdId, pdId, addGroupIds);
-                    addCount += addGroupIds.size();
-                }
-                // 记录修改的数据，作为补偿
-                Param rollbackInfo = new Param();
-                rollbackInfo.setInt(ProductBindGroupEntity.Info.AID, aid);
-                rollbackInfo.setInt(ProductBindGroupEntity.Info.PD_ID, pdId);
-                rollbackInfo.setInt(ProductBindGroupEntity.Info.UNION_PRI_ID, unionPriId);
-                rollbackInfo.setInt(ProductBindGroupEntity.Info.RL_PD_ID, rlPdId);
-                rollbackInfo.setInt(ProductEntity.Business.ADD_COUNT, addCount);
-                rollbackInfo.setList(ProductBindGroupEntity.Business.ADD_GROUP_IDS, addGroupIds);
-                rollbackInfo.setList(ProductBindGroupEntity.Business.DEL_GROUP_IDS, delGroupIds);
-
-                SagaProc sagaProc = new SagaProc(flow, aid, tc);
-                sagaProc.addInfo(aid, xid, rollbackInfo);
-
-                commit = true;
-                tc.commit();
-                // 删除缓存
-                ProductBindGroupCache.delCache(aid, unionPriId, rlPdId);
-                ProductBindGroupCache.DataStatusCache.update(aid, unionPriId, addCount);
-            } finally {
-                if (!commit) {
-                    tc.rollback();
-                }
-                tc.closeDao();
-            }
-        } finally {
-            lock.unlock();
-        }
-
-        FaiBuffer sendBuf = new FaiBuffer(true);
-        session.write(sendBuf);
-        Log.logStd("transactionSetPdBindGroup ok;flow=%d;aid=%d;uid=%d;rlPdId=%s;", flow, aid, unionPriId, rlPdId);
-        return Errno.OK;
-    }
-
-    /**
-     * transactionSetPdBindGroup 的补偿方法
-     */
-    @SuccessRt(value = Errno.OK)
-    public int setPdBindGroupRollback(FaiSession session, int flow, int aid, String xid, Long branchId) throws IOException {
-        int rt = Errno.ERROR;
-        Lock lock = LockUtil.getLock(aid);
-        lock.lock();
-        try {
-            TransactionCtrl tc = new TransactionCtrl();
-            boolean commit = false;
-            // 分类绑定数目的改变
-            int addCount = 0;
-            int unionPriId = 0;
-            try {
-                tc.setAutoCommit(false);
-                SagaProc sagaProc = new SagaProc(flow, aid, tc);
-                // 获取 saga 表中的数据
-                Param sagaInfo = sagaProc.getInfoWithAdd(xid, branchId);
-                if (sagaInfo == null) {
-                    commit = true;
-                    rt = Errno.OK;
-                    return rt;
-                }
-
-                // 获取补偿信息
-                Param rollbackInfo = Param.parseParam(sagaInfo.getString(BasicSagaEntity.Info.PROP));
-                int status = sagaInfo.getInt(BasicSagaEntity.Info.STATUS);
-                // 幂等性保证
-                if (status == BasicSagaValObj.Status.ROLLBACK_OK) {
-                    commit = true;
-                    rt = Errno.OK;
-                    return rt;
-                }
-
-                /* 获取补偿信息 start */
-                int pdId = rollbackInfo.getInt(ProductBindGroupEntity.Info.PD_ID);
-                unionPriId = rollbackInfo.getInt(ProductBindGroupEntity.Info.UNION_PRI_ID);
-                int rlPdId = rollbackInfo.getInt(ProductBindGroupEntity.Info.RL_PD_ID);
-                addCount = rollbackInfo.getInt(ProductEntity.Business.ADD_COUNT);
-                // 之前添加的分类ids
-                FaiList<Integer> addGroupIds = rollbackInfo.getList(ProductBindGroupEntity.Business.ADD_GROUP_IDS);
-                // 之前删除的分类ids
-                FaiList<Integer> delGroupIds = rollbackInfo.getList(ProductBindGroupEntity.Business.DEL_GROUP_IDS);
-                /* 获取补偿信息 end */
-
-                ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
-                // 补偿，删除之前添加的分类绑定
-                if (!Util.isEmptyList(addGroupIds)) {
-                    bindGroupProc.delPdBindGroupList(aid, unionPriId, rlPdId, addGroupIds);
-                }
-                // 补偿，添加之前删除的分类绑定
-                if (!Util.isEmptyList(delGroupIds)) {
-                    bindGroupProc.addPdBindGroupList(aid, unionPriId, rlPdId, pdId, delGroupIds);
-                }
-                // 修改Saga状态
-                sagaProc.setStatus(xid, branchId, BasicSagaValObj.Status.ROLLBACK_OK);
-
-                commit = true;
-                tc.commit();
-                rt = Errno.OK;
-            } finally {
-                if (!commit) {
-                    tc.rollback();
-                } else {
-                    // 告知数据状态发生变化，由于之前的逻辑是修改完后直接删除整个缓存并没有更新缓存，所以在这里不做分类绑定的缓存补偿
-                    ProductBindGroupCache.DataStatusCache.update(aid, unionPriId, -addCount);
-                }
-                tc.closeDao();
-            }
-        } finally {
-            lock.unlock();
-
-            FaiBuffer sendBuf = new FaiBuffer(true);
-            // 判断是否需要重试
-            if (rt != Errno.OK) {
-                //失败，需要重试
-                sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, BranchStatus.PhaseTwo_RollbackFailed_Retryable.getCode());
-            }else{
-                //成功，不需要重试
-                sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, BranchStatus.PhaseTwo_Rollbacked.getCode());
-            }
-            session.write(sendBuf);
-            session.write(rt);
-        }
-        return rt;
-    }
 
     /**
      * 查询指定分类id下的商品业务id
      */
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getRlPdByRlGroupId(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlGroupIds) throws IOException {
-        if(Util.isEmptyList(rlGroupIds)) {
+        if(Utils.isEmptyList(rlGroupIds)) {
             int rt = Errno.ARGS_ERROR;
             Log.logErr(rt, "args error, rlGroupIds is empty;aid=%d;unionPriId=%d;rlGroupIds=%s;", aid, unionPriId, rlGroupIds);
             return rt;
@@ -289,7 +122,7 @@ public class ProductBindGroupService extends ServicePub {
         try {
             ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
             rlPdIds = bindGroupProc.getRlPdIdsByGroupId(aid, unionPriId, rlGroupIds);
-            if(Util.isEmptyList(rlPdIds)) {
+            if(Utils.isEmptyList(rlPdIds)) {
                 Log.logDbg("not found;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
                 return Errno.NOT_FOUND;
             }
@@ -309,7 +142,7 @@ public class ProductBindGroupService extends ServicePub {
      */
     @SuccessRt(value = Errno.OK)
     public int delBindGroupList(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlGroupIds) throws IOException {
-        if(Util.isEmptyList(rlGroupIds)) {
+        if(Utils.isEmptyList(rlGroupIds)) {
             int rt = Errno.ARGS_ERROR;
             Log.logErr(rt, "args error, rlGroupIds is empty;aid=%d;unionPriId=%d;rlGroupIds=%s;", aid, unionPriId, rlGroupIds);
             return rt;
@@ -372,7 +205,9 @@ public class ProductBindGroupService extends ServicePub {
             ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
             // 查aid + unionPriId 下所有数据，传入空的searchArg
             SearchArg searchArg = new SearchArg();
-            list = bindGroupProc.searchFromDb(aid, unionPriId, searchArg, ProductBindGroupEntity.MANAGE_FIELDS);
+            searchArg.matcher = new ParamMatcher(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, aid);
+            searchArg.matcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+            list = bindGroupProc.searchFromDb(aid, searchArg, ProductBindGroupEntity.MANAGE_FIELDS);
         }finally {
             tc.closeDao();
         }
@@ -397,7 +232,9 @@ public class ProductBindGroupService extends ServicePub {
         TransactionCtrl tc = new TransactionCtrl();
         try {
             ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
-            list = bindGroupProc.searchFromDb(aid, unionPriId, searchArg, ProductBindGroupEntity.MANAGE_FIELDS);
+            searchArg.matcher = searchArg.matcher == null ? new ParamMatcher() : searchArg.matcher;
+            searchArg.matcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+            list = bindGroupProc.searchFromDb(aid, searchArg, ProductBindGroupEntity.MANAGE_FIELDS);
 
         }finally {
             tc.closeDao();

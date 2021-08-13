@@ -56,8 +56,8 @@ public class ProductGroupProc {
     /**
      * 删除商品分类数据
      */
-    public void delGroupList(int aid, int unionPriId, FaiList<Integer> rlGroupIds) {
-        int rt = m_cli.delGroupList(aid, unionPriId, rlGroupIds);
+    public void delGroupList(int aid, int unionPriId, FaiList<Integer> rlGroupIds, int sysType, boolean softDel) {
+        int rt = m_cli.delGroupList(aid, unionPriId, rlGroupIds, sysType, softDel);
         if(rt != Errno.OK) {
             throw new MgException(rt, "delGroupList error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
         }
@@ -66,9 +66,9 @@ public class ProductGroupProc {
     /**
      * 合并（增、删、改）接口
      */
-    public FaiList<Integer> unionSetGroupList(int aid, int tid, int unionPriId, FaiList<Param> addList, FaiList<ParamUpdater> updaterList, FaiList<Integer> delList) {
+    public FaiList<Integer> unionSetGroupList(int aid, int tid, int unionPriId, FaiList<Param> addList, FaiList<ParamUpdater> updaterList, FaiList<Integer> delList, int sysType, boolean softDel) {
         Ref<FaiList<Integer>> rlGroupIdsRef = new Ref<>();
-        int rt = m_cli.unionSetGroupList(aid, tid, unionPriId, addList, updaterList, delList, rlGroupIdsRef);
+        int rt = m_cli.unionSetGroupList(aid, tid, unionPriId, addList, updaterList, delList, sysType, softDel, rlGroupIdsRef);
         if (rt != Errno.OK) {
             throw new MgException(rt, "unionSetGroupList error;flow=%d;aid=%d;uid=%d", m_flow, aid, unionPriId);
         }

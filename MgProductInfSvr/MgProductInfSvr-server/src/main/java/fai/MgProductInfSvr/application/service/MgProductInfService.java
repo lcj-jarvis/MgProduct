@@ -195,7 +195,7 @@ public class MgProductInfService extends ServicePub {
         rt = mgProductBasicCli.getRelInfoByRlId(aid, unionPriId, rlPdId, pdRelInfo);
         if(rt != Errno.OK) {
             if(withAdd && (rt == Errno.NOT_FOUND)){
-                rt = mgProductBasicCli.addProductAndRel(aid, tid, unionPriId, new Param()
+                rt = mgProductBasicCli.addProductAndRel(aid, tid, unionPriId, null, new Param()
                                 .setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId)
                                 .setBoolean(ProductRelEntity.Info.INFO_CHECK, false)
                         , idRef, new Ref<>());
@@ -480,6 +480,28 @@ public class MgProductInfService extends ServicePub {
         FaiBuffer sendBuf = new FaiBuffer(true);
         session.write(sendBuf);
         Log.logStd("del backup ok;flow=%d;aid=%d;key=%s;rlBackupId=%s;", flow, aid, primaryKey, rlBackupId);
+        return rt;
+    }
+
+    @SuccessRt({Errno.OK, Errno.NOT_FOUND})
+    public int getPdInfo4ES(FaiSession session, int flow, int aid, int unionPriId, int pdId) throws IOException {
+        int rt;
+        if(aid < 0 || unionPriId < 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error;flow=%d;aid=%d;uid=%s;pdId=%s;", flow, aid, unionPriId, pdId);
+            return rt;
+        }
+        ProductBasicProc productBasicProc = new ProductBasicProc(flow);
+        Param info = new Param();
+        rt = productBasicProc.getInfoByPdId(aid, unionPriId, pdId, info);
+        if(rt != Errno.OK) {
+            return rt;
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        info.toBuffer(sendBuf, MgProductDto.Key.INFO, MgProductDto.getEsPdInfoDto());
+        session.write(sendBuf);
         return rt;
     }
 
@@ -1289,7 +1311,8 @@ public class MgProductInfService extends ServicePub {
                     FaiList<Param> skuIdInfoList = new FaiList<>();
                     // 导入
                     if(!importSpecList.isEmpty()){
-                        rt = productSpecProc.importPdScWithSku(aid, ownerTid, ownerUnionPriId, xid, importSpecList, importSpecSkuList, skuIdInfoList);
+                        // TODO 规格暂时不支持分布式事务
+                        rt = productSpecProc.importPdScWithSku(aid, ownerTid, ownerUnionPriId, null, importSpecList, importSpecSkuList, skuIdInfoList);
                         if(rt != Errno.OK){
                             return rt;
                         }

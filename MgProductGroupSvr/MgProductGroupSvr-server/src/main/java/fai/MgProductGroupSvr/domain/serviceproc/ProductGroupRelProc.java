@@ -153,7 +153,16 @@ public class ProductGroupRelProc {
         for(ParamUpdater updater : updaterList){
             Param updateInfo = updater.getData();
             int rlGroupId = updateInfo.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID, 0);
-            Param oldInfo = Misc.getFirstNullIsEmpty(oldInfoList, ProductGroupRelEntity.Info.RL_GROUP_ID, rlGroupId);
+            Integer sysType = updateInfo.getInt(ProductGroupRelEntity.Info.SYS_TYPE, 0);
+            Param oldInfo;
+            // 主要是兼容门店的逻辑，因为他们的 rlGroupId 是会重复的 需要加上类型判断
+            if (sysType != 0) {
+                ParamMatcher matcher = new ParamMatcher(ProductGroupRelEntity.Info.RL_GROUP_ID, ParamMatcher.EQ, rlGroupId);
+                matcher.and(ProductGroupRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
+                oldInfo = Misc.getFirst(oldInfoList, matcher);
+            } else {
+                oldInfo = Misc.getFirstNullIsEmpty(oldInfoList, ProductGroupRelEntity.Info.RL_GROUP_ID, rlGroupId);
+            }
             if(Str.isEmpty(oldInfo)){
                 continue;
             }
@@ -161,16 +170,19 @@ public class ProductGroupRelProc {
             oldInfo = updater.update(oldInfo, true);
             Param data = new Param();
 
-            //只能修改rlFlag和sort
+            //只能修改rlFlag、sort、status
             int sort = oldInfo.getInt(ProductGroupRelEntity.Info.SORT, 0);
             int rlFlag = oldInfo.getInt(ProductGroupRelEntity.Info.RL_FLAG, 0);
+            int status = oldInfo.getInt(ProductGroupRelEntity.Info.STATUS, 0);
             data.setInt(ProductGroupRelEntity.Info.SORT, sort);
             data.setInt(ProductGroupRelEntity.Info.RL_FLAG, rlFlag);
+            data.setInt(ProductGroupRelEntity.Info.STATUS, status);
             data.setCalendar(ProductGroupRelEntity.Info.UPDATE_TIME, now);
 
             data.assign(oldInfo, ProductGroupRelEntity.Info.AID);
             data.assign(oldInfo, ProductGroupRelEntity.Info.UNION_PRI_ID);
             data.assign(oldInfo, ProductGroupRelEntity.Info.RL_GROUP_ID);
+            data.assign(oldInfo, ProductGroupRelEntity.Info.SYS_TYPE);
             dataList.add(data);
             if(groupUpdaterList != null) {
                 updateInfo.setInt(ProductGroupRelEntity.Info.GROUP_ID, groupId);
@@ -186,11 +198,13 @@ public class ProductGroupRelProc {
         ParamMatcher doBatchMatcher = new ParamMatcher(ProductGroupRelEntity.Info.AID, ParamMatcher.EQ, "?");
         doBatchMatcher.and(ProductGroupRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
         doBatchMatcher.and(ProductGroupRelEntity.Info.RL_GROUP_ID, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(ProductGroupRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, "?");
 
         Param item = new Param();
         ParamUpdater doBatchUpdater = new ParamUpdater(item);
         item.setString(ProductGroupRelEntity.Info.SORT, "?");
         item.setString(ProductGroupRelEntity.Info.RL_FLAG, "?");
+        item.setString(ProductGroupRelEntity.Info.STATUS, "?");
         item.setString(ProductGroupRelEntity.Info.UPDATE_TIME, "?");
         rt = m_relDao.doBatchUpdate(doBatchUpdater, doBatchMatcher, dataList, true);
         if(rt != Errno.OK){
@@ -198,7 +212,7 @@ public class ProductGroupRelProc {
         }
     }
 
-    public void delGroupList(int aid, int unionPriId, FaiList<Integer> delRlIdList) {
+    public void delGroupList(int aid, int unionPriId, FaiList<Integer> delRlIdList, int sysType, boolean softDel) {
         int rt;
         if(delRlIdList == null || delRlIdList.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -206,9 +220,27 @@ public class ProductGroupRelProc {
         }
 
         ParamMatcher matcher = new ParamMatcher(ProductGroupRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(ProductGroupRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
         matcher.and(ProductGroupRelEntity.Info.RL_GROUP_ID, ParamMatcher.IN, delRlIdList);
 
-        delGroupRelList(aid, matcher);
+        if (softDel) {
+            softDelGroupRelList(aid, matcher);
+        } else {
+            delGroupRelList(aid, matcher);
+        }
+    }
+
+    private void softDelGroupRelList(int aid, ParamMatcher matcher) {
+        int rt;
+        if (matcher == null || matcher.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args err, matcher is null;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher);
+        }
+        ParamUpdater updater = new ParamUpdater(new Param().setInt(ProductGroupRelEntity.Info.STATUS, ProductGroupRelValObj.Status.DEL));
+        rt = m_relDao.update(updater, matcher);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "soft del error;flow=%d;aid=%d;", m_flow, aid);
+        }
     }
 
     public void delGroupRelList(int aid, ParamMatcher matcher) {
@@ -557,7 +589,7 @@ public class ProductGroupRelProc {
         return sort;
     }
 
-    public FaiList<Integer> getIdsByRlIds(int aid, int unionPriId, FaiList<Integer> rlIdList) {
+    public FaiList<Integer> getIdsByRlIds(int aid, int unionPriId, FaiList<Integer> rlIdList, int sysType) {
         if(rlIdList == null || rlIdList.isEmpty()) {
             return null;
         }
@@ -566,8 +598,11 @@ public class ProductGroupRelProc {
         if(list.isEmpty()) {
             return idList;
         }
-
-        list = Misc.getList(list, new ParamMatcher(ProductGroupRelEntity.Info.RL_GROUP_ID, ParamMatcher.IN, rlIdList));
+        ParamMatcher matcher = new ParamMatcher(ProductGroupRelEntity.Info.RL_GROUP_ID, ParamMatcher.IN, rlIdList);
+        if (sysType != 0) {
+            matcher.and(ProductGroupRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
+        }
+        list = Misc.getList(list, matcher);
         for(int i = 0; i < list.size(); i++) {
             Param info = list.get(i);
             idList.add(info.getInt(ProductGroupRelEntity.Info.GROUP_ID));

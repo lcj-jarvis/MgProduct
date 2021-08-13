@@ -48,22 +48,13 @@ public class ProductBasicProc {
     }
 
     public int setPdBindPropInfo(int aid, int tid, int unionPriId, int rlPdId, FaiList<Param> addList, FaiList<Param> delList) {
-        return setPdBindPropInfo(aid, tid, unionPriId, rlPdId, addList, delList, null);
-    }
-
-    public int setPdBindPropInfo(int aid, int tid, int unionPriId, int rlPdId, FaiList<Param> addList, FaiList<Param> delList, String xid) {
         int rt;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        // 没有xid则走不用分布式事务的方法
-        if (Str.isEmpty(xid)) {
-            rt = m_cli.setPdBindProp(aid, tid, unionPriId, rlPdId, addList, delList);
-        } else {
-            rt = m_cli.transactionSetPdBindProp(aid, tid, unionPriId, rlPdId, addList, delList, xid);
-        }
+        rt = m_cli.setPdBindProp(aid, tid, unionPriId, rlPdId, addList, delList);
         if(rt != Errno.OK) {
             Log.logErr(rt, "setPdBindProp error;flow=%d;aid=%d;tid=%d;unionPriId=%d;", m_flow, aid, tid, unionPriId);
             return rt;
@@ -126,14 +117,14 @@ public class ProductBasicProc {
      * 新增商品数据，并添加与当前unionPriId的关联
      * @return
      */
-    public int addProductAndRel(int aid, int tid, int unionPriId, Param info, Ref<Integer> pdIdRef, Ref<Integer> rlPdIdRef) {
+    public int addProductAndRel(int aid, int tid, int unionPriId, String xid, Param info, Ref<Integer> pdIdRef, Ref<Integer> rlPdIdRef) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.addProductAndRel(aid, tid, unionPriId, info, pdIdRef, rlPdIdRef);
+        rt = m_cli.addProductAndRel(aid, tid, unionPriId, xid, info, pdIdRef, rlPdIdRef);
         if(rt != Errno.OK) {
             Log.logErr(rt, "addProductAndRel error;flow=%d;aid=%d;tid=%d;unionPriId=%d;", m_flow, aid, tid, unionPriId);
             return rt;
@@ -185,16 +176,16 @@ public class ProductBasicProc {
     /**
      * 修改指定商品
      */
-    public int setSinglePd(int aid, int unionPriId, Integer rlPdId, ParamUpdater updater) {
+    public int setSinglePd(int aid, String xid, int unionPriId, Integer rlPdId, ParamUpdater updater) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.setSinglePd(aid, unionPriId, rlPdId, updater);
+        rt = m_cli.setSinglePd(aid, xid, unionPriId, rlPdId, updater);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "batchDelPdRelBind error;flow=%d;aid=%d;unionPriId=%d;updater=%s;", m_flow, aid, unionPriId, updater.toJson());
+            Log.logErr(rt, "setSinglePd error;flow=%d;aid=%d;unionPriId=%d;rlPdId=%d;updater=%s;", m_flow, aid, unionPriId, rlPdId, updater.toJson());
             return rt;
         }
 
@@ -263,14 +254,14 @@ public class ProductBasicProc {
      * 删除指定id列表(rlPdIds)的商品数据，同时删除所有相关业务关联数据
      * @return
      */
-    public int batchDelProduct(int aid, int tid, int unionPriId, FaiList<Integer> rlPdIds, boolean softDel) {
+    public int batchDelProduct(int aid, String xid, int tid, int unionPriId, FaiList<Integer> rlPdIds, boolean softDel) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.batchDelProduct(aid, tid, unionPriId, rlPdIds, softDel);
+        rt = m_cli.batchDelProduct(aid, xid, tid, unionPriId, rlPdIds, softDel);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batchDelProduct error;flow=%d;aid=%d;unionPriId=%d;rlPdIds=%s;", m_flow, aid, unionPriId, rlPdIds);
             return rt;
@@ -332,6 +323,24 @@ public class ProductBasicProc {
             return rt;
         }
         rt = m_cli.getRelInfoByRlId(aid, unionPriId, rlPdId, pdRelInfo);
+        if(rt != Errno.OK) {
+            if(rt != Errno.NOT_FOUND) {
+                Log.logErr(rt, "getRelInfoByRlId error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            }
+            return rt;
+        }
+
+        return rt;
+    }
+
+    public int getInfoByPdId(int aid, int unionPriId, int pdId, Param info) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.getPdInfoByPdId(aid, unionPriId, pdId, info);
         if(rt != Errno.OK) {
             if(rt != Errno.NOT_FOUND) {
                 Log.logErr(rt, "getRelInfoByRlId error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
@@ -437,23 +446,13 @@ public class ProductBasicProc {
     }
 
     public int setPdBindGroup(int aid, int unionPriId, int rlPdId, FaiList<Integer> addGroupIds, FaiList<Integer> delGroupIds) {
-        return setPdBindGroup(aid, unionPriId, rlPdId, addGroupIds, delGroupIds, null);
-    }
-
-    public int setPdBindGroup(int aid, int unionPriId, int rlPdId, FaiList<Integer> addGroupIds, FaiList<Integer> delGroupIds, String xid) {
         int rt;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        if (Str.isEmpty(xid)) {
-            // 如果没有xid，则执行非分布式事务的方法
-            rt = m_cli.setPdBindGroup(aid, unionPriId, rlPdId, addGroupIds, delGroupIds);
-        } else {
-            // 如果有xid，则执行分布式事务的方法
-            rt = m_cli.transactionSetPdBindGroup(aid, unionPriId, rlPdId, addGroupIds, delGroupIds, xid);
-        }
+        rt = m_cli.setPdBindGroup(aid, unionPriId, rlPdId, addGroupIds, delGroupIds);
         if(rt != Errno.OK) {
             Log.logErr(rt, "setPdBindGroup error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
@@ -462,7 +461,7 @@ public class ProductBasicProc {
     }
 
     public int delPdBindGroup(int aid, int unionPriId, FaiList<Integer> rlGroupIds) {
-        int rt = Errno.ERROR;
+        int rt;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
@@ -501,23 +500,13 @@ public class ProductBasicProc {
     }
 
     public int setPdBindTag(int aid, int unionPriId, int rlPdId, FaiList<Integer> addRlTagIds, FaiList<Integer> delRlTagIds) {
-        return setPdBindTag(aid, unionPriId, rlPdId, addRlTagIds, delRlTagIds, null);
-    }
-
-    public int setPdBindTag(int aid, int unionPriId, int rlPdId, FaiList<Integer> addRlTagIds, FaiList<Integer> delRlTagIds, String xid) {
         int rt;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        if (Str.isEmpty(xid)) {
-            // 如果没有xid，则执行非分布式事务的方法
-            rt = m_cli.setPdBindTag(aid, unionPriId, rlPdId, addRlTagIds, delRlTagIds);
-        } else {
-            // 如果有xid，则执行分布式事务的方法
-            rt = m_cli.transactionSetPdBindTag(aid, unionPriId, rlPdId, addRlTagIds, delRlTagIds, xid);
-        }
+        rt = m_cli.setPdBindTag(aid, unionPriId, rlPdId, addRlTagIds, delRlTagIds);
         if(rt != Errno.OK) {
             Log.logErr(rt, "setPdBindTag error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;

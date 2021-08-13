@@ -86,8 +86,10 @@ public class MgProductGroupHandler extends MiddleGroundHandler {
 							@ArgFlow final int flow,
 							@ArgAid int aid,
 							@ArgBodyInteger(ProductGroupRelDto.Key.UNION_PRI_ID) int unionPriId,
-							@ArgList(keyMatch = ProductGroupRelDto.Key.RL_GROUP_IDS) FaiList<Integer> rlGroupIds) throws IOException {
-		return groupService.delGroupList(session, flow, aid, unionPriId, rlGroupIds);
+							@ArgList(keyMatch = ProductGroupRelDto.Key.RL_GROUP_IDS) FaiList<Integer> rlGroupIds,
+							@ArgBodyInteger(ProductGroupRelDto.Key.SYS_TYPE) int sysType,
+							@ArgBodyBoolean(ProductGroupRelDto.Key.SOFT_DEL) boolean softDel) throws IOException {
+		return groupService.delGroupList(session, flow, aid, unionPriId, rlGroupIds, sysType, softDel);
 	}
 
 	@WrittenCmd
@@ -97,12 +99,14 @@ public class MgProductGroupHandler extends MiddleGroundHandler {
 								 @ArgAid int aid,
 								 @ArgBodyInteger(ProductGroupRelDto.Key.UNION_PRI_ID) int unionPriId,
 								 @ArgBodyInteger(ProductGroupRelDto.Key.TID) int tid,
+								 @ArgBodyBoolean(ProductGroupRelDto.Key.SOFT_DEL) boolean softDel,
 								 @ArgList(classDef = ProductGroupRelDto.class, methodDef = "getAllInfoDto",
 										 keyMatch = ProductGroupRelDto.Key.INFO) FaiList<Param> addList,
 								 @ArgList(classDef = ProductGroupRelDto.class, methodDef = "getAllInfoDto",
 										 keyMatch = ProductGroupRelDto.Key.UPDATERLIST) FaiList<ParamUpdater> updaterList,
-								 @ArgList(keyMatch = ProductGroupRelDto.Key.RL_GROUP_IDS) FaiList<Integer> delList) throws IOException {
-		return groupService.unionSetGroupList(session, flow, aid, unionPriId, tid, addList, updaterList, delList);
+								 @ArgList(keyMatch = ProductGroupRelDto.Key.RL_GROUP_IDS) FaiList<Integer> delList,
+								 @ArgBodyInteger(ProductGroupRelDto.Key.SYS_TYPE) int sysType) throws IOException {
+		return groupService.unionSetGroupList(session, flow, aid, unionPriId, tid, addList, updaterList, delList, sysType, softDel);
 	}
 
 	@WrittenCmd

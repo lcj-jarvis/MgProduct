@@ -1,16 +1,17 @@
 package fai.MgProductBasicSvr.domain.serviceproc;
 
 import fai.MgProductBasicSvr.domain.common.LockUtil;
-import fai.MgProductBasicSvr.domain.entity.ProductBindGroupEntity;
-import fai.MgProductBasicSvr.domain.entity.ProductBindTagEntity;
-import fai.MgProductBasicSvr.domain.entity.ProductBindTagEntity;
+import fai.MgProductBasicSvr.domain.entity.BasicSagaEntity;
+import fai.MgProductBasicSvr.domain.entity.BasicSagaValObj;
 import fai.MgProductBasicSvr.domain.entity.ProductBindTagEntity;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductBindTagCache;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductBindTagDaoCtrl;
+import fai.MgProductBasicSvr.domain.repository.dao.saga.ProductBindTagSagaDaoCtrl;
+import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
-import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.*;
@@ -23,11 +24,23 @@ import java.util.stream.Collectors;
 public class ProductBindTagProc {
 
     private int m_flow;
+    private String m_xid;
+    private boolean addSaga;
+    private ProductBindTagSagaDaoCtrl m_sagaDao;
     private ProductBindTagDaoCtrl m_dao;
 
     public ProductBindTagProc(int flow, int aid, TransactionCtrl tc) {
+        this(flow, aid, tc, null, false);
+    }
+
+    public ProductBindTagProc(int flow, int aid, TransactionCtrl tc, String xid, boolean addSaga) {
         this.m_flow = flow;
         this.m_dao = ProductBindTagDaoCtrl.getInstance(flow, aid);
+        this.m_xid = xid;
+        if(!Str.isEmpty(m_xid)) {
+            this.m_sagaDao = ProductBindTagSagaDaoCtrl.getInstance(flow, aid);
+            this.addSaga = addSaga;
+        }
         init(tc);
     }
 
@@ -39,11 +52,15 @@ public class ProductBindTagProc {
         if(!tc.register(m_dao)) {
             throw new MgException("registered ProductBindTagDaoCtrl err;");
         }
+
+        if(m_sagaDao != null && !tc.register(m_sagaDao)) {
+            throw new MgException("registered ProductBindTagSagaDaoCtrl err;");
+        }
     }
 
     public FaiList<Param> getPdBindTagList(int aid, int unionPriId, FaiList<Integer> rlPdIdList) {
         //去重
-        FaiList<Integer> rlPdIds = new FaiList<>(new HashSet<>(rlPdIdList));
+        HashSet<Integer> rlPdIds = new HashSet<>(rlPdIdList);
         //获取缓存的所有数据
         FaiList<Param> cacheList = ProductBindTagCache.getCacheList(aid, unionPriId, rlPdIds);
         if (cacheList == null) {
@@ -68,25 +85,21 @@ public class ProductBindTagProc {
 
             //获取未缓存的rlPdId
             FaiList<Integer> noCacheRlPdIds = new FaiList<>();
-            //缓存的rlPdId
-            FaiList<Integer> cacheRlPdIds = new FaiList<>();
+            noCacheRlPdIds.addAll(rlPdIds);
             cacheList.forEach(param -> {
                 Integer rlPdId = param.getInt(ProductBindTagEntity.Info.RL_PD_ID);
-                cacheRlPdIds.add(rlPdId);
-            });
-            rlPdIds.forEach(rlPdId -> {
-                if (!cacheRlPdIds.contains(rlPdId)) {
-                    noCacheRlPdIds.add(rlPdId);
-                }
+                noCacheRlPdIds.remove(rlPdId);
             });
 
             //查询未缓存的
             SearchArg searchArg = new SearchArg();
-            searchArg.matcher = new ParamMatcher(ProductBindTagEntity.Info.RL_PD_ID, ParamMatcher.IN, noCacheRlPdIds);
-            FaiList<Param> noCacheList = getListByConditions(aid, unionPriId, searchArg, null);
+            searchArg.matcher = new ParamMatcher(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, aid);
+            searchArg.matcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+            searchArg.matcher.and(ProductBindTagEntity.Info.RL_PD_ID, ParamMatcher.IN, noCacheRlPdIds);
+            FaiList<Param> noCacheList = getListByConditions(aid, searchArg, null);
 
             Map<Integer, List<Param>> groupByRlPdIds = noCacheList.stream()
-                    .collect(Collectors.groupingBy(x -> x.getInt(ProductBindGroupEntity.Info.RL_PD_ID)));
+                    .collect(Collectors.groupingBy(x -> x.getInt(ProductBindTagEntity.Info.RL_PD_ID)));
 
             if (!noCacheList.isEmpty()) {
                 //添加缓存
@@ -102,7 +115,7 @@ public class ProductBindTagProc {
         return cacheList;
     }
 
-    public FaiList<Param> getListByConditions(Integer aid, Integer unionPriId, SearchArg searchArg, FaiList<String> onlyNeedFields) {
+    public FaiList<Param> getListByConditions(Integer aid, SearchArg searchArg, FaiList<String> onlyNeedFields) {
         //无searchArg
         if (searchArg == null) {
             searchArg = new SearchArg();
@@ -111,26 +124,24 @@ public class ProductBindTagProc {
         if (searchArg.matcher == null) {
             searchArg.matcher = new ParamMatcher();
         }
-        //避免查询过来的条件已经包含这两个查询条件,就先删除，防止重复添加查询条件
-        searchArg.matcher.remove(ProductBindTagEntity.Info.AID);
-        searchArg.matcher.remove(ProductBindTagEntity.Info.UNION_PRI_ID);
         //有searchArg，有查询条件，加多两个查询条件
-        searchArg.matcher.and(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, aid);
-        searchArg.matcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        if(searchArg.matcher.getValue(ProductBindTagEntity.Info.AID, ParamMatcher.EQ) == null) {
+            throw new MgException("condition without aid;flow=%d;aid=%d;matcher=%s", m_flow, aid, searchArg.matcher.toJson());
+        }
 
         //查询
         Ref<FaiList<Param>> tmpRef = new Ref<FaiList<Param>>();
         int rt = m_dao.select(searchArg, tmpRef, onlyNeedFields);
         FaiList<Param> result = new FaiList<>();
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            throw new MgException(rt, "get error;flow=%d;aid=%d;unionPriId=%d;matcher=%s", m_flow, aid, unionPriId, searchArg.matcher);
+            throw new MgException(rt, "get error;flow=%d;aid=%d;matcher=%s", m_flow, aid, searchArg.matcher.toJson());
         }
         if(tmpRef.value != null && !tmpRef.value.isEmpty()) {
             result.addAll(tmpRef.value);
         }
         if (result.isEmpty()) {
             rt = Errno.NOT_FOUND;
-            Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;matcher=%s", m_flow, aid, unionPriId, searchArg.matcher);
+            Log.logDbg(rt, "not found;flow=%d;aid=%d;matcher=%s", m_flow, aid, searchArg.matcher.toJson());
         }
         return result;
     }
@@ -138,9 +149,11 @@ public class ProductBindTagProc {
     public FaiList<Integer> getRlPdIdsByTagIds(int aid, int unionPriId, FaiList<Integer> rlTagIds) {
         //查询条件
         SearchArg searchArg = new SearchArg();
-        searchArg.matcher = new ParamMatcher(ProductBindTagEntity.Info.RL_TAG_ID, ParamMatcher.IN, rlTagIds);
+        searchArg.matcher = new ParamMatcher(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        searchArg.matcher.and(ProductBindTagEntity.Info.RL_TAG_ID, ParamMatcher.IN, rlTagIds);
         FaiList<Integer> rlPdIds = new FaiList<>();
-        FaiList<Param> result = getListByConditions(aid, unionPriId, searchArg, null);
+        FaiList<Param> result = getListByConditions(aid, searchArg, null);
         result.forEach(param -> {
             Integer rlPdId = param.getInt(ProductBindTagEntity.Info.RL_PD_ID);
             rlPdIds.add(rlPdId);
@@ -157,7 +170,10 @@ public class ProductBindTagProc {
         }
         long now = System.currentTimeMillis();
         statusInfo = new Param();
-        FaiList<Param> result = getListByConditions(aid, unionPriId, null, null);
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        FaiList<Param> result = getListByConditions(aid, searchArg, null);
         int count = result.size();
         statusInfo.setInt(DataStatus.Info.TOTAL_SIZE, count);
         statusInfo.setLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME, now);
@@ -169,23 +185,25 @@ public class ProductBindTagProc {
 
     public int delPdBindTagList(int aid, int unionPriId, int rlPdId, FaiList<Integer> delRlTagIds) {
         int rt;
-        if(Util.isEmptyList(delRlTagIds)) {
+        if(Utils.isEmptyList(delRlTagIds)) {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "args error;flow=%d;aid=%d;", m_flow, aid);
         }
         ParamMatcher matcher = new ParamMatcher(ProductBindTagEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
         matcher.and(ProductBindTagEntity.Info.RL_TAG_ID, ParamMatcher.IN, delRlTagIds);
+
         return delPdBindTag(aid, unionPriId, matcher);
     }
 
     public void addPdBindTagList(int aid, int unionPriId, int rlPdId, int pdId, FaiList<Integer> addRlTagIds) {
         int rt;
-        if(Util.isEmptyList(addRlTagIds)) {
+        if(Utils.isEmptyList(addRlTagIds)) {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "args error;flow=%d;aid=%d;");
         }
         FaiList<Param> addList = new FaiList<Param>();
         Calendar now = Calendar.getInstance();
+        FaiList<Param> sagaList = new FaiList<>();
         for(int rlTagId : addRlTagIds) {
             Param info = new Param();
             info.setInt(ProductBindTagEntity.Info.AID, aid);
@@ -195,16 +213,78 @@ public class ProductBindTagProc {
             info.setInt(ProductBindTagEntity.Info.PD_ID, pdId);
             info.setCalendar(ProductBindTagEntity.Info.CREATE_TIME, now);
             addList.add(info);
+
+            if(addSaga) {
+                Param sagaInfo = new Param();
+                sagaInfo.setInt(ProductBindTagEntity.Info.AID, aid);
+                sagaInfo.setInt(ProductBindTagEntity.Info.RL_PD_ID, rlPdId);
+                sagaInfo.setInt(ProductBindTagEntity.Info.RL_TAG_ID, rlTagId);
+                sagaInfo.setInt(ProductBindTagEntity.Info.UNION_PRI_ID, unionPriId);
+
+                sagaInfo.setString(BasicSagaEntity.Common.XID, m_xid);
+                sagaInfo.setLong(BasicSagaEntity.Common.BRANCH_ID, RootContext.getBranchId());
+                sagaInfo.setInt(BasicSagaEntity.Common.SAGA_OP, BasicSagaValObj.SagaOp.ADD);
+                sagaList.add(sagaInfo);
+            }
         }
-        rt = m_dao.batchInsert(addList, null, false);
+        rt = m_dao.batchInsert(addList, null, true);
         if(rt != Errno.OK) {
             throw new MgException(rt, "batch insert product bind tag error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        // 使用分布式事务时，记录下新增的数据主键
+        addSagaList(aid, sagaList);
+    }
+
+    public void addList4SagaRollback(FaiList<Param> list) {
+        if(Utils.isEmptyList(list)) {
+            return;
+        }
+        for(Param info : list) {
+            info.remove(BasicSagaEntity.Common.XID);
+            info.remove(BasicSagaEntity.Common.BRANCH_ID);
+            info.remove(BasicSagaEntity.Common.SAGA_OP);
+        }
+        int rt = m_dao.batchInsert(list, null, false);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "batch insert product bind group error;flow=%d;list=%s;", m_flow, list);
+        }
+        Log.logStd("rollback bind tags ok;list=%s;", list);
+    }
+
+    public void updateBindTagList(int aid, int unionPriId, int rlPdId, int pdId, FaiList<Integer> rlTagIds) {
+        if(rlTagIds == null) {
+            return;
+        }
+        FaiList<Integer> rlPdIds = new FaiList<>();
+        rlPdIds.add(rlPdId);
+        FaiList<Param> list = getPdBindTagList(aid, unionPriId, rlPdIds);
+        FaiList<Integer> oldTagIds = Utils.getValList(list, ProductBindTagEntity.Info.RL_TAG_ID);
+
+        FaiList<Integer> delTagIds = new FaiList<>();
+        for(Integer rlTagId : oldTagIds) {
+            if(rlTagIds.contains(rlTagId)) {
+                // 移除已存在的rlTagId，rlTagIds中剩下的就是要新增的
+                rlTagIds.remove(rlTagId);
+            }else {
+                // 传过来的rlTagIds中不存在的就是要删除的
+                delTagIds.add(rlTagId);
+            }
+        }
+
+        // 新增
+        if(!rlTagIds.isEmpty()) {
+            addPdBindTagList(aid, unionPriId, rlPdId, pdId, rlTagIds);
+        }
+
+        // 删除
+        if(!delTagIds.isEmpty()) {
+            delPdBindTagList(aid, unionPriId, rlPdId, delTagIds);
         }
     }
 
     public int delPdBindTagList(int aid, int unionPriId, FaiList<Integer> delRlPdIds) {
         int rt;
-        if(Util.isEmptyList(delRlPdIds)) {
+        if(Utils.isEmptyList(delRlPdIds)) {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "args error;flow=%d;aid=%d;", m_flow, aid);
         }
@@ -217,13 +297,25 @@ public class ProductBindTagProc {
         if (matcher == null) {
             matcher = new ParamMatcher();
         }
-        matcher.remove(ProductBindTagEntity.Info.AID);
-        matcher.remove(ProductBindTagEntity.Info.UNION_PRI_ID);
         if (aid != null) {
             matcher.and(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, aid);
         }
         if (unionPriId != null) {
             matcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        }
+
+        // 开启了分布式事务，记录删除的数据
+        if(addSaga) {
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = matcher;
+            FaiList<Param> list = getListByConditions(aid, searchArg, null);
+            for(Param info : list) {
+                info.setString(BasicSagaEntity.Common.XID, m_xid);
+                info.setLong(BasicSagaEntity.Common.BRANCH_ID, RootContext.getBranchId());
+                info.setInt(BasicSagaEntity.Common.SAGA_OP, BasicSagaValObj.SagaOp.DEL);
+            }
+            // 插入
+            addSagaList(aid, list);
         }
 
         Ref<Integer> refRowCount = new Ref<>();
@@ -237,7 +329,7 @@ public class ProductBindTagProc {
 
     public int delPdBindTagList(int aid, FaiList<Integer> pdIds) {
         int rt;
-        if(Util.isEmptyList(pdIds)) {
+        if(Utils.isEmptyList(pdIds)) {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "del error;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
         }
@@ -250,11 +342,110 @@ public class ProductBindTagProc {
      */
     public void clearAcct(int aid, FaiList<Integer> unionPriIds) {
         int rt;
-        if(Util.isEmptyList(unionPriIds)) {
+        if(Utils.isEmptyList(unionPriIds)) {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "del error;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
         }
         ParamMatcher matcher = new ParamMatcher(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
         delPdBindTag(aid, null, matcher);
+    }
+
+    /**
+     * saga补偿
+     * 绑定关系表只会有新增和删除操作
+     */
+    public void rollback4Saga(int aid, long branchId) {
+        FaiList<Param> list = getSagaList(aid, m_xid, branchId);
+        if(list.isEmpty()) {
+            Log.logStd("bind tag need rollback is empty;aid=%d;xid=%s;branchId=%s;", aid, m_xid, branchId);
+            return;
+        }
+        // 按操作分类
+        Map<Integer, List<Param>> groupBySagaOp = list.stream().collect(Collectors.groupingBy(x -> x.getInt(BasicSagaEntity.Common.SAGA_OP)));
+
+        // 回滚新增操作
+        rollback4Add(aid, groupBySagaOp.get(BasicSagaValObj.SagaOp.ADD));
+
+        // 回滚删除操作
+        rollback4Delete(aid, groupBySagaOp.get(BasicSagaValObj.SagaOp.DEL));
+    }
+
+    /**
+     * 新增的数据补偿：根据主键删除
+     */
+    private void rollback4Add(int aid, List<Param> list) {
+        if(Utils.isEmptyList(list)) {
+            return;
+        }
+        int rt;
+        for(Param info : list) {
+            int unionPriId = info.getInt(ProductBindTagEntity.Info.UNION_PRI_ID);
+            int rlPdId = info.getInt(ProductBindTagEntity.Info.RL_PD_ID);
+            int rlTagId = info.getInt(ProductBindTagEntity.Info.RL_TAG_ID);
+
+            ParamMatcher matcher = new ParamMatcher(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, aid);
+            matcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+            matcher.and(ProductBindTagEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
+            matcher.and(ProductBindTagEntity.Info.RL_TAG_ID, ParamMatcher.EQ, rlTagId);
+
+            rt = m_dao.delete(matcher);
+            if(rt != Errno.OK) {
+                throw new MgException(rt, "del bind tag error;flow=%d;aid=%d;xid=%s;matcher=%s;", m_flow, aid, m_xid, matcher.toJson());
+            }
+        }
+
+        Log.logStd("rollback add ok;aid=%d;xid=%s;list=%s;", aid, m_xid, list);
+    }
+
+    /**
+     * 删除的数据补偿：插入已删除的数据
+     */
+    private void rollback4Delete(int aid, List<Param> list) {
+        if(Utils.isEmptyList(list)) {
+            return;
+        }
+
+        for(Param relInfo : list) {
+            relInfo.remove(BasicSagaEntity.Common.XID);
+            relInfo.remove(BasicSagaEntity.Common.BRANCH_ID);
+            relInfo.remove(BasicSagaEntity.Common.SAGA_OP);
+        }
+        int rt = m_dao.batchInsert(new FaiList<>(list), null, true);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "add list error;flow=%d;aid=%d;list=%s;", m_flow, aid, list);
+        }
+
+        Log.logStd("rollback del ok;aid=%d;xid=%s;list=%s;", aid, m_xid, list);
+    }
+
+    private FaiList<Param> getSagaList(int aid, String xid, long branchId) {
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(BasicSagaEntity.Common.XID, ParamMatcher.EQ, xid);
+        searchArg.matcher.and(BasicSagaEntity.Common.BRANCH_ID, ParamMatcher.EQ, branchId);
+        Ref<FaiList<Param>> tmpRef = new Ref<>();
+        int rt = m_sagaDao.select(searchArg, tmpRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "get saga list error;aid=%d;xid=%s;branchId=%d;", aid, xid, branchId);
+        }
+        return tmpRef.value;
+    }
+
+    private void addSagaList(int aid, FaiList<Param> sagaList) {
+        // 是否开启了分布式事务
+        if(!addSaga || Utils.isEmptyList(sagaList)) {
+            return;
+        }
+
+        // 如果开启了分布式事务，那么本地事务必须关闭auto commit
+        // 因为这时候肯定是操作多张表的数据
+        if(m_sagaDao.isAutoCommit() || m_dao.isAutoCommit()) {
+            throw new MgException("dao need close auto commit;");
+        }
+
+        int rt = m_sagaDao.batchInsert(sagaList, null, true);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "saga batch insert product bind tag error;flow=%d;aid=%d;xid=%s;", m_flow, aid, m_xid);
+        }
     }
 }

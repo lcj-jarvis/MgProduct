@@ -3,7 +3,7 @@ package fai.MgProductBasicSvr.domain.serviceproc;
 
 import fai.MgProductBasicSvr.domain.entity.BasicSagaEntity;
 import fai.MgProductBasicSvr.domain.entity.BasicSagaValObj;
-import fai.MgProductBasicSvr.domain.repository.dao.SagaDaoCtrl;
+import fai.MgProductBasicSvr.domain.repository.dao.saga.SagaDaoCtrl;
 import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.util.*;
 import fai.middleground.svrutil.exception.MgException;
@@ -28,20 +28,19 @@ public class SagaProc {
      * 添加Saga信息
      * @param aid 用户id
      * @param xid 全局事务id
-     * @param prop 补偿信息记录
      */
-    public void addInfo(int aid, String xid, Param prop) {
+    public Param addInfo(int aid, String xid) {
         Calendar now = Calendar.getInstance();
         Param addInfo = new Param();
         addInfo.setInt(BasicSagaEntity.Info.AID, aid);
         addInfo.setString(BasicSagaEntity.Info.XID, xid);
         addInfo.setInt(BasicSagaEntity.Info.STATUS, BasicSagaValObj.Status.INIT);
-        addInfo.setString(BasicSagaEntity.Info.PROP, prop.toJson());
         addInfo.setLong(BasicSagaEntity.Info.BRANCH_ID, RootContext.getBranchId());
         addInfo.setCalendar(BasicSagaEntity.Info.SYS_CREATE_TIME, now);
         addInfo.setCalendar(BasicSagaEntity.Info.SYS_UPDATE_TIME, now);
 
         addInfo(addInfo);
+        return addInfo;
     }
 
     private void addInfo(Param addInfo) {
@@ -52,6 +51,7 @@ public class SagaProc {
         if (rt != Errno.OK) {
             throw new MgException(rt, "add Saga Info error;addInfo=%s", addInfo);
         }
+        Log.logStd("add saga ok;info=%s;", addInfo);
     }
 
     /**
@@ -70,12 +70,15 @@ public class SagaProc {
         // 查找不到，需要插入一条saga数据占位，允许空补偿和防悬挂
         Log.reportErr(m_flow, Errno.NOT_FOUND, "get SagaInfo not found;xid=%s,branchId=%s", xid, branchId);
 
+        Calendar now = Calendar.getInstance();
         Param newInfo = new Param();
         newInfo.setString(BasicSagaEntity.Info.XID, xid);
         newInfo.setLong(BasicSagaEntity.Info.BRANCH_ID, branchId);
         newInfo.setInt(BasicSagaEntity.Info.AID, 0);
-        newInfo.setString(BasicSagaEntity.Info.PROP, new Param().toJson());
-        newInfo.setInt(BasicSagaEntity.Info.STATUS, BasicSagaValObj.Status.INIT);
+        newInfo.setCalendar(BasicSagaEntity.Info.SYS_CREATE_TIME, now);
+        newInfo.setCalendar(BasicSagaEntity.Info.SYS_UPDATE_TIME, now);
+        // 空补偿直接是完成状态
+        newInfo.setInt(BasicSagaEntity.Info.STATUS, BasicSagaValObj.Status.ROLLBACK_OK);
 
         // 添加记录
         addInfo(newInfo);

@@ -20,5 +20,7 @@ public class ProductGroupEntity {
         public static final String GROUP_NAME = "groupName"; // varchar(100) 分类名称
         public static final String ICON_LIST = "iconList"; // varchar(255) 分类ICON
         public static final String FLAG = "flag"; // int
+        public static final String SYS_TYPE = "sysType"; // int 分类类型
+        public static final String STATUS = "status"; // int 状态
     }
 }

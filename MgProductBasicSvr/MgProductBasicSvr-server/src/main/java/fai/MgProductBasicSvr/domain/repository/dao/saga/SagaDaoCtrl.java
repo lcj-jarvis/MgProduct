@@ -1,4 +1,4 @@
-package fai.MgProductBasicSvr.domain.repository.dao;
+package fai.MgProductBasicSvr.domain.repository.dao.saga;
 
 import fai.comm.util.DaoPool;
 import fai.comm.util.Log;
@@ -38,5 +38,5 @@ public class SagaDaoCtrl extends DaoCtrl {
     }
 
     private static DaoPool m_daoPool;
-    private static final String TABLE_NAME = "mgProductSaga";
+    private static final String TABLE_NAME = "mgPdBasicSaga";
 }

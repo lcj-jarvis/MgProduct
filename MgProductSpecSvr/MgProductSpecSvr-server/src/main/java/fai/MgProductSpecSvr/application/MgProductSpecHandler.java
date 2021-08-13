@@ -254,10 +254,11 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
                                    @ArgAid final int aid,
                                    @ArgBodyInteger(ProductSpecSkuDto.Key.UNION_PRI_ID) final int unionPriId,
                                    @ArgBodyInteger(ProductSpecSkuDto.Key.TID) final int tid,
+                                   @ArgBodyXid(value = CommonDto.Key.XID, useDefault = true) final String xid,
                                    @ArgBodyInteger(ProductSpecSkuDto.Key.PD_ID) final int pdId,
                                    @ArgList(classDef = ProductSpecSkuDto.class, methodDef = "getInfoDto", keyMatch = ProductSpecSkuDto.Key.UPDATER_LIST)
                                            FaiList<ParamUpdater> updaterList) throws IOException {
-        return m_productSpecService.setPdSkuScInfoList(session, flow, aid, tid, unionPriId, pdId, updaterList);
+        return m_productSpecService.setPdSkuScInfoList(session, flow, aid, tid, unionPriId, xid, pdId, updaterList);
     }
 
     @WrittenCmd

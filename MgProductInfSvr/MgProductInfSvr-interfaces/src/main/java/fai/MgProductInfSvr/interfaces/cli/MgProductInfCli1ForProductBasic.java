@@ -452,7 +452,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
-            Param addInfo = mgProductArg.getCombined();
+            Param addInfo = mgProductArg.getAddInfo();
             if (addInfo == null) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error;addInfo is empty");

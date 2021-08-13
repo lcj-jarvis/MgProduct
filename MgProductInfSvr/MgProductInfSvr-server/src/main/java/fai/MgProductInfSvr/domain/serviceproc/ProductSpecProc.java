@@ -241,14 +241,14 @@ public class ProductSpecProc extends AbstractProductProc {
     /**
      * 获取产品规格SKU列表
      */
-    public int setPdSkuScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<ParamUpdater> updaterList) {
-        int rt = Errno.ERROR;
+    public int setPdSkuScInfoList(int aid, int tid, int unionPriId, String xid, int pdId, FaiList<ParamUpdater> updaterList) {
+        int rt;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.setPdSkuScInfoList(aid, tid, unionPriId, pdId, updaterList);
+        rt = m_cli.setPdSkuScInfoList(aid, tid, unionPriId, xid, pdId, updaterList);
         if(rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;

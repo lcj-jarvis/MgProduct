@@ -5,6 +5,7 @@ import fai.MgProductSpecSvr.domain.comm.LockUtil;
 import fai.MgProductSpecSvr.domain.comm.Utils;
 import fai.MgProductSpecSvr.domain.entity.ProductSpecSkuEntity;
 import fai.MgProductSpecSvr.domain.entity.ProductSpecSkuValObj;
+import fai.MgProductSpecSvr.domain.entity.SpecSagaEntity;
 import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuCacheCtrl;
 import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuDaoCtrl;
 import fai.comm.util.*;
@@ -281,8 +282,13 @@ public class ProductSpecSkuProc {
         Log.logStd("ok;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
         return rt;
     }
-    public int genSkuRepresentSpuInfo(int aid, int tid, int unionPriId, int pdId, Ref<Long> skuIdRef){
-        int rt = Errno.ERROR;
+
+    /**
+     * genSkuRepresentSpuInfo
+     * @param isAdd 判断 spu 的 skuId 字段是当前生成的还是本身就存在，主要用与分布式事务补偿判断，正常逻辑不需要使用到
+     */
+    public int genSkuRepresentSpuInfo(int aid, int tid, int unionPriId, int pdId, Ref<Long> skuIdRef, Ref<Boolean> isAdd){
+        int rt;
         // 查一下
         rt = getSkuIdRepresentSpu(aid, pdId, skuIdRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
@@ -298,6 +304,7 @@ public class ProductSpecSkuProc {
         if(rt != Errno.OK){
             return rt;
         }
+        isAdd.value = true;
         skuIdRef.value = pdIdSkuIdMap.get(pdId);
         Log.logStd("ok;flow=%d;aid=%d;tid=%s;unionPriId=%s;pdId=%s;", m_flow, aid, tid, unionPriId, pdId);
         return rt;
@@ -500,12 +507,12 @@ public class ProductSpecSkuProc {
         return rt;
     }
 
-    public int batchSet(int aid, int pdId, FaiList<ParamUpdater> updaterList){
+    public int batchSet(int aid, int pdId, FaiList<ParamUpdater> updaterList, Param prop){
         if(aid <= 0 || pdId <=0 || updaterList == null || updaterList.isEmpty()){
             Log.logErr("arg error;flow=%d;aid=%s;pdId=%updaterList=%s;", m_flow, aid, pdId, updaterList);
             return Errno.ARGS_ERROR;
         }
-        int rt = Errno.ERROR;
+        int rt;
         FaiList<Long> skuIdList = new FaiList<>(updaterList.size());
         Set<String> maxUpdaterKeys = Utils.retainValidUpdaterList(updaterList, ProductSpecSkuEntity.getValidKeys(), data->{
             skuIdList.add(data.getLong(ProductSpecSkuEntity.Info.SKU_ID));
@@ -523,7 +530,6 @@ public class ProductSpecSkuProc {
         }
 
         Map<Integer, Param> oldDataMap = Utils.getMap(listRef.value, ProductSpecSkuEntity.Info.SKU_ID);
-        listRef.value = null; // help gc
 
         ParamUpdater doBatchUpdater = new ParamUpdater();
         maxUpdaterKeys.forEach(key->{
@@ -531,6 +537,29 @@ public class ProductSpecSkuProc {
         });
         doBatchUpdater.getData().setString(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME, "?");
 
+        // 记录补偿
+        if (prop != null) {
+            Param specSkuSaga = new Param();
+            FaiList<Param> oldDataList = listRef.value;
+            FaiList<Param> dataList = new FaiList<>(listRef.value.size());
+            // 这是为了记录的 dataList 中字段能对应上 doBatchUpdater
+            for (Param oldData : oldDataList) {
+                long skuId = oldData.getLong(ProductSpecSkuEntity.Info.SKU_ID);
+                Param data = new Param();
+                maxUpdaterKeys.forEach(key -> data.assign(oldData, key));
+                data.setCalendar(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME, oldData.getCalendar(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME));
+                { // matcher
+                    data.setInt(ProductSpecSkuEntity.Info.AID, aid);
+                    data.setInt(ProductSpecSkuEntity.Info.PD_ID, pdId);
+                    data.setLong(ProductSpecSkuEntity.Info.SKU_ID, skuId);
+                }
+                dataList.add(data);
+            }
+            specSkuSaga.setList(SpecSagaEntity.PropInfo.OLD_DATA_LIST, dataList);
+            specSkuSaga.setParam(SpecSagaEntity.PropInfo.DO_BATCH_UPDATER, doBatchUpdater.getData());
+            prop.setParam(SpecSagaEntity.PropInfo.SPEC_SKU, specSkuSaga);
+        }
+        listRef.value = null; // help gc
         ParamMatcher doBatchMatcher = new ParamMatcher();
         doBatchMatcher.and(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, "?");
         doBatchMatcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.EQ, "?");

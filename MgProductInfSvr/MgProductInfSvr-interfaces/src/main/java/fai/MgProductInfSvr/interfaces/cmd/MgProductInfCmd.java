@@ -65,6 +65,7 @@ public class MgProductInfCmd {
         public static final int NUM40 = 5040; /**@see TagCmd#GET_REL_TAG_LIST */
 
         public static final int NUM41 = 5041; /**@see BasicCmd#GET_PD_BIND_TAGS */
+        public static final int NUM42 = 5042; /**@see Cmd#GET_INFO_4ES */
     }
 
     // 1000 到 5000 的范围
@@ -357,6 +358,7 @@ public class MgProductInfCmd {
         public static final int GET_FULL_INFO = ReadCmdNum.NUM21;
         public static final int GET_FULL_LIST_4ADM = ReadCmdNum.NUM34;
         public static final int GET_SUM_LIST_4ADM = ReadCmdNum.NUM35;
+        public static final int GET_INFO_4ES = ReadCmdNum.NUM42;
 
         public static final int IMPORT_PRODUCT = WriteCmdNum.NUM34;
         public static final int CLEAR_REL_DATA = WriteCmdNum.NUM45;

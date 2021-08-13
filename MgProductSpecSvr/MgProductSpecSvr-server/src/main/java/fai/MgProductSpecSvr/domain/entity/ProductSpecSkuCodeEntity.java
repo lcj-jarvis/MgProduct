@@ -14,6 +14,8 @@ public class ProductSpecSkuCodeEntity {
         public static final String SKU_ID = "skuId";                                // bigInt SKU id
         public static final String SORT = "sort";                                   // tinyint 排序方式
         public static final String PD_ID = "pdId";                                  // int 商品id
+        public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
+        public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
     }
 
     public static String[] getManageVisitorKeys() {

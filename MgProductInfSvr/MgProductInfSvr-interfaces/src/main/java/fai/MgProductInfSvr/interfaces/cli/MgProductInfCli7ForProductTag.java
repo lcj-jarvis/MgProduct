@@ -533,7 +533,7 @@ public class MgProductInfCli7ForProductTag extends MgProductInfCli6ForProductLib
             rlPdIds.toBuffer(sendBody, ProductBasicDto.Key.RL_PD_IDS);
 
             // send and recv
-            sendAndRecv(aid, MgProductInfCmd.TagCmd.DEL_TAG_LIST, sendBody, false, false);
+            sendAndRecv(aid, MgProductInfCmd.BasicCmd.DEL_PD_TAG_LIST, sendBody, false, false);
             return m_rt;
         } finally {
             close();

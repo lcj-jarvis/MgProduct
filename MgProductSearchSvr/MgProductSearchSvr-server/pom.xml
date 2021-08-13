@@ -116,6 +116,18 @@
             <version>${MgProduct-MgProductSpecSvr-interfaces-ver}</version>
         </dependency>
 
+        <dependency>
+            <groupId>fai-app-arch</groupId>
+            <artifactId>fai-app-arch</artifactId>
+            <version>${fai-app-arch-ver}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>fai-cli-arch</groupId>
+            <artifactId>fai-cli-arch</artifactId>
+            <version>${fai-cli-arch-ver}</version>
+        </dependency>
+
         <!-- 第三方的包 -->
         <dependency>
             <groupId>redis.clients</groupId>

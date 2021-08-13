@@ -10,7 +10,7 @@ import java.io.IOException;
 
 
 public class ProductSearchService extends MgProductInfService {
-    public int searchList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, String searchParamString) throws IOException {
+    public int searchList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, String esSearchParamString, String searchParamString) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -31,7 +31,7 @@ public class ProductSearchService extends MgProductInfService {
             MgProductSearchCli mgProductSearchCli = createSearchCli(flow);
             int productCount = 100;    // 可以发包拿数据，然后根据商品的数据 走不同的 集群，待实现
             Param searchResult = new Param();
-            rt = mgProductSearchCli.searchList(aid, tid, unionPriId, productCount, searchParamString, searchResult);
+            rt = mgProductSearchCli.searchList(aid, tid, unionPriId, productCount, esSearchParamString, searchParamString, searchResult);
             if(rt != Errno.OK) {
                 return rt;
             }

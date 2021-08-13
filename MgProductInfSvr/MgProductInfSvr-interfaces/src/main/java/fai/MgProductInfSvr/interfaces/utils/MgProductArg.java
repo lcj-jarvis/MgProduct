@@ -35,6 +35,7 @@ public class MgProductArg {
     private Param inOutStoreRecordInfo;
     private FaiList<Param> importProductList;
     private MgProductSearch mgProductSearch;
+    private MgProductEsSearch mgProductEsSearch;
     private Param addInfo;
     private Param bindRlPdInfo;
     private Param pdRelInfo;
@@ -98,6 +99,7 @@ public class MgProductArg {
         this.combinedUpdater = builder.combinedUpdater;
         this.inOutStoreRecordInfo = builder.inOutStoreRecordInfo;
         this.mgProductSearch = builder.mgProductSearch;
+        this.mgProductEsSearch = builder.mgProductEsSearch;
         this.importProductList = builder.importProductList;
         this.addInfo = builder.addInfo;
         this.bindRlPdInfo = builder.bindRlPdInfo;
@@ -241,6 +243,10 @@ public class MgProductArg {
         return mgProductSearch;
     }
 
+    public MgProductEsSearch getMgProductEsSearch() {
+        return mgProductEsSearch;
+    }
+
     public FaiList<Param> getImportProductList() {
         return importProductList;
     }
@@ -376,6 +382,7 @@ public class MgProductArg {
         protected Param combined;
         protected ParamUpdater combinedUpdater;
         protected MgProductSearch mgProductSearch;
+        protected MgProductEsSearch mgProductEsSearch;
         protected FaiList<Param> importProductList;
         protected ParamUpdater updater;
         protected boolean softDel;
@@ -394,6 +401,7 @@ public class MgProductArg {
         public abstract Builder setCombined(Param combined);
         public abstract Builder setCombinedUpdater(ParamUpdater combinedUpdater);
         public abstract Builder setMgProductSearch(MgProductSearch mgProductSearch);
+        public abstract Builder setMgProductEsSearch(MgProductEsSearch mgProductEsSearch);
         public abstract Builder setImportProductList(FaiList<Param> importProductList);
         public abstract Builder setUpdater(ParamUpdater updater);
         public abstract Builder setSoftDel(boolean softDel);
@@ -540,6 +548,12 @@ public class MgProductArg {
         @Override
         public Builder setMgProductSearch(MgProductSearch mgProductSearch) {
             this.mgProductSearch = mgProductSearch;
+            return this;
+        }
+
+        @Override
+        public Builder setMgProductEsSearch(MgProductEsSearch mgProductEsSearch) {
+            this.mgProductEsSearch = mgProductEsSearch;
             return this;
         }
 

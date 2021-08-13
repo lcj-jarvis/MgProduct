@@ -21,7 +21,7 @@ public class MgProductSearchCli extends FaiClient {
     }
 
 
-    public int searchList(int aid, int tid, int unionPriId, int productCount, String searchParamString, Param searchResult){
+    public int searchList(int aid, int tid, int unionPriId, int productCount, String esSearchParamString, String searchParamString, Param searchResult){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -42,6 +42,7 @@ public class MgProductSearchCli extends FaiClient {
             sendBody.putInt(MgProductSearchDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(MgProductSearchDto.Key.TID, tid);
             sendBody.putInt(MgProductSearchDto.Key.PRODUCT_COUNT, productCount);
+            sendBody.putString(MgProductSearchDto.Key.ES_SEARCH_PARAM_STRING, esSearchParamString);
             sendBody.putString(MgProductSearchDto.Key.SEARCH_PARAM_STRING, searchParamString);
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setAid(aid);

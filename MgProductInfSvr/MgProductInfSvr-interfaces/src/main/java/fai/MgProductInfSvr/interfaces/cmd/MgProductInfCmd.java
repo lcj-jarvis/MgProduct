@@ -138,6 +138,7 @@ public class MgProductInfCmd {
         public static final int NUM58 = 1058; /**@see Cmd#BACKUP */
         public static final int NUM59 = 1059; /**@see Cmd#RESTORE */
         public static final int NUM60 = 1060; /**@see Cmd#DEL_BACKUP */
+        public static final int NUM61 = 1061; /**@see Cmd#DEL_PD_TAG_LIST */
 
     }
 
@@ -186,6 +187,7 @@ public class MgProductInfCmd {
         public static final int ADD_PD_INFO = WriteCmdNum.NUM42;
         public static final int SET_PD_INFO = WriteCmdNum.NUM43;
         public static final int SET_PD_BIND_TAG = WriteCmdNum.NUM55;
+        public static final int DEL_PD_TAG_LIST = WriteCmdNum.NUM61;
     }
 
     public static class GroupCmd {

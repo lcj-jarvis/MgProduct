@@ -26,5 +26,6 @@ public class MgProductSearchDto {
         public static final int KEEP_PRIID1 = 5;
         public static final int UNION_PRI_ID = 6;
         public static final int PRODUCT_COUNT = 7;
+        public static final int ES_SEARCH_PARAM_STRING = 8;
     }
 }

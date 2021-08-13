@@ -32,8 +32,9 @@ public class MgProductInfHandler extends FaiHandler {
                            @ArgBodyInteger(MgProductSearchDto.Key.SITE_ID) int siteId,
                            @ArgBodyInteger(MgProductSearchDto.Key.LGID) int lgId,
                            @ArgBodyInteger(MgProductSearchDto.Key.KEEP_PRIID1) int keepPriId1,
+                          @ArgBodyString(MgProductSearchDto.Key.ES_SEARCH_PARAM_STRING) String esSearchParamString,
                            @ArgBodyString(MgProductSearchDto.Key.SEARCH_PARAM_STRING) String searchParamString) throws IOException {
-        return searchService.searchList(session, flow, aid, tid, siteId, lgId, keepPriId1, searchParamString);
+        return searchService.searchList(session, flow, aid, tid, siteId, lgId, keepPriId1, esSearchParamString, searchParamString);
     }
 
     @Cmd(MgProductInfCmd.Cmd.GET_INFO_4ES)
@@ -1460,7 +1461,7 @@ public class MgProductInfHandler extends FaiHandler {
     }
 
     @WrittenCmd
-    @Cmd(MgProductInfCmd.TagCmd.DEL_TAG_LIST)
+    @Cmd(MgProductInfCmd.BasicCmd.DEL_PD_TAG_LIST)
     public int delPdBindTag(final FaiSession session,
                             @ArgFlow final int flow,
                             @ArgAid final int aid,

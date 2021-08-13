@@ -172,7 +172,7 @@ public class MgProductSearchProc {
             // Log.logDbg("getSpuBizSummaryDataStatus,remoteDataStatusInfo=%s;", remoteDataStatusInfo);
         }
 
-        if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU.searchTableName.equals(tableName)){
+        if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU_CODE.searchTableName.equals(tableName)){
             // 从远端获取数据, 待完善
             rt = mgProductSpecCli.getSkuCodeDataStatus(aid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
@@ -199,6 +199,7 @@ public class MgProductSearchProc {
         int dataLoadFromDbThreshold = getLoadFromDbThreshold(tableName);
         boolean needLoadFromDb = dataCount > dataLoadFromDbThreshold;
         if(!needLoadFromDb && searchMatcher.isEmpty() && !resultList.isEmpty()){
+            // 给补偿的搜索表补偿过滤条件
             // 获取resultList中的idList
             FaiList<Integer> idList = toIdList(resultList, searchKey);
             searchMatcher.and(searchKey, ParamMatcher.IN, idList);
@@ -366,7 +367,12 @@ public class MgProductSearchProc {
             }
         }
 
-        if (MgProductSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU.searchTableName.equals(tableName)) {
+        // 目前提供的接口查询结果
+        // 只有这三个字段
+        // Info.SKU_CODE,
+        // Info.PD_ID,
+        // Info.SKU_ID
+        if (MgProductSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU_CODE.searchTableName.equals(tableName)) {
             if(needLoadFromDb){
                 rt = mgProductSpecCli.searchSkuCodeFromDb(aid, unionPriId, searchArg, searchDataList);
                 if(rt != Errno.OK){

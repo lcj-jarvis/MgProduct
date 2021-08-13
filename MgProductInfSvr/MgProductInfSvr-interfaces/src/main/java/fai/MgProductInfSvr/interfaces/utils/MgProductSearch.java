@@ -78,7 +78,7 @@ public class MgProductSearch {
         MG_PRODUCT_BIND_GROUP("pbg"),  // 对应 mgProductBindGroup，分类绑定商品关系表
         MG_PRODUCT_BIND_TAG("pbt"), // 对应 mgProductBindTag，标签绑定商品关系表
         MG_SPU_BIZ_SUMMARY("sbs"),  // 对应 mgSpuBizSummary，商品 spu 销售汇总表
-        MG_PRODUCT_SPEC_SKU("pss");  // 对应mgProductSpecSku，商品规格sku表
+        MG_PRODUCT_SPEC_SKU_CODE("pssc");  // 对应mgProductSpecSkuCode，商品规格skuCode表
 
         public String searchTableName;
         private SearchTableNameEnum(String searchTableName) {
@@ -262,7 +262,7 @@ public class MgProductSearch {
                getProductBasicSearchOrMatcher(null).isEmpty() && getProductBasicSearchMatcher(null).isEmpty() &&
                getProductBindPropSearchMatcher(null).isEmpty() && getProductBindGroupSearchMatcher(null).isEmpty() &&
                getProductBindTagSearchMatcher(null).isEmpty() && getProductSpuBizSummarySearchMatcher(null).isEmpty() &&
-               getProductSpecSkuSearchMatcher(null).isEmpty();
+               getProductSpecSkuCodeSearchMatcher(null).isEmpty();
     }
 
     // 在 "在商品 富文本 字段"  搜索
@@ -500,8 +500,8 @@ public class MgProductSearch {
         return paramMatcher;
     }
 
-    // 在"商品规格sku表" mgProductSpecSku_0xxx搜索
-    public ParamMatcher getProductSpecSkuSearchMatcher(ParamMatcher paramMatcher) {
+    // 在"商品规格sku表" mgProductSpecSkuCode_0xxx搜索
+    public ParamMatcher getProductSpecSkuCodeSearchMatcher(ParamMatcher paramMatcher) {
         if(paramMatcher == null){
             paramMatcher = new ParamMatcher();
         }

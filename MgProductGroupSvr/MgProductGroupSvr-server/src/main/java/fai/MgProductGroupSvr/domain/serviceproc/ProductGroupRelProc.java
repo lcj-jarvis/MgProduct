@@ -153,7 +153,7 @@ public class ProductGroupRelProc {
         for(ParamUpdater updater : updaterList){
             Param updateInfo = updater.getData();
             int rlGroupId = updateInfo.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID, 0);
-            Integer sysType = updateInfo.getInt(ProductGroupRelEntity.Info.SYS_TYPE, 0);
+            Integer sysType = updateInfo.getInt(ProductGroupRelEntity.Info.SYS_TYPE, ProductGroupRelValObj.SysType.PRODUCT);
             Param oldInfo;
             // 主要是兼容门店的逻辑，因为他们的 rlGroupId 是会重复的 需要加上类型判断
             if (sysType != 0) {
@@ -170,13 +170,15 @@ public class ProductGroupRelProc {
             oldInfo = updater.update(oldInfo, true);
             Param data = new Param();
 
-            //只能修改rlFlag、sort、status
+            //只能修改rlFlag、sort、status、parentId
             int sort = oldInfo.getInt(ProductGroupRelEntity.Info.SORT, 0);
             int rlFlag = oldInfo.getInt(ProductGroupRelEntity.Info.RL_FLAG, 0);
             int status = oldInfo.getInt(ProductGroupRelEntity.Info.STATUS, 0);
+            int parentId = oldInfo.getInt(ProductGroupRelEntity.Info.PARENT_ID, 0);
             data.setInt(ProductGroupRelEntity.Info.SORT, sort);
             data.setInt(ProductGroupRelEntity.Info.RL_FLAG, rlFlag);
             data.setInt(ProductGroupRelEntity.Info.STATUS, status);
+            data.setInt(ProductGroupRelEntity.Info.PARENT_ID, parentId);
             data.setCalendar(ProductGroupRelEntity.Info.UPDATE_TIME, now);
 
             data.assign(oldInfo, ProductGroupRelEntity.Info.AID);
@@ -205,6 +207,7 @@ public class ProductGroupRelProc {
         item.setString(ProductGroupRelEntity.Info.SORT, "?");
         item.setString(ProductGroupRelEntity.Info.RL_FLAG, "?");
         item.setString(ProductGroupRelEntity.Info.STATUS, "?");
+        item.setString(ProductGroupRelEntity.Info.PARENT_ID, "?");
         item.setString(ProductGroupRelEntity.Info.UPDATE_TIME, "?");
         rt = m_relDao.doBatchUpdate(doBatchUpdater, doBatchMatcher, dataList, true);
         if(rt != Errno.OK){

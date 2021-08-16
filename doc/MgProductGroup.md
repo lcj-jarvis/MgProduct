@@ -37,18 +37,18 @@ if (isCheck) {
  */
 public enum  BusinessMapping {
 
-    SITE("SITE", 1),
-    HD("HD", 2),
-    CD("CD", 3),
-    TS("TS", 4),
-    YK("YK", 5),
-    MEDIA("MEDIA", 6),
-    OPT("OPT", 7),
-    KC("KC", 8),
-    MP("MP", 9),
-    MALL("MALL", 10),
-    QZ("QZ", 11),
-    EDU("EDU", 12),;
+    SITE("SITE", FaiValObj.TermId.SITE),
+    HD("HD", FaiValObj.TermId.HD),
+    CD("CD", FaiValObj.TermId.CD),
+    TS("TS", FaiValObj.TermId.TS),
+    YK("YK", FaiValObj.TermId.YK),
+    MEDIA("MEDIA", FaiValObj.TermId.MEDIA),
+    OPT("OPT", FaiValObj.TermId.OPT),
+    KC("KC", FaiValObj.TermId.KC),
+    MP("MP", FaiValObj.TermId.MP),
+    MALL("MALL", FaiValObj.TermId.MALL),
+    QZ("QZ", FaiValObj.TermId.QZ),
+    EDU("EDU", FaiValObj.TermId.EDU),;
 
     /** 业务名称 */
     private String name;

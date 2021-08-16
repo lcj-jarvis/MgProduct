@@ -30,19 +30,19 @@ public class ProductGroupRelCache extends CacheCtrl {
             m_cache.hmsetFaiList(cacheKey, ProductGroupRelEntity.Info.GROUP_ID, Var.Type.INT, list, ProductGroupRelDto.Key.INFO, ProductGroupRelDto.getInfoDto());
         }
 
-        public static void delCacheList(int aid, int uninoId, FaiList<Integer> rlGroupIds) {
-            if(rlGroupIds == null || rlGroupIds.isEmpty()) {
+        public static void delCacheList(int aid, int uninoId, FaiList<Integer> groupIds) {
+            if(groupIds == null || groupIds.isEmpty()) {
                 return;
             }
             String cacheKey = getCacheKey(aid, uninoId);
             if(!m_cache.exists(cacheKey)) {
                 return;
             }
-            String[] rlGroupIdStrs = new String[rlGroupIds.size()];
-            for(int i = 0; i < rlGroupIds.size(); i++) {
-                rlGroupIdStrs[i] = String.valueOf(rlGroupIds.get(i));
+            String[] groupIdStrs = new String[groupIds.size()];
+            for(int i = 0; i < groupIds.size(); i++) {
+                groupIdStrs[i] = String.valueOf(groupIds.get(i));
             }
-            m_cache.hdel(cacheKey, rlGroupIdStrs);
+            m_cache.hdel(cacheKey, groupIdStrs);
         }
 
         public static void updateCacheList(int aid, int uninoId, FaiList<ParamUpdater> updaterList) {

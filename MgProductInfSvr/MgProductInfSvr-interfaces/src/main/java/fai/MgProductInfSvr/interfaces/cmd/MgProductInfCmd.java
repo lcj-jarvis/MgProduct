@@ -138,6 +138,7 @@ public class MgProductInfCmd {
         public static final int NUM58 = 1058; /**@see Cmd#BACKUP */
         public static final int NUM59 = 1059; /**@see Cmd#RESTORE */
         public static final int NUM60 = 1060; /**@see Cmd#DEL_BACKUP */
+        public static final int NUM61 = 1061; /**@see GroupCmd#SET_ALL_GROUP_LIST */
 
     }
 
@@ -197,6 +198,7 @@ public class MgProductInfCmd {
         public static final int DEL_GROUP_LIST = WriteCmdNum.NUM31;
         public static final int SET_GROUP_LIST = WriteCmdNum.NUM32;
         public static final int UNION_SET_GROUP_LIST = WriteCmdNum.NUM40;
+        public static final int SET_ALL_GROUP_LIST = WriteCmdNum.NUM61;
     }
 
     public static class LibCmd {

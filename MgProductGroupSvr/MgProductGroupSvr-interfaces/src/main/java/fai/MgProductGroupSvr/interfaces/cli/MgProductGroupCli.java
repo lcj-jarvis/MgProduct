@@ -552,6 +552,77 @@ public class MgProductGroupCli extends FaiClient {
         }
     }
 
+    /**
+     * 修改分类 （包含 增删改）
+     */
+    public int setAllGroupList(int aid, int tid, int unionPriId, FaiList<ParamUpdater> updaterList, int sysType, int groupLevel, boolean softDel, Ref<FaiList<Integer>> rlGroupIdsRef) {
+        if (!useProductGroup()) {
+            return Errno.OK;
+        }
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductGroupRelDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductGroupRelDto.Key.TID, tid);
+            if (updaterList == null) {
+                updaterList = new FaiList<ParamUpdater>();
+            }
+            updaterList.toBuffer(sendBody, ProductGroupRelDto.Key.UPDATERLIST, ProductGroupRelDto.getAllInfoDto());
+            sendBody.putInt(ProductGroupRelDto.Key.SYS_TYPE, sysType);
+            sendBody.putInt(ProductGroupRelDto.Key.GROUP_LEVEL, groupLevel);
+            sendBody.putBoolean(ProductGroupRelDto.Key.SOFT_DEL, softDel);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setAid(aid);
+            sendProtocol.setCmd(MgProductGroupCmd.GroupCmd.SET_ALL_GROUP_LIST);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            if (rlGroupIdsRef != null) {
+                FaiBuffer recvBody = recvProtocol.getDecodeBody();
+                if (recvBody != null) {
+                    Ref<Integer> keyRef = new Ref<Integer>();
+                    FaiList<Integer> ids = new FaiList<Integer>();
+                    m_rt = ids.fromBuffer(recvBody, keyRef);
+                    if (m_rt != Errno.OK || keyRef.value != ProductGroupRelDto.Key.RL_GROUP_IDS) {
+                        Log.logErr(m_rt, "recv rlGroupIds codec err");
+                        return m_rt;
+                    }
+                    rlGroupIdsRef.value = ids;
+                }
+            }
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
     public int cloneData(int aid, int fromAid, FaiList<Param> cloneUnionPriIds) {
         if (!useProductGroup()) {
             return Errno.OK;

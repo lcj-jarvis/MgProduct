@@ -6,7 +6,6 @@ public class ProductGroupValObj {
 	}
 
 	public static final class Default {
-		public static final int PARENT_ID = 0;
 		public static final String ICON_LIST = "";
 		public static final int FLAG = 0;
 	}
@@ -16,8 +15,8 @@ public class ProductGroupValObj {
 	}
 
 	public static class SysType {
-		public static final int PRODUCT = 1;
-		public static final int SERVICE = 2;
+		public static final int PRODUCT = 0;
+		public static final int SERVICE = 1;
 	}
 
 	public static class Status {

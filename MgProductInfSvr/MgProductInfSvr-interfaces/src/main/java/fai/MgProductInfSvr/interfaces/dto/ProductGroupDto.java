@@ -45,5 +45,6 @@ public class ProductGroupDto {
         public static final int UPDATERLIST = 12;
         public static final int SOFT_DEL = 13;
         public static final int SYS_TYPE = 14;
+        public static final int GROUP_LEVEL = 15;
     }
 }

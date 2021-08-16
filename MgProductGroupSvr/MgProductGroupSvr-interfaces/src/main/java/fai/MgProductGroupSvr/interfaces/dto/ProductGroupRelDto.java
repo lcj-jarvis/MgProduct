@@ -17,8 +17,9 @@ public class ProductGroupRelDto {
         g_groupRelDtoDef.add(ProductGroupRelEntity.Info.SORT, 5, Var.Type.INT);
         g_groupRelDtoDef.add(ProductGroupRelEntity.Info.RL_FLAG, 6, Var.Type.INT);
         g_groupRelDtoDef.add(ProductGroupRelEntity.Info.STATUS, 7, Var.Type.INT);
-        g_groupRelDtoDef.add(ProductGroupRelEntity.Info.CREATE_TIME, 8, Var.Type.CALENDAR);
-        g_groupRelDtoDef.add(ProductGroupRelEntity.Info.UPDATE_TIME, 9, Var.Type.CALENDAR);
+        g_groupRelDtoDef.add(ProductGroupRelEntity.Info.PARENT_ID, 8, Var.Type.INT);
+        g_groupRelDtoDef.add(ProductGroupRelEntity.Info.CREATE_TIME, 9, Var.Type.CALENDAR);
+        g_groupRelDtoDef.add(ProductGroupRelEntity.Info.UPDATE_TIME, 10, Var.Type.CALENDAR);
     }
 
     public static ParamDef getInfoDto() {
@@ -31,19 +32,19 @@ public class ProductGroupRelDto {
         g_groupAllDtoDef.add(ProductGroupEntity.Info.GROUP_ID, 1, Var.Type.INT);
         g_groupAllDtoDef.add(ProductGroupEntity.Info.SOURCE_TID, 2, Var.Type.INT);
         g_groupAllDtoDef.add(ProductGroupEntity.Info.SOURCE_UNIONPRIID, 3, Var.Type.INT);
-        g_groupAllDtoDef.add(ProductGroupEntity.Info.PARENT_ID, 4, Var.Type.INT);
-        g_groupAllDtoDef.add(ProductGroupEntity.Info.GROUP_NAME, 5, Var.Type.STRING);
-        g_groupAllDtoDef.add(ProductGroupEntity.Info.ICON_LIST, 6, Var.Type.STRING);
-        g_groupAllDtoDef.add(ProductGroupEntity.Info.FLAG, 7, Var.Type.INT);
-        g_groupAllDtoDef.add(ProductGroupEntity.Info.CREATE_TIME, 8, Var.Type.CALENDAR);
-        g_groupAllDtoDef.add(ProductGroupEntity.Info.UPDATE_TIME, 9, Var.Type.CALENDAR);
+        g_groupAllDtoDef.add(ProductGroupEntity.Info.GROUP_NAME, 4, Var.Type.STRING);
+        g_groupAllDtoDef.add(ProductGroupEntity.Info.ICON_LIST, 5, Var.Type.STRING);
+        g_groupAllDtoDef.add(ProductGroupEntity.Info.FLAG, 6, Var.Type.INT);
+        g_groupAllDtoDef.add(ProductGroupEntity.Info.CREATE_TIME, 7, Var.Type.CALENDAR);
+        g_groupAllDtoDef.add(ProductGroupEntity.Info.UPDATE_TIME, 8, Var.Type.CALENDAR);
 
-        g_groupAllDtoDef.add(ProductGroupRelEntity.Info.RL_GROUP_ID, 10, Var.Type.INT);
-        g_groupAllDtoDef.add(ProductGroupRelEntity.Info.UNION_PRI_ID, 11, Var.Type.INT);
-        g_groupAllDtoDef.add(ProductGroupRelEntity.Info.SORT, 12, Var.Type.INT);
-        g_groupAllDtoDef.add(ProductGroupRelEntity.Info.RL_FLAG, 13, Var.Type.INT);
-        g_groupAllDtoDef.add(ProductGroupRelEntity.Info.SYS_TYPE, 14, Var.Type.INT);
-        g_groupAllDtoDef.add(ProductGroupRelEntity.Info.STATUS, 15, Var.Type.INT);
+        g_groupAllDtoDef.add(ProductGroupRelEntity.Info.RL_GROUP_ID, 9, Var.Type.INT);
+        g_groupAllDtoDef.add(ProductGroupRelEntity.Info.UNION_PRI_ID, 10, Var.Type.INT);
+        g_groupAllDtoDef.add(ProductGroupRelEntity.Info.SORT, 11, Var.Type.INT);
+        g_groupAllDtoDef.add(ProductGroupRelEntity.Info.RL_FLAG, 12, Var.Type.INT);
+        g_groupAllDtoDef.add(ProductGroupRelEntity.Info.SYS_TYPE, 13, Var.Type.INT);
+        g_groupAllDtoDef.add(ProductGroupRelEntity.Info.STATUS, 14, Var.Type.INT);
+        g_groupAllDtoDef.add(ProductGroupRelEntity.Info.PARENT_ID, 15, Var.Type.INT);
     }
     public static ParamDef getAllInfoDto() {
         return g_groupAllDtoDef;
@@ -67,5 +68,6 @@ public class ProductGroupRelDto {
         public static final int BACKUP_INFO = 15;
         public static final int SOFT_DEL = 16;
         public static final int SYS_TYPE = 17;
+        public static final int GROUP_LEVEL = 18;
     }
 }

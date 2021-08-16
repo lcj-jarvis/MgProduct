@@ -112,7 +112,6 @@ public class ProductGroupProc {
             }
             oldInfo = updater.update(oldInfo, true);
             Param data = new Param();
-            data.assign(oldInfo, ProductGroupEntity.Info.PARENT_ID);
             data.assign(oldInfo, ProductGroupEntity.Info.ICON_LIST);
             data.assign(oldInfo, ProductGroupEntity.Info.GROUP_NAME);
             data.assign(oldInfo, ProductGroupEntity.Info.FLAG);
@@ -132,7 +131,6 @@ public class ProductGroupProc {
 
         Param item = new Param();
         ParamUpdater doBatchUpdater = new ParamUpdater(item);
-        item.setString(ProductGroupEntity.Info.PARENT_ID, "?");
         item.setString(ProductGroupEntity.Info.ICON_LIST, "?");
         item.setString(ProductGroupEntity.Info.GROUP_NAME, "?");
         item.setString(ProductGroupEntity.Info.FLAG, "?");

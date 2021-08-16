@@ -15,18 +15,22 @@ import fai.MgProductGroupSvr.domain.serviceproc.ProductGroupRelProc;
 import fai.MgProductGroupSvr.interfaces.dto.ProductGroupRelDto;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.jnetkit.server.fai.FaiSession;
-import fai.comm.util.*;
 import fai.comm.middleground.app.CloneDef;
+import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.annotation.SuccessRt;
 import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.repository.BackupStatusCtrl;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 import fai.middleground.svrutil.service.ServicePub;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 public class ProductGroupService extends ServicePub {
 
@@ -296,6 +300,135 @@ public class ProductGroupService extends ServicePub {
         FaiBuffer sendBuf = new FaiBuffer(true);
         session.write(sendBuf);
         Log.logStd("set ok;flow=%d;aid=%d;unionPriId=%d;tid=%d;", flow, aid, unionPriId);
+        return rt;
+    }
+
+    @SuccessRt(value = Errno.OK)
+    public int setAllGroupList(FaiSession session, int flow, int aid, int unionPriId, int tid, FaiList<ParamUpdater> updaterList, int sysType, int groupLevel, boolean softDel) throws IOException {
+        int rt;
+        FaiList<Integer> rlGroupIds = new FaiList<>();
+        // 先校验层级
+        rt = checkLevel(updaterList, groupLevel);
+        if (rt != Errno.OK) {
+            Log.logErr("setAllGroupList err;groupLevel exceeds limit;flow=%d;aid=%d", flow, aid);
+            return rt;
+        }
+        LockUtil.lock(aid);
+        try {
+            int maxSort = 0;
+            TransactionCtrl tc = new TransactionCtrl();
+            boolean commit = false;
+            FaiList<Integer> delGroupIdList = new FaiList<>();
+            FaiList<Param> groupInfoList = new FaiList<>();
+            FaiList<Param> relInfoList = new FaiList<>();
+            FaiList<Param> addList = new FaiList<>();
+            FaiList<ParamUpdater> newUpdaterList = new FaiList<>();
+            FaiList<ParamUpdater> groupUpdaterList = new FaiList<>();
+            FaiList<Integer> delRlGroupIds;
+            ProductGroupRelProc relProc = new ProductGroupRelProc(flow, aid, tc);
+            ProductGroupProc groupProc = new ProductGroupProc(flow, aid, tc);
+            try {
+                tc.setAutoCommit(false);
+                // 读取老数据
+                FaiList<Param> list = relProc.getGroupRelList(aid, unionPriId);
+                // 根据 sysType 筛选
+                SearchArg searchArg = new SearchArg();
+                searchArg.matcher = new ParamMatcher(ProductGroupRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
+                Searcher searcher = new Searcher(searchArg);
+                FaiList<Param> oldList = searcher.getParamList(list);
+                // 根据 rlGroupId 作为 key ，info 作为 value
+                Map<Integer, Param> map = Utils.getMap(oldList, ProductGroupRelEntity.Info.RL_GROUP_ID);
+
+                // 区分数据 （新增，删除，修改）
+                for (ParamUpdater updater : updaterList) {
+                    Param data = updater.getData();
+                    Integer rlGroupId = data.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID);
+                    if (rlGroupId == null) {
+                        addList.add(data);
+                        continue;
+                    }
+                    // 判断旧数据 map 中是否有数据，有则需要从 map 中 remove 掉，同时加入修改 list 中
+                    if (map != null && map.get(rlGroupId) != null) {
+                        map.remove(rlGroupId);
+                        newUpdaterList.add(new ParamUpdater(data));
+                    }
+                }
+                // map 剩下的数据就是要删除的
+                delRlGroupIds = new FaiList<>(map.keySet());
+                if (!delRlGroupIds.isEmpty()) {
+                    // 先获取要删除的分类id
+                    delGroupIdList = relProc.getIdsByRlIds(aid, unionPriId, delRlGroupIds, sysType);
+                    // 删除分类业务表数据
+                    relProc.delGroupList(aid, unionPriId, delGroupIdList, sysType, softDel);
+                    // 删除分类表数据
+                    groupProc.delGroupList(aid, delGroupIdList, softDel);
+                }
+
+                if (!newUpdaterList.isEmpty()) {
+                    // 修改分类业务关系表
+                    relProc.setGroupRelList(aid, unionPriId, newUpdaterList, groupUpdaterList);
+                    // 修改分类表
+                    if(!groupUpdaterList.isEmpty()) {
+                        groupProc.setGroupList(aid, groupUpdaterList);
+                    }
+                }
+
+                if (!addList.isEmpty()) {
+                    maxSort = addGroupList(flow, aid, unionPriId, tid, addList, tc, groupInfoList, relInfoList, rlGroupIds);
+                }
+
+                commit = true;
+            } finally {
+                if (commit) {
+                    tc.commit();
+                } else {
+                    tc.rollback();
+                    groupProc.clearIdBuilderCache(aid);
+                    relProc.clearIdBuilderCache(aid, unionPriId);
+                }
+                tc.closeDao();
+            }
+
+            // 处理缓存
+            if (!Util.isEmptyList(delRlGroupIds)) {
+                // 设置过期时间
+                ProductGroupCache.setExpire(aid);
+                ProductGroupRelCache.InfoCache.setExpire(aid, unionPriId);
+                ProductGroupCache.delCacheList(aid, delGroupIdList);
+                ProductGroupRelCache.InfoCache.delCacheList(aid, unionPriId, delGroupIdList);
+                ProductGroupRelCache.DataStatusCache.update(aid, unionPriId, delRlGroupIds.size(), false);
+            }
+            if (!Util.isEmptyList(newUpdaterList)) {
+                if (!groupUpdaterList.isEmpty()) {
+                    // 设置过期时间
+                    ProductGroupCache.setExpire(aid);
+                    ProductGroupCache.updateCacheList(aid, groupUpdaterList);
+                }
+                ProductGroupRelCache.InfoCache.setExpire(aid, unionPriId);
+                ProductGroupRelCache.InfoCache.updateCacheList(aid, unionPriId, updaterList);
+                // 修改数据，更新dataStatus 的管理态字段更新时间
+                ProductGroupRelCache.DataStatusCache.update(aid, unionPriId);
+            }
+            if (!Util.isEmptyList(addList)) {
+                // 设置过期时间
+                ProductGroupCache.setExpire(aid);
+                ProductGroupRelCache.InfoCache.setExpire(aid, unionPriId);
+                ProductGroupCache.addCacheList(aid, groupInfoList);
+                ProductGroupRelCache.InfoCache.addCacheList(aid, unionPriId, relInfoList);
+                ProductGroupRelCache.SortCache.set(aid, unionPriId, maxSort);
+                ProductGroupRelCache.DataStatusCache.update(aid, unionPriId, groupInfoList.size());
+            }
+        } finally {
+            LockUtil.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        if (!Util.isEmptyList(rlGroupIds)) {
+            rlGroupIds.toBuffer(sendBuf, ProductGroupRelDto.Key.RL_GROUP_IDS);
+        }
+        session.write(sendBuf);
+        Log.logStd("setAllGroupList ok;flow=%d;aid=%d;unionPriId=%d;tid=%d;rlGroupId=%s;", flow, aid, unionPriId, tid, rlGroupIds);
         return rt;
     }
 
@@ -903,6 +1036,79 @@ public class ProductGroupService extends ServicePub {
         return rt;
     }
 
+    /**
+     * 校验层级
+     *
+     * @param dataList 数据集合
+     * @param groupLevel 层级限制
+     * @return {@link Errno}
+     */
+    private int checkLevel(FaiList<ParamUpdater> dataList, int groupLevel) {
+        int rt;
+        // 为空直接返回 OK
+        if (dataList == null || dataList.isEmpty()) {
+            return Errno.OK;
+        }
+        // 用来标识新增的数据，作为 key
+        int temp = -1;
+        // 放入 <rlGroupId, parentId> 的 map 中，根据 map 查出层级
+        HashMap<Integer, Integer> rlGroupIdAndParentIdMap = new HashMap<>();
+        for (ParamUpdater updater : dataList) {
+            Param data = updater.getData();
+            int rlGroupId = data.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID, 0);
+            int parentId = data.getInt(ProductGroupRelEntity.Info.PARENT_ID, 0);
+            if (rlGroupId == 0) {
+                rlGroupIdAndParentIdMap.put(temp, parentId);
+                data.setInt(ProductGroupRelEntity.Info.RL_GROUP_ID, temp--);
+            } else {
+                rlGroupIdAndParentIdMap.put(rlGroupId, parentId);
+            }
+        }
+        Ref<Boolean> isLegal = new Ref<>();
+        isLegal.value = true;
+        for (ParamUpdater updater : dataList) {
+            Param data = updater.getData();
+            Integer rlGroupId = data.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID);
+            int times = 0;
+            // 递归寻找层级
+            recursiveQuery(rlGroupId, rlGroupIdAndParentIdMap, times, groupLevel, isLegal);
+            if (!isLegal.value) {
+                rt = Errno.ERROR;
+                return rt;
+            }
+            // 如果 rlGroupId 是负数 要将 这个 key remove 掉，这是之前插入的临时标志
+            if (rlGroupId < 0) {
+                data.remove(ProductGroupRelEntity.Info.RL_GROUP_ID);
+            }
+        }
+        rt = Errno.OK;
+        return rt;
+    }
+
+    /**
+     * 递归查询层级，如果超出层级限制，isLegal 设置为 false
+     *
+     * @param rlGroupId 业务分类id
+     * @param map rlGroupId 和 parentId 的映射
+     * @param times 递归次数
+     * @param level 层级限制
+     * @param isLegal 是否合法，默认为 true
+     */
+    private void recursiveQuery(int rlGroupId, Map<Integer, Integer> map, int times, int level, Ref<Boolean> isLegal) {
+        if (times >= level) {
+            isLegal.value = false;
+            return;
+        }
+        Integer parentId = map.get(rlGroupId);
+        if (parentId != null) {
+            // 如果父id 已经是一级分类,那就直接返回，减少一次递归
+            if (parentId == 0) {
+                return;
+            }
+            recursiveQuery(parentId, map, ++times, level, isLegal);
+        }
+    }
+
     private void assemblyGroupInfo(int flow, int aid, int unionPriId, int tid, Param recvInfo, Param groupInfo, Param relInfo) {
         String groupName = recvInfo.getString(ProductGroupEntity.Info.GROUP_NAME, "");
         if(!ProductGroupCheck.isNameValid(groupName)) {
@@ -912,12 +1118,12 @@ public class ProductGroupService extends ServicePub {
         Calendar now = Calendar.getInstance();
         Calendar createTime = recvInfo.getCalendar(ProductGroupEntity.Info.CREATE_TIME, now);
         Calendar updateTime = recvInfo.getCalendar(ProductGroupEntity.Info.UPDATE_TIME, now);
-        int parentId = recvInfo.getInt(ProductGroupEntity.Info.PARENT_ID, ProductGroupValObj.Default.PARENT_ID);
+        int parentId = recvInfo.getInt(ProductGroupRelEntity.Info.PARENT_ID, ProductGroupRelValObj.Default.PARENT_ID);
         String iconList = recvInfo.getString(ProductGroupEntity.Info.ICON_LIST, ProductGroupValObj.Default.ICON_LIST);
         int flag = recvInfo.getInt(ProductGroupEntity.Info.FLAG, ProductGroupValObj.Default.FLAG);
         int sort = recvInfo.getInt(ProductGroupRelEntity.Info.SORT, ProductGroupRelValObj.Default.SORT);
         int rlFlag = recvInfo.getInt(ProductGroupRelEntity.Info.RL_FLAG, ProductGroupRelValObj.Default.RL_FLAG);
-        int sysType = recvInfo.getInt(ProductGroupRelEntity.Info.SYS_TYPE, 0);
+        int sysType = recvInfo.getInt(ProductGroupRelEntity.Info.SYS_TYPE, ProductGroupRelValObj.SysType.PRODUCT);
         int status = recvInfo.getInt(ProductGroupRelEntity.Info.STATUS, ProductGroupRelValObj.Status.DEFAULT);
         int groupId = recvInfo.getInt(ProductGroupEntity.Info.GROUP_ID, 0);
         int rlGroupId = recvInfo.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID, 0);
@@ -931,7 +1137,6 @@ public class ProductGroupService extends ServicePub {
         groupInfo.setInt(ProductGroupEntity.Info.SYS_TYPE, sysType);
         groupInfo.setCalendar(ProductGroupEntity.Info.CREATE_TIME, createTime);
         groupInfo.setCalendar(ProductGroupEntity.Info.UPDATE_TIME, updateTime);
-        groupInfo.setInt(ProductGroupEntity.Info.PARENT_ID, parentId);
         groupInfo.setString(ProductGroupEntity.Info.ICON_LIST, iconList);
         groupInfo.setInt(ProductGroupEntity.Info.FLAG, flag);
         groupInfo.setInt(ProductGroupEntity.Info.STATUS, status);
@@ -946,6 +1151,7 @@ public class ProductGroupService extends ServicePub {
         relInfo.setInt(ProductGroupRelEntity.Info.RL_FLAG, rlFlag);
         relInfo.setInt(ProductGroupRelEntity.Info.SYS_TYPE, sysType);
         relInfo.setInt(ProductGroupRelEntity.Info.STATUS, status);
+        relInfo.setInt(ProductGroupRelEntity.Info.PARENT_ID, parentId);
     }
 
     public void initBackupStatus(RedisCacheManager cache) {

@@ -6,6 +6,7 @@ public class ProductGroupRelValObj {
 	}
 
 	public static final class Default {
+		public static final int PARENT_ID = 0;
 		public static final int SORT = 0;
 		public static final int RL_FLAG = 0;
 	}
@@ -15,8 +16,8 @@ public class ProductGroupRelValObj {
 	}
 
 	public static class SysType {
-		public static final int PRODUCT = 1;
-		public static final int SERVICE = 2;
+		public static final int PRODUCT = 0;
+		public static final int SERVICE = 1;
 	}
 
 	public static class Status {

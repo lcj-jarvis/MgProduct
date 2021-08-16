@@ -1261,6 +1261,23 @@ public class MgProductInfHandler extends FaiHandler {
         return groupService.setPdGroupList(session, flow, aid, tid, siteId, lgid, keepPriId1, updaterList);
     }
 
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.GroupCmd.SET_ALL_GROUP_LIST)
+    public int setAllGroupList(final FaiSession session,
+                               @ArgFlow final int flow,
+                               @ArgAid final int aid,
+                               @ArgBodyInteger(ProductGroupDto.Key.TID) int tid,
+                               @ArgBodyInteger(ProductGroupDto.Key.SITE_ID) int siteId,
+                               @ArgBodyInteger(ProductGroupDto.Key.LGID) int lgId,
+                               @ArgBodyInteger(ProductGroupDto.Key.KEEP_PRIID1) int keepPriId1,
+                               @ArgList(keyMatch = ProductGroupDto.Key.UPDATERLIST, methodDef = "getPdGroupDto",
+                                       classDef = ProductGroupDto.class) FaiList<ParamUpdater> updaterList,
+                               @ArgBodyInteger(ProductGroupDto.Key.SYS_TYPE) int sysType,
+                               @ArgBodyInteger(ProductGroupDto.Key.GROUP_LEVEL) int groupLevel,
+                               @ArgBodyBoolean(ProductGroupDto.Key.SOFT_DEL) boolean softDel) throws IOException {
+        return groupService.setAllGroupList(session, flow, aid, tid, siteId, lgId, keepPriId1, updaterList, sysType, groupLevel, softDel);
+    }
+
     /*** 商品分类 end ***/
 
     /**商品库 start*/

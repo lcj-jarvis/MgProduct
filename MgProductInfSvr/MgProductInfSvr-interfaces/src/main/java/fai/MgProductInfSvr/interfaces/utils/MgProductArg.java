@@ -62,6 +62,7 @@ public class MgProductArg {
     private long skuId;
     private boolean onlyGetChecked;
     private int sysType;
+    private int groupLevel;
 
     private FaiList<Param> skuStoreSales;
 
@@ -127,6 +128,7 @@ public class MgProductArg {
         this.skuId = builder.skuId;
         this.onlyGetChecked = builder.onlyGetChecked;
         this.sysType = builder.sysType;
+        this.groupLevel = builder.groupLevel;
 
         this.skuStoreSales = builder.skuStoreSales;
 
@@ -357,6 +359,10 @@ public class MgProductArg {
         return sysType;
     }
 
+    public int getGroupLevel() {
+        return groupLevel;
+    }
+
     private static abstract class TopBuilder {
         protected int aid;
         protected int tid;
@@ -421,10 +427,12 @@ public class MgProductArg {
         protected FaiList<Integer> rlGroupIds;
         protected FaiList<Integer> addRlGroupIds;
         protected FaiList<Integer> delRlGroupIds;
+        protected int groupLevel;
 
         public abstract Builder setRlGroupIds(FaiList<Integer> rlGroupIds);
         public abstract Builder setAddRlGroupIds(FaiList<Integer> addRlGroupIds);
         public abstract Builder setDelRlGroupIds(FaiList<Integer> delRlGroupIds);
+        public abstract Builder setGroupLevel(int groupLevel);
     }
 
     private static abstract class LibBuilder extends GroupBuilder {
@@ -518,7 +526,7 @@ public class MgProductArg {
 
         @Override
         public Builder setUpdaterList(FaiList<ParamUpdater> updaterList) {
-            if(updaterList == null || updaterList.isEmpty()) {
+            if(updaterList == null) {
                 throw new RuntimeException();
             }
             this.updaterList = updaterList;
@@ -792,6 +800,12 @@ public class MgProductArg {
         @Override
         public Builder setDelRlGroupIds(FaiList<Integer> delRlGroupIds) {
             this.delRlGroupIds = delRlGroupIds;
+            return this;
+        }
+
+        @Override
+        public Builder setGroupLevel(int groupLevel) {
+            this.groupLevel = groupLevel;
             return this;
         }
 

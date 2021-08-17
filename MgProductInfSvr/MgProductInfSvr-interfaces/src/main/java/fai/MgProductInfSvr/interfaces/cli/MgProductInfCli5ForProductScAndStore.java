@@ -44,8 +44,11 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
                 Log.logErr(m_rt, "infoList error");
                 return m_rt;
             }
+            //TODO sysType
+            int sysType = 0;
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductSpecDto.Key.TID, tid), new Pair(ProductSpecDto.Key.SITE_ID, siteId), new Pair(ProductSpecDto.Key.LGID, lgId), new Pair(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductSpecDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(ProductSpecDto.Key.RL_PD_ID, rlPdId);
             sendBody.putBoolean(ProductSpecDto.Key.ONLY_GET_CHECKED, onlyGetChecked);
             // send and recv
@@ -93,8 +96,11 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
                 Log.logErr(m_rt, "rtInfoList error");
                 return m_rt;
             }
+            // TODO sysType
+            int sysType = 0;
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductSpecDto.Key.TID, tid), new Pair(ProductSpecDto.Key.SITE_ID, siteId), new Pair(ProductSpecDto.Key.LGID, lgId), new Pair(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductSpecDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(ProductSpecDto.Key.RL_PD_ID, rlPdId);
             sendBody.putBoolean(ProductSpecDto.Key.WITH_SPU_INFO, withSpuInfo);
             // send and recv
@@ -196,8 +202,11 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
                 Log.logErr(m_rt, "infoList error");
                 return m_rt;
             }
+            // TODO sysType
+            int sysType = 0;
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductSpecDto.Key.TID, tid), new Pair(ProductSpecDto.Key.SITE_ID, siteId), new Pair(ProductSpecDto.Key.LGID, lgId), new Pair(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductSpecDto.Key.SYS_TYPE, sysType);
             rlPdIdList.toBuffer(sendBody, ProductSpecDto.Key.ID_LIST);
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.ProductSpecSkuCmd.GET_ONLY_SPU_INFO_LIST, sendBody, true);
@@ -248,8 +257,11 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
                 Log.logErr(m_rt, "infoList error");
                 return m_rt;
             }
+            // TODO sysType
+            int sysType = 0;
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductSpecDto.Key.TID, tid), new Pair(ProductSpecDto.Key.SITE_ID, siteId), new Pair(ProductSpecDto.Key.LGID, lgId), new Pair(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductSpecDto.Key.SYS_TYPE, sysType);
             rlPdIdList.toBuffer(sendBody, ProductSpecDto.Key.ID_LIST);
             sendBody.putBoolean(ProductSpecDto.Key.WITH_SPU_INFO, withSpuInfo);
             // send and recv
@@ -399,8 +411,11 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
                 Log.logErr(m_rt, "infoList error");
                 return m_rt;
             }
+            // TODO sysType
+            int sysType = 0;
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductStoreDto.Key.TID, tid), new Pair(ProductStoreDto.Key.SITE_ID, siteId), new Pair(ProductStoreDto.Key.LGID, lgId), new Pair(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductStoreDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(ProductStoreDto.Key.RL_PD_ID, rlPdId);
             if(useOwnerFieldList != null){
                 m_rt = useOwnerFieldList.toBuffer(sendBody, ProductStoreDto.Key.STR_LIST);
@@ -594,45 +609,12 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
      * @param infoList Param 见 {@link ProductStoreEntity.SpuBizSummaryInfo}
      * @return {@link Errno}
      */
+    @Deprecated
     public int getAllSpuBizStoreSalesSummaryInfoListByPdIdList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, FaiList<Param> infoList){
-        m_rt = Errno.ERROR;
-        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
-        try {
-            if (aid == 0) {
-                m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "args error");
-                return m_rt;
-            }
-            if(rlPdIdList == null || rlPdIdList.isEmpty()){
-                m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "rlPdIdList error");
-                return m_rt;
-            }
-            if (infoList == null) {
-                m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "infoList error");
-                return m_rt;
-            }
-            // packaging send data
-            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductStoreDto.Key.TID, tid), new Pair(ProductStoreDto.Key.SITE_ID, siteId), new Pair(ProductStoreDto.Key.LGID, lgId), new Pair(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1));
-            rlPdIdList.toBuffer(sendBody, ProductStoreDto.Key.ID_LIST);
-            // send and recv
-            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.SpuBizSummaryCmd.GET_ALL_BIZ_LIST_BY_PD_ID_LIST, sendBody, true);
-            if (m_rt != Errno.OK) {
-                return m_rt;
-            }
-            // recv info
-            Ref<Integer> keyRef = new Ref<Integer>();
-            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductStoreDto.SpuBizSummary.getInfoDto());
-            if (m_rt != Errno.OK || keyRef.value != ProductStoreDto.Key.INFO_LIST) {
-                Log.logErr(m_rt, "recv codec err");
-                return m_rt;
-            }
-            return m_rt;
-        } finally {
-            close();
-            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
-        }
+        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+                .setRlPdIds(rlPdIdList) // 商品业务id 集合
+                .build();
+        return getAllSpuBizStoreSalesSummaryListByPdIdList(mgProductArg, infoList);
     }
 
     /**
@@ -664,8 +646,11 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
                 Log.logErr(m_rt, "infoList error");
                 return m_rt;
             }
+            // TODO sysType
+            int sysType = 0;
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductStoreDto.Key.TID, tid), new Pair(ProductStoreDto.Key.SITE_ID, siteId), new Pair(ProductStoreDto.Key.LGID, lgId), new Pair(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductStoreDto.Key.SYS_TYPE, sysType);
             m_rt = rlPdIdList.toBuffer(sendBody, ProductStoreDto.Key.ID_LIST);
             if(m_rt != Errno.OK){
                 return m_rt;
@@ -718,8 +703,11 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
                 Log.logErr(m_rt, "infoList error");
                 return m_rt;
             }
+            // TODO sysType
+            int sysType = 0;
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductStoreDto.Key.TID, tid), new Pair(ProductStoreDto.Key.SITE_ID, siteId), new Pair(ProductStoreDto.Key.LGID, lgId), new Pair(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductStoreDto.Key.SYS_TYPE, sysType);
             rlPdIdList.toBuffer(sendBody, ProductStoreDto.Key.ID_LIST);
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.SpuSummaryCmd.GET_LIST, sendBody, true);
@@ -786,8 +774,11 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
                 Log.logErr(m_rt, "list error");
                 return m_rt;
             }
+            // TODO sysType
+            int sysType = 0;
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductStoreDto.Key.TID, tid), new Pair(ProductStoreDto.Key.SITE_ID, siteId), new Pair(ProductStoreDto.Key.LGID, lgId), new Pair(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductStoreDto.Key.SYS_TYPE, sysType);
             m_rt = searchArg.toBuffer(sendBody, ProductStoreDto.Key.SEARCH_ARG);
             if(m_rt != Errno.OK){
                 return m_rt;
@@ -844,8 +835,11 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
                 Log.logErr(m_rt, "infoList error");
                 return m_rt;
             }
+            // TODO sysType
+            int sysType = 0;
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductStoreDto.Key.TID, tid), new Pair(ProductStoreDto.Key.SITE_ID, siteId), new Pair(ProductStoreDto.Key.LGID, lgId), new Pair(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductStoreDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(ProductStoreDto.Key.RL_PD_ID, rlPdId);
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.SpuBizSummaryCmd.GET_ALL_BIZ_LIST_BY_PD_ID, sendBody, true);
@@ -955,35 +949,12 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
      *      {@link ProductStoreEntity.InOutStoreRecordInfo#CHANGE_COUNT} 必填  <br/>
      * @return {@link Errno}
      */
+    @Deprecated
     public int addInOutStoreRecordInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> infoList) {
-        m_rt = Errno.ERROR;
-        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
-        try {
-            if (aid == 0) {
-                m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "args error");
-                return m_rt;
-            }
-            if (infoList == null) {
-                m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "infoList error");
-                return m_rt;
-            }
-            // packaging send data
-            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductStoreDto.Key.TID, tid), new Pair(ProductStoreDto.Key.SITE_ID, siteId), new Pair(ProductStoreDto.Key.LGID, lgId), new Pair(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1));
-            m_rt = infoList.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.InOutStoreRecord.getInfoDto());
-            if(m_rt != Errno.OK){
-                m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "infoList err;aid=%s;tid=%s;siteId=%s;lgId=%s;keepPriId1=%s;", aid, tid, siteId, lgId, keepPriId1);
-                return m_rt;
-            }
-            // send and recv
-            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.InOutStoreRecordCmd.ADD_LIST, sendBody, false, false);
-            return m_rt;
-        } finally {
-            close();
-            stat.end((m_rt != Errno.OK), m_rt);
-        }
+        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+                .setAddList(infoList) // 必填，要添加的出入库记录详见addList说明
+                .build();
+        return addInOutStoreRecordInfoList(mgProductArg);
     }
 
 
@@ -1009,8 +980,11 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
                 Log.logErr(m_rt, "spuInfoList error");
                 return m_rt;
             }
+            // TODO sysType
+            int sysType = 0;
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductTempDto.Key.TID, ownerTid), new Pair(ProductTempDto.Key.SITE_ID, ownerSiteId), new Pair(ProductTempDto.Key.LGID, ownerLgId), new Pair(ProductTempDto.Key.KEEP_PRIID1, ownerKeepPriId1));
+            sendBody.putInt(ProductTempDto.Key.SYS_TYPE, sysType);
             m_rt = spuInfoList.toBuffer(sendBody, ProductTempDto.Key.INFO_LIST, ProductTempDto.Info.getInfoDto());
             if(m_rt != Errno.OK){
                 return m_rt;
@@ -1047,8 +1021,11 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
                 Log.logErr(m_rt, "recordInfoList error");
                 return m_rt;
             }
+            // TODO sysType
+            int sysType = 0;
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductTempDto.Key.TID, ownerTid), new Pair(ProductTempDto.Key.SITE_ID, ownerSiteId), new Pair(ProductTempDto.Key.LGID, ownerLgId), new Pair(ProductTempDto.Key.KEEP_PRIID1, ownerKeepPriId1));
+            sendBody.putInt(ProductTempDto.Key.SYS_TYPE, sysType);
             m_rt = recordInfoList.toBuffer(sendBody, ProductTempDto.Key.INFO_LIST, ProductTempDto.StoreRecord.getInfoDto());
             if(m_rt != Errno.OK){
                 return m_rt;
@@ -1096,11 +1073,15 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
                 Log.logErr(m_rt, "args 2 error");
                 return m_rt;
             }
+            //TODO sysType
+            int sysType = 0;
+
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductSpecDto.Key.TID, tid), new Pair(ProductSpecDto.Key.SITE_ID, siteId), new Pair(ProductSpecDto.Key.LGID, lgId), new Pair(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1));
             if (!Str.isEmpty(xid)) {
                 sendBody.putString(MgProductDto.Key.XID, xid);
             }
+            sendBody.putInt(ProductSpecDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(ProductSpecDto.Key.RL_PD_ID, rlPdId);
             if (addList != null) {
                 if (addList.isEmpty()) {
@@ -1168,8 +1149,11 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
                 Log.logErr(m_rt, "infoList error");
                 return m_rt;
             }
+            // TODO sysType
+            int sysType = 0;
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductSpecDto.Key.TID, tid), new Pair(ProductSpecDto.Key.SITE_ID, siteId), new Pair(ProductSpecDto.Key.LGID, lgId), new Pair(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductSpecDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(ProductSpecDto.Key.RL_PD_ID, rlPdId);
             m_rt = updaterList.toBuffer(sendBody, ProductSpecDto.Key.UPDATER_LIST, ProductSpecDto.SpecSku.getInfoDto());
             if (m_rt != Errno.OK) {
@@ -1208,8 +1192,11 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
                 Log.logErr(m_rt, "infoList error");
                 return m_rt;
             }
+            // TODO sysType
+            int sysType = 0;
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductStoreDto.Key.TID, tid), new Pair(ProductStoreDto.Key.SITE_ID, siteId), new Pair(ProductStoreDto.Key.LGID, lgId), new Pair(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductStoreDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(ProductStoreDto.Key.RL_PD_ID, rlPdId);
             m_rt = updaterList.toBuffer(sendBody, ProductStoreDto.Key.UPDATER_LIST, ProductStoreDto.StoreSalesSku.getInfoDto());
             if(m_rt != Errno.OK){
@@ -1496,6 +1483,7 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
             int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductStoreDto.Key.TID, tid), new Pair(ProductStoreDto.Key.SITE_ID, siteId), new Pair(ProductStoreDto.Key.LGID, lgId), new Pair(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductStoreDto.Key.SYS_TYPE, mgProductArg.getSysType());
             m_rt = infoList.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.InOutStoreRecord.getInfoDto());
             if(m_rt != Errno.OK){
                 m_rt = Errno.ARGS_ERROR;
@@ -1668,6 +1656,7 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
             int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductStoreDto.Key.TID, tid), new Pair(ProductStoreDto.Key.SITE_ID, siteId), new Pair(ProductStoreDto.Key.LGID, lgId), new Pair(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductStoreDto.Key.SYS_TYPE, mgProductArg.getSysType());
             sendBody.putInt(ProductStoreDto.Key.RL_PD_ID, rlPdId);
             sendBody.putCalendar(ProductStoreDto.Key.OPT_TIME, optTime);
             m_rt = infoList.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.InOutStoreRecord.getInfoDto());
@@ -1726,6 +1715,7 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
             int rlPdId = mgProductArg.getRlPdId();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductStoreDto.Key.TID, tid), new Pair(ProductStoreDto.Key.SITE_ID, siteId), new Pair(ProductStoreDto.Key.LGID, lgId), new Pair(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductStoreDto.Key.SYS_TYPE, mgProductArg.getSysType());
             sendBody.putInt(ProductStoreDto.Key.RL_PD_ID, rlPdId);
             m_rt = primaryKeys.toBuffer(sendBody, ProductStoreDto.Key.PRIMARY_KEYS, MgProductDto.getPrimaryKeyDto());
             if(m_rt != Errno.OK){
@@ -1779,6 +1769,7 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
             int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductStoreDto.Key.TID, tid), new Pair(ProductStoreDto.Key.SITE_ID, siteId), new Pair(ProductStoreDto.Key.LGID, lgId), new Pair(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductSpecDto.Key.SYS_TYPE, mgProductArg.getSysType());
             m_rt = skuStoreSales.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.StoreSalesSku.getInfoDto());
             if(m_rt != Errno.OK){
                 m_rt = Errno.ARGS_ERROR;
@@ -1831,6 +1822,7 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
             int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductStoreDto.Key.TID, tid), new Pair(ProductStoreDto.Key.SITE_ID, siteId), new Pair(ProductStoreDto.Key.LGID, lgId), new Pair(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductStoreDto.Key.SYS_TYPE, mgProductArg.getSysType());
             rlPdIdList.toBuffer(sendBody, ProductStoreDto.Key.ID_LIST);
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.SpuBizSummaryCmd.GET_ALL_BIZ_LIST_BY_PD_ID_LIST, sendBody, true);
@@ -1883,7 +1875,8 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
             boolean onlyGetChecked = mgProductArg.getOnlyGetChecked();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductSpecDto.Key.TID, tid), new Pair(ProductSpecDto.Key.SITE_ID, siteId), new Pair(ProductSpecDto.Key.LGID, lgId), new Pair(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1));
-            rlPdIds.toBuffer(sendBody, ProductSpecDto.Key.RL_PD_IDS);
+            sendBody.putInt(ProductSpecDto.Key.SYS_TYPE, mgProductArg.getSysType());
+            rlPdIds.toBuffer(sendBody, ProductSpecDto.Key.RL_PD_ID);
             sendBody.putBoolean(ProductSpecDto.Key.ONLY_GET_CHECKED, onlyGetChecked);
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.ProductSpecCmd.GET_LIST_4ADM, sendBody, true);

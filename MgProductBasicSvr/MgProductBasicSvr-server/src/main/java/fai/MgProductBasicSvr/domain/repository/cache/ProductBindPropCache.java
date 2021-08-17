@@ -6,45 +6,47 @@ import fai.comm.util.Param;
 import fai.comm.util.ParamUpdater;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
+import fai.middleground.svrutil.misc.Utils;
 
 import java.util.HashSet;
 
 public class ProductBindPropCache extends CacheCtrl {
 
-    public static FaiList<Param> getCacheList(int aid, int unionPriId, int rlPdId) {
-        String cacheKey = getCacheKey(aid, unionPriId, rlPdId);
+    public static FaiList<Param> getCacheList(int aid, int unionPriId, int sysType, int rlPdId) {
+        String cacheKey = getCacheKey(aid, unionPriId, sysType, rlPdId);
         return m_cache.getFaiList(cacheKey, ProductBindPropDto.Key.INFO, ProductBindPropDto.getInfoDto());
     }
 
-    public static void setCacheList(int aid, int unionPriId, int rlPdId, FaiList<Param> list) {
+    public static void setCacheList(int aid, int unionPriId, int sysType, int rlPdId, FaiList<Param> list) {
         if(list == null || list.isEmpty()) {
             return;
         }
-        String cacheKey = getCacheKey(aid, unionPriId, rlPdId);
+        String cacheKey = getCacheKey(aid, unionPriId, sysType, rlPdId);
         m_cache.setFaiList(cacheKey, list, ProductBindPropDto.Key.INFO, ProductBindPropDto.getInfoDto());
     }
 
-    public static void delCache(int aid, int unionPriId, int rlPdId) {
-        String cacheKey = getCacheKey(aid, unionPriId, rlPdId);
+    public static void delCache(int aid, int unionPriId, int sysType, int rlPdId) {
+        String cacheKey = getCacheKey(aid, unionPriId, sysType, rlPdId);
         if(m_cache.exists(cacheKey)) {
             m_cache.del(cacheKey);
         }
     }
 
-    public static void delCacheList(int aid, int unionPriId, HashSet<Integer> rlPdIds) {
-        if(Util.isEmptyList(rlPdIds)) {
+    public static void delCacheList(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIdList) {
+        if(Utils.isEmptyList(rlPdIdList)) {
             return;
         }
+        HashSet<Integer> rlPdIds = new HashSet<>(rlPdIdList);
         String[] cacheKeys = new String[rlPdIds.size()];
         int i = 0;
         for(Integer rlPdId : rlPdIds) {
-            cacheKeys[i++] = getCacheKey(aid, unionPriId, rlPdId);
+            cacheKeys[i++] = getCacheKey(aid, unionPriId, sysType, rlPdId);
         }
         m_cache.del(cacheKeys);
     }
 
-    public static String getCacheKey(int aid, int unionPriId, int rlPdId) {
-        return wrapCacheVersion(CACHE_KEY + "-" + aid + "-" + unionPriId + "-" + rlPdId, aid);
+    public static String getCacheKey(int aid, int unionPriId, int sysType, int rlPdId) {
+        return wrapCacheVersion(CACHE_KEY + "-" + aid + "-" + unionPriId + "-" + sysType + "-" + rlPdId, aid);
     }
 
     /** 数据状态缓存 **/

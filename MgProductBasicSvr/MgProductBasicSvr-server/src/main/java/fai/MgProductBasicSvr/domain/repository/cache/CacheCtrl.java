@@ -4,6 +4,7 @@ import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.cache.redis.client.RedisClientExecutor;
 import fai.comm.cache.redis.pool.JedisPool;
 import fai.comm.util.*;
+import fai.middleground.infutil.MgConfPool;
 import redis.clients.jedis.Jedis;
 
 import java.nio.ByteBuffer;
@@ -38,7 +39,7 @@ public class CacheCtrl {
 	}
 
 	protected static String wrapCacheVersion(String cacheKey, int aid){
-		return cacheKey + ":"+getCacheVersion(aid);
+		return cacheKey + cacheSuffix + ":" + getCacheVersion(aid);
 	}
 
 	protected static final String CACHE_VERSION_PREFIX = "MG_pdBasicCacheVer";
@@ -93,10 +94,15 @@ public class CacheCtrl {
 
 	private static final String GET_KEYS_SCRIPT = "local result = {};for i = 1,#(KEYS) do result[i]= redis.call('get',KEYS[i]) end; return result";
 
-	public static void init(RedisCacheManager cache, JedisPool jedisPool) {
+	public static void init(RedisCacheManager cache, JedisPool jedisPool, String suffix) {
 		m_cache = cache;
 		m_jedisPool = jedisPool;
+		if(!Str.isEmpty(suffix)) {
+			cacheSuffix = "_" + suffix;
+		}
 	}
+
+	protected static String cacheSuffix = "";
 	protected static RedisCacheManager m_cache;
 	protected static JedisPool m_jedisPool;
 }

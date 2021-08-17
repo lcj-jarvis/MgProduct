@@ -36,11 +36,11 @@ public class ProductBindPropProc {
         init(tc);
     }
 
-    public FaiList<Param> getPdBindPropList(int aid, int unionPriId, int rlPdId) {
-        return getList(aid, unionPriId, rlPdId);
+    public FaiList<Param> getPdBindPropList(int aid, int unionPriId, int sysType, int rlPdId) {
+        return getList(aid, unionPriId, sysType, rlPdId);
     }
 
-    public void addPdBindPropList(int aid, int unionPriId, int rlPdId, int pdId, FaiList<Param> infoList) {
+    public void addPdBindPropList(int aid, int unionPriId, int sysType, int rlPdId, int pdId, FaiList<Param> infoList) {
         int rt;
         if(infoList == null || infoList.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -59,6 +59,7 @@ public class ProductBindPropProc {
             }
 
             info.setInt(ProductBindPropEntity.Info.AID, aid);
+            info.setInt(ProductBindPropEntity.Info.SYS_TYPE, sysType);
             info.setInt(ProductBindPropEntity.Info.RL_PD_ID, rlPdId);
             info.setInt(ProductBindPropEntity.Info.RL_PROP_ID, rlPropId);
             info.setInt(ProductBindPropEntity.Info.PROP_VAL_ID, propValId);
@@ -70,6 +71,7 @@ public class ProductBindPropProc {
             if(addSaga) {
                 Param sagaInfo = new Param();
                 sagaInfo.setInt(ProductBindPropEntity.Info.AID, aid);
+                sagaInfo.setInt(ProductBindPropEntity.Info.SYS_TYPE, sysType);
                 sagaInfo.setInt(ProductBindPropEntity.Info.RL_PD_ID, rlPdId);
                 sagaInfo.setInt(ProductBindPropEntity.Info.RL_PROP_ID, rlPropId);
                 sagaInfo.setInt(ProductBindPropEntity.Info.PROP_VAL_ID, propValId);
@@ -89,28 +91,14 @@ public class ProductBindPropProc {
         addSagaList(aid, sagaList);
     }
 
-    public void addList4Saga(FaiList<Param> addList) {
-        if(Utils.isEmptyList(addList)) {
-            return;
-        }
-        for(Param info : addList) {
-            info.remove(BasicSagaEntity.Common.XID);
-            info.remove(BasicSagaEntity.Common.BRANCH_ID);
-            info.remove(BasicSagaEntity.Common.SAGA_OP);
-        }
-        int rt = m_bindPropDao.batchInsert(addList, null, true);
-        if(rt != Errno.OK) {
-            throw new MgException(rt, "batch insert product bind prop error;flow=%d;addList=%s;", m_flow, addList);
-        }
-    }
-
-    public void updatePdBindProp(int aid, int unionPriId, int rlPdId, int pdId, FaiList<Param> bindPropList){
+    public void updatePdBindProp(int aid, int unionPriId, int sysType, int rlPdId, int pdId, FaiList<Param> bindPropList){
         if(bindPropList == null) {
             return;
         }
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        searchArg.matcher.and(ProductBindPropEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
         searchArg.matcher.and(ProductBindPropEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
         FaiList<Param> oldList = searchFromDb(aid, searchArg, null);
 
@@ -132,12 +120,12 @@ public class ProductBindPropProc {
 
         // 新增
         if(!bindPropList.isEmpty()) {
-            addPdBindPropList(aid, unionPriId, rlPdId, pdId, bindPropList);
+            addPdBindPropList(aid, unionPriId, sysType, rlPdId, pdId, bindPropList);
         }
 
         // 删除
         if(!delList.isEmpty()) {
-            delPdBindPropList(aid, unionPriId, rlPdId, delList, true);
+            delPdBindPropList(aid, unionPriId, sysType, rlPdId, delList, true);
         }
     }
 
@@ -147,7 +135,7 @@ public class ProductBindPropProc {
      * 如果是完整的数据，那分布式事务记录数据的时候，就不需要再查一次了
      * @return 删除数量
      */
-    public int delPdBindPropList(int aid, int unionPriId, int rlPdId, FaiList<Param> delList, boolean isComplete) {
+    public int delPdBindPropList(int aid, int unionPriId, int sysType, int rlPdId, FaiList<Param> delList, boolean isComplete) {
         int rt;
         if(delList == null || delList.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -160,6 +148,7 @@ public class ProductBindPropProc {
             SearchArg searchArg = new SearchArg();
             searchArg.matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
             searchArg.matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+            searchArg.matcher.and(ProductBindPropEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
             searchArg.matcher.and(ProductBindPropEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
             oldList = searchFromDb(aid, searchArg, null);
         }
@@ -191,6 +180,7 @@ public class ProductBindPropProc {
             }
             ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
             matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+            matcher.and(ProductBindPropEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
             matcher.and(ProductBindPropEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
             matcher.and(ProductBindPropEntity.Info.RL_PROP_ID, ParamMatcher.EQ, rlPropId);
             matcher.and(ProductBindPropEntity.Info.PROP_VAL_ID, ParamMatcher.EQ, propValId);
@@ -209,21 +199,19 @@ public class ProductBindPropProc {
         return delCount;
     }
 
-    public int delPdBindProp(int aid, int unionPriId, ParamMatcher matcher) {
+    public int delPdBindProp(int aid, ParamMatcher matcher) {
         int rt;
         if(matcher == null) {
-            matcher = new ParamMatcher();
-            Log.logStd("del all;aid=%d;uid=%d;", aid, unionPriId);
+            throw new MgException("matcher is null;aid=%d;", aid);
         }
         Ref<Integer> refRowCount = new Ref<>();
         matcher.and(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         rt = m_bindPropDao.delete(matcher, refRowCount);
         if(rt != Errno.OK) {
             throw new MgException(rt, "del info error;flow=%d;aid=%d;matcher=%s;", m_flow, aid, matcher.toJson());
         }
 
-        Log.logStd("del bind prop ok;aid=%d;uid=%d;matcher=%s;", aid, unionPriId, matcher.toJson());
+        Log.logStd("del bind prop ok;aid=%d;matcher=%s;", aid, matcher.toJson());
         return refRowCount.value;
     }
 
@@ -260,43 +248,6 @@ public class ProductBindPropProc {
         return refRowCount.value;
     }
 
-    public int delPdBindPropByValId(int aid, int unionPriId, int rlPropId, FaiList<Integer> delPropValIds) {
-        int rt;
-        if(Utils.isEmptyList(delPropValIds)) {
-            rt = Errno.ARGS_ERROR;
-            throw new MgException(rt, "args error, delPropValIds is empty;flow=%d;aid=%d;", m_flow, aid);
-        }
-        Ref<Integer> refRowCount = new Ref<>();
-        ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        matcher.and(ProductBindPropEntity.Info.RL_PROP_ID, ParamMatcher.EQ, rlPropId);
-        matcher.and(ProductBindPropEntity.Info.PROP_VAL_ID, ParamMatcher.IN, delPropValIds);
-        rt = m_bindPropDao.delete(matcher, refRowCount);
-        if(rt != Errno.OK) {
-            throw new MgException(rt, "del info error;flow=%d;aid=%d;rlPropId=%d;delPropValIds=%d;", m_flow, aid, rlPropId, delPropValIds);
-        }
-
-        return refRowCount.value;
-    }
-
-    public int delPdBindPropByPropId(int aid, int unionPriId, FaiList<Integer> rlPropIds) {
-        int rt;
-        if(Util.isEmptyList(rlPropIds)) {
-            rt = Errno.ARGS_ERROR;
-            throw new MgException(rt, "args error, rlPropIds is empty;flow=%d;aid=%d;", m_flow, aid);
-        }
-        Ref<Integer> refRowCount = new Ref<>();
-        ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        matcher.and(ProductBindPropEntity.Info.RL_PROP_ID, ParamMatcher.IN, rlPropIds);
-        rt = m_bindPropDao.delete(matcher, refRowCount);
-        if(rt != Errno.OK) {
-            throw new MgException(rt, "del info error;flow=%d;aid=%d;rlPropIds=%d;uid=%d;", m_flow, aid, rlPropIds, unionPriId);
-        }
-
-        return refRowCount.value;
-    }
-
     // 清空指定aid+unionPriId的数据
     public void clearAcct(int aid, FaiList<Integer> unionPriIds) {
         int rt;
@@ -317,7 +268,7 @@ public class ProductBindPropProc {
      * 根据参数id+参数值id的列表，筛选出商品业务id
      * 目前是直接查db
      */
-    public FaiList<Integer> getRlPdByPropVal(int aid, int unionPriId, FaiList<Param> proIdsAndValIds) {
+    public FaiList<Integer> getRlPdByPropVal(int aid, int unionPriId, int sysType, FaiList<Param> proIdsAndValIds) {
         int rt;
         FaiList<Integer> rlPropIds = new FaiList<Integer>();
         FaiList<Integer> propValIds = new FaiList<Integer>();
@@ -338,6 +289,7 @@ public class ProductBindPropProc {
         // 先将可能符合条件的数据查出来，再做筛选, 避免循环查db
         ParamMatcher sqlMatcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
         sqlMatcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        sqlMatcher.and(ProductBindPropEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
         sqlMatcher.and(ProductBindPropEntity.Info.RL_PROP_ID, ParamMatcher.IN, rlPropIds);
         sqlMatcher.and(ProductBindPropEntity.Info.PROP_VAL_ID, ParamMatcher.IN, propValIds);
         Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
@@ -358,7 +310,7 @@ public class ProductBindPropProc {
         for(Param info : proIdsAndValIds) {
             int rlPropId = info.getInt(ProductBindPropEntity.Info.RL_PROP_ID);
             int propValId = info.getInt(ProductBindPropEntity.Info.PROP_VAL_ID);
-            searchRlPdByPropVal(aid, unionPriId, rlPropId, propValId, rlPdIds, list);
+            searchRlPdByPropVal(aid, unionPriId, sysType, rlPropId, propValId, rlPdIds, list);
             if(rlPdIds.isEmpty()) {
                 break;
             }
@@ -367,15 +319,15 @@ public class ProductBindPropProc {
         return rlPdIds;
     }
 
-    private void searchRlPdByPropVal(int aid, int unionPriId, int rlPropId, int propValId, FaiList<Integer> rlPdIds, FaiList<Param> searchList) {
+    private void searchRlPdByPropVal(int aid, int unionPriId, int sysType, int rlPropId, int propValId, FaiList<Integer> rlPdIds, FaiList<Param> searchList) {
         ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(ProductBindPropEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
         matcher.and(ProductBindPropEntity.Info.RL_PROP_ID, ParamMatcher.EQ, rlPropId);
         matcher.and(ProductBindPropEntity.Info.PROP_VAL_ID, ParamMatcher.EQ, propValId);
         if(!rlPdIds.isEmpty()) {
             matcher.and(ProductBindPropEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
         }
-        Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
         Searcher searcher = new Searcher(searchArg);
@@ -447,9 +399,9 @@ public class ProductBindPropProc {
         return countRef.value;
     }
 
-    private FaiList<Param> getList(int aid, int unionPriId, int rlPdId) {
+    private FaiList<Param> getList(int aid, int unionPriId, int sysType, int rlPdId) {
         // 缓存中获取
-        FaiList<Param> list = ProductBindPropCache.getCacheList(aid, unionPriId, rlPdId);
+        FaiList<Param> list = ProductBindPropCache.getCacheList(aid, unionPriId, sysType, rlPdId);
         if(list != null && !list.isEmpty()) {
             return list;
         }
@@ -458,6 +410,7 @@ public class ProductBindPropProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        searchArg.matcher.and(ProductBindPropEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
         searchArg.matcher.and(ProductBindPropEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
         Ref<FaiList<Param>> listRef = new Ref<>();
         int rt = m_bindPropDao.select(searchArg, listRef);
@@ -475,7 +428,7 @@ public class ProductBindPropProc {
             return list;
         }
         // 添加到缓存
-        ProductBindPropCache.setCacheList(aid, unionPriId, rlPdId, list);
+        ProductBindPropCache.setCacheList(aid, unionPriId, sysType, rlPdId, list);
         return list;
     }
 
@@ -509,11 +462,13 @@ public class ProductBindPropProc {
         int rt;
         for(Param info : list) {
             int unionPriId = info.getInt(ProductBindPropEntity.Info.UNION_PRI_ID);
+            int sysType = info.getInt(ProductBindPropEntity.Info.SYS_TYPE);
             int rlPdId = info.getInt(ProductBindPropEntity.Info.RL_PD_ID);
             int rlPropId = info.getInt(ProductBindPropEntity.Info.RL_PROP_ID);
             int propValId = info.getInt(ProductBindPropEntity.Info.PROP_VAL_ID);
             ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
             matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+            matcher.and(ProductBindPropEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
             matcher.and(ProductBindPropEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
             matcher.and(ProductBindPropEntity.Info.RL_PROP_ID, ParamMatcher.EQ, rlPropId);
             matcher.and(ProductBindPropEntity.Info.PROP_VAL_ID, ParamMatcher.EQ, propValId);

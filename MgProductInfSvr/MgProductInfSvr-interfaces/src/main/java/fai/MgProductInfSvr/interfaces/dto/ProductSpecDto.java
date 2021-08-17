@@ -156,7 +156,7 @@ public class ProductSpecDto {
         public static final int CONDITION = 13;
         public static final int WITH_SPU_INFO = 14;
         public static final int SPU_INFO = 15;
-        public static final int RL_PD_IDS = 5;
+        public static final int SYS_TYPE = 16;
     }
 
 }

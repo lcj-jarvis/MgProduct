@@ -5,22 +5,19 @@ import fai.MgProductBasicSvr.domain.entity.*;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductBindPropCache;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductBindPropProc;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductRelProc;
-import fai.MgProductBasicSvr.domain.serviceproc.SagaProc;
 import fai.MgProductBasicSvr.interfaces.dto.ProductBindPropDto;
-import fai.comm.fseata.client.core.model.BranchStatus;
-import fai.comm.fseata.client.core.rpc.def.CommDef;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.annotation.SuccessRt;
+import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 import fai.middleground.svrutil.service.ServicePub;
 
 import java.io.IOException;
 import java.util.HashSet;
-import java.util.concurrent.locks.Lock;
 
 /**
  * 操作商品与商品参数关联数据
@@ -31,7 +28,7 @@ public class ProductBindPropService extends ServicePub {
      * 获取指定商品设置的商品参数信息
      */
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
-    public int getPdBindProp(FaiSession session, int flow, int aid, int unionPriId, int tid, int rlPdId) throws IOException {
+    public int getPdBindProp(FaiSession session, int flow, int aid, int unionPriId, int sysType, int tid, int rlPdId) throws IOException {
         int rt;
         if(!FaiValObj.TermId.isValidTid(tid)) {
             rt = Errno.ARGS_ERROR;
@@ -44,12 +41,12 @@ public class ProductBindPropService extends ServicePub {
         FaiList<Param> list;
         try {
             ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
-            list = bindPropProc.getPdBindPropList(aid, unionPriId, rlPdId);
+            list = bindPropProc.getPdBindPropList(aid, unionPriId, sysType, rlPdId);
         }finally {
             // 关闭dao
             tc.closeDao();
         }
-        if(Util.isEmptyList(list)) {
+        if(Utils.isEmptyList(list)) {
             return Errno.NOT_FOUND;
         }
         FaiBuffer sendBuf = new FaiBuffer(true);
@@ -64,7 +61,7 @@ public class ProductBindPropService extends ServicePub {
      * 修改指定商品设置的商品参数信息
      */
     @SuccessRt(value = Errno.OK)
-    public int setPdBindProp(FaiSession session, int flow, int aid, int unionPriId, int tid, int rlPdId, FaiList<Param> addList, FaiList<Param> delList) throws IOException {
+    public int setPdBindProp(FaiSession session, int flow, int aid, int unionPriId, int sysType, int tid, int rlPdId, FaiList<Param> addList, FaiList<Param> delList) throws IOException {
         int rt;
         if(!FaiValObj.TermId.isValidTid(tid)) {
             rt = Errno.ARGS_ERROR;
@@ -84,30 +81,30 @@ public class ProductBindPropService extends ServicePub {
                 // 添加数据
                 if(addList != null && !addList.isEmpty()) {
                     ProductRelProc pdRelProc = new ProductRelProc(flow, aid, tc);
-                    Param pdRelInfo = pdRelProc.getProductRel(aid, unionPriId, rlPdId);
-                    /*if(Str.isEmpty(pdRelInfo)) {
-                        Log.logErr("pd rel info is not exist;flow=%d;aid=%d;uid=%d;rlPdId=%d;", flow, aid, unionPriId, rlPdId);
-                        return Errno.NOT_FOUND;
+                    Integer pdId = pdRelProc.getPdId(aid, unionPriId, sysType, rlPdId);
+                    if(pdId == null) {
+                        if(tid != FaiValObj.TermId.TS) {
+                            Log.logErr("pd rel info is not exist;flow=%d;aid=%d;uid=%d;rlPdId=%d;", flow, aid, unionPriId, rlPdId);
+                            return Errno.NOT_FOUND;
+                        }
+                        // 目前探鼠商品数据还在业务方，这边先设置商品id为0
+                        pdId = 0;
+
                     }
-                    int pdId = pdRelInfo.getInt(ProductBindGroupEntity.Info.PD_ID);*/
-                    int pdId = 0;
-                    if(!Str.isEmpty(pdRelInfo)) {
-                        pdId = pdRelInfo.getInt(ProductBindGroupEntity.Info.PD_ID);
-                    }
-                    // 目前商品数据还在业务方，这边先设置商品id为0
-                    bindPropProc.addPdBindPropList(aid, unionPriId, rlPdId, pdId, addList);
+
+                    bindPropProc.addPdBindPropList(aid, unionPriId, sysType, rlPdId, pdId, addList);
                     addCount += addList.size();
                 }
                 // 删除数据
                 if(delList != null && !delList.isEmpty()) {
-                    int delCount = bindPropProc.delPdBindPropList(aid, unionPriId, rlPdId, delList, false);
+                    int delCount = bindPropProc.delPdBindPropList(aid, unionPriId, sysType, rlPdId, delList, false);
                     addCount -= delCount;
                 }
 
                 commit = true;
                 tc.commit();
                 // 删除缓存
-                ProductBindPropCache.delCache(aid, unionPriId, rlPdId);
+                ProductBindPropCache.delCache(aid, unionPriId, sysType, rlPdId);
                 ProductBindPropCache.DataStatusCache.update(aid, unionPriId, addCount);
             } finally {
                 if(!commit) {
@@ -130,17 +127,20 @@ public class ProductBindPropService extends ServicePub {
      * 根据参数id+参数值ids 删除关联的商品参数信息
      */
     @SuccessRt(value = Errno.OK)
-    public int delPdBindPropByValId(FaiSession session, int flow, int aid, int unionPriId, int rlPropId, FaiList<Integer> delPropValIds) throws IOException {
+    public int delPdBindPropByValId(FaiSession session, int flow, int aid, int unionPriId, int sysType, int rlPropId, FaiList<Integer> delPropValIds) throws IOException {
         int rt;
-        if(aid < 0 || Util.isEmptyList(delPropValIds)) {
+        if(aid < 0 || Utils.isEmptyList(delPropValIds)) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
             return rt;
         }
         ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.RL_PROP_ID, ParamMatcher.EQ, rlPropId);
         matcher.and(ProductBindPropEntity.Info.PROP_VAL_ID, ParamMatcher.IN, delPropValIds);
+        matcher.and(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(ProductBindPropEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
 
-        rt = delPdBindProp(flow, aid, unionPriId, matcher);
+        rt = delPdBindProp(flow, aid, unionPriId, sysType, matcher);
         if(rt != Errno.OK) {
             Log.logErr("del by valIds error;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
         }
@@ -156,16 +156,19 @@ public class ProductBindPropService extends ServicePub {
      * 根据参数ids 删除关联的商品参数信息
      */
     @SuccessRt(value = Errno.OK)
-    public int delPdBindPropByPropId(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlPropIds) throws IOException {
+    public int delPdBindPropByPropId(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlPropIds) throws IOException {
         int rt;
-        if(aid < 0 || Util.isEmptyList(rlPropIds)) {
+        if(aid < 0 || Utils.isEmptyList(rlPropIds)) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
             return rt;
         }
-        ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.RL_PROP_ID, ParamMatcher.IN, rlPropIds);
+        ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(ProductBindPropEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
+        matcher.and(ProductBindPropEntity.Info.RL_PROP_ID, ParamMatcher.IN, rlPropIds);
 
-        rt = delPdBindProp(flow, aid, unionPriId, matcher);
+        rt = delPdBindProp(flow, aid, unionPriId, sysType, matcher);
         if(rt != Errno.OK) {
             Log.logErr("del by propIds error;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
         }
@@ -181,7 +184,7 @@ public class ProductBindPropService extends ServicePub {
      * 根据商品参数id和商品参数值id，返回商品业务id集合
      */
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
-    public int getRlPdByPropVal(FaiSession session, int flow, int aid, int unionPriId, int tid, FaiList<Param> proIdsAndValIds) throws IOException {
+    public int getRlPdByPropVal(FaiSession session, int flow, int aid, int unionPriId, int sysType, int tid, FaiList<Param> proIdsAndValIds) throws IOException {
         int rt = Errno.ERROR;
         if(!FaiValObj.TermId.isValidTid(tid)) {
             rt = Errno.ARGS_ERROR;
@@ -197,7 +200,7 @@ public class ProductBindPropService extends ServicePub {
         TransactionCtrl tc = new TransactionCtrl();
         try {
             ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
-            rlPdIds = bindPropProc.getRlPdByPropVal(aid, unionPriId, proIdsAndValIds);
+            rlPdIds = bindPropProc.getRlPdByPropVal(aid, unionPriId, sysType, proIdsAndValIds);
         } finally {
             tc.closeDao();
         }
@@ -300,14 +303,13 @@ public class ProductBindPropService extends ServicePub {
         return rt;
     }
 
-    private int delPdBindProp(int flow, int aid, int unionPriId, ParamMatcher matcher) {
+    private int delPdBindProp(int flow, int aid, int unionPriId, int sysType, ParamMatcher matcher) {
         int rt;
         if(aid < 0 || matcher == null || matcher.isEmpty()) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
             return rt;
         }
-        matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
 
         LockUtil.lock(aid);
         try {
@@ -320,21 +322,21 @@ public class ProductBindPropService extends ServicePub {
                 FaiList<String> selectFields = new FaiList<>();
                 selectFields.add(ProductBindPropEntity.Info.RL_PD_ID);
                 FaiList<Param> list = bindPropProc.searchFromDb(aid, searchArg, selectFields);
-                if(Util.isEmptyList(list)) {
+                if(Utils.isEmptyList(list)) {
                     Log.logStd("del data not found;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
                     return Errno.OK;
                 }
                 // 删除数据
-                int delCount = bindPropProc.delPdBindProp(aid, unionPriId, matcher);
+                int delCount = bindPropProc.delPdBindProp(aid, matcher);
                 int addCount = 0 - delCount;
 
-                HashSet<Integer> rlPdIds = new HashSet<>();
+                FaiList<Integer> rlPdIds = new FaiList<>();
                 // 删除缓存
                 for (int i = 0; i < list.size(); i++) {
                     Param info = list.get(i);
                     rlPdIds.add(info.getInt(ProductBindPropEntity.Info.RL_PD_ID));
                 }
-                ProductBindPropCache.delCacheList(aid, unionPriId, rlPdIds);
+                ProductBindPropCache.delCacheList(aid, unionPriId, sysType, rlPdIds);
                 ProductBindPropCache.DataStatusCache.update(aid, unionPriId, addCount);
             } finally {
                 tc.closeDao();

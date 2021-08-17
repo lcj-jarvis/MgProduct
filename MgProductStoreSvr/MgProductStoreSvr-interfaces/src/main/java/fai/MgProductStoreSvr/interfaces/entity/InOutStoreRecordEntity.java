@@ -11,6 +11,7 @@ public class InOutStoreRecordEntity {
         public static final String SKU_ID = "skuId";                               // bigint SKU id    (Primary Key 4)
         public static final String IN_OUT_STORE_REC_ID = "ioStoreRecId";           // int 出入库存记录id
         public static final String RL_PD_ID = "rlPdId";                             // int 商品业务 id
+        public static final String SYS_TYPE = "sysType";                            // int 系统类型 (商品/服务)
         public static final String OPT_TYPE = "optType";                            // tinyInt(2) 出/入库操作？（或者其他操作状态）
         public static final String C_TYPE = "cType";                                // tinyInt(3) 总部出入库方式
         public static final String S_TYPE = "sType";                                // tinyInt(3) 门店出入库方式

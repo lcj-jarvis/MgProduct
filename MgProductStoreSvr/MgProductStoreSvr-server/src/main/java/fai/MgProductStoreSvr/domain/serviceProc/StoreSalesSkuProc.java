@@ -58,6 +58,7 @@ public class StoreSalesSkuProc {
             data.setInt(StoreSalesSkuEntity.Info.AID, aid);
             data.assign(info, StoreSalesSkuEntity.Info.UNION_PRI_ID);
             data.assign(info, StoreSalesSkuEntity.Info.RL_PD_ID);
+            data.assign(info, StoreSalesSkuEntity.Info.SYS_TYPE);
             data.assign(info, StoreSalesSkuEntity.Info.SKU_ID);
             Integer pdId = info.getInt(StoreSalesSkuEntity.Info.PD_ID);
             pdId = pdId == null ? argPdId : pdId;
@@ -218,6 +219,7 @@ public class StoreSalesSkuProc {
                     Param info = skuId_salesStoreDataEntry.getValue();
                     data.assign(info, StoreSalesSkuEntity.Info.PD_ID);
                     data.assign(info, StoreSalesSkuEntity.Info.RL_PD_ID);
+                    data.assign(info, StoreSalesSkuEntity.Info.SYS_TYPE);
                     for (String field : maxUpdateFieldSet) {
                         data.assign(info, field);
                     }
@@ -933,6 +935,7 @@ public class StoreSalesSkuProc {
                                 .setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId)
                                 .setInt(StoreSalesSkuEntity.Info.PD_ID, pdKey.pdId)
                                 .setInt(StoreSalesSkuEntity.Info.RL_PD_ID, pdKey.rlPdId)
+                                .setInt(StoreSalesSkuEntity.Info.SYS_TYPE, pdKey.sysType)
                                 .setLong(StoreSalesSkuEntity.Info.PRICE, price)
                                 .setLong(StoreSalesSkuEntity.Info.ORIGIN_PRICE, originPrice)
                                 .setInt(StoreSalesSkuEntity.Info.FLAG, flag)
@@ -1196,6 +1199,7 @@ public class StoreSalesSkuProc {
             rt = getListFromDaoBySkuIdList(aid, unionPriId, skuIdList, listRef,
                     StoreSalesSkuEntity.Info.SKU_ID,
                     StoreSalesSkuEntity.Info.RL_PD_ID,
+                    StoreSalesSkuEntity.Info.SYS_TYPE,
                     StoreSalesSkuEntity.Info.PD_ID,
                     StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID,
                     StoreSalesSkuEntity.Info.REMAIN_COUNT,
@@ -1271,6 +1275,7 @@ public class StoreSalesSkuProc {
         Dao.SelectArg selectArg = new Dao.SelectArg();
         selectArg.field = StoreSalesSkuEntity.Info.PD_ID + ", " +
                 StoreSalesSkuEntity.Info.RL_PD_ID + ", " +
+                StoreSalesSkuEntity.Info.SYS_TYPE + ", " +
                 StoreSalesSkuEntity.Info.SKU_ID + ", " +
                 StoreSalesSkuEntity.Info.UNION_PRI_ID + ", " +
                 COMM_REPORT_FIELDS;
@@ -1297,6 +1302,7 @@ public class StoreSalesSkuProc {
         selectArg.field = StoreSalesSkuEntity.Info.UNION_PRI_ID + ", "
                 + StoreSalesSkuEntity.Info.PD_ID + ", "
                 + StoreSalesSkuEntity.Info.RL_PD_ID + ", "
+                + StoreSalesSkuEntity.Info.SYS_TYPE + ", "
                 +COMM_REPORT_FIELDS;
         selectArg.group = StoreSalesSkuEntity.Info.PD_ID+ "," + StoreSalesSkuEntity.Info.UNION_PRI_ID;
         selectArg.searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
@@ -1317,7 +1323,7 @@ public class StoreSalesSkuProc {
         }
         int rt = Errno.ERROR;
         Dao.SelectArg selectArg = new Dao.SelectArg();
-        selectArg.field = StoreSalesSkuEntity.Info.RL_PD_ID + ", " +
+        selectArg.field = StoreSalesSkuEntity.Info.RL_PD_ID + ", " + StoreSalesSkuEntity.Info.SYS_TYPE + ", " +
                 COMM_REPORT_FIELDS;
         selectArg.searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
         selectArg.searchArg.matcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.EQ, pdId);

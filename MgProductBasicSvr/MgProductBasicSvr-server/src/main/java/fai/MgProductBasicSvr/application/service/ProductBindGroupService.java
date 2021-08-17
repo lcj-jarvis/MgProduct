@@ -16,6 +16,7 @@ import fai.middleground.svrutil.repository.TransactionCtrl;
 import fai.middleground.svrutil.service.ServicePub;
 
 import java.io.IOException;
+import java.util.HashSet;
 
 public class ProductBindGroupService extends ServicePub {
 
@@ -23,7 +24,7 @@ public class ProductBindGroupService extends ServicePub {
      * 获取指定商品关联的商品分类信息
      */
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
-    public int getPdsBindGroup(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlPdIds) throws IOException {
+    public int getPdsBindGroup(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds) throws IOException {
         if(Utils.isEmptyList(rlPdIds)) {
             int rt = Errno.ARGS_ERROR;
             Log.logErr(rt, "args error, rlPdIds is empty;aid=%d;unionPriId=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
@@ -32,8 +33,13 @@ public class ProductBindGroupService extends ServicePub {
         TransactionCtrl tc = new TransactionCtrl();
         FaiList<Param> list;
         try {
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+            FaiList<Integer> pdIds = relProc.getPdIds(aid, unionPriId, sysType, new HashSet<>(rlPdIds));
+            if(Utils.isEmptyList(pdIds)) {
+                return Errno.NOT_FOUND;
+            }
             ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
-            list = bindGroupProc.getPdBindGroupList(aid, unionPriId, rlPdIds);
+            list = bindGroupProc.getPdBindGroupList(aid, unionPriId, pdIds);
         }finally {
             tc.closeDao();
         }
@@ -52,8 +58,8 @@ public class ProductBindGroupService extends ServicePub {
      * 修改指定商品设置的商品分类关联
      */
     @SuccessRt(value = Errno.OK)
-    public int setPdBindGroup(FaiSession session, int flow, int aid, int unionPriId, int rlPdId, FaiList<Integer> addGroupIds, FaiList<Integer> delGroupIds) throws IOException {
-        if(Utils.isEmptyList(addGroupIds) && Util.isEmptyList(delGroupIds)) {
+    public int setPdBindGroup(FaiSession session, int flow, int aid, int unionPriId, int sysType, int rlPdId, FaiList<Integer> addGroupIds, FaiList<Integer> delGroupIds) throws IOException {
+        if(Utils.isEmptyList(addGroupIds) && Utils.isEmptyList(delGroupIds)) {
             int rt = Errno.ARGS_ERROR;
             Log.logErr(rt, "args error, addGroupIds and delGroupIds is empty;aid=%d;unionPriId=%d;rlPdId=%s;", aid, unionPriId, rlPdId);
             return rt;
@@ -67,28 +73,29 @@ public class ProductBindGroupService extends ServicePub {
                 tc.setAutoCommit(false);
                 ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
                 int addCount = 0;
+
+                ProductRelProc pdRelProc = new ProductRelProc(flow, aid, tc);
+                Integer pdId = pdRelProc.getPdId(aid, unionPriId, sysType, rlPdId);
+                if(pdId == null) {
+                    Log.logErr("pd rel info is not exist;flow=%d;aid=%d;uid=%d;rlPdId=%d;", flow, aid, unionPriId, rlPdId);
+                    return Errno.NOT_FOUND;
+                }
+
                 if(!Utils.isEmptyList(addGroupIds)) {
-                    ProductRelProc pdRelProc = new ProductRelProc(flow, aid, tc);
-                    Param pdRelInfo = pdRelProc.getProductRel(aid, unionPriId, rlPdId);
-                    if(Str.isEmpty(pdRelInfo)) {
-                        Log.logErr("pd rel info is not exist;flow=%d;aid=%d;uid=%d;rlPdId=%d;", flow, aid, unionPriId, rlPdId);
-                        return Errno.NOT_FOUND;
-                    }
-                    int pdId = pdRelInfo.getInt(ProductBindGroupEntity.Info.PD_ID);
                     // 添加数据
-                    bindGroupProc.addPdBindGroupList(aid, unionPriId, rlPdId, pdId, addGroupIds);
+                    bindGroupProc.addPdBindGroupList(aid, unionPriId, sysType, rlPdId, pdId, addGroupIds);
                     addCount += addGroupIds.size();
                 }
 
                 if(!Utils.isEmptyList(delGroupIds)) {
                     // 删除数据
-                    int delCount = bindGroupProc.delPdBindGroupList(aid, unionPriId, rlPdId, delGroupIds);
+                    int delCount = bindGroupProc.delPdBindGroupList(aid, unionPriId, pdId, delGroupIds);
                     addCount -= delCount;
                 }
                 commit = true;
                 tc.commit();
                 // 删除缓存
-                ProductBindGroupCache.delCache(aid, unionPriId, rlPdId);
+                ProductBindGroupCache.delCache(aid, unionPriId, pdId);
                 ProductBindGroupCache.DataStatusCache.update(aid, unionPriId, addCount);
             }finally {
                 if(!commit) {
@@ -111,7 +118,7 @@ public class ProductBindGroupService extends ServicePub {
      * 查询指定分类id下的商品业务id
      */
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
-    public int getRlPdByRlGroupId(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlGroupIds) throws IOException {
+    public int getRlPdByRlGroupId(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlGroupIds) throws IOException {
         if(Utils.isEmptyList(rlGroupIds)) {
             int rt = Errno.ARGS_ERROR;
             Log.logErr(rt, "args error, rlGroupIds is empty;aid=%d;unionPriId=%d;rlGroupIds=%s;", aid, unionPriId, rlGroupIds);
@@ -121,7 +128,7 @@ public class ProductBindGroupService extends ServicePub {
         TransactionCtrl tc = new TransactionCtrl();
         try {
             ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
-            rlPdIds = bindGroupProc.getRlPdIdsByGroupId(aid, unionPriId, rlGroupIds);
+            rlPdIds = bindGroupProc.getRlPdIdsByGroupId(aid, unionPriId, sysType, rlGroupIds);
             if(Utils.isEmptyList(rlPdIds)) {
                 Log.logDbg("not found;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
                 return Errno.NOT_FOUND;
@@ -141,7 +148,7 @@ public class ProductBindGroupService extends ServicePub {
      * 删除指定分类业务id的关联数据
      */
     @SuccessRt(value = Errno.OK)
-    public int delBindGroupList(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlGroupIds) throws IOException {
+    public int delBindGroupList(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlGroupIds) throws IOException {
         if(Utils.isEmptyList(rlGroupIds)) {
             int rt = Errno.ARGS_ERROR;
             Log.logErr(rt, "args error, rlGroupIds is empty;aid=%d;unionPriId=%d;rlGroupIds=%s;", aid, unionPriId, rlGroupIds);
@@ -151,7 +158,7 @@ public class ProductBindGroupService extends ServicePub {
         TransactionCtrl tc = new TransactionCtrl();
         try {
             ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
-            delCount = bindGroupProc.delPdBindGroupListByRlGroupIds(aid, unionPriId, rlGroupIds);
+            delCount = bindGroupProc.delPdBindGroupListByRlGroupIds(aid, unionPriId, sysType, rlGroupIds);
 
         }finally {
             tc.closeDao();

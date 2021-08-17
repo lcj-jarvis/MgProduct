@@ -101,6 +101,7 @@ public class SpuBizSummaryProc {
                     data.setCalendar(SpuBizSummaryEntity.Info.SYS_CREATE_TIME, now);
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID);
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.RL_PD_ID);
+                    data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.SYS_TYPE);
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.MAX_PRICE);
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.MIN_PRICE);
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.SALES);
@@ -226,8 +227,10 @@ public class SpuBizSummaryProc {
                 Log.logErr("add info rlPdId err;flow=%s;aid=%s;pdId=%s;info=%s", m_flow, aid, pdId, info);
                 return Errno.ERROR;
             }
+            int sysType = info.getInt(SpuBizSummaryEntity.Info.SYS_TYPE, 0);
             addData.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, unionPriId);
             addData.setInt(SpuBizSummaryEntity.Info.RL_PD_ID, rlPdId);
+            addData.setInt(SpuBizSummaryEntity.Info.SYS_TYPE, sysType);
             addData.setInt(SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID, info.getInt(SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID, 0));
             addData.setInt(SpuBizSummaryEntity.Info.PRICE_TYPE, info.getInt(SpuBizSummaryEntity.Info.PRICE_TYPE, 0));
             addData.setInt(SpuBizSummaryEntity.Info.MODE_TYPE, info.getInt(SpuBizSummaryEntity.Info.MODE_TYPE, 0));
@@ -406,6 +409,7 @@ public class SpuBizSummaryProc {
             data.setInt(SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID, unionPriId);
             data.assign(info, SpuBizSummaryEntity.Info.PD_ID);
             data.assign(info, SpuBizSummaryEntity.Info.RL_PD_ID);
+            data.assign(info, SpuBizSummaryEntity.Info.SYS_TYPE);
             data.assign(info, SpuBizSummaryEntity.Info.PRICE_TYPE);
             data.assign(info, SpuBizSummaryEntity.Info.MODE_TYPE);
             data.assign(info, SpuBizSummaryEntity.Info.MARKET_PRICE);

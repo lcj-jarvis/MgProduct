@@ -71,12 +71,13 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                      @ArgAid final int aid,
                                      @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
                                      @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
+                                     @ArgBodyInteger(value = StoreSalesSkuDto.Key.SYS_TYPE, useDefault = true) final int sysType,
                                      @ArgBodyXid(value = StoreSalesSkuDto.Key.XID, useDefault = true) final String xid,
                                      @ArgBodyInteger(StoreSalesSkuDto.Key.PD_ID) final int pdId,
                                      @ArgBodyInteger(StoreSalesSkuDto.Key.RL_PD_ID) final int rlPdId,
                                      @ArgList(classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto", keyMatch = StoreSalesSkuDto.Key.INFO_LIST)
                                              FaiList<Param> pdScSkuInfoList) throws IOException {
-        return m_storeSalesSkuService.refreshSkuStoreSales(session, flow, aid, tid, unionPriId, xid, pdId, rlPdId, pdScSkuInfoList);
+        return m_storeSalesSkuService.refreshSkuStoreSales(session, flow, aid, tid, unionPriId, sysType, xid, pdId, rlPdId, pdScSkuInfoList);
     }
 
     @WrittenCmd
@@ -136,9 +137,10 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                  @ArgBodyXid(value = StoreSalesSkuDto.Key.XID, useDefault = true) final String xid,
                                  @ArgBodyInteger(StoreSalesSkuDto.Key.PD_ID) final int pdId,
                                  @ArgBodyInteger(StoreSalesSkuDto.Key.RL_PD_ID) final int rlPdId,
+                                 @ArgBodyInteger(value = StoreSalesSkuDto.Key.SYS_TYPE, useDefault = true) final int sysType,
                                  @ArgList(classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto", keyMatch = StoreSalesSkuDto.Key.UPDATER_LIST)
                                          FaiList<ParamUpdater> updaterList) throws IOException {
-        return m_storeSalesSkuService.setSkuStoreSales(session, flow, aid, tid, unionPriId, xid, pdId, rlPdId, updaterList);
+        return m_storeSalesSkuService.setSkuStoreSales(session, flow, aid, tid, unionPriId, xid, pdId, rlPdId, sysType, updaterList);
     }
 
     @WrittenCmd
@@ -161,9 +163,10 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                       @ArgList(keyMatch = StoreSalesSkuDto.Key.UID_LIST) final FaiList<Integer> unionPriIdList,
                                       @ArgBodyInteger(StoreSalesSkuDto.Key.PD_ID) final int pdId,
                                       @ArgBodyInteger(StoreSalesSkuDto.Key.RL_PD_ID) final int rlPdId,
+                                      @ArgBodyInteger(value = StoreSalesSkuDto.Key.SYS_TYPE, useDefault = true) final int sysType,
                                       @ArgList(classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto", keyMatch = StoreSalesSkuDto.Key.UPDATER_LIST)
                                               FaiList<ParamUpdater> updaterList) throws IOException {
-        return m_storeSalesSkuService.batchSetSkuStoreSales(session, flow, aid, tid, ownerUnionPriId, unionPriIdList, pdId, rlPdId, updaterList);
+        return m_storeSalesSkuService.batchSetSkuStoreSales(session, flow, aid, tid, ownerUnionPriId, unionPriIdList, pdId, rlPdId, sysType, updaterList);
     }
 
     @WrittenCmd
@@ -329,11 +332,12 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
     private int batchResetCostPrice(final FaiSession session,
                                     @ArgFlow final int flow,
                                     @ArgAid final int aid,
+                                    @ArgBodyInteger(value = InOutStoreRecordDto.Key.SYS_TYPE, useDefault = true) final int sysType,
                                     @ArgBodyInteger(InOutStoreRecordDto.Key.RL_PD_ID) final int rlPdId,
                                     @ArgBodyCalendar(InOutStoreRecordDto.Key.OPT_TIME)Calendar optTime,
                                     @ArgList(classDef = InOutStoreRecordDto.class, methodDef = "getInfoDto", keyMatch = InOutStoreRecordDto.Key.INFO_LIST)
                                                 FaiList<Param> infoList) throws IOException {
-        return m_recordService.batchResetCostPrice(session, flow, aid, rlPdId, optTime, infoList);
+        return m_recordService.batchResetCostPrice(session, flow, aid, sysType, rlPdId, optTime, infoList);
     }
 
     @Cmd(MgProductStoreCmd.InOutStoreRecordCmd.GET_LIST)
@@ -464,12 +468,13 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                  @ArgAid final int aid,
                                  @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
                                  @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
+                                 @ArgBodyInteger(value = StoreSalesSkuDto.Key.SYS_TYPE, useDefault = true) final int sysType,
                                  @ArgBodyXid(value = StoreSalesSkuDto.Key.XID, useDefault = true) String xid,
                                  @ArgList(keyMatch = StoreSalesSkuDto.Key.INFO_LIST,
                                          classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto") FaiList<Param> storeSaleSkuList,
                                  @ArgParam(keyMatch = StoreSalesSkuDto.Key.IN_OUT_STORE_RECORD_INFO,
                                          classDef = InOutStoreRecordDto.class, methodDef = "getInfoDto") Param inStoreRecordInfo) throws IOException {
-        return m_storeService.importStoreSales(session, flow, aid, tid, unionPriId, xid, storeSaleSkuList, inStoreRecordInfo);
+        return m_storeService.importStoreSales(session, flow, aid, tid, unionPriId, sysType, xid, storeSaleSkuList, inStoreRecordInfo);
     }
 
     @WrittenCmd

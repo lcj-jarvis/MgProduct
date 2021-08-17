@@ -135,8 +135,9 @@ public class MgProductInfCli3ForProductGroup extends MgProductInfCli2ForProductP
             int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductBasicDto.Key.SYS_TYPE, mgProductArg.getSysType());
             FaiList<Integer> rlPdIds = mgProductArg.getRlPdIds();
-            if (Util.isEmptyList(rlPdIds)) {
+            if (rlPdIds == null || rlPdIds.isEmpty()) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "arg error");
                 return m_rt;
@@ -504,8 +505,8 @@ public class MgProductInfCli3ForProductGroup extends MgProductInfCli2ForProductP
             int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
-            int rlPdId = mgProductArg.getRlPdId();
-            sendBody.putInt(ProductBasicDto.Key.RL_PD_ID, rlPdId);
+            sendBody.putInt(ProductBasicDto.Key.SYS_TYPE, mgProductArg.getSysType());
+            sendBody.putInt(ProductBasicDto.Key.RL_PD_ID, mgProductArg.getRlPdId());
             addRlGroupIds.toBuffer(sendBody, ProductBasicDto.Key.BIND_GROUP_IDS);
             delRlGroupIds.toBuffer(sendBody, ProductBasicDto.Key.DEL_BIND_GROUP_IDS);
             // send and recv

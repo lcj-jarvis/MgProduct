@@ -15,6 +15,7 @@ public class ProductBindTagDto {
         g_infoDtoDef.add(ProductBindTagEntity.Info.UNION_PRI_ID, 3, Var.Type.INT);
         g_infoDtoDef.add(ProductBindTagEntity.Info.PD_ID, 4, Var.Type.INT);
         g_infoDtoDef.add(ProductBindTagEntity.Info.CREATE_TIME, 5, Var.Type.CALENDAR);
+        g_infoDtoDef.add(ProductBindTagEntity.Info.SYS_TYPE, 5, Var.Type.INT);
     }
 
     public static ParamDef getInfoDto() {
@@ -32,5 +33,6 @@ public class ProductBindTagDto {
         public static final int SEARCH_ARG = 8;
         public static final int TOTAL_SIZE = 9;
         public static final int DATA_STATUS = 10;
+        public static final int SYS_TYPE = 11;
     }
 }

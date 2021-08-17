@@ -36,6 +36,7 @@ public class InOutStoreRecordDto {
         g_dtoDef.add(InOutStoreRecordEntity.Info.TOTAL_PRICE, 25, Var.Type.LONG);
         g_dtoDef.add(InOutStoreRecordEntity.Info.MW_TOTAL_PRICE, 26, Var.Type.LONG);
         g_dtoDef.add(InOutStoreRecordEntity.Info.STATUS, 27, Var.Type.INT);
+        g_dtoDef.add(InOutStoreRecordEntity.Info.SYS_TYPE, 28, Var.Type.INT);
     }
 
     public static ParamDef getInfoDto() {
@@ -68,5 +69,6 @@ public class InOutStoreRecordDto {
         public static final int TOTAL_SIZE = 11;
         public static final int IS_SOURCE = 12;
         public static final int SEARCH_ARG = 13;
+        public static final int SYS_TYPE = 14;
     }
 }

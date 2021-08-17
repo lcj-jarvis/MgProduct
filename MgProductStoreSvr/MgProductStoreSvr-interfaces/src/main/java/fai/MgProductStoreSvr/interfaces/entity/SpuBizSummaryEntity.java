@@ -14,6 +14,7 @@ public class SpuBizSummaryEntity {
         public static final String PD_ID = "pdId";                                  // int 商品 id    (Primary Key 3)
         public static final String SOURCE_UNION_PRI_ID = "sourceUnionPriId";        // int 创建商品的联合主键 id
         public static final String RL_PD_ID = "rlPdId";                             // int 商品业务 id
+        public static final String SYS_TYPE = "sysType";                            // int 系统类型 (商品/服务)
         public static final String PRICE_TYPE = "priceType";                        // int 价格类型（定价、面议）
         public static final String MODE_TYPE = "modeType";                          // int 服务预约模式
         public static final String MARKET_PRICE = "marketPrice";                    // bigint 市场价格

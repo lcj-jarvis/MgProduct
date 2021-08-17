@@ -7,7 +7,6 @@ import fai.MgProductBasicSvr.domain.entity.BasicSagaEntity;
 import fai.MgProductBasicSvr.domain.entity.BasicSagaValObj;
 import fai.MgProductBasicSvr.domain.repository.cache.CacheCtrl;
 import fai.MgProductBasicSvr.domain.serviceproc.SagaProc;
-import fai.app.DocOplogDef;
 import fai.comm.fseata.client.core.model.BranchStatus;
 import fai.comm.util.Log;
 import fai.comm.util.Param;

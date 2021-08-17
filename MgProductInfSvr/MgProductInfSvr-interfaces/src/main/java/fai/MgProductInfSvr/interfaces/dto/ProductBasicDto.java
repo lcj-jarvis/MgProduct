@@ -54,6 +54,7 @@ public class ProductBasicDto {
 
         g_productDef.add(ProductBasicEntity.ProductInfo.RL_PROPS, 35, ProductPropDto.getPropValInfoDto(), Var.Type.FAI_LIST);
         g_productDef.add(ProductBasicEntity.ProductInfo.RL_TAG_IDS, 36, Var.Type.FAI_LIST);
+        g_productDef.add(ProductBasicEntity.ProductInfo.SYS_TYPE, 37, Var.Type.INT);
     }
 
     public static ParamDef getProductDto() {
@@ -85,6 +86,7 @@ public class ProductBasicDto {
         g_productRelDef.add(ProductBasicEntity.ProductInfo.TID, 17);
 
         g_productRelDef.add(ProductBasicEntity.ProductInfo.PD_TYPE, 18);
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.SYS_TYPE, 19);
     }
 
     public static ParamDef getProductRelDto() {
@@ -119,6 +121,7 @@ public class ProductBasicDto {
         g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.RL_PD_ID, 2);
         g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.PD_ID, 3);
         g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.CREATE_TIME, 4);
+        g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.SYS_TYPE, 5);
     }
     public static ParamDef getBindGroupDto() {
         return g_bindGroupDef;
@@ -132,6 +135,7 @@ public class ProductBasicDto {
         g_bindTagDef.add(ProductBasicEntity.BindTagInfo.RL_PD_ID, 2);
         g_bindTagDef.add(ProductBasicEntity.BindTagInfo.PD_ID, 3);
         g_bindTagDef.add(ProductBasicEntity.BindTagInfo.CREATE_TIME, 4);
+        g_bindTagDef.add(ProductBasicEntity.BindTagInfo.SYS_TYPE, 5);
     }
     public static ParamDef getBindTagDto() {
         return g_bindTagDef;
@@ -165,6 +169,8 @@ public class ProductBasicDto {
         public static final int BIND_TAG_LIST = 24;
         public static final int BIND_TAG_IDS = 25;
         public static final int DEL_BIND_TAG_IDS = 26;
+        public static final int SYS_TYPE = 27;
+        public static final int XID = 28;
     }
 
 

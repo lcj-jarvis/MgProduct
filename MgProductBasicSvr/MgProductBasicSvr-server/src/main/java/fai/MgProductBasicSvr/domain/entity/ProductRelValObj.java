@@ -8,6 +8,11 @@ public class ProductRelValObj {
         public static final int DEL = -1; // 删除, 删除状态统一用 -1
     }
 
+    public static class SysType {
+        public static final int DEFAULT = 0; // 默认，商品
+        public static final int SERVICE = 1; // 服务
+    }
+
     public static class Limit {
         public static final int COUNT_MAX = 300000;
     }

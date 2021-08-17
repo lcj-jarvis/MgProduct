@@ -4,6 +4,7 @@ import fai.MgProductBasicSvr.domain.entity.ProductRelEntity;
 import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
+import fai.middleground.svrutil.misc.Utils;
 
 import java.util.HashSet;
 import java.util.List;
@@ -18,37 +19,37 @@ public class ProductRelCacheCtrl extends CacheCtrl {
             return m_cache.exists(cacheKey);
         }
 
-        public static Param getCacheInfo(int aid, int unionPriId, int rlPdId) {
+        public static Param getCacheInfo(int aid, int unionPriId, int pdId) {
             String cacheKey = getCacheKey(aid, unionPriId);
-            return m_cache.hgetParam(cacheKey, rlPdId, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto());
+            return m_cache.hgetParam(cacheKey, pdId, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto());
         }
 
-        public static FaiList<Param> getCacheList(int aid, int unionPriId, List<String> rlPdIds) {
+        public static FaiList<Param> getCacheList(int aid, int unionPriId, List<String> pdIds) {
             String cacheKey = getCacheKey(aid, unionPriId);
             FaiList<Param> list = null;
             try {
-                list = m_cache.hmget(cacheKey, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto(), rlPdIds);
+                list = m_cache.hmget(cacheKey, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto(), pdIds);
             } catch (Exception e) {
-                Log.logErr(e,"getCacheList error;aid=%d;rlPdIds=%s;", aid, rlPdIds);
+                Log.logErr(e,"getCacheList error;aid=%d;pdIds=%s;", aid, pdIds);
             }
             return list;
         }
 
-        public static void delCache(int aid, int unionPriId, int rlPdId) {
+        public static void delCache(int aid, int unionPriId, int pdId) {
             String cacheKey = getCacheKey(aid, unionPriId);
-            m_cache.hdel(cacheKey, String.valueOf(rlPdId));
+            m_cache.hdel(cacheKey, String.valueOf(pdId));
         }
 
-        public static void delCacheList(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
-            if(rlPdIds == null || rlPdIds.isEmpty()) {
+        public static void delCacheList(int aid, int unionPriId, FaiList<Integer> pdIds) {
+            if(Utils.isEmptyList(pdIds)) {
                 return;
             }
-            String[] rlPdIdStrs = new String[rlPdIds.size()];
-            for(int i = 0; i < rlPdIds.size(); i++) {
-                rlPdIdStrs[i] = String.valueOf(rlPdIds.get(i));
+            String[] pdIdStrs = new String[pdIds.size()];
+            for(int i = 0; i < pdIds.size(); i++) {
+                pdIdStrs[i] = String.valueOf(pdIds.get(i));
             }
             String cacheKey = getCacheKey(aid, unionPriId);
-            m_cache.hdel(cacheKey, rlPdIdStrs);
+            m_cache.hdel(cacheKey, pdIdStrs);
         }
 
         public static void addCache(int aid, int unionPriId, Param info) {
@@ -56,8 +57,8 @@ public class ProductRelCacheCtrl extends CacheCtrl {
                 return;
             }
             String cacheKey = getCacheKey(aid, unionPriId);
-            int rlPdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
-            m_cache.hsetParam(true, cacheKey, String.valueOf(rlPdId), info, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto());
+            int pdId = info.getInt(ProductRelEntity.Info.PD_ID);
+            m_cache.hsetParam(true, cacheKey, String.valueOf(pdId), info, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto());
         }
 
         public static void addCacheList(int aid, int unionPriId, FaiList<Param> list) {
@@ -65,11 +66,11 @@ public class ProductRelCacheCtrl extends CacheCtrl {
                 return;
             }
             String cacheKey = getCacheKey(aid, unionPriId);
-            m_cache.hmsetFaiList(cacheKey, ProductRelEntity.Info.RL_PD_ID, Var.Type.INT, list, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto());
+            m_cache.hmsetFaiList(cacheKey, ProductRelEntity.Info.PD_ID, Var.Type.INT, list, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto());
         }
 
-        public static void updateCache(int aid, int unionPriId, int rlPdId, ParamUpdater updater) {
-            m_cache.hsetParam(getCacheKey(aid, unionPriId), String.valueOf(rlPdId), updater, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto());
+        public static void updateCache(int aid, int unionPriId, int pdId, ParamUpdater updater) {
+            m_cache.hsetParam(getCacheKey(aid, unionPriId), String.valueOf(pdId), updater, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto());
         }
 
         public static void setExpire(int aid, int uninoId) {
@@ -81,62 +82,56 @@ public class ProductRelCacheCtrl extends CacheCtrl {
             return wrapCacheVersion(CACHE_KEY + "-" + aid + "-" + unionPriId, aid);
         }
 
-        public static String[] getCacheKeys(int aid, HashSet<Integer> unionPriIds) {
-            if(unionPriIds == null || unionPriIds.isEmpty()) {
-                return null;
-            }
-            String[] keys = new String[unionPriIds.size()];
-            int index = 0;
-            for(int unionPriId : unionPriIds) {
-                keys[index++] = getCacheKey(aid, unionPriId);
-            }
-            return keys;
-        }
-        private static final String CACHE_KEY = "MG_productRel"; // 商品业务表数据缓存，aid+unionPriId 做 cache key，rlPdId做hash key
+        private static final String CACHE_KEY = "MG_productRel"; // 商品业务表数据缓存，aid+unionPriId 做 cache key，pdId做hash key
     }
 
-    /** cache: aid+unionPriId+pdId -> rlPdId **/
-    public static class RlIdRelCache {
+    /** cache: aid+unionPriId+rlPdId+sysType -> pdId **/
+    public static class PdIdCache {
 
-        public static void addCacheList(int aid, int unionPriId, FaiList<Param> list) {
-            if(list == null || list.isEmpty()) {
+        public static void addCacheList(int aid, int unionPriId, int sysType, FaiList<Param> list) {
+            if(Utils.isEmptyList(list)) {
                 return;
             }
-            String cacheKey = getCacheKey(aid, unionPriId);
-            m_cache.hmsetFaiList(cacheKey, ProductRelEntity.Info.PD_ID, Var.Type.INT, list, ProductRelDto.Key.REDUCED_INFO, ProductRelDto.getReducedInfoDto());
+            String cacheKey = getCacheKey(aid, unionPriId, sysType);
+            m_cache.hmsetFaiList(cacheKey, ProductRelEntity.Info.RL_PD_ID, Var.Type.INT, list, ProductRelDto.Key.REDUCED_INFO, ProductRelDto.getReducedInfoDto());
         }
-        public static FaiList<Param> getCacheList(int aid, int unionPriId, FaiList<Integer> pdIds) {
-            FaiList list = null;
-            if(pdIds == null || pdIds.isEmpty()) {
-                return list;
+
+        public static FaiList<Param> getCacheList(int aid, int unionPriId, int sysType, HashSet<Integer> rlPdIds) {
+            if(Utils.isEmptyList(rlPdIds)) {
+                return null;
             }
-            List<String> pdIdStrs = pdIds.stream().map(String::valueOf).collect(Collectors.toList());
-            String cacheKey = getCacheKey(aid, unionPriId);
+            List<String> rlPdIdStrs = rlPdIds.stream().map(String::valueOf).collect(Collectors.toList());
+            String cacheKey = getCacheKey(aid, unionPriId, sysType);
+            FaiList<Param> list = null;
             try {
-                list = m_cache.hmget(cacheKey, ProductRelDto.Key.REDUCED_INFO, ProductRelDto.getReducedInfoDto(), pdIdStrs);
+                list = m_cache.hmget(cacheKey, ProductRelDto.Key.REDUCED_INFO, ProductRelDto.getReducedInfoDto(), rlPdIdStrs);
             } catch (Exception e) {
-                Log.logErr(e,"getCacheList error;aid=%d;pdIdStrs=%s;", aid, pdIdStrs);
+                Log.logErr(e,"pdId cache get list error;aid=%d;rlPdIdStrs=%s;", aid, rlPdIdStrs);
             }
             return list;
         }
 
-        public static void delCache(int aid, int unionPriId, FaiList<Integer> pdIds) {
-            if(pdIds == null || pdIds.isEmpty()) {
+        public static void delCache(int aid, int unionPriId, int sysType, int rlPdId) {
+            String cacheKey = getCacheKey(aid, unionPriId, sysType);
+            m_cache.hdel(cacheKey, String.valueOf(rlPdId));
+        }
+
+        public static void delCacheList(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds) {
+            if(Utils.isEmptyList(rlPdIds)) {
                 return;
             }
-            String[] rlPdIdStrs = new String[pdIds.size()];
-            for(int i = 0; i < pdIds.size(); i++) {
-                rlPdIdStrs[i] = String.valueOf(pdIds.get(i));
+            String[] rlPdIdStrs = new String[rlPdIds.size()];
+            for(int i = 0; i < rlPdIds.size(); i++) {
+                rlPdIdStrs[i] = String.valueOf(rlPdIds.get(i));
             }
-            String cacheKey = getCacheKey(aid, unionPriId);
+            String cacheKey = getCacheKey(aid, unionPriId, sysType);
             m_cache.hdel(cacheKey, rlPdIdStrs);
         }
 
-        public static String getCacheKey(int aid, int unionPriId) {
-            return wrapCacheVersion(RLID_REL_CACHE_KEY + "-" + aid + "-" + unionPriId, aid);
+        public static String getCacheKey(int aid, int unionPriId, int sysType) {
+            return wrapCacheVersion(CACHE_KEY + "-" + aid + "-" + unionPriId + "-" + sysType, aid);
         }
-
-        private static final String RLID_REL_CACHE_KEY = "MG_productRlIdRel"; // 商品业务表 id和业务id关系缓存，aid + unionPriId 为 cache key，pdId为hash key，数据只包含rlPdId+pdId+unionPriId
+        private static final String CACHE_KEY = "MG_pdIdCache";
     }
 
     /** 数据状态缓存 **/

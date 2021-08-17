@@ -9,6 +9,7 @@ public class ProductBasicEntity {
      */
     public static class BindPropInfo {
         public static final String AID = "aid"; // int 企业id
+        public static final String SYS_TYPE = "sysType"; // int 系统分类(商品/服务)
         public static final String RL_PD_ID = "rlPdId"; // int 商品业务id
         public static final String RL_PROP_IDS = "rlPropIds"; // int 参数业务id集合
 
@@ -22,6 +23,7 @@ public class ProductBasicEntity {
      */
     public static class BindGroupInfo {
         public static final String AID = "aid"; // int 企业id
+        public static final String SYS_TYPE = "sysType"; // int 系统分类(商品/服务)
         public static final String RL_GROUP_ID = "rlGroupId"; // int 分类业务 id
         public static final String RL_PD_ID = "rlPdId"; // int 商品业务 id
         public static final String PD_ID = "pdId"; // int 商品id
@@ -33,6 +35,7 @@ public class ProductBasicEntity {
      */
     public static class BindTagInfo {
         public static final String AID = "aid"; // int 企业id
+        public static final String SYS_TYPE = "sysType"; // int 系统分类(商品/服务)
         public static final String RL_TAG_ID = "rlTagId"; // int 标签业务 id
         public static final String RL_PD_ID = "rlPdId"; // int 商品业务 id
         public static final String PD_ID = "pdId"; // int 商品id
@@ -62,6 +65,7 @@ public class ProductBasicEntity {
         public static final String CREATE_TIME = "sysCreateTime"; // datetime 创建时间
         public static final String UPDATE_TIME = "sysUpdateTime"; // datetime 更新时间
 
+        public static final String SYS_TYPE = "sysType"; // int 系统分类(商品/服务)
         public static final String RL_PD_ID = "rlPdId"; // int 商品业务 id
         public static final String UNION_PRI_ID = "unionPriId"; // int 联合主键id
         public static final String RL_LIB_ID = "rlLibId"; // int 库业务id

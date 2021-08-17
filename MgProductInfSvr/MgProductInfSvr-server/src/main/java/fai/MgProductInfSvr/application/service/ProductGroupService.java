@@ -79,7 +79,7 @@ public class ProductGroupService extends MgProductInfService {
         groupProc.delGroupList(aid, unionPriId, rlGroupIds, sysType, softDel);
 
         ProductBasicProc basicProc = new ProductBasicProc(flow);
-        int rt = basicProc.delPdBindGroup(aid, unionPriId, rlGroupIds);
+        int rt = basicProc.delPdBindGroup(aid, unionPriId, sysType, rlGroupIds);
         if(rt != Errno.OK) {
             Oss.logAlarm("del pd bind group err;aid=" + aid);
             Log.logErr("del pd bind group err;aid=%d;uid=%d;rlGroupIds=%s;", aid, unionPriId, rlGroupIds);
@@ -104,7 +104,7 @@ public class ProductGroupService extends MgProductInfService {
         // TODO 分布式事务， 如果删除了分类，则要将基础信息中的分类绑定信息删除
         if (!Util.isEmptyList(delList)) {
             ProductBasicProc basicProc = new ProductBasicProc(flow);
-            int rt = basicProc.delPdBindGroup(aid, unionPriId, rlGroupIds);
+            int rt = basicProc.delPdBindGroup(aid, unionPriId, sysType, rlGroupIds);
             if(rt != Errno.OK) {
                 Oss.logAlarm("del pd bind group err;aid=" + aid);
                 Log.logErr("del pd bind group err;aid=%d;uid=%d;rlGroupIds=%s;", aid, unionPriId, rlGroupIds);

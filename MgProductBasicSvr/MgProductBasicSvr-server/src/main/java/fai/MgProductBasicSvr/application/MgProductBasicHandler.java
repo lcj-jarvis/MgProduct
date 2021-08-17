@@ -52,9 +52,10 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                             @ArgFlow final int flow,
                             @ArgAid final int aid,
                             @ArgBodyInteger(ProductBindPropDto.Key.UNION_PRI_ID) int unionPriId,
+                            @ArgBodyInteger(value = ProductBindPropDto.Key.SYS_TYPE, useDefault = true) int sysType,
                             @ArgBodyInteger(ProductBindPropDto.Key.TID) int tid,
                             @ArgBodyInteger(ProductBindPropDto.Key.RL_PD_ID) int rlPdId) throws IOException {
-        return propBindService.getPdBindProp(session, flow, aid, unionPriId, tid, rlPdId);
+        return propBindService.getPdBindProp(session, flow, aid, unionPriId, sysType, tid, rlPdId);
     }
 
     @WrittenCmd
@@ -63,13 +64,14 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                             @ArgFlow final int flow,
                             @ArgAid final int aid,
                             @ArgBodyInteger(ProductBindPropDto.Key.UNION_PRI_ID) int unionPriId,
+                            @ArgBodyInteger(value = ProductBindPropDto.Key.SYS_TYPE, useDefault = true) int sysType,
                             @ArgBodyInteger(ProductBindPropDto.Key.TID) int tid,
                             @ArgBodyInteger(ProductBindPropDto.Key.RL_PD_ID) int rlPdId,
                             @ArgList(classDef = ProductBindPropDto.class, methodDef = "getInfoDto",
                             keyMatch = ProductBindPropDto.Key.PROP_BIND) FaiList<Param> addList,
                             @ArgList(classDef = ProductBindPropDto.class, methodDef = "getInfoDto",
                             keyMatch = ProductBindPropDto.Key.DEL_PROP_BIND) FaiList<Param> delList) throws IOException {
-        return propBindService.setPdBindProp(session, flow, aid, unionPriId, tid, rlPdId, addList, delList);
+        return propBindService.setPdBindProp(session, flow, aid, unionPriId, sysType, tid, rlPdId, addList, delList);
     }
 
     @Cmd(MgProductBasicCmd.BindPropCmd.GET_LIST_BY_PROP)
@@ -77,10 +79,11 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                              @ArgFlow final int flow,
                              @ArgAid final int aid,
                              @ArgBodyInteger(ProductBindPropDto.Key.UNION_PRI_ID) int unionPriId,
+                             @ArgBodyInteger(value = ProductBindPropDto.Key.SYS_TYPE, useDefault = true) int sysType,
                              @ArgBodyInteger(ProductBindPropDto.Key.TID) int tid,
                              @ArgList(classDef = ProductBindPropDto.class, methodDef = "getInfoDto",
                              keyMatch = ProductBindPropDto.Key.INFO_LIST) FaiList<Param> proIdsAndValIds) throws IOException {
-        return propBindService.getRlPdByPropVal(session, flow, aid, unionPriId, tid, proIdsAndValIds);
+        return propBindService.getRlPdByPropVal(session, flow, aid, unionPriId, sysType, tid, proIdsAndValIds);
     }
 
     @WrittenCmd
@@ -89,8 +92,9 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                    @ArgFlow final int flow,
                                    @ArgAid final int aid,
                                    @ArgBodyInteger(ProductBindPropDto.Key.UNION_PRI_ID) int unionPriId,
+                                   @ArgBodyInteger(value = ProductBindPropDto.Key.SYS_TYPE, useDefault = true) int sysType,
                                    @ArgList(keyMatch = ProductBindPropDto.Key.RL_PROP_IDS) FaiList<Integer> rlPropIds) throws IOException {
-        return propBindService.delPdBindPropByPropId(session, flow, aid, unionPriId, rlPropIds);
+        return propBindService.delPdBindPropByPropId(session, flow, aid, unionPriId, sysType, rlPropIds);
     }
 
     @WrittenCmd
@@ -99,9 +103,10 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                              @ArgFlow final int flow,
                              @ArgAid final int aid,
                              @ArgBodyInteger(ProductBindPropDto.Key.UNION_PRI_ID) int unionPriId,
+                             @ArgBodyInteger(value = ProductBindPropDto.Key.SYS_TYPE, useDefault = true) int sysType,
                              @ArgBodyInteger(ProductBindPropDto.Key.RL_PROP_ID) int rlPropId,
                              @ArgList(keyMatch = ProductBindPropDto.Key.PROP_VAL_IDS) FaiList<Integer> delPropValIds) throws IOException {
-        return propBindService.delPdBindPropByValId(session, flow, aid, unionPriId, rlPropId, delPropValIds);
+        return propBindService.delPdBindPropByValId(session, flow, aid, unionPriId, sysType, rlPropId, delPropValIds);
     }
 
     @Cmd(MgProductBasicCmd.BindPropCmd.GET_DATA_STATUS)
@@ -134,8 +139,9 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                 @ArgFlow final int flow,
                                 @ArgAid final int aid,
                                 @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                                @ArgBodyInteger(value = ProductRelDto.Key.SYS_TYPE, useDefault = true) int sysType,
                                 @ArgBodyInteger(ProductRelDto.Key.RL_PD_ID) int rlPdId) throws IOException {
-        return service.getRelInfoByRlId(session, flow, aid, unionPriId, rlPdId);
+        return service.getRelInfoByRlId(session, flow, aid, unionPriId, sysType, rlPdId);
     }
 
     @Cmd(MgProductBasicCmd.BasicCmd.GET_REL_LIST)
@@ -143,8 +149,9 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                 @ArgFlow final int flow,
                                 @ArgAid final int aid,
                                 @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                                @ArgBodyInteger(value = ProductRelDto.Key.SYS_TYPE, useDefault = true) int sysType,
                                 @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
-        return service.getRelListByRlIds(session, flow, aid, unionPriId, rlPdIds);
+        return service.getRelListByRlIds(session, flow, aid, unionPriId, sysType, rlPdIds);
     }
 
     @Cmd(MgProductBasicCmd.BasicCmd.GET_REDUCED_REL_LIST)
@@ -251,10 +258,11 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                               @ArgBodyXid(value = ProductRelDto.Key.XID, useDefault = true) String xid,
                               @ArgBodyInteger(ProductRelDto.Key.TID) int tid,
                               @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                              @ArgBodyInteger(value = ProductRelDto.Key.SYS_TYPE, useDefault = true) int sysType,
                               @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
                               @ArgBodyBoolean(value = ProductRelDto.Key.SOFT_DEL,
                               useDefault = true, defaultValue = false) boolean softDel) throws IOException {
-        return service.delProductList(session, flow, aid, xid, tid, unionPriId, rlPdIds, softDel);
+        return service.delProductList(session, flow, aid, xid, tid, unionPriId, sysType, rlPdIds, softDel);
     }
 
     @WrittenCmd
@@ -293,10 +301,11 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                  @ArgFlow final int flow,
                                  @ArgAid final int aid,
                                  @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                                 @ArgBodyInteger(value = ProductRelDto.Key.SYS_TYPE, useDefault = true) int sysType,
                                  @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
                                  @ArgBodyBoolean(value = ProductRelDto.Key.SOFT_DEL,
                                  useDefault = true, defaultValue = false) boolean softDel) throws IOException {
-        return service.batchDelPdRelBind(session, flow, aid, unionPriId, rlPdIds, softDel);
+        return service.batchDelPdRelBind(session, flow, aid, unionPriId, sysType, rlPdIds, softDel);
     }
 
     @WrittenCmd
@@ -307,10 +316,11 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                  @ArgAid final int aid,
                                  @ArgBodyXid(value = ProductRelDto.Key.XID, useDefault = true) String xid,
                                  @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                                 @ArgBodyInteger(value = ProductRelDto.Key.SYS_TYPE, useDefault = true) int sysType,
                                  @ArgBodyInteger(ProductRelDto.Key.RL_PD_ID) Integer rlPdId,
                                  @ArgParamUpdater(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
                                  keyMatch = ProductRelDto.Key.UPDATER) ParamUpdater recvUpdater) throws IOException {
-        return service.setSingle(session, flow, aid, xid, unionPriId, rlPdId, recvUpdater);
+        return service.setSingle(session, flow, aid, xid, unionPriId, sysType, rlPdId, recvUpdater);
     }
 
     @WrittenCmd
@@ -329,10 +339,11 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                            @ArgFlow final int flow,
                            @ArgAid final int aid,
                            @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                           @ArgBodyInteger(value = ProductRelDto.Key.SYS_TYPE, useDefault = true) int sysType,
                            @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
                            @ArgParamUpdater(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
                                    keyMatch = ProductRelDto.Key.UPDATER) ParamUpdater recvUpdater) throws IOException {
-        return service.setProducts(session, flow, aid, unionPriId, rlPdIds, recvUpdater);
+        return service.setProducts(session, flow, aid, unionPriId, sysType, rlPdIds, recvUpdater);
     }
 
     @Cmd(MgProductBasicCmd.BasicCmd.GET_BY_PDID)
@@ -349,8 +360,9 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                               @ArgFlow final int flow,
                               @ArgAid int aid,
                               @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                              @ArgBodyInteger(value = ProductRelDto.Key.SYS_TYPE, useDefault = true) int sysType,
                               @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
-        return service.getProductList(session, flow, aid, unionPriId, rlPdIds);
+        return service.getProductList(session, flow, aid, unionPriId, sysType, rlPdIds);
     }
 
     @Cmd(MgProductBasicCmd.BasicCmd.PD_DATA_STATUS)
@@ -405,8 +417,9 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                 @ArgFlow final int flow,
                                 @ArgAid int aid,
                                 @ArgBodyInteger(ProductBindGroupDto.Key.UNION_PRI_ID) int unionPriId,
+                                @ArgBodyInteger(value = ProductBindGroupDto.Key.SYS_TYPE, useDefault = true) int sysType,
                                 @ArgList(keyMatch = ProductBindGroupDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
-        return groupBindService.getPdsBindGroup(session, flow, aid, unionPriId, rlPdIds);
+        return groupBindService.getPdsBindGroup(session, flow, aid, unionPriId, sysType, rlPdIds);
     }
 
     @WrittenCmd
@@ -415,10 +428,11 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                @ArgFlow final int flow,
                                @ArgAid int aid,
                                @ArgBodyInteger(ProductBindGroupDto.Key.UNION_PRI_ID) int unionPriId,
+                               @ArgBodyInteger(value = ProductBindGroupDto.Key.SYS_TYPE, useDefault = true) int sysType,
                                @ArgBodyInteger(ProductBindGroupDto.Key.RL_PD_ID) int rlPdId,
                                @ArgList(keyMatch = ProductBindGroupDto.Key.RL_GROUP_IDS) FaiList<Integer> addGroupIds,
                                @ArgList(keyMatch = ProductBindGroupDto.Key.DEL_RL_GROUP_IDS) FaiList<Integer> delGroupIds) throws IOException {
-        return groupBindService.setPdBindGroup(session, flow, aid, unionPriId, rlPdId, addGroupIds, delGroupIds);
+        return groupBindService.setPdBindGroup(session, flow, aid, unionPriId, sysType, rlPdId, addGroupIds, delGroupIds);
     }
 
     @WrittenCmd
@@ -427,8 +441,9 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                               @ArgFlow final int flow,
                               @ArgAid int aid,
                               @ArgBodyInteger(ProductBindGroupDto.Key.UNION_PRI_ID) int unionPriId,
+                              @ArgBodyInteger(value = ProductBindGroupDto.Key.SYS_TYPE, useDefault = true) int sysType,
                               @ArgList(keyMatch = ProductBindGroupDto.Key.DEL_RL_GROUP_IDS) FaiList<Integer> delGroupIds) throws IOException {
-        return groupBindService.delBindGroupList(session, flow, aid, unionPriId, delGroupIds);
+        return groupBindService.delBindGroupList(session, flow, aid, unionPriId, sysType, delGroupIds);
     }
 
     @Cmd(MgProductBasicCmd.BindGroupCmd.GET_PD_BY_GROUP)
@@ -436,8 +451,9 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                   @ArgFlow final int flow,
                                   @ArgAid int aid,
                                   @ArgBodyInteger(ProductBindGroupDto.Key.UNION_PRI_ID) int unionPriId,
+                                  @ArgBodyInteger(value = ProductBindGroupDto.Key.SYS_TYPE, useDefault = true) int sysType,
                                   @ArgList(keyMatch = ProductBindGroupDto.Key.RL_GROUP_IDS) FaiList<Integer> rlGroupIds) throws IOException {
-        return groupBindService.getRlPdByRlGroupId(session, flow, aid, unionPriId, rlGroupIds);
+        return groupBindService.getRlPdByRlGroupId(session, flow, aid, unionPriId, sysType, rlGroupIds);
     }
 
     @Cmd(MgProductBasicCmd.BindGroupCmd.GET_DATA_STATUS)
@@ -478,8 +494,9 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                @ArgFlow final int flow,
                                @ArgAid int aid,
                                @ArgBodyInteger(ProductBindTagDto.Key.UNION_PRI_ID) int unionPriId,
+                               @ArgBodyInteger(value = ProductBindTagDto.Key.SYS_TYPE, useDefault = true) int sysType,
                                @ArgList(keyMatch = ProductBindTagDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
-        return tagBindService.getPdBindTag(session, flow, aid, unionPriId, rlPdIds);
+        return tagBindService.getPdBindTag(session, flow, aid, unionPriId, sysType, rlPdIds);
     }
 
     @WrittenCmd
@@ -488,10 +505,11 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                               @ArgFlow final int flow,
                               @ArgAid int aid,
                               @ArgBodyInteger(ProductBindTagDto.Key.UNION_PRI_ID) int unionPriId,
+                              @ArgBodyInteger(value = ProductBindTagDto.Key.SYS_TYPE, useDefault = true) int sysType,
                               @ArgBodyInteger(ProductBindTagDto.Key.RL_PD_ID) int rlPdId,
                               @ArgList(keyMatch = ProductBindTagDto.Key.RL_TAG_IDS) FaiList<Integer> addRlTagIds,
                               @ArgList(keyMatch = ProductBindTagDto.Key.DEL_RL_TAG_IDS) FaiList<Integer> delRlTagIds) throws IOException {
-        return tagBindService.setPdBindTag(session, flow, aid, unionPriId, rlPdId, addRlTagIds, delRlTagIds);
+        return tagBindService.setPdBindTag(session, flow, aid, unionPriId, sysType, rlPdId, addRlTagIds, delRlTagIds);
     }
 
     @WrittenCmd
@@ -500,8 +518,9 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                               @ArgFlow final int flow,
                               @ArgAid int aid,
                               @ArgBodyInteger(ProductBindTagDto.Key.UNION_PRI_ID) int unionPriId,
+                              @ArgBodyInteger(value = ProductBindTagDto.Key.SYS_TYPE, useDefault = true) int sysType,
                               @ArgList(keyMatch = ProductBindTagDto.Key.RL_PD_IDS) FaiList<Integer> delRlPdIds) throws IOException {
-        return tagBindService.delBindTagList(session, flow, aid, unionPriId, delRlPdIds);
+        return tagBindService.delBindTagList(session, flow, aid, unionPriId, sysType, delRlPdIds);
     }
 
     @Cmd(MgProductBasicCmd.BindTagCmd.GET_PD_BY_TAG)
@@ -509,8 +528,9 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                   @ArgFlow final int flow,
                                   @ArgAid int aid,
                                   @ArgBodyInteger(ProductBindTagDto.Key.UNION_PRI_ID) int unionPriId,
+                                  @ArgBodyInteger(value = ProductBindTagDto.Key.SYS_TYPE, useDefault = true) int sysType,
                                   @ArgList(keyMatch = ProductBindTagDto.Key.RL_TAG_IDS) FaiList<Integer> rlTagIds) throws IOException {
-        return tagBindService.getRlPdIdsByRlTagIds(session, flow, aid, unionPriId, rlTagIds);
+        return tagBindService.getRlPdIdsByRlTagIds(session, flow, aid, unionPriId, sysType, rlTagIds);
     }
 
     @Cmd(MgProductBasicCmd.BindTagCmd.GET_DATA_STATUS)

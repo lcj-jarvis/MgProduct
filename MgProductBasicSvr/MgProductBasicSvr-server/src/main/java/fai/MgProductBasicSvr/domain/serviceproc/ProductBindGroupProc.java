@@ -36,21 +36,20 @@ public class ProductBindGroupProc {
         init(tc);
     }
 
-    public FaiList<Param> getPdBindGroupList(int aid, int unionPriId, FaiList<Integer> rlPdIdList) {
-        if(rlPdIdList == null || rlPdIdList.isEmpty()) {
-            throw new MgException(Errno.ARGS_ERROR, "get rlPdIdList is empty;aid=%d;rlPdIdList=%s;", aid, rlPdIdList);
+    public FaiList<Param> getPdBindGroupList(int aid, int unionPriId, FaiList<Integer> pdIds) {
+        if(Utils.isEmptyList(pdIds)) {
+            throw new MgException(Errno.ARGS_ERROR, "get pdIds is empty;aid=%d;pdIds=%s;", aid, pdIds);
         }
-        HashSet<Integer> rlPdIds = new HashSet<Integer>(rlPdIdList);
-        return getList(aid, unionPriId, rlPdIds);
+        return getList(aid, unionPriId, new HashSet<>(pdIds));
     }
 
-    public void updateBindGroupList(int aid, int unionPriId, int rlPdId, int pdId, FaiList<Integer> rlGroupIdList) {
+    public void updateBindGroupList(int aid, int unionPriId, int sysType, int rlPdId, int pdId, FaiList<Integer> rlGroupIdList) {
         if(rlGroupIdList == null) {
             return;
         }
-        HashSet<Integer> rlPdIds = new HashSet<Integer>();
-        rlPdIds.add(rlPdId);
-        FaiList<Param> list = getList(aid, unionPriId, rlPdIds);
+        HashSet<Integer> pdIds = new HashSet<Integer>();
+        pdIds.add(pdId);
+        FaiList<Param> list = getList(aid, unionPriId, pdIds);
         FaiList<Integer> delGroupIds = new FaiList<>();
         FaiList<Integer> oldGroupIds = Utils.getValList(list, ProductBindGroupEntity.Info.RL_GROUP_ID);
         for(Integer rlGroupId : oldGroupIds) {
@@ -65,32 +64,16 @@ public class ProductBindGroupProc {
 
         // 新增
         if(!rlGroupIdList.isEmpty()) {
-            addPdBindGroupList(aid, unionPriId, rlPdId, pdId, rlGroupIdList);
+            addPdBindGroupList(aid, unionPriId, sysType, rlPdId, pdId, rlGroupIdList);
         }
 
         // 删除
         if(!delGroupIds.isEmpty()) {
-            delPdBindGroupList(aid, unionPriId, rlPdId, delGroupIds);
+            delPdBindGroupList(aid, unionPriId, pdId, delGroupIds);
         }
     }
 
-    public void addList4SagaRollback(FaiList<Param> list) {
-        if(Utils.isEmptyList(list)) {
-            return;
-        }
-        for(Param info : list) {
-            info.remove(BasicSagaEntity.Common.XID);
-            info.remove(BasicSagaEntity.Common.BRANCH_ID);
-            info.remove(BasicSagaEntity.Common.SAGA_OP);
-        }
-        int rt = m_dao.batchInsert(list, null, false);
-        if(rt != Errno.OK) {
-            throw new MgException(rt, "batch insert product bind group error;flow=%d;list=%s;", m_flow, list);
-        }
-        Log.logStd("rollback bind groups ok;list=%s;", list);
-    }
-
-    public void addPdBindGroupList(int aid, int unionPriId, int rlPdId, int pdId, FaiList<Integer> rlGroupIdList) {
+    public void addPdBindGroupList(int aid, int unionPriId, int sysType, int rlPdId, int pdId, FaiList<Integer> rlGroupIdList) {
         int rt;
         if(rlGroupIdList == null || rlGroupIdList.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -102,6 +85,7 @@ public class ProductBindGroupProc {
         for(int rlGroupId : rlGroupIdList) {
             Param info = new Param();
             info.setInt(ProductBindGroupEntity.Info.AID, aid);
+            info.setInt(ProductBindGroupEntity.Info.SYS_TYPE, sysType);
             info.setInt(ProductBindGroupEntity.Info.RL_PD_ID, rlPdId);
             info.setInt(ProductBindGroupEntity.Info.RL_GROUP_ID, rlGroupId);
             info.setInt(ProductBindGroupEntity.Info.UNION_PRI_ID, unionPriId);
@@ -113,7 +97,7 @@ public class ProductBindGroupProc {
             if(addSaga) {
                 Param sagaInfo = new Param();
                 sagaInfo.setInt(ProductBindGroupEntity.Info.AID, aid);
-                sagaInfo.setInt(ProductBindGroupEntity.Info.RL_PD_ID, rlPdId);
+                sagaInfo.setInt(ProductBindGroupEntity.Info.PD_ID, pdId);
                 sagaInfo.setInt(ProductBindGroupEntity.Info.RL_GROUP_ID, rlGroupId);
                 sagaInfo.setInt(ProductBindGroupEntity.Info.UNION_PRI_ID, unionPriId);
 
@@ -181,7 +165,7 @@ public class ProductBindGroupProc {
         return refRowCount.value;
     }
 
-    public int delPdBindGroupList(int aid, int unionPriId, int rlPdId, FaiList<Integer> rlGroupIds) {
+    public int delPdBindGroupList(int aid, int unionPriId, int pdId, FaiList<Integer> rlGroupIds) {
         int rt;
         if(rlGroupIds == null || rlGroupIds.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -190,7 +174,7 @@ public class ProductBindGroupProc {
 
         ParamMatcher matcher = new ParamMatcher(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        matcher.and(ProductBindGroupEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
+        matcher.and(ProductBindGroupEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
         matcher.and(ProductBindGroupEntity.Info.RL_GROUP_ID, ParamMatcher.IN, rlGroupIds);
 
         // 开启了分布式事务，记录删除的数据
@@ -210,46 +194,47 @@ public class ProductBindGroupProc {
         Ref<Integer> refRowCount = new Ref<>();
         rt = m_dao.delete(matcher, refRowCount);
         if(rt != Errno.OK) {
-            throw new MgException(rt, "del info error;flow=%d;aid=%d;rlPdId=%d;rlGroupIds=%s;", m_flow, aid, rlPdId, rlGroupIds);
+            throw new MgException(rt, "del info error;flow=%d;aid=%d;pdId=%d;rlGroupIds=%s;", m_flow, aid, pdId, rlGroupIds);
         }
 
-        Log.logStd("delPdBindGroupList ok;flow=%d;aid=%d;rlPdId=%d;rlGroupIds=%s;", m_flow, aid, rlPdId, rlGroupIds);
+        Log.logStd("delPdBindGroupList ok;flow=%d;aid=%d;pdId=%d;rlGroupIds=%s;", m_flow, aid, pdId, rlGroupIds);
         return refRowCount.value;
     }
 
-    public int delPdBindGroupList(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
+    public int delPdBindGroupList(int aid, int unionPriId, FaiList<Integer> pdIds) {
         int rt;
-        if(rlPdIds == null || rlPdIds.isEmpty()) {
+        if(Utils.isEmptyList(pdIds)) {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "args error;flow=%d;aid=%d;", m_flow, aid);
         }
         ParamMatcher matcher = new ParamMatcher(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        matcher.and(ProductBindGroupEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
+        matcher.and(ProductBindGroupEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
         Ref<Integer> refRowCount = new Ref<>();
         rt = m_dao.delete(matcher, refRowCount);
         if(rt != Errno.OK) {
-            throw new MgException(rt, "del info error;flow=%d;aid=%d;rlPdIds=%s;", m_flow, aid, rlPdIds);
+            throw new MgException(rt, "del info error;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
         }
-        Log.logStd("delPdBindGroupList ok;flow=%d;aid=%d;rlPdIds=%s;", m_flow, aid, rlPdIds);
+        Log.logStd("delPdBindGroupList ok;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
         return refRowCount.value;
     }
 
-    public int delPdBindGroupListByRlGroupIds(int aid, int unionPriId, FaiList<Integer> rlGroupIds) {
+    public int delPdBindGroupListByRlGroupIds(int aid, int unionPriId, int sysType, FaiList<Integer> rlGroupIds) {
         int rt;
-        if(Util.isEmptyList(rlGroupIds)) {
+        if(Utils.isEmptyList(rlGroupIds)) {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "args error;flow=%d;aid=%d;uid=%d;rlGroupIds=%s;", m_flow, aid, unionPriId, rlGroupIds);
         }
         ParamMatcher matcher = new ParamMatcher(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(ProductBindGroupEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
         matcher.and(ProductBindGroupEntity.Info.RL_GROUP_ID, ParamMatcher.IN, rlGroupIds);
         Ref<Integer> refRowCount = new Ref<>();
         rt = m_dao.delete(matcher, refRowCount);
         if(rt != Errno.OK) {
-            throw new MgException(rt, "del info error;flow=%d;aid=%d;uid=%d;rlPdIds=%s;", m_flow, aid, unionPriId, rlGroupIds);
+            throw new MgException(rt, "del info error;flow=%d;aid=%d;uid=%d;rlGroupIds=%s;", m_flow, aid, unionPriId, rlGroupIds);
         }
-        Log.logStd("delPdBindGroupList ok;flow=%d;aid=%d;uid=%d;rlPdIds=%s;", m_flow, aid, unionPriId, rlGroupIds);
+        Log.logStd("delPdBindGroupList ok;flow=%d;aid=%d;uid=%d;sysType=%s;rlGroupIds=%s;", m_flow, aid, unionPriId, sysType, rlGroupIds);
         return refRowCount.value;
     }
 
@@ -269,13 +254,14 @@ public class ProductBindGroupProc {
         Log.logStd("clearAcct ok;flow=%d;aid=%d;unionPridId=%s;", m_flow, aid, unionPriIds);
     }
 
-    public FaiList<Integer> getRlPdIdsByGroupId(int aid, int unionPriId, FaiList<Integer> rlGroupIds) {
+    public FaiList<Integer> getRlPdIdsByGroupId(int aid, int unionPriId, int sysType, FaiList<Integer> rlGroupIds) {
         if(rlGroupIds == null || rlGroupIds.isEmpty()) {
             throw new MgException(Errno.ARGS_ERROR, "args error;rlGroupIds is null;aid=%d;unionPriId=%d;rlGroupIds=%s;", aid, unionPriId, rlGroupIds);
         }
 
         ParamMatcher matcher = new ParamMatcher(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(ProductBindGroupEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
         matcher.and(ProductBindGroupEntity.Info.RL_GROUP_ID, ParamMatcher.IN, rlGroupIds);
 
         SearchArg searchArg = new SearchArg();
@@ -353,22 +339,22 @@ public class ProductBindGroupProc {
         return countRef.value;
     }
 
-    private FaiList<Param> getList(int aid, int unionPriId, HashSet<Integer> rlPdIds) {
-        if(rlPdIds == null || rlPdIds.isEmpty()) {
-            throw new MgException(Errno.ARGS_ERROR, "args error, rlPdIds is empty;aid=%d;unionPriId=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
+    private FaiList<Param> getList(int aid, int unionPriId, HashSet<Integer> pdIds) {
+        if(Utils.isEmptyList(pdIds)) {
+            throw new MgException(Errno.ARGS_ERROR, "args error, rlPdIds is empty;aid=%d;unionPriId=%d;rlPdIds=%s;", aid, unionPriId, pdIds);
         }
         // 缓存中获取
-        FaiList<Param> list = ProductBindGroupCache.getCacheList(aid, unionPriId, new FaiList<>(rlPdIds));
+        FaiList<Param> list = ProductBindGroupCache.getCacheList(aid, unionPriId, new FaiList<>(pdIds));
         if(list == null) {
             list = new FaiList<Param>();
         }
 
         // 拿到未缓存的pdId list
         FaiList<Integer> noCacheIds = new FaiList<>();
-        noCacheIds.addAll(rlPdIds);
+        noCacheIds.addAll(pdIds);
         for(Param info : list) {
-            Integer rlPdId = info.getInt(ProductBindGroupEntity.Info.RL_PD_ID);
-            noCacheIds.remove(rlPdId);
+            Integer pdId = info.getInt(ProductBindGroupEntity.Info.PD_ID);
+            noCacheIds.remove(pdId);
         }
 
         if(noCacheIds.isEmpty()) {
@@ -379,14 +365,14 @@ public class ProductBindGroupProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        searchArg.matcher.and(ProductBindGroupEntity.Info.RL_PD_ID, ParamMatcher.IN, noCacheIds);
+        searchArg.matcher.and(ProductBindGroupEntity.Info.PD_ID, ParamMatcher.IN, noCacheIds);
         FaiList<Param> tmpList = searchFromDb(aid, searchArg, null);
         if(!Utils.isEmptyList(tmpList)) {
             list.addAll(tmpList);
-            Map<Integer, List<Param>> groupByRlPdId = tmpList.stream().collect(Collectors.groupingBy(x -> x.getInt(ProductBindGroupEntity.Info.RL_PD_ID)));
-            for(Integer rlPdId : groupByRlPdId.keySet()) {
+            Map<Integer, List<Param>> groupByPdId = tmpList.stream().collect(Collectors.groupingBy(x -> x.getInt(ProductBindGroupEntity.Info.PD_ID)));
+            for(Integer pdId : groupByPdId.keySet()) {
                 // 添加到缓存
-                ProductBindGroupCache.addCacheList(aid, unionPriId, rlPdId, new FaiList<>(groupByRlPdId.get(rlPdId) ));
+                ProductBindGroupCache.addCacheList(aid, unionPriId, pdId, new FaiList<>(groupByPdId.get(pdId) ));
             }
         }
 
@@ -423,12 +409,12 @@ public class ProductBindGroupProc {
         int rt;
         for(Param info : list) {
             int unionPriId = info.getInt(ProductBindGroupEntity.Info.UNION_PRI_ID);
-            int rlPdId = info.getInt(ProductBindGroupEntity.Info.RL_PD_ID);
+            int pdId = info.getInt(ProductBindGroupEntity.Info.PD_ID);
             int rlGroupId = info.getInt(ProductBindGroupEntity.Info.RL_GROUP_ID);
 
             ParamMatcher matcher = new ParamMatcher(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, aid);
             matcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-            matcher.and(ProductBindGroupEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
+            matcher.and(ProductBindGroupEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
             matcher.and(ProductBindGroupEntity.Info.RL_GROUP_ID, ParamMatcher.EQ, rlGroupId);
 
             rt = m_dao.delete(matcher);

@@ -57,7 +57,7 @@ public class MgProductBasicSvr {
         LockOption lockOption = server.getConfig().getConfigObject(LockOption.class);
         Log.logStd("lockOption=%d;", lockOption);
 
-        init(daoPool, m_cache, lockOption, jedisPool);
+        init(daoPool, m_cache, lockOption, svrOption, jedisPool);
 
         server.setHandler(new MgProductBasicHandler(server));
         server.start();
@@ -80,7 +80,7 @@ public class MgProductBasicSvr {
         return daoPool;
     }
 
-    public static void init(DaoPool daoPool, RedisCacheManager cache, LockOption lockOption, JedisPool jedisPool) {
+    public static void init(DaoPool daoPool, RedisCacheManager cache, LockOption lockOption, SvrOption svrOption, JedisPool jedisPool) {
         // 初始化daopool
         ProductDaoCtrl.init(daoPool, cache);
         ProductSagaDaoCtrl.init(daoPool);
@@ -96,7 +96,7 @@ public class MgProductBasicSvr {
         SagaDaoCtrl.init(daoPool);
 
         // 缓存初始化
-        CacheCtrl.init(cache, jedisPool);
+        CacheCtrl.init(cache, jedisPool, svrOption.getCacheSuffix());
 
         LockUtil.init(cache, lockOption);
     }
@@ -106,6 +106,15 @@ public class MgProductBasicSvr {
         private boolean debug = false;
         private String dbInstance;
         private int dbMaxSize = 10;
+        private String cacheSuffix = "";
+
+        public String getCacheSuffix() {
+            return cacheSuffix;
+        }
+
+        public void setCacheSuffix(String cacheSuffix) {
+            this.cacheSuffix = cacheSuffix;
+        }
 
         public int getDbMaxSize() {
             return dbMaxSize;

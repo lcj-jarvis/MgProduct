@@ -28,10 +28,10 @@ import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
 import fai.mgproduct.comm.MgProductErrno;
-import fai.mgproduct.comm.Util;
 import fai.comm.middleground.app.CloneDef;
 import fai.middleground.svrutil.annotation.SuccessRt;
 import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.service.ServicePub;
 
 import java.io.IOException;
@@ -355,7 +355,7 @@ public class MgProductInfService extends ServicePub {
     @SuccessRt(Errno.OK)
     public int backupData(FaiSession session, int flow, int aid, Param primaryKey, FaiList<Param> backupPrimaryKeys, int rlBackupId) throws IOException {
         int rt;
-        if(Str.isEmpty(primaryKey) || Util.isEmptyList(backupPrimaryKeys) || rlBackupId <= 0) {
+        if(Str.isEmpty(primaryKey) || Utils.isEmptyList(backupPrimaryKeys) || rlBackupId <= 0) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error;flow=%d;aid=%d;key=%s;backupPrimaryKeys=%s;rlBackupId=%s;", flow, aid, primaryKey, backupPrimaryKeys, rlBackupId);
             return rt;
@@ -399,7 +399,7 @@ public class MgProductInfService extends ServicePub {
     @SuccessRt(Errno.OK)
     public int restoreBackupData(FaiSession session, int flow, int aid, Param primaryKey, FaiList<Param> restorePrimaryKeys, int rlBackupId, Param restoreOption) throws IOException {
         int rt;
-        if(Str.isEmpty(primaryKey) || Util.isEmptyList(restorePrimaryKeys) || rlBackupId <= 0) {
+        if(Str.isEmpty(primaryKey) || Utils.isEmptyList(restorePrimaryKeys) || rlBackupId <= 0) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error;flow=%d;aid=%d;key=%s;restorePrimaryKeys=%s;rlBackupId=%s;", flow, aid, primaryKey, restorePrimaryKeys, rlBackupId);
             return rt;
@@ -1062,7 +1062,7 @@ public class MgProductInfService extends ServicePub {
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         FaiList<Param> errProductList = new FaiList<>();
         try {
-            if(Util.isEmptyList(productList)){
+            if(Utils.isEmptyList(productList)){
                 rt = Errno.ARGS_ERROR;
                 Log.logErr("productList error;flow=%d;aid=%d;ownerTid=%d;", flow, aid, ownerTid);
                 return rt;
@@ -1111,19 +1111,18 @@ public class MgProductInfService extends ServicePub {
                 FaiList<Integer> rlPdIdList = new FaiList<>();
                 for (Param productInfo : productList) {
                     Param basicInfo = productInfo.getParam(MgProductEntity.Info.BASIC);
+                    basicInfo.setInt(ProductRelEntity.Info.SYS_TYPE, sysType);
                     if(!useMgProductBasicInfo){
                         int rlPdId = basicInfo.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID, 0);
                         batchAddBasicInfoList.add(
                                 new Param().setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId)
+                                        .setInt(ProductRelEntity.Info.SYS_TYPE, sysType)
                                         .setBoolean(ProductRelEntity.Info.INFO_CHECK, false)
                         );
                         productInfo.setInt(MgProductEntity.Info.RL_PD_ID, rlPdId);
                         rlPdIdList.add(rlPdId);
                     }else{
-                        // TODO 业务方接入商品基础信息到中台时需要删除下面报错同时实现组装逻辑
-                        rt = Errno.ARGS_ERROR;
-                        Log.logErr(rt,"args error;flow=%d;aid=%d;ownerTid=%d;productInfo=%s;", flow, aid, ownerTid, productInfo);
-                        return rt;
+                        batchAddBasicInfoList.add(basicInfo);
                     }
                 }
 
@@ -1212,10 +1211,14 @@ public class MgProductInfService extends ServicePub {
                         productInfo.setInt(MgProductEntity.Info.RL_PD_ID, rlPdId);
                     }
                 }else{
-                    // TODO 业务方接入商品基础信息到中台时需要实现
-                    rt = Errno.ARGS_ERROR;
-                    Log.logErr(rt,"args error;flow=%d;aid=%d;ownerTid=%d;", flow, aid, ownerTid);
-                    return rt;
+                    for (int i = 0; i < productList.size(); i++) {
+                        Param idInfo = idInfoList.get(i);
+                        Integer rlPdId = idInfo.getInt(ProductRelEntity.Info.RL_PD_ID);
+                        Integer pdId = idInfo.getInt(ProductRelEntity.Info.PD_ID);
+                        Param productInfo = productList.get(i);
+                        productInfo.setInt(MgProductEntity.Info.PD_ID, pdId);
+                        productInfo.setInt(MgProductEntity.Info.RL_PD_ID, rlPdId);
+                    }
                 }
                 Map<BizPriKey, Integer> bizPriKeyMap = new HashMap<>();
                 // 绑定业务关联
@@ -1223,7 +1226,7 @@ public class MgProductInfService extends ServicePub {
                     FaiList<Param> batchBindPdRelList = new FaiList<>();
                     for (Param productInfo : productList) {
                         FaiList<Param> storeSales = productInfo.getListNullIsEmpty(MgProductEntity.Info.STORE_SALES);
-                        if(Util.isEmptyList(storeSales)){
+                        if(Utils.isEmptyList(storeSales)){
                             continue;
                         }
                         int pdId = productInfo.getInt(MgProductEntity.Info.PD_ID);
@@ -1345,7 +1348,7 @@ public class MgProductInfService extends ServicePub {
 
                     for (Param productInfo : productList) {
                         FaiList<Param> storeSales = productInfo.getListNullIsEmpty(MgProductEntity.Info.STORE_SALES);
-                        if(Util.isEmptyList(storeSales)){
+                        if(Utils.isEmptyList(storeSales)){
                             continue;
                         }
                         int rlPdId = productInfo.getInt(MgProductEntity.Info.RL_PD_ID);

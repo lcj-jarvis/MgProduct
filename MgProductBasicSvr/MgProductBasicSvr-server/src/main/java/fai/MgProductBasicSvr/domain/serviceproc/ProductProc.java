@@ -326,7 +326,7 @@ public class ProductProc {
         HashSet<Integer> pdIds = new HashSet<>();
         pdIds.add(pdId);
         FaiList<Param> list = getList(aid, pdIds);
-        if(Util.isEmptyList(list)) {
+        if(Utils.isEmptyList(list)) {
             return new Param();
         }
         info = list.get(0);

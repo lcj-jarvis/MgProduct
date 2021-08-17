@@ -667,8 +667,8 @@ public class ProductRelProc {
 
         Ref<FaiList<Param>> tmpRef = new Ref<>();
         int rt = m_dao.select(searchArg, tmpRef, ProductRelEntity.Info.RL_PD_ID, ProductRelEntity.Info.PD_ID);
-        if(rt != Errno.OK) {
-            throw new MgException("select pdId error;aid=%d;uid=%d;rlPdIds=%s;sysType=%d;", aid, unionPriId, sysType, rlPdIds);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "select pdId error;aid=%d;uid=%d;sysType=%d;rlPdIds=%s;", aid, unionPriId, sysType, rlPdIds);
         }
 
         if(tmpRef.value != null && !tmpRef.value.isEmpty()) {

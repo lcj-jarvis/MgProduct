@@ -689,17 +689,10 @@ public class ProductBasicService extends BasicParentService {
             }
             info.assign(pdInfo);
             ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
-
-            // TODO 先走db，后面改缓存结构
-            SearchArg searchArg = new SearchArg();
-            searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
-            searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-            searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
-            FaiList<Param> list = relProc.searchFromDb(aid, searchArg, null);
-            if(list.isEmpty()) {
+            Param relInfo = relProc.getProductRel(aid, unionPriId, pdId);
+            if(Str.isEmpty(relInfo)) {
                 return Errno.NOT_FOUND;
             }
-            Param relInfo = list.get(0);
             info.assign(relInfo);
 
         } finally {
@@ -966,8 +959,15 @@ public class ProductBasicService extends BasicParentService {
             Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
             return rt;
         }
-        FaiList<Param> relDataList = new FaiList<Param>();
-        FaiList<Param> pdDataList = new FaiList<Param>();
+
+        // 因为新增数据没有id标识
+        // 所有数据按顺序存放，方便后面整合数据
+        // 商品参数绑定关系
+        FaiList<FaiList<Param>> bindProps = new FaiList<>();
+        FaiList<FaiList<Integer>> rlGroupIds = new FaiList<>();
+        FaiList<FaiList<Integer>> rlTagIds = new FaiList<>();
+        FaiList<Param> relDataList = new FaiList<>();
+        FaiList<Param> pdDataList = new FaiList<>();
         for(int i = 0;i < addList.size(); i++) {
             Param pdData = new Param();
             Param relData = new Param();
@@ -978,8 +978,15 @@ public class ProductBasicService extends BasicParentService {
             }
             relDataList.add(relData);
             pdDataList.add(pdData);
+            rlGroupIds.add(info.getListNullIsEmpty(ProductRelEntity.Info.RL_GROUP_IDS));
+            rlTagIds.add(info.getListNullIsEmpty(ProductRelEntity.Info.RL_TAG_IDS));
+            bindProps.add(info.getListNullIsEmpty(ProductRelEntity.Info.RL_PROPS));
         }
 
+
+        FaiList<Param> bindRlProps = new FaiList<>();
+        FaiList<Param> bindRlGroups = new FaiList<>();
+        FaiList<Param> bindRlTags = new FaiList<>();
         LockUtil.lock(aid);
         try {
             FaiList<Integer> pdIdList;
@@ -999,6 +1006,65 @@ public class ProductBasicService extends BasicParentService {
                 // 新增业务关系
                 ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
                 relProc.batchAddProductRel(aid, unionPriId, null, relDataList);
+
+                // 新增绑定关系
+                for(int i = 0;i < relDataList.size(); i++) {
+                    Param relData = relDataList.get(i);
+                    int pdId = relData.getInt(ProductRelEntity.Info.PD_ID);
+                    int rlPdId = relData.getInt(ProductRelEntity.Info.RL_PD_ID);
+                    int sysType = relData.getInt(ProductRelEntity.Info.SYS_TYPE);
+                    FaiList<Integer> curGroupIds = rlGroupIds.get(i);
+                    if(!curGroupIds.isEmpty()) {
+                        for(Integer rlGroupId : curGroupIds) {
+                            Param bindGroup = new Param();
+                            bindGroup.setInt(ProductBindGroupEntity.Info.RL_GROUP_ID, rlGroupId);
+                            bindGroup.setInt(ProductBindGroupEntity.Info.PD_ID, pdId);
+                            bindGroup.setInt(ProductBindGroupEntity.Info.RL_PD_ID, rlPdId);
+                            bindGroup.setInt(ProductBindGroupEntity.Info.SYS_TYPE, sysType);
+                            bindRlGroups.add(bindGroup);
+                        }
+                    }
+
+                    FaiList<Integer> curTagIds = rlGroupIds.get(i);
+                    if(!curTagIds.isEmpty()) {
+                        for(Integer rlTagId : curTagIds) {
+                            Param bindTag = new Param();
+                            bindTag.setInt(ProductBindTagEntity.Info.RL_TAG_ID, rlTagId);
+                            bindTag.setInt(ProductBindTagEntity.Info.PD_ID, pdId);
+                            bindTag.setInt(ProductBindTagEntity.Info.RL_PD_ID, rlPdId);
+                            bindTag.setInt(ProductBindTagEntity.Info.SYS_TYPE, sysType);
+                            bindRlTags.add(bindTag);
+                        }
+                    }
+
+                    FaiList<Param> curProps = bindProps.get(i);
+                    if(!curProps.isEmpty()) {
+                        for(Param prop : curProps) {
+                            prop.setInt(ProductBindTagEntity.Info.PD_ID, pdId);
+                            prop.setInt(ProductBindTagEntity.Info.RL_PD_ID, rlPdId);
+                            prop.setInt(ProductBindTagEntity.Info.SYS_TYPE, sysType);
+                            bindRlProps.add(prop);
+                        }
+                    }
+                }
+
+                // 新增分类绑定
+                if(!bindRlGroups.isEmpty()) {
+                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                    bindGroupProc.batchBindGroupList(aid, unionPriId, bindRlGroups);
+                }
+
+                // 新增标签绑定
+                if(!bindRlTags.isEmpty()) {
+                    ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
+                    bindTagProc.batchBindTagList(aid, unionPriId, bindRlGroups);
+                }
+
+                // 新增参数绑定
+                if(!bindRlProps.isEmpty()) {
+                    ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
+                    bindPropProc.batchBindPropList(aid, unionPriId, bindRlProps);
+                }
 
                 commit = true;
             } finally {
@@ -1021,6 +1087,16 @@ public class ProductBasicService extends BasicParentService {
                 ProductRelCacheCtrl.InfoCache.addCacheList(aid, unionPriId, relDataList);
                 ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, relDataList.size()); // 更新数据状态缓存
             }
+            if(!bindRlProps.isEmpty()) {
+                ProductBindPropCache.DataStatusCache.update(aid, unionPriId, bindRlProps.size());
+            }
+            if(!bindRlGroups.isEmpty()) {
+                ProductBindGroupCache.DataStatusCache.update(aid, unionPriId, bindRlGroups.size());
+            }
+            if(!bindRlTags.isEmpty()) {
+                ProductBindTagCache.DataStatusCache.update(aid, unionPriId, bindRlTags.size());
+            }
+
 
             // 同步数据给es
             ESUtil.batchLogDocId(flow, aid, unionPriId, pdIdList, DocOplogDef.Operation.UPDATE_ONE);

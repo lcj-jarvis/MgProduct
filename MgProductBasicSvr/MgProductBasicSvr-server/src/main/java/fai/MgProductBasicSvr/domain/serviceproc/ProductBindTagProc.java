@@ -3,6 +3,7 @@ package fai.MgProductBasicSvr.domain.serviceproc;
 import fai.MgProductBasicSvr.domain.common.LockUtil;
 import fai.MgProductBasicSvr.domain.entity.BasicSagaEntity;
 import fai.MgProductBasicSvr.domain.entity.BasicSagaValObj;
+import fai.MgProductBasicSvr.domain.entity.ProductBindGroupEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductBindTagEntity;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductBindTagCache;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductBindTagDaoCtrl;
@@ -203,18 +204,44 @@ public class ProductBindTagProc {
             throw new MgException(rt, "args error;flow=%d;aid=%d;");
         }
         FaiList<Param> addList = new FaiList<Param>();
-        Calendar now = Calendar.getInstance();
-        FaiList<Param> sagaList = new FaiList<>();
         for(int rlTagId : addRlTagIds) {
             Param info = new Param();
-            info.setInt(ProductBindTagEntity.Info.AID, aid);
             info.setInt(ProductBindTagEntity.Info.SYS_TYPE, sysType);
             info.setInt(ProductBindTagEntity.Info.RL_PD_ID, rlPdId);
             info.setInt(ProductBindTagEntity.Info.RL_TAG_ID, rlTagId);
-            info.setInt(ProductBindTagEntity.Info.UNION_PRI_ID, unionPriId);
             info.setInt(ProductBindTagEntity.Info.PD_ID, pdId);
-            info.setCalendar(ProductBindTagEntity.Info.CREATE_TIME, now);
             addList.add(info);
+        }
+        batchBindTagList(aid, unionPriId, addList);
+    }
+
+    public void batchBindTagList(int aid, int unionPriId, FaiList<Param> infoList) {
+        int rt;
+        if(Utils.isEmptyList(infoList)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args error;flow=%d;aid=%d;");
+        }
+        FaiList<Param> addList = new FaiList<Param>();
+        Calendar now = Calendar.getInstance();
+        FaiList<Param> sagaList = new FaiList<>();
+        for(Param info : infoList) {
+            int rlPdId = info.getInt(ProductBindTagEntity.Info.RL_PD_ID, 0);
+            int rlTagId = info.getInt(ProductBindTagEntity.Info.RL_TAG_ID, 0);
+            int pdId = info.getInt(ProductBindTagEntity.Info.PD_ID, 0);
+            if(rlPdId <= 0 || rlTagId <= 0 || pdId <= 0) {
+                rt = Errno.ARGS_ERROR;
+                throw new MgException(rt, "args error;flow=%d;aid=%d;info=%s;", info);
+            }
+            int sysType = info.getInt(ProductBindGroupEntity.Info.SYS_TYPE, 0);
+            Param addData = new Param();
+            addData.setInt(ProductBindTagEntity.Info.AID, aid);
+            addData.setInt(ProductBindTagEntity.Info.SYS_TYPE, sysType);
+            addData.setInt(ProductBindTagEntity.Info.RL_PD_ID, rlPdId);
+            addData.setInt(ProductBindTagEntity.Info.RL_TAG_ID, rlTagId);
+            addData.setInt(ProductBindTagEntity.Info.UNION_PRI_ID, unionPriId);
+            addData.setInt(ProductBindTagEntity.Info.PD_ID, pdId);
+            addData.setCalendar(ProductBindTagEntity.Info.CREATE_TIME, now);
+            addList.add(addData);
 
             if(addSaga) {
                 Param sagaInfo = new Param();
@@ -235,6 +262,7 @@ public class ProductBindTagProc {
         }
         // 使用分布式事务时，记录下新增的数据主键
         addSagaList(aid, sagaList);
+        Log.logStd("batch bind tags ok;aid=%d;uid=%d;addRlTags=%s;", aid, unionPriId, addList);
     }
 
     public void updateBindTagList(int aid, int unionPriId, int sysType, int rlPdId, int pdId, FaiList<Integer> rlTagIds) {

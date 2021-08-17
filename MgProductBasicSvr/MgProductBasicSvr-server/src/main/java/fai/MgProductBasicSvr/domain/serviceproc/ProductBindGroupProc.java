@@ -75,23 +75,49 @@ public class ProductBindGroupProc {
 
     public void addPdBindGroupList(int aid, int unionPriId, int sysType, int rlPdId, int pdId, FaiList<Integer> rlGroupIdList) {
         int rt;
-        if(rlGroupIdList == null || rlGroupIdList.isEmpty()) {
+        if(Utils.isEmptyList(rlGroupIdList)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args error;flow=%d;aid=%d;");
+        }
+        FaiList<Param> addList = new FaiList<>();
+        for(int rlGroupId : rlGroupIdList) {
+            Param info = new Param();
+            info.setInt(ProductBindGroupEntity.Info.SYS_TYPE, sysType);
+            info.setInt(ProductBindGroupEntity.Info.RL_PD_ID, rlPdId);
+            info.setInt(ProductBindGroupEntity.Info.RL_GROUP_ID, rlGroupId);
+            info.setInt(ProductBindGroupEntity.Info.PD_ID, pdId);
+            addList.add(info);
+        }
+        batchBindGroupList(aid, unionPriId, addList);
+    }
+
+    public void batchBindGroupList(int aid, int unionPriId, FaiList<Param> infoList) {
+        int rt;
+        if(Utils.isEmptyList(infoList)) {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "args error;flow=%d;aid=%d;");
         }
         FaiList<Param> addList = new FaiList<>();
         FaiList<Param> sagaList = new FaiList<>();
         Calendar now = Calendar.getInstance();
-        for(int rlGroupId : rlGroupIdList) {
-            Param info = new Param();
-            info.setInt(ProductBindGroupEntity.Info.AID, aid);
-            info.setInt(ProductBindGroupEntity.Info.SYS_TYPE, sysType);
-            info.setInt(ProductBindGroupEntity.Info.RL_PD_ID, rlPdId);
-            info.setInt(ProductBindGroupEntity.Info.RL_GROUP_ID, rlGroupId);
-            info.setInt(ProductBindGroupEntity.Info.UNION_PRI_ID, unionPriId);
-            info.setInt(ProductBindGroupEntity.Info.PD_ID, pdId);
-            info.setCalendar(ProductBindGroupEntity.Info.CREATE_TIME, now);
-            addList.add(info);
+        for(Param info : infoList) {
+            int rlPdId = info.getInt(ProductBindGroupEntity.Info.RL_PD_ID, 0);
+            int rlGroupId = info.getInt(ProductBindGroupEntity.Info.RL_GROUP_ID, 0);
+            int pdId = info.getInt(ProductBindGroupEntity.Info.PD_ID, 0);
+            if(rlPdId <= 0 || rlGroupId <= 0 || pdId <= 0) {
+                rt = Errno.ARGS_ERROR;
+                throw new MgException(rt, "args error;flow=%d;aid=%d;info=%s;", info);
+            }
+            int sysType = info.getInt(ProductBindGroupEntity.Info.SYS_TYPE, 0);
+            Param addData = new Param();
+            addData.setInt(ProductBindGroupEntity.Info.AID, aid);
+            addData.setInt(ProductBindGroupEntity.Info.SYS_TYPE, sysType);
+            addData.setInt(ProductBindGroupEntity.Info.RL_PD_ID, rlPdId);
+            addData.setInt(ProductBindGroupEntity.Info.RL_GROUP_ID, rlGroupId);
+            addData.setInt(ProductBindGroupEntity.Info.UNION_PRI_ID, unionPriId);
+            addData.setInt(ProductBindGroupEntity.Info.PD_ID, pdId);
+            addData.setCalendar(ProductBindGroupEntity.Info.CREATE_TIME, now);
+            addList.add(addData);
 
             // 开启了分布式事务，记录添加数据的主键
             if(addSaga) {
@@ -113,7 +139,7 @@ public class ProductBindGroupProc {
         }
         // 使用分布式事务时，记录新增的数据
         addSagaList(aid, sagaList);
-        Log.logStd("add bind groups ok;aid=%d;uid=%d;rlPdId=%d;pdId=%d;rlGroupIds=%s;", aid, unionPriId, rlPdId, pdId, rlGroupIdList);
+        Log.logStd("batch add bind groups ok;aid=%d;uid=%d;addList=%s;", aid, unionPriId, addList);
     }
 
     public int delPdBindGroup(int aid, int unionPriId, ParamMatcher matcher) {

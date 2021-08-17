@@ -47,8 +47,6 @@ public class ProductBindPropProc {
             throw new MgException(rt, "args error;flow=%d;aid=%d;");
         }
         FaiList<Param> addList = new FaiList<Param>();
-        Calendar now = Calendar.getInstance();
-        FaiList<Param> sagaList = new FaiList<>();
         for(Param tmpinfo : infoList) {
             Param info = new Param();
             int rlPropId = tmpinfo.getInt(ProductBindPropEntity.Info.RL_PROP_ID, 0);
@@ -57,6 +55,37 @@ public class ProductBindPropProc {
                 rt = Errno.ARGS_ERROR;
                 throw new MgException(rt, "args error;flow=%d;aid=%d;unionPriId=%d;rlPdId=%d;rlPropId=%d;propValId=%d;", m_flow, aid, unionPriId, rlPdId, rlPropId, propValId);
             }
+
+            info.setInt(ProductBindPropEntity.Info.SYS_TYPE, sysType);
+            info.setInt(ProductBindPropEntity.Info.RL_PD_ID, rlPdId);
+            info.setInt(ProductBindPropEntity.Info.RL_PROP_ID, rlPropId);
+            info.setInt(ProductBindPropEntity.Info.PROP_VAL_ID, propValId);
+            info.setInt(ProductBindPropEntity.Info.PD_ID, pdId);
+            addList.add(info);
+        }
+        batchBindPropList(aid, unionPriId, addList);
+    }
+
+    public void batchBindPropList(int aid, int unionPriId, FaiList<Param> infoList) {
+        int rt;
+        if(infoList == null || infoList.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args error;flow=%d;aid=%d;");
+        }
+        FaiList<Param> addList = new FaiList<Param>();
+        Calendar now = Calendar.getInstance();
+        FaiList<Param> sagaList = new FaiList<>();
+        for(Param tmpinfo : infoList) {
+            Param info = new Param();
+            int rlPropId = tmpinfo.getInt(ProductBindPropEntity.Info.RL_PROP_ID, 0);
+            int propValId = tmpinfo.getInt(ProductBindPropEntity.Info.PROP_VAL_ID, 0);
+            int pdId = tmpinfo.getInt(ProductBindPropEntity.Info.PD_ID, 0);
+            int rlPdId = tmpinfo.getInt(ProductBindPropEntity.Info.RL_PD_ID, 0);
+            if(rlPropId <= 0 || propValId <= 0 || pdId <= 0 || rlPdId <= 0) {
+                rt = Errno.ARGS_ERROR;
+                throw new MgException(rt, "args error;flow=%d;aid=%d;unionPriId=%d;info=%s;", m_flow, aid, unionPriId, info);
+            }
+            int sysType = tmpinfo.getInt(ProductBindPropEntity.Info.SYS_TYPE, 0);
 
             info.setInt(ProductBindPropEntity.Info.AID, aid);
             info.setInt(ProductBindPropEntity.Info.SYS_TYPE, sysType);

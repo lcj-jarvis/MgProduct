@@ -421,7 +421,7 @@ public class SpecTempService extends ServicePub {
             FaiList<Param> specTempDetailList = new FaiList<>(infoList.size());
             for (Param info : infoList) {
                 String name = info.getString(SpecStrEntity.Info.NAME);
-                name = Str.trim(name);
+                name = Utils.trim(name);
                 info.setString(SpecStrEntity.Info.NAME, name);
                 if(!SpecStrArgCheck.isValidName(name)){
                     Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;rlTpScId=%s;name=%s", flow, aid, unionPriId, rlTpScId, name);
@@ -435,7 +435,7 @@ public class SpecTempService extends ServicePub {
                 }
                 for (Param inScVal : inScValList) {
                     String inScValName = inScVal.getString(fai.MgProductSpecSvr.interfaces.entity.SpecTempDetailValObj.InScValList.Item.NAME);
-                    inScValName = Str.trim(inScValName);
+                    inScValName = Utils.trim(inScValName);
                     inScVal.setString(fai.MgProductSpecSvr.interfaces.entity.SpecTempDetailValObj.InScValList.Item.NAME, inScValName);
                     if(!SpecStrArgCheck.isValidName(inScValName)){
                         Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;rlTpScId=%s;inScValName=%s", flow, aid, unionPriId, rlTpScId, inScValName);
@@ -564,7 +564,7 @@ public class SpecTempService extends ServicePub {
                 }
                 String name = info.getString(SpecStrEntity.Info.NAME);
                 if(name != null){
-                    name = Str.trim(name);
+                    name = Utils.trim(name);
                     info.setString(SpecStrEntity.Info.NAME, name);
                     if(!SpecStrArgCheck.isValidName(name)){
                         Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;rlTpScId=%s;name=%s", flow, aid, unionPriId, rlTpScId, name);
@@ -582,7 +582,7 @@ public class SpecTempService extends ServicePub {
                     for (Param inScVal : inScValList) {
                         String inScValName = inScVal.getString(fai.MgProductSpecSvr.interfaces.entity.SpecTempDetailValObj.InScValList.Item.NAME);
                         if(inScValName != null){
-                            inScValName = Str.trim(inScValName);
+                            inScValName = Utils.trim(inScValName);
                             inScVal.setString(fai.MgProductSpecSvr.interfaces.entity.SpecTempDetailValObj.InScValList.Item.NAME, inScValName);
                         }
                         if(!SpecStrArgCheck.isValidName(inScValName)){

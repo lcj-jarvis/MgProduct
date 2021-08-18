@@ -1,9 +1,6 @@
 package fai.MgProductSpecSvr.domain.comm;
 
-import fai.comm.util.FaiList;
-import fai.comm.util.Pair;
-import fai.comm.util.Param;
-import fai.comm.util.ParamUpdater;
+import fai.comm.util.*;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -114,5 +111,13 @@ public class Utils {
             resultList.add((T)info.getObject(key));
         });
         return resultList;
+    }
+
+    // 临时处理下，Str封装的trim方法有点问题：长度为2，且第一个字符为空格时，会直接返回 空串
+    public static String trim(String s) {
+        if(s== null || s.isEmpty()) {
+            return "";
+        }
+        return s.trim();
     }
 }

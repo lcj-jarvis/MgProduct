@@ -462,9 +462,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             }
             Param inOutStoreRecordInfo = mgProductArg.getInOutStoreRecordInfo();
             if (inOutStoreRecordInfo == null) {
-                m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "args error;inOutStoreRecordInfo is empty");
-                return m_rt;
+                inOutStoreRecordInfo = new Param();
             }
             int tid = mgProductArg.getTid();
             int siteId = mgProductArg.getSiteId();

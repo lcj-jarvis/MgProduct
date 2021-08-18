@@ -67,7 +67,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
     public int bindProductRel(int aid, int tid, int siteId, int lgId, int keepPriId1, Param bindRlPdInfo, Param info, Ref<Integer> rlPdIdRef) {
         MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
                 .setBindRlPdInfo(bindRlPdInfo)
-                .setPdRelInfo(info)
+                .setAddInfo(info)
                 .build();
         return bindProductRel(mgProductArg, rlPdIdRef);
     }
@@ -76,7 +76,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
     public int batchBindProductRel(int aid, int tid, Param bindRlPdInfo, FaiList<Param> infoList, Ref<FaiList<Integer>> rlPdIdsRef) {
         MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, 0, 0, 0)
                 .setBindRlPdInfo(bindRlPdInfo)
-                .setPdRelInfoList(infoList)
+                .setAddList(infoList)
                 .build();
         return batchBindProductRel(mgProductArg, rlPdIdsRef);
     }
@@ -435,10 +435,10 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      * 新增商品数据、同时添加规格、库存数据以及参数和分类绑定
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
-     *              .setCombined(combined)                          // 必填
+     *              .setAddInfo(addInfo)                          // 必填
      *              .setInOutStoreRecordInfo(inOutStoreRecordInfo)  // 必填
      *              .build();
-     * combined 添加信息 {@link MgProductDto#getInfoDto()}
+     * addInfo 添加信息 {@link MgProductDto#getInfoDto()}
      *        只需要其中的 MgProductEntity.Info.BASIC、MgProductEntity.Info.SPEC、MgProductEntity.Info.SPEC_SKU、MgProductEntity.Info.STORE_SALES
      * inOutStoreRecordInfo 出入库信息 {@link ProductStoreEntity.InOutStoreRecordInfo}
      * @param rlPdIdRef 接收添加商品后的 rlPdId 不需要的时候请传null
@@ -508,7 +508,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
      *                 .setBindRlPdInfo(bindRlPdInfo) // 必填 绑定源信息 包含 绑定方 uid 和 绑定方 rlPdId
-     *                 .setPdRelInfo(info)            // 必填 业务信息
+     *                 .setAddInfo(info)            // 必填 业务信息
      *                 .build();
      * @param rlPdIdRef 接收返回商品业务id
      * @return {@link Errno}
@@ -576,7 +576,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, 0, 0, 0)
      *                 .setBindRlPdInfo(bindRlPdInfo) // 必填 绑定源信息 包含 绑定方 uid 和 绑定方 rlPdId
-     *                 .setPdRelInfoList(infoList)    // 必填 业务信息列表
+     *                 .setAddList(infoList)    // 必填 业务信息列表
      *                 .build();
      * @param rlPdIdsRef 接收返回的商品业务id集合
      * @return {@link Errno}
@@ -591,7 +591,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
-            FaiList<Param> infoList = mgProductArg.getPdRelInfoList();
+            FaiList<Param> infoList = mgProductArg.getAddList();
             if (infoList == null || infoList.isEmpty()) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error;infoList is empty");
@@ -784,6 +784,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
      *                 .setRlPdIds(rlPdIds)  // 必填
      *                 .setSoftDel(softDel)  // 选填 默认为false
+     *                 .setSysType(sysType)   // 系统类型
      *                 .build();
      *         return batchDelPdRelBind(mgProductArg);
      * @return {@link Errno}
@@ -829,6 +830,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
      *                 .setRlPdIds(rlPdIds)  // 必填
      *                 .setSoftDel(softDel)  // 选填
+     *                 .setSysType(sysStyle)  // 选填
      *                 .build();
      * @return {@link Errno}
      */

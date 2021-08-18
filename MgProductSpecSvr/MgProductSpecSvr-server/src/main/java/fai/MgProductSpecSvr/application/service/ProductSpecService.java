@@ -2232,7 +2232,7 @@ public class ProductSpecService extends ServicePub {
 
     public static void trimProductSpecStrName(Param pdScInfo){
         if(pdScInfo.containsKey(SpecStrEntity.Info.NAME)){
-            pdScInfo.setString(SpecStrEntity.Info.NAME, Str.trim(pdScInfo.getString(SpecStrEntity.Info.NAME)));
+            pdScInfo.setString(SpecStrEntity.Info.NAME, Utils.trim(pdScInfo.getString(SpecStrEntity.Info.NAME)));
         }
         if(pdScInfo.containsKey(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST)){
             FaiList<Param> list = pdScInfo.getList(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST);
@@ -2241,7 +2241,7 @@ public class ProductSpecService extends ServicePub {
                 if (name == null){
                     continue;
                 }
-                inPdScStrInfo.setString(fai.MgProductSpecSvr.interfaces.entity.ProductSpecValObj.InPdScValList.Item.NAME, Str.trim(name));
+                inPdScStrInfo.setString(fai.MgProductSpecSvr.interfaces.entity.ProductSpecValObj.InPdScValList.Item.NAME, Utils.trim(name));
             }
         }
     }

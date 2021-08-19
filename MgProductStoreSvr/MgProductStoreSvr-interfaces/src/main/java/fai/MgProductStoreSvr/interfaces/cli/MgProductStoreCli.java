@@ -2144,8 +2144,8 @@ public class MgProductStoreCli extends MgProductInternalCli {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(StoreSalesSkuDto.Key.TID, tid);
-            sendBody.putInt(StoreSalesSkuDto.Key.UNION_PRI_ID, sysType);
-            sendBody.putInt(StoreSalesSkuDto.Key.SYS_TYPE, unionPriId);
+            sendBody.putInt(StoreSalesSkuDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(StoreSalesSkuDto.Key.SYS_TYPE, sysType);
             sendBody.putString(StoreSalesSkuDto.Key.XID, xid);
             storeSaleSkuList.toBuffer(sendBody, StoreSalesSkuDto.Key.INFO_LIST, StoreSalesSkuDto.getInfoDto());
             inStoreRecordInfo.toBuffer(sendBody, StoreSalesSkuDto.Key.IN_OUT_STORE_RECORD_INFO, InOutStoreRecordDto.getInfoDto());

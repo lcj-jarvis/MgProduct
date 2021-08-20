@@ -64,10 +64,12 @@ public class ProductGroupProc {
         String businessName = BusinessMapping.getName(tid);
         // 通过读取配置文件，判断是否进行分类名称的校验
         boolean isCheck = isCheckGroupName(businessName);
+        int sysType = info.getInt(ProductGroupEntity.Info.SYS_TYPE, ProductGroupValObj.SysType.PRODUCT);
         if (isCheck) {
-            // 从 db 查询 aid + uid 维度下的分类名称
+            // 从 db 查询 aid + uid + sysType 维度下的分类名称
             SearchArg searchArg = new SearchArg();
             searchArg.matcher = new ParamMatcher(ProductGroupEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.EQ, unionPriId);
+            searchArg.matcher.and(ProductGroupEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
             FaiList<Param> nameList = searchFromDb(aid, searchArg, ProductGroupEntity.Info.GROUP_NAME);
             String name = info.getString(ProductGroupEntity.Info.GROUP_NAME);
             Param existInfo = Misc.getFirst(nameList, ProductGroupEntity.Info.GROUP_NAME, name);

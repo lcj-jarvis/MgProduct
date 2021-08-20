@@ -63,6 +63,7 @@ public class MgProductArg {
     private boolean onlyGetChecked;
     private int sysType;
     private int groupLevel;
+    private FaiList<Param> treeDataList;
 
     private FaiList<Param> skuStoreSales;
 
@@ -129,6 +130,7 @@ public class MgProductArg {
         this.onlyGetChecked = builder.onlyGetChecked;
         this.sysType = builder.sysType;
         this.groupLevel = builder.groupLevel;
+        this.treeDataList = builder.treeDataList;
 
         this.skuStoreSales = builder.skuStoreSales;
 
@@ -359,6 +361,10 @@ public class MgProductArg {
         return sysType;
     }
 
+    public FaiList<Param> getTreeDataList() {
+        return treeDataList;
+    }
+
     public int getGroupLevel() {
         return groupLevel;
     }
@@ -428,11 +434,13 @@ public class MgProductArg {
         protected FaiList<Integer> addRlGroupIds;
         protected FaiList<Integer> delRlGroupIds;
         protected int groupLevel;
+        protected FaiList<Param> treeDataList;
 
         public abstract Builder setRlGroupIds(FaiList<Integer> rlGroupIds);
         public abstract Builder setAddRlGroupIds(FaiList<Integer> addRlGroupIds);
         public abstract Builder setDelRlGroupIds(FaiList<Integer> delRlGroupIds);
         public abstract Builder setGroupLevel(int groupLevel);
+        public abstract Builder setTreeDataList(FaiList<Param> treeDataList);
     }
 
     private static abstract class LibBuilder extends GroupBuilder {
@@ -806,6 +814,12 @@ public class MgProductArg {
         @Override
         public Builder setGroupLevel(int groupLevel) {
             this.groupLevel = groupLevel;
+            return this;
+        }
+
+        @Override
+        public Builder setTreeDataList(FaiList<Param> treeDataList) {
+            this.treeDataList = treeDataList;
             return this;
         }
 

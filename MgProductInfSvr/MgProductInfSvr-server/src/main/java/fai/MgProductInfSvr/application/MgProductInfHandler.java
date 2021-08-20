@@ -1309,12 +1309,12 @@ public class MgProductInfHandler extends FaiHandler {
                                @ArgBodyInteger(ProductGroupDto.Key.SITE_ID) int siteId,
                                @ArgBodyInteger(ProductGroupDto.Key.LGID) int lgId,
                                @ArgBodyInteger(ProductGroupDto.Key.KEEP_PRIID1) int keepPriId1,
-                               @ArgList(keyMatch = ProductGroupDto.Key.UPDATERLIST, methodDef = "getPdGroupDto",
-                                       classDef = ProductGroupDto.class) FaiList<ParamUpdater> updaterList,
+                               @ArgList(keyMatch = ProductGroupDto.Key.UPDATERLIST, methodDef = "getPdGroupTreeDto",
+                                       classDef = ProductGroupDto.class) FaiList<Param> treeDataList,
                                @ArgBodyInteger(ProductGroupDto.Key.SYS_TYPE) int sysType,
                                @ArgBodyInteger(ProductGroupDto.Key.GROUP_LEVEL) int groupLevel,
                                @ArgBodyBoolean(ProductGroupDto.Key.SOFT_DEL) boolean softDel) throws IOException {
-        return groupService.setAllGroupList(session, flow, aid, tid, siteId, lgId, keepPriId1, updaterList, sysType, groupLevel, softDel);
+        return groupService.setAllGroupList(session, flow, aid, tid, siteId, lgId, keepPriId1, treeDataList, sysType, groupLevel, softDel);
     }
 
     /*** 商品分类 end ***/

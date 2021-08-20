@@ -22,5 +22,6 @@ public class ProductGroupEntity {
         public static final String FLAG = "flag"; // int
         public static final String SYS_TYPE = "sysType"; // int 分类类型
         public static final String STATUS = "status"; // int 状态
+        public static final String CHILDREN = "children"; // 树结构 子节点
     }
 }

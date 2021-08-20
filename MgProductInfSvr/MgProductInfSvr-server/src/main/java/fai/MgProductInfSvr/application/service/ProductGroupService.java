@@ -122,17 +122,14 @@ public class ProductGroupService extends MgProductInfService {
     }
 
     @SuccessRt(value = Errno.OK)
-    public int setAllGroupList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<ParamUpdater> updaterList, int sysType, int groupLevel, boolean softDel) throws IOException {
+    public int setAllGroupList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> treeDataList, int sysType, int groupLevel, boolean softDel) throws IOException {
         // 获取unionPriId
         int unionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
         ProductGroupProc groupProc = new ProductGroupProc(flow);
 
-        FaiList<Integer> rlGroupIds = groupProc.setAllGroupList(aid, tid, unionPriId, updaterList, sysType, groupLevel, softDel);
+       groupProc.setAllGroupList(aid, tid, unionPriId, treeDataList, sysType, groupLevel, softDel);
 
         FaiBuffer sendBuf = new FaiBuffer(true);
-        if (!Util.isEmptyList(rlGroupIds)) {
-            rlGroupIds.toBuffer(sendBuf, ProductGroupDto.Key.RL_GROUP_IDS);
-        }
         session.write(sendBuf);
         Log.logStd("setAllGroupList ok;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
         return Errno.OK;

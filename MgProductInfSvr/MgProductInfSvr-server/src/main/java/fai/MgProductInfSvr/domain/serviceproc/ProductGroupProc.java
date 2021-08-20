@@ -78,13 +78,11 @@ public class ProductGroupProc {
     /**
      * 修改分类信息 （包含 增删改）
      */
-    public FaiList<Integer> setAllGroupList(int aid, int tid, int unionPriId, FaiList<ParamUpdater> updaterList, int sysType, int groupLevel, boolean softDel) {
-        Ref<FaiList<Integer>> rlGroupIdsRef = new Ref<>();
-        int rt = m_cli.setAllGroupList(aid, tid, unionPriId, updaterList, sysType, groupLevel, softDel, rlGroupIdsRef);
+    public void setAllGroupList(int aid, int tid, int unionPriId, FaiList<Param> treeDataList, int sysType, int groupLevel, boolean softDel) {
+        int rt = m_cli.setAllGroupList(aid, tid, unionPriId, treeDataList, sysType, groupLevel, softDel);
         if (rt != Errno.OK) {
             throw new MgException(rt, "setAllGroupList error;flow=%d;aid=%d;uid=%d", m_flow, aid, unionPriId);
         }
-        return rlGroupIdsRef.value;
     }
 
     /**

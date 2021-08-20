@@ -6,6 +6,7 @@ import fai.comm.util.Var;
 
 public class ProductGroupDto {
     private static ParamDef g_pdGroupDtoDef = new ParamDef();
+    private static ParamDef g_pdGroupTreeDtoDef = new ParamDef();
 
     static {
         g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.AID, 0, Var.Type.INT);
@@ -26,8 +27,33 @@ public class ProductGroupDto {
         g_pdGroupDtoDef.add(ProductGroupEntity.GroupInfo.STATUS, 15, Var.Type.INT);
     }
 
+    static {
+        g_pdGroupTreeDtoDef.add(ProductGroupEntity.GroupInfo.AID, 0, Var.Type.INT);
+        g_pdGroupTreeDtoDef.add(ProductGroupEntity.GroupInfo.RL_GROUP_ID, 1, Var.Type.INT);
+        g_pdGroupTreeDtoDef.add(ProductGroupEntity.GroupInfo.GROUP_ID, 2, Var.Type.INT);
+        g_pdGroupTreeDtoDef.add(ProductGroupEntity.GroupInfo.UNION_PRI_ID, 3, Var.Type.INT);
+        g_pdGroupTreeDtoDef.add(ProductGroupEntity.GroupInfo.SORT, 4, Var.Type.INT);
+        g_pdGroupTreeDtoDef.add(ProductGroupEntity.GroupInfo.RL_FLAG, 5, Var.Type.INT);
+        g_pdGroupTreeDtoDef.add(ProductGroupEntity.GroupInfo.CREATE_TIME, 6, Var.Type.CALENDAR);
+        g_pdGroupTreeDtoDef.add(ProductGroupEntity.GroupInfo.UPDATE_TIME, 7, Var.Type.CALENDAR);
+        g_pdGroupTreeDtoDef.add(ProductGroupEntity.GroupInfo.SOURCE_TID, 8, Var.Type.INT);
+        g_pdGroupTreeDtoDef.add(ProductGroupEntity.GroupInfo.SOURCE_UNIONPRIID, 9, Var.Type.INT);
+        g_pdGroupTreeDtoDef.add(ProductGroupEntity.GroupInfo.PARENT_ID, 10, Var.Type.INT);
+        g_pdGroupTreeDtoDef.add(ProductGroupEntity.GroupInfo.GROUP_NAME, 11, Var.Type.STRING);
+        g_pdGroupTreeDtoDef.add(ProductGroupEntity.GroupInfo.ICON_LIST, 12, Var.Type.STRING);
+        g_pdGroupTreeDtoDef.add(ProductGroupEntity.GroupInfo.FLAG, 13, Var.Type.INT);
+        g_pdGroupTreeDtoDef.add(ProductGroupEntity.GroupInfo.SYS_TYPE, 14, Var.Type.INT);
+        g_pdGroupTreeDtoDef.add(ProductGroupEntity.GroupInfo.STATUS, 15, Var.Type.INT);
+        g_pdGroupTreeDtoDef.add(ProductGroupEntity.GroupInfo.CHILDREN, 16, ProductGroupDto.getPdGroupTreeDto(), Var.Type.FAI_LIST);
+    }
+
+
     public static ParamDef getPdGroupDto() {
         return g_pdGroupDtoDef;
+    }
+
+    public static ParamDef getPdGroupTreeDto() {
+        return g_pdGroupTreeDtoDef;
     }
 
     public static class Key {

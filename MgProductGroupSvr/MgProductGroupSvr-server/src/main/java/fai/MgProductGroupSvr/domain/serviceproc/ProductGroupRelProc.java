@@ -495,6 +495,10 @@ public class ProductGroupRelProc {
         return rlGroupId;
     }
 
+    public Integer getId(int aid, int unionPriId) {
+        return m_relDao.getId(aid, unionPriId);
+    }
+
     private FaiList<Param> getList(int aid, int unionPriId) {
         // 从缓存获取数据
         FaiList<Param> list = ProductGroupRelCache.InfoCache.getCacheList(aid, unionPriId);

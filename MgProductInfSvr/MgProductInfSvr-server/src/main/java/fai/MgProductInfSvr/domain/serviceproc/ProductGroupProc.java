@@ -22,9 +22,9 @@ public class ProductGroupProc {
     /**
      * 新增商品分类数据，返回商品分类业务id
      */
-    public int addProductGroup(int aid, int tid, int unionPriId, Param info) {
+    public int addProductGroup(int aid, int tid, int unionPriId, int sysType, Param info) {
         Ref<Integer> rlGroupIdRef = new Ref<>();
-        int rt = m_cli.addProductGroup(aid, tid, unionPriId, info, null, rlGroupIdRef);
+        int rt = m_cli.addProductGroup(aid, tid, unionPriId, info, sysType, null, rlGroupIdRef);
         if(rt != Errno.OK) {
             throw new MgException(rt, "addProductGroup error;flow=%d;aid=%d;tid=%d;uid=%d;", m_flow, aid, tid, unionPriId);
         }
@@ -46,8 +46,8 @@ public class ProductGroupProc {
     /**
      * 修改商品分类数据
      */
-    public void setGroupList(int aid, int unionPriId, FaiList<ParamUpdater> updaterList) {
-        int rt = m_cli.setGroupList(aid, unionPriId, updaterList);
+    public void setGroupList(int aid, int tid, int unionPriId, int sysType, FaiList<ParamUpdater> updaterList) {
+        int rt = m_cli.setGroupList(aid, tid, unionPriId, sysType, updaterList);
         if(rt != Errno.OK) {
             throw new MgException(rt, "setGroupList error;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
         }

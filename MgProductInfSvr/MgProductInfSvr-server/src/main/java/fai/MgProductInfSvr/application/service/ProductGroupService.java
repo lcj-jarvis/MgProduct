@@ -14,7 +14,7 @@ import java.io.IOException;
 public class ProductGroupService extends MgProductInfService {
 
     @SuccessRt(value = Errno.OK)
-    public int addProductGroup(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, Param info) throws IOException {
+    public int addProductGroup(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, Param info) throws IOException {
         int rt;
         if(!FaiValObj.TermId.isValidTid(tid)) {
             rt = Errno.ARGS_ERROR;
@@ -26,7 +26,7 @@ public class ProductGroupService extends MgProductInfService {
 
         // 添加商品分类数据
         ProductGroupProc groupProc = new ProductGroupProc(flow);
-        int rlGroupId = groupProc.addProductGroup(aid, tid, unionPriId, info);
+        int rlGroupId = groupProc.addProductGroup(aid, tid, unionPriId, sysType, info);
 
         FaiBuffer sendBuf = new FaiBuffer(true);
         sendBuf.putInt(ProductGroupDto.Key.RL_GROUP_ID, rlGroupId);
@@ -57,12 +57,12 @@ public class ProductGroupService extends MgProductInfService {
     }
 
     @SuccessRt(value = Errno.OK)
-    public int setPdGroupList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<ParamUpdater> updaterList) throws IOException {
+    public int setPdGroupList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, FaiList<ParamUpdater> updaterList) throws IOException {
         // 获取unionPriId
         int unionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
 
         ProductGroupProc groupProc = new ProductGroupProc(flow);
-        groupProc.setGroupList(aid, unionPriId, updaterList);
+        groupProc.setGroupList(aid, tid, unionPriId, sysType, updaterList);
 
         FaiBuffer sendBuf = new FaiBuffer(true);
         session.write(sendBuf);

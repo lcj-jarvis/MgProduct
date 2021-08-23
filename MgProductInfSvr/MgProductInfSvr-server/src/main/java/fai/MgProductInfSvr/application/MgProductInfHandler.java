@@ -1247,9 +1247,10 @@ public class MgProductInfHandler extends FaiHandler {
                                @ArgBodyInteger(ProductGroupDto.Key.SITE_ID) int siteId,
                                @ArgBodyInteger(ProductGroupDto.Key.LGID) int lgid,
                                @ArgBodyInteger(ProductGroupDto.Key.KEEP_PRIID1) int keepPriId1,
+                               @ArgBodyInteger(ProductGroupDto.Key.SYS_TYPE) int sysType,
                                @ArgParam(keyMatch = ProductGroupDto.Key.INFO, methodDef = "getPdGroupDto",
                                classDef = ProductGroupDto.class) Param addInfo) throws IOException {
-        return groupService.addProductGroup(session, flow, aid, tid, siteId, lgid, keepPriId1, addInfo);
+        return groupService.addProductGroup(session, flow, aid, tid, siteId, lgid, keepPriId1, sysType, addInfo);
     }
 
     @WrittenCmd
@@ -1295,9 +1296,10 @@ public class MgProductInfHandler extends FaiHandler {
                               @ArgBodyInteger(ProductGroupDto.Key.SITE_ID) int siteId,
                               @ArgBodyInteger(ProductGroupDto.Key.LGID) int lgid,
                               @ArgBodyInteger(ProductGroupDto.Key.KEEP_PRIID1) int keepPriId1,
+                              @ArgBodyInteger(ProductGroupDto.Key.SYS_TYPE) int sysType,
                               @ArgList(keyMatch = ProductGroupDto.Key.UPDATERLIST, methodDef = "getPdGroupDto",
                               classDef = ProductGroupDto.class) FaiList<ParamUpdater> updaterList) throws IOException {
-        return groupService.setPdGroupList(session, flow, aid, tid, siteId, lgid, keepPriId1, updaterList);
+        return groupService.setPdGroupList(session, flow, aid, tid, siteId, lgid, keepPriId1, sysType, updaterList);
     }
 
     @WrittenCmd

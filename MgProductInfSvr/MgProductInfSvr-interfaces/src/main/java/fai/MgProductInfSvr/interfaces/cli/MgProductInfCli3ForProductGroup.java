@@ -166,6 +166,7 @@ public class MgProductInfCli3ForProductGroup extends MgProductInfCli2ForProductP
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
      *                 .setAddInfo(info) // 必填
+     *                 .setSysType(sysType) // 选填 系统类型
      *                 .build();
      * @param rlGroupIdRef 接收返回的分类业务id
      * @return {@link Errno}
@@ -192,6 +193,8 @@ public class MgProductInfCli3ForProductGroup extends MgProductInfCli2ForProductP
             int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductGroupDto.Key.TID, tid), new Pair(ProductGroupDto.Key.SITE_ID, siteId), new Pair(ProductGroupDto.Key.LGID, lgId), new Pair(ProductGroupDto.Key.KEEP_PRIID1, keepPriId1));
+            int sysType = mgProductArg.getSysType();
+            sendBody.putInt(ProductGroupDto.Key.SYS_TYPE, sysType);
             info.toBuffer(sendBody, ProductGroupDto.Key.INFO, ProductGroupDto.getPdGroupDto());
             // send and recv
             boolean rlGroupIdRefNotNull = (rlGroupIdRef != null);
@@ -219,6 +222,7 @@ public class MgProductInfCli3ForProductGroup extends MgProductInfCli2ForProductP
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
      *                 .setUpdaterList(updaterList)  // 必填 {@link ProductGroupEntity.GroupInfo}
+     *                 .setSysType(sysType)          // 选填  系统类型
      *                 .build();
      * @return {@link Errno}
      */
@@ -244,6 +248,8 @@ public class MgProductInfCli3ForProductGroup extends MgProductInfCli2ForProductP
             int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductGroupDto.Key.TID, tid), new Pair(ProductGroupDto.Key.SITE_ID, siteId), new Pair(ProductGroupDto.Key.LGID, lgId), new Pair(ProductGroupDto.Key.KEEP_PRIID1, keepPriId1));
+            int sysType = mgProductArg.getSysType();
+            sendBody.putInt(ProductGroupDto.Key.SYS_TYPE, sysType);
             updaterList.toBuffer(sendBody, ProductGroupDto.Key.UPDATERLIST, ProductGroupDto.getPdGroupDto());
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.GroupCmd.SET_GROUP_LIST, sendBody, false, false);
@@ -259,7 +265,7 @@ public class MgProductInfCli3ForProductGroup extends MgProductInfCli2ForProductP
      *
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
-     *                 .setTreeDataList(treeDataList)  // 必填  树形结构的全量数据 {@link ProductGroupEntity.GroupInfo}
+     *                 .setTreeDataList(treeDataList)  // 选填  树形结构的全量数据 （如果不填代表删除所有数据）
      *                 .setGroupLevel(groupLevel)      // 必填  层级限制
      *                 .setSysType(sysType)            // 选填  系统类型
      *                 .setSoftDel(softDel)            // 选填  软删除 默认为 false

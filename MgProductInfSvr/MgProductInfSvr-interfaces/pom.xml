@@ -22,6 +22,12 @@
         </dependency>
 
         <dependency>
+            <groupId>MgRichText</groupId>
+            <artifactId>MgRichTextInfSvr-interfaces</artifactId>
+            <version>${MgRichText-MgRichTextInfSvr-ver}</version>
+        </dependency>
+
+        <dependency>
             <groupId>fai-comm-util-arch</groupId>
             <artifactId>fai-comm-util-arch</artifactId>
             <version>${fai-comm-util-arch-ver}</version>

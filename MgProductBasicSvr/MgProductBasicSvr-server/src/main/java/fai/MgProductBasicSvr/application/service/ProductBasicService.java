@@ -32,6 +32,60 @@ import java.util.*;
 public class ProductBasicService extends BasicParentService {
 
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
+    public int getProductInfo(FaiSession session, int flow, int aid, int unionPriId, int sysType, int rlPdId) throws IOException {
+        int rt;
+        if(aid <= 0 || rlPdId <= 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args error;flow=%d;aid=%d;uid=%d;sysType=%d;rlPdId=%s;", flow, aid, unionPriId, sysType, rlPdId);
+            return rt;
+        }
+
+        Param result = new Param();
+        TransactionCtrl tc = new TransactionCtrl();
+        try {
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+            Integer pdId = relProc.getPdId(aid, unionPriId, sysType, rlPdId);
+            if(pdId == null) {
+                return Errno.NOT_FOUND;
+            }
+            // 获取商品业务关系表数据
+            Param relInfo = relProc.getProductRel(aid, unionPriId, pdId);
+
+            // 获取商品表数据
+            ProductProc pdProc = new ProductProc(flow, aid, tc);
+            Param pdInfo = pdProc.getProductInfo(aid, pdId);
+
+            result.assign(pdInfo);
+            result.assign(relInfo);
+
+            // 获取绑定分类
+            ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+            FaiList<Param> bindGroups = bindGroupProc.getPdBindGroupList(aid, unionPriId, new FaiList<>(Arrays.asList(pdId)));
+            FaiList<Integer> bindGroupIds = Utils.getValList(bindGroups, ProductBindGroupEntity.Info.RL_GROUP_ID);
+            result.setList(ProductRelEntity.Info.RL_GROUP_IDS, bindGroupIds);
+
+            // 获取绑定标签
+            ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
+            FaiList<Param> bindTags = bindTagProc.getPdBindTagList(aid, unionPriId, new FaiList<>(Arrays.asList(pdId)));
+            FaiList<Integer> bindTagIds = Utils.getValList(bindTags, ProductBindTagEntity.Info.RL_TAG_ID);
+            result.setList(ProductRelEntity.Info.RL_TAG_IDS, bindTagIds);
+
+            // 获取绑定参数
+            ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
+            FaiList<Param> bindProps = bindPropProc.getPdBindPropList(aid, unionPriId, sysType, rlPdId);
+            result.setList(ProductRelEntity.Info.RL_PROPS, bindProps);
+
+        } finally {
+            tc.closeDao();
+        }
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        result.toBuffer(sendBuf, ProductRelDto.Key.INFO, ProductRelDto.getRelAndPdDto());
+        session.write(sendBuf);
+        Log.logDbg("get info ok;flow=%d;aid=%d;uid=%d;sysType=%s;rlPdId=%s;", flow, aid, unionPriId, sysType, rlPdId);
+        return Errno.OK;
+    }
+
+    @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getProductList(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds) throws IOException {
         int rt;
         if(rlPdIds == null || rlPdIds.isEmpty()) {
@@ -541,7 +595,7 @@ public class ProductBasicService extends BasicParentService {
                 ProductRelCacheCtrl.InfoCache.updateCache(aid, unionPriId, pdId, relUpdate);
             }
             if(pdUpdate != null) {
-                ProductCacheCtrl.InfoCache.updateCache(aid, pdId, relUpdate);
+                ProductCacheCtrl.InfoCache.updateCache(aid, pdId, pdUpdate);
             }
             ProductBindPropCache.delCache(aid, unionPriId, sysType, rlPdId);
             ProductBindGroupCache.delCache(aid, unionPriId, pdId);

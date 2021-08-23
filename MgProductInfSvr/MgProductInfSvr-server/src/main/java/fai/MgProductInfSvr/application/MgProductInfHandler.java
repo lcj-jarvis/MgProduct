@@ -1533,10 +1533,11 @@ public class MgProductInfHandler extends FaiHandler {
     /**商品和标签的关联 end*/
 
     //MgProductInfService mgProductInfService = new MgProductInfService();
+    //ProductBasicService basicService = new ProductBasicService();
     MgProductInfService mgProductInfService = ServiceProxy.create(new MgProductInfService());
+    ProductBasicService basicService = ServiceProxy.create(new ProductBasicService());
 
     ProductSearchService searchService = new ProductSearchService();
-    ProductBasicService basicService = new ProductBasicService();
     ProductPropService propService = new ProductPropService();
     ProductSpecService specService = new ProductSpecService();
     ProductStoreService storeService = new ProductStoreService();

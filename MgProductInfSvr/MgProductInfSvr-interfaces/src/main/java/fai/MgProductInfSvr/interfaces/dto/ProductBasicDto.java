@@ -55,6 +55,19 @@ public class ProductBasicDto {
         g_productDef.add(ProductBasicEntity.ProductInfo.RL_PROPS, 35, ProductPropDto.getPropValInfoDto(), Var.Type.FAI_LIST);
         g_productDef.add(ProductBasicEntity.ProductInfo.RL_TAG_IDS, 36, Var.Type.FAI_LIST);
         g_productDef.add(ProductBasicEntity.ProductInfo.SYS_TYPE, 37, Var.Type.INT);
+
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK, 38, Var.Type.STRING);
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK1, 39, Var.Type.STRING);
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK2, 40, Var.Type.STRING);
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK3, 41, Var.Type.STRING);
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK4, 42, Var.Type.STRING);
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK5, 43, Var.Type.STRING);
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK6, 44, Var.Type.STRING);
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK7, 45, Var.Type.STRING);
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK8, 46, Var.Type.STRING);
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK9, 47, Var.Type.STRING);
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK10, 48, Var.Type.STRING);
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK11, 49, Var.Type.STRING);
     }
 
     public static ParamDef getProductDto() {

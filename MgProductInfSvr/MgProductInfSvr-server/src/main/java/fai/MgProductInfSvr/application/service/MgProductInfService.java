@@ -9,6 +9,7 @@ import fai.MgProductGroupSvr.interfaces.cli.MgProductGroupCli;
 import fai.MgProductInfSvr.application.MgProductInfSvr;
 import fai.MgProductInfSvr.domain.comm.BizPriKey;
 import fai.MgProductInfSvr.domain.comm.ProductSpecCheck;
+import fai.MgProductInfSvr.domain.entity.RichTextConverter;
 import fai.MgProductInfSvr.domain.serviceproc.*;
 import fai.MgProductInfSvr.interfaces.dto.MgProductDto;
 import fai.MgProductInfSvr.interfaces.entity.*;
@@ -21,6 +22,11 @@ import fai.MgProductStoreSvr.interfaces.entity.SkuSummaryEntity;
 import fai.MgProductStoreSvr.interfaces.entity.SpuBizSummaryEntity;
 import fai.MgProductStoreSvr.interfaces.entity.SpuSummaryEntity;
 import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity;
+import fai.MgRichTextInfSvr.interfaces.cli.MgRichTextInfCli;
+import fai.MgRichTextInfSvr.interfaces.entity.MgRichTextEntity;
+import fai.MgRichTextInfSvr.interfaces.entity.MgRichTextValObj;
+import fai.MgRichTextInfSvr.interfaces.utils.MgRichTextArg;
+import fai.MgRichTextInfSvr.interfaces.utils.MgRichTextSearch;
 import fai.comm.fseata.client.core.exception.TransactionException;
 import fai.comm.fseata.client.tm.GlobalTransactionContext;
 import fai.comm.fseata.client.tm.api.GlobalTransaction;
@@ -579,15 +585,21 @@ public class MgProductInfService extends ServicePub {
 
             ProductBasicProc productBasicProc = new ProductBasicProc(flow);
 
-            // 1 获取商品关联信息
-            Param pdRelInfo = new Param();
-            rt = productBasicProc.getRelInfoByRlId(aid, unionPriId, sysType, rlPdId, pdRelInfo);
+            // 1 获取商品基础信息
+            Param pdInfo = new Param();
+            rt = productBasicProc.getProductInfo(aid, unionPriId, sysType, rlPdId, pdInfo);
             if(rt != Errno.OK){
                 return rt;
             }
-            int pdId = pdRelInfo.getInt(ProductRelEntity.Info.PD_ID);
-            // 2 获取商品基础信息
-            // 3 ... 获取商品参数啥的 ... ↓
+            int pdId = pdInfo.getInt(ProductRelEntity.Info.PD_ID);
+            // 1.1 富文本字段
+            RichTextProc richProc = new RichTextProc(flow);
+            FaiList<Param> richTexts = richProc.getPdRichText(aid, tid, siteId, lgId, keepPriId1, pdId);
+            for(Param richText : richTexts) {
+                int richType = richText.getInt(MgRichTextEntity.Info.TYPE);
+                String content = richText.getString(MgRichTextEntity.Info.CONTENT);
+                pdInfo.setString(RichTextConverter.getKey(richType), content);
+            }
             // 3.1 获取规格相关
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
             // 获取商品规格
@@ -624,6 +636,7 @@ public class MgProductInfService extends ServicePub {
                 ProductStoreService.initSkuStoreSalesPrimaryInfo(unionPriIdBizPriKeyMap, pdScSkuSalesStoreInfoList);
             }
             Param productInfo = new Param();
+            productInfo.setParam(MgProductEntity.Info.BASIC, pdInfo);
             productInfo.setList(MgProductEntity.Info.SPEC, pdScInfoList);
             productInfo.setList(MgProductEntity.Info.SPEC_SKU, pdScSkuInfoList);
             productInfo.setList(MgProductEntity.Info.STORE_SALES, pdScSkuSalesStoreInfoList);
@@ -1016,6 +1029,8 @@ public class MgProductInfService extends ServicePub {
             }
 
             //TODO 删除商品分类数据(商品分类还没上线)
+
+            //TODO 删除富文本中台数据
 
             // 删除规格数据
             ProductSpecProc specProc = new ProductSpecProc(flow);

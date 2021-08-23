@@ -21,6 +21,18 @@ public class ProductBindPropDto {
         return g_infoDtoDef;
     }
 
+
+    private static ParamDef g_simpleDtoDef = new ParamDef();
+
+    static {
+        g_simpleDtoDef.add(ProductBindPropEntity.Info.RL_PROP_ID, 2);
+        g_simpleDtoDef.add(ProductBindPropEntity.Info.PROP_VAL_ID, 3);
+    }
+
+    public static ParamDef getSimpleDto() {
+        return g_simpleDtoDef;
+    }
+
     public static class Key {
         public static final int INFO = 1;
         public static final int INFO_LIST = 2;

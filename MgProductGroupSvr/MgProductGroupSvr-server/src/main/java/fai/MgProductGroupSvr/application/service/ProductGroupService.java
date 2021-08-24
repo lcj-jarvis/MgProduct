@@ -342,22 +342,23 @@ public class ProductGroupService extends ServicePub {
                 FaiList<Param> oldList = searcher.getParamList(list);
                 // 旧数据的 rlGroupId 与 groupId 映射集合
                 Map<Integer, Integer> map = oldList.stream().collect(Collectors.toMap(o -> o.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID), o -> o.getInt(ProductGroupRelEntity.Info.GROUP_ID)));
-                // 查询出当前的 rlGroupId
-                Integer rlGroupId = relProc.getId(aid, unionPriId);
-                if (rlGroupId == null) {
+                // 从 id_builder 表中查到当前的 rlGroupId，用于递归时对新增数据设置 rlGroupId
+                Integer curRlGroupId = relProc.getId(aid, unionPriId);
+                if (curRlGroupId == null) {
                     throw new MgException("get rlGroupId err;flow=%d;aid=%d", flow, aid);
                 }
-                // 将 rlGroupId 设置到 tempId
-                setTempId(rlGroupId);
+                // 将 curRlGroupId 设置到 tempId，递归时通过 tempId 来作为新增数据的 rlGroupId
+                setTempId(curRlGroupId);
 
                 // 递归处理数据
                 dataProcessing(treeDataList, map, 0, addList, modifyList);
 
                 if (!map.isEmpty()) {
+                    FaiList<Integer> delRlGroupIdList = new FaiList<>(map.keySet());
                     // 先获取要删除的分类id
                     delGroupIdList = new FaiList<>(map.values());
                     // 删除分类业务表数据
-                    relProc.delGroupList(aid, unionPriId, delGroupIdList, sysType, softDel);
+                    relProc.delGroupList(aid, unionPriId, delRlGroupIdList, sysType, softDel);
                     // 删除分类表数据
                     groupProc.delGroupList(aid, delGroupIdList, softDel);
                 }

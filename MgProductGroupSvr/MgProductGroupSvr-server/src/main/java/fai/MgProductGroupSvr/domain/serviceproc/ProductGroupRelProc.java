@@ -230,7 +230,7 @@ public class ProductGroupRelProc {
         ParamMatcher matcher = new ParamMatcher(ProductGroupRelEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductGroupRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         matcher.and(ProductGroupRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
-        matcher.and(ProductGroupRelEntity.Info.GROUP_ID, ParamMatcher.IN, delRlIdList);
+        matcher.and(ProductGroupRelEntity.Info.RL_GROUP_ID, ParamMatcher.IN, delRlIdList);
 
         if (softDel) {
             softDelGroupRelList(aid, matcher);
@@ -259,7 +259,6 @@ public class ProductGroupRelProc {
             throw new MgException(rt, "args err, matcher is null;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher);
         }
 
-        matcher.and(ProductGroupRelEntity.Info.AID, ParamMatcher.EQ, aid);
         rt = m_relDao.delete(matcher);
         if(rt != Errno.OK){
             throw new MgException(rt, "delGroupList error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher.toJson());

@@ -46,6 +46,7 @@
         <fai-fileupload-spi-site-ver>1.0.0</fai-fileupload-spi-site-ver>
         <fai-oauth-ver>1.0.0</fai-oauth-ver>
         <fai-spider-comm-ver>1.0.0</fai-spider-comm-ver>
+        <fai-comm-job-ver>1.0.0</fai-comm-job-ver>
         <!--中台-->
         <fai-comm-middleground-ver>1.0.0</fai-comm-middleground-ver>
         <fai-middleground-infutil-ver>1.0.0</fai-middleground-infutil-ver>

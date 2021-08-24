@@ -10,7 +10,8 @@ import fai.app.DocOplogDef;
 import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
-import fai.mgproduct.comm.Util;
+import fai.mgproduct.comm.entity.SagaEntity;
+import fai.mgproduct.comm.entity.SagaValObj;
 import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
@@ -61,9 +62,10 @@ public class ProductProc {
             pdSaga.assign(pdData, ProductEntity.Info.PD_ID);
 
             long branchId = RootContext.getBranchId();
-            pdSaga.setString(BasicSagaEntity.Common.XID, xid);
-            pdSaga.setLong(BasicSagaEntity.Common.BRANCH_ID, branchId);
-            pdSaga.setInt(BasicSagaEntity.Common.SAGA_OP, BasicSagaValObj.SagaOp.ADD);
+            pdSaga.setString(SagaEntity.Common.XID, xid);
+            pdSaga.setLong(SagaEntity.Common.BRANCH_ID, branchId);
+            pdSaga.setInt(SagaEntity.Common.SAGA_OP, SagaValObj.SagaOp.ADD);
+            pdSaga.setCalendar(SagaEntity.Common.SAGA_TIME, Calendar.getInstance());
 
             // 插入
             addSaga(aid, pdSaga);
@@ -209,10 +211,12 @@ public class ProductProc {
                 return 0;
             }
             long branchId = RootContext.getBranchId();
+            Calendar now = Calendar.getInstance();
             for(Param info : list) {
-                info.setString(BasicSagaEntity.Common.XID, xid);
-                info.setLong(BasicSagaEntity.Common.BRANCH_ID, branchId);
-                info.setInt(BasicSagaEntity.Common.SAGA_OP, BasicSagaValObj.SagaOp.UPDATE);
+                info.setString(SagaEntity.Common.XID, xid);
+                info.setLong(SagaEntity.Common.BRANCH_ID, branchId);
+                info.setInt(SagaEntity.Common.SAGA_OP, SagaValObj.SagaOp.UPDATE);
+                info.setCalendar(SagaEntity.Common.SAGA_TIME, now);
             }
             // 插入
             addSagaList(aid, list);
@@ -268,10 +272,12 @@ public class ProductProc {
                 return 0;
             }
             long branchId = RootContext.getBranchId();
+            Calendar now = Calendar.getInstance();
             for(Param info : list) {
-                info.setString(BasicSagaEntity.Common.XID, xid);
-                info.setLong(BasicSagaEntity.Common.BRANCH_ID, branchId);
-                info.setInt(BasicSagaEntity.Common.SAGA_OP, BasicSagaValObj.SagaOp.DEL);
+                info.setString(SagaEntity.Common.XID, xid);
+                info.setLong(SagaEntity.Common.BRANCH_ID, branchId);
+                info.setInt(SagaEntity.Common.SAGA_OP, SagaValObj.SagaOp.DEL);
+                info.setCalendar(SagaEntity.Common.SAGA_TIME, now);
             }
             // 插入
             addSagaList(aid, list);
@@ -447,16 +453,16 @@ public class ProductProc {
             return;
         }
         // 按操作分类
-        Map<Integer, List<Param>> groupBySagaOp = list.stream().collect(Collectors.groupingBy(x -> x.getInt(BasicSagaEntity.Common.SAGA_OP)));
+        Map<Integer, List<Param>> groupBySagaOp = list.stream().collect(Collectors.groupingBy(x -> x.getInt(SagaEntity.Common.SAGA_OP)));
 
         // 回滚新增操作
-        rollback4Add(aid, groupBySagaOp.get(BasicSagaValObj.SagaOp.ADD));
+        rollback4Add(aid, groupBySagaOp.get(SagaValObj.SagaOp.ADD));
 
         // 回滚修改操作
-        rollback4Update(aid, groupBySagaOp.get(BasicSagaValObj.SagaOp.UPDATE));
+        rollback4Update(aid, groupBySagaOp.get(SagaValObj.SagaOp.UPDATE));
 
         // 回滚删除操作
-        rollback4Delete(aid, groupBySagaOp.get(BasicSagaValObj.SagaOp.DEL));
+        rollback4Delete(aid, groupBySagaOp.get(SagaValObj.SagaOp.DEL));
     }
 
     /**
@@ -494,9 +500,10 @@ public class ProductProc {
         Set<String> keySet = first.keySet();
         keySet.remove(ProductEntity.Info.AID);
         keySet.remove(ProductEntity.Info.PD_ID);
-        keySet.remove(BasicSagaEntity.Common.XID);
-        keySet.remove(BasicSagaEntity.Common.BRANCH_ID);
-        keySet.remove(BasicSagaEntity.Common.SAGA_OP);
+        keySet.remove(SagaEntity.Common.XID);
+        keySet.remove(SagaEntity.Common.BRANCH_ID);
+        keySet.remove(SagaEntity.Common.SAGA_OP);
+        keySet.remove(SagaEntity.Common.SAGA_TIME);
         FaiList<String> keyList = new FaiList<>(keySet);
 
         FaiList<Integer> pdIds = new FaiList<>();
@@ -561,9 +568,10 @@ public class ProductProc {
         }
 
         for(Param relInfo : list) {
-            relInfo.remove(BasicSagaEntity.Common.XID);
-            relInfo.remove(BasicSagaEntity.Common.BRANCH_ID);
-            relInfo.remove(BasicSagaEntity.Common.SAGA_OP);
+            relInfo.remove(SagaEntity.Common.XID);
+            relInfo.remove(SagaEntity.Common.BRANCH_ID);
+            relInfo.remove(SagaEntity.Common.SAGA_OP);
+            relInfo.remove(SagaEntity.Common.SAGA_TIME);
         }
         int rt = m_dao.batchInsert(new FaiList<>(list), null, true);
         if(rt != Errno.OK) {
@@ -576,8 +584,8 @@ public class ProductProc {
     private FaiList<Param> getSagaList(int aid, String xid, long branchId) {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
-        searchArg.matcher.and(BasicSagaEntity.Common.XID, ParamMatcher.EQ, xid);
-        searchArg.matcher.and(BasicSagaEntity.Common.BRANCH_ID, ParamMatcher.EQ, branchId);
+        searchArg.matcher.and(SagaEntity.Common.XID, ParamMatcher.EQ, xid);
+        searchArg.matcher.and(SagaEntity.Common.BRANCH_ID, ParamMatcher.EQ, branchId);
         Ref<FaiList<Param>> tmpRef = new Ref<>();
         int rt = m_sagaDao.select(searchArg, tmpRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {

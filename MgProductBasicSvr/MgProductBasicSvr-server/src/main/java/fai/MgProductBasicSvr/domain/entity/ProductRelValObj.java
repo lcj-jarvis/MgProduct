@@ -1,6 +1,10 @@
 package fai.MgProductBasicSvr.domain.entity;
 
 public class ProductRelValObj {
+    public static class Default {
+        public static final int SORT = 0; // 默认
+    }
+
     public static class Status {
         public static final int DEFAULT = 0; // 默认
         public static final int UP = 1; // 上架

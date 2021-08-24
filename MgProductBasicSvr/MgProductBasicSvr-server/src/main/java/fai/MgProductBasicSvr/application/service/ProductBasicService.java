@@ -912,6 +912,7 @@ public class ProductBasicService extends BasicParentService {
 
         Integer rlPdId = 0;
         Integer pdId = 0;
+        int maxSort = 0;
 
         LockUtil.lock(aid);
         try {
@@ -933,6 +934,12 @@ public class ProductBasicService extends BasicParentService {
                 relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
                 // 新增业务关系
                 ProductRelProc relProc = new ProductRelProc(flow, aid, tc, xid, true);
+                Integer sort = relData.getInt(ProductRelEntity.Info.SORT);
+                if(sort == null) {
+                    maxSort = relProc.getMaxSort(aid, unionPriId);
+                    relData.setInt(ProductRelEntity.Info.SORT, ++maxSort);
+                }
+
                 rlPdId = relProc.addProductRel(aid, unionPriId, relData);
 
                 int sysType = relData.getInt(ProductRelEntity.Info.SYS_TYPE);
@@ -973,6 +980,7 @@ public class ProductBasicService extends BasicParentService {
             ProductRelCacheCtrl.InfoCache.addCache(aid, unionPriId, relData);
             ProductCacheCtrl.DataStatusCache.update(aid, 1); // 更新数据状态缓存
             ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, 1); // 更新数据状态缓存
+            ProductRelCacheCtrl.SortCache.set(aid, unionPriId, maxSort); // sort缓存
 
             // 同步数据给es
             ESUtil.logDocId(flow, aid, pdId, unionPriId, DocOplogDef.Operation.UPDATE_ONE);
@@ -1037,6 +1045,7 @@ public class ProductBasicService extends BasicParentService {
             bindProps.add(info.getListNullIsEmpty(ProductRelEntity.Info.RL_PROPS));
         }
 
+        int maxSort = 0;
 
         FaiList<Param> bindRlProps = new FaiList<>();
         FaiList<Param> bindRlGroups = new FaiList<>();
@@ -1053,13 +1062,18 @@ public class ProductBasicService extends BasicParentService {
                 ProductProc pdProc = new ProductProc(flow, aid, tc);
                 pdIdList = pdProc.batchAddProduct(aid, pdDataList);
 
+                // 新增业务关系
+                ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+                maxSort = relProc.getMaxSort(aid, unionPriId);
                 for(int i = 0;i < relDataList.size(); i++) {
                     Param relData = relDataList.get(i);
                     relData.setInt(ProductRelEntity.Info.PD_ID, pdIdList.get(i));
+                    Integer sort = relData.getInt(ProductRelEntity.Info.SORT);
+                    if(sort == null) {
+                        relData.setInt(ProductRelEntity.Info.SORT, ++maxSort);
+                    }
                 }
-                // 新增业务关系
-                ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
-                relProc.batchAddProductRel(aid, unionPriId, null, relDataList);
+                relProc.batchAddProductRel(aid, unionPriId, relDataList);
 
                 // 新增绑定关系
                 for(int i = 0;i < relDataList.size(); i++) {
@@ -1140,6 +1154,7 @@ public class ProductBasicService extends BasicParentService {
             if(!Utils.isEmptyList(relDataList)) {
                 ProductRelCacheCtrl.InfoCache.addCacheList(aid, unionPriId, relDataList);
                 ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, relDataList.size()); // 更新数据状态缓存
+                ProductRelCacheCtrl.SortCache.set(aid, unionPriId, maxSort); // 更新sort缓存
             }
             if(!bindRlProps.isEmpty()) {
                 ProductBindPropCache.DataStatusCache.update(aid, unionPriId, bindRlProps.size());
@@ -1241,6 +1256,7 @@ public class ProductBasicService extends BasicParentService {
         relData.assign(info, ProductRelEntity.Info.STATUS);
         relData.assign(info, ProductRelEntity.Info.UP_SALE_TIME);
         relData.assign(info, ProductRelEntity.Info.FLAG);
+        relData.assign(info, ProductRelEntity.Info.SORT);
         relData.assign(info, ProductRelEntity.Info.PD_TYPE);
 
         pdData.setInt(ProductEntity.Info.AID, aid);
@@ -1355,9 +1371,11 @@ public class ProductBasicService extends BasicParentService {
         relData.assign(info, ProductRelEntity.Info.STATUS);
         relData.assign(info, ProductRelEntity.Info.UP_SALE_TIME);
         relData.assign(info, ProductRelEntity.Info.FLAG);
+        relData.assign(info, ProductRelEntity.Info.SORT);
 
         Integer rlPdId;
         Integer pdId;
+        int maxSort = 0;
 
         LockUtil.lock(aid);
         try {
@@ -1379,6 +1397,12 @@ public class ProductBasicService extends BasicParentService {
                     rt = Errno.ERROR;
                     return rt;
                 }
+
+                if(!relData.containsKey(ProductRelEntity.Info.SORT)) {
+                    maxSort = relProc.getMaxSort(aid, unionPriId);
+                    relData.setInt(ProductRelEntity.Info.SORT, maxSort);
+                }
+
                 Param bindInfo = relProc.getProductRel(aid, bindUniPriId, pdId);
                 relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
                 relData.assign(bindInfo, ProductRelEntity.Info.PD_TYPE);
@@ -1544,6 +1568,7 @@ public class ProductBasicService extends BasicParentService {
             relData.assign(info, ProductRelEntity.Info.STATUS);
             relData.assign(info, ProductRelEntity.Info.UP_SALE_TIME);
             relData.assign(info, ProductRelEntity.Info.FLAG);
+            relData.assign(info, ProductRelEntity.Info.SORT);
 
             FaiList<Param> curUidList = listOfUid.get(unionPriId);
             if(curUidList == null) {
@@ -1581,7 +1606,16 @@ public class ProductBasicService extends BasicParentService {
                     if(Utils.isEmptyList(curList)) {
                         continue;
                     }
-                    FaiList<Integer> tmpRlIds = relProc.batchAddProductRel(aid, unionPriId, bindRel, curList);
+                    int maxSort = relProc.getMaxSort(aid, unionPriId);
+                    for(Param info : curList) {
+                        info.assign(bindRel, ProductRelEntity.Info.PD_ID);
+                        info.assign(bindRel, ProductRelEntity.Info.PD_TYPE);
+                        Integer sort = info.getInt(ProductRelEntity.Info.SORT);
+                        if(sort == null) {
+                            info.setInt(ProductRelEntity.Info.SORT, ++maxSort);
+                        }
+                    }
+                    FaiList<Integer> tmpRlIds = relProc.batchAddProductRel(aid, unionPriId, curList);
                     rlPdIds.addAll(tmpRlIds);
 
                     // 记录要同步给es的数据
@@ -1601,14 +1635,8 @@ public class ProductBasicService extends BasicParentService {
                 tc.closeDao();
             }
 
-            for(Integer unionPriId : unionPriIds) {
-                FaiList<Param> curList = listOfUid.get(unionPriId);
-                if(Utils.isEmptyList(curList)) {
-                    continue;
-                }
-                ProductRelCacheCtrl.InfoCache.addCacheList(aid, unionPriId, curList);
-                ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, curList.size()); // 更新数据状态缓存
-            }
+            // 清缓存
+            CacheCtrl.clearCacheVersion(aid);
 
             // 同步数据给es
             ESUtil.commitPre(flow, aid);
@@ -1736,6 +1764,7 @@ public class ProductBasicService extends BasicParentService {
                 relData.assign(info, ProductRelEntity.Info.STATUS);
                 relData.assign(info, ProductRelEntity.Info.UP_SALE_TIME);
                 relData.assign(info, ProductRelEntity.Info.FLAG);
+                relData.assign(info, ProductRelEntity.Info.SORT);
                 relData.assign(info, ProductRelEntity.Info.PD_TYPE);
 
                 FaiList<Param> curUidList = listOfUid.get(unionPriId);
@@ -1769,7 +1798,15 @@ public class ProductBasicService extends BasicParentService {
                     if(Utils.isEmptyList(list)) {
                         continue;
                     }
-                    relProc.batchAddProductRel(aid, unionPriId, null, list);
+
+                    int maxSort = relProc.getMaxSort(aid, unionPriId);
+                    for(Param info : list) {
+                        Integer sort = info.getInt(ProductRelEntity.Info.SORT);
+                        if(sort == null) {
+                            info.setInt(ProductRelEntity.Info.SORT, ++maxSort);
+                        }
+                    }
+                    relProc.batchAddProductRel(aid, unionPriId, list);
                     // 记录要同步给es 的数据
                     ESUtil.batchPreLog(aid, list, DocOplogDef.Operation.UPDATE_ONE);
                 }
@@ -1787,14 +1824,7 @@ public class ProductBasicService extends BasicParentService {
                 tc.closeDao();
             }
             // 更新缓存
-            for(Integer unionPriId : unionPriIds) {
-                FaiList<Param> list = listOfUid.get(unionPriId);
-                if(!Utils.isEmptyList(list)) {
-                    continue;
-                }
-                ProductRelCacheCtrl.InfoCache.addCacheList(aid, unionPriId, list);
-                ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, list.size()); // 更新数据状态缓存
-            }
+            CacheCtrl.clearCacheVersion(aid);
 
             // 同步数据给es
             ESUtil.commitPre(flow, aid);

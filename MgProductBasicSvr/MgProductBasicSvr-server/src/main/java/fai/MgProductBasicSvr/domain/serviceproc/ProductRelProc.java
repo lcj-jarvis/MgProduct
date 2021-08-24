@@ -67,7 +67,7 @@ public class ProductRelProc {
         return rlPdId;
     }
 
-    public FaiList<Integer> batchAddProductRel(int aid, int unionPriId, Param pdInfo, FaiList<Param> relDataList) {
+    public FaiList<Integer> batchAddProductRel(int aid, int unionPriId, FaiList<Param> relDataList) {
         int rt;
         if(relDataList == null || relDataList.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -83,10 +83,10 @@ public class ProductRelProc {
         int maxId = m_dao.getId(aid, unionPriId);
         FaiList<Integer> rlPdIds = new FaiList<Integer>();
         for(Param relData : relDataList) {
-            if(!Str.isEmpty(pdInfo)) {
+            /*if(!Str.isEmpty(pdInfo)) {
                 relData.assign(pdInfo, ProductRelEntity.Info.PD_ID);
                 relData.assign(pdInfo, ProductRelEntity.Info.PD_TYPE);
-            }
+            }*/
             Integer curPdId = relData.getInt(ProductRelEntity.Info.PD_ID);
             if(curPdId == null) {
                 rt = Errno.ARGS_ERROR;
@@ -299,6 +299,34 @@ public class ProductRelProc {
         data.setCalendar(ProductRelEntity.Info.UPDATE_TIME, now);
 
         return updater;
+    }
+
+    public int getMaxSort(int aid, int unionPriId) {
+        String sortCache = ProductRelCacheCtrl.SortCache.get(aid, unionPriId);
+        if(!Str.isEmpty(sortCache)) {
+            return Parser.parseInt(sortCache, ProductRelValObj.Default.SORT);
+        }
+
+        // db中获取
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
+        int rt = m_dao.select(searchArg, listRef, "max(sort) as sort");
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "getMaxSort error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+        }
+        if (listRef.value == null || listRef.value.isEmpty()) {
+            rt = Errno.NOT_FOUND;
+            Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return ProductRelValObj.Default.SORT;
+        }
+
+        Param info = listRef.value.get(0);
+        int sort = info.getInt(ProductRelEntity.Info.SORT, ProductRelValObj.Default.SORT);
+        // 添加到缓存
+        ProductRelCacheCtrl.SortCache.set(aid, unionPriId, sort);
+        return sort;
     }
 
     private int updatePdRel(int aid, ParamMatcher matcher, ParamUpdater updater) {

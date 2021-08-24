@@ -30,6 +30,7 @@ public class ProductRelDto {
         g_infoDtoDef.add(ProductRelEntity.Info.INFO_CHECK, 15);
         g_infoDtoDef.add(ProductRelEntity.Info.PD_TYPE, 16);
         g_infoDtoDef.add(ProductRelEntity.Info.SYS_TYPE, 17);
+        g_infoDtoDef.add(ProductRelEntity.Info.SORT, 18);
     }
 
     static {
@@ -74,6 +75,7 @@ public class ProductRelDto {
         g_relAndPdDtoDef.add(ProductRelEntity.Info.RL_TAG_IDS, 29);
         g_relAndPdDtoDef.add(ProductRelEntity.Info.RL_PROPS, 30, ProductBindPropDto.getSimpleDto());
         g_relAndPdDtoDef.add(ProductRelEntity.Info.SYS_TYPE, 31);
+        g_relAndPdDtoDef.add(ProductRelEntity.Info.SORT, 32);
     }
 
     static {

@@ -71,6 +71,7 @@ public class ProductGroupRelDto {
         g_groupTreeDtoDef.add(ProductGroupRelEntity.Info.PARENT_ID, 15, Var.Type.INT);
 
         g_groupTreeDtoDef.add(ProductGroupEntity.Info.CHILDREN, 16, ProductGroupRelDto.getTreeInfoDto(), Var.Type.FAI_LIST);
+        g_groupTreeDtoDef.add(ProductGroupEntity.Info.IS_ADD, 17, Var.Type.BOOLEAN);
     }
     public static ParamDef getTreeInfoDto() {
         return g_groupTreeDtoDef;

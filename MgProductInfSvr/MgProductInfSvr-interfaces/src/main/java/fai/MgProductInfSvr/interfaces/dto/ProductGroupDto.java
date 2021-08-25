@@ -45,6 +45,7 @@ public class ProductGroupDto {
         g_pdGroupTreeDtoDef.add(ProductGroupEntity.GroupInfo.SYS_TYPE, 14, Var.Type.INT);
         g_pdGroupTreeDtoDef.add(ProductGroupEntity.GroupInfo.STATUS, 15, Var.Type.INT);
         g_pdGroupTreeDtoDef.add(ProductGroupEntity.GroupInfo.CHILDREN, 16, ProductGroupDto.getPdGroupTreeDto(), Var.Type.FAI_LIST);
+        g_pdGroupTreeDtoDef.add(ProductGroupEntity.GroupInfo.IS_ADD, 17, Var.Type.BOOLEAN);
     }
 
 

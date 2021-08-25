@@ -23,5 +23,7 @@ public class ProductGroupEntity {
         public static final String SYS_TYPE = "sysType"; // int 分类类型
         public static final String STATUS = "status"; // int 状态
         public static final String CHILDREN = "children"; // 树结构 子节点
+
+        public static final String IS_ADD = "isAdd"; // TODO 临时字段，标识数据是否为添加数据，双写过后可以废除
     }
 }

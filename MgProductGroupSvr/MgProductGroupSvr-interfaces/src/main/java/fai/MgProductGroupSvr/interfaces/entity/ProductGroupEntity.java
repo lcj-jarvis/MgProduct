@@ -16,5 +16,7 @@ public class ProductGroupEntity {
 		public static final String STATUS = "status";           // int 状态
 
 		public static final String CHILDREN = "children";       // 树结构 子节点 （非真实存在字段）
+
+		public static final String IS_ADD = "isAdd";            // TODO 临时字段，判断是否为添加数据，双写后可废除
     }
 }

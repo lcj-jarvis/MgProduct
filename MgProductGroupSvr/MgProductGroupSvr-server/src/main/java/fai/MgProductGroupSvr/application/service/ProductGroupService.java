@@ -1085,7 +1085,11 @@ public class ProductGroupService extends ServicePub {
             data.remove(ProductGroupEntity.Info.CHILDREN);
             // 获取当前的 rlGroupId ，如果为空，加入添加列表
             Integer curRlGroupId = data.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID);
-            if (curRlGroupId == null) {
+            // 双写时根据 isAdd 判断是否为添加数据
+            boolean isAdd = data.getBoolean(ProductGroupEntity.Info.IS_ADD, false);
+            if (isAdd) {
+                addList.add(data);
+            } else if (curRlGroupId == null) {
                 addList.add(data);
                 curRlGroupId = getAndIncTempId();
             } else {

@@ -71,7 +71,25 @@ public class ProductGroupService extends ServicePub {
                 String businessName = BusinessMapping.getName(tid);
                 // 通过读取配置文件，判断是否进行分类名称的校验
                 boolean isCheck = isCheckGroupName(businessName);
-                groupId = groupProc.addGroup(aid, unionPriId, groupInfo, isCheck);
+
+                if (isCheck) {
+                    // 读取旧数据
+                    FaiList<Param> groupList = groupProc.getGroupList(aid);
+                    SearchArg searchArg = new SearchArg();
+                    searchArg.matcher = new ParamMatcher(ProductGroupEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.EQ, unionPriId);
+                    searchArg.matcher.and(ProductGroupEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
+                    Searcher searcher = new Searcher(searchArg);
+                    // 筛选
+                    FaiList<Param> list = searcher.getParamList(groupList);
+                    List<String> existNameList = list.stream().map(o -> o.getString(ProductGroupEntity.Info.GROUP_NAME)).collect(Collectors.toList());
+                    String name = info.getString(ProductGroupEntity.Info.GROUP_NAME);
+                    if (existNameList.contains(name)) {
+                        rt = Errno.ALREADY_EXISTED;
+                        throw new MgException(rt, "name is existed;flow=%d;aid=%d;name=%s", flow, aid, name);
+                    }
+                }
+
+                groupId = groupProc.addGroup(aid, groupInfo);
                 relInfo.setInt(ProductGroupRelEntity.Info.GROUP_ID, groupId);
 
                 rlGroupId = groupRelProc.addGroupRelInfo(aid, unionPriId, relInfo);
@@ -256,23 +274,27 @@ public class ProductGroupService extends ServicePub {
         }
         LockUtil.lock(aid);
         try {
-            FaiList<ParamUpdater> groupUpdaterList = new FaiList<ParamUpdater>();
+            FaiList<ParamUpdater> groupUpdaterList = new FaiList<>();
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             boolean commit = false;
             try {
                 transactionCtrl.setAutoCommit(false);
-                // 修改分类业务关系表
                 ProductGroupRelProc relProc = new ProductGroupRelProc(flow, aid, transactionCtrl);
-                relProc.setGroupRelList(aid, unionPriId, sysType, updaterList, groupUpdaterList);
+                ProductGroupProc groupProc = new ProductGroupProc(flow, aid, transactionCtrl);
+                // 读取旧数据
+                FaiList<Param> oldRelList = getOldRelList(aid, unionPriId, sysType, null, relProc);
+                List<Integer> oldGroupIds = oldRelList.stream().map(o -> o.getInt(ProductGroupEntity.Info.GROUP_ID)).collect(Collectors.toList());
+                FaiList<Param> oldList = getOldList(aid, oldGroupIds, groupProc);
 
+                // 修改分类业务关系表
+                relProc.setGroupRelList(aid, unionPriId, oldRelList, updaterList, groupUpdaterList);
                 // 修改分类表
                 if(!groupUpdaterList.isEmpty()) {
                     // 判断是否需要校验名称, 根据 tid 获取业务名称
                     String businessName = BusinessMapping.getName(tid);
                     // 通过读取配置文件，判断是否进行分类名称的校验
                     boolean isCheck = isCheckGroupName(businessName);
-                    ProductGroupProc groupProc = new ProductGroupProc(flow, aid, transactionCtrl);
-                    groupProc.setGroupList(aid, unionPriId, sysType, groupUpdaterList, isCheck);
+                    groupProc.setGroupList(aid, oldList, groupUpdaterList, isCheck);
                 }
                 commit = true;
                 // commit之前设置10s过期时间，避免脏数据
@@ -333,15 +355,11 @@ public class ProductGroupService extends ServicePub {
             ProductGroupProc groupProc = new ProductGroupProc(flow, aid, tc);
             try {
                 tc.setAutoCommit(false);
-                // 读取老数据
-                FaiList<Param> list = relProc.getGroupRelList(aid, unionPriId);
-                // 根据 sysType 筛选
-                SearchArg searchArg = new SearchArg();
-                searchArg.matcher = new ParamMatcher(ProductGroupRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
-                Searcher searcher = new Searcher(searchArg);
-                FaiList<Param> oldList = searcher.getParamList(list);
+                // 读取业务表老数据
+                FaiList<Param> oldRelList = getOldRelList(aid, unionPriId, sysType, null, relProc);
+
                 // 旧数据的 rlGroupId 与 groupId 映射集合
-                Map<Integer, Integer> map = oldList.stream().collect(Collectors.toMap(o -> o.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID), o -> o.getInt(ProductGroupRelEntity.Info.GROUP_ID)));
+                Map<Integer, Integer> map = oldRelList.stream().collect(Collectors.toMap(o -> o.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID), o -> o.getInt(ProductGroupRelEntity.Info.GROUP_ID)));
                 // 从 id_builder 表中查到当前的 rlGroupId，用于递归时对新增数据设置 rlGroupId
                 Integer curRlGroupId = relProc.getId(aid, unionPriId);
                 if (curRlGroupId == null) {
@@ -354,6 +372,7 @@ public class ProductGroupService extends ServicePub {
                 dataProcessing(treeDataList, map, 0, addList, modifyList);
 
                 if (!map.isEmpty()) {
+                    // 要删除的分类业务id
                     FaiList<Integer> delRlGroupIdList = new FaiList<>(map.keySet());
                     // 先获取要删除的分类id
                     delGroupIdList = new FaiList<>(map.values());
@@ -361,19 +380,31 @@ public class ProductGroupService extends ServicePub {
                     relProc.delGroupList(aid, unionPriId, delRlGroupIdList, sysType, softDel);
                     // 删除分类表数据
                     groupProc.delGroupList(aid, delGroupIdList, softDel);
+
+                    // 因为要沿用旧数据，所以要更新这个旧数据
+                    for (Param oldRelInfo : oldRelList) {
+                        Integer rlGroupId = oldRelInfo.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID);
+                        if (delGroupIdList.contains(rlGroupId)) {
+                            oldRelList.remove(oldRelInfo);
+                        }
+                    }
                 }
+
+                List<Integer> oldGroupIds = oldRelList.stream().map(o -> o.getInt(ProductGroupEntity.Info.GROUP_ID)).collect(Collectors.toList());
+                // 获取旧基础表数据
+                FaiList<Param> oldList = getOldList(aid, oldGroupIds, groupProc);
 
                 if (!modifyList.isEmpty()) {
                     // 修改分类业务关系表
-                    relProc.setGroupRelList(aid, unionPriId, sysType, modifyList, groupUpdaterList);
+                    relProc.setGroupRelList(aid, unionPriId, oldRelList, modifyList, groupUpdaterList);
                     // 修改分类表
                     if(!groupUpdaterList.isEmpty()) {
-                        groupProc.setGroupList(aid, unionPriId, sysType, groupUpdaterList, isCheck);
+                        groupProc.setGroupList(aid, oldList, groupUpdaterList, isCheck);
                     }
                 }
 
                 if (!addList.isEmpty()) {
-                    addGroupList(flow, aid, unionPriId, tid, sysType, addList, groupProc, relProc, groupInfoList, relInfoList, null, isCheck);
+                    addGroupList(flow, aid, unionPriId, tid, sysType, oldList, addList, groupProc, relProc, groupInfoList, relInfoList, null, isCheck);
                 }
 
                 commit = true;
@@ -478,6 +509,12 @@ public class ProductGroupService extends ServicePub {
             ProductGroupProc groupProc = new ProductGroupProc(flow, aid, tc);
             ProductGroupRelProc relProc = new ProductGroupRelProc(flow, aid, tc);
             try {
+                // 获取旧业务表数据
+                FaiList<Param> oldRelList = getOldRelList(aid, unionPriId, sysType, delList, relProc);
+                // 获取groupIds集合
+                List<Integer> oldGroupIds = oldRelList.stream().map(o -> o.getInt(ProductGroupEntity.Info.GROUP_ID)).collect(Collectors.toList());
+                // 获取旧基础表数据
+                FaiList<Param> oldList = getOldList(aid, oldGroupIds, groupProc);
                 // 删除
                 if (!Util.isEmptyList(delList)) {
                     // 先获取要删除的分类id
@@ -492,15 +529,15 @@ public class ProductGroupService extends ServicePub {
                 // 修改
                 if (!Util.isEmptyList(updaterList)) {
                     // 修改分类业务关系表
-                    relProc.setGroupRelList(aid, unionPriId, sysType, updaterList, groupUpdaterList);
+                    relProc.setGroupRelList(aid, unionPriId, oldRelList, updaterList, groupUpdaterList);
                     // 修改分类表
                     if(!groupUpdaterList.isEmpty()) {
-                        groupProc.setGroupList(aid, unionPriId, sysType, groupUpdaterList, isCheck);
+                        groupProc.setGroupList(aid, oldList, groupUpdaterList, isCheck);
                     }
                 }
                 // 添加
                 if (!Util.isEmptyList(addList)) {
-                    maxSort = addGroupList(flow, aid, unionPriId, tid, sysType, addList, groupProc, relProc, groupInfoList, relInfoList, rlGroupIds, isCheck);
+                    maxSort = addGroupList(flow, aid, unionPriId, tid, sysType, oldList, addList, groupProc, relProc, groupInfoList, relInfoList, rlGroupIds, isCheck);
                 }
 
                 commit = true;
@@ -555,7 +592,7 @@ public class ProductGroupService extends ServicePub {
         return rt;
     }
 
-    private int addGroupList(int flow, int aid, int unionPriId, int tid, int sysType, FaiList<Param> addList, ProductGroupProc groupProc, ProductGroupRelProc groupRelProc,
+    private int addGroupList(int flow, int aid, int unionPriId, int tid, int sysType, FaiList<Param> oldList, FaiList<Param> addList, ProductGroupProc groupProc, ProductGroupRelProc groupRelProc,
                              FaiList<Param> groupList, FaiList<Param> relList, FaiList<Integer> rlGroupIdList, boolean check) {
         int rt;
         int maxSort = groupRelProc.getMaxSort(aid, unionPriId);
@@ -579,7 +616,7 @@ public class ProductGroupService extends ServicePub {
             relList.add(relInfo);
         }
         // 批量新增基础信息表数据
-        FaiList<Integer> groupIds = groupProc.batchAddGroup(aid, unionPriId, sysType, groupList, check);
+        FaiList<Integer> groupIds = groupProc.batchAddGroup(aid, oldList, groupList, check);
         for (int i = 0; i < relList.size(); i++) {
             Param param = relList.get(i);
             Integer groupId = groupIds.get(i);
@@ -1176,6 +1213,36 @@ public class ProductGroupService extends ServicePub {
             return false;
         }
         return conf.getBoolean(name, false);
+    }
+
+    /**
+     * 获取旧的业务表数据
+     */
+    private FaiList<Param> getOldRelList(int aid, int unionPriId, int sysType, FaiList<Integer> delRlGroupIdList, ProductGroupRelProc relProc) {
+        // 读取业务表老数据
+        FaiList<Param> list = relProc.getGroupRelList(aid, unionPriId);
+        // 根据 sysType 筛选
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductGroupRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
+        if (!Utils.isEmptyList(delRlGroupIdList)) {
+            searchArg.matcher.and(ProductGroupRelEntity.Info.RL_GROUP_ID, ParamMatcher.NOT_IN, delRlGroupIdList);
+        }
+        Searcher searcher = new Searcher(searchArg);
+        return searcher.getParamList(list);
+    }
+
+    /**
+     * 获取旧的基础表数据
+     */
+    private FaiList<Param> getOldList(int aid, List<Integer> oldGroupIds, ProductGroupProc groupProc) {
+        // 读取基础表老数据
+        FaiList<Param> groupList = groupProc.getGroupList(aid);
+        FaiList<Integer> ids = new FaiList<>(oldGroupIds);
+        // 根据查出来的 groupId 筛选
+        SearchArg groupSearchArg = new SearchArg();
+        groupSearchArg.matcher = new ParamMatcher(ProductGroupEntity.Info.GROUP_ID, ParamMatcher.IN, ids);
+        Searcher groupSearcher = new Searcher(groupSearchArg);
+        return groupSearcher.getParamList(groupList);
     }
 
     private BackupStatusCtrl backupStatusCtrl;

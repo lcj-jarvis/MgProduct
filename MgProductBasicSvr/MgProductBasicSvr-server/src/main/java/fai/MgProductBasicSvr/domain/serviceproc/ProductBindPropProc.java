@@ -1,7 +1,5 @@
 package fai.MgProductBasicSvr.domain.serviceproc;
 
-import fai.MgProductBasicSvr.domain.entity.BasicSagaEntity;
-import fai.MgProductBasicSvr.domain.entity.BasicSagaValObj;
 import fai.MgProductBasicSvr.domain.entity.ProductBindPropEntity;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductBindPropCache;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductBindPropDaoCtrl;
@@ -9,7 +7,8 @@ import fai.MgProductBasicSvr.domain.repository.dao.saga.ProductBindPropSagaDaoCt
 import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
-import fai.mgproduct.comm.Util;
+import fai.mgproduct.comm.entity.SagaEntity;
+import fai.mgproduct.comm.entity.SagaValObj;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.repository.TransactionCtrl;
@@ -106,9 +105,10 @@ public class ProductBindPropProc {
                 sagaInfo.setInt(ProductBindPropEntity.Info.PROP_VAL_ID, propValId);
                 sagaInfo.setInt(ProductBindPropEntity.Info.UNION_PRI_ID, unionPriId);
 
-                sagaInfo.setString(BasicSagaEntity.Common.XID, m_xid);
-                sagaInfo.setLong(BasicSagaEntity.Common.BRANCH_ID, RootContext.getBranchId());
-                sagaInfo.setInt(BasicSagaEntity.Common.SAGA_OP, BasicSagaValObj.SagaOp.ADD);
+                sagaInfo.setString(SagaEntity.Common.XID, m_xid);
+                sagaInfo.setLong(SagaEntity.Common.BRANCH_ID, RootContext.getBranchId());
+                sagaInfo.setInt(SagaEntity.Common.SAGA_OP, SagaValObj.SagaOp.ADD);
+                sagaInfo.setCalendar(SagaEntity.Common.SAGA_TIME, now);
                 sagaList.add(sagaInfo);
             }
         }
@@ -184,6 +184,7 @@ public class ProductBindPropProc {
         int delCount = 0;
 
         FaiList<Param> sagaList = new FaiList<>();
+        Calendar now = Calendar.getInstance();
 
         for(Param info : delList) {
             int rlPropId = info.getInt(ProductBindPropEntity.Info.RL_PROP_ID);
@@ -202,9 +203,10 @@ public class ProductBindPropProc {
                 if(Str.isEmpty(sagaInfo)) {
                     continue;
                 }
-                sagaInfo.setString(BasicSagaEntity.Common.XID, m_xid);
-                sagaInfo.setLong(BasicSagaEntity.Common.BRANCH_ID, RootContext.getBranchId());
-                sagaInfo.setInt(BasicSagaEntity.Common.SAGA_OP, BasicSagaValObj.SagaOp.DEL);
+                sagaInfo.setString(SagaEntity.Common.XID, m_xid);
+                sagaInfo.setLong(SagaEntity.Common.BRANCH_ID, RootContext.getBranchId());
+                sagaInfo.setInt(SagaEntity.Common.SAGA_OP, SagaValObj.SagaOp.DEL);
+                sagaInfo.setCalendar(SagaEntity.Common.SAGA_TIME, now);
                 sagaList.add(sagaInfo);
             }
             ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
@@ -260,10 +262,12 @@ public class ProductBindPropProc {
             searchArg.matcher.and(ProductBindPropEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
             FaiList<Param> list = searchFromDb(aid, searchArg, null);
             long branchId = RootContext.getBranchId();
+            Calendar now = Calendar.getInstance();
             for(Param info : list) {
-                info.setString(BasicSagaEntity.Common.XID, m_xid);
-                info.setLong(BasicSagaEntity.Common.BRANCH_ID, branchId);
-                info.setInt(BasicSagaEntity.Common.SAGA_OP, BasicSagaValObj.SagaOp.DEL);
+                info.setString(SagaEntity.Common.XID, m_xid);
+                info.setLong(SagaEntity.Common.BRANCH_ID, branchId);
+                info.setInt(SagaEntity.Common.SAGA_OP, SagaValObj.SagaOp.DEL);
+                info.setCalendar(SagaEntity.Common.SAGA_TIME, now);
             }
             // 插入
             addSagaList(aid, list);
@@ -472,13 +476,13 @@ public class ProductBindPropProc {
             return;
         }
         // 按操作分类
-        Map<Integer, List<Param>> groupBySagaOp = list.stream().collect(Collectors.groupingBy(x -> x.getInt(BasicSagaEntity.Common.SAGA_OP)));
+        Map<Integer, List<Param>> groupBySagaOp = list.stream().collect(Collectors.groupingBy(x -> x.getInt(SagaEntity.Common.SAGA_OP)));
 
         // 回滚新增操作
-        rollback4Add(aid, groupBySagaOp.get(BasicSagaValObj.SagaOp.ADD));
+        rollback4Add(aid, groupBySagaOp.get(SagaValObj.SagaOp.ADD));
 
         // 回滚删除操作
-        rollback4Delete(aid, groupBySagaOp.get(BasicSagaValObj.SagaOp.DEL));
+        rollback4Delete(aid, groupBySagaOp.get(SagaValObj.SagaOp.DEL));
     }
 
     /**
@@ -520,9 +524,10 @@ public class ProductBindPropProc {
         }
 
         for(Param relInfo : list) {
-            relInfo.remove(BasicSagaEntity.Common.XID);
-            relInfo.remove(BasicSagaEntity.Common.BRANCH_ID);
-            relInfo.remove(BasicSagaEntity.Common.SAGA_OP);
+            relInfo.remove(SagaEntity.Common.XID);
+            relInfo.remove(SagaEntity.Common.BRANCH_ID);
+            relInfo.remove(SagaEntity.Common.SAGA_OP);
+            relInfo.remove(SagaEntity.Common.SAGA_TIME);
         }
         int rt = m_bindPropDao.batchInsert(new FaiList<>(list), null, true);
         if(rt != Errno.OK) {
@@ -535,8 +540,8 @@ public class ProductBindPropProc {
     private FaiList<Param> getSagaList(int aid, String xid, long branchId) {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
-        searchArg.matcher.and(BasicSagaEntity.Common.XID, ParamMatcher.EQ, xid);
-        searchArg.matcher.and(BasicSagaEntity.Common.BRANCH_ID, ParamMatcher.EQ, branchId);
+        searchArg.matcher.and(SagaEntity.Common.XID, ParamMatcher.EQ, xid);
+        searchArg.matcher.and(SagaEntity.Common.BRANCH_ID, ParamMatcher.EQ, branchId);
         Ref<FaiList<Param>> tmpRef = new Ref<>();
         int rt = m_sagaDao.select(searchArg, tmpRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {

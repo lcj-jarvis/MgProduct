@@ -3,13 +3,13 @@ package fai.MgProductBasicSvr.application.service;
 import fai.MgProductBasicSvr.domain.common.ESUtil;
 import fai.MgProductBasicSvr.domain.common.LockUtil;
 import fai.MgProductBasicSvr.domain.common.SagaRollback;
-import fai.MgProductBasicSvr.domain.entity.BasicSagaEntity;
-import fai.MgProductBasicSvr.domain.entity.BasicSagaValObj;
 import fai.MgProductBasicSvr.domain.repository.cache.CacheCtrl;
 import fai.MgProductBasicSvr.domain.serviceproc.SagaProc;
 import fai.comm.fseata.client.core.model.BranchStatus;
 import fai.comm.util.Log;
 import fai.comm.util.Param;
+import fai.mgproduct.comm.entity.SagaEntity;
+import fai.mgproduct.comm.entity.SagaValObj;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 import fai.middleground.svrutil.service.ServicePub;
 
@@ -35,8 +35,8 @@ public class BasicParentService extends ServicePub {
                     return BranchStatus.PhaseTwo_Rollbacked.getCode();
                 }
 
-                int status = sagaInfo.getInt(BasicSagaEntity.Info.STATUS);
-                if(status == BasicSagaValObj.Status.ROLLBACK_OK) {
+                int status = sagaInfo.getInt(SagaEntity.Info.STATUS);
+                if(status == SagaValObj.Status.ROLLBACK_OK) {
                     commit = true;
                     Log.logStd( "rollback already ok! saga=%s;", sagaInfo);
                     return BranchStatus.PhaseTwo_Rollbacked.getCode();
@@ -45,7 +45,7 @@ public class BasicParentService extends ServicePub {
                 sagaRollback.rollback(tc);
 
                 // 更新saga记录status
-                sagaProc.setStatus(xid, branchId, BasicSagaValObj.Status.ROLLBACK_OK);
+                sagaProc.setStatus(xid, branchId, SagaValObj.Status.ROLLBACK_OK);
 
                 commit = true;
             } finally {

@@ -1,11 +1,6 @@
-package fai.MgProductBasicSvr.domain.entity;
+package fai.mgproduct.comm.entity;
 
-/**
- * @author GYY
- * @version 1.0
- * @date 2021/6/28 19:30
- */
-public class BasicSagaValObj {
+public class SagaValObj {
 
     public static final class Status {
         /** 初始化 */
@@ -23,3 +18,4 @@ public class BasicSagaValObj {
         public static final int DEL = 3;
     }
 }
+

@@ -800,7 +800,7 @@ public class ProductBasicService extends MgProductInfService {
                 }
                 // 删除商品规格相关信息
                 // TODO 规格服务暂时不支持分布式事务
-                rt = productSpecProc.batchDelPdAllSc(aid, tid, pdIdList, null, softDel);
+                rt = productSpecProc.batchDelPdAllSc(aid, tid, pdIdList, "", softDel);
                 if (rt != Errno.OK) {
                     Log.logErr(rt, "batchDelPdAllSc err;aid=%s;tid=%s;pdIdList=%s;", aid, tid, pdIdList);
                     return rt;
@@ -1022,7 +1022,7 @@ public class ProductBasicService extends MgProductInfService {
             // 添加
             if (!addSpecList.isEmpty()) {
                 // TODO 规格暂时不支持分布式事务
-                rt = specProc.importPdScWithSku(aid, tid, unionPriId, null, addSpecList, addSpecSkuList, skuIdInfoList);
+                rt = specProc.importPdScWithSku(aid, tid, unionPriId, "", addSpecList, addSpecSkuList, skuIdInfoList);
                 if (rt != Errno.OK) {
                     return rt;
                 }

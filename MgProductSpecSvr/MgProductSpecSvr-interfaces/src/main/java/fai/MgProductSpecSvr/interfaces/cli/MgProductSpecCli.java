@@ -748,7 +748,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
     }
 
     public int batchDelPdAllSc(int aid, int tid, FaiList<Integer> pdIdList, boolean softDel) {
-        return batchDelPdAllSc(aid, tid, pdIdList, null, softDel);
+        return batchDelPdAllSc(aid, tid, pdIdList, "", softDel);
     }
 
     public int batchDelPdAllSc(int aid, int tid, FaiList<Integer> pdIdList, String xid) {
@@ -770,7 +770,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductSpecDto.Key.TID, tid);
             pdIdList.toBuffer(sendBody, ProductSpecDto.Key.PD_ID_LIST);
-            sendBody.putString(CommonDto.Key.XID, xid);
+            sendBody.putString(ProductSpecDto.Key.XID, xid);
             sendBody.putBoolean(ProductSpecDto.Key.SOFT_DEL, softDel);
 
             FaiProtocol sendProtocol = new FaiProtocol();
@@ -969,7 +969,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductSpecSkuDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(ProductSpecSkuDto.Key.TID, tid);
-            sendBody.putString(CommonDto.Key.XID, xid);
+            sendBody.putString(ProductSpecSkuDto.Key.XID, xid);
             sendBody.putInt(ProductSpecSkuDto.Key.PD_ID, pdId);
             m_rt = updaterList.toBuffer(sendBody, ProductSpecSkuDto.Key.UPDATER_LIST, ProductSpecSkuDto.getInfoDto());
             if(m_rt != Errno.OK){
@@ -1898,7 +1898,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             }
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
-            sendBody.putString(CommonDto.Key.XID, xid);
+            sendBody.putString(ProductSpecDto.Key.XID, xid);
             sendBody.putInt(ProductSpecDto.Key.TID, tid);
             sendBody.putInt(ProductSpecDto.Key.UNION_PRI_ID, unionPriId);
             specList.toBuffer(sendBody, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.getInfoDto());

@@ -19,6 +19,12 @@
         </dependency>
 
         <dependency>
+            <groupId>MgRichText</groupId>
+            <artifactId>MgRichTextInfSvr-interfaces</artifactId>
+            <version>${MgRichText-MgRichTextInfSvr-ver}</version>
+        </dependency>
+
+        <dependency>
             <groupId>fai-middleground-svrutil</groupId>
             <artifactId>fai-middleground-svrutil</artifactId>
             <version>${fai-middleground-svrutil-ver}</version>

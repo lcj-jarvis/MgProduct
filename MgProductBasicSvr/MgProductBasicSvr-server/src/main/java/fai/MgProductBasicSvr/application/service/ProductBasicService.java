@@ -59,16 +59,20 @@ public class ProductBasicService extends BasicParentService {
             result.assign(relInfo);
 
             // 获取绑定分类
-            ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
-            FaiList<Param> bindGroups = bindGroupProc.getPdBindGroupList(aid, unionPriId, new FaiList<>(Arrays.asList(pdId)));
-            FaiList<Integer> bindGroupIds = Utils.getValList(bindGroups, ProductBindGroupEntity.Info.RL_GROUP_ID);
-            result.setList(ProductRelEntity.Info.RL_GROUP_IDS, bindGroupIds);
+            if(useProductGroup()) {
+                ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                FaiList<Param> bindGroups = bindGroupProc.getPdBindGroupList(aid, unionPriId, new FaiList<>(Arrays.asList(pdId)));
+                FaiList<Integer> bindGroupIds = Utils.getValList(bindGroups, ProductBindGroupEntity.Info.RL_GROUP_ID);
+                result.setList(ProductRelEntity.Info.RL_GROUP_IDS, bindGroupIds);
+            }
 
             // 获取绑定标签
-            ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
-            FaiList<Param> bindTags = bindTagProc.getPdBindTagList(aid, unionPriId, new FaiList<>(Arrays.asList(pdId)));
-            FaiList<Integer> bindTagIds = Utils.getValList(bindTags, ProductBindTagEntity.Info.RL_TAG_ID);
-            result.setList(ProductRelEntity.Info.RL_TAG_IDS, bindTagIds);
+            if(useProductTag()) {
+                ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
+                FaiList<Param> bindTags = bindTagProc.getPdBindTagList(aid, unionPriId, new FaiList<>(Arrays.asList(pdId)));
+                FaiList<Integer> bindTagIds = Utils.getValList(bindTags, ProductBindTagEntity.Info.RL_TAG_ID);
+                result.setList(ProductRelEntity.Info.RL_TAG_IDS, bindTagIds);
+            }
 
             // 获取绑定参数
             ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);

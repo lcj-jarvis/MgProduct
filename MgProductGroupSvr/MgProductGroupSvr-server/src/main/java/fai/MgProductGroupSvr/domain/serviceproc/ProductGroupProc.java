@@ -45,7 +45,7 @@ public class ProductGroupProc {
         if (isCheck) {
             int sysType = info.getInt(ProductGroupEntity.Info.SYS_TYPE, ProductGroupValObj.SysType.PRODUCT);
             String name = info.getString(ProductGroupEntity.Info.GROUP_NAME);
-            isNameExist(aid, unionPriId, sysType, name);
+            isNameExist(aid, unionPriId, sysType, new FaiList<>(Collections.singletonList(name)));
         }
 
         int groupId = creatAndSetId(aid, info);
@@ -244,7 +244,7 @@ public class ProductGroupProc {
         // 校验名称是否重复
         if (isCheck) {
             List<String> nameList = groupList.stream().map(o -> o.getString(ProductGroupEntity.Info.GROUP_NAME)).collect(Collectors.toList());
-            isNameExist(aid, unionPriId, sysType, nameList);
+            isNameExist(aid, unionPriId, sysType, new FaiList<>(nameList));
         }
         FaiList<Integer> ids = new FaiList<>();
         for(Param info : groupList) {
@@ -610,20 +610,20 @@ public class ProductGroupProc {
      * 判读数据库是否含有当前名称
      *
      * @param sysType 系统类型
-     * @param name 名称 （可以是单个名称（String），也可以是多个名称（FaiList<String>））
+     * @param nameList 名称
      */
-    private void isNameExist(int aid, int unionPriId, int sysType, Object name) {
+    private void isNameExist(int aid, int unionPriId, int sysType, FaiList<String> nameList) {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductGroupEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.EQ, unionPriId);
         searchArg.matcher.and(ProductGroupEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
-        if (name instanceof List) {
-            searchArg.matcher.and(ProductGroupEntity.Info.GROUP_NAME, ParamMatcher.IN, name);
+        if (nameList.size() == 1) {
+            searchArg.matcher.and(ProductGroupEntity.Info.GROUP_NAME, ParamMatcher.EQ, nameList);
         } else {
-            searchArg.matcher.and(ProductGroupEntity.Info.GROUP_NAME, ParamMatcher.EQ, name);
+            searchArg.matcher.and(ProductGroupEntity.Info.GROUP_NAME, ParamMatcher.IN, nameList);
         }
-        FaiList<Param> nameList = searchFromDb(aid, searchArg, ProductGroupEntity.Info.GROUP_NAME);
-        if(!Utils.isEmptyList(nameList)) {
-            throw new MgException(Errno.ALREADY_EXISTED, "group name is existed;flow=%d;aid=%d;name=%s;", m_flow, aid, nameList);
+        FaiList<Param> existedNameList = searchFromDb(aid, searchArg, ProductGroupEntity.Info.GROUP_NAME);
+        if(!Utils.isEmptyList(existedNameList)) {
+            throw new MgException(Errno.ALREADY_EXISTED, "group name is existed;flow=%d;aid=%d;name=%s;", m_flow, aid, existedNameList);
         }
     }
 

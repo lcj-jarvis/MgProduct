@@ -376,7 +376,7 @@ public class MgProductArg {
         protected int lgId;
         protected int keepPriId1;
 
-        protected String xid;
+        protected String xid = "";
         protected int fromAid;
         protected Param option;
         protected Param fromPrimaryKey;

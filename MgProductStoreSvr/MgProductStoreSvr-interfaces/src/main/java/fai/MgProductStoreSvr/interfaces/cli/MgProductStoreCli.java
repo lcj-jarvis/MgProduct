@@ -2062,7 +2062,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
     }
 
     public int batchDelPdAllStoreSales(int aid, int tid, FaiList<Integer> pdIdList){
-        return batchDelPdAllStoreSales(aid, tid, pdIdList, null, false);
+        return batchDelPdAllStoreSales(aid, tid, pdIdList, "", false);
     }
     /**
      * 批量删除商品所有库存销售相关信息

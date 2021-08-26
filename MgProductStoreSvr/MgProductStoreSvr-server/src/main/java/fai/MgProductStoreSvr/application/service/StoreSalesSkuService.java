@@ -748,13 +748,14 @@ public class StoreSalesSkuService extends StoreService {
                     }finally {
                         if(rt != Errno.OK){
                             transactionCtrl.rollback();
+                            return rt;
                         }
+                        spuBizSummaryProc.setDirtyCacheEx(aid);
+                        spuSummaryProc.setDirtyCacheEx(aid);
+                        transactionCtrl.commit();
+                        spuBizSummaryProc.deleteDirtyCache(aid);
+                        spuSummaryProc.deleteDirtyCache(aid);
                     }
-                    spuBizSummaryProc.setDirtyCacheEx(aid);
-                    spuSummaryProc.setDirtyCacheEx(aid);
-                    transactionCtrl.commit();
-                    spuBizSummaryProc.deleteDirtyCache(aid);
-                    spuSummaryProc.deleteDirtyCache(aid);
                 }finally {
                     LockUtil.unlock(aid);
                 }

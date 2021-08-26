@@ -111,7 +111,7 @@ public class MgProductInfCli7ForProductTag extends MgProductInfCli6ForProductLib
                 return m_rt;
             }
 
-            if (Util.isEmptyList(delRlTagIds)) {
+            if (delRlTagIds == null || delRlTagIds.isEmpty()) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "rlTagIds is null;aid=%d;", aid);
                 return m_rt;
@@ -121,6 +121,7 @@ public class MgProductInfCli7ForProductTag extends MgProductInfCli6ForProductLib
                     new Pair(ProductTagDto.Key.SITE_ID, siteId),
                     new Pair(ProductTagDto.Key.LGID, lgId),
                     new Pair(ProductTagDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductTagDto.Key.SYS_TYPE, mgProductArg.getSysType());
             delRlTagIds.toBuffer(sendBody, ProductTagDto.Key.RL_TAG_IDS);
 
             // send and recv
@@ -412,8 +413,9 @@ public class MgProductInfCli7ForProductTag extends MgProductInfCli6ForProductLib
                     new Pair(ProductBasicDto.Key.SITE_ID, siteId),
                     new Pair(ProductBasicDto.Key.LGID, lgId),
                     new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductBasicDto.Key.SYS_TYPE, mgProductArg.getSysType());
             FaiList<Integer> rlPdIds = mgProductArg.getRlPdIds();
-            if (Util.isEmptyList(rlPdIds)) {
+            if (rlPdIds == null || rlPdIds.isEmpty()) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "arg error");
                 return m_rt;
@@ -482,8 +484,8 @@ public class MgProductInfCli7ForProductTag extends MgProductInfCli6ForProductLib
                     new Pair(ProductBasicDto.Key.SITE_ID, siteId),
                     new Pair(ProductBasicDto.Key.LGID, lgId),
                     new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
-            int rlPdId = mgProductArg.getRlPdId();
-            sendBody.putInt(ProductBasicDto.Key.RL_PD_ID, rlPdId);
+            sendBody.putInt(ProductBasicDto.Key.SYS_TYPE, mgProductArg.getSysType());
+            sendBody.putInt(ProductBasicDto.Key.RL_PD_ID, mgProductArg.getRlPdId());
             addRlTagIds.toBuffer(sendBody, ProductBasicDto.Key.BIND_TAG_IDS);
             delRlTagIds.toBuffer(sendBody, ProductBasicDto.Key.DEL_BIND_TAG_IDS);
             // send and recv
@@ -530,6 +532,7 @@ public class MgProductInfCli7ForProductTag extends MgProductInfCli6ForProductLib
                     new Pair(ProductTagDto.Key.SITE_ID, siteId),
                     new Pair(ProductTagDto.Key.LGID, lgId),
                     new Pair(ProductTagDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductTagDto.Key.SYS_TYPE, mgProductArg.getSysType());
             rlPdIds.toBuffer(sendBody, ProductBasicDto.Key.RL_PD_IDS);
 
             // send and recv

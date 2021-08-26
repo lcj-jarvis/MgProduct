@@ -365,7 +365,7 @@ public class StoreService {
     /**
      *  导入数据
      */
-    public int importStoreSales(FaiSession session, int flow, int aid, int sourceTid, int sourceUnionPriId, String xid, FaiList<Param> storeSaleSkuList, Param inStoreRecordInfo) throws IOException {
+    public int importStoreSales(FaiSession session, int flow, int aid, int sourceTid, int sourceUnionPriId, int sysType, String xid, FaiList<Param> storeSaleSkuList, Param inStoreRecordInfo) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -399,6 +399,7 @@ public class StoreService {
                 addInStoreRecordInfo.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
                 addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.PD_ID, pdId);
                 addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
+                addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.SYS_TYPE, sysType);
                 addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
                 addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.OPT_TYPE, InOutStoreRecordValObj.OptType.IN);
                 addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.CHANGE_COUNT, count);
@@ -925,6 +926,7 @@ public class StoreService {
     protected void assemblySpuBizSummaryInfo(Param spuBizSummaryInfo, Param reportInfo, int flag){
         spuBizSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.Info.UNION_PRI_ID, SpuBizSummaryEntity.Info.UNION_PRI_ID);
         spuBizSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.Info.RL_PD_ID, SpuBizSummaryEntity.Info.RL_PD_ID);
+        spuBizSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.Info.SYS_TYPE, SpuBizSummaryEntity.Info.SYS_TYPE);
         spuBizSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.SOURCE_UNION_PRI_ID, SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID);
         Object obj = reportInfo.getObject(StoreSalesSkuEntity.ReportInfo.BIT_OR_FLAG);
         if(obj instanceof BigInteger){

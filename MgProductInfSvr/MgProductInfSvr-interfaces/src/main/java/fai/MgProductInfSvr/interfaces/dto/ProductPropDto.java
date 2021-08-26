@@ -66,6 +66,7 @@ public class ProductPropDto {
         public static final int DEL_LIST = 16;
         public static final int ADD_LIST = 17;
         public static final int UPDATER_LIST = 18;
+        public static final int SYS_TYPE = 19;
     }
 
 }

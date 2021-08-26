@@ -81,6 +81,21 @@ public class MgProductGroupHandler extends MiddleGroundHandler {
 		return groupService.setGroupList(session, flow, aid, unionPriId, updaterList);
 	}
 
+	@WrittenCmd
+	@Cmd(MgProductGroupCmd.GroupCmd.SET_ALL_GROUP_LIST)
+	public int setAllGroupList(final FaiSession session,
+							   @ArgFlow final int flow,
+							   @ArgAid int aid,
+							   @ArgBodyInteger(ProductGroupRelDto.Key.UNION_PRI_ID) int unionPriId,
+							   @ArgBodyInteger(ProductGroupRelDto.Key.TID) int tid,
+							   @ArgList(classDef = ProductGroupRelDto.class, methodDef = "getAllInfoDto",
+									   keyMatch = ProductGroupRelDto.Key.UPDATERLIST) FaiList<ParamUpdater> updaterList,
+							   @ArgBodyInteger(ProductGroupRelDto.Key.SYS_TYPE) int sysType,
+							   @ArgBodyInteger(ProductGroupRelDto.Key.GROUP_LEVEL) int groupLevel,
+							   @ArgBodyBoolean(ProductGroupRelDto.Key.SOFT_DEL) boolean softDel) throws IOException {
+		return groupService.setAllGroupList(session, flow, aid, unionPriId, tid, updaterList, sysType, groupLevel, softDel);
+	}
+
 	@Cmd(MgProductGroupCmd.GroupCmd.BATCH_DEL)
 	public int delGroupList(final FaiSession session,
 							@ArgFlow final int flow,

@@ -7,65 +7,66 @@ import fai.comm.util.Param;
 import fai.comm.util.ParamUpdater;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
+import fai.middleground.svrutil.misc.Utils;
 
 import java.util.HashSet;
 
 public class ProductBindTagCache extends CacheCtrl {
 
-    public static FaiList<Param> getCacheList(int aid, int unionPriId, HashSet<Integer> rlPdIds) {
+    public static FaiList<Param> getCacheList(int aid, int unionPriId, HashSet<Integer> pdIds) {
         FaiList<Param> list = null;
-        if(Util.isEmptyList(rlPdIds)) {
+        if(Utils.isEmptyList(pdIds)) {
             return null;
         }
         FaiList<String> cacheKeys = new FaiList<>();
-        for(Integer rlPdId : rlPdIds) {
-            cacheKeys.add(getCacheKey(aid, unionPriId, rlPdId));
+        for(Integer pdId : pdIds) {
+            cacheKeys.add(getCacheKey(aid, unionPriId, pdId));
         }
         try {
             list = getFaiList(cacheKeys, ProductBindTagDto.getInfoDto(), ProductBindTagDto.Key.INFO);
         } catch (Exception e) {
-            Log.logErr(e,"getCacheList error;aid=%d;unionPriId=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
+            Log.logErr(e,"getCacheList error;aid=%d;unionPriId=%d;pdIds=%s;", aid, unionPriId, pdIds);
         }
 
         return list;
     }
 
-    public static void setExpire(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
-        for (Integer rlPdId : rlPdIds) {
-            String cacheKey = getCacheKey(aid, unionPriId, rlPdId);
+    public static void setExpire(int aid, int unionPriId, FaiList<Integer> pdIds) {
+        for (Integer pdId : pdIds) {
+            String cacheKey = getCacheKey(aid, unionPriId, pdId);
             m_cache.expire(cacheKey, EXPIRE_SECOND);
 
         }
     }
 
     /**
-     *  aid + uid + rlPdId ---》 list
+     *  aid + uid + pdId ---》 list
      * @param aid
      * @param unionPriId
-     * @param rlPdId
+     * @param pdId
      * @param list
      */
-    public static void addCacheList(int aid, int unionPriId, int rlPdId, FaiList<Param> list) {
-        if(Util.isEmptyList(list)) {
+    public static void addCacheList(int aid, int unionPriId, int pdId, FaiList<Param> list) {
+        if(Utils.isEmptyList(list)) {
             return;
         }
-        String cacheKey = getCacheKey(aid, unionPriId, rlPdId);
+        String cacheKey = getCacheKey(aid, unionPriId, pdId);
         m_cache.setFaiList(cacheKey, list, ProductBindTagDto.Key.INFO, ProductBindTagDto.getInfoDto());
     }
 
-    public static void delCache(int aid, int unionPriId, int rlPdId) {
-        String cacheKey = getCacheKey(aid, unionPriId, rlPdId);
+    public static void delCache(int aid, int unionPriId, int pdId) {
+        String cacheKey = getCacheKey(aid, unionPriId, pdId);
         if (m_cache.exists(cacheKey)) {
             m_cache.del(cacheKey);
         }
     }
 
-    public static void delCacheList(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
-        if(Util.isEmptyList(rlPdIds)) {
+    public static void delCacheList(int aid, int unionPriId, FaiList<Integer> pdIds) {
+        if(Utils.isEmptyList(pdIds)) {
             return;
         }
-        for (Integer rlPdId : rlPdIds) {
-            String cacheKey = getCacheKey(aid, unionPriId, rlPdId);
+        for (Integer pdId : pdIds) {
+            String cacheKey = getCacheKey(aid, unionPriId, pdId);
             if (m_cache.exists(cacheKey)) {
                 m_cache.del(cacheKey);
             }

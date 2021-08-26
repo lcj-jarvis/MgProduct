@@ -89,7 +89,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
     /**
      * 刷新商品规格库存销售sku
      */
-    public int refreshSkuStoreSales(int aid, int tid, int unionPriId, String xid, int pdId, int rlPdId, FaiList<Param> pdScSkuInfoList){
+    public int refreshSkuStoreSales(int aid, int tid, int unionPriId, int sysType, String xid, int pdId, int rlPdId, FaiList<Param> pdScSkuInfoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -108,6 +108,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(StoreSalesSkuDto.Key.TID, tid);
             sendBody.putInt(StoreSalesSkuDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(StoreSalesSkuDto.Key.SYS_TYPE, sysType);
             sendBody.putString(StoreSalesSkuDto.Key.XID, xid);
             sendBody.putInt(StoreSalesSkuDto.Key.PD_ID, pdId);
             sendBody.putInt(StoreSalesSkuDto.Key.RL_PD_ID, rlPdId);
@@ -255,7 +256,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
     /**
      * 修改商品规格库存销售sku
      */
-    public int setSkuStoreSales(int aid, int tid, int unionPriId, String xid, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList){
+    public int setSkuStoreSales(int aid, int tid, int unionPriId, String xid, int pdId, int rlPdId, int sysType, FaiList<ParamUpdater> updaterList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -277,6 +278,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
             sendBody.putString(StoreSalesSkuDto.Key.XID, xid);
             sendBody.putInt(StoreSalesSkuDto.Key.PD_ID, pdId);
             sendBody.putInt(StoreSalesSkuDto.Key.RL_PD_ID, rlPdId);
+            sendBody.putInt(StoreSalesSkuDto.Key.SYS_TYPE, sysType);
             m_rt = updaterList.toBuffer(sendBody, StoreSalesSkuDto.Key.UPDATER_LIST, StoreSalesSkuDto.getInfoDto());
             if(m_rt != Errno.OK){
                 m_rt = Errno.ARGS_ERROR;
@@ -1357,7 +1359,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
     /**
      * 批量重置指定产品 + 指定sku + 指定入库时间之前的入库采购成本
      */
-    public int batchResetCostPrice(int aid, int rlPdId, Calendar optTime, FaiList<Param> infoList){
+    public int batchResetCostPrice(int aid, int sysType, int rlPdId, Calendar optTime, FaiList<Param> infoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1369,6 +1371,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(InOutStoreRecordDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(InOutStoreRecordDto.Key.RL_PD_ID, rlPdId);
             sendBody.putCalendar(InOutStoreRecordDto.Key.OPT_TIME, optTime);
             m_rt = infoList.toBuffer(sendBody, InOutStoreRecordDto.Key.INFO_LIST, InOutStoreRecordDto.getInfoDto());
@@ -2118,7 +2121,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
     /**
      * 导入数据
      */
-    public int importStoreSales(int aid, int tid, int unionPriId, String xid, FaiList<Param> storeSaleSkuList, Param inStoreRecordInfo){
+    public int importStoreSales(int aid, int tid, int unionPriId, int sysType, String xid, FaiList<Param> storeSaleSkuList, Param inStoreRecordInfo){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2141,7 +2144,8 @@ public class MgProductStoreCli extends MgProductInternalCli {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(StoreSalesSkuDto.Key.TID, tid);
-            sendBody.putInt(StoreSalesSkuDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(StoreSalesSkuDto.Key.UNION_PRI_ID, sysType);
+            sendBody.putInt(StoreSalesSkuDto.Key.SYS_TYPE, unionPriId);
             sendBody.putString(StoreSalesSkuDto.Key.XID, xid);
             storeSaleSkuList.toBuffer(sendBody, StoreSalesSkuDto.Key.INFO_LIST, StoreSalesSkuDto.getInfoDto());
             inStoreRecordInfo.toBuffer(sendBody, StoreSalesSkuDto.Key.IN_OUT_STORE_RECORD_INFO, InOutStoreRecordDto.getInfoDto());

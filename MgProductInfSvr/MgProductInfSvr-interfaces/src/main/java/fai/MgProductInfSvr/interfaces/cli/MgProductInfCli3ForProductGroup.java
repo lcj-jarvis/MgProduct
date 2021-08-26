@@ -5,6 +5,7 @@ import fai.MgProductInfSvr.interfaces.dto.ProductBasicDto;
 import fai.MgProductInfSvr.interfaces.dto.ProductGroupDto;
 import fai.MgProductInfSvr.interfaces.entity.ProductGroupEntity;
 import fai.MgProductInfSvr.interfaces.utils.MgProductArg;
+import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
 import fai.mgproduct.comm.Util;
 
@@ -134,8 +135,9 @@ public class MgProductInfCli3ForProductGroup extends MgProductInfCli2ForProductP
             int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductBasicDto.Key.SYS_TYPE, mgProductArg.getSysType());
             FaiList<Integer> rlPdIds = mgProductArg.getRlPdIds();
-            if (Util.isEmptyList(rlPdIds)) {
+            if (rlPdIds == null || rlPdIds.isEmpty()) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "arg error");
                 return m_rt;
@@ -247,6 +249,96 @@ public class MgProductInfCli3ForProductGroup extends MgProductInfCli2ForProductP
             updaterList.toBuffer(sendBody, ProductGroupDto.Key.UPDATERLIST, ProductGroupDto.getPdGroupDto());
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.GroupCmd.SET_GROUP_LIST, sendBody, false, false);
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    /**
+     * 修改分类数据 （包括 增、删、改）
+     *
+     * @param mgProductArg
+     *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *                 .setUpdaterList(updaterList)  // 必填 {@link ProductGroupEntity.GroupInfo}
+     *                 .setSysType(sysType)          // 必填  系统类型
+     *                 .setGroupLevel(groupLevel)    // 必填  层级限制
+     *                 .setSoftDel(softDel)          // 选填  软删除 默认为 false
+     *                 .build();
+     * @param rlGroupIdsRef 接收返回的分类业务id集合
+     * @return {@link Errno}
+     */
+    public int setAllGroupList(MgProductArg mgProductArg, Ref<FaiList<Integer>> rlGroupIdsRef) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            int aid = mgProductArg.getAid();
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            FaiList<ParamUpdater> updaterList = mgProductArg.getUpdaterList();
+            if (updaterList == null) {
+                updaterList = new FaiList<ParamUpdater>();
+            }
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            int sysType = mgProductArg.getSysType();
+            int groupLevel = mgProductArg.getGroupLevel();
+            boolean softDel = mgProductArg.getSoftDel();
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductGroupDto.Key.TID, tid);
+            sendBody.putInt(ProductGroupDto.Key.SITE_ID, siteId);
+            sendBody.putInt(ProductGroupDto.Key.LGID, lgId);
+            sendBody.putInt(ProductGroupDto.Key.KEEP_PRIID1, keepPriId1);
+            updaterList.toBuffer(sendBody, ProductGroupDto.Key.UPDATERLIST, ProductGroupDto.getPdGroupDto());
+            sendBody.putInt(ProductGroupDto.Key.SYS_TYPE, sysType);
+            sendBody.putInt(ProductGroupDto.Key.GROUP_LEVEL, groupLevel);
+            sendBody.putBoolean(ProductGroupDto.Key.SOFT_DEL, softDel);
+            // send and recv
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setAid(aid);
+            sendProtocol.setCmd(MgProductInfCmd.GroupCmd.SET_ALL_GROUP_LIST);
+            sendProtocol.addEncodeBody(sendBody);
+
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            boolean rlGroupIdRefNotNull = (rlGroupIdsRef != null);
+
+            if (rlGroupIdRefNotNull) {
+                FaiBuffer recvBody = recvProtocol.getDecodeBody();
+                if (recvBody != null) {
+                    Ref<Integer> keyRef = new Ref<Integer>();
+                    FaiList<Integer> ids = new FaiList<Integer>();
+                    m_rt = ids.fromBuffer(recvBody, keyRef);
+                    if (m_rt != Errno.OK || keyRef.value != ProductGroupDto.Key.RL_GROUP_IDS) {
+                        Log.logErr(m_rt, "recv rlGroupId codec err");
+                        return m_rt;
+                    }
+                    rlGroupIdsRef.value = ids;
+                }
+            }
             return m_rt;
         } finally {
             close();
@@ -413,8 +505,8 @@ public class MgProductInfCli3ForProductGroup extends MgProductInfCli2ForProductP
             int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
-            int rlPdId = mgProductArg.getRlPdId();
-            sendBody.putInt(ProductBasicDto.Key.RL_PD_ID, rlPdId);
+            sendBody.putInt(ProductBasicDto.Key.SYS_TYPE, mgProductArg.getSysType());
+            sendBody.putInt(ProductBasicDto.Key.RL_PD_ID, mgProductArg.getRlPdId());
             addRlGroupIds.toBuffer(sendBody, ProductBasicDto.Key.BIND_GROUP_IDS);
             delRlGroupIds.toBuffer(sendBody, ProductBasicDto.Key.DEL_BIND_GROUP_IDS);
             // send and recv

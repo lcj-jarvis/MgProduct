@@ -58,53 +58,53 @@ public class ProductBindTagProc {
         }
     }
 
-    public FaiList<Param> getPdBindTagList(int aid, int unionPriId, FaiList<Integer> rlPdIdList) {
+    public FaiList<Param> getPdBindTagList(int aid, int unionPriId, FaiList<Integer> pdIdList) {
         //去重
-        HashSet<Integer> rlPdIds = new HashSet<>(rlPdIdList);
+        HashSet<Integer> pdIds = new HashSet<>(pdIdList);
         //获取缓存的所有数据
-        FaiList<Param> cacheList = ProductBindTagCache.getCacheList(aid, unionPriId, rlPdIds);
+        FaiList<Param> cacheList = ProductBindTagCache.getCacheList(aid, unionPriId, pdIds);
         if (cacheList == null) {
             cacheList = new FaiList<>();
         }
         cacheList.remove(null);
-        if (cacheList.size() == rlPdIds.size()) {
+        if (cacheList.size() == pdIds.size()) {
             return cacheList;
         }
 
         LockUtil.PdBindTagLock.readLock(aid);
         try {
             //双检，防止缓存穿透
-            cacheList = ProductBindTagCache.getCacheList(aid, unionPriId, rlPdIds);
+            cacheList = ProductBindTagCache.getCacheList(aid, unionPriId, pdIds);
             if (cacheList == null) {
                 cacheList = new FaiList<>();
             }
             cacheList.remove(null);
-            if (cacheList.size() == rlPdIds.size()) {
+            if (cacheList.size() == pdIds.size()) {
                 return cacheList;
             }
 
-            //获取未缓存的rlPdId
-            FaiList<Integer> noCacheRlPdIds = new FaiList<>();
-            noCacheRlPdIds.addAll(rlPdIds);
+            //获取未缓存的pdId
+            FaiList<Integer> noCacheIds = new FaiList<>();
+            noCacheIds.addAll(pdIds);
             cacheList.forEach(param -> {
-                Integer rlPdId = param.getInt(ProductBindTagEntity.Info.RL_PD_ID);
-                noCacheRlPdIds.remove(rlPdId);
+                Integer pdId = param.getInt(ProductBindTagEntity.Info.PD_ID);
+                noCacheIds.remove(pdId);
             });
 
             //查询未缓存的
             SearchArg searchArg = new SearchArg();
             searchArg.matcher = new ParamMatcher(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, aid);
             searchArg.matcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-            searchArg.matcher.and(ProductBindTagEntity.Info.RL_PD_ID, ParamMatcher.IN, noCacheRlPdIds);
+            searchArg.matcher.and(ProductBindTagEntity.Info.PD_ID, ParamMatcher.IN, noCacheIds);
             FaiList<Param> noCacheList = getListByConditions(aid, searchArg, null);
 
-            Map<Integer, List<Param>> groupByRlPdIds = noCacheList.stream()
-                    .collect(Collectors.groupingBy(x -> x.getInt(ProductBindTagEntity.Info.RL_PD_ID)));
+            Map<Integer, List<Param>> groupByPdIds = noCacheList.stream()
+                    .collect(Collectors.groupingBy(x -> x.getInt(ProductBindTagEntity.Info.PD_ID)));
 
             if (!noCacheList.isEmpty()) {
                 //添加缓存
-                for (Integer rlPdId:groupByRlPdIds.keySet()) {
-                    ProductBindTagCache.addCacheList(aid, unionPriId, rlPdId, new FaiList<>(groupByRlPdIds.get(rlPdId)));
+                for (Integer pdId : groupByPdIds.keySet()) {
+                    ProductBindTagCache.addCacheList(aid, unionPriId, pdId, new FaiList<>(groupByPdIds.get(pdId)));
                 }
                 //组装完整的结果
                 cacheList.addAll(noCacheList);
@@ -146,11 +146,12 @@ public class ProductBindTagProc {
         return result;
     }
 
-    public FaiList<Integer> getRlPdIdsByTagIds(int aid, int unionPriId, FaiList<Integer> rlTagIds) {
+    public FaiList<Integer> getRlPdIdsByTagIds(int aid, int unionPriId, int sysType, FaiList<Integer> rlTagIds) {
         //查询条件
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        searchArg.matcher.and(ProductBindTagEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
         searchArg.matcher.and(ProductBindTagEntity.Info.RL_TAG_ID, ParamMatcher.IN, rlTagIds);
         FaiList<Integer> rlPdIds = new FaiList<>();
         FaiList<Param> result = getListByConditions(aid, searchArg, null);
@@ -183,19 +184,19 @@ public class ProductBindTagProc {
         return statusInfo;
     }
 
-    public int delPdBindTagList(int aid, int unionPriId, int rlPdId, FaiList<Integer> delRlTagIds) {
+    public int delPdBindTagList(int aid, int unionPriId, int pdId, FaiList<Integer> delRlTagIds) {
         int rt;
         if(Utils.isEmptyList(delRlTagIds)) {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "args error;flow=%d;aid=%d;", m_flow, aid);
         }
-        ParamMatcher matcher = new ParamMatcher(ProductBindTagEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
+        ParamMatcher matcher = new ParamMatcher(ProductBindTagEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
         matcher.and(ProductBindTagEntity.Info.RL_TAG_ID, ParamMatcher.IN, delRlTagIds);
 
         return delPdBindTag(aid, unionPriId, matcher);
     }
 
-    public void addPdBindTagList(int aid, int unionPriId, int rlPdId, int pdId, FaiList<Integer> addRlTagIds) {
+    public void addPdBindTagList(int aid, int unionPriId, int sysType, int rlPdId, int pdId, FaiList<Integer> addRlTagIds) {
         int rt;
         if(Utils.isEmptyList(addRlTagIds)) {
             rt = Errno.ARGS_ERROR;
@@ -207,6 +208,7 @@ public class ProductBindTagProc {
         for(int rlTagId : addRlTagIds) {
             Param info = new Param();
             info.setInt(ProductBindTagEntity.Info.AID, aid);
+            info.setInt(ProductBindTagEntity.Info.SYS_TYPE, sysType);
             info.setInt(ProductBindTagEntity.Info.RL_PD_ID, rlPdId);
             info.setInt(ProductBindTagEntity.Info.RL_TAG_ID, rlTagId);
             info.setInt(ProductBindTagEntity.Info.UNION_PRI_ID, unionPriId);
@@ -217,7 +219,7 @@ public class ProductBindTagProc {
             if(addSaga) {
                 Param sagaInfo = new Param();
                 sagaInfo.setInt(ProductBindTagEntity.Info.AID, aid);
-                sagaInfo.setInt(ProductBindTagEntity.Info.RL_PD_ID, rlPdId);
+                sagaInfo.setInt(ProductBindTagEntity.Info.PD_ID, pdId);
                 sagaInfo.setInt(ProductBindTagEntity.Info.RL_TAG_ID, rlTagId);
                 sagaInfo.setInt(ProductBindTagEntity.Info.UNION_PRI_ID, unionPriId);
 
@@ -235,29 +237,13 @@ public class ProductBindTagProc {
         addSagaList(aid, sagaList);
     }
 
-    public void addList4SagaRollback(FaiList<Param> list) {
-        if(Utils.isEmptyList(list)) {
-            return;
-        }
-        for(Param info : list) {
-            info.remove(BasicSagaEntity.Common.XID);
-            info.remove(BasicSagaEntity.Common.BRANCH_ID);
-            info.remove(BasicSagaEntity.Common.SAGA_OP);
-        }
-        int rt = m_dao.batchInsert(list, null, false);
-        if(rt != Errno.OK) {
-            throw new MgException(rt, "batch insert product bind group error;flow=%d;list=%s;", m_flow, list);
-        }
-        Log.logStd("rollback bind tags ok;list=%s;", list);
-    }
-
-    public void updateBindTagList(int aid, int unionPriId, int rlPdId, int pdId, FaiList<Integer> rlTagIds) {
+    public void updateBindTagList(int aid, int unionPriId, int sysType, int rlPdId, int pdId, FaiList<Integer> rlTagIds) {
         if(rlTagIds == null) {
             return;
         }
-        FaiList<Integer> rlPdIds = new FaiList<>();
-        rlPdIds.add(rlPdId);
-        FaiList<Param> list = getPdBindTagList(aid, unionPriId, rlPdIds);
+        FaiList<Integer> pdIds = new FaiList<>();
+        pdIds.add(pdId);
+        FaiList<Param> list = getPdBindTagList(aid, unionPriId, pdIds);
         FaiList<Integer> oldTagIds = Utils.getValList(list, ProductBindTagEntity.Info.RL_TAG_ID);
 
         FaiList<Integer> delTagIds = new FaiList<>();
@@ -273,22 +259,22 @@ public class ProductBindTagProc {
 
         // 新增
         if(!rlTagIds.isEmpty()) {
-            addPdBindTagList(aid, unionPriId, rlPdId, pdId, rlTagIds);
+            addPdBindTagList(aid, unionPriId, sysType, rlPdId, pdId, rlTagIds);
         }
 
         // 删除
         if(!delTagIds.isEmpty()) {
-            delPdBindTagList(aid, unionPriId, rlPdId, delTagIds);
+            delPdBindTagList(aid, unionPriId, pdId, delTagIds);
         }
     }
 
-    public int delPdBindTagList(int aid, int unionPriId, FaiList<Integer> delRlPdIds) {
+    public int delPdBindTagList(int aid, int unionPriId, FaiList<Integer> delPdIds) {
         int rt;
-        if(Utils.isEmptyList(delRlPdIds)) {
+        if(Utils.isEmptyList(delPdIds)) {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "args error;flow=%d;aid=%d;", m_flow, aid);
         }
-        ParamMatcher matcher = new ParamMatcher(ProductBindTagEntity.Info.RL_PD_ID, ParamMatcher.IN, delRlPdIds);
+        ParamMatcher matcher = new ParamMatcher(ProductBindTagEntity.Info.PD_ID, ParamMatcher.IN, delPdIds);
         return delPdBindTag(aid, unionPriId, matcher);
     }
 
@@ -380,12 +366,12 @@ public class ProductBindTagProc {
         int rt;
         for(Param info : list) {
             int unionPriId = info.getInt(ProductBindTagEntity.Info.UNION_PRI_ID);
-            int rlPdId = info.getInt(ProductBindTagEntity.Info.RL_PD_ID);
+            int pdId = info.getInt(ProductBindTagEntity.Info.PD_ID);
             int rlTagId = info.getInt(ProductBindTagEntity.Info.RL_TAG_ID);
 
             ParamMatcher matcher = new ParamMatcher(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, aid);
             matcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-            matcher.and(ProductBindTagEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
+            matcher.and(ProductBindTagEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
             matcher.and(ProductBindTagEntity.Info.RL_TAG_ID, ParamMatcher.EQ, rlTagId);
 
             rt = m_dao.delete(matcher);

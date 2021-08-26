@@ -6,11 +6,13 @@ public class PdKey {
     public int unionPriId;
     public int pdId;
     public int rlPdId;
+    public int sysType;
 
-    public PdKey(int unionPriId, int pdId, int rlPdId) {
+    public PdKey(int unionPriId, int pdId, int rlPdId, int sysType) {
         this.unionPriId = unionPriId;
         this.pdId = pdId;
         this.rlPdId = rlPdId;
+        this.sysType = sysType;
     }
 
     @Override
@@ -20,12 +22,13 @@ public class PdKey {
         PdKey pdKey = (PdKey) o;
         return unionPriId == pdKey.unionPriId &&
                 pdId == pdKey.pdId &&
-                rlPdId == pdKey.rlPdId;
+                rlPdId == pdKey.rlPdId &&
+                sysType == pdKey.sysType;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(unionPriId, pdId, rlPdId);
+        return Objects.hash(unionPriId, pdId, rlPdId, sysType);
     }
 
     @Override
@@ -34,6 +37,7 @@ public class PdKey {
                 "unionPriId=" + unionPriId +
                 ", pdId=" + pdId +
                 ", rlPdId=" + rlPdId +
+                ", sysType=" + sysType +
                 '}';
     }
 }

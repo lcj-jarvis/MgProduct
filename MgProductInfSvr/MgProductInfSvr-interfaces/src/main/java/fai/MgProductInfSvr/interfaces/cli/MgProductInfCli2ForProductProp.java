@@ -147,9 +147,10 @@ public class MgProductInfCli2ForProductProp extends MgProductInfCli1ForProductBa
             int keepPriId1 = mgProductArg.getKeepPriId1();
             int rlLibId = mgProductArg.getRlLibId();
             // packaging send data
-            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1), new Pair(ProductBasicDto.Key.RL_LIB_ID, rlLibId));
-            int rlPdId = mgProductArg.getRlPdId();
-            sendBody.putInt(ProductBasicDto.Key.RL_PD_ID, rlPdId);
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductBasicDto.Key.SYS_TYPE, mgProductArg.getSysType());
+            sendBody.putInt(ProductBasicDto.Key.RL_LIB_ID, rlLibId);
+            sendBody.putInt(ProductBasicDto.Key.RL_PD_ID, mgProductArg.getRlPdId());
             // send and recv
             int aid = mgProductArg.getAid();
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.GET_PROP_LIST, sendBody, true);
@@ -203,6 +204,7 @@ public class MgProductInfCli2ForProductProp extends MgProductInfCli1ForProductBa
             int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductBasicDto.Key.SYS_TYPE, mgProductArg.getSysType());
             FaiList<Param> propIdsAndValIds = mgProductArg.getPropIdsAndValIds();
             propIdsAndValIds.toBuffer(sendBody, ProductBasicDto.Key.BIND_PROP_INFO, ProductBasicDto.getBindPropValDto());
             // send and recv
@@ -455,7 +457,12 @@ public class MgProductInfCli2ForProductProp extends MgProductInfCli1ForProductBa
             int keepPriId1 = mgProductArg.getKeepPriId1();
             int libId = mgProductArg.getRlLibId();
             // packaging send data
-            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductPropDto.Key.TID, tid), new Pair(ProductPropDto.Key.SITE_ID, siteId), new Pair(ProductPropDto.Key.LGID, lgId), new Pair(ProductPropDto.Key.KEEP_PRIID1, keepPriId1), new Pair(ProductPropDto.Key.LIB_ID, libId));
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductPropDto.Key.TID, tid),
+                    new Pair(ProductPropDto.Key.SITE_ID, siteId),
+                    new Pair(ProductPropDto.Key.LGID, lgId),
+                    new Pair(ProductPropDto.Key.KEEP_PRIID1, keepPriId1),
+                    new Pair(ProductPropDto.Key.SYS_TYPE, mgProductArg.getSysType()),
+                    new Pair(ProductPropDto.Key.LIB_ID, libId));
             idList.toBuffer(sendBody, ProductPropDto.Key.RL_PROP_IDS);
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.PropCmd.BATCH_DEL, sendBody, false, false);
@@ -643,9 +650,10 @@ public class MgProductInfCli2ForProductProp extends MgProductInfCli1ForProductBa
             int keepPriId1 = mgProductArg.getKeepPriId1();
             int libId = mgProductArg.getRlLibId();
             // packaging send data
-            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductPropDto.Key.TID, tid), new Pair(ProductPropDto.Key.SITE_ID, siteId), new Pair(ProductPropDto.Key.LGID, lgId), new Pair(ProductPropDto.Key.KEEP_PRIID1, keepPriId1), new Pair(ProductPropDto.Key.LIB_ID, libId));
-            int rlPropId = mgProductArg.getRlPropId();
-            sendBody.putInt(ProductPropDto.Key.RL_PROP_ID, rlPropId);
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductPropDto.Key.TID, tid), new Pair(ProductPropDto.Key.SITE_ID, siteId), new Pair(ProductPropDto.Key.LGID, lgId), new Pair(ProductPropDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductPropDto.Key.SYS_TYPE, mgProductArg.getSysType());
+            sendBody.putInt(ProductPropDto.Key.LIB_ID, libId);
+            sendBody.putInt(ProductPropDto.Key.RL_PROP_ID, mgProductArg.getRlPropId());
             ParamUpdater propUpdater = mgProductArg.getUpdater();
             if (propUpdater == null) {
                 propUpdater = new ParamUpdater();
@@ -720,9 +728,10 @@ public class MgProductInfCli2ForProductProp extends MgProductInfCli1ForProductBa
             int keepPriId1 = mgProductArg.getKeepPriId1();
             int libId = mgProductArg.getRlLibId();
             // packaging send data
-            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductPropDto.Key.TID, tid), new Pair(ProductPropDto.Key.SITE_ID, siteId), new Pair(ProductPropDto.Key.LGID, lgId), new Pair(ProductPropDto.Key.KEEP_PRIID1, keepPriId1), new Pair(ProductPropDto.Key.LIB_ID, libId));
-            int rlPropId = mgProductArg.getRlPropId();
-            sendBody.putInt(ProductPropDto.Key.RL_PROP_IDS, rlPropId);
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductPropDto.Key.TID, tid), new Pair(ProductPropDto.Key.SITE_ID, siteId), new Pair(ProductPropDto.Key.LGID, lgId), new Pair(ProductPropDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductPropDto.Key.SYS_TYPE, mgProductArg.getSysType());
+            sendBody.putInt(ProductPropDto.Key.LIB_ID, libId);
+            sendBody.putInt(ProductPropDto.Key.RL_PROP_IDS, mgProductArg.getRlPropId());
             addList.toBuffer(sendBody, ProductPropDto.Key.VAL_LIST, ProductPropDto.getPropValInfoDto());
             setList.toBuffer(sendBody, ProductPropDto.Key.UPDATERLIST, ProductPropDto.getPropValInfoDto());
             delList.toBuffer(sendBody, ProductPropDto.Key.VAL_IDS);
@@ -774,8 +783,8 @@ public class MgProductInfCli2ForProductProp extends MgProductInfCli1ForProductBa
             int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
-            int rlPdId = mgProductArg.getRlPdId();
-            sendBody.putInt(ProductBasicDto.Key.RL_PD_ID, rlPdId);
+            sendBody.putInt(ProductBasicDto.Key.SYS_TYPE, mgProductArg.getSysType());
+            sendBody.putInt(ProductBasicDto.Key.RL_PD_ID, mgProductArg.getRlPdId());
             addPropList.toBuffer(sendBody, ProductBasicDto.Key.PROP_BIND, ProductBasicDto.getBindPropValDto());
             delPropList.toBuffer(sendBody, ProductBasicDto.Key.DEL_PROP_BIND, ProductBasicDto.getBindPropValDto());
             // send and recv

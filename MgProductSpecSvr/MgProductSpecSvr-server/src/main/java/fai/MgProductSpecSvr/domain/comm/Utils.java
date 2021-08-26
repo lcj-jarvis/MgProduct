@@ -8,6 +8,10 @@ import fai.comm.util.ParamUpdater;
 import java.util.*;
 import java.util.function.Consumer;
 
+/**
+ * 废弃，改用 fai.middleground.svrutil.misc.Utils
+ */
+@Deprecated
 public class Utils {
 
     /**

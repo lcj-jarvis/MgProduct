@@ -172,17 +172,17 @@ public class MgProductInfService extends ServicePub {
         return list;
     }
 
-    protected int getPdIdWithAdd(int flow, int aid, int tid, int unionPriId, int rlPdId, Ref<Integer> idRef) {
-        return getPdId(flow, aid, tid, unionPriId, rlPdId, idRef, true);
+    protected int getPdIdWithAdd(int flow, int aid, int tid, int unionPriId, int sysType, int rlPdId, Ref<Integer> idRef) {
+        return getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef, true);
     }
     /**
      * 获取PdId
      */
-    protected int getPdId(int flow, int aid, int tid, int unionPriId, int rlPdId, Ref<Integer> idRef) {
-        return getPdId(flow, aid, tid, unionPriId, rlPdId, idRef, false);
+    protected int getPdId(int flow, int aid, int tid, int unionPriId, int sysType, int rlPdId, Ref<Integer> idRef) {
+        return getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef, false);
     }
 
-    protected int getPdId(int flow, int aid, int tid, int unionPriId, int rlPdId, Ref<Integer> idRef, boolean withAdd) {
+    protected int getPdId(int flow, int aid, int tid, int unionPriId, int sysType, int rlPdId, Ref<Integer> idRef, boolean withAdd) {
         int rt = Errno.ERROR;
         MgProductBasicCli mgProductBasicCli = new MgProductBasicCli(flow);
         if(!mgProductBasicCli.init()) {
@@ -192,7 +192,7 @@ public class MgProductInfService extends ServicePub {
         }
 
         Param pdRelInfo = new Param();
-        rt = mgProductBasicCli.getRelInfoByRlId(aid, unionPriId, rlPdId, pdRelInfo);
+        rt = mgProductBasicCli.getRelInfoByRlId(aid, unionPriId, sysType, rlPdId, pdRelInfo);
         if(rt != Errno.OK) {
             if(withAdd && (rt == Errno.NOT_FOUND)){
                 rt = mgProductBasicCli.addProductAndRel(aid, tid, unionPriId, null, new Param()
@@ -559,7 +559,7 @@ public class MgProductInfService extends ServicePub {
      * @param keepPriId1 创建商品的keepPriId1
      * @param rlPdId 业务商品id
      */
-    public int getProductFullInfo(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId) throws IOException {
+    public int getProductFullInfo(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, int rlPdId) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -581,7 +581,7 @@ public class MgProductInfService extends ServicePub {
 
             // 1 获取商品关联信息
             Param pdRelInfo = new Param();
-            rt = productBasicProc.getRelInfoByRlId(aid, unionPriId, rlPdId, pdRelInfo);
+            rt = productBasicProc.getRelInfoByRlId(aid, unionPriId, sysType, rlPdId, pdRelInfo);
             if(rt != Errno.OK){
                 return rt;
             }
@@ -637,7 +637,7 @@ public class MgProductInfService extends ServicePub {
         return rt;
     }
 
-    public int getProductList4Adm(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, Param combined) throws IOException {
+    public int getProductList4Adm(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, FaiList<Integer> rlPdIds, Param combined) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -659,7 +659,7 @@ public class MgProductInfService extends ServicePub {
 
             // 1 获取商品关联信息
             FaiList<Param> pdRelInfos = new FaiList<>();
-            rt = productBasicProc.getRelListByRlIds(aid, unionPriId, rlPdIds, pdRelInfos);
+            rt = productBasicProc.getRelListByRlIds(aid, unionPriId, sysType, rlPdIds, pdRelInfos);
             if(rt != Errno.OK){
                 return rt;
             }
@@ -766,7 +766,7 @@ public class MgProductInfService extends ServicePub {
         return rt;
     }
 
-    public int getProductSummary4Adm(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, Param getKeys) throws IOException {
+    public int getProductSummary4Adm(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, FaiList<Integer> rlPdIds, Param getKeys) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -788,7 +788,7 @@ public class MgProductInfService extends ServicePub {
 
             // 1 获取商品关联信息
             FaiList<Param> pdRelInfos = new FaiList<>();
-            rt = productBasicProc.getRelListByRlIds(aid, unionPriId, rlPdIds, pdRelInfos);
+            rt = productBasicProc.getRelListByRlIds(aid, unionPriId, sysType, rlPdIds, pdRelInfos);
             if(rt != Errno.OK){
                 return rt;
             }
@@ -1057,7 +1057,7 @@ public class MgProductInfService extends ServicePub {
      * @param inStoreRecordInfo 入库记录信息
      * @param useMgProductBasicInfo 是否接入使用商品中台基础信息
      */
-    public int importProduct(FaiSession session, int flow, int aid, int ownerTid, int ownerSiteId, int ownerLgId, int ownerKeepPriId1, String xid, FaiList<Param> productList, Param inStoreRecordInfo, boolean useMgProductBasicInfo) throws IOException, TransactionException {
+    public int importProduct(FaiSession session, int flow, int aid, int ownerTid, int ownerSiteId, int ownerLgId, int ownerKeepPriId1, int sysType, String xid, FaiList<Param> productList, Param inStoreRecordInfo, boolean useMgProductBasicInfo) throws IOException, TransactionException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         FaiList<Param> errProductList = new FaiList<>();
@@ -1138,7 +1138,7 @@ public class MgProductInfService extends ServicePub {
                 Set<Integer> alreadyExistsRlPdIdSet = new HashSet<>();
                 if(!rlPdIdList.isEmpty()){
                     FaiList<Param> alreadyExistsList = new FaiList<>();
-                    rt = productBasicProc.getRelListByRlIds(aid, ownerUnionPriId, rlPdIdList, alreadyExistsList);
+                    rt = productBasicProc.getRelListByRlIds(aid, ownerUnionPriId, sysType, rlPdIdList, alreadyExistsList);
                     if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                         Log.logErr(rt, "productBasicProc.getRelListByRlIds err;aid=%s;ownerTid=%s;ownerUnionPriId=%s;rlPdIdList=%s;", aid, ownerTid, ownerUnionPriId, rlPdIdList);
                         return rt;
@@ -1384,6 +1384,7 @@ public class MgProductInfService extends ServicePub {
                             importStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId);
                             importStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, ownerUnionPriId);
                             importStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.RL_PD_ID, rlPdId);
+                            importStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.SYS_TYPE, sysType);
                             importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.SKU_TYPE, StoreSalesSkuEntity.Info.SKU_TYPE);
                             importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.SORT, StoreSalesSkuEntity.Info.SORT);
                             importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.COUNT, StoreSalesSkuEntity.Info.COUNT);
@@ -1402,7 +1403,7 @@ public class MgProductInfService extends ServicePub {
                     // 导入
                     if(!storeSaleSkuList.isEmpty()){
                         ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-                        rt = productStoreProc.importStoreSales(aid, ownerTid, ownerUnionPriId, xid, storeSaleSkuList, inStoreRecordInfo);
+                        rt = productStoreProc.importStoreSales(aid, ownerTid, ownerUnionPriId, sysType, xid, storeSaleSkuList, inStoreRecordInfo);
                         if(rt != Errno.OK){
                             return rt;
                         }

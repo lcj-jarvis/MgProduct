@@ -134,7 +134,7 @@ public class ProductRelProc {
             Param updateInfo = new Param();
             updateInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DEL);
             ParamUpdater updater = new ParamUpdater(updateInfo);
-            return updatePdRel(aid, matcher, updater, null);
+            return updatePdRel(aid, matcher, updater);
         }
         Ref<Integer> refRowCount = new Ref<>();
         rt = m_dao.delete(matcher, refRowCount);
@@ -178,38 +178,21 @@ public class ProductRelProc {
         m_dao.clearIdBuilderCache(aid, unionPriId);
     }
 
-    public int delProductRel(int aid, int unionPriId, FaiList<Integer> rlPdIds, boolean softDel) {
+    public int delProductRel(int aid, int unionPriId, FaiList<Integer> pdIds, boolean softDel) {
         int rt;
-        if(rlPdIds == null || rlPdIds.isEmpty()) {
-            rt = Errno.ARGS_ERROR;
-            throw new MgException(rt, "args err;flow=%d;aid=%d;uid=%d;rlPdIds=%s", m_flow, aid, unionPriId, rlPdIds);
-        }
-        ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        matcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
-        if(softDel) {
-            Param updateInfo = new Param();
-            updateInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DEL);
-            ParamUpdater updater = new ParamUpdater(updateInfo);
-            return updatePdRel(aid, matcher, updater, null);
-        }
-        Ref<Integer> refRowCount = new Ref<>();
-        rt = m_dao.delete(matcher, refRowCount);
-        if(rt != Errno.OK) {
-            throw new MgException(rt, "del product rel error;flow=%d;aid=%d;unionPridId=%d;rlPdIds=%d;", m_flow, aid, unionPriId, rlPdIds);
-        }
-        return refRowCount.value;
-    }
-
-    public int delByPdId(int aid, int unionPriId, FaiList<Integer> pdIds) {
-        int rt;
-        if(pdIds == null || pdIds.isEmpty()) {
+        if(Utils.isEmptyList(pdIds)) {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "args err;flow=%d;aid=%d;uid=%d;pdIds=%s", m_flow, aid, unionPriId, pdIds);
         }
         ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        if(softDel) {
+            Param updateInfo = new Param();
+            updateInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DEL);
+            ParamUpdater updater = new ParamUpdater(updateInfo);
+            return updatePdRel(aid, matcher, updater);
+        }
         Ref<Integer> refRowCount = new Ref<>();
         rt = m_dao.delete(matcher, refRowCount);
         if(rt != Errno.OK) {
@@ -222,85 +205,75 @@ public class ProductRelProc {
      * 根据pdId, 删除所有关联数据
      * @return 返回被删除的数据
      */
-    public FaiList<Param> delProductRelByPdId(int aid, FaiList<Integer> pdIds, boolean softDel) {
+    public void delProductRelByPdId(int aid, FaiList<Integer> pdIds, boolean softDel) {
         int rt;
         if(pdIds == null || pdIds.isEmpty()) {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "args err;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
         }
-        FaiList<Param> returnList = new FaiList<>();
         FaiList<FaiList<Integer>> batchPdIds = Utils.splitList(pdIds, BATCH_DEL_SIZE);
         for(FaiList<Integer> tmpPdIds : batchPdIds) {
             ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
             matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, tmpPdIds);
 
-            FaiList<String> selectFields = null;
-            // 如果没有开启分布式事务，只需查unionPriId和rlPdId就行了
-            if(!addSaga) {
-                selectFields = new FaiList<>();
-                selectFields.add(ProductRelEntity.Info.UNION_PRI_ID);
-                selectFields.add(ProductRelEntity.Info.RL_PD_ID);
-            }
-            SearchArg searchArg = new SearchArg();
-            searchArg.matcher = matcher;
-            Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
-            rt = m_dao.select(searchArg, listRef, selectFields);
-            if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-                throw new MgException(rt, "get unionPriId error;flow=%d;aid=%d;tmpPdIds=%d;", m_flow, aid, tmpPdIds);
-            }
-            FaiList<Param> oldList = listRef.value;
-            if(Utils.isEmptyList(oldList)) {
-                return null;
-            }
-            returnList.addAll(oldList);
-
             if(softDel) {
                 Param updateInfo = new Param();
                 updateInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DEL);
                 ParamUpdater updater = new ParamUpdater(updateInfo);
-                updatePdRel(aid, matcher, updater, oldList);
-            }else {
-                rt = m_dao.delete(matcher);
-                if(rt != Errno.OK) {
-                    throw new MgException(rt, "del product rel error;flow=%d;aid=%d;tmpPdIds=%d;", m_flow, aid, tmpPdIds);
-                }
-                // 开启了分布式事务，需要记录删除的数据
-                if(addSaga) {
-                    for(Param info : oldList) {
-                        long branchId = RootContext.getBranchId();
-                        info.setString(BasicSagaEntity.Common.XID, m_xid);
-                        info.setLong(BasicSagaEntity.Common.BRANCH_ID, branchId);
-                        info.setInt(BasicSagaEntity.Common.SAGA_OP, BasicSagaValObj.SagaOp.DEL);
-                    }
-                    // 插入
-                    addSagaList(aid, oldList);
-                }
+                updatePdRel(aid, matcher, updater);
+                continue;
             }
 
+            // 开启了分布式事务，需要记录删除的数据
+            if(addSaga) {
+                SearchArg searchArg = new SearchArg();
+                searchArg.matcher = matcher;
+                Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
+                rt = m_dao.select(searchArg, listRef);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                    throw new MgException(rt, "get unionPriId error;flow=%d;aid=%d;tmpPdIds=%d;", m_flow, aid, tmpPdIds);
+                }
+                FaiList<Param> oldList = listRef.value;
+                if(Utils.isEmptyList(oldList)) {
+                    return;
+                }
+
+                for(Param info : oldList) {
+                    long branchId = RootContext.getBranchId();
+                    info.setString(BasicSagaEntity.Common.XID, m_xid);
+                    info.setLong(BasicSagaEntity.Common.BRANCH_ID, branchId);
+                    info.setInt(BasicSagaEntity.Common.SAGA_OP, BasicSagaValObj.SagaOp.DEL);
+                }
+                // 插入
+                addSagaList(aid, oldList);
+            }
+            rt = m_dao.delete(matcher);
+            if(rt != Errno.OK) {
+                throw new MgException(rt, "del product rel error;flow=%d;aid=%d;tmpPdIds=%d;", m_flow, aid, tmpPdIds);
+            }
         }
-        return returnList;
     }
 
-    public void setSingle(int aid, int unionPriId, Integer rlPdId, ParamUpdater recvUpdater) {
+    public void setSingle(int aid, int unionPriId, Integer pdId, ParamUpdater recvUpdater) {
         if (recvUpdater == null || recvUpdater.isEmpty()) {
             return;
         }
         ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        matcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
+        matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
 
-        updatePdRel(aid, matcher, recvUpdater, null);
+        updatePdRel(aid, matcher, recvUpdater);
     }
 
-    public void setPdRels(int aid, int unionPriId, FaiList<Integer> rlPdIds, ParamUpdater recvUpdater) {
+    public void setPdRels(int aid, int unionPriId, FaiList<Integer> pdIds, ParamUpdater recvUpdater) {
         ParamUpdater updater = assignUpdate(m_flow, aid, recvUpdater);
         if (updater == null || updater.isEmpty()) {
             return;
         }
         ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        matcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
+        matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
 
-        updatePdRel(aid, matcher, updater, null);
+        updatePdRel(aid, matcher, updater);
     }
 
     public static ParamUpdater assignUpdate(int flow, int aid, ParamUpdater recvUpdater) {
@@ -328,7 +301,7 @@ public class ProductRelProc {
         return updater;
     }
 
-    private int updatePdRel(int aid, ParamMatcher matcher, ParamUpdater updater, FaiList<Param> oldList) {
+    private int updatePdRel(int aid, ParamMatcher matcher, ParamUpdater updater) {
         int rt;
         if(updater == null || updater.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -351,11 +324,9 @@ public class ProductRelProc {
             validUpdaterFields.add(ProductRelEntity.Info.UNION_PRI_ID);
             validUpdaterFields.add(ProductRelEntity.Info.PD_ID);
 
-            if(Utils.isEmptyList(oldList)) {
-                SearchArg searchArg = new SearchArg();
-                searchArg.matcher = matcher;
-                oldList = searchFromDb(aid, searchArg, new FaiList<>(validUpdaterFields));
-            }
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = matcher;
+            FaiList<Param> oldList = searchFromDb(aid, searchArg, new FaiList<>(validUpdaterFields));
 
             if(oldList.isEmpty()) {
                 Log.logStd("update not found;aid=%d;matcher=%s;update=%s;", aid, matcher.toJson(), updater.toJson());
@@ -512,19 +483,19 @@ public class ProductRelProc {
         Log.logStd("rollback del ok;aid=%d;xid=%s;list=%s;", aid, m_xid, list);
     }
 
-    public Param getProductRel(int aid, int unionPriId, int rlPdId) {
+    public Param getProductRel(int aid, int unionPriId, int pdId) {
         int rt;
-        if(rlPdId <= 0) {
+        if(pdId <= 0) {
             rt = Errno.ARGS_ERROR;
-            throw new MgException(rt, "args err;flow=%d;aid=%d;uid=%d;rlPdId=%s", m_flow, aid, unionPriId, rlPdId);
+            throw new MgException(rt, "args err;flow=%d;aid=%d;uid=%d;pdId=%s", m_flow, aid, unionPriId, pdId);
         }
-        Param info = ProductRelCacheCtrl.InfoCache.getCacheInfo(aid, unionPriId, rlPdId);
+        Param info = ProductRelCacheCtrl.InfoCache.getCacheInfo(aid, unionPriId, pdId);
         if (!Str.isEmpty(info)) {
             return info;
         }
-        HashSet<Integer> rlPdIds = new HashSet<>();
-        rlPdIds.add(rlPdId);
-        FaiList<Param> relList = getList(aid, unionPriId, rlPdIds);
+        HashSet<Integer> pdIds = new HashSet<>();
+        pdIds.add(pdId);
+        FaiList<Param> relList = getListByPdId(aid, unionPriId, pdIds);
         if(relList == null || relList.isEmpty()) {
             return new Param();
         }
@@ -532,68 +503,15 @@ public class ProductRelProc {
         return relList.get(0);
     }
 
-    public FaiList<Param> getProductRelList(int aid, int unionPriId, FaiList<Integer> rlPdIdList) {
+    public FaiList<Param> getProductRelList(int aid, int unionPriId, FaiList<Integer> pdIdList) {
         int rt;
-        if(rlPdIdList == null || rlPdIdList.isEmpty()) {
+        if(Utils.isEmptyList(pdIdList)) {
             rt = Errno.ARGS_ERROR;
-            throw new MgException(rt, "get rlPdIdList is empty;aid=%d;rlPdIdList=%s;", aid, rlPdIdList);
+            throw new MgException(rt, "get pdIdList is empty;aid=%d;pdIdList=%s;", aid, pdIdList);
         }
-        HashSet<Integer> rlPdIds = new HashSet<Integer>(rlPdIdList);
+        HashSet<Integer> pdIds = new HashSet<Integer>(pdIdList);
 
-        return getList(aid, unionPriId, rlPdIds);
-    }
-
-    /** pdId+unionPriId 和 rlPdId的映射 **/
-    public FaiList<Param> getRlPdIdList(int aid, int unionPriId, FaiList<Integer> pdIds) {
-        int rt;
-        if(pdIds == null || pdIds.isEmpty()) {
-            rt = Errno.ARGS_ERROR;
-            throw new MgException(rt, "get error, pdIds is empty;aid=%d;pdIds=%s;", aid, pdIds);
-        }
-        // 从缓存获取数据
-        FaiList<Param> list = ProductRelCacheCtrl.RlIdRelCache.getCacheList(aid, unionPriId, pdIds);
-        if(list == null) {
-            list = new FaiList<Param>();
-        }
-        list.remove(null);
-        // 查到的数据量和pdIds的数据量一致，则说明都有缓存
-        if(list.size() == pdIds.size()) {
-            return list;
-        }
-
-        // 拿到未缓存的pdId list
-        FaiList<Integer> noCacheIds = new FaiList<Integer>();
-        noCacheIds.addAll(pdIds);
-        for(Param info : list) {
-            Integer pdId = info.getInt(ProductRelEntity.Info.PD_ID);
-            noCacheIds.remove(pdId);
-        }
-
-        // db中获取
-        Ref<FaiList<Param>> tmpRef = new Ref<FaiList<Param>>();
-        SearchArg searchArg = new SearchArg();
-        searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
-        searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, noCacheIds);
-        //searchArg.matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.NE, ProductRelValObj.Status.DEL);
-        //只查aid+pdId+unionPriId+rlPdId
-        rt = m_dao.select(searchArg, tmpRef, ProductRelEntity.Info.AID, ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID);
-        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            throw new MgException(rt, "get product rel info error;aid=%d;uid=%d;pdIds=%s;", aid, unionPriId, pdIds);
-        }
-        if(tmpRef.value != null && !tmpRef.value.isEmpty()) {
-            list.addAll(tmpRef.value);
-            // 添加到缓存
-            ProductRelCacheCtrl.RlIdRelCache.addCacheList(aid, unionPriId, tmpRef.value);
-        }
-
-        if (list.isEmpty()) {
-            rt = Errno.NOT_FOUND;
-            Log.logDbg(rt, "not found;flow=%d;aid=%d;", m_flow, aid);
-            return list;
-        }
-
-        return list;
+        return getListByPdId(aid, unionPriId, pdIds);
     }
 
     public FaiList<Param> getBoundUniPriIds(int aid, FaiList<Integer> pdIds) {
@@ -704,17 +622,27 @@ public class ProductRelProc {
         return rlPdId;
     }
 
-    private FaiList<Param> getList(int aid, int unionPriId, HashSet<Integer> rlPdIds) {
-        int rt;
-        if(rlPdIds == null || rlPdIds.isEmpty()) {
-            rt = Errno.ARGS_ERROR;
-            throw new MgException(rt, "get pdIds is empty;aid=%d;rlPdIds=%s;", aid, rlPdIds);
+    public Integer getPdId(int aid, int unionPriId, int sysType, int rlPdId) {
+        HashSet<Integer> rlPdIds = new HashSet<>();
+        rlPdIds.add(rlPdId);
+        FaiList<Integer> list = getPdIds(aid, unionPriId, sysType, rlPdIds);
+        if(Utils.isEmptyList(list)) {
+            return null;
         }
-        List<String> rlPdIdStrs = rlPdIds.stream().map(String::valueOf).collect(Collectors.toList());
-        // 从缓存获取数据
-        FaiList<Param> list = ProductRelCacheCtrl.InfoCache.getCacheList(aid, unionPriId, rlPdIdStrs);
+
+        return list.get(0);
+    }
+
+    public FaiList<Integer> getPdIds(int aid, int unionPriId, int sysType, HashSet<Integer> rlPdIds) {
+        FaiList<Param> list = getPdIdRels(aid, unionPriId, sysType, rlPdIds);
+
+        return Utils.getValList(list, ProductRelEntity.Info.PD_ID);
+    }
+
+    public FaiList<Param> getPdIdRels(int aid, int unionPriId, int sysType, HashSet<Integer> rlPdIds) {
+        FaiList<Param> list = ProductRelCacheCtrl.PdIdCache.getCacheList(aid, unionPriId, sysType, rlPdIds);
         if(list == null) {
-            list = new FaiList<Param>();
+            list = new FaiList<>();
         }
         list.remove(null);
         // 查到的数据量和pdIds的数据量一致，则说明都有缓存
@@ -722,8 +650,8 @@ public class ProductRelProc {
             return list;
         }
 
-        // 拿到未缓存的pdId list
-        FaiList<Integer> noCacheIds = new FaiList<>();
+        // 拿到未缓存的rlPdId list
+        FaiList<Integer> noCacheIds = new FaiList<Integer>();
         noCacheIds.addAll(rlPdIds);
         for(Param info : list) {
             Integer rlPdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
@@ -731,15 +659,69 @@ public class ProductRelProc {
         }
 
         // db中获取
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        searchArg.matcher.and(ProductRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
+        searchArg.matcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.IN, noCacheIds);
+
+        Ref<FaiList<Param>> tmpRef = new Ref<>();
+        int rt = m_dao.select(searchArg, tmpRef, ProductRelEntity.Info.RL_PD_ID, ProductRelEntity.Info.PD_ID);
+        if(rt != Errno.OK) {
+            throw new MgException("select pdId error;aid=%d;uid=%d;rlPdIds=%s;sysType=%d;", aid, unionPriId, sysType, rlPdIds);
+        }
+
+        if(tmpRef.value != null && !tmpRef.value.isEmpty()) {
+            list.addAll(tmpRef.value);
+            // 添加到缓存
+            ProductRelCacheCtrl.PdIdCache.addCacheList(aid, unionPriId, sysType, tmpRef.value);
+        }
+
+        if (list.isEmpty()) {
+            rt = Errno.NOT_FOUND;
+            Log.logDbg(rt, "not found;flow=%d;aid=%d;", m_flow, aid);
+            return list;
+        }
+
+        return list;
+    }
+
+    private FaiList<Param> getListByPdId(int aid, int unionPriId, HashSet<Integer> pdIds) {
+        int rt;
+        if(Utils.isEmptyList(pdIds)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args err, pdIds is empty;aid=%d;uid=%s;", aid, unionPriId);
+        }
+        List<String> pdIdsStrs = pdIds.stream().map(String::valueOf).collect(Collectors.toList());
+        // 从缓存获取数据
+        FaiList<Param> list = ProductRelCacheCtrl.InfoCache.getCacheList(aid, unionPriId, pdIdsStrs);
+        if(list == null) {
+            list = new FaiList<Param>();
+        }
+        list.remove(null);
+        // 查到的数据量和pdIds的数据量一致，则说明都有缓存
+        if(list.size() == pdIds.size()) {
+            return list;
+        }
+
+        // 拿到未缓存的pdId list
+        FaiList<Integer> noCacheIds = new FaiList<>();
+        noCacheIds.addAll(pdIds);
+        for(Param info : list) {
+            Integer pdId = info.getInt(ProductRelEntity.Info.PD_ID);
+            noCacheIds.remove(pdId);
+        }
+
+        // db中获取
         Ref<FaiList<Param>> tmpRef = new Ref<>();
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        searchArg.matcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.IN, noCacheIds);
+        searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, noCacheIds);
         //searchArg.matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.NE, ProductRelValObj.Status.DEL);
         rt = m_dao.select(searchArg, tmpRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            throw new MgException(rt, "get list error;aid=%d;uid=%d;rlPdId=%d;", aid, unionPriId, rlPdIds);
+            throw new MgException(rt, "get list error;aid=%d;uid=%d;pdIds=%s;", aid, unionPriId, pdIds);
         }
         if(tmpRef.value != null && !tmpRef.value.isEmpty()) {
             list.addAll(tmpRef.value);

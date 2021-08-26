@@ -1,27 +1,22 @@
 package fai.MgProductBasicSvr.application.service;
 
 import fai.MgProductBasicSvr.domain.common.LockUtil;
-import fai.MgProductBasicSvr.domain.entity.BasicSagaEntity;
-import fai.MgProductBasicSvr.domain.entity.BasicSagaValObj;
 import fai.MgProductBasicSvr.domain.entity.ProductBindTagEntity;
-import fai.MgProductBasicSvr.domain.entity.ProductEntity;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductBindTagCache;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductBindTagProc;
 import fai.MgProductBasicSvr.domain.serviceproc.ProductRelProc;
-import fai.MgProductBasicSvr.domain.serviceproc.SagaProc;
 import fai.MgProductBasicSvr.interfaces.dto.ProductBindTagDto;
-import fai.comm.fseata.client.core.model.BranchStatus;
-import fai.comm.fseata.client.core.rpc.def.CommDef;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.annotation.SuccessRt;
+import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 import fai.middleground.svrutil.service.ServicePub;
 
 import java.io.IOException;
-import java.util.concurrent.locks.Lock;
+import java.util.HashSet;
 
 /**
  * @author LuChaoJi
@@ -34,8 +29,8 @@ public class ProductBindTagService extends ServicePub {
      * 先从缓存中获取，再从db中获取剩下的rlPdIds(缓存中不存在)的商品关联标签的数据
      */
     @SuccessRt(value = Errno.OK)
-    public int getPdBindTag(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlPdIds) throws IOException {
-        if(Util.isEmptyList(rlPdIds)) {
+    public int getPdBindTag(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds) throws IOException {
+        if(Utils.isEmptyList(rlPdIds)) {
             int rt = Errno.ARGS_ERROR;
             Log.logErr(rt, "args error, rlPdIds is empty;aid=%d;unionPriId=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
             return rt;
@@ -43,13 +38,18 @@ public class ProductBindTagService extends ServicePub {
         TransactionCtrl tc = new TransactionCtrl();
         FaiList<Param> list;
         try {
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+            FaiList<Integer> pdIds = relProc.getPdIds(aid, unionPriId, sysType, new HashSet<>(rlPdIds));
+            if(Utils.isEmptyList(pdIds)) {
+                return Errno.NOT_FOUND;
+            }
             ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
-            list = bindTagProc.getPdBindTagList(aid, unionPriId, rlPdIds);
+            list = bindTagProc.getPdBindTagList(aid, unionPriId, pdIds);
 
         }finally {
             tc.closeDao();
         }
-        if(Util.isEmptyList(list)) {
+        if(Utils.isEmptyList(list)) {
             return Errno.NOT_FOUND;
         }
 
@@ -67,10 +67,9 @@ public class ProductBindTagService extends ServicePub {
      * @param delRlTagIds 要添加的多个rlTagId
      */
     @SuccessRt(value = Errno.OK)
-    public int setPdBindTag(FaiSession session, int flow, int aid, int unionPriId, int rlPdId,
+    public int setPdBindTag(FaiSession session, int flow, int aid, int unionPriId, int sysType, int rlPdId,
                             FaiList<Integer> addRlTagIds, FaiList<Integer> delRlTagIds) throws IOException {
-        boolean isEmpty = Util.isEmptyList(addRlTagIds) && Util.isEmptyList(delRlTagIds);
-        if(isEmpty) {
+        if(Utils.isEmptyList(addRlTagIds) && Utils.isEmptyList(delRlTagIds)) {
             int rt = Errno.ARGS_ERROR;
             Log.logErr(rt, "args error, addRlTagIds and delRlTagIds is empty;aid=%d;unionPriId=%d;rlPdId=%s;", aid, unionPriId, rlPdId);
             return rt;
@@ -85,33 +84,31 @@ public class ProductBindTagService extends ServicePub {
                 ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
                 int addCount = 0;
 
+                ProductRelProc pdRelProc = new ProductRelProc(flow, aid, tc);
+                Integer pdId = pdRelProc.getPdId(aid, unionPriId, sysType, rlPdId);
+                if(pdId == null) {
+                    Log.logErr("pd rel info is not exist;flow=%d;aid=%d;uid=%d;sysType=%d;rlPdId=%d;", flow, aid, unionPriId, sysType, rlPdId);
+                    return Errno.NOT_FOUND;
+                }
+
                 //先删除
-                if(!Util.isEmptyList(delRlTagIds)) {
+                if(!Utils.isEmptyList(delRlTagIds)) {
                     // 删除数据
-                    int delCount = bindTagProc.delPdBindTagList(aid, unionPriId, rlPdId, delRlTagIds);
+                    int delCount = bindTagProc.delPdBindTagList(aid, unionPriId, pdId, delRlTagIds);
                     addCount -= delCount;
                 }
 
                 //后添加
-                if(!Util.isEmptyList(addRlTagIds)) {
-                    ProductRelProc pdRelProc = new ProductRelProc(flow, aid, tc);
-                    Param pdRelInfo = pdRelProc.getProductRel(aid, unionPriId, rlPdId);
-                    if(Str.isEmpty(pdRelInfo)) {
-                        Log.logErr("pd rel info is not exist;flow=%d;aid=%d;uid=%d;rlPdId=%d;", flow, aid, unionPriId, rlPdId);
-                        return Errno.NOT_FOUND;
-                    }
-                    int pdId = pdRelInfo.getInt(ProductBindTagEntity.Info.PD_ID);
+                if(!Utils.isEmptyList(addRlTagIds)) {
                     // 添加数据
-                    bindTagProc.addPdBindTagList(aid, unionPriId, rlPdId, pdId, addRlTagIds);
+                    bindTagProc.addPdBindTagList(aid, unionPriId, sysType, rlPdId, pdId, addRlTagIds);
                     addCount += addRlTagIds.size();
                 }
                 commit = true;
                 tc.commit();
 
                 // 删除缓存
-                FaiList<Integer> rlPdIds = new FaiList<>();
-                rlPdIds.add(rlPdId);
-                ProductBindTagCache.delCacheList(aid, unionPriId, rlPdIds);
+                ProductBindTagCache.delCache(aid, unionPriId, pdId);
                 ProductBindTagCache.DataStatusCache.update(aid, unionPriId, addCount);
             }finally {
                 if(!commit) {
@@ -135,34 +132,32 @@ public class ProductBindTagService extends ServicePub {
      * @param  delRlPdIds 要删除的多个rlPdId
      */
     @SuccessRt(value = Errno.OK)
-    public int delBindTagList(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> delRlPdIds) throws IOException {
-        if(Util.isEmptyList(delRlPdIds)) {
+    public int delBindTagList(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> delRlPdIds) throws IOException {
+        if(Utils.isEmptyList(delRlPdIds)) {
             int rt = Errno.ARGS_ERROR;
             Log.logErr(rt, "args error, rlTagIds is empty;aid=%d;unionPriId=%d;rlTagIds=%s;", aid, unionPriId, delRlPdIds);
             return rt;
         }
         LockUtil.lock(aid);
         try {
+            FaiList<Integer> delPdIds = null;
             int delCount = 0;
             TransactionCtrl tc = new TransactionCtrl();
-            boolean commit = false;
             try {
-                ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
-                delCount = bindTagProc.delPdBindTagList(aid, unionPriId, delRlPdIds);
-                commit = true;
+                ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+                relProc.getPdIds(aid, unionPriId, sysType, new HashSet<>(delRlPdIds));
 
-                //commit之前设置10s过期时间，避免脏数据，保持一致性
-                ProductBindTagCache.setExpire(aid, unionPriId, delRlPdIds);
+                ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
+                //修改之前设置10s过期时间，避免脏数据，保持一致性
+                ProductBindTagCache.setExpire(aid, unionPriId, delPdIds);
+
+                delCount = bindTagProc.delPdBindTagList(aid, unionPriId, delPdIds);
             }finally {
-                if (commit) {
-                    // 删除缓存
-                    ProductBindTagCache.delCacheList(aid, unionPriId, delRlPdIds);
-                    ProductBindTagCache.DataStatusCache.update(aid, unionPriId, -delCount);
-                } else {
-                    tc.rollback();
-                }
                 tc.closeDao();
             }
+            // 删除缓存
+            ProductBindTagCache.delCacheList(aid, unionPriId, delPdIds);
+            ProductBindTagCache.DataStatusCache.update(aid, unionPriId, -delCount);
         } finally {
             LockUtil.unlock(aid);
         }
@@ -177,7 +172,7 @@ public class ProductBindTagService extends ServicePub {
      * 根据rlTagIds查询RlPdIds
      */
     @SuccessRt(value = Errno.OK)
-    public int getRlPdIdsByRlTagIds(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlTagIds) throws IOException {
+    public int getRlPdIdsByRlTagIds(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlTagIds) throws IOException {
         if(Util.isEmptyList(rlTagIds)) {
             int rt = Errno.ARGS_ERROR;
             Log.logErr(rt, "args error, rlTagIds is empty;aid=%d;unionPriId=%d;rlTagIds=%s;", aid, unionPriId, rlTagIds);
@@ -187,8 +182,8 @@ public class ProductBindTagService extends ServicePub {
         TransactionCtrl tc = new TransactionCtrl();
         try {
             ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
-            rlPdIds = bindTagProc.getRlPdIdsByTagIds(aid, unionPriId, rlTagIds);
-            if(Util.isEmptyList(rlPdIds)) {
+            rlPdIds = bindTagProc.getRlPdIdsByTagIds(aid, unionPriId, sysType, rlTagIds);
+            if(Utils.isEmptyList(rlPdIds)) {
                 Log.logDbg("not found;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
                 return Errno.NOT_FOUND;
             }

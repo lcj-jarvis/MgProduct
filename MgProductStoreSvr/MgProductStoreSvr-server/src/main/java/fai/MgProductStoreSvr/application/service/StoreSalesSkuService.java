@@ -99,7 +99,7 @@ public class StoreSalesSkuService extends StoreService {
     /**
      * 刷新库存销售sku信息
      */
-    public int refreshSkuStoreSales(FaiSession session, int flow, int aid, int tid, int unionPriId, String xid, int pdId, int rlPdId, FaiList<Param> pdScSkuInfoList) throws IOException {
+    public int refreshSkuStoreSales(FaiSession session, int flow, int aid, int tid, int unionPriId, int sysType, String xid, int pdId, int rlPdId, FaiList<Param> pdScSkuInfoList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -146,6 +146,7 @@ public class StoreSalesSkuService extends StoreService {
                             .setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId)
                             .setInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, unionPriId)
                             .setInt(StoreSalesSkuEntity.Info.RL_PD_ID, rlPdId)
+                            .setInt(StoreSalesSkuEntity.Info.SYS_TYPE, sysType)
                             .setLong(StoreSalesSkuEntity.Info.SKU_ID, skuIdPdScSkuInfoEntry.getKey())
                     );
                 }
@@ -460,6 +461,7 @@ public class StoreSalesSkuService extends StoreService {
                 int unionPriId = spuSalesStoreInfo.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, 0);
                 int pdId = spuSalesStoreInfo.getInt(StoreSalesSkuEntity.Info.PD_ID, 0);
                 int rlPdId = spuSalesStoreInfo.getInt(StoreSalesSkuEntity.Info.RL_PD_ID, 0);
+                int sysType = spuSalesStoreInfo.getInt(StoreSalesSkuEntity.Info.SYS_TYPE, 0);
                 long skuId = spuSalesStoreInfo.getLong(StoreSalesSkuEntity.Info.SKU_ID, 0L);
                 if(unionPriId <= 0 || pdId <= 0 || rlPdId <= 0 || skuId <= 0){
                     rt = Errno.ARGS_ERROR;
@@ -481,6 +483,7 @@ public class StoreSalesSkuService extends StoreService {
                 skuSalesStoreData.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId);
                 skuSalesStoreData.setInt(StoreSalesSkuEntity.Info.PD_ID, pdId);
                 skuSalesStoreData.setInt(StoreSalesSkuEntity.Info.RL_PD_ID, rlPdId);
+                skuSalesStoreData.setInt(StoreSalesSkuEntity.Info.SYS_TYPE, sysType);
                 skuSalesStoreData.setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId);
                 skuSalesStoreData.setInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
                 skuSalesStoreData.setInt(StoreSalesSkuEntity.Info.FLAG, flag);
@@ -512,7 +515,7 @@ public class StoreSalesSkuService extends StoreService {
                     }
                 }
             }
-            maxUpdateKeySet.removeAll(Arrays.asList(StoreSalesSkuEntity.Info.AID, StoreSalesSkuEntity.Info.UNION_PRI_ID, StoreSalesSkuEntity.Info.PD_ID, StoreSalesSkuEntity.Info.RL_PD_ID, StoreSalesSkuEntity.Info.SKU_ID));
+            maxUpdateKeySet.removeAll(Arrays.asList(StoreSalesSkuEntity.Info.AID, StoreSalesSkuEntity.Info.UNION_PRI_ID, StoreSalesSkuEntity.Info.PD_ID, StoreSalesSkuEntity.Info.RL_PD_ID, StoreSalesSkuEntity.Info.SYS_TYPE, StoreSalesSkuEntity.Info.SKU_ID));
 
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
@@ -662,16 +665,16 @@ public class StoreSalesSkuService extends StoreService {
         }
         return rt;
     }
-    public int setSkuStoreSales(FaiSession session, int flow, int aid, int tid, int unionPriId, String xid, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) throws IOException {
-        return batchSetSkuStoreSales(session, flow, aid, tid, null, new FaiList<>(Collections.singletonList(unionPriId)), xid, pdId, rlPdId, updaterList);
+    public int setSkuStoreSales(FaiSession session, int flow, int aid, int tid, int unionPriId, String xid, int pdId, int rlPdId, int sysType, FaiList<ParamUpdater> updaterList) throws IOException {
+        return batchSetSkuStoreSales(session, flow, aid, tid, null, new FaiList<>(Collections.singletonList(unionPriId)), xid, pdId, rlPdId, sysType, updaterList);
     }
-    public int batchSetSkuStoreSales(FaiSession session, int flow, int aid, int tid, Integer ownerUnionPriId, FaiList<Integer> unionPriIdList, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) throws IOException {
-        return batchSetSkuStoreSales(session, flow, aid, tid, ownerUnionPriId, unionPriIdList, null, pdId, rlPdId, updaterList);
+    public int batchSetSkuStoreSales(FaiSession session, int flow, int aid, int tid, Integer ownerUnionPriId, FaiList<Integer> unionPriIdList, int pdId, int rlPdId, int sysType, FaiList<ParamUpdater> updaterList) throws IOException {
+        return batchSetSkuStoreSales(session, flow, aid, tid, ownerUnionPriId, unionPriIdList, null, pdId, rlPdId, sysType, updaterList);
     }
     /**
      * 批量修改库存销售sku信息
      */
-    public int batchSetSkuStoreSales(FaiSession session, int flow, int aid, int tid, Integer ownerUnionPriId, FaiList<Integer> unionPriIdList, String xid, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) throws IOException {
+    public int batchSetSkuStoreSales(FaiSession session, int flow, int aid, int tid, Integer ownerUnionPriId, FaiList<Integer> unionPriIdList, String xid, int pdId, int rlPdId, int sysType, FaiList<ParamUpdater> updaterList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -711,7 +714,7 @@ public class StoreSalesSkuService extends StoreService {
                                 for(Long skuId : skuIdList) {
                                     SkuBizKey skuBizKey = new SkuBizKey(unionPriId, skuId);
                                     if (unionPriId != ownerUnionPriId) {
-                                        needCheckSkuStoreKeyPdKeyMap.put(skuBizKey, new PdKey(unionPriId, pdId, rlPdId));
+                                        needCheckSkuStoreKeyPdKeyMap.put(skuBizKey, new PdKey(unionPriId, pdId, rlPdId, sysType));
                                     }
                                 }
                             }

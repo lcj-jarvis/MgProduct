@@ -31,7 +31,7 @@ public class InOutStoreRecordProc {
         m_flow = flow;
     }
 
-    public int batchResetCostPrice(int aid, int rlPdId, FaiList<Param> infoList, Calendar optTime, Map<SkuBizKey, Param> changeCountAfterSkuStoreInfoMap) {
+    public int batchResetCostPrice(int aid, int sysType, int rlPdId, FaiList<Param> infoList, Calendar optTime, Map<SkuBizKey, Param> changeCountAfterSkuStoreInfoMap) {
         int rt;
         if(aid <= 0 || infoList == null || infoList.isEmpty() || optTime == null){
             rt = Errno.ARGS_ERROR;
@@ -68,6 +68,7 @@ public class InOutStoreRecordProc {
             inData.setInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, unionPriId);
             inData.setCalendar(InOutStoreRecordEntity.Info.OPT_TIME, optTime);
             inData.setInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
+            inData.setInt(InOutStoreRecordEntity.Info.SYS_TYPE, sysType);
             inData.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
             // 这里加多一个match字符串 是为了和update需要设置的price区分开，不然构建批量修改会报错
             // 只修改price不为0的数据，主要原因是保证是重置未设置成本价的数据，且只能重置一次
@@ -83,7 +84,7 @@ public class InOutStoreRecordProc {
             dataList.add(outData);
 
             Ref<Integer> countRef = new Ref<>();
-            rt = getAvailableCount(aid, unionPriId, skuId, rlPdId, optTime, countRef);
+            rt = getAvailableCount(aid, unionPriId, sysType, skuId, rlPdId, optTime, countRef);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -109,6 +110,7 @@ public class InOutStoreRecordProc {
         doBatchMatcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
         doBatchMatcher.and(InOutStoreRecordEntity.Info.OPT_TIME, ParamMatcher.LT, "?");
         doBatchMatcher.and(InOutStoreRecordEntity.Info.RL_PD_ID, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(InOutStoreRecordEntity.Info.SYS_TYPE, ParamMatcher.EQ, "?");
         doBatchMatcher.and(InOutStoreRecordEntity.Info.SKU_ID, ParamMatcher.EQ, "?");
         doBatchMatcher.and(InOutStoreRecordEntity.Info.PRICE, ParamMatcher.EQ, "?");
         doBatchMatcher.and(InOutStoreRecordEntity.Info.OPT_TYPE, ParamMatcher.EQ, "?");
@@ -167,11 +169,12 @@ public class InOutStoreRecordProc {
         return rt;
     }
 
-    private int getAvailableCount(int aid, int unionPriId, long skuId, int rlPdId, Calendar optTime, Ref<Integer> countRef) {
+    private int getAvailableCount(int aid, int unionPriId, int sysType, long skuId, int rlPdId, Calendar optTime, Ref<Integer> countRef) {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         searchArg.matcher.and(InOutStoreRecordEntity.Info.SKU_ID, ParamMatcher.EQ, skuId);
+        searchArg.matcher.and(InOutStoreRecordEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
         searchArg.matcher.and(InOutStoreRecordEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
         searchArg.matcher.and(InOutStoreRecordEntity.Info.OPT_TIME, ParamMatcher.LT, optTime);
         searchArg.matcher.and(InOutStoreRecordEntity.Info.PRICE, ParamMatcher.EQ, 0);
@@ -367,6 +370,7 @@ public class InOutStoreRecordProc {
             }
             int pdId = info.getInt(InOutStoreRecordEntity.Info.PD_ID, 0);
             int rlPdId = info.getInt(InOutStoreRecordEntity.Info.RL_PD_ID, 0);
+            int sysType = info.getInt(InOutStoreRecordEntity.Info.SYS_TYPE, 0);
             int sourceUnionPriId = info.getInt(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, 0);
             Integer remainCount = info.getInt(InOutStoreRecordEntity.Info.REMAIN_COUNT); // 初次初始化库存的时候，直接设置了剩余库存
 
@@ -376,6 +380,7 @@ public class InOutStoreRecordProc {
                 remainCount = storeSalesSkuInfo.getInt(StoreSalesSkuEntity.Info.REMAIN_COUNT) + storeSalesSkuInfo.getInt(StoreSalesSkuEntity.Info.HOLDING_COUNT);
                 pdId = storeSalesSkuInfo.getInt(InOutStoreRecordEntity.Info.PD_ID, pdId);
                 rlPdId = storeSalesSkuInfo.getInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
+                sysType = storeSalesSkuInfo.getInt(InOutStoreRecordEntity.Info.SYS_TYPE, sysType);
                 if(sourceUnionPriId == 0){
                     sourceUnionPriId = storeSalesSkuInfo.getInt(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
                 }
@@ -399,6 +404,7 @@ public class InOutStoreRecordProc {
             data.setInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, unionPriId);
             data.setInt(InOutStoreRecordEntity.Info.PD_ID, pdId);
             data.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
+            data.setInt(InOutStoreRecordEntity.Info.SYS_TYPE, sysType);
             data.setInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
             data.setInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, ioStoreRecId);
             data.setInt(InOutStoreRecordEntity.Info.OPT_TYPE, optType);

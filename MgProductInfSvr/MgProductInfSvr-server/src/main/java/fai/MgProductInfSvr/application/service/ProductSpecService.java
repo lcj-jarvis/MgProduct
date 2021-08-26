@@ -306,7 +306,7 @@ public class ProductSpecService extends MgProductInfService {
     /**
      * 导入规格模板
      */
-    public int importPdScInfo(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, int rlTpScId, FaiList<Integer> tpScDtIdList) throws IOException {
+    public int importPdScInfo(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, int rlPdId, int rlTpScId, FaiList<Integer> tpScDtIdList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -326,7 +326,7 @@ public class ProductSpecService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdIdWithAdd(flow, aid, tid, unionPriId, rlPdId, idRef);
+            rt = getPdIdWithAdd(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -351,7 +351,7 @@ public class ProductSpecService extends MgProductInfService {
      * 批量同步spu 为 sku
      * @param spuInfoList Param见 {@link ProductTempEntity.ProductInfo}
      */
-    public int batchSynchronousSPU2SKU(FaiSession session, int flow, int aid, int ownerTid, int ownerSiteId, int ownerLgId, int ownerKeepPriId1, FaiList<Param> spuInfoList) throws IOException {
+    public int batchSynchronousSPU2SKU(FaiSession session, int flow, int aid, int ownerTid, int ownerSiteId, int ownerLgId, int ownerKeepPriId1, int sysType, FaiList<Param> spuInfoList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -375,7 +375,7 @@ public class ProductSpecService extends MgProductInfService {
             }
             ProductBasicProc productBasicProc = new ProductBasicProc(flow);
             FaiList<Param> list = new FaiList<>();
-            rt = productBasicProc.getRelListByRlIds(aid, ownerUnionPriId, new FaiList<>(ownerRlPdIdSet), list);
+            rt = productBasicProc.getRelListByRlIds(aid, ownerUnionPriId, sysType, new FaiList<>(ownerRlPdIdSet), list);
             if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                 return rt;
             }
@@ -464,7 +464,7 @@ public class ProductSpecService extends MgProductInfService {
      * 修改产品规格总接口
      * 批量修改(包括增、删、改)指定商品的商品规格总接口；会自动生成sku规格，并且会调用商品库存服务的“刷新商品库存销售sku”
      */
-    public int unionSetPdScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> addList, FaiList<Integer> delList, FaiList<ParamUpdater> updaterList) throws IOException, TransactionException {
+    public int unionSetPdScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, int rlPdId, FaiList<Param> addList, FaiList<Integer> delList, FaiList<ParamUpdater> updaterList) throws IOException, TransactionException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -484,7 +484,7 @@ public class ProductSpecService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdIdWithAdd(flow, aid, tid, unionPriId, rlPdId, idRef);
+            rt = getPdIdWithAdd(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -521,7 +521,7 @@ public class ProductSpecService extends MgProductInfService {
 
                 ProductStoreProc productStoreProc = new ProductStoreProc(flow);
                 // 刷新sku，修改库存
-                rt = productStoreProc.refreshSkuStoreSales(aid, tid, unionPriId, tx.getXid() ,pdId, rlPdId, storeSalesSkuList);
+                rt = productStoreProc.refreshSkuStoreSales(aid, tid, unionPriId, sysType, tx.getXid() ,pdId, rlPdId, storeSalesSkuList);
                 if(rt != Errno.OK) {
                     return rt;
                 }
@@ -542,7 +542,7 @@ public class ProductSpecService extends MgProductInfService {
     /**
      * 获取产品规格列表
      */
-    public int getPdScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, boolean onlyGetChecked) throws IOException {
+    public int getPdScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, int rlPdId, boolean onlyGetChecked) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -562,7 +562,7 @@ public class ProductSpecService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdId(flow, aid, tid, unionPriId, rlPdId, idRef);
+            rt = getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -584,7 +584,7 @@ public class ProductSpecService extends MgProductInfService {
         return rt;
     }
 
-    public int getPdScInfoList4Adm(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, boolean onlyGetChecked) throws IOException {
+    public int getPdScInfoList4Adm(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, FaiList<Integer> rlPdIds, boolean onlyGetChecked) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -606,7 +606,7 @@ public class ProductSpecService extends MgProductInfService {
 
             // 1 获取商品关联信息
             FaiList<Param> pdRelInfos = new FaiList<>();
-            rt = productBasicProc.getRelListByRlIds(aid, unionPriId, rlPdIds, pdRelInfos);
+            rt = productBasicProc.getRelListByRlIds(aid, unionPriId, sysType, rlPdIds, pdRelInfos);
             if(rt != Errno.OK){
                 return rt;
             }
@@ -645,7 +645,7 @@ public class ProductSpecService extends MgProductInfService {
     /**
      * 批量修改产品规格SKU
      */
-    public int setPdSkuScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<ParamUpdater> updaterList) throws IOException {
+    public int setPdSkuScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, int rlPdId, FaiList<ParamUpdater> updaterList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -665,7 +665,7 @@ public class ProductSpecService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdId(flow, aid, tid, unionPriId, rlPdId, idRef);
+            rt = getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -687,7 +687,7 @@ public class ProductSpecService extends MgProductInfService {
     /**
      * 获取产品规格SKU列表
      */
-    public int getPdSkuScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, boolean withSpuInfo) throws IOException {
+    public int getPdSkuScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, int rlPdId, boolean withSpuInfo) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -707,7 +707,7 @@ public class ProductSpecService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdId(flow, aid, tid, unionPriId, rlPdId, idRef);
+            rt = getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -792,7 +792,7 @@ public class ProductSpecService extends MgProductInfService {
      * 获取只有表示为spu的商品sku数据。 <br/>
      * 例如：商品条码信息
      */
-    public int getOnlySpuPdSkuScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList) throws IOException {
+    public int getOnlySpuPdSkuScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, FaiList<Integer> rlPdIdList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -813,7 +813,7 @@ public class ProductSpecService extends MgProductInfService {
             // 获取pdId
             ProductBasicProc productBasicProc = new ProductBasicProc(flow);
             FaiList<Param> list = new FaiList<>();
-            rt = productBasicProc.getRelListByRlIds(aid, unionPriId, rlPdIdList, list);
+            rt = productBasicProc.getRelListByRlIds(aid, unionPriId, sysType, rlPdIdList, list);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -877,7 +877,7 @@ public class ProductSpecService extends MgProductInfService {
     /**
      * 根据 rlPdIdList 获取 rlPdId-skuId 集
      */
-    public int getPdSkuIdInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIdList, boolean withSpuInfo) throws IOException {
+    public int getPdSkuIdInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, FaiList<Integer> rlPdIdList, boolean withSpuInfo) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -898,7 +898,7 @@ public class ProductSpecService extends MgProductInfService {
             // 获取pdId
             ProductBasicProc productBasicProc = new ProductBasicProc(flow);
             FaiList<Param> list = new FaiList<>();
-            rt = productBasicProc.getRelListByRlIds(aid, unionPriId, rlPdIdList, list);
+            rt = productBasicProc.getRelListByRlIds(aid, unionPriId, sysType, rlPdIdList, list);
             if(rt != Errno.OK) {
                 return rt;
             }

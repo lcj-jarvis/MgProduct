@@ -73,5 +73,6 @@ public class ProductTagDto {
         public static final int SITE_ID = 15;
         public static final int LGID = 16;
         public static final int KEEP_PRIID1 = 17;
+        public static final int SYS_TYPE = 18;
     }
 }

@@ -79,7 +79,7 @@ public class ProductGroupService extends MgProductInfService {
         groupProc.delGroupList(aid, unionPriId, rlGroupIds, sysType, softDel);
 
         ProductBasicProc basicProc = new ProductBasicProc(flow);
-        int rt = basicProc.delPdBindGroup(aid, unionPriId, rlGroupIds);
+        int rt = basicProc.delPdBindGroup(aid, unionPriId, sysType, rlGroupIds);
         if(rt != Errno.OK) {
             Oss.logAlarm("del pd bind group err;aid=" + aid);
             Log.logErr("del pd bind group err;aid=%d;uid=%d;rlGroupIds=%s;", aid, unionPriId, rlGroupIds);
@@ -104,7 +104,7 @@ public class ProductGroupService extends MgProductInfService {
         // TODO 分布式事务， 如果删除了分类，则要将基础信息中的分类绑定信息删除
         if (!Util.isEmptyList(delList)) {
             ProductBasicProc basicProc = new ProductBasicProc(flow);
-            int rt = basicProc.delPdBindGroup(aid, unionPriId, rlGroupIds);
+            int rt = basicProc.delPdBindGroup(aid, unionPriId, sysType, rlGroupIds);
             if(rt != Errno.OK) {
                 Oss.logAlarm("del pd bind group err;aid=" + aid);
                 Log.logErr("del pd bind group err;aid=%d;uid=%d;rlGroupIds=%s;", aid, unionPriId, rlGroupIds);
@@ -118,6 +118,23 @@ public class ProductGroupService extends MgProductInfService {
         }
         session.write(sendBuf);
         Log.logStd("unionSetGroupList ok;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
+        return Errno.OK;
+    }
+
+    @SuccessRt(value = Errno.OK)
+    public int setAllGroupList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<ParamUpdater> updaterList, int sysType, int groupLevel, boolean softDel) throws IOException {
+        // 获取unionPriId
+        int unionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
+        ProductGroupProc groupProc = new ProductGroupProc(flow);
+
+        FaiList<Integer> rlGroupIds = groupProc.setAllGroupList(aid, tid, unionPriId, updaterList, sysType, groupLevel, softDel);
+
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        if (!Util.isEmptyList(rlGroupIds)) {
+            rlGroupIds.toBuffer(sendBuf, ProductGroupDto.Key.RL_GROUP_IDS);
+        }
+        session.write(sendBuf);
+        Log.logStd("setAllGroupList ok;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
         return Errno.OK;
     }
 }

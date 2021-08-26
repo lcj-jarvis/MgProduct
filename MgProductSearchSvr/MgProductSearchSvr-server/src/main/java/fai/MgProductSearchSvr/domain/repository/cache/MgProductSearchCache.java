@@ -7,7 +7,7 @@ import fai.comm.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * @author LuChaoJi
+ * @author Lu
  * @date 2021-08-06 10:28
  */
 public class MgProductSearchCache {
@@ -94,4 +94,5 @@ public class MgProductSearchCache {
             m_result_cache.setParam(resultCacheKey, resultCacheInfo, MgProductSearchDto.Key.RESULT_INFO, MgProductSearchDto.getProductSearchDto());
         }
     }
+
 }

@@ -42,7 +42,8 @@ public class MgProductSearch {
         public static final String START = "start";  //  分页位置
         public static final String LIMIT = "limit";  //  分页条数
 
-        public static final String RL_PD_ID_COMPARATOR_LIST  = "rlPdIdComparatorList";  // 商品idList 排序，设置了这个排序，其他设置的排序就无效了
+        // 商品idList 排序，设置了这个排序，其他设置的排序就无效了
+        public static final String RL_PD_ID_COMPARATOR_LIST  = "rlPdIdComparatorList";
 
         public static final String FIRST_COMPARATOR_TABLE = "firstComparatorTable";    // 第一排序字段的table
         public static final String FIRST_COMPARATOR_KEY = "firstComparatorKey";     // 第一排序字段
@@ -90,7 +91,7 @@ public class MgProductSearch {
     }
 
     // 上下架开始
-    private int upSalesStatus = UpSalesStatusEnum.ALL.upSalesStatus;           //  默认是全部的, 对应 ProductRelValObj.Status
+    private int upSalesStatus = UpSalesStatusEnum.ALL.upSalesStatus;       //  默认是全部的, 对应 ProductRelValObj.Status
     private FaiList<Integer> rlGroupIdList;  // 业务商品分类 IdList
     private FaiList<Integer> rlTagIdList;   //  业务商品标签搜索
     private FaiList<Integer> rlPdIdList;      // 业务商品 IdList
@@ -127,7 +128,8 @@ public class MgProductSearch {
     // 第二的排序，需要选择是否使用
     private boolean needSecondComparatorSorting = false;   // 是否启动第二字段排序，就是默认 ProductBasicEntity.ProductInfo.RL_PD_ID 排序
     private String secondComparatorTable = SearchTableNameEnum.MG_PRODUCT.searchTableName;   // 第二排序字段的table
-    private String secondComparatorKey = ProductBasicEntity.ProductInfo.RL_PD_ID;                  // 第二排序字段，业务商品id，能够确定唯一的排序, 相当于创建时间排序了
+    // 第二排序字段，业务商品id，能够确定唯一的排序, 相当于创建时间排序了
+    private String secondComparatorKey = ProductBasicEntity.ProductInfo.RL_PD_ID;
     private boolean secondComparatorKeyOrderByDesc = false;   // 第二排序字段的顺序, 默认顺序
 
     private int start = 0; // 搜索的开始位置
@@ -248,12 +250,14 @@ public class MgProductSearch {
          * MG_PRODUCT_BIND_PROP: rlPropValIdList 都是管理态修改的数据
          * MG_PRODUCT_BIND_GROUP: rlGroupIdList 都是管理态修改的数据
          * MG_PRODUCT_BIND_TAG: rlTagId 都是管理态修改的数据
+         * MG_PRODUCT_SPEC_SKU_CODE: skuCode 都是管理态修改的数据
          */
         return MgProductSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName.equals(tableName) ||
                MgProductSearch.SearchTableNameEnum.MG_PRODUCT_REL.searchTableName.equals(tableName) ||
                MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.searchTableName.equals(tableName) ||
                MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.searchTableName.equals(tableName) ||
-               MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.searchTableName.equals(tableName);
+               MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.searchTableName.equals(tableName) ||
+               MgProductSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU_CODE.searchTableName.equals (tableName);
     }
 
     // 根据 matcher 判断是否有搜索条件
@@ -311,7 +315,7 @@ public class MgProductSearch {
         return paramMatcher;
     }
 
-    // 在 "商品基础表" mgProduct_xxxx 搜索
+    // 在 "商品基础表" mgProduct_xxxx 搜索（暂时没什么用处，先保留）
     public ParamMatcher getProductBasicSearchMatcher(ParamMatcher paramMatcher){
         if(paramMatcher == null){
             paramMatcher = new ParamMatcher();
@@ -730,6 +734,7 @@ public class MgProductSearch {
         }
         return null;
     }
+
     public boolean getFirstComparatorKeyOrderByDesc(){
         return this.firstComparatorKeyOrderByDesc;
     }

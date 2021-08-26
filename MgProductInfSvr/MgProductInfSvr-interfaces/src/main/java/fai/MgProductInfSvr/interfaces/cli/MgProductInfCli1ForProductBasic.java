@@ -146,7 +146,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      * 商品中台搜索，根据 mgProductSearch（fai.MgProductInfSvr.interfaces.utils.MgProductSearch）, 在 商品中台内 搜索商品
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
-     *                 .setMgProductEsSearch(mgProductEsSearch) // es的搜索条件
+     *                 .setMgProductEsSearch(mgProductEsSearch) // 选填 es的搜索条件
      *                 .setMgProductSearch(mgProductSearch) // 必填 搜索条件
      *                 .build();
      * @param searchResult 搜索结果，对应 MgProductSearchResult 实体
@@ -182,7 +182,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(MgProductSearchDto.Key.TID, tid), new Pair(MgProductSearchDto.Key.SITE_ID, siteId), new Pair(MgProductSearchDto.Key.LGID, lgId), new Pair(MgProductSearchDto.Key.KEEP_PRIID1, keepPriId1));
-            sendBody.putString(MgProductSearchDto.Key.ES_SEARCH_PARAM_STRING, mgProductEsSearch.getEsSearchParam().toJson());
+            sendBody.putString(MgProductSearchDto.Key.ES_SEARCH_PARAM_STRING, mgProductEsSearch.getSearchParam().toJson());
             sendBody.putString(MgProductSearchDto.Key.SEARCH_PARAM_STRING, mgProductSearch.getSearchParam().toJson());
             int aid = mgProductArg.getAid();
             // send and recv

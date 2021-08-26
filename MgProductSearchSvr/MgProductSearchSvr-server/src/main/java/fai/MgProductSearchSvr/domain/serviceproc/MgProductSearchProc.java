@@ -77,7 +77,6 @@ public class MgProductSearchProc {
     }
 
     public void resultListFixedRlPdId(int aid, int unionPriId, int flow, FaiList<Param> resultList, FaiList<Param> includeRlPdIdResultList){
-        FaiList<Param> filterList = new FaiList<Param>();
         String key = ProductEntity.Info.PD_ID;
         // 转换为 set 的集合
         HashMap<Integer, Param> searchHashMap = faiListToHashMap(includeRlPdIdResultList, key);
@@ -125,8 +124,9 @@ public class MgProductSearchProc {
             if(rt != Errno.OK){
                 Log.logErr(rt,"getPdDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
             }
-            //Log.logDbg("getPdDataStatus, remoteDataStatusInfo=%s;", remoteDataStatusInfo);
+            // Log.logDbg("getPdDataStatus, remoteDataStatusInfo=%s;", remoteDataStatusInfo);
         }
+
         if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_REL.searchTableName.equals(tableName)){
             // 从远端获取数据
             rt = mgProductBasicCli.getPdRelDataStatus(aid, unionPriId, remoteDataStatusInfo);
@@ -184,7 +184,7 @@ public class MgProductSearchProc {
     }
 
     /**
-     * 返回联合多个表进行查询得到的结果（实际上是逐个表进行查询，然后取结果的交集）
+     * 返回联合多个表进行查询得到的结果（实际上是逐个表进行查询，然后根据PdId取结果的交集）
      */
     public FaiList<Param> getSearchDataAndSearchResultList(int flow, int aid, int tid, int unionPriId,
                                                            Param searchSorterInfo, FaiList<Param> resultList,
@@ -215,7 +215,7 @@ public class MgProductSearchProc {
                 searchSorterInfo.setList(SearchSorterInfo.SEARCH_DATA_LIST, searchList);
                 // 可以理解为先取resultList中对应searchKey的数据和searchList取交集，然后再取searchMatcher中满足条件的。
                 resultList = getSearchResult(searchMatcher, searchList, resultList, searchKey);
-                //Log.logDbg("needGetDataFromRemote=%s;tableName=%s;searchDataList=%s;", needGetDataFromRemote, tableName, searchSorterInfo.getList(SearchSorterInfo.SEARCH_DATA_LIST));
+                // Log.logDbg("needGetDataFromRemote=%s;tableName=%s;searchDataList=%s;", needGetDataFromRemote, tableName, searchSorterInfo.getList(SearchSorterInfo.SEARCH_DATA_LIST));
                 return resultList;
             }else{
                 // 可能缓存被回收了，乐观点，重新获取数据吧
@@ -229,6 +229,7 @@ public class MgProductSearchProc {
         searchArg.matcher = searchMatcher;
         // 如果需要发包到svr进行搜索，加上 上一次的搜索结果的 idList
         if(needLoadFromDb && !resultList.isEmpty()){
+            // 如果是按条件搜索db，就要加上前面搜索结果的PdId作为搜索的条件
             FaiList<Integer> idList = toIdList(resultList, searchKey);
             searchArg.matcher.and(searchKey, ParamMatcher.IN, idList);
         }
@@ -241,11 +242,11 @@ public class MgProductSearchProc {
             // 进行搜索
             resultList = getSearchResult(searchMatcher, searchDataList, resultList, searchKey);
 
-            // 设置 各个表 的全量本地缓存
+            // 设置各个表的全量本地缓存
             ParamListCache1 localMgProductSearchData = MgProductSearchCache.getLocalMgProductSearchDataCache(unionPriId);
             localMgProductSearchData.put(MgProductSearchCache.getLocalMgProductSearchDataCacheKey(aid, tableName), searchDataList);
 
-            // 设置 各个表本地 缓存的时间
+            // 设置各个表的本地缓存时间
             Param dataStatusInfo = new Param();
             dataStatusInfo.assign(searchSorterInfo, DataStatus.Info.MANAGE_LAST_UPDATE_TIME);
             dataStatusInfo.assign(searchSorterInfo, DataStatus.Info.VISITOR_LAST_UPDATE_TIME);
@@ -253,7 +254,9 @@ public class MgProductSearchProc {
 
             String cacheKey = MgProductSearchCache.LocalDataStatusCache.getDataStatusCacheKey(aid, unionPriId, tableName);
             MgProductSearchCache.LocalDataStatusCache.addLocalDataStatusCache(cacheKey, dataStatusInfo);
-        }else{
+        } else {
+            // TODO 需要注意的一点就是，按照条件进行搜索的时候，要看搜索结果的字段是否包含排序的字段，不然也排不了顺
+
             // 后面上线后需要干掉getSearchResult(searchMatcher, searchDataList, resultList, searchKey) 调用，
             // 因为已经 把 matcher 放到 client 中，远端已经进行过了搜索
             //resultList = getSearchResult(searchMatcher, searchDataList, resultList, searchKey);
@@ -415,7 +418,19 @@ public class MgProductSearchProc {
         if(Str.isEmpty(conf) || Str.isEmpty(conf.getParam(MgProductSearchSvr.SvrConfigGlobalConf.loadFromDbThresholdKey))){
             return defaultThreshold;
         }
-        return conf.getParam(MgProductSearchSvr.SvrConfigGlobalConf.loadFromDbThresholdKey).getInt(tableName, defaultThreshold);
+
+        return conf.getParam(MgProductSearchSvr.SvrConfigGlobalConf.loadFromDbThresholdKey)
+            .getInt(tableName, defaultThreshold);
+    }
+
+    // 使用es中获取到PdId使用In Sql的阈值。
+    public int getInSqlThreshold() {
+        Param conf = ConfPool.getConf(MgProductSearchSvr.SvrConfigGlobalConf.svrConfigGlobalConfKey);
+        int defaultThreshold = 1000;
+        if(Str.isEmpty(conf) || Str.isEmpty(conf.getParam(MgProductSearchSvr.SvrConfigGlobalConf.useIdFromEsAsInSqlThresholdKey))){
+            return defaultThreshold;
+        }
+        return conf.getInt(MgProductSearchSvr.SvrConfigGlobalConf.useIdFromEsAsInSqlThresholdKey, defaultThreshold);
     }
 
     // 用于从哪个表的数据开始做数据搜索，做各个表的数据量大小排优处理, 由小表的数据到大表的数据做搜索

@@ -1,6 +1,7 @@
 package fai.MgProductSearchSvr.application;
 
 import fai.MgProductSearchSvr.domain.repository.cache.MgProductSearchCache;
+import fai.MgProductSearchSvr.domain.repository.cache.MgProductSearchCacheTemp;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.cache.redis.config.RedisClientConfig;
 import fai.comm.cache.redis.pool.JedisPool;
@@ -38,7 +39,6 @@ public class MgProductSearchSvr {
         JedisPool jedisPool = JedisPoolFactory.createJedisPool(redisConfig);
         RedisCacheManager m_cache = new RedisCacheManager(jedisPool, redisConfig.getExpire(), redisConfig.getExpireRandom());
 
-
         // 数据缓存组件
         ParamCacheRecycle cacheRecycle = new ParamCacheRecycle(config.getName(),
                 svrOption.getCacheHours() * 3600, svrOption.getCacheRecycleIntervalHours() * 3600);
@@ -55,6 +55,8 @@ public class MgProductSearchSvr {
     public static class SvrConfigGlobalConf{
         public static String svrConfigGlobalConfKey = "mgProductSearchSvr";
         public static String loadFromDbThresholdKey = "loadFromDbThreshold";
+        public static String useIdFromEsAsInSqlThresholdKey = "useIdFromEsAsInSqlThreshold";
+        public static String searchResultCacheConfigKey = "searchResultCacheConfigKey";
     }
 
     @ParamKeyMapping(path = ".svr")
@@ -89,5 +91,6 @@ public class MgProductSearchSvr {
 
     public static void init(RedisCacheManager cache, ParamCacheRecycle cacheRecycle) {
         MgProductSearchCache.init(cache, cacheRecycle);
+        MgProductSearchCacheTemp.init(cache, cacheRecycle);
     }
 }

@@ -13,6 +13,7 @@ public class MgProductSearchDto {
         g_productSearchDtoDef.add(MgProductSearchResult.Info.MANAGE_DATA_CACHE_TIME, 2, Var.Type.LONG);
         g_productSearchDtoDef.add(MgProductSearchResult.Info.VISTOR_DATA_CACHE_TIME, 3, Var.Type.LONG);
     }
+
     public static ParamDef getProductSearchDto() {
         return g_productSearchDtoDef;
     }
@@ -26,6 +27,8 @@ public class MgProductSearchDto {
         public static final int KEEP_PRIID1 = 5;
         public static final int UNION_PRI_ID = 6;
         public static final int PRODUCT_COUNT = 7;
+
         public static final int ES_SEARCH_PARAM_STRING = 8;
+        public static final int DB_SEARCH_PARAM_STRING = 9;
     }
 }

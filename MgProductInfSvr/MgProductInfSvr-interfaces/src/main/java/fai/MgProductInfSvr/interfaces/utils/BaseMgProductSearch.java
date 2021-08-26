@@ -3,7 +3,7 @@ package fai.MgProductInfSvr.interfaces.utils;
 import fai.comm.util.Param;
 
 /**
- * @author LuChaoJi
+ * @author Lu
  * @date 2021-08-16 18:01
  *
  * 抽象的查询父类
@@ -12,25 +12,21 @@ import fai.comm.util.Param;
 public abstract class BaseMgProductSearch {
 
     /**
-     * 搜索的关键字，会关联商品名称、商品对应的参数
+     * db中的搜索的关键字，会关联商品名称、商品对应的参数
+     * es中的目前只是name
      */
     protected String searchKeyWord;
+
+    /**
+     * 关键词用做商品名称搜索，默认是false
+     */
+    protected boolean enableSearchProductName = false;
 
     /**
      * 上下架开始
      * 默认是全部的, 对应 ProductRelValObj.Status
      */
     protected int upSalesStatus = UpSalesStatusEnum.ALL.upSalesStatus;
-
-    /**
-     * 搜索的开始位置
-     */
-    protected int start = 0;
-
-    /**
-     * 分页限制条数开始，默认最大是 100
-     */
-    protected int limit = 100;
 
     /**
      * 第一排序字段
@@ -43,12 +39,13 @@ public abstract class BaseMgProductSearch {
     protected boolean firstComparatorKeyOrderByDesc = false;
 
     /**
-     * 选择是否使用第二的排序
+     * 选择是否使用第二的排序。默认不开启
      */
     protected boolean needSecondComparatorSorting = false;
 
     /**
      * 第二排序字段
+     * 目前db里的第二排序字段默认是rlPdId，通常db里的第二排序字段也只有这个。
      */
     protected String secondComparatorKey;
 
@@ -58,11 +55,14 @@ public abstract class BaseMgProductSearch {
     protected boolean secondComparatorKeyOrderByDesc = false;
 
     /**
-     * 默认不在es中进行排序，在DB中进行排序
-     * true：在db中排序
-     * false：在es中排序
+     * 搜索的开始位置
      */
-    protected boolean comparatorInEs = false;
+    protected int start = 0;
+
+    /**
+     * 分页限制条数开始，默认最大是 100
+     */
+    protected int limit = 100;
 
     /**
      * 上下架搜索参数封装
@@ -87,6 +87,7 @@ public abstract class BaseMgProductSearch {
         }
     }
 
+
     /**
      * 把查询条件转换为 Param
      * @return 包含查询条件的 Param
@@ -99,35 +100,23 @@ public abstract class BaseMgProductSearch {
      */
     public abstract void initSearchParam(Param searchParam);
 
-    public String getSearchKeyWord() {
-        return searchKeyWord;
-    }
-
-    public int getUpSalesStatus() {
-        return upSalesStatus;
-    }
-
-    public String getFirstComparatorKey() {
-        return firstComparatorKey;
-    }
-
-    public boolean isFirstComparatorKeyOrderByDesc() {
-        return firstComparatorKeyOrderByDesc;
-    }
-
-    public boolean isNeedSecondComparatorSorting() {
-        return needSecondComparatorSorting;
-    }
-
-    public String getSecondComparatorKey() {
-        return secondComparatorKey;
-    }
-
-    public boolean isSecondComparatorKeyOrderByDesc() {
-        return secondComparatorKeyOrderByDesc;
-    }
-
     public static final class BaseSearchInfo {
+
+        /**
+         * 搜索关键词
+         */
+        public static final String SEARCH_KEYWORD = "searchKeyWord";
+
+        /**
+         * 上下架状态，默认是获取上架的状态
+         */
+        public static final String UP_SALES_STATUS = "upSalesStatus";
+
+        /**
+         * 允许关键词用于搜索商品名称
+         */
+        public static final String ENABLE_SEARCH_PRODUCT_NAME = "enableSearchProductName";
+
         /**
          * 第一排序字段
          */
@@ -168,13 +157,84 @@ public abstract class BaseMgProductSearch {
      * 初始化公共的查询条件
      * @param baseSearchParam
      */
-    public void initBaseSearchParam(Param baseSearchParam) {
+    protected void initBaseSearchParam(Param baseSearchParam) {
+        this.searchKeyWord = baseSearchParam.getString(BaseSearchInfo.SEARCH_KEYWORD);
+        this.enableSearchProductName = baseSearchParam.getBoolean(BaseSearchInfo.ENABLE_SEARCH_PRODUCT_NAME, false);
+        this.upSalesStatus = baseSearchParam.getInt(BaseSearchInfo.UP_SALES_STATUS, UpSalesStatusEnum.ALL.upSalesStatus);
+
         this.firstComparatorKey = baseSearchParam.getString(BaseSearchInfo.FIRST_COMPARATOR_KEY);
-        this.firstComparatorKeyOrderByDesc = baseSearchParam.getBoolean(BaseSearchInfo.FIRST_COMPARATOR_KEY_ORDER_BY_DESC);
-        this.needSecondComparatorSorting = baseSearchParam.getBoolean(BaseSearchInfo.NEED_SECOND_COMPARATOR_SORTING);
+        this.firstComparatorKeyOrderByDesc = baseSearchParam.getBoolean(BaseSearchInfo.FIRST_COMPARATOR_KEY_ORDER_BY_DESC, false);
+        this.needSecondComparatorSorting = baseSearchParam.getBoolean(BaseSearchInfo.NEED_SECOND_COMPARATOR_SORTING, false);
         this.secondComparatorKey = baseSearchParam.getString(BaseSearchInfo.SECOND_COMPARATOR_KEY);
-        this.secondComparatorKeyOrderByDesc = baseSearchParam.getBoolean(BaseSearchInfo.SECOND_COMPARATOR_KEY_ORDER_BY_DESC);
-        this.start = baseSearchParam.getInt(BaseSearchInfo.LIMIT);
-        this.limit = baseSearchParam.getInt(BaseSearchInfo.LIMIT);
+        this.secondComparatorKeyOrderByDesc = baseSearchParam.getBoolean(BaseSearchInfo.SECOND_COMPARATOR_KEY_ORDER_BY_DESC, false);
+
+        this.start = baseSearchParam.getInt(BaseSearchInfo.START, 0);
+        this.limit = baseSearchParam.getInt(BaseSearchInfo.LIMIT, 100);
+    }
+
+    /**
+     * 将公共的查询条件转换为Param
+     */
+    public Param getBaseSearchParam() {
+        Param baseParam = new Param();
+
+        baseParam.setString(BaseSearchInfo.SEARCH_KEYWORD, searchKeyWord);
+        baseParam.setBoolean(BaseSearchInfo.ENABLE_SEARCH_PRODUCT_NAME, enableSearchProductName);
+        baseParam.setInt(BaseSearchInfo.UP_SALES_STATUS, upSalesStatus);
+        baseParam.setString(BaseSearchInfo.FIRST_COMPARATOR_KEY, firstComparatorKey);
+        baseParam.setBoolean(BaseSearchInfo.FIRST_COMPARATOR_KEY_ORDER_BY_DESC, firstComparatorKeyOrderByDesc);
+        baseParam.setBoolean(BaseSearchInfo.NEED_SECOND_COMPARATOR_SORTING, needSecondComparatorSorting);
+        baseParam.setString(BaseSearchInfo.SECOND_COMPARATOR_KEY, secondComparatorKey);
+        baseParam.setBoolean(BaseSearchInfo.SECOND_COMPARATOR_KEY_ORDER_BY_DESC, secondComparatorKeyOrderByDesc);
+        baseParam.setInt(BaseSearchInfo.START, start);
+        baseParam.setInt(BaseSearchInfo.LIMIT, limit);
+
+        return baseParam;
+    }
+
+    public String getSearchKeyWord() {
+        return searchKeyWord;
+    }
+
+    public int getUpSalesStatus() {
+        return upSalesStatus;
+    }
+
+    public String getFirstComparatorKey() {
+        return firstComparatorKey;
+    }
+
+    public boolean isFirstComparatorKeyOrderByDesc() {
+        return firstComparatorKeyOrderByDesc;
+    }
+
+    public boolean isNeedSecondComparatorSorting() {
+        return needSecondComparatorSorting;
+    }
+
+    public String getSecondComparatorKey() {
+        return secondComparatorKey;
+    }
+
+    public boolean isSecondComparatorKeyOrderByDesc() {
+        return secondComparatorKeyOrderByDesc;
+    }
+
+    public BaseMgProductSearch setStart(int start){
+        this.start = start >= 0 ? start : this.start;
+        return this;
+    }
+
+    public int getStart() {
+        return start;
+    }
+
+    public BaseMgProductSearch setLimit(int limit){
+        this.limit = limit >= 0 ? limit : this.limit;
+        return this;
+    }
+
+    public int getLimit() {
+        return limit;
     }
 }

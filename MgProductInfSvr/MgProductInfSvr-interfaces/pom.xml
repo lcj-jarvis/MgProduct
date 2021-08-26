@@ -44,6 +44,13 @@
             <artifactId>fai-comm-distributedkit</artifactId>
             <version>${fai-comm-distributedkit-ver}</version>
         </dependency>
+
+        <!--es-->
+        <dependency>
+            <groupId>fai-app-arch</groupId>
+            <artifactId>fai-app-arch</artifactId>
+            <version>${fai-app-arch-ver}</version>
+        </dependency>
     </dependencies>
 
     <distributionManagement>

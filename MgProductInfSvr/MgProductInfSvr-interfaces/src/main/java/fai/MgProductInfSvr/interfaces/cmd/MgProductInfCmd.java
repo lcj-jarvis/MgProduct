@@ -139,7 +139,7 @@ public class MgProductInfCmd {
         public static final int NUM59 = 1059; /**@see Cmd#RESTORE */
         public static final int NUM60 = 1060; /**@see Cmd#DEL_BACKUP */
         public static final int NUM61 = 1061; /**@see GroupCmd#SET_ALL_GROUP_LIST */
-        public static final int NUM62 = 1062; /**@see Cmd#DEL_PD_TAG_LIST */
+        public static final int NUM62 = 1062; /**@see BasicCmd#DEL_PD_TAG_LIST */
 
     }
 

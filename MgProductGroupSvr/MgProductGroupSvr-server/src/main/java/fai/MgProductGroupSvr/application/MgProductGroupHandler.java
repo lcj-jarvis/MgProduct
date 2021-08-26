@@ -32,9 +32,10 @@ public class MgProductGroupHandler extends MiddleGroundHandler {
 							   @ArgAid int aid,
 							   @ArgBodyInteger(ProductGroupRelDto.Key.UNION_PRI_ID) int unionPriId,
 							   @ArgBodyInteger(ProductGroupRelDto.Key.TID) int tid,
+							   @ArgBodyInteger(ProductGroupRelDto.Key.SYS_TYPE) int sysType,
 							   @ArgParam(classDef = ProductGroupRelDto.class, methodDef = "getAllInfoDto",
 							   keyMatch = ProductGroupRelDto.Key.INFO) Param info) throws IOException {
-		return groupService.addGroupInfo(session, flow, aid, unionPriId, tid, info);
+		return groupService.addGroupInfo(session, flow, aid, unionPriId, tid, sysType, info);
 	}
 	
 	@Cmd(MgProductGroupCmd.GroupCmd.GET_LIST)
@@ -75,10 +76,12 @@ public class MgProductGroupHandler extends MiddleGroundHandler {
 	public int setGroupList(final FaiSession session,
 							@ArgFlow final int flow,
 							@ArgAid int aid,
+							@ArgBodyInteger(ProductGroupRelDto.Key.TID) int tid,
 							@ArgBodyInteger(ProductGroupRelDto.Key.UNION_PRI_ID) int unionPriId,
+							@ArgBodyInteger(ProductGroupRelDto.Key.SYS_TYPE) int sysType,
 							@ArgList(classDef = ProductGroupRelDto.class, methodDef = "getAllInfoDto",
 									keyMatch = ProductGroupRelDto.Key.UPDATERLIST) FaiList<ParamUpdater> updaterList) throws IOException {
-		return groupService.setGroupList(session, flow, aid, unionPriId, updaterList);
+		return groupService.setGroupList(session, flow, aid, tid, unionPriId, sysType, updaterList);
 	}
 
 	@WrittenCmd
@@ -88,12 +91,12 @@ public class MgProductGroupHandler extends MiddleGroundHandler {
 							   @ArgAid int aid,
 							   @ArgBodyInteger(ProductGroupRelDto.Key.UNION_PRI_ID) int unionPriId,
 							   @ArgBodyInteger(ProductGroupRelDto.Key.TID) int tid,
-							   @ArgList(classDef = ProductGroupRelDto.class, methodDef = "getAllInfoDto",
-									   keyMatch = ProductGroupRelDto.Key.UPDATERLIST) FaiList<ParamUpdater> updaterList,
+							   @ArgList(classDef = ProductGroupRelDto.class, methodDef = "getTreeInfoDto",
+									   keyMatch = ProductGroupRelDto.Key.UPDATERLIST) FaiList<Param> treeDataList,
 							   @ArgBodyInteger(ProductGroupRelDto.Key.SYS_TYPE) int sysType,
 							   @ArgBodyInteger(ProductGroupRelDto.Key.GROUP_LEVEL) int groupLevel,
 							   @ArgBodyBoolean(ProductGroupRelDto.Key.SOFT_DEL) boolean softDel) throws IOException {
-		return groupService.setAllGroupList(session, flow, aid, unionPriId, tid, updaterList, sysType, groupLevel, softDel);
+		return groupService.setAllGroupList(session, flow, aid, unionPriId, tid, treeDataList, sysType, groupLevel, softDel);
 	}
 
 	@Cmd(MgProductGroupCmd.GroupCmd.BATCH_DEL)

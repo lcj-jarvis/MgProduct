@@ -134,6 +134,38 @@ public class ProductRelCacheCtrl extends CacheCtrl {
         private static final String CACHE_KEY = "MG_pdIdCache";
     }
 
+    /*** sort 字段的 cache ***/
+    public static class SortCache {
+        public static void set(int aid, int unionPriId, int sort) {
+            if(sort < 0) {
+                return;
+            }
+            String cacheKey = getCacheKey(aid, unionPriId);
+            m_cache.set(cacheKey, String.valueOf(sort));
+        }
+
+        public static void del(int aid, int unionPriId) {
+            String cacheKey = getCacheKey(aid, unionPriId);
+            if(!m_cache.exists(cacheKey)) {
+                return;
+            }
+            m_cache.del(cacheKey);
+        }
+
+        public static String get(int aid, int unionPriId) {
+            String cacheKey = getCacheKey(aid, unionPriId);
+            if(!m_cache.exists(cacheKey)) {
+                return null;
+            }
+            return m_cache.get(cacheKey);
+        }
+
+        public static String getCacheKey(int aid, int unionPriId) {
+            return wrapCacheVersion(SORT_CACHE_KEY + "-" + aid + "-" + unionPriId, aid);
+        }
+        private static final String SORT_CACHE_KEY = "MG_pdRelSort";
+    }
+
     /** 数据状态缓存 **/
     public static class DataStatusCache {
 

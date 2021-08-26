@@ -1041,7 +1041,7 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
 
     // TODO 先做重载后面优化接口参数
     public int unionSetPdScInfoList(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, FaiList<Param> addList, FaiList<Integer> delList, FaiList<ParamUpdater> updaterList) {
-        return unionSetPdScInfoList(aid, tid, siteId, lgId, keepPriId1, null, rlPdId, addList, delList, updaterList);
+        return unionSetPdScInfoList(aid, tid, siteId, lgId, keepPriId1, "", rlPdId, addList, delList, updaterList);
     }
 
     /**

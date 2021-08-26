@@ -13,28 +13,28 @@ public class ProductGroupRelCache extends CacheCtrl {
             return m_cache.hgetAllFaiList(cacheKey, ProductGroupRelDto.Key.INFO, ProductGroupRelDto.getInfoDto());
         }
 
-        public static void addCache(int aid, int uninoId, Param info) {
+        public static void addCache(int aid, int unionId, Param info) {
             if(Str.isEmpty(info)) {
                 return;
             }
-            String cacheKey = getCacheKey(aid, uninoId);
+            String cacheKey = getCacheKey(aid, unionId);
             int groupId = info.getInt(ProductGroupRelEntity.Info.GROUP_ID, 0);
             m_cache.hsetParam(true, cacheKey, String.valueOf(groupId), info, ProductGroupRelDto.Key.INFO, ProductGroupRelDto.getInfoDto());
         }
 
-        public static void addCacheList(int aid, int uninoId, FaiList<Param> list) {
+        public static void addCacheList(int aid, int unionId, FaiList<Param> list) {
             if(list == null || list.isEmpty()) {
                 return;
             }
-            String cacheKey = getCacheKey(aid, uninoId);
+            String cacheKey = getCacheKey(aid, unionId);
             m_cache.hmsetFaiList(cacheKey, ProductGroupRelEntity.Info.GROUP_ID, Var.Type.INT, list, ProductGroupRelDto.Key.INFO, ProductGroupRelDto.getInfoDto());
         }
 
-        public static void delCacheList(int aid, int uninoId, FaiList<Integer> groupIds) {
+        public static void delCacheList(int aid, int unionId, FaiList<Integer> groupIds) {
             if(groupIds == null || groupIds.isEmpty()) {
                 return;
             }
-            String cacheKey = getCacheKey(aid, uninoId);
+            String cacheKey = getCacheKey(aid, unionId);
             if(!m_cache.exists(cacheKey)) {
                 return;
             }
@@ -45,11 +45,15 @@ public class ProductGroupRelCache extends CacheCtrl {
             m_cache.hdel(cacheKey, groupIdStrs);
         }
 
-        public static void updateCacheList(int aid, int uninoId, FaiList<ParamUpdater> updaterList) {
+        public static void delCache(int aid, int unionId) {
+            m_cache.del(getCacheKey(aid, unionId));
+        }
+
+        public static void updateCacheList(int aid, int unionId, FaiList<ParamUpdater> updaterList) {
             if(updaterList == null || updaterList.isEmpty()) {
                 return;
             }
-            String cacheKey = getCacheKey(aid, uninoId);
+            String cacheKey = getCacheKey(aid, unionId);
             if(!m_cache.exists(cacheKey)) {
                 return;
             }
@@ -60,13 +64,13 @@ public class ProductGroupRelCache extends CacheCtrl {
             }
         }
 
-        public static boolean exists(int aid, int uninoId) {
-            String cacheKey = getCacheKey(aid, uninoId);
+        public static boolean exists(int aid, int unionId) {
+            String cacheKey = getCacheKey(aid, unionId);
             return m_cache.exists(cacheKey);
         }
 
-        public static void setExpire(int aid, int uninoId) {
-            String cacheKey = getCacheKey(aid, uninoId);
+        public static void setExpire(int aid, int unionId) {
+            String cacheKey = getCacheKey(aid, unionId);
             m_cache.expire(cacheKey, EXPIRE_SECOND);
         }
 
@@ -144,6 +148,10 @@ public class ProductGroupRelCache extends CacheCtrl {
 
         public static void expire(int aid, int unionPriId, int second) {
             m_cache.expire(getCacheKey(aid, unionPriId), second);
+        }
+
+        public static void delCache(int aid, int unionPriId) {
+            m_cache.del(getCacheKey(aid, unionPriId));
         }
 
         public static String getCacheKey(int aid, int unionPriId) {

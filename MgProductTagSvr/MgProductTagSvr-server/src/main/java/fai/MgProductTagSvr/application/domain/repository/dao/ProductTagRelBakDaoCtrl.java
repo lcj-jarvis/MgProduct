@@ -39,5 +39,5 @@ public class ProductTagRelBakDaoCtrl extends DaoCtrl {
     }
 
     private static DaoPool m_daoPool;
-    private static final String TABLE_PREFIX = "mgProductTagRelBak";
+    private static final String TABLE_PREFIX = "mgProductTagRel_bak";
 }

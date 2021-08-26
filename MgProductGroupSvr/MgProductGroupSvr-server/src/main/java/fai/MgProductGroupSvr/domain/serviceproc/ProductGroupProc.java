@@ -3,7 +3,6 @@ package fai.MgProductGroupSvr.domain.serviceproc;
 import fai.MgBackupSvr.interfaces.entity.MgBackupEntity;
 import fai.MgProductGroupSvr.domain.common.LockUtil;
 import fai.MgProductGroupSvr.domain.common.ProductGroupCheck;
-import fai.MgProductGroupSvr.domain.entity.BusinessMapping;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupEntity;
 import fai.MgProductGroupSvr.domain.entity.ProductGroupValObj;
 import fai.MgProductGroupSvr.domain.repository.ProductGroupBakDaoCtrl;
@@ -11,14 +10,12 @@ import fai.MgProductGroupSvr.domain.repository.ProductGroupCache;
 import fai.MgProductGroupSvr.domain.repository.ProductGroupDaoCtrl;
 import fai.comm.util.*;
 import fai.mgproduct.comm.Util;
-import fai.middleground.infutil.MgConfPool;
 import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
-import java.util.Calendar;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class ProductGroupProc {
     public ProductGroupProc(int flow, int aid, TransactionCtrl transactionCrtl) {
@@ -29,26 +26,10 @@ public class ProductGroupProc {
     }
 
     /**
-     * 获取配置文件，是否检查分类名称重复
-     * @param name 业务名称 eg: YK , SITE
-     * @return boolean 是否检查
-     */
-    private boolean isCheckGroupName(String name) {
-        if (Str.isEmpty(name)) {
-            throw new MgException(Errno.ERROR, "tid is illegal;flow=%d;", m_flow);
-        }
-        Param conf = MgConfPool.getEnvConf("MgPdCheckGroupNameSwitch");
-        if (Str.isEmpty(conf)) {
-            return false;
-        }
-        return conf.getBoolean(name, false);
-    }
-
-    /**
      * 添加商品分类数据
      * @return 商品分类id
      */
-    public int addGroup(int aid, Param info, int unionPriId, int tid) {
+    public int addGroup(int aid, int unionPriId, Param info, boolean isCheck) {
         int rt;
         if(Str.isEmpty(info)) {
             rt = Errno.ARGS_ERROR;
@@ -60,21 +41,11 @@ public class ProductGroupProc {
             rt = Errno.COUNT_LIMIT;
             throw new MgException(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductGroupValObj.Limit.COUNT_MAX);
         }
-        // 根据 tid 获取业务名称
-        String businessName = BusinessMapping.getName(tid);
-        // 通过读取配置文件，判断是否进行分类名称的校验
-        boolean isCheck = isCheckGroupName(businessName);
+        // 检查名称
         if (isCheck) {
-            // 从 db 查询 aid + uid 维度下的分类名称
-            SearchArg searchArg = new SearchArg();
-            searchArg.matcher = new ParamMatcher(ProductGroupEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.EQ, unionPriId);
-            FaiList<Param> nameList = searchFromDb(aid, searchArg, ProductGroupEntity.Info.GROUP_NAME);
+            int sysType = info.getInt(ProductGroupEntity.Info.SYS_TYPE, ProductGroupValObj.SysType.PRODUCT);
             String name = info.getString(ProductGroupEntity.Info.GROUP_NAME);
-            Param existInfo = Misc.getFirst(nameList, ProductGroupEntity.Info.GROUP_NAME, name);
-            if(!Str.isEmpty(existInfo)) {
-                rt = Errno.ALREADY_EXISTED;
-                throw new MgException(rt, "group name is existed;flow=%d;aid=%d;name=%s;", m_flow, aid, name);
-            }
+            isNameExist(aid, unionPriId, sysType, new FaiList<>(Collections.singletonList(name)));
         }
 
         int groupId = creatAndSetId(aid, info);
@@ -89,8 +60,9 @@ public class ProductGroupProc {
     /**
      * 修改商品分类
      */
-    public void setGroupList(int aid, FaiList<ParamUpdater> updaterList) {
+    public void setGroupList(int aid, int unionPriId, int sysType, FaiList<ParamUpdater> updaterList, boolean isCheck) {
         int rt;
+        FaiList<String> nameList = new FaiList<>();
         for(ParamUpdater updater : updaterList){
             Param updateInfo = updater.getData();
             String name = updateInfo.getString(ProductGroupEntity.Info.GROUP_NAME);
@@ -98,6 +70,10 @@ public class ProductGroupProc {
                 rt = Errno.ARGS_ERROR;
                 throw new MgException(rt, "flow=%d;aid=%d;name=%s", m_flow, aid, name);
             }
+            nameList.add(name);
+        }
+        if (isCheck) {
+            isNameExist(aid, unionPriId, sysType, nameList);
         }
 
         FaiList<Param> oldList = getGroupList(aid);
@@ -246,24 +222,29 @@ public class ProductGroupProc {
         m_daoCtrl.clearIdBuilderCache(aid);
     }*/
 
+    public FaiList<Integer> batchAddGroup(int aid, FaiList<Param> groupList) {
+        return batchAddGroup(aid, 0, 0, groupList, false);
+    }
+
     /**
      * 批量添加商品分类数据
      * @return 商品分类id集合
      */
-    public FaiList<Integer> batchAddGroup(int aid, FaiList<Param> groupList) {
+    public FaiList<Integer> batchAddGroup(int aid, int unionPriId, int sysType, FaiList<Param> groupList, boolean isCheck) {
         int rt;
         if(groupList == null || groupList.isEmpty()) {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "args error;groupList is null;aid=%d", aid);
         }
-        FaiList<Param> list = getGroupList(aid);
-        if(list == null) {
-            list = new FaiList<Param>();
-        }
-        int count = list.size() + groupList.size();
+        int count = getGroupCountFromDb(aid) + groupList.size();
         if(count > ProductGroupValObj.Limit.COUNT_MAX) {
             rt = Errno.COUNT_LIMIT;
             throw new MgException(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductGroupValObj.Limit.COUNT_MAX);
+        }
+        // 校验名称是否重复
+        if (isCheck) {
+            List<String> nameList = groupList.stream().map(o -> o.getString(ProductGroupEntity.Info.GROUP_NAME)).collect(Collectors.toList());
+            isNameExist(aid, unionPriId, sysType, new FaiList<>(nameList));
         }
         FaiList<Integer> ids = new FaiList<>();
         for(Param info : groupList) {
@@ -276,6 +257,17 @@ public class ProductGroupProc {
         }
 
         return ids;
+    }
+
+    private int getGroupCountFromDb(int aid) {
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductGroupEntity.Info.AID, ParamMatcher.EQ, aid);
+        Ref<Integer> countRef = new Ref<>();
+        int rt = m_daoCtrl.selectCount(searchArg, countRef);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "select group count err;flow=%d,aid=%d", m_flow, aid);
+        }
+        return countRef.value;
     }
 
     public void delGroupList(int aid, FaiList<Integer> delIdList, boolean softDel) {
@@ -614,6 +606,27 @@ public class ProductGroupProc {
         }
     }
 
+    /**
+     * 判读数据库是否含有当前名称
+     *
+     * @param sysType 系统类型
+     * @param nameList 名称
+     */
+    private void isNameExist(int aid, int unionPriId, int sysType, FaiList<String> nameList) {
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductGroupEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.EQ, unionPriId);
+        searchArg.matcher.and(ProductGroupEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
+        if (nameList.size() == 1) {
+            searchArg.matcher.and(ProductGroupEntity.Info.GROUP_NAME, ParamMatcher.EQ, nameList);
+        } else {
+            searchArg.matcher.and(ProductGroupEntity.Info.GROUP_NAME, ParamMatcher.IN, nameList);
+        }
+        FaiList<Param> existedNameList = searchFromDb(aid, searchArg, ProductGroupEntity.Info.GROUP_NAME);
+        if(!Utils.isEmptyList(existedNameList)) {
+            throw new MgException(Errno.ALREADY_EXISTED, "group name is existed;flow=%d;aid=%d;name=%s;", m_flow, aid, existedNameList);
+        }
+    }
+
     private static String getBakUniqueKey(Param fromInfo) {
         return fromInfo.getInt(ProductGroupEntity.Info.GROUP_ID) +
                 DELIMITER +
@@ -625,4 +638,5 @@ public class ProductGroupProc {
     private int m_flow;
     private ProductGroupDaoCtrl m_daoCtrl;
     private ProductGroupBakDaoCtrl m_bakDao;
+
 }

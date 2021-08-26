@@ -9,6 +9,7 @@ public class ProductGroupRelValObj {
 		public static final int PARENT_ID = 0;
 		public static final int SORT = 0;
 		public static final int RL_FLAG = 0;
+		public static final int RL_GROUP_ID = 0;
 	}
 
 	public static class Limit {

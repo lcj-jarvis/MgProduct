@@ -1,13 +1,6 @@
-package fai.MgProductBasicSvr.domain.entity;
+package fai.mgproduct.comm.entity;
 
-/**
- * Saga模式 补偿记录定义
- * @author GYY
- * @version 1.0
- * @date 2021/6/28 17:28
- */
-public class BasicSagaEntity {
-
+public class SagaEntity {
     public static final class Info {
         public static final String AID = "aid";
         public static final String XID = "xid";
@@ -21,5 +14,6 @@ public class BasicSagaEntity {
         public static final String XID = Info.XID;
         public static final String BRANCH_ID = Info.BRANCH_ID;
         public static final String SAGA_OP = "sagaOp";
+        public static final String SAGA_TIME = "sagaTime";
     }
 }

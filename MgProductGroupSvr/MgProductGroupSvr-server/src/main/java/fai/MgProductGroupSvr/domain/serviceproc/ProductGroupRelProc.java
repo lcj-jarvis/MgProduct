@@ -128,7 +128,7 @@ public class ProductGroupRelProc {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "infoList is null;flow=%d;aid=%d;uid=%d;", m_flow, aid, unionPriId);
         }
-        int count = getCount(aid, unionPriId);
+        int count = getCountFromDb(aid, unionPriId) + infoList.size();
         if(count > ProductGroupRelValObj.Limit.COUNT_MAX) {
             rt = Errno.COUNT_LIMIT;
             throw new MgException(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductGroupRelValObj.Limit.COUNT_MAX);
@@ -145,7 +145,19 @@ public class ProductGroupRelProc {
         return rlIds;
     }
 
-    public void setGroupRelList(int aid, int unionPriId, FaiList<ParamUpdater> updaterList, FaiList<ParamUpdater> groupUpdaterList) {
+    private int getCountFromDb(int aid, int unionPriId) {
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductGroupRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductGroupRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        Ref<Integer> countRef = new Ref<>();
+        int rt = m_relDao.selectCount(searchArg, countRef);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "select rel count error;flow=%d;aid=%d;unionPriId=%d", m_flow, aid, unionPriId);
+        }
+        return countRef.value;
+    }
+
+    public void setGroupRelList(int aid, int unionPriId, int sysType, FaiList<ParamUpdater> updaterList, FaiList<ParamUpdater> groupUpdaterList) {
         int rt;
         FaiList<Param> oldInfoList = getList(aid, unionPriId);
         FaiList<Param> dataList = new FaiList<Param>();
@@ -153,16 +165,9 @@ public class ProductGroupRelProc {
         for(ParamUpdater updater : updaterList){
             Param updateInfo = updater.getData();
             int rlGroupId = updateInfo.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID, 0);
-            Integer sysType = updateInfo.getInt(ProductGroupRelEntity.Info.SYS_TYPE, ProductGroupRelValObj.SysType.PRODUCT);
-            Param oldInfo;
-            // 主要是兼容门店的逻辑，因为他们的 rlGroupId 是会重复的 需要加上类型判断
-            if (sysType != 0) {
-                ParamMatcher matcher = new ParamMatcher(ProductGroupRelEntity.Info.RL_GROUP_ID, ParamMatcher.EQ, rlGroupId);
-                matcher.and(ProductGroupRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
-                oldInfo = Misc.getFirst(oldInfoList, matcher);
-            } else {
-                oldInfo = Misc.getFirstNullIsEmpty(oldInfoList, ProductGroupRelEntity.Info.RL_GROUP_ID, rlGroupId);
-            }
+            ParamMatcher matcher = new ParamMatcher(ProductGroupRelEntity.Info.RL_GROUP_ID, ParamMatcher.EQ, rlGroupId);
+            matcher.and(ProductGroupRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
+            Param oldInfo = Misc.getFirst(oldInfoList, matcher);
             if(Str.isEmpty(oldInfo)){
                 continue;
             }
@@ -222,7 +227,8 @@ public class ProductGroupRelProc {
             throw new MgException(rt, "args err;flow=%d;aid=%d;idList=%s", m_flow, aid, delRlIdList);
         }
 
-        ParamMatcher matcher = new ParamMatcher(ProductGroupRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        ParamMatcher matcher = new ParamMatcher(ProductGroupRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductGroupRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         matcher.and(ProductGroupRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
         matcher.and(ProductGroupRelEntity.Info.RL_GROUP_ID, ParamMatcher.IN, delRlIdList);
 
@@ -253,7 +259,6 @@ public class ProductGroupRelProc {
             throw new MgException(rt, "args err, matcher is null;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher);
         }
 
-        matcher.and(ProductGroupRelEntity.Info.AID, ParamMatcher.EQ, aid);
         rt = m_relDao.delete(matcher);
         if(rt != Errno.OK){
             throw new MgException(rt, "delGroupList error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher.toJson());
@@ -495,13 +500,16 @@ public class ProductGroupRelProc {
         return rlGroupId;
     }
 
+    public Integer getId(int aid, int unionPriId) {
+        return m_relDao.getId(aid, unionPriId);
+    }
+
     private FaiList<Param> getList(int aid, int unionPriId) {
         // 从缓存获取数据
         FaiList<Param> list = ProductGroupRelCache.InfoCache.getCacheList(aid, unionPriId);
         if(!Util.isEmptyList(list)) {
             return list;
         }
-
         LockUtil.GroupRelLock.readLock(aid);
         try {
             // check again
@@ -602,9 +610,7 @@ public class ProductGroupRelProc {
             return idList;
         }
         ParamMatcher matcher = new ParamMatcher(ProductGroupRelEntity.Info.RL_GROUP_ID, ParamMatcher.IN, rlIdList);
-        if (sysType != 0) {
-            matcher.and(ProductGroupRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
-        }
+        matcher.and(ProductGroupRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
         list = Misc.getList(list, matcher);
         for(int i = 0; i < list.size(); i++) {
             Param info = list.get(i);

@@ -9,6 +9,8 @@ import fai.app.DocOplogDef;
 import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
+import fai.mgproduct.comm.entity.SagaEntity;
+import fai.mgproduct.comm.entity.SagaValObj;
 import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
@@ -57,9 +59,10 @@ public class ProductRelProc {
             pdRelSaga.assign(relData, ProductRelEntity.Info.PD_ID);
 
             long branchId = RootContext.getBranchId();
-            pdRelSaga.setString(BasicSagaEntity.Common.XID, m_xid);
-            pdRelSaga.setLong(BasicSagaEntity.Common.BRANCH_ID, branchId);
-            pdRelSaga.setInt(BasicSagaEntity.Common.SAGA_OP, BasicSagaValObj.SagaOp.ADD);
+            pdRelSaga.setString(SagaEntity.Common.XID, m_xid);
+            pdRelSaga.setLong(SagaEntity.Common.BRANCH_ID, branchId);
+            pdRelSaga.setInt(SagaEntity.Common.SAGA_OP, SagaValObj.SagaOp.ADD);
+            pdRelSaga.setCalendar(SagaEntity.Common.SAGA_TIME, Calendar.getInstance());
 
             // 插入
             addSaga(aid, pdRelSaga);
@@ -67,7 +70,7 @@ public class ProductRelProc {
         return rlPdId;
     }
 
-    public FaiList<Integer> batchAddProductRel(int aid, int unionPriId, Param pdInfo, FaiList<Param> relDataList) {
+    public FaiList<Integer> batchAddProductRel(int aid, int unionPriId, FaiList<Param> relDataList) {
         int rt;
         if(relDataList == null || relDataList.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -83,10 +86,10 @@ public class ProductRelProc {
         int maxId = m_dao.getId(aid, unionPriId);
         FaiList<Integer> rlPdIds = new FaiList<Integer>();
         for(Param relData : relDataList) {
-            if(!Str.isEmpty(pdInfo)) {
+            /*if(!Str.isEmpty(pdInfo)) {
                 relData.assign(pdInfo, ProductRelEntity.Info.PD_ID);
                 relData.assign(pdInfo, ProductRelEntity.Info.PD_TYPE);
-            }
+            }*/
             Integer curPdId = relData.getInt(ProductRelEntity.Info.PD_ID);
             if(curPdId == null) {
                 rt = Errno.ARGS_ERROR;
@@ -238,11 +241,13 @@ public class ProductRelProc {
                     return;
                 }
 
+                Calendar now = Calendar.getInstance();
                 for(Param info : oldList) {
                     long branchId = RootContext.getBranchId();
-                    info.setString(BasicSagaEntity.Common.XID, m_xid);
-                    info.setLong(BasicSagaEntity.Common.BRANCH_ID, branchId);
-                    info.setInt(BasicSagaEntity.Common.SAGA_OP, BasicSagaValObj.SagaOp.DEL);
+                    info.setString(SagaEntity.Common.XID, m_xid);
+                    info.setLong(SagaEntity.Common.BRANCH_ID, branchId);
+                    info.setInt(SagaEntity.Common.SAGA_OP, SagaValObj.SagaOp.DEL);
+                    info.setCalendar(SagaEntity.Common.SAGA_TIME, now);
                 }
                 // 插入
                 addSagaList(aid, oldList);
@@ -301,6 +306,34 @@ public class ProductRelProc {
         return updater;
     }
 
+    public int getMaxSort(int aid, int unionPriId) {
+        String sortCache = ProductRelCacheCtrl.SortCache.get(aid, unionPriId);
+        if(!Str.isEmpty(sortCache)) {
+            return Parser.parseInt(sortCache, ProductRelValObj.Default.SORT);
+        }
+
+        // db中获取
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
+        int rt = m_dao.select(searchArg, listRef, "max(sort) as sort");
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "getMaxSort error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+        }
+        if (listRef.value == null || listRef.value.isEmpty()) {
+            rt = Errno.NOT_FOUND;
+            Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return ProductRelValObj.Default.SORT;
+        }
+
+        Param info = listRef.value.get(0);
+        int sort = info.getInt(ProductRelEntity.Info.SORT, ProductRelValObj.Default.SORT);
+        // 添加到缓存
+        ProductRelCacheCtrl.SortCache.set(aid, unionPriId, sort);
+        return sort;
+    }
+
     private int updatePdRel(int aid, ParamMatcher matcher, ParamUpdater updater) {
         int rt;
         if(updater == null || updater.isEmpty()) {
@@ -333,15 +366,17 @@ public class ProductRelProc {
                 return 0;
             }
 
+            Calendar now = Calendar.getInstance();
             FaiList<Param> sagaList = new FaiList<>();
             for(Param info : oldList) {
                 Param sagaInfo = new Param();
                 Utils.assign(sagaInfo, info, validUpdaterFields);
 
                 long branchId = RootContext.getBranchId();
-                sagaInfo.setString(BasicSagaEntity.Common.XID, m_xid);
-                sagaInfo.setLong(BasicSagaEntity.Common.BRANCH_ID, branchId);
-                sagaInfo.setInt(BasicSagaEntity.Common.SAGA_OP, BasicSagaValObj.SagaOp.UPDATE);
+                sagaInfo.setString(SagaEntity.Common.XID, m_xid);
+                sagaInfo.setLong(SagaEntity.Common.BRANCH_ID, branchId);
+                sagaInfo.setInt(SagaEntity.Common.SAGA_OP, SagaValObj.SagaOp.UPDATE);
+                sagaInfo.setCalendar(SagaEntity.Common.SAGA_TIME, now);
                 sagaList.add(sagaInfo);
             }
             // 插入
@@ -364,16 +399,16 @@ public class ProductRelProc {
             return;
         }
         // 按操作分类
-        Map<Integer, List<Param>> groupBySagaOp = list.stream().collect(Collectors.groupingBy(x -> x.getInt(BasicSagaEntity.Common.SAGA_OP)));
+        Map<Integer, List<Param>> groupBySagaOp = list.stream().collect(Collectors.groupingBy(x -> x.getInt(SagaEntity.Common.SAGA_OP)));
 
         // 回滚新增操作
-        rollback4Add(aid, groupBySagaOp.get(BasicSagaValObj.SagaOp.ADD));
+        rollback4Add(aid, groupBySagaOp.get(SagaValObj.SagaOp.ADD));
 
         // 回滚修改操作
-        rollback4Update(aid, groupBySagaOp.get(BasicSagaValObj.SagaOp.UPDATE));
+        rollback4Update(aid, groupBySagaOp.get(SagaValObj.SagaOp.UPDATE));
 
         // 回滚删除操作
-        rollback4Delete(aid, groupBySagaOp.get(BasicSagaValObj.SagaOp.DEL));
+        rollback4Delete(aid, groupBySagaOp.get(SagaValObj.SagaOp.DEL));
     }
 
     /**
@@ -419,9 +454,10 @@ public class ProductRelProc {
         keySet.remove(ProductRelEntity.Info.AID);
         keySet.remove(ProductRelEntity.Info.UNION_PRI_ID);
         keySet.remove(ProductRelEntity.Info.PD_ID);
-        keySet.remove(BasicSagaEntity.Common.XID);
-        keySet.remove(BasicSagaEntity.Common.BRANCH_ID);
-        keySet.remove(BasicSagaEntity.Common.SAGA_OP);
+        keySet.remove(SagaEntity.Common.XID);
+        keySet.remove(SagaEntity.Common.BRANCH_ID);
+        keySet.remove(SagaEntity.Common.SAGA_OP);
+        keySet.remove(SagaEntity.Common.SAGA_TIME);
         FaiList<String> keyList = new FaiList<>(keySet);
 
         FaiList<Param> dataList = new FaiList<>();
@@ -468,9 +504,10 @@ public class ProductRelProc {
         }
 
         for(Param relInfo : list) {
-            relInfo.remove(BasicSagaEntity.Common.XID);
-            relInfo.remove(BasicSagaEntity.Common.BRANCH_ID);
-            relInfo.remove(BasicSagaEntity.Common.SAGA_OP);
+            relInfo.remove(SagaEntity.Common.XID);
+            relInfo.remove(SagaEntity.Common.BRANCH_ID);
+            relInfo.remove(SagaEntity.Common.SAGA_OP);
+            relInfo.remove(SagaEntity.Common.SAGA_TIME);
         }
         int rt = m_dao.batchInsert(new FaiList<>(list), null, false);
         if(rt != Errno.OK) {
@@ -667,8 +704,8 @@ public class ProductRelProc {
 
         Ref<FaiList<Param>> tmpRef = new Ref<>();
         int rt = m_dao.select(searchArg, tmpRef, ProductRelEntity.Info.RL_PD_ID, ProductRelEntity.Info.PD_ID);
-        if(rt != Errno.OK) {
-            throw new MgException("select pdId error;aid=%d;uid=%d;rlPdIds=%s;sysType=%d;", aid, unionPriId, sysType, rlPdIds);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "select pdId error;aid=%d;uid=%d;sysType=%d;rlPdIds=%s;", aid, unionPriId, sysType, rlPdIds);
         }
 
         if(tmpRef.value != null && !tmpRef.value.isEmpty()) {
@@ -741,8 +778,8 @@ public class ProductRelProc {
     private FaiList<Param> getSagaList(int aid, String xid, long branchId) {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
-        searchArg.matcher.and(BasicSagaEntity.Common.XID, ParamMatcher.EQ, xid);
-        searchArg.matcher.and(BasicSagaEntity.Common.BRANCH_ID, ParamMatcher.EQ, branchId);
+        searchArg.matcher.and(SagaEntity.Common.XID, ParamMatcher.EQ, xid);
+        searchArg.matcher.and(SagaEntity.Common.BRANCH_ID, ParamMatcher.EQ, branchId);
         Ref<FaiList<Param>> tmpRef = new Ref<>();
         int rt = m_sagaDao.select(searchArg, tmpRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {

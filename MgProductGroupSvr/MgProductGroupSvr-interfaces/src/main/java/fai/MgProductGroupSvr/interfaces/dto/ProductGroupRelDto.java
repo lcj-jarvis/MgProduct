@@ -50,6 +50,33 @@ public class ProductGroupRelDto {
         return g_groupAllDtoDef;
     }
 
+    private static ParamDef g_groupTreeDtoDef = new ParamDef(); // 树形结构数据
+    static {
+        g_groupTreeDtoDef.add(ProductGroupEntity.Info.AID, 0, Var.Type.INT);
+        g_groupTreeDtoDef.add(ProductGroupEntity.Info.GROUP_ID, 1, Var.Type.INT);
+        g_groupTreeDtoDef.add(ProductGroupEntity.Info.SOURCE_TID, 2, Var.Type.INT);
+        g_groupTreeDtoDef.add(ProductGroupEntity.Info.SOURCE_UNIONPRIID, 3, Var.Type.INT);
+        g_groupTreeDtoDef.add(ProductGroupEntity.Info.GROUP_NAME, 4, Var.Type.STRING);
+        g_groupTreeDtoDef.add(ProductGroupEntity.Info.ICON_LIST, 5, Var.Type.STRING);
+        g_groupTreeDtoDef.add(ProductGroupEntity.Info.FLAG, 6, Var.Type.INT);
+        g_groupTreeDtoDef.add(ProductGroupEntity.Info.CREATE_TIME, 7, Var.Type.CALENDAR);
+        g_groupTreeDtoDef.add(ProductGroupEntity.Info.UPDATE_TIME, 8, Var.Type.CALENDAR);
+
+        g_groupTreeDtoDef.add(ProductGroupRelEntity.Info.RL_GROUP_ID, 9, Var.Type.INT);
+        g_groupTreeDtoDef.add(ProductGroupRelEntity.Info.UNION_PRI_ID, 10, Var.Type.INT);
+        g_groupTreeDtoDef.add(ProductGroupRelEntity.Info.SORT, 11, Var.Type.INT);
+        g_groupTreeDtoDef.add(ProductGroupRelEntity.Info.RL_FLAG, 12, Var.Type.INT);
+        g_groupTreeDtoDef.add(ProductGroupRelEntity.Info.SYS_TYPE, 13, Var.Type.INT);
+        g_groupTreeDtoDef.add(ProductGroupRelEntity.Info.STATUS, 14, Var.Type.INT);
+        g_groupTreeDtoDef.add(ProductGroupRelEntity.Info.PARENT_ID, 15, Var.Type.INT);
+
+        g_groupTreeDtoDef.add(ProductGroupEntity.Info.CHILDREN, 16, ProductGroupRelDto.getTreeInfoDto(), Var.Type.FAI_LIST);
+        g_groupTreeDtoDef.add(ProductGroupEntity.Info.IS_ADD, 17, Var.Type.BOOLEAN);
+    }
+    public static ParamDef getTreeInfoDto() {
+        return g_groupTreeDtoDef;
+    }
+
     public static class Key {
         public static final int INFO = 1;
         public static final int INFO_LIST = 2;

@@ -22,6 +22,7 @@ public class ProductRelEntity {
         public static final String UPDATE_TIME = "sysUpdateTime"; // datetime 更新时间
         public static final String PD_TYPE = "productType"; // int 商品类型 (为了方便搜索，冗余商品表的该字段)
         public static final String SYS_TYPE = "sysType"; // int 系统类型 (商品/服务)
+        public static final String SORT = "sort"; // int 排序
 
         /*** 未入库属性 ***/
         public static final String RL_GROUP_IDS = "rlGroupIds"; // FaiList<Integer> 商品分类业务id集合
@@ -46,6 +47,7 @@ public class ProductRelEntity {
         MANAGE_FIELDS.add(Info.STATUS);
         MANAGE_FIELDS.add(Info.UP_SALE_TIME);
         MANAGE_FIELDS.add(Info.FLAG);
+        MANAGE_FIELDS.add(Info.SORT);
         MANAGE_FIELDS.setReadOnly(true);
 
         VISITOR_FIELDS = new FaiList<String>();

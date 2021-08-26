@@ -76,6 +76,7 @@ public class ProductBasicEntity {
         public static final String STATUS = "status"; // int 商品状态
         public static final String UP_SALE_TIME = "upSaleTime"; // datetime 上架时间
         public static final String RL_FLAG = "rlFlag"; // int
+        public static final String SORT = "sort"; // int 排序
 
         public static final String TID = "tid";  // int 项目id
         public static final String SITE_ID = "siteId"; // int 站点id
@@ -85,5 +86,18 @@ public class ProductBasicEntity {
         public static final String RL_GROUP_IDS = "rlGroupIds"; // 商品分类业务ids
         public static final String RL_TAG_IDS = "rlTagIds"; // 商品标签业务ids
         public static final String RL_PROPS = "rlProps"; // 商品参数绑定关系
+
+        public static final String REMARK = "remark"; // 富文本(商品详情)
+        public static final String REMARK1 = "remark1"; // 富文本1
+        public static final String REMARK2 = "remark2"; // 富文本2
+        public static final String REMARK3 = "remark3"; // 富文本3
+        public static final String REMARK4 = "remark4"; // 富文本4
+        public static final String REMARK5 = "remark5"; // 富文本5
+        public static final String REMARK6 = "remark6"; // 富文本6
+        public static final String REMARK7 = "remark7"; // 富文本7
+        public static final String REMARK8 = "remark8"; // 富文本8
+        public static final String REMARK9 = "remark9"; // 富文本9
+        public static final String REMARK10 = "remark10"; // 富文本10
+        public static final String REMARK11 = "remark11"; // 富文本11
     }
 }

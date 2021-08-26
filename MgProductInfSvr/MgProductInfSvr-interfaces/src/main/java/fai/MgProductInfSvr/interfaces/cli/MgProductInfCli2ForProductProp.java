@@ -133,6 +133,7 @@ public class MgProductInfCli2ForProductProp extends MgProductInfCli1ForProductBa
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
      *                 .setRlPdId(rlPdId)    // 必填
      *                 .setRlLibId(rlLibId)  // 必填
+     *                 .setSysType(sysType)  // 选填
      *                 .build();
      * @param propInfo 接收绑定的参数信息
      * @return {@link Errno}

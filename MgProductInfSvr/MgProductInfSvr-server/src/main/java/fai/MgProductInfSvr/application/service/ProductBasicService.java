@@ -2,10 +2,8 @@ package fai.MgProductInfSvr.application.service;
 
 import fai.MgPrimaryKeySvr.interfaces.entity.MgPrimaryKeyEntity;
 import fai.MgProductBasicSvr.interfaces.entity.ProductRelEntity;
-import fai.MgProductInfSvr.domain.serviceproc.ProductBasicProc;
-import fai.MgProductInfSvr.domain.serviceproc.ProductPropProc;
-import fai.MgProductInfSvr.domain.serviceproc.ProductSpecProc;
-import fai.MgProductInfSvr.domain.serviceproc.ProductStoreProc;
+import fai.MgProductInfSvr.domain.entity.RichTextConverter;
+import fai.MgProductInfSvr.domain.serviceproc.*;
 import fai.MgProductInfSvr.interfaces.dto.ProductBasicDto;
 import fai.MgProductInfSvr.interfaces.entity.MgProductEntity;
 import fai.MgProductInfSvr.interfaces.entity.ProductBasicEntity;
@@ -546,7 +544,9 @@ public class ProductBasicService extends MgProductInfService {
                 Param updaterData = recvUpdater.getData();
                 /** 基础信息修改 start */
                 Param basicData = updaterData.getParam(MgProductEntity.Info.BASIC);
+                FaiList<Param> remarkList = null;
                 if (!Str.isEmpty(basicData)) {
+                    remarkList = RichTextConverter.getRemarkList(basicData, false);
                     ProductBasicProc basicProc = new ProductBasicProc(flow);
                     ParamUpdater updater = new ParamUpdater(basicData);
                     rt = basicProc.setSinglePd(aid, xid, unionPriId, sysType, rlPdId, updater);
@@ -560,7 +560,7 @@ public class ProductBasicService extends MgProductInfService {
                 FaiList<Param> specSkuList = updaterData.getList(MgProductEntity.Info.SPEC_SKU);
                 FaiList<Param> storeData = updaterData.getList(MgProductEntity.Info.STORE_SALES);
                 int pdId = 0;
-                if(!Utils.isEmptyList(specSkuList) || !Utils.isEmptyList(storeData)) {
+                if(!Utils.isEmptyList(specSkuList) || !Utils.isEmptyList(storeData) || !Utils.isEmptyList(remarkList)) {
                     // 获取 pdId
                     idRef.value = null;
                     rt = getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
@@ -578,7 +578,7 @@ public class ProductBasicService extends MgProductInfService {
                     }
                     ProductSpecProc productSpecProc = new ProductSpecProc(flow);
                     // TODO 规格服务暂时不支持分布式事务
-                    rt = productSpecProc.setPdSkuScInfoList(aid, tid, unionPriId, null, pdId, specSkuUpdaterList);
+                    rt = productSpecProc.setPdSkuScInfoList(aid, tid, unionPriId, "", pdId, specSkuUpdaterList);
                     if(rt != Errno.OK) {
                         return rt;
                     }
@@ -633,12 +633,19 @@ public class ProductBasicService extends MgProductInfService {
                 }
                 /** 库存信息修改 end */
 
-                FaiBuffer sendBuf = new FaiBuffer(true);
-                session.write(sendBuf);
-                Log.logStd("set productInfo ok;flow=%d;aid=%d;tid=%d;rlPdId=%s;", flow, aid, tid, rlPdId);
-            } catch (TransactionException e) {
-                rt = Errno.ERROR;
-                e.printStackTrace();
+                /** 修改富文本 start */
+                // 富文本中台暂时未接入分布式事务，所以保持最后一个操作
+                if(!Utils.isEmptyList(remarkList)) {
+                    RichTextProc richTextProc = new RichTextProc(flow);
+                    rt = richTextProc.updatePdRichText(aid, tid, siteId, lgId, keepPriId1, pdId, remarkList);
+                    if(rt != Errno.OK) {
+                        Oss.logAlarm("updatePdRichText err;aid=" + aid + ";unionPriId=" + unionPriId + ";pdId=" + pdId);
+                        Log.logErr(rt, "updatePdRichText err;aid=%d;uid=%d;pdId=%d;remarks=%s;", aid, unionPriId, pdId, remarkList);
+                        return rt;
+                    }
+                }
+                /** 修改富文本 end */
+
             } finally {
                 if (rt != Errno.OK) {
                     tx.rollback();
@@ -646,6 +653,9 @@ public class ProductBasicService extends MgProductInfService {
                     tx.commit();
                 }
             }
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("set productInfo ok;flow=%d;aid=%d;tid=%d;rlPdId=%s;", flow, aid, tid, rlPdId);
         } finally {
             stat.end(rt != Errno.OK, rt);
         }
@@ -792,9 +802,18 @@ public class ProductBasicService extends MgProductInfService {
                 }
                 // 删除商品规格相关信息
                 // TODO 规格服务暂时不支持分布式事务
-                rt = productSpecProc.batchDelPdAllSc(aid, tid, pdIdList, null, softDel);
+                rt = productSpecProc.batchDelPdAllSc(aid, tid, pdIdList, "", softDel);
                 if (rt != Errno.OK) {
                     Log.logErr(rt, "batchDelPdAllSc err;aid=%s;tid=%s;pdIdList=%s;", aid, tid, pdIdList);
+                    return rt;
+                }
+
+                // 删除富文本
+                // 富文本未接入分布式事务，需保证最后一个操作
+                RichTextProc richTextProc = new RichTextProc(flow);
+                rt = richTextProc.batchDel(aid, tid, siteId, lgId, keepPriId1, pdIdList);
+                if(rt != Errno.OK) {
+                    Log.logErr(rt, "batchDel richText err;aid=%s;tid=%s;pdIdList=%s;", aid, tid, pdIdList);
                     return rt;
                 }
 
@@ -937,6 +956,15 @@ public class ProductBasicService extends MgProductInfService {
                     return rt;
                 }
 
+                // 添加富文本
+                // TODO 富文本暂时未接入分布式事务，保持最后一个操作
+                FaiList<Param> remarkList = RichTextConverter.getRemarkList(basicInfo, true);
+                RichTextProc richTextProc = new RichTextProc(flow);
+                rt = richTextProc.addPdRichTexts(aid, tid, siteId, lgId, keepPriId1, pdIdRef.value, remarkList);
+                if(rt != Errno.OK) {
+                    return rt;
+                }
+
                 commit = true;
             } finally {
                 if(!commit) {
@@ -996,7 +1024,7 @@ public class ProductBasicService extends MgProductInfService {
             // 添加
             if (!addSpecList.isEmpty()) {
                 // TODO 规格暂时不支持分布式事务
-                rt = specProc.importPdScWithSku(aid, tid, unionPriId, null, addSpecList, addSpecSkuList, skuIdInfoList);
+                rt = specProc.importPdScWithSku(aid, tid, unionPriId, "", addSpecList, addSpecSkuList, skuIdInfoList);
                 if (rt != Errno.OK) {
                     return rt;
                 }

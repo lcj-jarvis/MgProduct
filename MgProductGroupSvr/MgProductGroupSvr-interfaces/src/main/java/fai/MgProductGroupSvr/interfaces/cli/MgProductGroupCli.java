@@ -37,7 +37,7 @@ public class MgProductGroupCli extends FaiClient {
     /**
      * 新增商品数据，并添加与当前unionPriId的关联
      */
-    public int addProductGroup(int aid, int tid, int unionPriId, Param info, Ref<Integer> groupIdRef, Ref<Integer> rlGroupIdRef) {
+    public int addProductGroup(int aid, int tid, int unionPriId, Param info, int sysType, Ref<Integer> groupIdRef, Ref<Integer> rlGroupIdRef) {
         if (!useProductGroup()) {
             return Errno.OK;
         }
@@ -59,6 +59,7 @@ public class MgProductGroupCli extends FaiClient {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductGroupRelDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(ProductGroupRelDto.Key.TID, tid);
+            sendBody.putInt(ProductGroupRelDto.Key.SYS_TYPE, sysType);
             info.toBuffer(sendBody, ProductGroupRelDto.Key.INFO, ProductGroupRelDto.getAllInfoDto());
 
             FaiProtocol sendProtocol = new FaiProtocol();
@@ -181,7 +182,7 @@ public class MgProductGroupCli extends FaiClient {
         }
     }
 
-    public int setGroupList(int aid, int unionPriId, FaiList<ParamUpdater> updaterList) {
+    public int setGroupList(int aid, int tid, int unionPriId, int sysType, FaiList<ParamUpdater> updaterList) {
         if (!useProductGroup()) {
             return Errno.OK;
         }
@@ -201,7 +202,9 @@ public class MgProductGroupCli extends FaiClient {
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductGroupRelDto.Key.TID, tid);
             sendBody.putInt(ProductGroupRelDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductGroupRelDto.Key.SYS_TYPE, sysType);
             updaterList.toBuffer(sendBody, ProductGroupRelDto.Key.UPDATERLIST, ProductGroupRelDto.getAllInfoDto());
 
             FaiProtocol sendProtocol = new FaiProtocol();
@@ -555,7 +558,7 @@ public class MgProductGroupCli extends FaiClient {
     /**
      * 修改分类 （包含 增删改）
      */
-    public int setAllGroupList(int aid, int tid, int unionPriId, FaiList<ParamUpdater> updaterList, int sysType, int groupLevel, boolean softDel, Ref<FaiList<Integer>> rlGroupIdsRef) {
+    public int setAllGroupList(int aid, int tid, int unionPriId, FaiList<Param> treeDataList, int sysType, int groupLevel, boolean softDel) {
         if (!useProductGroup()) {
             return Errno.OK;
         }
@@ -572,10 +575,10 @@ public class MgProductGroupCli extends FaiClient {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductGroupRelDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(ProductGroupRelDto.Key.TID, tid);
-            if (updaterList == null) {
-                updaterList = new FaiList<ParamUpdater>();
+            if (treeDataList == null) {
+                treeDataList = new FaiList<Param>();
             }
-            updaterList.toBuffer(sendBody, ProductGroupRelDto.Key.UPDATERLIST, ProductGroupRelDto.getAllInfoDto());
+            treeDataList.toBuffer(sendBody, ProductGroupRelDto.Key.UPDATERLIST, ProductGroupRelDto.getTreeInfoDto());
             sendBody.putInt(ProductGroupRelDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(ProductGroupRelDto.Key.GROUP_LEVEL, groupLevel);
             sendBody.putBoolean(ProductGroupRelDto.Key.SOFT_DEL, softDel);
@@ -602,19 +605,6 @@ public class MgProductGroupCli extends FaiClient {
                 return m_rt;
             }
 
-            if (rlGroupIdsRef != null) {
-                FaiBuffer recvBody = recvProtocol.getDecodeBody();
-                if (recvBody != null) {
-                    Ref<Integer> keyRef = new Ref<Integer>();
-                    FaiList<Integer> ids = new FaiList<Integer>();
-                    m_rt = ids.fromBuffer(recvBody, keyRef);
-                    if (m_rt != Errno.OK || keyRef.value != ProductGroupRelDto.Key.RL_GROUP_IDS) {
-                        Log.logErr(m_rt, "recv rlGroupIds codec err");
-                        return m_rt;
-                    }
-                    rlGroupIdsRef.value = ids;
-                }
-            }
             m_rt = Errno.OK;
             return m_rt;
         } finally {

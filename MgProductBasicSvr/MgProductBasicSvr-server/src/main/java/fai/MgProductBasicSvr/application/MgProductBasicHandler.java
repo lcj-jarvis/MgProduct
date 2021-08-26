@@ -355,6 +355,16 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
         return service.getInfoByPdId(session, flow, aid, unionPriId, pdId);
     }
 
+    @Cmd(MgProductBasicCmd.BasicCmd.GET_PD_INFO)
+    public int getProductInfo(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid int aid,
+                              @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                              @ArgBodyInteger(value = ProductRelDto.Key.SYS_TYPE, useDefault = true) int sysType,
+                              @ArgBodyInteger(ProductRelDto.Key.RL_PD_ID) int rlPdId) throws IOException {
+        return service.getProductInfo(session, flow, aid, unionPriId, sysType, rlPdId);
+    }
+
     @Cmd(MgProductBasicCmd.BasicCmd.GET_PD_LIST)
     public int getProductList(final FaiSession session,
                               @ArgFlow final int flow,

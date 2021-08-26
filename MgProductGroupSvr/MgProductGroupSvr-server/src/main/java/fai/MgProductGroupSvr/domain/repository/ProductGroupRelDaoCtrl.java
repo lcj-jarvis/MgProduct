@@ -4,7 +4,6 @@ import fai.MgProductGroupSvr.domain.entity.ProductGroupRelEntity;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.distributedkit.idBuilder.domain.IdBuilderConfig;
 import fai.comm.distributedkit.idBuilder.wrapper.IdBuilderWrapper;
-import fai.comm.util.Dao;
 import fai.comm.util.DaoPool;
 import fai.comm.util.Errno;
 import fai.comm.util.Log;
@@ -62,6 +61,14 @@ public class ProductGroupRelDaoCtrl extends DaoCtrl {
 
     public int restoreMaxId(Integer unionPriId, boolean needLock) {
         return m_idBuilder.restoreMaxId(aid, unionPriId, flow, tableName, m_dao, needLock);
+    }
+
+    public Integer getId(int aid, int unionPriId) {
+        int rt = openDao();
+        if (rt != Errno.OK) {
+            return null;
+        }
+        return m_idBuilder.get(aid, unionPriId, m_dao);
     }
 
     public void clearIdBuilderCache(int aid, int unionPriId) {

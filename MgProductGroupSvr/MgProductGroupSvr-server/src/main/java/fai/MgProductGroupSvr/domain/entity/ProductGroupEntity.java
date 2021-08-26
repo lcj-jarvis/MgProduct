@@ -14,5 +14,9 @@ public class ProductGroupEntity {
 		public static final String STATUS = "status"; // int
 		public static final String CREATE_TIME = "sysCreateTime"; // datetime 创建时间
 		public static final String UPDATE_TIME = "sysUpdateTime"; // datetime 更新时间
-	}
+
+		public static final String CHILDREN = "children";       // 树结构 子节点 （非真实存在字段）
+
+		public static final String IS_ADD = "isAdd";           // TODO 临时字段 双写时使用
+    }
 }

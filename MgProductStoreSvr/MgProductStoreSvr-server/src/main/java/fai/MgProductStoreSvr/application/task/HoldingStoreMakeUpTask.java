@@ -94,5 +94,5 @@ public class HoldingStoreMakeUpTask implements Runnable{
     private DaoProxy m_daoProxy;
     MgProductStoreSvr.HoldingStoreMakeUpTaskOption m_taskOption;
     private static final String TABLE = TableDBMapping.TableEnum.MG_HOLDING_RECORD.getTable();
-    private static final String GROUP = TableDBMapping.TableEnum.MG_HOLDING_RECORD.getTaskGroup();
+    private static final String GROUP = TableDBMapping.TableEnum.MG_HOLDING_RECORD.getGroup();
 }

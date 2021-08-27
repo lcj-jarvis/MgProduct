@@ -24,6 +24,9 @@ public class RichTextProc {
     }
 
     public int addPdRichTexts(int aid, int tid, int siteId, int lgId, int keepPriId1, int pdId, FaiList<Param> richList) {
+        if(true) {
+            return Errno.OK;
+        }
         int rt;
         if(pdId <= 0 || Utils.isEmptyList(richList)) {
             rt = Errno.ARGS_ERROR;
@@ -44,6 +47,9 @@ public class RichTextProc {
     }
 
     public int batchDel(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> pdIds) {
+        if(true) {
+            return Errno.OK;
+        }
         int rt;
         if(Utils.isEmptyList(pdIds)) {
             rt = Errno.ARGS_ERROR;
@@ -63,6 +69,9 @@ public class RichTextProc {
     }
 
     public FaiList<Param> getPdRichText(int aid, int tid, int siteId, int lgId, int keepPriId1, int pdId) {
+        if(true) {
+            return new FaiList<>();
+        }
         int rt;
         MgRichTextSearch search = new MgRichTextSearch();
         search.setBiz(MgRichTextValObj.Biz.PRODUCT);
@@ -82,6 +91,9 @@ public class RichTextProc {
     }
 
     public int updatePdRichText(int aid, int tid, int siteId, int lgId, int keepPriId1, int pdId, FaiList<Param> richTextList) {
+        if(true) {
+            return Errno.OK;
+        }
         int rt;
         if(pdId <= 0 || Utils.isEmptyList(richTextList)) {
             rt = Errno.ARGS_ERROR;

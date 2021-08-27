@@ -1,17 +1,21 @@
 package fai.MgProductStoreSvr.application.service;
 
-import fai.MgProductStoreSvr.domain.comm.*;
+import fai.MgProductStoreSvr.domain.comm.InOutStoreRecordArgCheck;
+import fai.MgProductStoreSvr.domain.comm.LockUtil;
+import fai.MgProductStoreSvr.domain.comm.PdKey;
+import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
 import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordEntity;
 import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordValObj;
 import fai.MgProductStoreSvr.domain.entity.InOutStoreSumEntity;
 import fai.MgProductStoreSvr.domain.entity.ReportValObj;
-import fai.MgProductStoreSvr.domain.repository.*;
+import fai.MgProductStoreSvr.domain.repository.SkuSummaryDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.SpuBizSummaryDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.SpuSummaryDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.StoreSalesSkuDaoCtrl;
 import fai.MgProductStoreSvr.domain.serviceProc.*;
 import fai.MgProductStoreSvr.interfaces.dto.InOutStoreRecordDto;
-import fai.MgProductStoreSvr.interfaces.entity.SkuCountChangeEntity;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
-import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
@@ -43,6 +47,7 @@ public class RecordService extends StoreService {
                 int ioStoreRecId = info.getInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, 0);
                 int pdId = info.getInt(InOutStoreRecordEntity.Info.PD_ID, 0);
                 int rlPdId = info.getInt(InOutStoreRecordEntity.Info.RL_PD_ID, 0);
+                int sysType = info.getInt(InOutStoreRecordEntity.Info.SYS_TYPE, 0);
                 int optType = info.getInt(InOutStoreRecordEntity.Info.OPT_TYPE, 0);
                 Calendar createTime = info.getCalendar(InOutStoreRecordEntity.Info.SYS_CREATE_TIME);
                 if(unionPriId == 0 || skuId == 0 || ioStoreRecId == 0 || pdId == 0 || rlPdId ==0 || optType ==0){
@@ -60,6 +65,7 @@ public class RecordService extends StoreService {
                 data.setInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, ioStoreRecId);
                 data.setInt(InOutStoreRecordEntity.Info.PD_ID, pdId);
                 data.setInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
+                data.setInt(InOutStoreRecordEntity.Info.SYS_TYPE, sysType);
                 data.setInt(InOutStoreRecordEntity.Info.OPT_TYPE, optType);
                 data.setInt(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
                 data.assign(info, InOutStoreRecordEntity.Info.C_TYPE);
@@ -186,11 +192,12 @@ public class RecordService extends StoreService {
 
                 int flag = info.getInt(InOutStoreRecordEntity.Info.FLAG, 0);
 
+                int sysType = info.getInt(InOutStoreRecordEntity.Info.SYS_TYPE, 0);
                 pdIdSet.add(pdId);
                 skuIdSet.add(skuId);
                 SkuBizKey skuBizKey = new SkuBizKey(unionPriId, skuId);
                 if(unionPriId != ownerUnionPriId){
-                    needCheckSkuStoreKeyPdKeyMap.put(skuBizKey, new PdKey(unionPriId, pdId, rlPdId));
+                    needCheckSkuStoreKeyPdKeyMap.put(skuBizKey, new PdKey(unionPriId, pdId, rlPdId, sysType));
                 }
                 info.setInt(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, ownerUnionPriId);
                 Pair<Integer, Integer> pair = skuBizChangeCountMap.get(skuBizKey);
@@ -414,7 +421,7 @@ public class RecordService extends StoreService {
      * @return
      * @throws IOException
      */
-    public int batchResetCostPrice(FaiSession session, int flow, int aid, int rlPdId, Calendar optTime, FaiList<Param> infoList) throws IOException {
+    public int batchResetCostPrice(FaiSession session, int flow, int aid, int sysType, int rlPdId, Calendar optTime, FaiList<Param> infoList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -450,7 +457,7 @@ public class RecordService extends StoreService {
                         if (rt != Errno.OK) {
                             return rt;
                         }
-                        rt = inOutStoreRecordProc.batchResetCostPrice(aid, rlPdId, infoList, optTime, changeCountAfterSkuStoreInfoMap);
+                        rt = inOutStoreRecordProc.batchResetCostPrice(aid, sysType, rlPdId, infoList, optTime, changeCountAfterSkuStoreInfoMap);
                         if(rt != Errno.OK) {
                             return rt;
                         }

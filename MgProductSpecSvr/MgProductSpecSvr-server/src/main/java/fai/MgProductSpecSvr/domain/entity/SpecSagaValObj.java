@@ -1,11 +1,11 @@
-package fai.MgProductBasicSvr.domain.entity;
+package fai.MgProductSpecSvr.domain.entity;
 
 /**
  * @author GYY
  * @version 1.0
- * @date 2021/6/28 19:30
+ * @date 2021/7/27 9:51
  */
-public class ProductSagaValObj {
+public class SpecSagaValObj {
 
     public static final class Status {
         /** 初始化 */

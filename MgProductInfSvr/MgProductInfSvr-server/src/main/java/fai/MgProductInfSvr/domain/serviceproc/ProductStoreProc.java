@@ -18,14 +18,14 @@ public class ProductStoreProc extends AbstractProductProc{
     /**
      * 刷新 sku 库存销售
      */
-    public int refreshSkuStoreSales(int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<Param> pdScSkuInfoList) {
+    public int refreshSkuStoreSales(int aid, int tid, int unionPriId, int sysType, String xid, int pdId, int rlPdId, FaiList<Param> pdScSkuInfoList) {
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;unionPriId=%d;pdId=%s;rlPdId=%s;", m_flow, aid, unionPriId, pdId, rlPdId);
             return rt;
         }
-        rt = m_cli.refreshSkuStoreSales(aid, tid, unionPriId, pdId, rlPdId, pdScSkuInfoList);
+        rt = m_cli.refreshSkuStoreSales(aid, tid, unionPriId, sysType, xid, pdId, rlPdId, pdScSkuInfoList);
         if (rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;pdId=%s;rlPdId=%s;", m_flow, aid, unionPriId, pdId, rlPdId);
             return rt;
@@ -72,14 +72,14 @@ public class ProductStoreProc extends AbstractProductProc{
     /**
      * 修改sku库存销售信息
      */
-    public int setSkuStoreSales(int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) {
+    public int setSkuStoreSales(int aid, int tid, int unionPriId, String xid, int pdId, int rlPdId, int sysType, FaiList<ParamUpdater> updaterList) {
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.setSkuStoreSales(aid, tid, unionPriId, pdId, rlPdId, updaterList);
+        rt = m_cli.setSkuStoreSales(aid, tid, unionPriId, xid, pdId, rlPdId, sysType, updaterList);
         if (rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;rlPdId=%s;", m_flow, aid, unionPriId, rlPdId);
             return rt;
@@ -353,14 +353,14 @@ public class ProductStoreProc extends AbstractProductProc{
     /**
      * 重置指定操作时间之前的入库成本
      */
-    public int batchResetCostPrice(int aid, int rlPdId, Calendar optTime, FaiList<Param> infoList) {
+    public int batchResetCostPrice(int aid, int sysType, int rlPdId, Calendar optTime, FaiList<Param> infoList) {
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
-        rt = m_cli.batchResetCostPrice(aid, rlPdId, optTime, infoList);
+        rt = m_cli.batchResetCostPrice(aid, sysType, rlPdId, optTime, infoList);
         if (rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;rlPdId=%s;list=%s;", m_flow, aid, rlPdId, infoList);
             return rt;
@@ -407,14 +407,14 @@ public class ProductStoreProc extends AbstractProductProc{
     /**
      * 批量删除商品所有库存销售相关信息
      */
-    public int batchDelPdAllStoreSales(int aid, int tid, FaiList<Integer> pdIdList, boolean softDel){
+    public int batchDelPdAllStoreSales(int aid, int tid, FaiList<Integer> pdIdList, String xid, boolean softDel){
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
             return rt;
         }
-        rt = m_cli.batchDelPdAllStoreSales(aid, tid, pdIdList, softDel);
+        rt = m_cli.batchDelPdAllStoreSales(aid, tid, pdIdList, xid, softDel);
         if (rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
             return rt;
@@ -514,15 +514,14 @@ public class ProductStoreProc extends AbstractProductProc{
         }
         return rt;
     }
-    public int importStoreSales(int aid, int tid, int unionPriId, FaiList<Param> storeSaleSkuList, Param inStoreRecordInfo) {
+    public int importStoreSales(int aid, int tid, int unionPriId, int sysType, String xid, FaiList<Param> storeSaleSkuList, Param inStoreRecordInfo) {
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
-
-        rt = m_cli.importStoreSales(aid, tid, unionPriId, storeSaleSkuList, inStoreRecordInfo);
+        rt = m_cli.importStoreSales(aid, tid, unionPriId, sysType, xid, storeSaleSkuList, inStoreRecordInfo);
         if (rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%s;storeSaleSkuList=%s;inStoreRecordInfo=%s;", m_flow, aid, unionPriId, storeSaleSkuList, inStoreRecordInfo);
             return rt;

@@ -57,6 +57,15 @@ public class MgProductInfCmd {
         public static final int NUM34 = 5034; /**@see Cmd#GET_FULL_LIST_4ADM */
         public static final int NUM35 = 5035; /**@see Cmd#GET_SUM_LIST_4ADM */
         public static final int NUM36 = 5036; /**@see ProductSpecCmd#GET_LIST_4ADM */
+
+        public static final int NUM37 = 5037; /**@see LibCmd#GET_LIB_LIST */
+        public static final int NUM38 = 5038; /**@see LibCmd#GET_REL_LIB_LIST */
+
+        public static final int NUM39 = 5039; /**@see TagCmd#GET_TAG_LIST */
+        public static final int NUM40 = 5040; /**@see TagCmd#GET_REL_TAG_LIST */
+
+        public static final int NUM41 = 5041; /**@see BasicCmd#GET_PD_BIND_TAGS */
+        public static final int NUM42 = 5042; /**@see Cmd#GET_INFO_4ES */
     }
 
     // 1000 到 5000 的范围
@@ -115,6 +124,22 @@ public class MgProductInfCmd {
         public static final int NUM44 = 1044; /**@see StoreSalesSkuCmd#BATCH_ADD_LIST */
         public static final int NUM45 = 1045; /**@see Cmd#CLEAR_REL_DATA */
         public static final int NUM46 = 1046; /**@see Cmd#CLEAR_ACCT */
+        public static final int NUM47 = 1047; /**@see LibCmd#ADD_LIB */
+        public static final int NUM48 = 1048; /**@see LibCmd#DEL_LIB_LIST */
+        public static final int NUM49 = 1049; /**@see LibCmd#SET_LIB_LIST */
+        public static final int NUM50 = 1050; /**@see LibCmd#UNION_SET_LIB_LIST */
+        public static final int NUM51 = 1051; /**@see TagCmd#ADD_TAG */
+        public static final int NUM52 = 1052; /**@see TagCmd#DEL_TAG_LIST */
+        public static final int NUM53 = 1053; /**@see TagCmd#SET_TAG_LIST */
+        public static final int NUM54 = 1054; /**@see TagCmd#UNION_SET_TAG_LIST */
+        public static final int NUM55 = 1055; /**@see BasicCmd#SET_PD_BIND_TAG */
+        public static final int NUM56 = 1056; /**@see Cmd#CLONE_DATA */
+        public static final int NUM57 = 1057; /**@see Cmd#INC_CLONE */
+        public static final int NUM58 = 1058; /**@see Cmd#BACKUP */
+        public static final int NUM59 = 1059; /**@see Cmd#RESTORE */
+        public static final int NUM60 = 1060; /**@see Cmd#DEL_BACKUP */
+        public static final int NUM61 = 1061; /**@see GroupCmd#SET_ALL_GROUP_LIST */
+
     }
 
 
@@ -147,6 +172,7 @@ public class MgProductInfCmd {
         public static final int GET_RLPDIDS_BY_PROP = ReadCmdNum.NUM12;
         public static final int GET_PD_LIST = ReadCmdNum.NUM26;
         public static final int GET_PD_BIND_GROUPS = ReadCmdNum.NUM28;
+        public static final int GET_PD_BIND_TAGS = ReadCmdNum.NUM41;
 
         //写命令
         public static final int SET_PROP_LIST = WriteCmdNum.NUM7;
@@ -160,6 +186,7 @@ public class MgProductInfCmd {
         public static final int SET_PDS = WriteCmdNum.NUM36;
         public static final int ADD_PD_INFO = WriteCmdNum.NUM42;
         public static final int SET_PD_INFO = WriteCmdNum.NUM43;
+        public static final int SET_PD_BIND_TAG = WriteCmdNum.NUM55;
     }
 
     public static class GroupCmd {
@@ -171,7 +198,33 @@ public class MgProductInfCmd {
         public static final int DEL_GROUP_LIST = WriteCmdNum.NUM31;
         public static final int SET_GROUP_LIST = WriteCmdNum.NUM32;
         public static final int UNION_SET_GROUP_LIST = WriteCmdNum.NUM40;
+        public static final int SET_ALL_GROUP_LIST = WriteCmdNum.NUM61;
     }
+
+    public static class LibCmd {
+        //读命令
+        public static final int GET_LIB_LIST = ReadCmdNum.NUM37;
+        public static final int GET_REL_LIB_LIST = ReadCmdNum.NUM38;
+
+        //写命令
+        public static final int ADD_LIB = WriteCmdNum.NUM47;
+        public static final int DEL_LIB_LIST = WriteCmdNum.NUM48;
+        public static final int SET_LIB_LIST = WriteCmdNum.NUM49;
+        public static final int UNION_SET_LIB_LIST = WriteCmdNum.NUM50;
+    }
+
+    public static class TagCmd {
+        //读命令
+        public static final int GET_TAG_LIST = ReadCmdNum.NUM39;
+        public static final int GET_REL_TAG_LIST = ReadCmdNum.NUM40;
+
+        //写命令
+        public static final int ADD_TAG = WriteCmdNum.NUM51;
+        public static final int DEL_TAG_LIST = WriteCmdNum.NUM52;
+        public static final int SET_TAG_LIST = WriteCmdNum.NUM53;
+        public static final int UNION_SET_TAG_LIST = WriteCmdNum.NUM54;
+    }
+
 
     /**
      * 规格模板 相关 cmd
@@ -307,9 +360,15 @@ public class MgProductInfCmd {
         public static final int GET_FULL_INFO = ReadCmdNum.NUM21;
         public static final int GET_FULL_LIST_4ADM = ReadCmdNum.NUM34;
         public static final int GET_SUM_LIST_4ADM = ReadCmdNum.NUM35;
+        public static final int GET_INFO_4ES = ReadCmdNum.NUM42;
 
         public static final int IMPORT_PRODUCT = WriteCmdNum.NUM34;
         public static final int CLEAR_REL_DATA = WriteCmdNum.NUM45;
         public static final int CLEAR_ACCT = WriteCmdNum.NUM46;
+        public static final int CLONE_DATA = WriteCmdNum.NUM56;
+        public static final int INC_CLONE = WriteCmdNum.NUM57;
+        public static final int BACKUP = WriteCmdNum.NUM58;
+        public static final int RESTORE = WriteCmdNum.NUM59;
+        public static final int DEL_BACKUP = WriteCmdNum.NUM60;
     }
 }

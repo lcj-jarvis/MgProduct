@@ -5,6 +5,7 @@ import fai.MgProductSpecSvr.domain.comm.LockUtil;
 import fai.MgProductSpecSvr.domain.comm.Utils;
 import fai.MgProductSpecSvr.domain.entity.ProductSpecSkuEntity;
 import fai.MgProductSpecSvr.domain.entity.ProductSpecSkuValObj;
+import fai.MgProductSpecSvr.domain.entity.SpecSagaEntity;
 import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuCacheCtrl;
 import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuDaoCtrl;
 import fai.comm.util.*;
@@ -25,10 +26,14 @@ public class ProductSpecSkuProc {
         }
         m_flow = flow;
     }
+    public int batchAdd(int aid, int pdId, FaiList<Param> infoList) {
+        return batchAdd(aid, Collections.singletonMap(pdId, infoList), null);
+    }
     public int batchAdd(int aid, Map<Integer, FaiList<Param>> pdIdPdScSkuListMap, Map<Integer, Map<String, Long>> pdIdInPdScStrIdListJsonSkuIdMap) {
         return batchAdd(aid, pdIdPdScSkuListMap, pdIdInPdScStrIdListJsonSkuIdMap, null);
     }
-    public int batchAdd(int aid, Map<Integer, FaiList<Param>> pdIdPdScSkuListMap, Map<Integer, Map<String, Long>> pdIdInPdScStrIdListJsonSkuIdMap, Ref<FaiList<Long>> skuIdListRef) {
+    public int batchAdd(int aid, Map<Integer, FaiList<Param>> pdIdPdScSkuListMap, Map<Integer, Map<String, Long>> pdIdInPdScStrIdListJsonSkuIdMap,
+                        Ref<FaiList<Long>> skuIdListRef) {
         int rt = Errno.ARGS_ERROR;
         if(aid <= 0){
             Log.logErr("error;flow=%d;aid=%s;", m_flow, aid);
@@ -109,8 +114,30 @@ public class ProductSpecSkuProc {
         Log.logStd("ok;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIdPdScSkuListMap.keySet());
         return rt;
     }
-    public int batchAdd(int aid, int pdId, FaiList<Param> infoList) {
-        return batchAdd(aid, Collections.singletonMap(pdId, infoList), null);
+
+    /**
+     * batchAdd 的补偿方法
+     *
+     * @param aid aid
+     * @param skuList skuList
+     * @return {@link Errno}
+     */
+    public int batchAddRollback(int aid, FaiList<Long> skuList) {
+        int rt;
+        if (Util.isEmptyList(skuList)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args err;skuList is empty");
+            return rt;
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductSpecSkuEntity.Info.SKU_ID, ParamMatcher.IN, skuList);
+        rt = m_daoCtrl.delete(matcher);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "batchAddRollback dao.delete error;flow=%d;aid=%d;skuIdList=%s", m_flow, aid, skuList);
+            return rt;
+        }
+        Log.logStd("batchAddRollback ok;flow=%d;aid=%d", m_flow, aid);
+        return rt;
     }
 
     /**
@@ -255,8 +282,13 @@ public class ProductSpecSkuProc {
         Log.logStd("ok;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
         return rt;
     }
-    public int genSkuRepresentSpuInfo(int aid, int tid, int unionPriId, int pdId, Ref<Long> skuIdRef){
-        int rt = Errno.ERROR;
+
+    /**
+     * genSkuRepresentSpuInfo
+     * @param isAdd 判断 spu 的 skuId 字段是当前生成的还是本身就存在，主要用与分布式事务补偿判断，正常逻辑不需要使用到
+     */
+    public int genSkuRepresentSpuInfo(int aid, int tid, int unionPriId, int pdId, Ref<Long> skuIdRef, Ref<Boolean> isAdd){
+        int rt;
         // 查一下
         rt = getSkuIdRepresentSpu(aid, pdId, skuIdRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
@@ -272,12 +304,13 @@ public class ProductSpecSkuProc {
         if(rt != Errno.OK){
             return rt;
         }
+        isAdd.value = true;
         skuIdRef.value = pdIdSkuIdMap.get(pdId);
         Log.logStd("ok;flow=%d;aid=%d;tid=%s;unionPriId=%s;pdId=%s;", m_flow, aid, tid, unionPriId, pdId);
         return rt;
     }
 
-    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean softDel) {
+    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean softDel, boolean isSaga) {
         if(aid <= 0 || pdIdList == null || pdIdList.isEmpty()){
             Log.logErr("arg error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
             return Errno.ARGS_ERROR;
@@ -295,19 +328,85 @@ public class ProductSpecSkuProc {
             deletedSkuIdSet.addAll(skuIdList);
             cacheManage.addNeedDelCachedPdIdList(aid, pdIdList);
         }
-        int rt = Errno.ERROR;
-        if(softDel){
-            ParamUpdater updater = new ParamUpdater();
-            updater.getData().setInt(ProductSpecSkuEntity.Info.STATUS, ProductSpecSkuValObj.Status.DEL);
-            rt = m_daoCtrl.update(updater, delMatcher);
+        int rt;
+        if (!isSaga) {
+            // 非分布式事务进入这里，根据是否是软删除进行操作
+            if(softDel){
+                ParamUpdater updater = new ParamUpdater();
+                updater.getData().setInt(ProductSpecSkuEntity.Info.STATUS, ProductSpecSkuValObj.Status.DEL);
+                rt = m_daoCtrl.update(updater, delMatcher);
+                if(rt != Errno.OK) {
+                    Log.logErr(rt, "dao.update error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                    return rt;
+                }
+            }else{
+                rt = m_daoCtrl.delete(delMatcher);
+                if(rt != Errno.OK) {
+                    Log.logErr(rt, "dao.delete error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                    return rt;
+                }
+            }
+        } else {
+            Calendar now = Calendar.getInstance();
+            if (softDel) {
+                ParamUpdater updater = new ParamUpdater(new Param().setInt(ProductSpecSkuEntity.Info.STATUS, ProductSpecSkuValObj.Status.DEL)
+                        .setCalendar(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME, now)
+                );
+                rt = m_daoCtrl.update(updater, delMatcher);
+                if(rt != Errno.OK) {
+                    Log.logErr(rt, "dao.sagaDel&softDel error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                    return rt;
+                }
+            } else {
+                // 分布式事务，不删除数据，将 aid 变成负数，方便补偿进行
+                ParamUpdater updater = new ParamUpdater(new Param().setInt(ProductSpecSkuEntity.Info.AID, -aid)
+                        .setCalendar(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME, now)
+                );
+                rt = m_daoCtrl.update(updater, delMatcher);
+                if(rt != Errno.OK) {
+                    Log.logErr(rt, "dao.sagaDel error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                    return rt;
+                }
+            }
+        }
+
+        Log.logStd("ok;flow=%d;aid=%d;pdIdList=%s;softDel=%s;", m_flow, aid, pdIdList, softDel);
+        return rt;
+    }
+
+    /**
+     * batchDel 的补偿方法
+     */
+    public int batchDelRollback(int aid, FaiList<Integer> pdIdList, Boolean softDel) {
+        int rt;
+        if (Util.isEmptyList(pdIdList)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "arg err;pdIdList is empty;flow=%d;aid=%", m_flow, aid);
+            return rt;
+        }
+        Calendar now = Calendar.getInstance();
+        if (softDel) {
+            // 软删除 补偿，matcher 也相对不同，aid 为正数
+            ParamMatcher matcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+            matcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+            ParamUpdater updater = new ParamUpdater(new Param().setInt(ProductSpecSkuEntity.Info.STATUS, ProductSpecSkuValObj.Status.DEFAULT)
+                    .setCalendar(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME, now)
+            );
+            rt = m_daoCtrl.update(updater, matcher);
             if(rt != Errno.OK) {
-                Log.logErr(rt, "dao.update error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                Log.logErr(rt, "softDel rollback error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
                 return rt;
             }
-        }else{
-            rt = m_daoCtrl.delete(delMatcher);
+        } else {
+            // 非软删除 补偿，将 aid 变为回正数
+            ParamMatcher matcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, -aid);
+            matcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+            ParamUpdater updater = new ParamUpdater(new Param().setInt(ProductSpecSkuEntity.Info.AID, aid)
+                    .setCalendar(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME, now)
+            );
+            rt = m_daoCtrl.update(updater, matcher);
             if(rt != Errno.OK) {
-                Log.logErr(rt, "dao.delete error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                Log.logErr(rt, "sagaDel rollback error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
                 return rt;
             }
         }
@@ -408,12 +507,12 @@ public class ProductSpecSkuProc {
         return rt;
     }
 
-    public int batchSet(int aid, int pdId, FaiList<ParamUpdater> updaterList){
+    public int batchSet(int aid, int pdId, FaiList<ParamUpdater> updaterList, Param prop){
         if(aid <= 0 || pdId <=0 || updaterList == null || updaterList.isEmpty()){
             Log.logErr("arg error;flow=%d;aid=%s;pdId=%updaterList=%s;", m_flow, aid, pdId, updaterList);
             return Errno.ARGS_ERROR;
         }
-        int rt = Errno.ERROR;
+        int rt;
         FaiList<Long> skuIdList = new FaiList<>(updaterList.size());
         Set<String> maxUpdaterKeys = Utils.retainValidUpdaterList(updaterList, ProductSpecSkuEntity.getValidKeys(), data->{
             skuIdList.add(data.getLong(ProductSpecSkuEntity.Info.SKU_ID));
@@ -431,7 +530,6 @@ public class ProductSpecSkuProc {
         }
 
         Map<Integer, Param> oldDataMap = Utils.getMap(listRef.value, ProductSpecSkuEntity.Info.SKU_ID);
-        listRef.value = null; // help gc
 
         ParamUpdater doBatchUpdater = new ParamUpdater();
         maxUpdaterKeys.forEach(key->{
@@ -439,6 +537,29 @@ public class ProductSpecSkuProc {
         });
         doBatchUpdater.getData().setString(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME, "?");
 
+        // 记录补偿
+        if (prop != null) {
+            Param specSkuSaga = new Param();
+            FaiList<Param> oldDataList = listRef.value;
+            FaiList<Param> dataList = new FaiList<>(listRef.value.size());
+            // 这是为了记录的 dataList 中字段能对应上 doBatchUpdater
+            for (Param oldData : oldDataList) {
+                long skuId = oldData.getLong(ProductSpecSkuEntity.Info.SKU_ID);
+                Param data = new Param();
+                maxUpdaterKeys.forEach(key -> data.assign(oldData, key));
+                data.setCalendar(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME, oldData.getCalendar(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME));
+                { // matcher
+                    data.setInt(ProductSpecSkuEntity.Info.AID, aid);
+                    data.setInt(ProductSpecSkuEntity.Info.PD_ID, pdId);
+                    data.setLong(ProductSpecSkuEntity.Info.SKU_ID, skuId);
+                }
+                dataList.add(data);
+            }
+            specSkuSaga.setList(SpecSagaEntity.PropInfo.OLD_DATA_LIST, dataList);
+            specSkuSaga.setParam(SpecSagaEntity.PropInfo.DO_BATCH_UPDATER, doBatchUpdater.getData());
+            prop.setParam(SpecSagaEntity.PropInfo.SPEC_SKU, specSkuSaga);
+        }
+        listRef.value = null; // help gc
         ParamMatcher doBatchMatcher = new ParamMatcher();
         doBatchMatcher.and(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, "?");
         doBatchMatcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.EQ, "?");
@@ -893,6 +1014,10 @@ public class ProductSpecSkuProc {
     public boolean deleteDirtyCache(int aid) {
         return cacheManage.deleteDirtyCache(aid);
     }
+    public void restoreMaxId(int aid, boolean needLock) {
+        m_daoCtrl.restoreMaxId(needLock);
+        m_daoCtrl.clearIdBuilderCache(aid);
+    }
 
     /**
      * 获取被删除的skuIdList
@@ -905,8 +1030,6 @@ public class ProductSpecSkuProc {
     private CacheManage cacheManage = new CacheManage();
     private ProductSpecSkuDaoCtrl m_daoCtrl;
     private Set<Long> deletedSkuIdSet = new HashSet<>();
-
-
 
 
     private static class CacheManage{

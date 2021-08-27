@@ -15,6 +15,12 @@ public class MgProductArg {
     private int keepPriId1;
     private FaiList<Param> primaryKeys;
 
+    private String xid;
+    private int fromAid;
+    private Param option;
+    private Param fromPrimaryKey;
+    private int rlBackupId;
+
     private FaiList<Param> addList;
     private boolean isBiz;
     private int rlPdId;
@@ -55,8 +61,18 @@ public class MgProductArg {
     private boolean withSpu;
     private long skuId;
     private boolean onlyGetChecked;
+    private int sysType;
+    private int groupLevel;
+    private FaiList<Param> treeDataList;
 
     private FaiList<Param> skuStoreSales;
+
+    private FaiList<Integer> delRelLibIds;
+
+    private FaiList<Integer> rlTagIds;
+    private FaiList<Integer> addRlTagIds;
+    private FaiList<Integer> delRlTagIds;
+
 
     private MgProductArg(Builder builder) {
         this.aid = builder.aid;
@@ -64,6 +80,12 @@ public class MgProductArg {
         this.siteId = builder.siteId;
         this.lgId = builder.lgId;
         this.keepPriId1 = builder.keepPriId1;
+
+        this.xid = builder.xid;
+        this.fromAid = builder.fromAid;
+        this.option = builder.option;
+        this.fromPrimaryKey = builder.fromPrimaryKey;
+        this.rlBackupId = builder.rlBackupId;
 
         this.primaryKeys = builder.primaryKeys;
         this.updaterList = builder.updaterList;
@@ -106,8 +128,37 @@ public class MgProductArg {
         this.withSpu = builder.withSpu;
         this.skuId = builder.skuId;
         this.onlyGetChecked = builder.onlyGetChecked;
+        this.sysType = builder.sysType;
+        this.groupLevel = builder.groupLevel;
+        this.treeDataList = builder.treeDataList;
 
         this.skuStoreSales = builder.skuStoreSales;
+
+        this.delRelLibIds = builder.delRelLibIds;
+
+        this.rlTagIds = builder.rlTagIds;
+        this.addRlTagIds = builder.addRlTagIds;
+        this.delRlTagIds = builder.delRlTagIds;
+    }
+
+    public String getXid() {
+        return xid;
+    }
+
+    public int getFromAid() {
+        return fromAid;
+    }
+
+    public Param getOption() {
+        return option;
+    }
+
+    public Param getFromPrimaryKey() {
+        return fromPrimaryKey;
+    }
+
+    public int getRlBackupId() {
+        return rlBackupId;
     }
 
     public int getAid() {
@@ -290,12 +341,46 @@ public class MgProductArg {
         return skuStoreSales;
     }
 
+    public FaiList<Integer> getDelRelLibIds() {
+        return delRelLibIds;
+    }
+
+    public FaiList<Integer> getRlTagIds() {
+        return rlTagIds;
+    }
+
+    public FaiList<Integer> getAddRlTagIds() {
+        return addRlTagIds;
+    }
+
+    public FaiList<Integer> getDelRlTagIds() {
+        return delRlTagIds;
+    }
+
+    public int getSysType() {
+        return sysType;
+    }
+
+    public FaiList<Param> getTreeDataList() {
+        return treeDataList;
+    }
+
+    public int getGroupLevel() {
+        return groupLevel;
+    }
+
     private static abstract class TopBuilder {
         protected int aid;
         protected int tid;
         protected int siteId;
         protected int lgId;
         protected int keepPriId1;
+
+        protected String xid = "";
+        protected int fromAid;
+        protected Param option;
+        protected Param fromPrimaryKey;
+        protected int rlBackupId;
 
         protected FaiList<Param> addList;
         protected FaiList<Param> primaryKeys;
@@ -307,7 +392,14 @@ public class MgProductArg {
         protected ParamUpdater updater;
         protected boolean softDel;
         protected SearchArg searchArg;
+        protected int sysType;
 
+        public abstract Builder setXid(String xid);
+
+        public abstract Builder setFromAid(int fromAid);
+        public abstract Builder setOption(Param option);
+        public abstract Builder setFromPrimaryKey(Param fromPrimaryKey);
+        public abstract Builder setRlBackupId(int rlBackupId);
         public abstract Builder setAddList(FaiList<Param> addList);
         public abstract Builder setPrimaryList(FaiList<Param> primaryKeys);
         public abstract Builder setUpdaterList(FaiList<ParamUpdater> updaterList);
@@ -318,6 +410,7 @@ public class MgProductArg {
         public abstract Builder setUpdater(ParamUpdater updater);
         public abstract Builder setSoftDel(boolean softDel);
         public abstract Builder setSearchArg(SearchArg searchArg);
+        public abstract Builder setSysType(int sysType);
     }
 
     private static abstract class BasicBuilder extends TopBuilder {
@@ -340,13 +433,33 @@ public class MgProductArg {
         protected FaiList<Integer> rlGroupIds;
         protected FaiList<Integer> addRlGroupIds;
         protected FaiList<Integer> delRlGroupIds;
+        protected int groupLevel;
+        protected FaiList<Param> treeDataList;
 
         public abstract Builder setRlGroupIds(FaiList<Integer> rlGroupIds);
         public abstract Builder setAddRlGroupIds(FaiList<Integer> addRlGroupIds);
         public abstract Builder setDelRlGroupIds(FaiList<Integer> delRlGroupIds);
+        public abstract Builder setGroupLevel(int groupLevel);
+        public abstract Builder setTreeDataList(FaiList<Param> treeDataList);
     }
 
-    private static abstract class PropBuilder extends GroupBuilder {
+    private static abstract class LibBuilder extends GroupBuilder {
+        protected FaiList<Integer> delRelLibIds;
+
+        public abstract Builder setDelRelLibIds(FaiList<Integer> delRelLibIds);
+    }
+
+    private static abstract class TagBuilder extends LibBuilder {
+        protected FaiList<Integer> rlTagIds;
+        protected FaiList<Integer> addRlTagIds;
+        protected FaiList<Integer> delRlTagIds;
+
+        public abstract Builder setRlTagIds(FaiList<Integer> rlTagIds);
+        public abstract Builder setAddRlTagIds(FaiList<Integer> addRlTagIds);
+        public abstract Builder setDelRlTagIds(FaiList<Integer> delRlTagIds);
+    }
+
+    private static abstract class PropBuilder extends TagBuilder {
         protected int rlLibId;
         protected FaiList<Integer> rlPropIds;
         protected FaiList<Param> propIdsAndValIds;
@@ -421,7 +534,7 @@ public class MgProductArg {
 
         @Override
         public Builder setUpdaterList(FaiList<ParamUpdater> updaterList) {
-            if(updaterList == null || updaterList.isEmpty()) {
+            if(updaterList == null) {
                 throw new RuntimeException();
             }
             this.updaterList = updaterList;
@@ -512,6 +625,36 @@ public class MgProductArg {
         @Override
         public Builder setSkuId(long skuId) {
             this.skuId = skuId;
+            return this;
+        }
+
+        @Override
+        public Builder setXid(String xid) {
+            this.xid = xid;
+            return this;
+        }
+
+        @Override
+        public Builder setFromAid(int fromAid) {
+            this.fromAid = fromAid;
+            return this;
+        }
+
+        @Override
+        public Builder setOption(Param option) {
+            this.option = option;
+            return this;
+        }
+
+        @Override
+        public Builder setFromPrimaryKey(Param fromPrimaryKey) {
+            this.fromPrimaryKey = fromPrimaryKey;
+            return this;
+        }
+
+        @Override
+        public Builder setRlBackupId(int rlBackupId) {
+            this.rlBackupId = rlBackupId;
             return this;
         }
 
@@ -621,6 +764,12 @@ public class MgProductArg {
         }
 
         @Override
+        public Builder setSysType(int sysType) {
+            this.sysType = sysType;
+            return this;
+        }
+
+        @Override
         public Builder setAddValList(FaiList<Param> addValList) {
             this.addValList = addValList;
             return this;
@@ -659,6 +808,42 @@ public class MgProductArg {
         @Override
         public Builder setDelRlGroupIds(FaiList<Integer> delRlGroupIds) {
             this.delRlGroupIds = delRlGroupIds;
+            return this;
+        }
+
+        @Override
+        public Builder setGroupLevel(int groupLevel) {
+            this.groupLevel = groupLevel;
+            return this;
+        }
+
+        @Override
+        public Builder setTreeDataList(FaiList<Param> treeDataList) {
+            this.treeDataList = treeDataList;
+            return this;
+        }
+
+        @Override
+        public Builder setDelRelLibIds(FaiList<Integer> delRelLibIds) {
+            this.delRelLibIds = delRelLibIds;
+            return this;
+        }
+
+        @Override
+        public Builder setRlTagIds(FaiList<Integer> rlTagIds) {
+            this.rlTagIds = rlTagIds;
+            return this;
+        }
+
+        @Override
+        public Builder setAddRlTagIds(FaiList<Integer> addRlTagIds) {
+            this.addRlTagIds = addRlTagIds;
+            return this;
+        }
+
+        @Override
+        public Builder setDelRlTagIds(FaiList<Integer> delRlTagIds) {
+            this.delRlTagIds = delRlTagIds;
             return this;
         }
 

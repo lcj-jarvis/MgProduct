@@ -1,12 +1,12 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
 import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
-import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordEntity;
-import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordValObj;
-import fai.MgProductStoreSvr.domain.entity.InOutStoreSumEntity;
-import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuEntity;
+import fai.MgProductStoreSvr.domain.entity.*;
 import fai.MgProductStoreSvr.domain.repository.InOutStoreRecordDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.InOutStoreRecordSagaDaoCtrl;
 import fai.MgProductStoreSvr.domain.repository.InOutStoreSumDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.InOutStoreSumSagaDaoCtrl;
+import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
 import fai.mgproduct.comm.Util;
@@ -20,7 +20,9 @@ public class InOutStoreRecordProc {
     public InOutStoreRecordProc(int flow, int aid, TransactionCtrl tc) {
         m_daoCtrl = InOutStoreRecordDaoCtrl.getInstance(flow, aid);
         m_sumDaoCtrl = InOutStoreSumDaoCtrl.getInstance(flow, aid);
-        if(m_daoCtrl == null || m_sumDaoCtrl == null){
+        m_sagaDaoCtrl = InOutStoreRecordSagaDaoCtrl.getInstanceWithRegistered(flow, aid, tc);
+        m_sagaSumDaoCtrl = InOutStoreSumSagaDaoCtrl.getInstanceWithRegistered(flow, aid, tc);
+        if(m_daoCtrl == null || m_sumDaoCtrl == null || m_sagaDaoCtrl == null || m_sagaSumDaoCtrl == null){
             throw new RuntimeException(String.format("daoCtrl init err;flow=%s;aid=%s;", flow, aid));
         }
         if(!init(tc)) {
@@ -29,7 +31,7 @@ public class InOutStoreRecordProc {
         m_flow = flow;
     }
 
-    public int batchResetCostPrice(int aid, int rlPdId, FaiList<Param> infoList, Calendar optTime, Map<SkuBizKey, Param> changeCountAfterSkuStoreInfoMap) {
+    public int batchResetCostPrice(int aid, int sysType, int rlPdId, FaiList<Param> infoList, Calendar optTime, Map<SkuBizKey, Param> changeCountAfterSkuStoreInfoMap) {
         int rt;
         if(aid <= 0 || infoList == null || infoList.isEmpty() || optTime == null){
             rt = Errno.ARGS_ERROR;
@@ -66,6 +68,7 @@ public class InOutStoreRecordProc {
             inData.setInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, unionPriId);
             inData.setCalendar(InOutStoreRecordEntity.Info.OPT_TIME, optTime);
             inData.setInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
+            inData.setInt(InOutStoreRecordEntity.Info.SYS_TYPE, sysType);
             inData.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
             // 这里加多一个match字符串 是为了和update需要设置的price区分开，不然构建批量修改会报错
             // 只修改price不为0的数据，主要原因是保证是重置未设置成本价的数据，且只能重置一次
@@ -81,7 +84,7 @@ public class InOutStoreRecordProc {
             dataList.add(outData);
 
             Ref<Integer> countRef = new Ref<>();
-            rt = getAvailableCount(aid, unionPriId, skuId, rlPdId, optTime, countRef);
+            rt = getAvailableCount(aid, unionPriId, sysType, skuId, rlPdId, optTime, countRef);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -107,6 +110,7 @@ public class InOutStoreRecordProc {
         doBatchMatcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
         doBatchMatcher.and(InOutStoreRecordEntity.Info.OPT_TIME, ParamMatcher.LT, "?");
         doBatchMatcher.and(InOutStoreRecordEntity.Info.RL_PD_ID, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(InOutStoreRecordEntity.Info.SYS_TYPE, ParamMatcher.EQ, "?");
         doBatchMatcher.and(InOutStoreRecordEntity.Info.SKU_ID, ParamMatcher.EQ, "?");
         doBatchMatcher.and(InOutStoreRecordEntity.Info.PRICE, ParamMatcher.EQ, "?");
         doBatchMatcher.and(InOutStoreRecordEntity.Info.OPT_TYPE, ParamMatcher.EQ, "?");
@@ -165,11 +169,12 @@ public class InOutStoreRecordProc {
         return rt;
     }
 
-    private int getAvailableCount(int aid, int unionPriId, long skuId, int rlPdId, Calendar optTime, Ref<Integer> countRef) {
+    private int getAvailableCount(int aid, int unionPriId, int sysType, long skuId, int rlPdId, Calendar optTime, Ref<Integer> countRef) {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         searchArg.matcher.and(InOutStoreRecordEntity.Info.SKU_ID, ParamMatcher.EQ, skuId);
+        searchArg.matcher.and(InOutStoreRecordEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
         searchArg.matcher.and(InOutStoreRecordEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
         searchArg.matcher.and(InOutStoreRecordEntity.Info.OPT_TIME, ParamMatcher.LT, optTime);
         searchArg.matcher.and(InOutStoreRecordEntity.Info.PRICE, ParamMatcher.EQ, 0);
@@ -318,10 +323,15 @@ public class InOutStoreRecordProc {
 
 
     public int batchAdd(int aid, FaiList<Param> infoList, Map<SkuBizKey, Param> changeCountAfterSkuStoreSalesInfoMap) {
-        return  batchAdd(aid, infoList, changeCountAfterSkuStoreSalesInfoMap, null);
+        return  batchAdd(aid, infoList, changeCountAfterSkuStoreSalesInfoMap, null, false);
     }
-
-    public int batchAdd(int aid, FaiList<Param> infoList, Map<SkuBizKey, Param> changeCountAfterSkuStoreSalesInfoMap, Ref<Integer> idRef) {
+    public int batchAdd(int aid, FaiList<Param> infoList, Map<SkuBizKey, Param> changeCountAfterSkuStoreSalesInfoMap, boolean isSaga) {
+        return batchAdd(aid, infoList, changeCountAfterSkuStoreSalesInfoMap, null, isSaga);
+    }
+    public int batchAdd(int aid, FaiList<Param> infoList, Map<SkuBizKey, Param> changeCountAfterSkuStoreSalesInfoMap,  Ref<Integer> idRef) {
+        return batchAdd(aid, infoList, changeCountAfterSkuStoreSalesInfoMap, idRef, false);
+    }
+    public int batchAdd(int aid, FaiList<Param> infoList, Map<SkuBizKey, Param> changeCountAfterSkuStoreSalesInfoMap, Ref<Integer> idRef, boolean isSaga) {
         if(aid <= 0 || infoList == null || infoList.isEmpty() || changeCountAfterSkuStoreSalesInfoMap == null){
             Log.logErr("arg error;flow=%d;aid=%s;infoList=%s;changeCountAfterSkuStoreSalesInfoMap=%s;", m_flow, aid, infoList, changeCountAfterSkuStoreSalesInfoMap);
             return Errno.ARGS_ERROR;
@@ -332,7 +342,7 @@ public class InOutStoreRecordProc {
             return Errno.DAO_ERROR;
         }
 
-        int rt = Errno.ERROR;
+        int rt;
         Calendar now = Calendar.getInstance();
         String yyMMdd = Parser.parseString(now, "yyMMdd");
 
@@ -360,14 +370,17 @@ public class InOutStoreRecordProc {
             }
             int pdId = info.getInt(InOutStoreRecordEntity.Info.PD_ID, 0);
             int rlPdId = info.getInt(InOutStoreRecordEntity.Info.RL_PD_ID, 0);
+            int sysType = info.getInt(InOutStoreRecordEntity.Info.SYS_TYPE, 0);
             int sourceUnionPriId = info.getInt(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, 0);
             Integer remainCount = info.getInt(InOutStoreRecordEntity.Info.REMAIN_COUNT); // 初次初始化库存的时候，直接设置了剩余库存
 
             if(remainCount == null){
                 Param storeSalesSkuInfo = changeCountAfterSkuStoreSalesInfoMap.get(new SkuBizKey(unionPriId, skuId));
-                remainCount = storeSalesSkuInfo.getInt(StoreSalesSkuEntity.Info.REMAIN_COUNT)+storeSalesSkuInfo.getInt(StoreSalesSkuEntity.Info.HOLDING_COUNT);
+                // 剩余库存 + 预扣库存
+                remainCount = storeSalesSkuInfo.getInt(StoreSalesSkuEntity.Info.REMAIN_COUNT) + storeSalesSkuInfo.getInt(StoreSalesSkuEntity.Info.HOLDING_COUNT);
                 pdId = storeSalesSkuInfo.getInt(InOutStoreRecordEntity.Info.PD_ID, pdId);
                 rlPdId = storeSalesSkuInfo.getInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
+                sysType = storeSalesSkuInfo.getInt(InOutStoreRecordEntity.Info.SYS_TYPE, sysType);
                 if(sourceUnionPriId == 0){
                     sourceUnionPriId = storeSalesSkuInfo.getInt(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
                 }
@@ -391,6 +404,7 @@ public class InOutStoreRecordProc {
             data.setInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, unionPriId);
             data.setInt(InOutStoreRecordEntity.Info.PD_ID, pdId);
             data.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
+            data.setInt(InOutStoreRecordEntity.Info.SYS_TYPE, sysType);
             data.setInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
             data.setInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, ioStoreRecId);
             data.setInt(InOutStoreRecordEntity.Info.OPT_TYPE, optType);
@@ -409,9 +423,9 @@ public class InOutStoreRecordProc {
                 data.setInt(InOutStoreRecordEntity.Info.AVAILABLE_COUNT, changeCount);
                 // 当有成本价时需要计算到总成本中
                 if(price > 0 && changeCount > 0){
-                    long totalCost = changeCount*price;
+                    long totalCost = changeCount * price;
                     data.setLong(InOutStoreRecordEntity.Info.TOTAL_PRICE, totalCost);
-                    long inMwTotalCost = changeCount*inMwPrice;
+                    long inMwTotalCost = changeCount * inMwPrice;
                     Param storeSalesSkuInfo = changeCountAfterSkuStoreSalesInfoMap.get(new SkuBizKey(unionPriId, skuId));
                     long fifoTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST, 0L);
                     long mwTotalCost = storeSalesSkuInfo.getLong(StoreSalesSkuEntity.Info.MW_TOTAL_COST, 0L);
@@ -424,7 +438,7 @@ public class InOutStoreRecordProc {
                         mwCost = new BigDecimal(mwTotalCost + inMwTotalCost).divide(new BigDecimal(remainCount), BigDecimal.ROUND_HALF_UP).longValue();
                     }else {
                         // (remainCount*mwCost+inMwTotalCost)/(remainCount)
-                        mwCost = new BigDecimal((remainCount-changeCount)*mwCost+inMwTotalCost).divide(new BigDecimal(remainCount), BigDecimal.ROUND_HALF_UP).longValue();
+                        mwCost = new BigDecimal((remainCount-changeCount) * mwCost + inMwTotalCost).divide(new BigDecimal(remainCount), BigDecimal.ROUND_HALF_UP).longValue();
                     }
                     storeSalesSkuInfo.setLong(StoreSalesSkuEntity.Info.MW_COST, mwCost);
                 }
@@ -540,6 +554,31 @@ public class InOutStoreRecordProc {
             return rt;
         }
 
+        // 分布式事务，需要插入 Saga 记录
+        if (isSaga) {
+            FaiList<Param> sagaList = new FaiList<>();
+            String xid = RootContext.getXID();
+            Long branchId = RootContext.getBranchId();
+            dataList.forEach(data -> {
+                Param saga = new Param();
+                saga.assign(data, InOutStoreRecordEntity.Info.AID);
+                saga.assign(data, InOutStoreRecordEntity.Info.UNION_PRI_ID);
+                saga.assign(data, InOutStoreRecordEntity.Info.SKU_ID);
+                saga.assign(data, InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID);
+                // 记录 pdId 主要是因为上报补偿的时候需要
+                saga.assign(data, InOutStoreRecordEntity.Info.PD_ID);
+                saga.setString(StoreSagaEntity.Info.XID, xid);
+                saga.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
+                saga.setInt(StoreSagaEntity.Info.SAGA_OP, StoreSagaValObj.SagaOp.ADD);
+                sagaList.add(saga);
+            });
+            rt = m_sagaDaoCtrl.batchInsert(sagaList, null, true);
+            if(rt != Errno.OK){
+                Log.logErr("saga insert err;flow=%s;aid=%s;dataList=%s", m_flow, aid, dataList);
+                return rt;
+            }
+        }
+
         Log.logStd("ok;flow=%s;aid=%s;", m_flow, aid);
         if(summaryMap.isEmpty()) {
             return rt;
@@ -550,7 +589,7 @@ public class InOutStoreRecordProc {
             summaryList.add(summaryMap.get(key));
         }
         // 添加汇总记录
-        rt = addSummary(aid, summaryList);
+        rt = addSummary(aid, summaryList, isSaga);
         return rt;
     }
 
@@ -826,18 +865,111 @@ public class InOutStoreRecordProc {
         return rt;
     }
 
-    public int batchDel(int aid, FaiList<Integer> pdIdList) {
+    /**
+     * 本方法是 软删除
+     * @param aid aid
+     * @param pdIdList pdIdList
+     * @param isSaga 是否属于分布式事务
+     * @return {@link Errno}
+     */
+    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean isSaga) {
+        int rt;
         ParamMatcher matcher = new ParamMatcher();
         matcher.and(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(InOutStoreRecordEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
 
+        if (isSaga) {
+            // 分布式事务 需要记录 Saga 操作记录
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = matcher;
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            // 查询 主键数据 + pdId
+            rt = m_sagaDaoCtrl.select(searchArg, listRef, InOutStoreRecordEntity.Info.AID, InOutStoreRecordEntity.Info.UNION_PRI_ID,
+                    InOutStoreRecordEntity.Info.SKU_ID, InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, InOutStoreRecordEntity.Info.PD_ID);
+            if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                Log.logErr(rt, "select ioStoreRecList error;flow=%d;aid=%d;pdIdList=%s", m_flow, aid, pdIdList);
+                return rt;
+            }
+            // 新增 Saga 操作记录
+            FaiList<Param> sagaOpList = listRef.value;
+            if (!Util.isEmptyList(sagaOpList)) {
+                String xid = RootContext.getXID();
+                Long branchId = RootContext.getBranchId();
+                // 构建数据
+                sagaOpList.forEach(sagaInfo -> {
+                    sagaInfo.setString(StoreSagaEntity.Info.XID, xid);
+                    sagaInfo.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
+                    sagaInfo.setInt(StoreSagaEntity.Info.SAGA_OP, StoreSagaValObj.SagaOp.MODIFY);
+                });
+                // 添加 Saga 操作记录
+                rt = m_sagaDaoCtrl.batchInsert(sagaOpList);
+                if (rt != Errno.OK) {
+                    Log.logErr(rt, "batchInsert SagaOperation error;flow=%d;aid=%d;sagaOpList=%s", m_flow, aid, sagaOpList);
+                    return rt;
+                }
+            }
+        }
         ParamUpdater updater = new ParamUpdater(new Param().setInt(InOutStoreRecordEntity.Info.STATUS, InOutStoreRecordValObj.Status.DEL));
-        int rt = m_daoCtrl.update(updater, matcher);
+        rt = m_daoCtrl.update(updater, matcher);
+
         if(rt != Errno.OK){
             Log.logErr(rt, "soft delete err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
             return rt;
         }
         Log.logStd("ok;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+        return rt;
+    }
+
+    /**
+     * Saga 模式 补偿 batchDel 方法
+     * 使用这个方法有两个前提 ：1、之前的删除是软删除 2、是在 aid + pdIdList 维度下删除的
+     *
+     * @param aid aid
+     * @param sagaList Saga 操作记录
+     * @return {@link Errno}
+     */
+    public int batchDelRollback(int aid, FaiList<Param> sagaList) {
+        int rt;
+        if (Util.isEmptyList(sagaList)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "arg err;sagaList is empty;flow=%d;aid=%d", m_flow, aid);
+            return rt;
+        }
+        FaiList<Integer> pdIdList = new FaiList<>();
+        // 将 pdId 汇集
+        sagaList.forEach(sagaInfo -> pdIdList.add(sagaInfo.getInt(InOutStoreRecordEntity.Info.PD_ID)));
+        ParamUpdater updater = new ParamUpdater(new Param().setInt(InOutStoreRecordEntity.Info.STATUS, InOutStoreRecordValObj.Status.DEFAULT));
+        ParamMatcher matcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(InOutStoreRecordEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        rt = m_daoCtrl.update(updater, matcher);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "batchDelRollback err;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        Log.logStd("inOutStoreRecord batchDelRollback ok;flow=%s;aid=%s;", m_flow, aid);
+        return rt;
+    }
+
+    /**
+     * 补偿 batchAdd 方法 (ps:同时补偿 出入库记录表 & 出入库汇总表)
+     * @param aid aid
+     * @param ioStoreRecId 出入库记录 id
+     * @return {@link Errno}
+     */
+    public int batchAddRollback(int aid, int ioStoreRecId) {
+        ParamMatcher matcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, ParamMatcher.EQ, ioStoreRecId);
+        int rt = m_daoCtrl.delete(matcher);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "batchDel4Saga-Record err;flow=%d;ioStoreRecId=%d", m_flow, ioStoreRecId);
+            return rt;
+        }
+        rt = m_sumDaoCtrl.delete(matcher);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "batchDel4Saga-Sum err;flow=%d;ioStoreRecId=%d", m_flow, ioStoreRecId);
+            return rt;
+        }
+        Log.logStd("batchDel4Saga ok;flow=%d;ioStoreRecId=%d", m_flow, ioStoreRecId);
         return rt;
     }
 
@@ -916,9 +1048,40 @@ public class InOutStoreRecordProc {
         return rt;
     }
 
+    /**
+     * 获取补偿记录
+     * @param xid 全局事务id
+     * @param branchId 分支事务id
+     * @param ioStoreRecordSagaListRef 接收查询结果
+     * @return {@link Errno}
+     */
+    public int getInOutStoreRecordSagaList(String xid, Long branchId, Ref<FaiList<Param>> ioStoreRecordSagaListRef) {
+        int rt;
+        if (Str.isEmpty(xid)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args err;xid is empty;flow=%d", m_flow);
+            return rt;
+        }
+        SearchArg searchArg = new SearchArg();
+        ParamMatcher matcher = new ParamMatcher(StoreSagaEntity.Info.XID, ParamMatcher.EQ, xid);
+        matcher.and(StoreSagaEntity.Info.BRANCH_ID, ParamMatcher.EQ, branchId);
+        searchArg.matcher = matcher;
+        rt = m_sagaDaoCtrl.select(searchArg, ioStoreRecordSagaListRef);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            Log.logErr(rt, "select sagaList error;flow=%d", m_flow);
+            return rt;
+        }
+        return rt;
+    }
+
     public int clearIdBuilderCache(int aid){
         int rt = m_daoCtrl.clearIdBuilderCache(aid);
         return rt;
+    }
+
+    public void restoreMaxId(int aid) {
+        m_daoCtrl.restoreMaxId();
+        m_daoCtrl.clearIdBuilderCache(aid);
     }
 
     private static class TmpKey{
@@ -949,17 +1112,38 @@ public class InOutStoreRecordProc {
     }
 
     /*** 汇总数据 start ***/
-    public int addSummary(int aid, FaiList<Param> list) {
+    public int addSummary(int aid, FaiList<Param> list, boolean isSaga) {
         int rt;
         if(Util.isEmptyList(list)) {
             rt = Errno.ARGS_ERROR;
             Log.logErr(rt, "add inOutStore summary empty;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
-        rt = m_sumDaoCtrl.batchInsert(list);
+        rt = m_sumDaoCtrl.batchInsert(list, null, !isSaga);
         if(rt != Errno.OK) {
             Log.logErr(rt, "add inOutStore summary error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
+        }
+        // 分布式事务，需要插入 Saga 记录
+        if (isSaga) {
+            String xid = RootContext.getXID();
+            Long branchId = RootContext.getBranchId();
+            FaiList<Param> sagaList = new FaiList<>();
+            for (Param info : list) {
+                Param sagaInfo = new Param();
+                sagaInfo.assign(info, InOutStoreSumEntity.Info.AID);
+                sagaInfo.assign(info, InOutStoreSumEntity.Info.UNION_PRI_ID);
+                sagaInfo.assign(info, InOutStoreSumEntity.Info.IN_OUT_STORE_REC_ID);
+                sagaInfo.setString(StoreSagaEntity.Info.XID, xid);
+                sagaInfo.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
+                sagaInfo.setInt(StoreSagaEntity.Info.SAGA_OP, StoreSagaValObj.SagaOp.ADD);
+                sagaList.add(sagaInfo);
+            }
+            rt = m_sagaSumDaoCtrl.batchInsert(sagaList);
+            if(rt != Errno.OK) {
+                Log.logErr(rt, "insert inOutStore summary saga error;flow=%d;aid=%d;", m_flow, aid);
+                return rt;
+            }
         }
         Log.logStd(rt, "add ok;flow=%d;aid=%s;", m_flow, aid);
         return rt;
@@ -1009,4 +1193,6 @@ public class InOutStoreRecordProc {
     private int m_flow;
     private InOutStoreRecordDaoCtrl m_daoCtrl;
     private InOutStoreSumDaoCtrl m_sumDaoCtrl;
+    private InOutStoreRecordSagaDaoCtrl m_sagaDaoCtrl;
+    private InOutStoreSumSagaDaoCtrl m_sagaSumDaoCtrl;
 }

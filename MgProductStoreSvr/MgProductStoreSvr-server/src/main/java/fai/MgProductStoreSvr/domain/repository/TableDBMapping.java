@@ -17,6 +17,13 @@ public class TableDBMapping {
         public static final String MG_STORE_SALE_SKU = "mgStoreSaleSKU";
         public static final String MG_SKU_SUMMARY = "mgSkuSummary";
         public static final String MG_REFUND_RECORD = "mgRefundRecord";
+        public static final String MG_STORE_SAGA = "mgStoreSaga";
+        public static final String MG_STORE_SALE_SKU_SAGA = "mgStoreSaleSKUSaga";
+        public static final String MG_IN_OUT_STORE_RECORD_SAGA = "mgInOutStoreRecordSaga";
+        public static final String MG_IN_OUT_STORE_SUM_SAGA = "mgInOutStoreSumSaga";
+        public static final String MG_SPU_BIZ_SUMMARY_SAGA = "mgSpuBizSummarySaga";
+        public static final String MG_SPU_SUMMARY_SAGA = "mgSpuSummarySaga";
+        public static final String MG_SKU_SUMMARY_SAGA = "mgSkuSummarySaga";
     }
 
     /**
@@ -33,14 +40,21 @@ public class TableDBMapping {
         , MG_HOLDING_RECORD(Table.MG_HOLDING_RECORD, DB.MG_PRODUCT_STORE)
         , MG_STORE_ORDER_RECORD(Table.MG_STORE_ORDER_RECORD, DB.MG_PRODUCT_STORE)
         , MG_REFUND_RECORD(Table.MG_REFUND_RECORD, DB.MG_PRODUCT_STORE)
+        , MG_STORE_SAGA(Table.MG_STORE_SAGA, DB.MG_PRODUCT_STORE)
+        , MG_STORE_SALE_SKU_SAGA(Table.MG_STORE_SALE_SKU_SAGA, DB.MG_PRODUCT_STORE)
 
 
         , MG_SPU_BIZ_SUMMARY(Table.MG_SPU_BIZ_SUMMARY, DB.MG_PRODUCT_STORE_SUMMARY)
         , MG_SPU_SUMMARY(Table.MG_SPU_SUMMARY, DB.MG_PRODUCT_STORE_SUMMARY)
         , MG_SKU_SUMMARY(Table.MG_SKU_SUMMARY, DB.MG_PRODUCT_STORE_SUMMARY)
+        , MG_SPU_BIZ_SUMMARY_SAGA(Table.MG_SPU_BIZ_SUMMARY_SAGA, DB.MG_PRODUCT_STORE_SUMMARY)
+        , MG_SPU_SUMMARY_SAGA(Table.MG_SPU_SUMMARY_SAGA, DB.MG_PRODUCT_STORE_SUMMARY)
+        , MG_SKU_SUMMARY_SAGA(Table.MG_SKU_SUMMARY_SAGA, DB.MG_PRODUCT_STORE_SUMMARY)
 
         , MG_IN_OUT_STORE_RECORD(Table.MG_IN_OUT_STORE_RECORD, DB.MG_PRODUCT_STORE_RECORD)
         , MG_IN_OUT_STORE_SUM(Table.MG_IN_OUT_STORE_SUM, DB.MG_PRODUCT_STORE_RECORD)
+        , MG_IN_OUT_STORE_RECORD_SAGA(Table.MG_IN_OUT_STORE_RECORD_SAGA, DB.MG_PRODUCT_STORE_RECORD)
+        , MG_IN_OUT_STORE_SUM_SAGA(Table.MG_IN_OUT_STORE_SUM_SAGA, DB.MG_PRODUCT_STORE_RECORD)
         ;
         private String table;
         private String db;

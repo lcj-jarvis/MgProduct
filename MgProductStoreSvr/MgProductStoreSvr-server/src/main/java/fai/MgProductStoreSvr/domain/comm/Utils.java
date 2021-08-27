@@ -8,6 +8,10 @@ import fai.comm.util.ParamUpdater;
 import java.util.*;
 import java.util.function.Consumer;
 
+/**
+ * 废弃，改用 fai.middleground.svrutil.misc.Utils
+ */
+@Deprecated
 public class Utils {
     /**
      * 从 list 中获取指定的key的值 和 info 组成的map

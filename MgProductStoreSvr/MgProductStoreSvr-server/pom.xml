@@ -151,6 +151,13 @@
             <version>1.2.16</version>
         </dependency>
         <!-- 注册与发现end -->
+
+        <!--  Fseata 分布式事务核心包  -->
+        <dependency>
+            <groupId>fai-comm-fseata</groupId>
+            <artifactId>fai-comm-fseata-client</artifactId>
+            <version>${fai-comm-fseata-client-version}</version>
+        </dependency>
     </dependencies>
 
     <build>

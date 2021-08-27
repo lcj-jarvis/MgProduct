@@ -12,12 +12,13 @@ public class ProductGroupDto {
         g_groupDtoDef.add(ProductGroupEntity.Info.GROUP_ID, 1, Var.Type.INT);
         g_groupDtoDef.add(ProductGroupEntity.Info.SOURCE_TID, 2, Var.Type.INT);
         g_groupDtoDef.add(ProductGroupEntity.Info.SOURCE_UNIONPRIID, 3, Var.Type.INT);
-        g_groupDtoDef.add(ProductGroupEntity.Info.PARENT_ID, 4, Var.Type.INT);
-        g_groupDtoDef.add(ProductGroupEntity.Info.GROUP_NAME, 5, Var.Type.STRING);
+        g_groupDtoDef.add(ProductGroupEntity.Info.GROUP_NAME, 4, Var.Type.STRING);
+        g_groupDtoDef.add(ProductGroupEntity.Info.SYS_TYPE, 5, Var.Type.INT);
         g_groupDtoDef.add(ProductGroupEntity.Info.ICON_LIST, 6, Var.Type.STRING);
         g_groupDtoDef.add(ProductGroupEntity.Info.FLAG, 7, Var.Type.INT);
-        g_groupDtoDef.add(ProductGroupEntity.Info.CREATE_TIME, 8, Var.Type.CALENDAR);
-        g_groupDtoDef.add(ProductGroupEntity.Info.UPDATE_TIME, 9, Var.Type.CALENDAR);
+        g_groupDtoDef.add(ProductGroupEntity.Info.STATUS, 8, Var.Type.INT);
+        g_groupDtoDef.add(ProductGroupEntity.Info.CREATE_TIME, 9, Var.Type.CALENDAR);
+        g_groupDtoDef.add(ProductGroupEntity.Info.UPDATE_TIME, 10, Var.Type.CALENDAR);
     }
 
     public static ParamDef getInfoDto() {
@@ -27,6 +28,5 @@ public class ProductGroupDto {
     public static class Key {
         public static final int INFO = 1;
         public static final int INFO_LIST = 2;
-        public static final int RL_GROUP_IDS = 3;
     }
 }

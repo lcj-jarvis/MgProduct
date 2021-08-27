@@ -11,6 +11,7 @@ public class ProductBindPropEntity {
 
     public static final class Info {
         public static final String AID = "aid"; // int 企业id
+        public static final String SYS_TYPE = "sysType"; // int 系统分类(商品/服务)
         public static final String RL_PD_ID = "rlPdId"; // int 商品业务 id
         public static final String RL_PROP_ID = "rlPropId"; // int 参数业务 id
         public static final String PROP_VAL_ID = "propValId"; // int 参数值 id
@@ -26,6 +27,7 @@ public class ProductBindPropEntity {
         MANAGE_FIELDS.add(Info.RL_PD_ID);
         MANAGE_FIELDS.add(Info.PROP_VAL_ID);
         MANAGE_FIELDS.add(Info.PD_ID);
+        MANAGE_FIELDS.add(Info.SYS_TYPE);
         MANAGE_FIELDS.setReadOnly(true);
 
         VISITOR_FIELDS = new FaiList<String>();

@@ -44,6 +44,7 @@ public class ProductSpecSkuDto {
         public static final int CONDITION = 13;
         public static final int WITH_SPU_INFO = 14;
         public static final int UNION_PRI_IDS = 15;
+        public static final int XID = 16;
     }
 
     /**

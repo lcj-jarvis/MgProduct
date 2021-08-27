@@ -1,5 +1,6 @@
 package fai.MgProductGroupSvr.domain.repository;
 
+import fai.MgProductGroupSvr.domain.entity.ProductGroupRelEntity;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.distributedkit.idBuilder.domain.IdBuilderConfig;
 import fai.comm.distributedkit.idBuilder.wrapper.IdBuilderWrapper;
@@ -9,8 +10,11 @@ import fai.comm.util.Log;
 import fai.middleground.svrutil.repository.DaoCtrl;
 
 public class ProductGroupRelDaoCtrl extends DaoCtrl {
+    private String tableName;
+
     public ProductGroupRelDaoCtrl(int flow, int aid) {
         super(flow, aid);
+        this.tableName = TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
     }
 
     @Override
@@ -20,7 +24,15 @@ public class ProductGroupRelDaoCtrl extends DaoCtrl {
 
     @Override
     protected String getTableName() {
-        return TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
+        return tableName;
+    }
+
+    public void setTableName(int aid) {
+        this.tableName = TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
+    }
+
+    public void restoreTableName() {
+        this.tableName = TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
     }
 
     public static ProductGroupRelDaoCtrl getInstance(int flow, int aid) {
@@ -47,6 +59,18 @@ public class ProductGroupRelDaoCtrl extends DaoCtrl {
         return m_idBuilder.update(aid, unionPriId, id, m_dao, needLock);
     }
 
+    public int restoreMaxId(Integer unionPriId, boolean needLock) {
+        return m_idBuilder.restoreMaxId(aid, unionPriId, flow, tableName, m_dao, needLock);
+    }
+
+    public Integer getId(int aid, int unionPriId) {
+        int rt = openDao();
+        if (rt != Errno.OK) {
+            return null;
+        }
+        return m_idBuilder.get(aid, unionPriId, m_dao);
+    }
+
     public void clearIdBuilderCache(int aid, int unionPriId) {
         m_idBuilder.clearCache(aid, unionPriId);
     }
@@ -63,8 +87,9 @@ public class ProductGroupRelDaoCtrl extends DaoCtrl {
     private static IdBuilderConfig idBuilderConfig = new IdBuilderConfig.HeavyweightBuilder()
             .buildTableName(TABLE_PREFIX)
             .buildAssistTableSuffix("idBuilder")
-            .buildPrimaryMatchField("aid")
-            .buildForeignMatchField("unionPriId")
+            .buildPrimaryMatchField(ProductGroupRelEntity.Info.AID)
+            .buildForeignMatchField(ProductGroupRelEntity.Info.UNION_PRI_ID)
+            .buildAutoIncField(ProductGroupRelEntity.Info.RL_GROUP_ID)
             .buildInitValue(ID_BUILDER_INIT)
             .build();
 }

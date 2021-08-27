@@ -14,10 +14,23 @@ public class ProductBindPropDto {
         g_infoDtoDef.add(ProductBindPropEntity.Info.UNION_PRI_ID, 4);
         g_infoDtoDef.add(ProductBindPropEntity.Info.PD_ID, 5);
         g_infoDtoDef.add(ProductBindPropEntity.Info.CREATE_TIME, 6);
+        g_infoDtoDef.add(ProductBindPropEntity.Info.SYS_TYPE, 7);
     }
 
     public static ParamDef getInfoDto() {
         return g_infoDtoDef;
+    }
+
+
+    private static ParamDef g_simpleDtoDef = new ParamDef();
+
+    static {
+        g_simpleDtoDef.add(ProductBindPropEntity.Info.RL_PROP_ID, 2);
+        g_simpleDtoDef.add(ProductBindPropEntity.Info.PROP_VAL_ID, 3);
+    }
+
+    public static ParamDef getSimpleDto() {
+        return g_simpleDtoDef;
     }
 
     public static class Key {
@@ -35,5 +48,6 @@ public class ProductBindPropDto {
         public static final int RL_PROP_ID = 12;
         public static final int RL_PROP_IDS = 13;
         public static final int PROP_VAL_IDS = 14;
+        public static final int SYS_TYPE = 15;
     }
 }

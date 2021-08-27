@@ -13,6 +13,7 @@ public class ProductTempEntity {
         public static final String KEEP_PRI_ID1 = "keepPriId1";                     // int 保留主键id1
         public static final String OWNER_RL_PD_ID = "ownerRlPdId";                  // int 该商品所属者的业务商品id
         public static final String RL_PD_ID = "rlPdId";                             // int 业务商品id
+        public static final String SYS_TYPE = "sysType";                            // int 系统类型 (商品/服务)
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
 

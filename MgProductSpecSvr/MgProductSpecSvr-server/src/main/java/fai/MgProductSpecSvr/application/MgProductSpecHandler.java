@@ -5,6 +5,8 @@ import fai.MgProductSpecSvr.application.service.SpecStrService;
 import fai.MgProductSpecSvr.application.service.SpecTempService;
 import fai.MgProductSpecSvr.interfaces.cmd.MgProductSpecCmd;
 import fai.MgProductSpecSvr.interfaces.dto.*;
+import fai.comm.fseata.client.core.rpc.annotation.SagaTransaction;
+import fai.comm.fseata.client.core.rpc.def.CommDef;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.NKDef;
@@ -166,28 +168,52 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductSpecCmd.ProductSpecCmd.BATCH_DEL_PD_ALL_SC)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductSpecCmd.ProductSpecCmd.BATCH_DEL_PD_ALL_SC_ROLLBACK)
     private int batchDelPdAllSc(final FaiSession session,
                                 @ArgFlow final int flow,
                                 @ArgAid final int aid,
                                 @ArgBodyInteger(ProductSpecDto.Key.TID) final int tid,
                                 @ArgList(keyMatch = ProductSpecDto.Key.PD_ID_LIST)
                                         FaiList<Integer> pdIdList,
+                                @ArgBodyXid(value = ProductSpecDto.Key.XID, useDefault = true) String xid,
                                 @ArgBodyBoolean(value = ProductSpecDto.Key.SOFT_DEL, useDefault = true) final boolean softDel) throws IOException {
-        return m_productSpecService.batchDelPdAllSc(session, flow, aid, tid, pdIdList, softDel);
+        return m_productSpecService.batchDelPdAllSc(session, flow, aid, tid, pdIdList, xid, softDel);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductSpecCmd.ProductSpecCmd.BATCH_DEL_PD_ALL_SC_ROLLBACK)
+    private int batchDelPdAllScRollback(final FaiSession session,
+                                        @ArgFlow final int flow,
+                                        @ArgAid final int aid,
+                                        @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                        @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return m_productSpecService.batchDelPdAllScRollback(session, flow, aid, xid, branchId);
     }
 
     @WrittenCmd
     @Cmd(MgProductSpecCmd.ProductSpecCmd.IMPORT_PD_SC_WITH_SKU)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductSpecCmd.ProductSpecCmd.IMPORT_PD_SC_WITH_SKU_ROLLBACK)
     private int importPdScWithSku(final FaiSession session,
                                   @ArgFlow final int flow,
                                   @ArgAid final int aid,
+                                  @ArgBodyXid(value = ProductSpecDto.Key.XID, useDefault = true) String xid,
                                   @ArgBodyInteger(ProductSpecDto.Key.TID) final int tid,
                                   @ArgBodyInteger(ProductSpecDto.Key.UNION_PRI_ID) final int unionPriId,
                                   @ArgList(classDef = ProductSpecDto.class, methodDef = "getInfoDto", keyMatch = ProductSpecDto.Key.INFO_LIST)
                                           FaiList<Param> specList,
                                   @ArgList(classDef = ProductSpecSkuDto.class, methodDef = "getInfoDto", keyMatch = ProductSpecDto.Key.SKU_INFO_LIST/*特意不同*/)
                                           FaiList<Param> specSkuList) throws IOException {
-        return m_productSpecService.importPdScWithSku(session, flow, aid, tid, unionPriId, specList, specSkuList);
+        return m_productSpecService.importPdScWithSku(session, flow, aid, xid, tid, unionPriId, specList, specSkuList);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductSpecCmd.ProductSpecCmd.IMPORT_PD_SC_WITH_SKU_ROLLBACK)
+    private int importPdScWithSkuRollback(final FaiSession session,
+                                          @ArgFlow final int flow,
+                                          @ArgAid final int aid,
+                                          @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                          @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException{
+        return m_productSpecService.importPdScWithSkuRollback(session, flow, aid, xid, branchId);
     }
 
     @Cmd(MgProductSpecCmd.ProductSpecCmd.GET_LIST)
@@ -228,10 +254,11 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
                                    @ArgAid final int aid,
                                    @ArgBodyInteger(ProductSpecSkuDto.Key.UNION_PRI_ID) final int unionPriId,
                                    @ArgBodyInteger(ProductSpecSkuDto.Key.TID) final int tid,
+                                   @ArgBodyXid(value = ProductSpecSkuDto.Key.XID, useDefault = true) final String xid,
                                    @ArgBodyInteger(ProductSpecSkuDto.Key.PD_ID) final int pdId,
                                    @ArgList(classDef = ProductSpecSkuDto.class, methodDef = "getInfoDto", keyMatch = ProductSpecSkuDto.Key.UPDATER_LIST)
                                            FaiList<ParamUpdater> updaterList) throws IOException {
-        return m_productSpecService.setPdSkuScInfoList(session, flow, aid, tid, unionPriId, pdId, updaterList);
+        return m_productSpecService.setPdSkuScInfoList(session, flow, aid, tid, unionPriId, xid, pdId, updaterList);
     }
 
     @WrittenCmd
@@ -371,4 +398,6 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
     private ProductSpecService m_productSpecService = new ProductSpecService();
 
     private SpecStrService m_specStrService = new SpecStrService();
+
+    private static final String CLI_NAME = "MgProductSpecCli";
 }

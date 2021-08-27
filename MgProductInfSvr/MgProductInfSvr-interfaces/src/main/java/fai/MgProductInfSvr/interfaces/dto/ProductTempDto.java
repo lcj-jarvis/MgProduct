@@ -85,6 +85,6 @@ public class ProductTempDto {
         public static final int KEEP_PRIID1 = 4;
         public static final int RL_PD_ID = 5;
         public static final int INFO_LIST = 6;
-
+        public static final int SYS_TYPE = 7;
     }
 }

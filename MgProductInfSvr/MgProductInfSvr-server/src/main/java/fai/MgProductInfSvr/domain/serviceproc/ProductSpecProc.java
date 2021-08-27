@@ -241,14 +241,14 @@ public class ProductSpecProc extends AbstractProductProc {
     /**
      * 获取产品规格SKU列表
      */
-    public int setPdSkuScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<ParamUpdater> updaterList) {
-        int rt = Errno.ERROR;
+    public int setPdSkuScInfoList(int aid, int tid, int unionPriId, String xid, int pdId, FaiList<ParamUpdater> updaterList) {
+        int rt;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.setPdSkuScInfoList(aid, tid, unionPriId, pdId, updaterList);
+        rt = m_cli.setPdSkuScInfoList(aid, tid, unionPriId, xid, pdId, updaterList);
         if(rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
@@ -384,14 +384,14 @@ public class ProductSpecProc extends AbstractProductProc {
     /**
      * 批量删除商品所有规格
      */
-    public int batchDelPdAllSc(int aid, int tid, FaiList<Integer> pdIdList, boolean softDel) {
+    public int batchDelPdAllSc(int aid, int tid, FaiList<Integer> pdIdList, String xid, boolean softDel) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
             return rt;
         }
-        rt = m_cli.batchDelPdAllSc(aid, tid, pdIdList, softDel);
+        rt = m_cli.batchDelPdAllSc(aid, tid, pdIdList, xid, softDel);
         if(rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;pdIdList=%s;softDel=%s;", m_flow, aid, pdIdList, softDel);
             return rt;
@@ -421,14 +421,14 @@ public class ProductSpecProc extends AbstractProductProc {
      * @param specSkuList 商品规格sku 集合
      * @param skuIdInfoList 需要返回的skuId信息集合 不是全部
      */
-    public int importPdScWithSku(int aid, int tid, int unionPriId, FaiList<Param> specList, FaiList<Param> specSkuList, FaiList<Param> skuIdInfoList){
-        int rt = Errno.ERROR;
+    public int importPdScWithSku(int aid, int tid, int unionPriId, String xid, FaiList<Param> specList, FaiList<Param> specSkuList, FaiList<Param> skuIdInfoList){
+        int rt;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
-        rt = m_cli.importPdScWithSku(aid, tid, unionPriId, specList, specSkuList, skuIdInfoList);
+        rt = m_cli.importPdScWithSku(aid, tid, unionPriId, xid, specList, specSkuList, skuIdInfoList);
         if(rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;specList=%s;specSkuList=%s;", m_flow, aid, specList, specSkuList);
             return rt;

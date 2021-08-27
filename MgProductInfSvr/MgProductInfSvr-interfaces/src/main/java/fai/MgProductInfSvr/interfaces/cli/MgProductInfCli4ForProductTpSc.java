@@ -112,8 +112,12 @@ public class MgProductInfCli4ForProductTpSc extends MgProductInfCli3ForProductGr
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
+            // TODO sysType
+            int sysType = 0;
+
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductSpecDto.Key.TID, tid), new Pair(ProductSpecDto.Key.SITE_ID, siteId), new Pair(ProductSpecDto.Key.LGID, lgId), new Pair(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductSpecDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(ProductSpecDto.Key.RL_PD_ID, rlPdId);
             sendBody.putInt(ProductSpecDto.Key.RL_TP_SC_ID, rlTpScId);
             if (tpScDtIdList != null) {

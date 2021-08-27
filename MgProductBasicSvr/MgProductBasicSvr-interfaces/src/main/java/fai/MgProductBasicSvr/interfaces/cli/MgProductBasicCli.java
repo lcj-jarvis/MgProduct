@@ -1,14 +1,12 @@
 package fai.MgProductBasicSvr.interfaces.cli;
 
 import fai.MgProductBasicSvr.interfaces.cmd.MgProductBasicCmd;
-import fai.MgProductBasicSvr.interfaces.dto.ProductBindGroupDto;
-import fai.MgProductBasicSvr.interfaces.dto.ProductBindPropDto;
-import fai.MgProductBasicSvr.interfaces.dto.ProductDto;
-import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
+import fai.MgProductBasicSvr.interfaces.dto.*;
 import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
+import fai.mgproduct.comm.Util;
 
 public class MgProductBasicCli extends FaiClient {
     public MgProductBasicCli(int flow) {
@@ -23,7 +21,7 @@ public class MgProductBasicCli extends FaiClient {
         return init("MgProductBasicCli", true);
     }
 
-    public int getPdBindProp(int aid, int tid, int unionPriId, int rlPdId, FaiList<Param> list) {
+    public int getPdBindProp(int aid, int tid, int unionPriId, int sysType, int rlPdId, FaiList<Param> list) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -31,6 +29,7 @@ public class MgProductBasicCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductBindPropDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductBindPropDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(ProductBindPropDto.Key.TID, tid);
             sendBody.putInt(ProductBindPropDto.Key.RL_PD_ID, rlPdId);
             FaiProtocol sendProtocol = new FaiProtocol();
@@ -81,7 +80,7 @@ public class MgProductBasicCli extends FaiClient {
         }
     }
 
-    public int setPdBindProp(int aid, int tid, int unionPriId, int rlPdId, FaiList<Param> addList, FaiList<Param> delList) {
+    public int setPdBindProp(int aid, int tid, int unionPriId, int sysType, int rlPdId, FaiList<Param> addList, FaiList<Param> delList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -105,6 +104,7 @@ public class MgProductBasicCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductBindPropDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductBindPropDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(ProductBindPropDto.Key.TID, tid);
             sendBody.putInt(ProductBindPropDto.Key.RL_PD_ID, rlPdId);
             addList.toBuffer(sendBody, ProductBindPropDto.Key.PROP_BIND, ProductBindPropDto.getInfoDto());
@@ -139,65 +139,7 @@ public class MgProductBasicCli extends FaiClient {
         }
     }
 
-    public int transactionSetPdBindProp(int aid, int tid, int unionPriId, int rlPdId, FaiList<Param> addList, FaiList<Param> delList, String xid) {
-        m_rt = Errno.ERROR;
-        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
-        try {
-            if (aid == 0) {
-                m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "args error");
-                return m_rt;
-            }
-            if (addList == null) {
-                addList = new FaiList<Param>();
-            }
-            if (delList == null) {
-                delList = new FaiList<Param>();
-            }
-            if (addList.isEmpty() && delList.isEmpty()) {
-                m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "arg error;addList and delList is empty");
-                return m_rt;
-            }
-
-            // send
-            FaiBuffer sendBody = new FaiBuffer(true);
-            sendBody.putInt(ProductBindPropDto.Key.UNION_PRI_ID, unionPriId);
-            sendBody.putInt(ProductBindPropDto.Key.TID, tid);
-            sendBody.putInt(ProductBindPropDto.Key.RL_PD_ID, rlPdId);
-            sendBody.putString(ProductDto.Key.XID, xid);
-            addList.toBuffer(sendBody, ProductBindPropDto.Key.PROP_BIND, ProductBindPropDto.getInfoDto());
-            delList.toBuffer(sendBody, ProductBindPropDto.Key.DEL_PROP_BIND, ProductBindPropDto.getInfoDto());
-            FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setAid(aid);
-            sendProtocol.setCmd(MgProductBasicCmd.BindPropCmd.TRANSACTION_SET_PD_BIND_PROP);
-            sendProtocol.addEncodeBody(sendBody);
-            m_rt = send(sendProtocol);
-            if (m_rt != Errno.OK) {
-                Log.logErr(m_rt, "send error;");
-                return m_rt;
-            }
-
-            // recv
-            FaiProtocol recvProtocol = new FaiProtocol();
-            m_rt = recv(recvProtocol);
-            if (m_rt != Errno.OK) {
-                Log.logErr(m_rt, "recv err");
-                return m_rt;
-            }
-            m_rt = recvProtocol.getResult();
-            if (m_rt != Errno.OK) {
-                return m_rt;
-            }
-
-            return m_rt;
-        } finally {
-            close();
-            stat.end(m_rt != Errno.OK, m_rt);
-        }
-    }
-
-    public int delPdBindProp(int aid, int unionPriId, FaiList<Integer> rlPropIds) {
+    public int delPdBindProp(int aid, int unionPriId, int sysType, FaiList<Integer> rlPropIds) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -215,6 +157,7 @@ public class MgProductBasicCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductBindPropDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductBindPropDto.Key.SYS_TYPE, sysType);
             rlPropIds.toBuffer(sendBody, ProductBindPropDto.Key.RL_PROP_IDS);
 
             FaiProtocol sendProtocol = new FaiProtocol();
@@ -246,7 +189,7 @@ public class MgProductBasicCli extends FaiClient {
         }
     }
 
-    public int delPdBindProp(int aid, int unionPriId, int rlPropId, FaiList<Integer> delPropValIds) {
+    public int delPdBindProp(int aid, int unionPriId, int sysType, int rlPropId, FaiList<Integer> delPropValIds) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -264,6 +207,7 @@ public class MgProductBasicCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductBindPropDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductBindPropDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(ProductBindPropDto.Key.RL_PROP_ID, rlPropId);
             delPropValIds.toBuffer(sendBody, ProductBindPropDto.Key.PROP_VAL_IDS);
 
@@ -296,7 +240,7 @@ public class MgProductBasicCli extends FaiClient {
         }
     }
 
-    public int getRlPdByPropVal(int aid, int tid, int unionPriId, FaiList<Param> propAndValList, FaiList<Integer> rlPdIds) {
+    public int getRlPdByPropVal(int aid, int tid, int unionPriId, int sysType, FaiList<Param> propAndValList, FaiList<Integer> rlPdIds) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -304,6 +248,7 @@ public class MgProductBasicCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductBindPropDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductBindPropDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(ProductBindPropDto.Key.TID, tid);
             propAndValList.toBuffer(sendBody, ProductBindPropDto.Key.INFO_LIST, ProductBindPropDto.getInfoDto());
             FaiProtocol sendProtocol = new FaiProtocol();
@@ -357,7 +302,7 @@ public class MgProductBasicCli extends FaiClient {
     /**
      * 根据业务商品id，获取商品业务关系数据
      */
-    public int getRelInfoByRlId(int aid, int unionPriId, int rlPdId, Param pdRelInfo) {
+    public int getRelInfoByRlId(int aid, int unionPriId, int sysType, int rlPdId, Param pdRelInfo) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -371,6 +316,7 @@ public class MgProductBasicCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductRelDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(ProductRelDto.Key.RL_PD_ID, rlPdId);
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setAid(aid);
@@ -421,9 +367,143 @@ public class MgProductBasicCli extends FaiClient {
     }
 
     /**
+     * 根据商品业务id，获取商品数据
+     * 商品表+业务关系表+各个绑定数据
+     */
+    public int getProductInfo(int aid, int unionPriId, int sysType, int rlPdId, Param info) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid <= 0 || info == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "aid=%d;uid=%d;rlPdId=%d;get args error;", aid, unionPriId, rlPdId);
+                return m_rt;
+            }
+
+            info.clear();
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductRelDto.Key.SYS_TYPE, sysType);
+            sendBody.putInt(ProductRelDto.Key.RL_PD_ID, rlPdId);
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setAid(aid);
+            sendProtocol.setCmd(MgProductBasicCmd.BasicCmd.GET_PD_INFO);
+            sendProtocol.addEncodeBody(sendBody);
+
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                if (m_rt != Errno.NOT_FOUND) {
+                    Log.logErr(m_rt, "recv result err");
+                }
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = info.fromBuffer(recvBody, keyRef, ProductRelDto.getRelAndPdDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.INFO) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    /**
+     * 根据业务商品id，获取商品业务关系数据
+     */
+    public int getPdInfoByPdId(int aid, int unionPriId, int pdId, Param info) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid <= 0 || info == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "aid=%d;uid=%d;pdId=%d;get args error;", aid, unionPriId, pdId);
+                return m_rt;
+            }
+
+            info.clear();
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductRelDto.Key.PD_ID, pdId);
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setAid(aid);
+            sendProtocol.setCmd(MgProductBasicCmd.BasicCmd.GET_BY_PDID);
+            sendProtocol.addEncodeBody(sendBody);
+
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                if (m_rt != Errno.NOT_FOUND) {
+                    Log.logErr(m_rt, "recv result err");
+                }
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = info.fromBuffer(recvBody, keyRef, ProductRelDto.getRelAndPdDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.INFO) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    /**
      * 根据业务商品id集合，获取商品业务关系数据集合
      */
-    public int getRelListByRlIds(int aid, int unionPriId, FaiList<Integer> rlPdIds, FaiList<Param> list) {
+    public int getRelListByRlIds(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, FaiList<Param> list) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -442,6 +522,7 @@ public class MgProductBasicCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductRelDto.Key.SYS_TYPE, sysType);
             rlPdIds.toBuffer(sendBody, ProductRelDto.Key.RL_PD_IDS);
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setAid(aid);
@@ -565,14 +646,7 @@ public class MgProductBasicCli extends FaiClient {
     /**
      * 新增商品数据，并添加与当前unionPriId的关联
      */
-    public int addProductAndRel(int aid, int tid, int unionPriId, Param info) {
-        return addProductAndRel(aid, tid, unionPriId, info, null, null);
-    }
-
-    /**
-     * 新增商品数据，并添加与当前unionPriId的关联
-     */
-    public int addProductAndRel(int aid, int tid, int unionPriId, Param info, Ref<Integer> pdIdRef, Ref<Integer> rlPdIdRef) {
+    public int addProductAndRel(int aid, int tid, int unionPriId, String xid, Param info, Ref<Integer> pdIdRef, Ref<Integer> rlPdIdRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -589,6 +663,9 @@ public class MgProductBasicCli extends FaiClient {
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
+            if(xid != null) {
+                sendBody.putString(ProductRelDto.Key.XID, xid);
+            }
             sendBody.putInt(ProductRelDto.Key.TID, tid);
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
             info.toBuffer(sendBody, ProductRelDto.Key.INFO, ProductRelDto.getRelAndPdDto());
@@ -715,14 +792,7 @@ public class MgProductBasicCli extends FaiClient {
     /**
      * 新增商品业务关联
      */
-    public int bindProductRel(int aid, int tid, int unionPriId, Param bindRlPdInfo, Param info) {
-        return bindProductRel(aid, tid, unionPriId, bindRlPdInfo, info, null);
-    }
-
-    /**
-     * 新增商品业务关联
-     */
-    public int bindProductRel(int aid, int tid, int unionPriId, Param bindRlPdInfo, Param info, Ref<Integer> rlPdIdRef) {
+    public int bindProductRel(int aid, int tid, int unionPriId, String xid, Param bindRlPdInfo, Param info, Ref<Integer> rlPdIdRef, Ref<Integer> pdIdRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -739,6 +809,9 @@ public class MgProductBasicCli extends FaiClient {
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
+            if(xid != null) {
+                sendBody.putString(ProductRelDto.Key.XID, xid);
+            }
             sendBody.putInt(ProductRelDto.Key.TID, tid);
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
             bindRlPdInfo.toBuffer(sendBody, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto());
@@ -778,6 +851,13 @@ public class MgProductBasicCli extends FaiClient {
                 if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.RL_PD_ID) {
                     Log.logErr(m_rt, "recv sid codec err");
                     return m_rt;
+                }
+                if(pdIdRef != null) {
+                    m_rt = recvBody.getInt(keyRef, pdIdRef);
+                    if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.PD_ID) {
+                        Log.logErr(m_rt, "recv sid codec err");
+                        return m_rt;
+                    }
                 }
             }
 
@@ -921,10 +1001,7 @@ public class MgProductBasicCli extends FaiClient {
     /**
      * 删除商品数据，同时删除所有相关业务关联数据
      */
-    public int batchDelProduct(int aid, int tid, int unionPriId, FaiList<Integer> rlPdIds) {
-        return batchDelProduct(aid, tid, unionPriId, rlPdIds, false);
-    }
-    public int batchDelProduct(int aid, int tid, int unionPriId, FaiList<Integer> rlPdIds, boolean softDel) {
+    public int batchDelProduct(int aid, String xid, int tid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, boolean softDel) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -941,8 +1018,12 @@ public class MgProductBasicCli extends FaiClient {
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
+            if(!Str.isEmpty(xid)) {
+                sendBody.putString(ProductRelDto.Key.XID, xid);
+            }
             sendBody.putInt(ProductRelDto.Key.TID, tid);
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductRelDto.Key.SYS_TYPE, sysType);
             rlPdIds.toBuffer(sendBody, ProductRelDto.Key.RL_PD_IDS);
             sendBody.putBoolean(ProductRelDto.Key.SOFT_DEL, softDel);
 
@@ -1066,10 +1147,10 @@ public class MgProductBasicCli extends FaiClient {
      * 取消商品业务关联
      * softDel: 是否软删除
      */
-    public int batchDelPdRelBind(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
-        return batchDelPdRelBind(aid, unionPriId, rlPdIds, false);
+    public int batchDelPdRelBind(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds) {
+        return batchDelPdRelBind(aid, unionPriId, sysType, rlPdIds, false);
     }
-    public int batchDelPdRelBind(int aid, int unionPriId, FaiList<Integer> rlPdIds, boolean softDel) {
+    public int batchDelPdRelBind(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, boolean softDel) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1087,6 +1168,7 @@ public class MgProductBasicCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductRelDto.Key.SYS_TYPE, sysType);
             rlPdIds.toBuffer(sendBody, ProductRelDto.Key.RL_PD_IDS);
             sendBody.putBoolean(ProductRelDto.Key.SOFT_DEL, softDel);
 
@@ -1122,7 +1204,7 @@ public class MgProductBasicCli extends FaiClient {
     /**
      * 修改单个商品数据
      */
-    public int setSinglePd(int aid, int unionPriId, Integer rlPdId, ParamUpdater updater) {
+    public int setSinglePd(int aid, String xid, int unionPriId, int sysType, Integer rlPdId, ParamUpdater updater) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1139,7 +1221,11 @@ public class MgProductBasicCli extends FaiClient {
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
+            if(!Str.isEmpty(xid)) {
+                sendBody.putString(ProductRelDto.Key.XID, xid);
+            }
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductRelDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(ProductRelDto.Key.RL_PD_ID, rlPdId);
             updater.toBuffer(sendBody, ProductRelDto.Key.UPDATER, ProductRelDto.getRelAndPdDto());
 
@@ -1175,7 +1261,7 @@ public class MgProductBasicCli extends FaiClient {
     /**
      * 修改商品数据
      */
-    public int setProducts(int aid, int unionPriId, FaiList<Integer> rlPdIds, ParamUpdater updater) {
+    public int setProducts(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, ParamUpdater updater) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1199,6 +1285,7 @@ public class MgProductBasicCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductRelDto.Key.SYS_TYPE, sysType);
             rlPdIds.toBuffer(sendBody, ProductRelDto.Key.RL_PD_IDS);
             updater.toBuffer(sendBody, ProductRelDto.Key.UPDATER, ProductRelDto.getRelAndPdDto());
 
@@ -1786,7 +1873,7 @@ public class MgProductBasicCli extends FaiClient {
         }
     }
 
-    public int getPdBindGroup(int aid, int unionPriId, FaiList<Integer> rlPdIds, FaiList<Param> list) {
+    public int getPdBindGroup(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, FaiList<Param> list) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1794,6 +1881,7 @@ public class MgProductBasicCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductBindGroupDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductBindGroupDto.Key.SYS_TYPE, sysType);
             rlPdIds.toBuffer(sendBody,ProductBindGroupDto.Key.RL_PD_IDS);
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setAid(aid);
@@ -1843,7 +1931,7 @@ public class MgProductBasicCli extends FaiClient {
         }
     }
 
-    public int setPdBindGroup(int aid, int unionPriId, int rlPdId, FaiList<Integer> addGroupIds, FaiList<Integer> delGroupIds) {
+    public int setPdBindGroup(int aid, int unionPriId, int sysType, int rlPdId, FaiList<Integer> addGroupIds, FaiList<Integer> delGroupIds) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1867,6 +1955,7 @@ public class MgProductBasicCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductBindGroupDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductBindGroupDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(ProductBindGroupDto.Key.RL_PD_ID, rlPdId);
             addGroupIds.toBuffer(sendBody, ProductBindGroupDto.Key.RL_GROUP_IDS);
             delGroupIds.toBuffer(sendBody, ProductBindGroupDto.Key.DEL_RL_GROUP_IDS);
@@ -1900,7 +1989,7 @@ public class MgProductBasicCli extends FaiClient {
         }
     }
 
-    public int delPdBindGroup(int aid, int unionPriId, FaiList<Integer> delGroupIds) {
+    public int delPdBindGroup(int aid, int unionPriId, int sysType, FaiList<Integer> delGroupIds) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1918,6 +2007,7 @@ public class MgProductBasicCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductBindGroupDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductBindGroupDto.Key.SYS_TYPE, sysType);
             delGroupIds.toBuffer(sendBody, ProductBindGroupDto.Key.DEL_RL_GROUP_IDS);
 
             FaiProtocol sendProtocol = new FaiProtocol();
@@ -1949,7 +2039,7 @@ public class MgProductBasicCli extends FaiClient {
         }
     }
 
-    public int getRlPdByRlGroupId(int aid, int unionPriId, FaiList<Integer> rlGroupIds, FaiList<Integer> rlPdIds) {
+    public int getRlPdByRlGroupId(int aid, int unionPriId, int sysType, FaiList<Integer> rlGroupIds, FaiList<Integer> rlPdIds) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1957,6 +2047,7 @@ public class MgProductBasicCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductBindGroupDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductBindGroupDto.Key.SYS_TYPE, sysType);
             rlGroupIds.toBuffer(sendBody, ProductBindGroupDto.Key.RL_GROUP_IDS);
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setAid(aid);
@@ -2009,7 +2100,7 @@ public class MgProductBasicCli extends FaiClient {
     /**
      * 根据商品业务id获取商品数据（商品表+业务表）
      */
-    public int getProductList(int aid, int unionPriId, FaiList<Integer> rlPdIds, FaiList<Param> list) {
+    public int getProductList(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, FaiList<Param> list) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2017,6 +2108,7 @@ public class MgProductBasicCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductRelDto.Key.SYS_TYPE, sysType);
             rlPdIds.toBuffer(sendBody, ProductRelDto.Key.RL_PD_IDS);
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setAid(aid);
@@ -2252,17 +2344,49 @@ public class MgProductBasicCli extends FaiClient {
         }
     }
 
+    /**==========================================操作商品与标签关联开始===========================================================*/
     /**
-     * 修改绑定分类 - 分布式事务
-     * @param aid 用户id
-     * @param unionPriId 联合主机那
-     * @param rlPdId 商品业务id
-     * @param addGroupIds 想绑定的分类id
-     * @param delGroupIds 想删除绑定的分类id
-     * @param xid 事务全局id
-     * @return {@link Errno}
+     * 获取aid，uid，rlPdIds获取商品和标签关联的数据
      */
-    public int transactionSetPdBindGroup(int aid, int unionPriId, int rlPdId, FaiList<Integer> addGroupIds, FaiList<Integer> delGroupIds, String xid) {
+    public int getPdBindTag(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, FaiList<Param> pdBindTags) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (pdBindTags == null) {
+                pdBindTags = new FaiList<Param>();
+            }
+            pdBindTags.clear();
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductBindTagDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductBindTagDto.Key.SYS_TYPE, sysType);
+            rlPdIds.toBuffer(sendBody,ProductBindTagDto.Key.RL_PD_IDS);
+            //send and receive
+            Param result = sendAndReceive(aid, MgProductBasicCmd.BindTagCmd.GET_LIST, sendBody, true);
+            Boolean success = result.getBoolean("success");
+            if (!success) {
+                return m_rt;
+            }
+
+            // recv info
+            FaiBuffer recvBody = (FaiBuffer) result.getObject("recvBody");
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = pdBindTags.fromBuffer(recvBody, keyRef, ProductBindTagDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductBindTagDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+
+        }
+    }
+
+    public int setPdBindTag(int aid, int unionPriId, int sysType, int rlPdId, FaiList<Integer> addRlTagIds, FaiList<Integer> delRlTagIds) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2271,52 +2395,250 @@ public class MgProductBasicCli extends FaiClient {
                 Log.logErr("args error");
                 return m_rt;
             }
-            if(addGroupIds == null) {
-                addGroupIds = new FaiList<Integer>();
+            if(addRlTagIds == null) {
+                addRlTagIds = new FaiList<Integer>();
             }
-            if(delGroupIds == null) {
-                delGroupIds = new FaiList<Integer>();
+            if(delRlTagIds == null) {
+                delRlTagIds = new FaiList<Integer>();
             }
-            if(addGroupIds.isEmpty() && delGroupIds.isEmpty()) {
+            if(addRlTagIds.isEmpty() && delRlTagIds.isEmpty()) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error;addList and delList all empty");
                 return m_rt;
             }
 
+            int command = MgProductBasicCmd.BindTagCmd.BATCH_SET;
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
-            sendBody.putInt(ProductBindGroupDto.Key.UNION_PRI_ID, unionPriId);
-            sendBody.putInt(ProductBindGroupDto.Key.RL_PD_ID, rlPdId);
-            sendBody.putString(ProductDto.Key.XID, xid);
-            addGroupIds.toBuffer(sendBody, ProductBindGroupDto.Key.RL_GROUP_IDS);
-            delGroupIds.toBuffer(sendBody, ProductBindGroupDto.Key.DEL_RL_GROUP_IDS);
+            sendBody.putInt(ProductBindTagDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductBindTagDto.Key.SYS_TYPE, sysType);
+            sendBody.putInt(ProductBindTagDto.Key.RL_PD_ID, rlPdId);
+            addRlTagIds.toBuffer(sendBody, ProductBindTagDto.Key.RL_TAG_IDS);
+            delRlTagIds.toBuffer(sendBody, ProductBindTagDto.Key.DEL_RL_TAG_IDS);
 
-            FaiProtocol sendProtocol = new FaiProtocol();
-            sendProtocol.setCmd(MgProductBasicCmd.BindGroupCmd.TRANSACTION_SET_PD_BIND_GROUP);
-            sendProtocol.setAid(aid);
-            sendProtocol.addEncodeBody(sendBody);
-            m_rt = send(sendProtocol);
-            if (m_rt != Errno.OK) {
-                Log.logErr(m_rt, "send err");
-                return m_rt;
-            }
-
-            // recv
-            FaiProtocol recvProtocol = new FaiProtocol();
-            m_rt = recv(recvProtocol);
-            if (m_rt != Errno.OK) {
-                Log.logErr(m_rt, "recv err");
-                return m_rt;
-            }
-            m_rt = recvProtocol.getResult();
-            if (m_rt != Errno.OK) {
-                return m_rt;
-            }
-
+            sendAndReceive(aid, command, sendBody, false);
             return m_rt;
         } finally {
             close();
             stat.end(m_rt != Errno.OK, m_rt);
         }
     }
+
+    public int delPdBindTag(int aid, int unionPriId, int sysType, FaiList<Integer> delRlPdIds) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(Util.isEmptyList(delRlPdIds)) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;delList is empty");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductBindTagDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductBindTagDto.Key.SYS_TYPE, sysType);
+            delRlPdIds.toBuffer(sendBody, ProductBindTagDto.Key.RL_PD_IDS);
+
+            //send and receive
+            sendAndReceive(aid, MgProductBasicCmd.BindTagCmd.DEL, sendBody, false);
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+
+        }
+    }
+
+    public int getRlPdIdsByRlTagIds(int aid, int unionPriId, int sysType, FaiList<Integer> rlTagIds, FaiList<Integer> rlPdIds) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if(Util.isEmptyList(rlTagIds)) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;delList is empty");
+                return m_rt;
+            }
+            if (rlPdIds == null) {
+                rlPdIds = new FaiList<Integer>();
+            }
+            rlPdIds.clear();
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductBindTagDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductBindTagDto.Key.SYS_TYPE, sysType);
+            rlTagIds.toBuffer(sendBody, ProductBindTagDto.Key.RL_TAG_IDS);
+
+            Param result = sendAndReceive(aid, MgProductBasicCmd.BindTagCmd.GET_PD_BY_TAG, sendBody, true);
+            Boolean success = result.getBoolean("success");
+            if (!success) {
+                return m_rt;
+            }
+
+            // recv info
+            FaiBuffer recvBody = (FaiBuffer) result.getObject("recvBody");
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = rlPdIds.fromBuffer(recvBody, keyRef);
+            if (m_rt != Errno.OK || keyRef.value != ProductBindTagDto.Key.RL_PD_IDS) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+
+        }
+    }
+
+    public int getBindTagDataStatus(int aid, int unionPriId, Param statusInfo) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            statusInfo.clear();
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductBindTagDto.Key.UNION_PRI_ID, unionPriId);
+
+            Param result = sendAndReceive(aid, MgProductBasicCmd.BindTagCmd.GET_DATA_STATUS, sendBody, true);
+            Boolean success = result.getBoolean("success");
+            if (!success) {
+                return m_rt;
+            }
+
+            // recv info
+            FaiBuffer recvBody = (FaiBuffer) result.getObject("recvBody");
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = statusInfo.fromBuffer(recvBody, keyRef, DataStatus.Dto.getDataStatusDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductBindTagDto.Key.DATA_STATUS) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK), m_rt);
+
+        }
+    }
+
+    public int getAllPdBindTag(int aid, int unionPriId, FaiList<Param> list) {
+        return getPdBindTagByCondition(aid, unionPriId, null, list);
+    }
+
+    public int getPdBindTagFromDb(int aid, int unionPriId, SearchArg searchArg, FaiList<Param> list) {
+        if (searchArg == null) {
+            searchArg = new SearchArg();
+        }
+        return getPdBindTagByCondition(aid, unionPriId, searchArg, list);
+    }
+
+    private int getPdBindTagByCondition(int aid, int unionPriId, SearchArg searchArg, FaiList<Param> pdBindTags) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (pdBindTags == null) {
+                pdBindTags = new FaiList<Param>();
+            }
+            pdBindTags.clear();
+            int command = MgProductBasicCmd.BindTagCmd.GET_ALL_DATA;
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductBindTagDto.Key.UNION_PRI_ID, unionPriId);
+
+            if (searchArg != null) {
+                command = MgProductBasicCmd.BindTagCmd.SEARCH_FROM_DB;
+                searchArg.toBuffer(sendBody, ProductBindTagDto.Key.SEARCH_ARG);
+            }else {
+                searchArg = new SearchArg();
+            }
+
+            Param result = sendAndReceive(aid, command, sendBody,true);
+            Boolean success = result.getBoolean("success");
+            if (!success) {
+                return m_rt;
+            }
+
+            // recv info
+            FaiBuffer recvBody = (FaiBuffer) result.getObject("recvBody");
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = pdBindTags.fromBuffer(recvBody, keyRef, ProductBindTagDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductBindTagDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            if (searchArg.totalSize != null) {
+                recvBody.getInt(keyRef, searchArg.totalSize);
+                if (keyRef.value != ProductBindTagDto.Key.TOTAL_SIZE) {
+                    m_rt = Errno.CODEC_ERROR;
+                    Log.logErr(m_rt, "recv total size null");
+                    return m_rt;
+                }
+            }
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    /**
+     * 发送和接收数据，并且验证发送和接收是否成功
+     *
+     * @param sendBody          发送的数据体
+     * @param verifyReceiveBody true表示要验证接收的数据是否为null，false表示不用验证
+     * @return true 表示发送和接收成功，false表示发送和接收失败
+     */
+    private Param sendAndReceive(int aid, int command, FaiBuffer sendBody, boolean verifyReceiveBody) {
+
+        Param param = new Param(true);
+        FaiProtocol sendProtocol = new FaiProtocol();
+        sendProtocol.setAid(aid);
+        sendProtocol.setCmd(command);
+        sendProtocol.addEncodeBody(sendBody);
+        //send
+        m_rt = send(sendProtocol);
+        if (m_rt != Errno.OK) {
+            Log.logErr(m_rt, "send err");
+            return param.setBoolean("success", false);
+        }
+
+        // recv
+        FaiProtocol recvProtocol = new FaiProtocol();
+        m_rt = recv(recvProtocol);
+        if (m_rt != Errno.OK) {
+            Log.logErr(m_rt, "recv err");
+            return param.setBoolean("success", false);
+        }
+        m_rt = recvProtocol.getResult();
+        if (m_rt != Errno.OK) {
+            if (m_rt != Errno.NOT_FOUND) {
+                Log.logErr(m_rt, "recv result err");
+            }
+            return param.setBoolean("success", false);
+        }
+
+        if (!verifyReceiveBody) {
+            return param.setBoolean("success", true);
+        }
+
+        FaiBuffer recvBody = recvProtocol.getDecodeBody();
+        if (recvBody == null) {
+            m_rt = Errno.CODEC_ERROR;
+            Log.logErr(m_rt, "recv body null");
+            return param.setBoolean("success", false);
+        }
+        return param.setBoolean("success", true).setObject("recvBody", recvBody);
+    }
+    /**==========================================操作商品与标签关联结束===========================================================*/
+
 }

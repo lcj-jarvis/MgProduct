@@ -746,10 +746,18 @@ public class MgProductSpecCli extends MgProductInternalCli {
     public int batchDelPdAllSc(int aid, int tid, FaiList<Integer> pdIdList){
         return batchDelPdAllSc(aid, tid, pdIdList, false);
     }
+
+    public int batchDelPdAllSc(int aid, int tid, FaiList<Integer> pdIdList, boolean softDel) {
+        return batchDelPdAllSc(aid, tid, pdIdList, "", softDel);
+    }
+
+    public int batchDelPdAllSc(int aid, int tid, FaiList<Integer> pdIdList, String xid) {
+        return batchDelPdAllSc(aid, tid, pdIdList, xid, false);
+    }
     /**
      * 批量删除商品所有规格
      */
-    public int batchDelPdAllSc(int aid, int tid, FaiList<Integer> pdIdList, boolean softDel){
+    public int batchDelPdAllSc(int aid, int tid, FaiList<Integer> pdIdList, String xid, boolean softDel){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -762,6 +770,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductSpecDto.Key.TID, tid);
             pdIdList.toBuffer(sendBody, ProductSpecDto.Key.PD_ID_LIST);
+            sendBody.putString(ProductSpecDto.Key.XID, xid);
             sendBody.putBoolean(ProductSpecDto.Key.SOFT_DEL, softDel);
 
             FaiProtocol sendProtocol = new FaiProtocol();
@@ -929,13 +938,19 @@ public class MgProductSpecCli extends MgProductInternalCli {
         }
     }
 
+    public int setPdSkuScInfoList(int aid, int tid, int unionPriId, String xid, int pdId, FaiList<ParamUpdater> updaterList) {
+        return setPdSkuScInfoList(aid, tid, unionPriId, xid, pdId, updaterList, null);
+    }
     public int setPdSkuScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<ParamUpdater> updaterList) {
         return setPdSkuScInfoList(aid, tid, unionPriId, pdId, updaterList, null);
+    }
+    public int setPdSkuScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<ParamUpdater> updaterList, FaiList<Param> rtPdScSkuInfoList) {
+        return setPdSkuScInfoList(aid, tid, unionPriId, null, pdId, updaterList, rtPdScSkuInfoList);
     }
     /**
      * 批量修改产品规格SKU
      */
-    public int setPdSkuScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<ParamUpdater> updaterList, FaiList<Param> rtPdScSkuInfoList) {
+    public int setPdSkuScInfoList(int aid, int tid, int unionPriId, String xid, int pdId, FaiList<ParamUpdater> updaterList, FaiList<Param> rtPdScSkuInfoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -954,6 +969,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductSpecSkuDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(ProductSpecSkuDto.Key.TID, tid);
+            sendBody.putString(ProductSpecSkuDto.Key.XID, xid);
             sendBody.putInt(ProductSpecSkuDto.Key.PD_ID, pdId);
             m_rt = updaterList.toBuffer(sendBody, ProductSpecSkuDto.Key.UPDATER_LIST, ProductSpecSkuDto.getInfoDto());
             if(m_rt != Errno.OK){
@@ -1856,11 +1872,12 @@ public class MgProductSpecCli extends MgProductInternalCli {
 
     /**
      * 导入商品规格和sku信息
+     * @param xid
      * @param specList 商品规格 集合
      * @param specSkuList 商品规格sku 集合
      * @param skuIdInfoList 需要返回的skuId信息集合 不是全部
      */
-    public int importPdScWithSku(int aid, int tid, int unionPriId, FaiList<Param> specList, FaiList<Param> specSkuList, FaiList<Param> skuIdInfoList){
+    public int importPdScWithSku(int aid, int tid, int unionPriId, String xid, FaiList<Param> specList, FaiList<Param> specSkuList, FaiList<Param> skuIdInfoList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1881,6 +1898,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             }
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putString(ProductSpecDto.Key.XID, xid);
             sendBody.putInt(ProductSpecDto.Key.TID, tid);
             sendBody.putInt(ProductSpecDto.Key.UNION_PRI_ID, unionPriId);
             specList.toBuffer(sendBody, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.getInfoDto());

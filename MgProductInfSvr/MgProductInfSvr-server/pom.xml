@@ -19,6 +19,12 @@
         </dependency>
 
         <dependency>
+            <groupId>MgRichText</groupId>
+            <artifactId>MgRichTextInfSvr-interfaces</artifactId>
+            <version>${MgRichText-MgRichTextInfSvr-ver}</version>
+        </dependency>
+
+        <dependency>
             <groupId>fai-middleground-svrutil</groupId>
             <artifactId>fai-middleground-svrutil</artifactId>
             <version>${fai-middleground-svrutil-ver}</version>
@@ -70,6 +76,18 @@
             <groupId>MgProduct</groupId>
             <artifactId>MgProductGroupSvr-interfaces</artifactId>
             <version>${MgProduct-MgProductGroupSvr-interfaces-ver}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProductLibSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductLibSvr-interfaces-ver}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProductTagSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductTagSvr-interfaces-ver}</version>
         </dependency>
 
         <dependency>

@@ -1,6 +1,7 @@
 package fai.MgProductInfSvr.interfaces.dto;
 
 import fai.MgProductInfSvr.interfaces.entity.MgProductEntity;
+import fai.MgProductInfSvr.interfaces.entity.ProductBasicEntity;
 import fai.comm.util.ParamDef;
 import fai.comm.util.Var;
 
@@ -53,6 +54,33 @@ public class MgProductDto {
         return g_primaryKeyDef;
     }
 
+    // 商品中台所有数据选项, 之后但凡是有业务控制要操作哪些数据的，都用这个
+    public static ParamDef g_optionDef = new ParamDef();
+    static {
+        g_optionDef.add(MgProductEntity.Option.BASIC, 0, Var.Type.BOOLEAN);
+        g_optionDef.add(MgProductEntity.Option.GROUP, 1, Var.Type.BOOLEAN);
+        g_optionDef.add(MgProductEntity.Option.LIB, 2, Var.Type.BOOLEAN);
+        g_optionDef.add(MgProductEntity.Option.TAG, 3, Var.Type.BOOLEAN);
+        g_optionDef.add(MgProductEntity.Option.PROP, 4, Var.Type.BOOLEAN);
+    }
+    public static ParamDef getOptionDto() {
+        return g_optionDef;
+    }
+
+
+    // for es
+    public static ParamDef g_esPdInfoDef = new ParamDef();
+    static {
+        g_esPdInfoDef.add(ProductBasicEntity.ProductInfo.AID, 0, Var.Type.INT);
+        g_esPdInfoDef.add(ProductBasicEntity.ProductInfo.UNION_PRI_ID, 1, Var.Type.INT);
+        g_esPdInfoDef.add(ProductBasicEntity.ProductInfo.PD_ID, 2, Var.Type.INT);
+        g_esPdInfoDef.add(ProductBasicEntity.ProductInfo.NAME, 3, Var.Type.STRING);
+        g_esPdInfoDef.add(ProductBasicEntity.ProductInfo.STATUS, 4, Var.Type.INT);
+    }
+    public static ParamDef getEsPdInfoDto() {
+        return g_esPdInfoDef;
+    }
+
     public static class Key {
         public static final int TID  = 1;
         public static final int SITE_ID  = 2;
@@ -66,5 +94,15 @@ public class MgProductDto {
         public static final int RL_PD_IDS = 10;
         public static final int COMBINED = 11;
         public static final int PRIMARY_KEYS = 12;
+        public static final int BIND_PD_INFO = 13;
+        public static final int XID = 14;
+        public static final int PRIMARY_KEY = 15;
+        public static final int FROM_PRIMARY_KEY = 16;
+        public static final int FROM_AID = 17;
+        public static final int OPTION = 18;
+        public static final int RL_BACKUPID = 19;
+        public static final int UNIONPRI_ID = 20;
+        public static final int PD_ID = 21;
+        public static final int SYS_TYPE = 22;
     }
 }

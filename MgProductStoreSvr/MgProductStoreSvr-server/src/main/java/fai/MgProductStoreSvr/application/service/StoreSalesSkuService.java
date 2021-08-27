@@ -10,6 +10,9 @@ import fai.MgProductStoreSvr.interfaces.conf.MqConfig;
 import fai.MgProductStoreSvr.interfaces.dto.HoldingRecordDto;
 import fai.MgProductStoreSvr.interfaces.dto.StoreSalesSkuDto;
 import fai.MgProductStoreSvr.interfaces.entity.SkuCountChangeEntity;
+import fai.comm.fseata.client.core.context.RootContext;
+import fai.comm.fseata.client.core.model.BranchStatus;
+import fai.comm.fseata.client.core.rpc.def.CommDef;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.mq.api.MqFactory;
@@ -55,18 +58,11 @@ public class StoreSalesSkuService extends StoreService {
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
                 LockUtil.lock(aid);
-                SpuBizSummaryDaoCtrl spuBizSummaryDaoCtrl = SpuBizSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                SpuSummaryDaoCtrl spuSummaryDaoCtrl = SpuSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                SkuSummaryDaoCtrl skuSummaryDaoCtrl =SkuSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                StoreSalesSkuDaoCtrl storeSalesSkuDaoCtrl = StoreSalesSkuDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                if(!transactionCtrl.checkRegistered(storeSalesSkuDaoCtrl, spuBizSummaryDaoCtrl, spuSummaryDaoCtrl, skuSummaryDaoCtrl)){
-                    return rt = Errno.ERROR;
-                }
 
-                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(spuBizSummaryDaoCtrl, flow);
-                SpuSummaryProc spuSummaryProc = new SpuSummaryProc(spuSummaryDaoCtrl, flow);
-                SkuSummaryProc skuSummaryProc = new SkuSummaryProc(skuSummaryDaoCtrl, flow);
-                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
+                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, transactionCtrl);
+                SpuSummaryProc spuSummaryProc = new SpuSummaryProc(flow, aid, transactionCtrl);
+                SkuSummaryProc skuSummaryProc = new SkuSummaryProc(flow, aid, transactionCtrl);
+                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, transactionCtrl);
 
                 try {
                     transactionCtrl.setAutoCommit(false);
@@ -103,7 +99,7 @@ public class StoreSalesSkuService extends StoreService {
     /**
      * 刷新库存销售sku信息
      */
-    public int refreshSkuStoreSales(FaiSession session, int flow, int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<Param> pdScSkuInfoList) throws IOException {
+    public int refreshSkuStoreSales(FaiSession session, int flow, int aid, int tid, int unionPriId, int sysType, String xid, int pdId, int rlPdId, FaiList<Param> pdScSkuInfoList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -116,18 +112,11 @@ public class StoreSalesSkuService extends StoreService {
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
                 LockUtil.lock(aid);
-                SpuBizSummaryDaoCtrl spuBizSummaryDaoCtrl = SpuBizSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                SpuSummaryDaoCtrl spuSummaryDaoCtrl = SpuSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                SkuSummaryDaoCtrl skuSummaryDaoCtrl =SkuSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                StoreSalesSkuDaoCtrl storeSalesSkuDaoCtrl = StoreSalesSkuDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                if(!transactionCtrl.checkRegistered(storeSalesSkuDaoCtrl, spuBizSummaryDaoCtrl, spuSummaryDaoCtrl, skuSummaryDaoCtrl)){
-                    return rt = Errno.ERROR;
-                }
 
-                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(spuBizSummaryDaoCtrl, flow);
-                SpuSummaryProc spuSummaryProc = new SpuSummaryProc(spuSummaryDaoCtrl, flow);
-                SkuSummaryProc skuSummaryProc = new SkuSummaryProc(skuSummaryDaoCtrl, flow);
-                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
+                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, transactionCtrl);
+                SpuSummaryProc spuSummaryProc = new SpuSummaryProc(flow, aid, transactionCtrl);
+                SkuSummaryProc skuSummaryProc = new SkuSummaryProc(flow, aid, transactionCtrl);
+                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, transactionCtrl);
 
                 // 查出当前已有的sku
                 Ref<FaiList<Param>> listRef = new Ref<>();
@@ -137,6 +126,7 @@ public class StoreSalesSkuService extends StoreService {
                 }
                 FaiList<Param> storeSalesSkuInfoList = listRef.value;
 
+                // skuId - info
                 Map<Long, Param> skuIdPdScSkuInfoMap = Utils.getMap(pdScSkuInfoList, StoreSalesSkuEntity.Info.SKU_ID);
                 // 筛选出需要删除的sku
                 FaiList<Long> delSkuIdList = new FaiList<>();
@@ -145,9 +135,10 @@ public class StoreSalesSkuService extends StoreService {
                     Param pdScSkuInfo = skuIdPdScSkuInfoMap.remove(skuId);
                     if(pdScSkuInfo == null){
                         delSkuIdList.add(skuId);
-                        continue;
                     }
                 }
+                FaiList<Integer> pdIds = new FaiList<>(Collections.singletonList(pdId));
+                boolean isSaga = !Str.isEmpty(xid);
                 // 生成需要添加的sku
                 FaiList<Param> addInfoList = new FaiList<>();
                 for (Map.Entry<Long, Param> skuIdPdScSkuInfoEntry : skuIdPdScSkuInfoMap.entrySet()) {
@@ -155,6 +146,7 @@ public class StoreSalesSkuService extends StoreService {
                             .setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId)
                             .setInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, unionPriId)
                             .setInt(StoreSalesSkuEntity.Info.RL_PD_ID, rlPdId)
+                            .setInt(StoreSalesSkuEntity.Info.SYS_TYPE, sysType)
                             .setLong(StoreSalesSkuEntity.Info.SKU_ID, skuIdPdScSkuInfoEntry.getKey())
                     );
                 }
@@ -163,26 +155,26 @@ public class StoreSalesSkuService extends StoreService {
                     boolean notModify = true;
                     if(!delSkuIdList.isEmpty()){
                         notModify = false;
-                        rt = storeSalesSkuProc.batchDel(aid, pdId, delSkuIdList);
+                        rt = storeSalesSkuProc.batchDel(aid, pdId, delSkuIdList, isSaga);
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = skuSummaryProc.batchDel(aid, pdId, delSkuIdList);
+                        rt = skuSummaryProc.batchDel(aid, pdId, delSkuIdList, isSaga);
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = spuBizSummaryProc.batchDel(aid, new FaiList<>(Arrays.asList(pdId)));
+                        rt = spuBizSummaryProc.batchDel(aid, pdIds, isSaga);
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = spuSummaryProc.batchDel(aid, new FaiList<>(Arrays.asList(pdId)));
+                        rt = spuSummaryProc.batchDel(aid, pdIds, isSaga);
                         if(rt != Errno.OK){
                             return rt;
                         }
                     }
                     if(!addInfoList.isEmpty()){
                         notModify = false;
-                        rt = storeSalesSkuProc.batchAdd(aid, pdId, addInfoList);
+                        rt = storeSalesSkuProc.batchAdd(aid, pdId, addInfoList, isSaga);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -195,10 +187,18 @@ public class StoreSalesSkuService extends StoreService {
                         return rt = Errno.OK;
                     }
                     // 同步方式汇总信息
-                    rt = reportSummary(aid, new FaiList<>(Arrays.asList(pdId)), ReportValObj.Flag.REPORT_COUNT| ReportValObj.Flag.REPORT_PRICE
-                            , null, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
+                    rt = reportSummary(aid, pdIds, ReportValObj.Flag.REPORT_COUNT| ReportValObj.Flag.REPORT_PRICE
+                            , null, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc, isSaga);
                     if(rt != Errno.OK){
                         return rt;
+                    }
+                    if (isSaga) {
+                        // 记录 Saga 状态
+                        StoreSagaProc storeSagaProc = new StoreSagaProc(flow, aid, transactionCtrl);
+                        rt = storeSagaProc.add(aid, xid, RootContext.getBranchId());
+                        if (rt != Errno.OK) {
+                            return rt;
+                        }
                     }
                 }finally {
                     if(rt != Errno.OK){
@@ -227,6 +227,219 @@ public class StoreSalesSkuService extends StoreService {
     }
 
     /**
+     * refreshSkuStoreSales 的补偿方法
+     */
+    public int refreshSkuStoreSalesRollback(FaiSession session, int flow, int aid, String xid, Long branchId) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            TransactionCtrl tc = new TransactionCtrl();
+            try {
+                boolean commit = false;
+                LockUtil.lock(aid);
+                try {
+                    tc.setAutoCommit(false);
+                    StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, tc);
+                    SpuSummaryProc spuSummaryProc = new SpuSummaryProc(flow, aid, tc);
+                    SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
+                    SkuSummaryProc skuSummaryProc = new SkuSummaryProc(flow, aid, tc);
+                    StoreSagaProc storeSagaProc = new StoreSagaProc(flow, aid, tc);
+                    try {
+                        Ref<Param> sagaInfoRef = new Ref<>();
+                        // 获取补偿记录
+                        rt = storeSagaProc.getInfoWithAdd(xid, branchId, sagaInfoRef);
+                        if (rt != Errno.OK) {
+                            if (rt == Errno.NOT_FOUND) {
+                                commit = true;
+                                rt = Errno.OK;
+                                Log.reportErr(flow, rt,"get SagaInfo not found; xid=%s, branchId=%s", xid, branchId);
+                            }
+                            return rt;
+                        }
+
+                        Param sagaInfo = sagaInfoRef.value;
+                        Integer status = sagaInfo.getInt(StoreSagaEntity.Info.STATUS);
+                        // 幂等性保证
+                        if (status == StoreSagaValObj.Status.ROLLBACK_OK) {
+                            commit = true;
+                            Log.logStd(rt, "rollback already ok! saga=%s;", sagaInfo);
+                            return rt = Errno.OK;
+                        }
+                        // 查询 库存销售 SKU 的 Saga 操作记录表
+                        Ref<FaiList<Param>> storeSalesAllSagaListRef = new Ref<>();
+                        rt = storeSalesSkuProc.getSagaList(xid, branchId, storeSalesAllSagaListRef);
+                        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                            return rt;
+                        }
+                        FaiList<Param> storeSalesAllSagaList = storeSalesAllSagaListRef.value;
+                        // 查询 库存销售 spu 的 Saga 操作记录表
+                        Ref<FaiList<Param>> spuBizAllSagaListRef = new Ref<>();
+                        rt = spuBizSummaryProc.getSagaList(xid, branchId, spuBizAllSagaListRef);
+                        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                            return rt;
+                        }
+                        FaiList<Param> spuBizAllSagaList = spuBizAllSagaListRef.value;
+                        // 查询 spu 汇总 的 Saga 操作记录表
+                        Ref<FaiList<Param>> spuSummaryAllSagaListRef = new Ref<>();
+                        rt = spuSummaryProc.getSagaList(xid, branchId, spuSummaryAllSagaListRef);
+                        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                            return rt;
+                        }
+                        FaiList<Param> spuSummaryAllSagaList = spuSummaryAllSagaListRef.value;
+                        // 查询 sku 汇总 的 Saga 操作记录表 (ps:因为上报的时候没有上报 sku，所以操作表里可能有的只能是 del 数据)
+                        Ref<FaiList<Param>> skuSummaryDelSagaListRef = new Ref<>();
+                        rt = skuSummaryProc.getSagaList(xid, branchId, skuSummaryDelSagaListRef);
+                        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                            return rt;
+                        }
+                        FaiList<Param> skuSumDelSagaList = skuSummaryDelSagaListRef.value;
+                        // 存在没有修改的场景，只需要直接返回 OK 就行了
+                        if (Util.isEmptyList(storeSalesAllSagaList) && Util.isEmptyList(spuBizAllSagaList)
+                                && Util.isEmptyList(spuSummaryAllSagaList) && Util.isEmptyList(skuSumDelSagaList)) {
+                            commit = true;
+                            return rt = Errno.OK;
+                        }
+                        // 数据分组 根据 SagaOp 分组
+                        FaiList<Param> spuBizAddSagaList = new FaiList<>();
+                        FaiList<Param> spuBizDelSagaList = new FaiList<>();
+                        for (Param spuBizInfo : spuBizAllSagaList) {
+                            Integer sagaOp = spuBizInfo.getInt(StoreSagaEntity.Info.SAGA_OP);
+                            if (sagaOp == StoreSagaValObj.SagaOp.ADD) {
+                                spuBizAddSagaList.add(spuBizInfo);
+                            } else {
+                                spuBizDelSagaList.add(spuBizInfo);
+                            }
+                        }
+
+                        FaiList<Param> spuSummaryAddSagaList = new FaiList<>();
+                        FaiList<Param> spuSummaryDelSagaList = new FaiList<>();
+                        for (Param spuSumInfo : spuSummaryAllSagaList) {
+                            Integer sagaOp = spuSumInfo.getInt(StoreSagaEntity.Info.SAGA_OP);
+                            if (sagaOp == StoreSagaValObj.SagaOp.ADD) {
+                                spuSummaryAddSagaList.add(spuSumInfo);
+                            } else {
+                                spuSummaryDelSagaList.add(spuSumInfo);
+                            }
+                        }
+
+                        FaiList<Param> storeSalesAddSagaList = new FaiList<>();
+                        FaiList<Param> storeSalesDelSagaList = new FaiList<>();
+                        for (Param info : storeSalesAllSagaList) {
+                            Integer sagaOp = info.getInt(StoreSagaEntity.Info.SAGA_OP);
+                            if (sagaOp == StoreSagaValObj.SagaOp.ADD) {
+                                storeSalesAddSagaList.add(info);
+                            } else {
+                                storeSalesDelSagaList.add(info);
+                            }
+                        }
+
+                        // --------------------------------------------- 补偿 start ------------------------------------------------
+                        // 1、对添加的上报做补偿
+                        if (!Util.isEmptyList(spuSummaryAddSagaList)) {
+                            rt = spuSummaryProc.batchAddRollback(aid, spuSummaryAddSagaList);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                        }
+                        if (!Util.isEmptyList(spuBizAddSagaList)) {
+                            rt = spuBizSummaryProc.batchAddRollback(aid, spuBizAddSagaList);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                        }
+                        // 2、对添加的库存 sku 销售做补偿
+                        if (!Util.isEmptyList(storeSalesAddSagaList)) {
+                            rt = storeSalesSkuProc.batchAddRollback(aid, storeSalesAddSagaList);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                        }
+                        // 后面上报需要使用
+                        int pdId = 0;
+                        // 3、对删除的信息做补偿
+                        if (!Util.isEmptyList(spuSummaryDelSagaList)) {
+                            rt = spuSummaryProc.batchDelRollback(aid, spuSummaryDelSagaList);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                            if (pdId == 0) {
+                                spuSummaryDelSagaList.get(0).getInt(SpuSummaryEntity.Info.PD_ID);
+                            }
+                        }
+                        if (!Util.isEmptyList(spuBizDelSagaList)) {
+                            rt = spuBizSummaryProc.batchDelRollback(aid, spuBizDelSagaList);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                            if (pdId == 0) {
+                                spuSummaryDelSagaList.get(0).getInt(SpuSummaryEntity.Info.PD_ID);
+                            }
+                        }
+                        if (!Util.isEmptyList(skuSumDelSagaList)) {
+                            rt = skuSummaryProc.batchDelRollback(aid, skuSumDelSagaList);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                            if (pdId == 0) {
+                                spuSummaryDelSagaList.get(0).getInt(SpuSummaryEntity.Info.PD_ID);
+                            }
+                        }
+                        if (!Util.isEmptyList(storeSalesDelSagaList)) {
+                            rt = storeSalesSkuProc.batchDelRollback(aid, storeSalesDelSagaList);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                            if (pdId == 0) {
+                                spuSummaryDelSagaList.get(0).getInt(SpuSummaryEntity.Info.PD_ID);
+                            }
+                        }
+
+                        // 3、上报修改
+                        rt = reportSummary(aid, new FaiList<>(Collections.singletonList(pdId)), ReportValObj.Flag.REPORT_COUNT| ReportValObj.Flag.REPORT_PRICE,
+                                null, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
+                        // 允许 rt = Errno.NOT_FOUND , 存在这种场景，因为前面的补偿将添加的汇总给删除了，可能会存在 NOT_FOUND 情况
+                        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                            return rt;
+                        }
+                        // 4、修改补偿状态
+                        rt = storeSagaProc.setStatus(xid, branchId, StoreSagaValObj.Status.ROLLBACK_OK);
+                        if (rt != Errno.OK) {
+                            return rt;
+                        }
+                        // --------------------------------------------- 补偿 end --------------------------------------------------
+                        commit = true;
+                    } finally {
+                        if (!commit) {
+                            tc.rollback();
+                        }
+                    }
+                    spuBizSummaryProc.setDirtyCacheEx(aid);
+                    spuSummaryProc.setDirtyCacheEx(aid);
+                    tc.commit();
+                    spuBizSummaryProc.deleteDirtyCache(aid);
+                    spuSummaryProc.deleteDirtyCache(aid);
+                } finally {
+                    LockUtil.unlock(aid);
+                }
+            } finally {
+                tc.closeDao();
+            }
+        } finally {
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            if (rt != Errno.OK) {
+                //失败，需要重试
+                sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, BranchStatus.PhaseTwo_RollbackFailed_Retryable.getCode());
+            }else{
+                //成功，不需要重试
+                sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, BranchStatus.PhaseTwo_Rollbacked.getCode());
+            }
+            session.write(sendBuf);
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    /**
      * 批量同步 库存销售 spu数据到sku
      */
     public int batchSynchronousStoreSalesSPU2SKU(FaiSession session, int flow, int aid, int sourceTid, int sourceUnionPriId, FaiList<Param> spuStoreSalesInfoList) throws IOException {
@@ -248,6 +461,7 @@ public class StoreSalesSkuService extends StoreService {
                 int unionPriId = spuSalesStoreInfo.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, 0);
                 int pdId = spuSalesStoreInfo.getInt(StoreSalesSkuEntity.Info.PD_ID, 0);
                 int rlPdId = spuSalesStoreInfo.getInt(StoreSalesSkuEntity.Info.RL_PD_ID, 0);
+                int sysType = spuSalesStoreInfo.getInt(StoreSalesSkuEntity.Info.SYS_TYPE, 0);
                 long skuId = spuSalesStoreInfo.getLong(StoreSalesSkuEntity.Info.SKU_ID, 0L);
                 if(unionPriId <= 0 || pdId <= 0 || rlPdId <= 0 || skuId <= 0){
                     rt = Errno.ARGS_ERROR;
@@ -269,6 +483,7 @@ public class StoreSalesSkuService extends StoreService {
                 skuSalesStoreData.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId);
                 skuSalesStoreData.setInt(StoreSalesSkuEntity.Info.PD_ID, pdId);
                 skuSalesStoreData.setInt(StoreSalesSkuEntity.Info.RL_PD_ID, rlPdId);
+                skuSalesStoreData.setInt(StoreSalesSkuEntity.Info.SYS_TYPE, sysType);
                 skuSalesStoreData.setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId);
                 skuSalesStoreData.setInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
                 skuSalesStoreData.setInt(StoreSalesSkuEntity.Info.FLAG, flag);
@@ -300,7 +515,7 @@ public class StoreSalesSkuService extends StoreService {
                     }
                 }
             }
-            maxUpdateKeySet.removeAll(Arrays.asList(StoreSalesSkuEntity.Info.AID, StoreSalesSkuEntity.Info.UNION_PRI_ID, StoreSalesSkuEntity.Info.PD_ID, StoreSalesSkuEntity.Info.RL_PD_ID, StoreSalesSkuEntity.Info.SKU_ID));
+            maxUpdateKeySet.removeAll(Arrays.asList(StoreSalesSkuEntity.Info.AID, StoreSalesSkuEntity.Info.UNION_PRI_ID, StoreSalesSkuEntity.Info.PD_ID, StoreSalesSkuEntity.Info.RL_PD_ID, StoreSalesSkuEntity.Info.SYS_TYPE, StoreSalesSkuEntity.Info.SKU_ID));
 
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
@@ -450,13 +665,16 @@ public class StoreSalesSkuService extends StoreService {
         }
         return rt;
     }
-    public int setSkuStoreSales(FaiSession session, int flow, int aid, int tid, int unionPriId, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) throws IOException {
-        return batchSetSkuStoreSales(session, flow, aid, tid, null, new FaiList<>(Arrays.asList(unionPriId)), pdId, rlPdId, updaterList);
+    public int setSkuStoreSales(FaiSession session, int flow, int aid, int tid, int unionPriId, String xid, int pdId, int rlPdId, int sysType, FaiList<ParamUpdater> updaterList) throws IOException {
+        return batchSetSkuStoreSales(session, flow, aid, tid, null, new FaiList<>(Collections.singletonList(unionPriId)), xid, pdId, rlPdId, sysType, updaterList);
+    }
+    public int batchSetSkuStoreSales(FaiSession session, int flow, int aid, int tid, Integer ownerUnionPriId, FaiList<Integer> unionPriIdList, int pdId, int rlPdId, int sysType, FaiList<ParamUpdater> updaterList) throws IOException {
+        return batchSetSkuStoreSales(session, flow, aid, tid, ownerUnionPriId, unionPriIdList, null, pdId, rlPdId, sysType, updaterList);
     }
     /**
      * 批量修改库存销售sku信息
      */
-    public int batchSetSkuStoreSales(FaiSession session, int flow, int aid, int tid, Integer ownerUnionPriId, FaiList<Integer> unionPriIdList, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) throws IOException {
+    public int batchSetSkuStoreSales(FaiSession session, int flow, int aid, int tid, Integer ownerUnionPriId, FaiList<Integer> unionPriIdList, String xid, int pdId, int rlPdId, int sysType, FaiList<ParamUpdater> updaterList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -477,18 +695,11 @@ public class StoreSalesSkuService extends StoreService {
             }
             TransactionCtrl transactionCtrl = new TransactionCtrl();
             try {
-                StoreSalesSkuDaoCtrl storeSalesSkuDaoCtrl = StoreSalesSkuDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                SpuBizSummaryDaoCtrl spuBizSummaryDaoCtrl = SpuBizSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                SpuSummaryDaoCtrl spuSummaryDaoCtrl = SpuSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                SkuSummaryDaoCtrl skuSummaryDaoCtrl = SkuSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-                if(!transactionCtrl.checkRegistered(storeSalesSkuDaoCtrl, spuBizSummaryDaoCtrl, spuSummaryDaoCtrl, skuSummaryDaoCtrl)){
-                    return rt = Errno.ERROR;
-                }
 
-                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(storeSalesSkuDaoCtrl, flow);
-                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(spuBizSummaryDaoCtrl, flow);
-                SpuSummaryProc spuSummaryProc = new SpuSummaryProc(spuSummaryDaoCtrl, flow);
-                SkuSummaryProc skuSummaryProc = new SkuSummaryProc(skuSummaryDaoCtrl, flow);
+                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, transactionCtrl);
+                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, transactionCtrl);
+                SpuSummaryProc spuSummaryProc = new SpuSummaryProc(flow, aid, transactionCtrl);
+                SkuSummaryProc skuSummaryProc = new SkuSummaryProc(flow, aid, transactionCtrl);
                 try {
                     LockUtil.lock(aid);
                     try {
@@ -496,13 +707,14 @@ public class StoreSalesSkuService extends StoreService {
 
                         // 兼容门店通逻辑，门店通添加商品的时候，只会添加总部的库存销售信息(为了设置价格)，各个门店最开始是不会有销售信息的
                         // 所以这里设置价格的时候，先查出没有销售信息的unionPriId，并新增销售信息数据
+                        // 这个逻辑不需要分布式事务，之前调用的接口 ownerUnionPriId 传的是 null 不会进入下面逻辑，也就不需要补偿
                         if(tid == FaiValObj.TermId.YK && ownerUnionPriId != null) {
                             Map<SkuBizKey, PdKey> needCheckSkuStoreKeyPdKeyMap = new HashMap<>();
                             for(Integer unionPriId : unionPriIdList) {
                                 for(Long skuId : skuIdList) {
                                     SkuBizKey skuBizKey = new SkuBizKey(unionPriId, skuId);
                                     if (unionPriId != ownerUnionPriId) {
-                                        needCheckSkuStoreKeyPdKeyMap.put(skuBizKey, new PdKey(unionPriId, pdId, rlPdId));
+                                        needCheckSkuStoreKeyPdKeyMap.put(skuBizKey, new PdKey(unionPriId, pdId, rlPdId, sysType));
                                     }
                                 }
                             }
@@ -513,15 +725,25 @@ public class StoreSalesSkuService extends StoreService {
                                 }
                             }
                         }
-
-                        rt = storeSalesSkuProc.batchSet(aid, unionPriIdList, pdId, updaterList);
+                        boolean isSaga = !Str.isEmpty(xid);
+                        // 修改商品规格销售 SKU 表
+                        rt = storeSalesSkuProc.batchSet(aid, unionPriIdList, pdId, updaterList, isSaga);
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = reportSummary(aid, new FaiList<>(Arrays.asList(pdId)), ReportValObj.Flag.REPORT_PRICE|ReportValObj.Flag.REPORT_COUNT,
-                                skuIdList, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
+                        // 上报信息
+                        rt = reportSummary(aid, new FaiList<>(Collections.singletonList(pdId)), ReportValObj.Flag.REPORT_PRICE|ReportValObj.Flag.REPORT_COUNT,
+                                skuIdList, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc, isSaga);
                         if(rt != Errno.OK){
                             return rt;
+                        }
+                        if (isSaga) {
+                            // 向 mgStoreSaga_0x 表插入记录
+                            StoreSagaProc storeSagaProc = new StoreSagaProc(flow, aid, transactionCtrl);
+                            rt = storeSagaProc.add(aid, xid, RootContext.getBranchId());
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
                         }
                     }finally {
                         if(rt != Errno.OK){
@@ -544,6 +766,149 @@ public class StoreSalesSkuService extends StoreService {
             session.write(sendBuf);
             Log.logStd("ok;aid=%s;unionPriIdList=%s;pdId=%s;rlPdId=%s;",aid, unionPriIdList, pdId, rlPdId);
         }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * setSkuStoreSales 的补偿方法
+     */
+    public int setSkuStoreSalesRollback(FaiSession session, int flow, int aid, String xid, Long branchId) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            boolean commit = false;
+            TransactionCtrl tc = new TransactionCtrl();
+            try {
+                tc.setAutoCommit(false);
+                LockUtil.lock(aid);
+                try {
+                    StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, tc);
+                    SpuSummaryProc spuSummaryProc = new SpuSummaryProc(flow, aid, tc);
+                    SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
+                    SkuSummaryProc skuSummaryProc = new SkuSummaryProc(flow, aid, tc);
+                    StoreSagaProc storeSagaProc = new StoreSagaProc(flow, aid, tc);
+                    try {
+                        Ref<Param> sagaInfoRef = new Ref<>();
+                        // 获取补偿信息
+                        rt = storeSagaProc.getInfoWithAdd(xid, branchId, sagaInfoRef);
+                        if (rt != Errno.OK) {
+                            if (rt == Errno.NOT_FOUND) {
+                                // 已经插入一条空补偿
+                                commit = true;
+                                rt = Errno.OK;
+                                Log.reportErr(flow, rt,"get SagaInfo not found; xid=%s, branchId=%s", xid, branchId);
+                            }
+                            return rt;
+                        }
+                        Param sagaInfo = sagaInfoRef.value;
+                        Integer status = sagaInfo.getInt(StoreSagaEntity.Info.STATUS);
+                        // 幂等性保证
+                        if (status == StoreSagaValObj.Status.ROLLBACK_OK) {
+                            commit = true;
+                            Log.logStd(rt, "rollback already ok! saga=%s;", sagaInfo);
+                            return rt = Errno.OK;
+                        }
+                        // -------------------------------------------- 补偿操作 start -----------------------------------------
+                        // 1、先将添加的汇总信息删除
+                        Ref<FaiList<Param>> skuSummarySagaListRef = new Ref<>();
+                        // 查询 mgSkuSummarySaga_0x 表的补偿信息
+                        rt = skuSummaryProc.getSagaList(xid, branchId, skuSummarySagaListRef);
+                        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                            return rt;
+                        }
+                        FaiList<Param> skuSummarySagaList = skuSummarySagaListRef.value;
+                        if (!Util.isEmptyList(skuSummarySagaList)) {
+                            rt = skuSummaryProc.batchAddRollback(aid, skuSummarySagaList);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                        }
+                        // 查询 mgSpuSummarySaga_0x 表的补偿信息
+                        Ref<FaiList<Param>> spuSummarySagaListRef = new Ref<>();
+                        rt = spuSummaryProc.getSagaList(xid, branchId, spuSummarySagaListRef);
+                        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                            return rt;
+                        }
+                        FaiList<Param> spuSummarySagaList = spuSummarySagaListRef.value;
+                        if (!Util.isEmptyList(spuSummarySagaList)) {
+                            rt = spuSummaryProc.batchAddRollback(aid, spuSummarySagaList);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                        }
+                        // 补偿那些修改的上报信息
+                        Ref<FaiList<Param>> spuBizSummarySagaListRef = new Ref<>();
+                        // 查询 mgSpuBizSummarySaga_0x 表的补偿信息
+                        rt = spuBizSummaryProc.getSagaList(xid, branchId, spuBizSummarySagaListRef);
+                        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                            return rt;
+                        }
+                        FaiList<Param> spuBizSummarySagaList = spuBizSummarySagaListRef.value;
+                        if (!Util.isEmptyList(spuBizSummarySagaList)) {
+                            rt = spuBizSummaryProc.batchAddRollback(aid, spuBizSummarySagaList);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                        }
+                        // 2、关于 销售库存 Sku 的补偿
+                        Ref<FaiList<Param>> storeSalesSkuSagaListRef = new Ref<>();
+                        // 获取 Saga 记录
+                        rt = storeSalesSkuProc.getSagaList(xid, branchId, storeSalesSkuSagaListRef);
+                        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                            return rt;
+                        }
+                        FaiList<Param> storeSalesSkuSagaList = storeSalesSkuSagaListRef.value;
+                        int pdId = 0;
+                        Set<Long> skuIdSet = new HashSet<>();
+                        if (!Util.isEmptyList(storeSalesSkuSagaList)) {
+                            // 获取 pdId 用于之后的上报
+                            pdId = storeSalesSkuSagaList.get(0).getInt(StoreSalesSkuEntity.Info.PD_ID);
+                            // 获取 skuList 用于之后的上报
+                            storeSalesSkuSagaList.forEach(info -> skuIdSet.add(info.getLong(StoreSalesSkuEntity.Info.SKU_ID)));
+                            // 补偿修改
+                            rt = storeSalesSkuProc.batchSetRollback(aid, storeSalesSkuSagaList);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                        }
+                        // 3、上报
+                        rt = reportSummary(aid, new FaiList<>(Collections.singletonList(pdId)), ReportValObj.Flag.REPORT_PRICE|ReportValObj.Flag.REPORT_COUNT,
+                                new FaiList<>(skuIdSet), storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
+                        // 允许 rt = Errno.NOT_FOUND , 存在这种场景，因为前面的补偿将添加的汇总给删除了，可能会存在 NOT_FOUND 情况
+                        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                            return rt;
+                        }
+                        // 3、修改补偿状态
+                        rt = storeSagaProc.setStatus(xid, branchId, StoreSagaValObj.Status.ROLLBACK_OK);
+                        if (rt != Errno.OK) {
+                            return rt;
+                        }
+                        // -------------------------------------------- 补偿操作 end -------------------------------------------
+                        commit = true;
+                        tc.commit();
+                    } finally {
+                        if (!commit) {
+                            tc.rollback();
+                        }
+                    }
+                } finally {
+                    LockUtil.unlock(aid);
+                }
+            } finally {
+                tc.closeDao();
+            }
+        } finally {
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            if (rt != Errno.OK) {
+                //失败，需要重试
+                sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, BranchStatus.PhaseTwo_RollbackFailed_Retryable.getCode());
+            }else{
+                //成功，不需要重试
+                sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, BranchStatus.PhaseTwo_Rollbacked.getCode());
+            }
+            session.write(sendBuf);
             stat.end(rt != Errno.OK, rt);
         }
         return rt;

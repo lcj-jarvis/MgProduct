@@ -3,6 +3,7 @@ package fai.MgProductBasicSvr.application;
 import fai.MgProductBasicSvr.domain.common.LockUtil;
 import fai.MgProductBasicSvr.domain.repository.cache.CacheCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.*;
+import fai.MgProductBasicSvr.domain.repository.dao.saga.*;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.cache.redis.config.RedisClientConfig;
 import fai.comm.cache.redis.pool.JedisPool;
@@ -53,10 +54,10 @@ public class MgProductBasicSvr {
         JedisPool jedisPool = JedisPoolFactory.createJedisPool(redisConfig);
         RedisCacheManager m_cache = new RedisCacheManager(jedisPool, redisConfig.getExpire(), redisConfig.getExpireRandom());
 
-        int lockLease = svrOption.getLockLease();
-        Log.logStd("lockLease=%d;", lockLease);
+        LockOption lockOption = server.getConfig().getConfigObject(LockOption.class);
+        Log.logStd("lockOption=%d;", lockOption);
 
-        init(daoPool, m_cache, lockLease);
+        init(daoPool, m_cache, lockOption, svrOption, jedisPool);
 
         server.setHandler(new MgProductBasicHandler(server));
         server.start();
@@ -79,26 +80,41 @@ public class MgProductBasicSvr {
         return daoPool;
     }
 
-    public static void init(DaoPool daoPool, RedisCacheManager cache, int lockLease) {
+    public static void init(DaoPool daoPool, RedisCacheManager cache, LockOption lockOption, SvrOption svrOption, JedisPool jedisPool) {
         // 初始化daopool
         ProductDaoCtrl.init(daoPool, cache);
+        ProductSagaDaoCtrl.init(daoPool);
+        ProductRelSagaDaoCtrl.init(daoPool);
+        ProductBindGroupSagaDaoCtrl.init(daoPool);
+        ProductBindTagSagaDaoCtrl.init(daoPool);
+        ProductBindPropSagaDaoCtrl.init(daoPool);
+
         ProductRelDaoCtrl.init(daoPool, cache);
         ProductBindPropDaoCtrl.init(daoPool);
         ProductBindGroupDaoCtrl.init(daoPool);
-        ProductRollbackDaoCtrl.init(daoPool);
+        ProductBindTagDaoCtrl.init(daoPool);
+        SagaDaoCtrl.init(daoPool);
 
         // 缓存初始化
-        CacheCtrl.init(cache);
+        CacheCtrl.init(cache, jedisPool, svrOption.getCacheSuffix());
 
-        LockUtil.init(cache, lockLease);
+        LockUtil.init(cache, lockOption);
     }
 
     @ParamKeyMapping(path = ".svr")
     public static class SvrOption {
-        private int lockLease = 1000;
         private boolean debug = false;
         private String dbInstance;
         private int dbMaxSize = 10;
+        private String cacheSuffix = "";
+
+        public String getCacheSuffix() {
+            return cacheSuffix;
+        }
+
+        public void setCacheSuffix(String cacheSuffix) {
+            this.cacheSuffix = cacheSuffix;
+        }
 
         public int getDbMaxSize() {
             return dbMaxSize;
@@ -106,14 +122,6 @@ public class MgProductBasicSvr {
 
         public void setDbMaxSize(int dbMaxSize) {
             this.dbMaxSize = dbMaxSize;
-        }
-
-        public int getLockLease() {
-            return lockLease;
-        }
-
-        public void setLockLease(int lockLease) {
-            this.lockLease = lockLease;
         }
 
         public boolean getDebug() {
@@ -130,6 +138,56 @@ public class MgProductBasicSvr {
 
         public void setDbInstance(String dbInstance) {
             this.dbInstance = dbInstance;
+        }
+    }
+
+    @ParamKeyMapping(path = ".svr.lock")
+    public static class LockOption {
+        private int lockLease = 1000;
+        private int lockLength = 500;
+        private int bakLockLength = 100;
+        private int readLockLength = 200;
+
+        public int getLockLength() {
+            return lockLength;
+        }
+
+        public void setLockLength(int lockLength) {
+            this.lockLength = lockLength;
+        }
+
+        public int getBakLockLength() {
+            return bakLockLength;
+        }
+
+        public void setBakLockLength(int bakLockLength) {
+            this.bakLockLength = bakLockLength;
+        }
+
+        public int getLockLease() {
+            return lockLease;
+        }
+
+        public void setLockLease(int lockLease) {
+            this.lockLease = lockLease;
+        }
+
+        public int getReadLockLength() {
+            return readLockLength;
+        }
+
+        public void setReadLockLength(int readLockLength) {
+            this.readLockLength = readLockLength;
+        }
+
+        @Override
+        public String toString() {
+            return "LockOption{" +
+                    "lockLease=" + lockLease +
+                    ", lockLength=" + lockLength +
+                    ", bakLockLength=" + bakLockLength +
+                    ", readLockLength=" + readLockLength +
+                    '}';
         }
     }
 }

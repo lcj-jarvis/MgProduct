@@ -75,6 +75,18 @@
             <version>${fai-comm-zkcli-ver}</version>
         </dependency>
 
+        <dependency>
+            <groupId>fai-app-arch</groupId>
+            <artifactId>fai-app-arch</artifactId>
+            <version>${fai-app-arch-ver}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>fai-cli-arch</groupId>
+            <artifactId>fai-cli-arch</artifactId>
+            <version>${fai-cli-arch-ver}</version>
+        </dependency>
+
         <!--  Fseata 分布式事务核心包  -->
         <dependency>
             <groupId>fai-comm-fseata</groupId>

@@ -9,14 +9,13 @@ public class ProductBasicEntity {
      */
     public static class BindPropInfo {
         public static final String AID = "aid"; // int 企业id
+        public static final String SYS_TYPE = "sysType"; // int 系统分类(商品/服务)
         public static final String RL_PD_ID = "rlPdId"; // int 商品业务id
         public static final String RL_PROP_IDS = "rlPropIds"; // int 参数业务id集合
 
         public static final String RL_PROP_ID = "rlPropId"; // int 参数业务id
         public static final String PROP_VAL_ID = "propValId"; // int 参数值id
         public static final String VAL = "val"; // varchar 参数值
-        public static final String ADD_PROP_LIST = "addPropList"; // 修改方法中使用 FaiList<Param>
-        public static final String DEL_PROP_LIST = "delPropList"; // 修改方法中使用 FaiList<Param>
     }
 
     /**
@@ -24,12 +23,23 @@ public class ProductBasicEntity {
      */
     public static class BindGroupInfo {
         public static final String AID = "aid"; // int 企业id
+        public static final String SYS_TYPE = "sysType"; // int 系统分类(商品/服务)
         public static final String RL_GROUP_ID = "rlGroupId"; // int 分类业务 id
         public static final String RL_PD_ID = "rlPdId"; // int 商品业务 id
         public static final String PD_ID = "pdId"; // int 商品id
         public static final String CREATE_TIME = "sysCreateTime"; // datetime 创建时间
-        public static final String DEL_RL_GROUP_IDS = "delRlGroupIds"; // 删除用的ids
-        public static final String ADD_RL_GROUP_IDS = "addRlGroupIds"; // 添加用的ids
+    }
+
+    /**
+     * 商品与标签关联Entity
+     */
+    public static class BindTagInfo {
+        public static final String AID = "aid"; // int 企业id
+        public static final String SYS_TYPE = "sysType"; // int 系统分类(商品/服务)
+        public static final String RL_TAG_ID = "rlTagId"; // int 标签业务 id
+        public static final String RL_PD_ID = "rlPdId"; // int 商品业务 id
+        public static final String PD_ID = "pdId"; // int 商品id
+        public static final String CREATE_TIME = "sysCreateTime"; // datetime 创建时间
     }
 
     /**
@@ -55,6 +65,7 @@ public class ProductBasicEntity {
         public static final String CREATE_TIME = "sysCreateTime"; // datetime 创建时间
         public static final String UPDATE_TIME = "sysUpdateTime"; // datetime 更新时间
 
+        public static final String SYS_TYPE = "sysType"; // int 系统分类(商品/服务)
         public static final String RL_PD_ID = "rlPdId"; // int 商品业务 id
         public static final String UNION_PRI_ID = "unionPriId"; // int 联合主键id
         public static final String RL_LIB_ID = "rlLibId"; // int 库业务id
@@ -65,14 +76,28 @@ public class ProductBasicEntity {
         public static final String STATUS = "status"; // int 商品状态
         public static final String UP_SALE_TIME = "upSaleTime"; // datetime 上架时间
         public static final String RL_FLAG = "rlFlag"; // int
+        public static final String SORT = "sort"; // int 排序
 
         public static final String TID = "tid";  // int 项目id
         public static final String SITE_ID = "siteId"; // int 站点id
         public static final String LGID = "lgId"; // int 多语言id
         public static final String KEEP_PRI_ID1 = "keepPriId1"; //int 保留主键1
 
-        public static final String RL_GROUP_IDS = "rlGroupIds"; // 分类ids
-        public static final String RL_PROP_IDS = "rlPropIds";   // 参数ids
-        public static final String PROP_VAL_IDS = "propValIds"; // 参数值ids
+        public static final String RL_GROUP_IDS = "rlGroupIds"; // 商品分类业务ids
+        public static final String RL_TAG_IDS = "rlTagIds"; // 商品标签业务ids
+        public static final String RL_PROPS = "rlProps"; // 商品参数绑定关系
+
+        public static final String REMARK = "remark"; // 富文本(商品详情)
+        public static final String REMARK1 = "remark1"; // 富文本1
+        public static final String REMARK2 = "remark2"; // 富文本2
+        public static final String REMARK3 = "remark3"; // 富文本3
+        public static final String REMARK4 = "remark4"; // 富文本4
+        public static final String REMARK5 = "remark5"; // 富文本5
+        public static final String REMARK6 = "remark6"; // 富文本6
+        public static final String REMARK7 = "remark7"; // 富文本7
+        public static final String REMARK8 = "remark8"; // 富文本8
+        public static final String REMARK9 = "remark9"; // 富文本9
+        public static final String REMARK10 = "remark10"; // 富文本10
+        public static final String REMARK11 = "remark11"; // 富文本11
     }
 }

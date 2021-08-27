@@ -54,7 +54,7 @@ public class ProductPropService extends MgProductInfService {
      * 修改商品参数以及参数值
      * 参数值的修改包括 增删改
      */
-    public int setPropAndVal(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int libId, int rlPropId, ParamUpdater propUpdater, FaiList<Param> addValList, FaiList<ParamUpdater> setValList, FaiList<Integer> delValIds) throws IOException {
+    public int setPropAndVal(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, int libId, int rlPropId, ParamUpdater propUpdater, FaiList<Param> addValList, FaiList<ParamUpdater> setValList, FaiList<Integer> delValIds) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -99,7 +99,7 @@ public class ProductPropService extends MgProductInfService {
                 }
                 if(!delValIds.isEmpty()) {
                     ProductBasicProc basicProc = new ProductBasicProc(flow);
-                    rt = basicProc.delPdBindProp(aid, unionPriId, rlPropId, delValIds);
+                    rt = basicProc.delPdBindProp(aid, unionPriId, sysType, rlPropId, delValIds);
                     if(rt != Errno.OK) {
                         Oss.logAlarm("del pd bind prop err;aid=" + aid);
                         Log.logErr("del pd bind prop err;aid=%d;uid=%d;rlPropId=%d;delValIds=%s;", aid, unionPriId, rlPropId, delValIds);
@@ -239,7 +239,7 @@ public class ProductPropService extends MgProductInfService {
         return rt;
     }
 
-    public int delPropList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int libId, FaiList<Integer> idList) throws IOException {
+    public int delPropList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, int libId, FaiList<Integer> idList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -267,7 +267,7 @@ public class ProductPropService extends MgProductInfService {
             }
 
             ProductBasicProc basicProc = new ProductBasicProc(flow);
-            rt = basicProc.delPdBindProp(aid, unionPriId, idList);
+            rt = basicProc.delPdBindProp(aid, unionPriId, sysType, idList);
             if(rt != Errno.OK) {
                 Oss.logAlarm("del pd bind prop err;aid=" + aid);
                 Log.logErr("del pd bind prop err;aid=%d;uid=%d;delPropIds=%s;", aid, unionPriId, idList);
@@ -371,7 +371,7 @@ public class ProductPropService extends MgProductInfService {
     /**
      * 批量修改(包括增、删、改)指定商品库的商品参数值列表
      */
-    public int setPropValList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int libId, int rlPropId, FaiList<Param> addValList, FaiList<ParamUpdater> setValList, FaiList<Integer> delValIds) throws IOException {
+    public int setPropValList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, int libId, int rlPropId, FaiList<Param> addValList, FaiList<ParamUpdater> setValList, FaiList<Integer> delValIds) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -411,7 +411,7 @@ public class ProductPropService extends MgProductInfService {
 
             if(!delValIds.isEmpty()) {
                 ProductBasicProc basicProc = new ProductBasicProc(flow);
-                rt = basicProc.delPdBindProp(aid, unionPriId, rlPropId, delValIds);
+                rt = basicProc.delPdBindProp(aid, unionPriId, sysType, rlPropId, delValIds);
                 if(rt != Errno.OK) {
                     Oss.logAlarm("del pd bind prop err;aid=" + aid);
                     Log.logErr("del pd bind prop err;aid=%d;uid=%d;rlPropId=%d;delValIds=%s;", aid, unionPriId, rlPropId, delValIds);

@@ -43,14 +43,32 @@ public class ProductBasicDto {
         g_productDef.add(ProductBasicEntity.ProductInfo.SOURCE_UNIONPRIID, 26);
 
         g_productDef.add(ProductBasicEntity.ProductInfo.RL_GROUP_IDS, 28);
-        g_productDef.add(ProductBasicEntity.ProductInfo.RL_PROP_IDS, 29);
-        g_productDef.add(ProductBasicEntity.ProductInfo.PROP_VAL_IDS, 30);
+        //g_productDef.add(ProductBasicEntity.ProductInfo.RL_PROP_IDS, 29);
+        //g_productDef.add(ProductBasicEntity.ProductInfo.PROP_VAL_IDS, 30);
 
         /* 修改使用 */
-        g_productDef.add(ProductBasicEntity.BindGroupInfo.DEL_RL_GROUP_IDS, 31, Var.Type.FAI_LIST);
-        g_productDef.add(ProductBasicEntity.BindGroupInfo.ADD_RL_GROUP_IDS, 32, Var.Type.FAI_LIST);
-        g_productDef.add(ProductBasicEntity.BindPropInfo.ADD_PROP_LIST, 33, ProductPropDto.getPropValInfoDto(), Var.Type.FAI_LIST);
-        g_productDef.add(ProductBasicEntity.BindPropInfo.DEL_PROP_LIST, 34, ProductPropDto.getPropValInfoDto(), Var.Type.FAI_LIST);
+        //g_productDef.add(ProductBasicEntity.BindGroupInfo.DEL_RL_GROUP_IDS, 31, Var.Type.FAI_LIST);
+        //g_productDef.add(ProductBasicEntity.BindGroupInfo.ADD_RL_GROUP_IDS, 32, Var.Type.FAI_LIST);
+        //g_productDef.add(ProductBasicEntity.BindPropInfo.ADD_PROP_LIST, 33, ProductPropDto.getPropValInfoDto(), Var.Type.FAI_LIST);
+        //g_productDef.add(ProductBasicEntity.BindPropInfo.DEL_PROP_LIST, 34, ProductPropDto.getPropValInfoDto(), Var.Type.FAI_LIST);
+
+        g_productDef.add(ProductBasicEntity.ProductInfo.RL_PROPS, 35, ProductPropDto.getPropValInfoDto(), Var.Type.FAI_LIST);
+        g_productDef.add(ProductBasicEntity.ProductInfo.RL_TAG_IDS, 36, Var.Type.FAI_LIST);
+        g_productDef.add(ProductBasicEntity.ProductInfo.SYS_TYPE, 37, Var.Type.INT);
+        g_productDef.add(ProductBasicEntity.ProductInfo.SORT, 38);
+
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK, 39, Var.Type.STRING);
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK1, 40, Var.Type.STRING);
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK2, 41, Var.Type.STRING);
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK3, 42, Var.Type.STRING);
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK4, 43, Var.Type.STRING);
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK5, 44, Var.Type.STRING);
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK6, 45, Var.Type.STRING);
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK7, 46, Var.Type.STRING);
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK8, 47, Var.Type.STRING);
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK9, 48, Var.Type.STRING);
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK10, 49, Var.Type.STRING);
+        g_productDef.add(ProductBasicEntity.ProductInfo.REMARK11, 50, Var.Type.STRING);
     }
 
     public static ParamDef getProductDto() {
@@ -82,6 +100,7 @@ public class ProductBasicDto {
         g_productRelDef.add(ProductBasicEntity.ProductInfo.TID, 17);
 
         g_productRelDef.add(ProductBasicEntity.ProductInfo.PD_TYPE, 18);
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.SYS_TYPE, 19);
     }
 
     public static ParamDef getProductRelDto() {
@@ -116,9 +135,24 @@ public class ProductBasicDto {
         g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.RL_PD_ID, 2);
         g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.PD_ID, 3);
         g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.CREATE_TIME, 4);
+        g_bindGroupDef.add(ProductBasicEntity.BindGroupInfo.SYS_TYPE, 5);
     }
     public static ParamDef getBindGroupDto() {
         return g_bindGroupDef;
+    }
+
+    /*** 商品设置的分类 ***/
+    private static ParamDef g_bindTagDef = new ParamDef();
+    static {
+        g_bindTagDef.add(ProductBasicEntity.BindTagInfo.AID, 0);
+        g_bindTagDef.add(ProductBasicEntity.BindTagInfo.RL_TAG_ID, 1);
+        g_bindTagDef.add(ProductBasicEntity.BindTagInfo.RL_PD_ID, 2);
+        g_bindTagDef.add(ProductBasicEntity.BindTagInfo.PD_ID, 3);
+        g_bindTagDef.add(ProductBasicEntity.BindTagInfo.CREATE_TIME, 4);
+        g_bindTagDef.add(ProductBasicEntity.BindTagInfo.SYS_TYPE, 5);
+    }
+    public static ParamDef getBindTagDto() {
+        return g_bindTagDef;
     }
 
     public static class Key {
@@ -144,6 +178,13 @@ public class ProductBasicDto {
         public static final int DEL_BIND_GROUP_IDS = 20;
         public static final int UPDATER = 21;
         public static final int UNION_INFO = 22;
+        public static final int IN_OUT_RECOED = 23;
+
+        public static final int BIND_TAG_LIST = 24;
+        public static final int BIND_TAG_IDS = 25;
+        public static final int DEL_BIND_TAG_IDS = 26;
+        public static final int SYS_TYPE = 27;
+        public static final int XID = 28;
     }
 
 

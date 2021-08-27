@@ -29,6 +29,8 @@ public class ProductRelDto {
         g_infoDtoDef.add(ProductRelEntity.Info.UPDATE_TIME, 14);
         g_infoDtoDef.add(ProductRelEntity.Info.INFO_CHECK, 15);
         g_infoDtoDef.add(ProductRelEntity.Info.PD_TYPE, 16);
+        g_infoDtoDef.add(ProductRelEntity.Info.SYS_TYPE, 17);
+        g_infoDtoDef.add(ProductRelEntity.Info.SORT, 18);
     }
 
     static {
@@ -69,6 +71,11 @@ public class ProductRelDto {
         g_relAndPdDtoDef.add(ProductEntity.Info.KEEP_INT_PROP2, 26);
 
         g_relAndPdDtoDef.add(ProductRelEntity.Info.INFO_CHECK, 27);
+        g_relAndPdDtoDef.add(ProductRelEntity.Info.RL_GROUP_IDS, 28);
+        g_relAndPdDtoDef.add(ProductRelEntity.Info.RL_TAG_IDS, 29);
+        g_relAndPdDtoDef.add(ProductRelEntity.Info.RL_PROPS, 30, ProductBindPropDto.getSimpleDto());
+        g_relAndPdDtoDef.add(ProductRelEntity.Info.SYS_TYPE, 31);
+        g_relAndPdDtoDef.add(ProductRelEntity.Info.SORT, 32);
     }
 
     static {
@@ -108,5 +115,7 @@ public class ProductRelDto {
         public static final int SOFT_DEL = 13;
         public static final int UPDATER = 14;
         public static final int UNION_PRI_IDS = 15;
+        public static final int XID = 16;
+        public static final int SYS_TYPE = 17;
     }
 }

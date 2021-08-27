@@ -5,6 +5,10 @@ import fai.comm.util.*;
 import java.util.*;
 import java.util.function.Consumer;
 
+/**
+ * 废弃，改用 fai.middleground.svrutil.misc.Utils
+ */
+@Deprecated
 public class Utils {
 
     /**
@@ -69,6 +73,7 @@ public class Utils {
             for (int i = data.size()-1; i >= 0; i--) {
                 Pair<String, Object> dataPair = data.get(i);
                 String key = dataPair.first;
+                // 移除无效的 keys ，添加有效的 keys
                 if(validKeySet != null && !validKeySet.contains(key)){
                     data.remove(key);
                 }else {

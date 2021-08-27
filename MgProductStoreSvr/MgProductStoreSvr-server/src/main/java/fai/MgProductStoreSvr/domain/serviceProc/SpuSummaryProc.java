@@ -1,10 +1,14 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
-import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryEntity;
 import fai.MgProductStoreSvr.domain.entity.SpuSummaryEntity;
+import fai.MgProductStoreSvr.domain.entity.StoreSagaEntity;
+import fai.MgProductStoreSvr.domain.entity.StoreSagaValObj;
 import fai.MgProductStoreSvr.domain.repository.SpuSummaryCacheCtrl;
 import fai.MgProductStoreSvr.domain.repository.SpuSummaryDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.SpuSummarySagaDaoCtrl;
+import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.util.*;
+import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.Calendar;
@@ -20,8 +24,9 @@ public class SpuSummaryProc {
 
     public SpuSummaryProc(int flow, int aid, TransactionCtrl transactionCtrl) {
         m_daoCtrl = SpuSummaryDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
-        if(m_daoCtrl == null){
-            throw new RuntimeException(String.format("SpuSummaryDaoCtrl init err;flow=%s;aid=%s;", flow, aid));
+        m_sagaDaoCtrl = SpuSummarySagaDaoCtrl.getInstanceWithRegistered(flow, aid, transactionCtrl);
+        if(m_daoCtrl == null || m_sagaDaoCtrl == null){
+            throw new RuntimeException(String.format("SpuSummaryDaoCtrl or SpuSummarySagaDaoCtrl init err;flow=%s;aid=%s;", flow, aid));
         }
         m_flow = flow;
     }
@@ -107,14 +112,14 @@ public class SpuSummaryProc {
         return rt;
     }
 
-    public int batchReport(int aid, Map<Integer, Param> pdIdInfoMap) {
+    public int batchReport(int aid, Map<Integer, Param> pdIdInfoMap, boolean isSaga) {
         if(aid <= 0 || pdIdInfoMap == null || pdIdInfoMap.isEmpty()){
             Log.logErr("arg error;flow=%d;aid=%s;pdIdInfoMap=%s;", m_flow, aid, pdIdInfoMap);
             return Errno.ARGS_ERROR;
         }
         Calendar now = Calendar.getInstance();
         FaiList<Integer> pdIdList = new FaiList<>(pdIdInfoMap.keySet());
-        int rt = Errno.ERROR;
+        int rt;
         ParamMatcher matcher = new ParamMatcher(SpuSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(SpuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
         SearchArg searchArg = new SearchArg();
@@ -175,12 +180,33 @@ public class SpuSummaryProc {
             addInfoList.add(info);
         }
         if(!addInfoList.isEmpty()){
-            rt = m_daoCtrl.batchInsert(addInfoList);
+            rt = m_daoCtrl.batchInsert(addInfoList, null, !isSaga);
             if(rt != Errno.OK){
                 Log.logErr(rt,"batchInsert err;flow=%s;aid=%s;addInfoList=%s", m_flow, aid, addInfoList);
                 return rt;
             }
+            // 分布式事务 需要记录 Saga 记录
+            if (isSaga) {
+                FaiList<Param> sagaList = new FaiList<>();
+                String xid = RootContext.getXID();
+                Long branchId = RootContext.getBranchId();
+                addInfoList.forEach(addInfo -> {
+                    Param saga = new Param();
+                    saga.assign(addInfo, SpuSummaryEntity.Info.AID);
+                    saga.assign(addInfo, SpuSummaryEntity.Info.PD_ID);
+                    saga.setString(StoreSagaEntity.Info.XID, xid);
+                    saga.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
+                    saga.setInt(StoreSagaEntity.Info.SAGA_OP, StoreSagaValObj.SagaOp.ADD);
+                    sagaList.add(saga);
+                });
+                rt = m_sagaDaoCtrl.batchInsert(sagaList);
+                if (rt != Errno.OK) {
+                    Log.logErr(rt, "insert saga error;flow=%d;aid=%d;sagaList=%s", m_flow, aid, sagaList);
+                    return rt;
+                }
+            }
         }
+
         Log.logStd("ok;flow=%s;aid=%s;pdIdInfoMap=%s;", m_flow, aid, pdIdInfoMap);
         return rt;
     }
@@ -226,16 +252,97 @@ public class SpuSummaryProc {
         Log.logStd("ok!;flow=%s;aid=%s;pdId=%s;", m_flow, aid, pdId);
         return rt;
     }
-    public int batchDel(int aid, FaiList<Integer> pdIdList) {
+    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean isSaga) {
+        int rt;
         ParamMatcher matcher = new ParamMatcher(SpuSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(SpuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
         cacheManage.addDirtyCacheKey(pdIdList);
-        int rt = m_daoCtrl.delete(matcher);
+        if (isSaga) {
+            // 分布式事务，需要记录老的数据 录入 Saga 操作记录表中
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = matcher;
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            rt = m_daoCtrl.select(searchArg, listRef);
+            if (rt != Errno.OK) {
+                if (rt == Errno.NOT_FOUND) {
+                    return Errno.OK;
+                }
+                Log.logErr(rt, "select error;flow=%d;aid=%d;pdIdList=%s", m_flow, aid, pdIdList);
+                return rt;
+            }
+            FaiList<Param> sagaOpList = listRef.value;
+            String xid = RootContext.getXID();
+            Long branchId = RootContext.getBranchId();
+            // 构建数据
+            sagaOpList.forEach(sagaInfo -> {
+                sagaInfo.setString(StoreSagaEntity.Info.XID, xid);
+                sagaInfo.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
+                sagaInfo.setInt(StoreSagaEntity.Info.SAGA_OP, StoreSagaValObj.SagaOp.DEL);
+            });
+            // 添加 Saga 操作记录
+            rt = m_sagaDaoCtrl.batchInsert(sagaOpList, null, true);
+            if (rt != Errno.OK) {
+                Log.logErr(rt, "batchInsert SagaOperation error;flow=%d;aid=%d;sagaOpList=%s", m_flow, aid, sagaOpList);
+                return rt;
+            }
+        }
+        rt = m_daoCtrl.delete(matcher);
         if(rt != Errno.OK){
-            Log.logStd(rt, "delete err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
+            Log.logStd(rt, "delete err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
             return rt;
         }
+
         Log.logStd("ok;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
+        return rt;
+    }
+
+    /**
+     * Saga 模式 补偿 batchDel 方法
+     *
+     * @param aid aid
+     * @param addList 添加的集合
+     * @return {@link Errno}
+     */
+    public int batchDelRollback(int aid, FaiList<Param> addList) {
+        int rt;
+        if (Util.isEmptyList(addList)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "arg err;addList is empty;flow=%d;aid=%d", m_flow, aid);
+            return rt;
+        }
+        // 去除 Saga 字段的信息
+        Util.removeSagaColumn(addList);
+        // 直接怼回去
+        rt = m_daoCtrl.batchInsert(addList);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "batchDelRollback err;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+        Log.logStd("spuSummary batchDelRollback ok;flow=%s;aid=%s;", m_flow, aid);
+        return rt;
+    }
+
+    /**
+     * Saga 模式 补偿删除 根据 aid + pdIds 进行删除
+     *
+     * @param aid aid
+     * @param sagaSpuSumList Saga 操作记录集合
+     * @return {@link Errno}
+     */
+    public int batchAddRollback(int aid, FaiList<Param> sagaSpuSumList) {
+        FaiList<Integer> pdIds = new FaiList<>(sagaSpuSumList.size());
+        for (Param sagaSpuSum : sagaSpuSumList) {
+            Integer pdId = sagaSpuSum.getInt(SpuSummaryEntity.Info.PD_ID);
+            pdIds.add(pdId);
+        }
+        ParamMatcher matcher = new ParamMatcher(SpuSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SpuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        int rt = m_daoCtrl.delete(matcher);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "batchAddRollback err;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+            return rt;
+        }
+        Log.logStd(rt, "batchAddRollback ok;flow=%d;aid=%d", m_flow, aid);
         return rt;
     }
 
@@ -303,6 +410,33 @@ public class SpuSummaryProc {
     }
 
     /**
+     * 获取补偿记录
+     *
+     * @param xid 全局事务id
+     * @param branchId 分支事务id
+     * @param spuSummarySagaListRef 接收返回的list
+     * @return {@link Errno}
+     */
+    public int getSagaList(String xid, Long branchId, Ref<FaiList<Param>> spuSummarySagaListRef) {
+        int rt;
+        if (Str.isEmpty(xid)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args err;xid is empty;flow=%d", m_flow);
+            return rt;
+        }
+        SearchArg searchArg = new SearchArg();
+        ParamMatcher matcher = new ParamMatcher(StoreSagaEntity.Info.XID, ParamMatcher.EQ, xid);
+        matcher.and(StoreSagaEntity.Info.BRANCH_ID, ParamMatcher.EQ, branchId);
+        searchArg.matcher = matcher;
+        rt = m_sagaDaoCtrl.select(searchArg, spuSummarySagaListRef);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            Log.logErr(rt, "select sagaList error;flow=%d", m_flow);
+            return rt;
+        }
+        return rt;
+    }
+
+    /**
      * 设置缓存过期
      */
     public boolean setDirtyCacheEx(int aid){
@@ -314,6 +448,7 @@ public class SpuSummaryProc {
 
     private int m_flow;
     private SpuSummaryDaoCtrl m_daoCtrl;
+    private SpuSummarySagaDaoCtrl m_sagaDaoCtrl;
 
     // 用于记录当前请求中需要操作到缓存key
     private CacheManage cacheManage = new CacheManage();

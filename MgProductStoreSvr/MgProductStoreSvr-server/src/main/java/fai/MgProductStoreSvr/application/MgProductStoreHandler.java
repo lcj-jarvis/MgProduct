@@ -8,6 +8,8 @@ import fai.MgProductStoreSvr.application.service.SummaryService;
 import fai.MgProductStoreSvr.interfaces.cmd.MgProductStoreCmd;
 import fai.MgProductStoreSvr.interfaces.conf.MqConfig;
 import fai.MgProductStoreSvr.interfaces.dto.*;
+import fai.comm.fseata.client.core.rpc.annotation.SagaTransaction;
+import fai.comm.fseata.client.core.rpc.def.CommDef;
 import fai.comm.jnetkit.server.ServerConfig;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
@@ -63,16 +65,29 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.REFRESH)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductStoreCmd.StoreSalesSkuCmd.REFRESH_ROLLBACK)
     private int refreshSkuStoreSales(final FaiSession session,
                                      @ArgFlow final int flow,
                                      @ArgAid final int aid,
                                      @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
                                      @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
+                                     @ArgBodyInteger(value = StoreSalesSkuDto.Key.SYS_TYPE, useDefault = true) final int sysType,
+                                     @ArgBodyXid(value = StoreSalesSkuDto.Key.XID, useDefault = true) final String xid,
                                      @ArgBodyInteger(StoreSalesSkuDto.Key.PD_ID) final int pdId,
                                      @ArgBodyInteger(StoreSalesSkuDto.Key.RL_PD_ID) final int rlPdId,
                                      @ArgList(classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto", keyMatch = StoreSalesSkuDto.Key.INFO_LIST)
                                              FaiList<Param> pdScSkuInfoList) throws IOException {
-        return m_storeSalesSkuService.refreshSkuStoreSales(session, flow, aid, tid, unionPriId, pdId, rlPdId, pdScSkuInfoList);
+        return m_storeSalesSkuService.refreshSkuStoreSales(session, flow, aid, tid, unionPriId, sysType, xid, pdId, rlPdId, pdScSkuInfoList);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.REFRESH_ROLLBACK)
+    private int refreshSkuStoreSalesRollback(final FaiSession session,
+                                             @ArgFlow final int flow,
+                                             @ArgAid final int aid,
+                                             @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                             @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return m_storeSalesSkuService.refreshSkuStoreSalesRollback(session, flow, aid, xid, branchId);
     }
 
     @WrittenCmd
@@ -113,16 +128,29 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.SET_LIST)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductStoreCmd.StoreSalesSkuCmd.SET_SKU_STORE_SALES_ROLLBACK)
     private int setSkuStoreSales(final FaiSession session,
                                  @ArgFlow final int flow,
                                  @ArgAid final int aid,
                                  @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
                                  @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
+                                 @ArgBodyXid(value = StoreSalesSkuDto.Key.XID, useDefault = true) final String xid,
                                  @ArgBodyInteger(StoreSalesSkuDto.Key.PD_ID) final int pdId,
                                  @ArgBodyInteger(StoreSalesSkuDto.Key.RL_PD_ID) final int rlPdId,
+                                 @ArgBodyInteger(value = StoreSalesSkuDto.Key.SYS_TYPE, useDefault = true) final int sysType,
                                  @ArgList(classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto", keyMatch = StoreSalesSkuDto.Key.UPDATER_LIST)
                                          FaiList<ParamUpdater> updaterList) throws IOException {
-        return m_storeSalesSkuService.setSkuStoreSales(session, flow, aid, tid, unionPriId, pdId, rlPdId, updaterList);
+        return m_storeSalesSkuService.setSkuStoreSales(session, flow, aid, tid, unionPriId, xid, pdId, rlPdId, sysType, updaterList);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.SET_SKU_STORE_SALES_ROLLBACK)
+    private int setSkuStoreSalesRollback(final FaiSession session,
+                                                @ArgFlow final int flow,
+                                                @ArgAid final int aid,
+                                                @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                                @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return m_storeSalesSkuService.setSkuStoreSalesRollback(session, flow, aid, xid, branchId);
     }
 
     @WrittenCmd
@@ -135,9 +163,10 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                       @ArgList(keyMatch = StoreSalesSkuDto.Key.UID_LIST) final FaiList<Integer> unionPriIdList,
                                       @ArgBodyInteger(StoreSalesSkuDto.Key.PD_ID) final int pdId,
                                       @ArgBodyInteger(StoreSalesSkuDto.Key.RL_PD_ID) final int rlPdId,
+                                      @ArgBodyInteger(value = StoreSalesSkuDto.Key.SYS_TYPE, useDefault = true) final int sysType,
                                       @ArgList(classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto", keyMatch = StoreSalesSkuDto.Key.UPDATER_LIST)
                                               FaiList<ParamUpdater> updaterList) throws IOException {
-        return m_storeSalesSkuService.batchSetSkuStoreSales(session, flow, aid, tid, ownerUnionPriId, unionPriIdList, pdId, rlPdId, updaterList);
+        return m_storeSalesSkuService.batchSetSkuStoreSales(session, flow, aid, tid, ownerUnionPriId, unionPriIdList, pdId, rlPdId, sysType, updaterList);
     }
 
     @WrittenCmd
@@ -303,11 +332,12 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
     private int batchResetCostPrice(final FaiSession session,
                                     @ArgFlow final int flow,
                                     @ArgAid final int aid,
+                                    @ArgBodyInteger(value = InOutStoreRecordDto.Key.SYS_TYPE, useDefault = true) final int sysType,
                                     @ArgBodyInteger(InOutStoreRecordDto.Key.RL_PD_ID) final int rlPdId,
                                     @ArgBodyCalendar(InOutStoreRecordDto.Key.OPT_TIME)Calendar optTime,
                                     @ArgList(classDef = InOutStoreRecordDto.class, methodDef = "getInfoDto", keyMatch = InOutStoreRecordDto.Key.INFO_LIST)
                                                 FaiList<Param> infoList) throws IOException {
-        return m_recordService.batchResetCostPrice(session, flow, aid, rlPdId, optTime, infoList);
+        return m_recordService.batchResetCostPrice(session, flow, aid, sysType, rlPdId, optTime, infoList);
     }
 
     @Cmd(MgProductStoreCmd.InOutStoreRecordCmd.GET_LIST)
@@ -409,27 +439,52 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_DEL_PD_ALL_STORE_SALES)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductStoreCmd.StoreSalesSkuCmd.BATCH_DEL_PD_ALL_STORE_SALES_ROLLBACK)
     private int batchDelPdAllStoreSales(final FaiSession session,
                                         @ArgFlow final int flow,
                                         @ArgAid final int aid,
                                         @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
                                         @ArgList(keyMatch = StoreSalesSkuDto.Key.ID_LIST)
-                                                FaiList<Integer> pdIdList) throws IOException {
-        return m_storeService.batchDelPdAllStoreSales(session, flow, aid, tid, pdIdList);
+                                                FaiList<Integer> pdIdList,
+                                        @ArgBodyXid(value = StoreSalesSkuDto.Key.XID, useDefault = true) String xid) throws IOException {
+        return m_storeService.batchDelPdAllStoreSales(session, flow, aid, tid, pdIdList, xid);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_DEL_PD_ALL_STORE_SALES_ROLLBACK)
+    private int batchDelPdAllStoreSalesRollback(final FaiSession session,
+                                                @ArgFlow final int flow,
+                                                @ArgAid final int aid,
+                                                @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                                @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return m_storeService.batchDelPdAllStoreSalesRollback(session, flow, aid, xid, branchId);
     }
 
     @WrittenCmd
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.IMPORT)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductStoreCmd.StoreSalesSkuCmd.IMPORT_STORE_SALES_ROLLBACK)
     private int importStoreSales(final FaiSession session,
                                  @ArgFlow final int flow,
                                  @ArgAid final int aid,
                                  @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
                                  @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
+                                 @ArgBodyInteger(value = StoreSalesSkuDto.Key.SYS_TYPE, useDefault = true) final int sysType,
+                                 @ArgBodyXid(value = StoreSalesSkuDto.Key.XID, useDefault = true) String xid,
                                  @ArgList(keyMatch = StoreSalesSkuDto.Key.INFO_LIST,
                                          classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto") FaiList<Param> storeSaleSkuList,
                                  @ArgParam(keyMatch = StoreSalesSkuDto.Key.IN_OUT_STORE_RECORD_INFO,
                                          classDef = InOutStoreRecordDto.class, methodDef = "getInfoDto") Param inStoreRecordInfo) throws IOException {
-        return m_storeService.importStoreSales(session, flow, aid, tid, unionPriId, storeSaleSkuList, inStoreRecordInfo);
+        return m_storeService.importStoreSales(session, flow, aid, tid, unionPriId, sysType, xid, storeSaleSkuList, inStoreRecordInfo);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.IMPORT_STORE_SALES_ROLLBACK)
+    private int importStoreSalesRollback(final FaiSession session,
+                                         @ArgFlow final int flow,
+                                         @ArgAid final int aid,
+                                         @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                         @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return m_storeService.importStoreSalesRollback(session, flow, aid, xid, branchId);
     }
 
     @WrittenCmd
@@ -490,6 +545,7 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
         return m_storeService.clearAllCache(session, flow, aid);
     }
 
+    private static final String CLI_NAME = "MgProductStoreCli";
     private StoreService m_storeService = new StoreService();
     private StoreSalesSkuService m_storeSalesSkuService = new StoreSalesSkuService();
     private RecordService m_recordService = new RecordService();

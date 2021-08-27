@@ -13,6 +13,7 @@ public class StoreSalesSkuEntity {
         public static final String PD_ID = "pdId";                                  // int 商品 id
         public static final String SOURCE_UNION_PRI_ID = "sourceUnionPriId";        // int 创建商品的联合主键 id
         public static final String RL_PD_ID = "rlPdId";                             // int 商品业务 id
+        public static final String SYS_TYPE = "sysType";                            // int 系统类型 (商品/服务)
         public static final String SKU_TYPE = "skuType";                            // int sku 类型(比如一个站点下想把部分库存搞活动)
         public static final String SORT = "sort";                                   // int 排序
         public static final String COUNT = "count";                                 // int 设置的库存
@@ -84,6 +85,7 @@ public class StoreSalesSkuEntity {
                     , Info.MW_TOTAL_COST
                     , Info.MW_COST
                     , Info.RL_PD_ID
+                    , Info.SYS_TYPE
             }
     );
     public static String getSkuBizSummaryFields(){

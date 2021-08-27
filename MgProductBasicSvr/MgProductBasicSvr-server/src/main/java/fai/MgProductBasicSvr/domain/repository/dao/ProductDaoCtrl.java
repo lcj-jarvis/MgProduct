@@ -14,10 +14,6 @@ public class ProductDaoCtrl extends DaoCtrl {
         super(flow, aid);
     }
 
-    public ProductDaoCtrl(int flow, int aid, Dao dao) {
-        super(flow, aid, dao);
-    }
-
     @Override
     public String getTableName() {
         return TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);

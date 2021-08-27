@@ -1210,18 +1210,23 @@ public class ProductGroupService extends ServicePub {
 
     /**
      * 获取配置文件，是否检查分类名称重复
+     * 门店通反馈不需要做groupName校验
+     * 暂时先不拿配置文件，直接返回false了
+     * 考虑后面废弃校验name相关代码逻辑
+     *
      * @param name 业务名称 eg: YK , SITE
      * @return boolean 是否检查
      */
     private boolean isCheckGroupName(String name) {
-        if (Str.isEmpty(name)) {
+        /*if (Str.isEmpty(name)) {
             throw new MgException(Errno.ERROR, "tid is illegal;flow=%d;");
         }
         Param conf = MgConfPool.getEnvConf("MgPdCheckGroupNameSwitch");
         if (Str.isEmpty(conf)) {
             return false;
         }
-        return conf.getBoolean(name, false);
+        return conf.getBoolean(name, false);*/
+        return false;
     }
 
     /**

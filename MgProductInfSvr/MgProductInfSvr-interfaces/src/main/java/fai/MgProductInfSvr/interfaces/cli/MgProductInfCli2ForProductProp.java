@@ -150,8 +150,8 @@ public class MgProductInfCli2ForProductProp extends MgProductInfCli1ForProductBa
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
             sendBody.putInt(ProductBasicDto.Key.SYS_TYPE, mgProductArg.getSysType());
-            sendBody.putInt(ProductBasicDto.Key.RL_LIB_ID, rlLibId);
             sendBody.putInt(ProductBasicDto.Key.RL_PD_ID, mgProductArg.getRlPdId());
+            sendBody.putInt(ProductBasicDto.Key.RL_LIB_ID, rlLibId);
             // send and recv
             int aid = mgProductArg.getAid();
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.GET_PROP_LIST, sendBody, true);

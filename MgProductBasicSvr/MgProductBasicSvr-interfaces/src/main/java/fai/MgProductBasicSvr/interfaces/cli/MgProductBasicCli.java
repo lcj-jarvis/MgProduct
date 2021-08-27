@@ -663,7 +663,9 @@ public class MgProductBasicCli extends FaiClient {
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
-            sendBody.putString(ProductRelDto.Key.XID, xid);
+            if(xid != null) {
+                sendBody.putString(ProductRelDto.Key.XID, xid);
+            }
             sendBody.putInt(ProductRelDto.Key.TID, tid);
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
             info.toBuffer(sendBody, ProductRelDto.Key.INFO, ProductRelDto.getRelAndPdDto());
@@ -807,7 +809,9 @@ public class MgProductBasicCli extends FaiClient {
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
-            sendBody.putString(ProductRelDto.Key.XID, xid);
+            if(xid != null) {
+                sendBody.putString(ProductRelDto.Key.XID, xid);
+            }
             sendBody.putInt(ProductRelDto.Key.TID, tid);
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
             bindRlPdInfo.toBuffer(sendBody, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto());

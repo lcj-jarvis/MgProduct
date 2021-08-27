@@ -13,8 +13,6 @@ import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuValObj;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecValObj;
 import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity;
 import fai.comm.fseata.client.core.exception.TransactionException;
-import fai.comm.fseata.client.tm.GlobalTransactionContext;
-import fai.comm.fseata.client.tm.api.GlobalTransaction;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.middleground.MgErrno;
@@ -490,8 +488,8 @@ public class ProductSpecService extends MgProductInfService {
             }
             int pdId = idRef.value;
 
-            GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
-            tx.begin(aid, 60000, "mgProduct-unionSetPdScInfoList", flow);
+            /*GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
+            tx.begin(aid, 60000, "mgProduct-unionSetPdScInfoList", flow);*/
             try {
                 ProductSpecProc productSpecProc = new ProductSpecProc(flow);
                 FaiList<Param> pdScSkuInfoList = new FaiList<>();
@@ -521,15 +519,15 @@ public class ProductSpecService extends MgProductInfService {
 
                 ProductStoreProc productStoreProc = new ProductStoreProc(flow);
                 // 刷新sku，修改库存
-                rt = productStoreProc.refreshSkuStoreSales(aid, tid, unionPriId, sysType, tx.getXid() ,pdId, rlPdId, storeSalesSkuList);
+                rt = productStoreProc.refreshSkuStoreSales(aid, tid, unionPriId, sysType, "" ,pdId, rlPdId, storeSalesSkuList);
                 if(rt != Errno.OK) {
                     return rt;
                 }
-                tx.commit();
+                //tx.commit();
             } finally {
-                if (rt != Errno.OK) {
+                /*if (rt != Errno.OK) {
                     tx.rollback();
-                }
+                }*/
             }
             rt = Errno.OK;
             FaiBuffer sendBuf = new FaiBuffer(true);

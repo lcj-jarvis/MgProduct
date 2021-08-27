@@ -13,8 +13,6 @@ import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuValObj;
 import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity;
 import fai.comm.fseata.client.core.exception.TransactionException;
-import fai.comm.fseata.client.tm.GlobalTransactionContext;
-import fai.comm.fseata.client.tm.api.GlobalTransaction;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
@@ -324,9 +322,9 @@ public class ProductBasicService extends MgProductInfService {
             Ref<Integer> rlPdIdRef = new Ref<>();
 
             boolean commit = false;
-            GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
+            /*GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
             tx.begin(aid, 60000, "mgProduct-bindProductRel", flow);
-            xid = tx.getXid();
+            xid = tx.getXid();*/
             try {
                 // 添加商品业务绑定数据
                 ProductBasicProc basicProc = new ProductBasicProc(flow);
@@ -339,19 +337,19 @@ public class ProductBasicService extends MgProductInfService {
                 addInfo.setInt(MgProductEntity.Info.RL_PD_ID, rlPdIdRef.value);
 
                 // 添加规格和库存
-                rt = addPdSpecAndStore(flow, aid, tid, unionPriId, sysType, tx, addInfo, inStoreRecordInfo);
+                rt = addPdSpecAndStore(flow, aid, tid, unionPriId, sysType, xid, addInfo, inStoreRecordInfo);
                 if(rt != Errno.OK) {
-                    Log.logErr("addPdSpecAndStore error;aid=%d;uid=%d;xid=%s;addInfo=%s;record=%s;", aid, unionPriId, tx.getXid(), addInfo, inStoreRecordInfo);
+                    Log.logErr("addPdSpecAndStore error;aid=%d;uid=%d;xid=%s;addInfo=%s;record=%s;", aid, unionPriId, xid, addInfo, inStoreRecordInfo);
                     return rt;
                 }
 
                 commit = true;
             }finally {
-                if(!commit) {
+                /*if(!commit) {
                     tx.rollback();
                 }else {
                     tx.commit();
-                }
+                }*/
             }
 
             rt = Errno.OK;
@@ -535,11 +533,11 @@ public class ProductBasicService extends MgProductInfService {
             }
             int unionPriId = idRef.value;
             // 获取全局事务
-            GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
+            //GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
             // 开启事务
             try {
-                tx.begin(aid, 60000, "mgProduct-setProductInfo", flow);
-                xid = tx.getXid();
+                /*tx.begin(aid, 60000, "mgProduct-setProductInfo", flow);
+                xid = tx.getXid();*/
                 // 分配修改内容
                 Param updaterData = recvUpdater.getData();
                 /** 基础信息修改 start */
@@ -647,11 +645,11 @@ public class ProductBasicService extends MgProductInfService {
                 /** 修改富文本 end */
 
             } finally {
-                if (rt != Errno.OK) {
+                /*if (rt != Errno.OK) {
                     tx.rollback();
                 } else {
                     tx.commit();
-                }
+                }*/
             }
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
@@ -769,9 +767,9 @@ public class ProductBasicService extends MgProductInfService {
             int unionPriId = idRef.value;
 
             boolean commit = false;
-            GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
+            /*GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
             tx.begin(aid, 60000, "mgProduct-batchDelProduct", flow);
-            xid = tx.getXid();
+            xid = tx.getXid();*/
             try {
                 ProductStoreProc storeProc = new ProductStoreProc(flow);
                 ProductSpecProc productSpecProc = new ProductSpecProc(flow);
@@ -795,7 +793,7 @@ public class ProductBasicService extends MgProductInfService {
                 }
 
                 // 删除库存销售相关信息
-                rt = storeProc.batchDelPdAllStoreSales(aid, tid, pdIdList, tx.getXid(), softDel);
+                rt = storeProc.batchDelPdAllStoreSales(aid, tid, pdIdList, xid, softDel);
                 if (rt != Errno.OK) {
                     Log.logErr(rt, "batchDelPdAllStoreSales err;aid=%s;tid=%s;pdIdList=%s;", aid, tid, pdIdList);
                     return rt;
@@ -819,11 +817,11 @@ public class ProductBasicService extends MgProductInfService {
 
                 commit = true;
             } finally {
-                if (!commit) {
+                /*if (!commit) {
                     tx.rollback();
                 }else {
                     tx.commit();
-                }
+                }*/
             }
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
@@ -918,8 +916,8 @@ public class ProductBasicService extends MgProductInfService {
             Ref<Integer> pdIdRef = new Ref<>();
             Ref<Integer> rlPdIdRef = new Ref<>();
             boolean commit = false;
-            GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
-            tx.begin(aid, 60000, "mgProduct-addProduct", flow);
+            /*GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
+            tx.begin(aid, 60000, "mgProduct-addProduct", flow);*/
             try {
                 if (addInfo.isEmpty()) {
                     rt = Errno.ARGS_ERROR;
@@ -942,7 +940,7 @@ public class ProductBasicService extends MgProductInfService {
                 ProductBasicProc basicProc = new ProductBasicProc(flow);
 
                 // 添加商品数据
-                rt = basicProc.addProductAndRel(aid, tid, unionPriId, tx.getXid(), basicInfo, pdIdRef, rlPdIdRef);
+                rt = basicProc.addProductAndRel(aid, tid, unionPriId, xid, basicInfo, pdIdRef, rlPdIdRef);
                 if (rt != Errno.OK) {
                     return rt;
                 }
@@ -950,9 +948,9 @@ public class ProductBasicService extends MgProductInfService {
                 addInfo.setInt(MgProductEntity.Info.RL_PD_ID, rlPdIdRef.value);
 
                 // 添加规格和库存
-                rt = addPdSpecAndStore(flow, aid, tid, unionPriId, sysType, tx, addInfo, inStoreRecordInfo);
+                rt = addPdSpecAndStore(flow, aid, tid, unionPriId, sysType, xid, addInfo, inStoreRecordInfo);
                 if(rt != Errno.OK) {
-                    Log.logErr("addPdSpecAndStore error;aid=%d;uid=%d;xid=%s;addInfo=%s;record=%s;", aid, unionPriId, tx.getXid(), addInfo, inStoreRecordInfo);
+                    Log.logErr("addPdSpecAndStore error;aid=%d;uid=%d;xid=%s;addInfo=%s;record=%s;", aid, unionPriId, xid, addInfo, inStoreRecordInfo);
                     return rt;
                 }
 
@@ -967,11 +965,11 @@ public class ProductBasicService extends MgProductInfService {
 
                 commit = true;
             } finally {
-                if(!commit) {
+                /*if(!commit) {
                     tx.rollback();
                 }else {
                     tx.commit();
-                }
+                }*/
             }
             rt = Errno.OK;
             FaiBuffer sendBuf = new FaiBuffer(true);
@@ -987,7 +985,7 @@ public class ProductBasicService extends MgProductInfService {
     }
 
 
-    private int addPdSpecAndStore(int flow, int aid, int tid, int unionPriId, int sysType, GlobalTransaction tx, Param addInfo, Param inStoreRecordInfo) {
+    private int addPdSpecAndStore(int flow, int aid, int tid, int unionPriId, int sysType, String xid, Param addInfo, Param inStoreRecordInfo) {
         int rt = Errno.OK;
         int rlPdId = addInfo.getInt(MgProductEntity.Info.RL_PD_ID);
         int pdId = addInfo.getInt(MgProductEntity.Info.PD_ID);
@@ -1087,7 +1085,7 @@ public class ProductBasicService extends MgProductInfService {
         // 添加
         if (!storeSaleSkuList.isEmpty()) {
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-            rt = productStoreProc.importStoreSales(aid, tid, unionPriId, sysType, tx.getXid(), storeSaleSkuList, inStoreRecordInfo);
+            rt = productStoreProc.importStoreSales(aid, tid, unionPriId, sysType, xid, storeSaleSkuList, inStoreRecordInfo);
             if (rt != Errno.OK) {
                 return rt;
             }

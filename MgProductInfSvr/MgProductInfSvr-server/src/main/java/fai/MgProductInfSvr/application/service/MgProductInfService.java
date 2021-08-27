@@ -197,7 +197,7 @@ public class MgProductInfService extends ServicePub {
         rt = mgProductBasicCli.getRelInfoByRlId(aid, unionPriId, sysType, rlPdId, pdRelInfo);
         if(rt != Errno.OK) {
             if(withAdd && (rt == Errno.NOT_FOUND)){
-                rt = mgProductBasicCli.addProductAndRel(aid, tid, unionPriId, null, new Param()
+                rt = mgProductBasicCli.addProductAndRel(aid, tid, unionPriId, "", new Param()
                                 .setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId)
                                 .setBoolean(ProductRelEntity.Info.INFO_CHECK, false)
                         , idRef, new Ref<>());
@@ -1096,9 +1096,9 @@ public class MgProductInfService extends ServicePub {
             }
             int ownerUnionPriId = idRef.value;
 
-            GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
+            /*GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
             tx.begin(aid, 60000, "mgProduct-importProduct", flow);
-            xid = tx.getXid();
+            xid = tx.getXid();*/
             boolean commit = false;
             try {
                 HashSet<String> skuCodeSet = new HashSet<>();
@@ -1424,10 +1424,10 @@ public class MgProductInfService extends ServicePub {
                     }
                 }
                 commit = true;
-                tx.commit();
+                //tx.commit();
             } finally {
                 if (!commit) {
-                    tx.rollback();
+                    //tx.rollback();
                 }
             }
             Log.logStd("end;flow=%s;aid=%s;ownerTid=%s;ownerUnionPriId=%s;",flow, aid, ownerTid, ownerUnionPriId);

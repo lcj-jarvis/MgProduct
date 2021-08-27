@@ -251,7 +251,7 @@ public class SpuBizSummaryProc {
             addDataList.add(addData);
         }
         if(!addDataList.isEmpty()){
-            rt = m_daoCtrl.batchInsert(addDataList, null, false);
+            rt = m_daoCtrl.batchInsert(addDataList, null, !isSaga);
             if(rt != Errno.OK){
                 Log.logErr("batchInsert err;flow=%s;aid=%s;pdId=%s;", m_flow, aid, pdId);
                 return rt;
@@ -448,12 +448,18 @@ public class SpuBizSummaryProc {
     }
 
     public int batchDel(int aid, FaiList<Integer> pdIdList, boolean isSaga) {
+        int rt;
         ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(SpuBizSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
         Ref<FaiList<Param>> listRef = new Ref<>();
-        int rt = m_daoCtrl.select(searchArg, listRef);
+        // 如果不是分布式事务只需要查询，单个字段
+        if (isSaga) {
+            rt = m_daoCtrl.select(searchArg, listRef);
+        } else {
+            rt = m_daoCtrl.select(searchArg, listRef, SpuBizSummaryEntity.Info.UNION_PRI_ID);
+        }
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             Log.logStd(rt, "select err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
             return rt;

@@ -149,6 +149,7 @@ public class ProductGroupRelProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductGroupRelEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductGroupRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        searchArg.matcher.and(ProductGroupRelEntity.Info.STATUS, ParamMatcher.EQ, ProductGroupRelValObj.Status.DEFAULT);
         Ref<Integer> countRef = new Ref<>();
         int rt = m_relDao.selectCount(searchArg, countRef);
         if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
@@ -157,22 +158,21 @@ public class ProductGroupRelProc {
         return countRef.value;
     }
 
-    public void setGroupRelList(int aid, int unionPriId, int sysType, FaiList<ParamUpdater> updaterList, FaiList<ParamUpdater> groupUpdaterList) {
+    public void setGroupRelList(int aid, int unionPriId, FaiList<Param> oldInfoList, FaiList<ParamUpdater> updaterList, FaiList<ParamUpdater> groupUpdaterList) {
         int rt;
-        FaiList<Param> oldInfoList = getList(aid, unionPriId);
-        FaiList<Param> dataList = new FaiList<Param>();
+        FaiList<Param> dataList = new FaiList<>();
         Calendar now = Calendar.getInstance();
         for(ParamUpdater updater : updaterList){
             Param updateInfo = updater.getData();
             int rlGroupId = updateInfo.getInt(ProductGroupRelEntity.Info.RL_GROUP_ID, 0);
             ParamMatcher matcher = new ParamMatcher(ProductGroupRelEntity.Info.RL_GROUP_ID, ParamMatcher.EQ, rlGroupId);
-            matcher.and(ProductGroupRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
             Param oldInfo = Misc.getFirst(oldInfoList, matcher);
             if(Str.isEmpty(oldInfo)){
                 continue;
             }
             int groupId = oldInfo.getInt(ProductGroupRelEntity.Info.GROUP_ID);
-            oldInfo = updater.update(oldInfo, true);
+            // 这里不在克隆一份数据，直接修改老数据，主要是为了在 setAllGroupList 方法中复用 oldInfoList
+            oldInfo = updater.update(oldInfo, false);
             Param data = new Param();
 
             //只能修改rlFlag、sort、status、parentId
@@ -198,7 +198,7 @@ public class ProductGroupRelProc {
         }
         if(dataList.size() == 0){
             rt = Errno.OK;
-            Log.logStd(rt, "dataList emtpy;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            Log.logStd(rt, "dataList empty;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return;
         }
 

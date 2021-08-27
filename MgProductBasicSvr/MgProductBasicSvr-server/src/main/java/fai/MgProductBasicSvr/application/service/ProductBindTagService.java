@@ -145,7 +145,7 @@ public class ProductBindTagService extends ServicePub {
             TransactionCtrl tc = new TransactionCtrl();
             try {
                 ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
-                relProc.getPdIds(aid, unionPriId, sysType, new HashSet<>(delRlPdIds));
+                delPdIds = relProc.getPdIds(aid, unionPriId, sysType, new HashSet<>(delRlPdIds));
 
                 ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
                 //修改之前设置10s过期时间，避免脏数据，保持一致性

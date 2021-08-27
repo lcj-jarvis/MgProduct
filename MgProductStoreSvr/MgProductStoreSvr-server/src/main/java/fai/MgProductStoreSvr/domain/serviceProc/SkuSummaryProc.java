@@ -199,7 +199,7 @@ public class SkuSummaryProc {
                 info.setCalendar(SkuSummaryEntity.Info.SYS_CREATE_TIME, now);
                 addList.add(info);
             }
-            rt = m_daoCtrl.batchInsert(addList, null, false);
+            rt = m_daoCtrl.batchInsert(addList, null, !isSaga);
             if(rt != Errno.OK){
                 Log.logStd("dao.batchInsert error;flow=%d;aid=%s;addList=%s;", m_flow, aid, addList);
             }

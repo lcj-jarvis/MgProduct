@@ -1119,7 +1119,7 @@ public class InOutStoreRecordProc {
             Log.logErr(rt, "add inOutStore summary empty;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
-        rt = m_sumDaoCtrl.batchInsert(list, null, false);
+        rt = m_sumDaoCtrl.batchInsert(list, null, !isSaga);
         if(rt != Errno.OK) {
             Log.logErr(rt, "add inOutStore summary error;flow=%d;aid=%d;", m_flow, aid);
             return rt;

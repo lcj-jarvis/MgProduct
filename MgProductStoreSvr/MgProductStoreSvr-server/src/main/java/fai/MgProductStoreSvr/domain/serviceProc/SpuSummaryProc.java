@@ -180,7 +180,7 @@ public class SpuSummaryProc {
             addInfoList.add(info);
         }
         if(!addInfoList.isEmpty()){
-            rt = m_daoCtrl.batchInsert(addInfoList, null, false);
+            rt = m_daoCtrl.batchInsert(addInfoList, null, !isSaga);
             if(rt != Errno.OK){
                 Log.logErr(rt,"batchInsert err;flow=%s;aid=%s;addInfoList=%s", m_flow, aid, addInfoList);
                 return rt;

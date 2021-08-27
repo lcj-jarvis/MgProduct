@@ -617,22 +617,6 @@ public class ProductGroupProc {
         }
     }
 
-    /**
-     * 判断老数据是否含有当前名称，且替换新名称
-     *
-     * @param curParam 当前的 Param
-     * @param oldList 名称
-     */
-    private void isNameExistAndReplace(Param curParam, FaiList<Param> oldList) {
-        if (curParam.isEmpty() || oldList.isEmpty()) {
-            return;
-        }
-        Integer groupId = curParam.getInt(ProductGroupEntity.Info.GROUP_ID);
-        String groupName = curParam.getString(ProductGroupEntity.Info.GROUP_NAME);
-        ParamMatcher matcher = new ParamMatcher(ProductGroupEntity.Info.GROUP_ID, ParamMatcher.EQ, groupName);
-        Misc.getList(oldList, matcher);
-    }
-
     private static String getBakUniqueKey(Param fromInfo) {
         return fromInfo.getInt(ProductGroupEntity.Info.GROUP_ID) +
                 DELIMITER +

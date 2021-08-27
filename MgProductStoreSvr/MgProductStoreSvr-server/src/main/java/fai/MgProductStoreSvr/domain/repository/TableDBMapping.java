@@ -73,8 +73,5 @@ public class TableDBMapping {
         public String getGroup(){
             return getDb();
         }
-        public String getTaskGroup(){
-            return "task:"+getDb();
-        }
     }
 }

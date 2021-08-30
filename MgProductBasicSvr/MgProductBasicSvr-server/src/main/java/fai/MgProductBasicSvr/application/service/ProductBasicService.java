@@ -2082,7 +2082,7 @@ public class ProductBasicService extends BasicParentService {
         if(Str.isEmpty(mgSwitch)) {
             return false;
         }
-        boolean useProductGroup = mgSwitch.getBoolean("useProductGroup", false);
+        boolean useProductGroup = mgSwitch.getBoolean("useProductBindGroup", false);
         return useProductGroup;
     }
 

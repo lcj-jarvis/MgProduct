@@ -55,7 +55,7 @@ public class MgProductBasicSvr {
         RedisCacheManager m_cache = new RedisCacheManager(jedisPool, redisConfig.getExpire(), redisConfig.getExpireRandom());
 
         LockOption lockOption = server.getConfig().getConfigObject(LockOption.class);
-        Log.logStd("lockOption=%d;", lockOption);
+        Log.logStd("lockOption=%s;", lockOption);
 
         init(daoPool, m_cache, lockOption, svrOption, jedisPool);
 

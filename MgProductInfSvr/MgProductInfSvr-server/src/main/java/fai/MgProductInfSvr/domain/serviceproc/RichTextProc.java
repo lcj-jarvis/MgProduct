@@ -20,7 +20,7 @@ public class RichTextProc {
 
     public RichTextProc(int flow) {
         this.m_flow = flow;
-        m_cli = createCli();
+        //m_cli = createCli();
     }
 
     public int addPdRichTexts(int aid, int tid, int siteId, int lgId, int keepPriId1, int pdId, FaiList<Param> richList) {

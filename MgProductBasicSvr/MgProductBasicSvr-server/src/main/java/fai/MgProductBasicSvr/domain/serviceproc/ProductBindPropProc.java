@@ -80,7 +80,7 @@ public class ProductBindPropProc {
             int propValId = tmpinfo.getInt(ProductBindPropEntity.Info.PROP_VAL_ID, 0);
             int pdId = tmpinfo.getInt(ProductBindPropEntity.Info.PD_ID, 0);
             int rlPdId = tmpinfo.getInt(ProductBindPropEntity.Info.RL_PD_ID, 0);
-            if(rlPropId <= 0 || propValId <= 0 || pdId <= 0 || rlPdId <= 0) {
+            if(rlPropId <= 0 || propValId <= 0 || pdId < 0 || rlPdId <= 0) {
                 rt = Errno.ARGS_ERROR;
                 throw new MgException(rt, "args error;flow=%d;aid=%d;unionPriId=%d;info=%s;", m_flow, aid, unionPriId, info);
             }

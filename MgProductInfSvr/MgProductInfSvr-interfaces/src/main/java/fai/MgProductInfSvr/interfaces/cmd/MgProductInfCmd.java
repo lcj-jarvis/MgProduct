@@ -66,6 +66,7 @@ public class MgProductInfCmd {
 
         public static final int NUM41 = 5041; /**@see BasicCmd#GET_PD_BIND_TAGS */
         public static final int NUM42 = 5042; /**@see Cmd#GET_INFO_4ES */
+        public static final int NUM43 = 5043; /**@see MgProductSearchCmd#SEARCH_PD */
     }
 
     // 1000 到 5000 的范围
@@ -145,6 +146,7 @@ public class MgProductInfCmd {
 
     public static class MgProductSearchCmd{
         public static final int SEARCH_LIST = ReadCmdNum.NUM32;
+        public static final int SEARCH_PD = ReadCmdNum.NUM43;
     }
 
 

@@ -1769,7 +1769,7 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
             int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductStoreDto.Key.TID, tid), new Pair(ProductStoreDto.Key.SITE_ID, siteId), new Pair(ProductStoreDto.Key.LGID, lgId), new Pair(ProductStoreDto.Key.KEEP_PRIID1, keepPriId1));
-            sendBody.putInt(ProductSpecDto.Key.SYS_TYPE, mgProductArg.getSysType());
+            sendBody.putInt(ProductStoreDto.Key.SYS_TYPE, mgProductArg.getSysType());
             m_rt = skuStoreSales.toBuffer(sendBody, ProductStoreDto.Key.INFO_LIST, ProductStoreDto.StoreSalesSku.getInfoDto());
             if(m_rt != Errno.OK){
                 m_rt = Errno.ARGS_ERROR;

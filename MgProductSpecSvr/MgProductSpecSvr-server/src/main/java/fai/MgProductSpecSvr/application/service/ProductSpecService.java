@@ -555,8 +555,13 @@ public class ProductSpecService extends ServicePub {
                     Ref<FaiList<Param>> specSagaOpListRef = new Ref<>();
                     Ref<FaiList<Param>> specSkuSagaOpListRef = new Ref<>();
                     Ref<FaiList<Param>> specSkuCodeSagaOpListRef = new Ref<>();
-                    rt = getSagaOpList(productSpecProc, productSpecSkuProc, productSpecSkuCodeProc, null, specSagaOpListRef, specSkuSagaOpListRef, specSkuCodeSagaOpListRef, null);
+                    rt = getSagaOpList(xid, branchId, productSpecProc, productSpecSkuProc, productSpecSkuCodeProc, null, specSagaOpListRef, specSkuSagaOpListRef, specSkuCodeSagaOpListRef, null);
                     if (rt != Errno.OK) {
+                        if (rt == Errno.NOT_FOUND) {
+                            commit = true;
+                            Log.logStd("sagaOpList is empty");
+                            rt = Errno.OK;
+                        }
                         return rt;
                     }
                     FaiList<Param> specSagaOpList = specSagaOpListRef.value;
@@ -777,8 +782,13 @@ public class ProductSpecService extends ServicePub {
                     Ref<FaiList<Param>> specSagaOpListRef = new Ref<>();
                     Ref<FaiList<Param>> specSkuSagaOpListRef = new Ref<>();
                     Ref<FaiList<Param>> specSkuCodeSagaOpListRef = new Ref<>();
-                    rt = getSagaOpList(productSpecProc, productSpecSkuProc, productSpecSkuCodeProc, null, specSagaOpListRef, specSkuSagaOpListRef, specSkuCodeSagaOpListRef, null);
+                    rt = getSagaOpList(xid, branchId, productSpecProc, productSpecSkuProc, productSpecSkuCodeProc, null, specSagaOpListRef, specSkuSagaOpListRef, specSkuCodeSagaOpListRef, null);
                     if (rt != Errno.OK) {
+                        if (rt == Errno.NOT_FOUND) {
+                            commit = true;
+                            Log.logStd("sagaOpList is empty");
+                            rt = Errno.OK;
+                        }
                         return rt;
                     }
                     FaiList<Param> specSagaOpList = specSagaOpListRef.value;
@@ -1313,8 +1323,13 @@ public class ProductSpecService extends ServicePub {
                         Ref<FaiList<Param>> specStrSagaOpListRef = new Ref<>();
                         Ref<FaiList<Param>> specSkuSagaOpListRef = new Ref<>();
                         Ref<FaiList<Param>> specSkuCodeSagaOpListRef = new Ref<>();
-                        rt = getSagaOpList(null, productSpecSkuProc, productSpecSkuCodeProc, specStrProc, null, specSkuSagaOpListRef, specSkuCodeSagaOpListRef, specStrSagaOpListRef);
+                        rt = getSagaOpList(xid, branchId, null, productSpecSkuProc, productSpecSkuCodeProc, specStrProc, null, specSkuSagaOpListRef, specSkuCodeSagaOpListRef, specStrSagaOpListRef);
                         if (rt != Errno.OK) {
+                            if (rt == Errno.NOT_FOUND) {
+                                commit = true;
+                                Log.logStd("sagaOpList is empty");
+                                rt = Errno.OK;
+                            }
                             return rt;
                         }
                         FaiList<Param> specStrSagaOpList = specStrSagaOpListRef.value;
@@ -2130,8 +2145,13 @@ public class ProductSpecService extends ServicePub {
                         Ref<FaiList<Param>> specSagaOpListRef = new Ref<>();
                         Ref<FaiList<Param>> specSkuSagaOpListRef = new Ref<>();
                         Ref<FaiList<Param>> specSkuCodeSagaOpListRef = new Ref<>();
-                        rt = getSagaOpList(productSpecProc, productSpecSkuProc, productSpecSkuCodeProc, null, specSagaOpListRef, specSkuSagaOpListRef, specSkuCodeSagaOpListRef, null);
+                        rt = getSagaOpList(xid, branchId, productSpecProc, productSpecSkuProc, productSpecSkuCodeProc, null, specSagaOpListRef, specSkuSagaOpListRef, specSkuCodeSagaOpListRef, null);
                         if (rt != Errno.OK) {
+                            if (rt == Errno.NOT_FOUND) {
+                                commit = true;
+                                Log.logStd("sagaOpList is empty");
+                                rt = Errno.OK;
+                            }
                             return rt;
                         }
                         FaiList<Param> specSagaOpList = specSagaOpListRef.value;
@@ -2787,6 +2807,9 @@ public class ProductSpecService extends ServicePub {
 
     /**
      * 公共 — 获取 Saga 操作记录
+     *
+     * @param xid
+     * @param branchId
      * @param specProc 业务 proc
      * @param specSkuProc 业务 proc
      * @param specSkuCodeProc 业务 proc
@@ -2797,11 +2820,9 @@ public class ProductSpecService extends ServicePub {
      * @param specStrSagaOpListRef 接收数据
      * @return {@link Errno}
      */
-    private int getSagaOpList(ProductSpecProc specProc, ProductSpecSkuProc specSkuProc, ProductSpecSkuCodeProc specSkuCodeProc, SpecStrProc specStrProc,
+    private int getSagaOpList(String xid, Long branchId, ProductSpecProc specProc, ProductSpecSkuProc specSkuProc, ProductSpecSkuCodeProc specSkuCodeProc, SpecStrProc specStrProc,
                               Ref<FaiList<Param>> specSagaOpListRef, Ref<FaiList<Param>> specSkuSagaOpListRef, Ref<FaiList<Param>> specSkuCodeSagaOpListRef, Ref<FaiList<Param>> specStrSagaOpListRef) {
         int rt = Errno.OK;
-        String xid = RootContext.getXID();
-        Long branchId = RootContext.getBranchId();
         if (specProc != null && specSagaOpListRef != null) {
             rt = specProc.getSagaOpList(xid, branchId, specSagaOpListRef);
             if (rt != Errno.OK && rt != Errno.NOT_FOUND) {

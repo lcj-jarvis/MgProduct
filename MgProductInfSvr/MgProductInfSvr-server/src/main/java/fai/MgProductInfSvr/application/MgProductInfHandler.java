@@ -37,6 +37,20 @@ public class MgProductInfHandler extends FaiHandler {
         return searchService.searchList(session, flow, aid, tid, siteId, lgId, keepPriId1, esSearchParamString, searchParamString);
     }
 
+    @Cmd(MgProductInfCmd.MgProductSearchCmd.SEARCH_PD)
+    public int searchProduct(final FaiSession session,
+                                  @ArgFlow final int flow,
+                                  @ArgAid final int aid,
+                                  @ArgBodyInteger(MgProductDto.Key.TID) int tid,
+                                  @ArgBodyInteger(MgProductDto.Key.SITE_ID) int siteId,
+                                  @ArgBodyInteger(MgProductDto.Key.LGID) int lgId,
+                                  @ArgBodyInteger(MgProductDto.Key.KEEP_PRIID1) int keepPriId1,
+                                  @ArgBodyString(MgProductSearchDto.Key.SEARCH_PARAM_STRING) String searchParamString,
+                                  @ArgParam(keyMatch = MgProductDto.Key.COMBINED,
+                                          classDef = MgProductDto.class, methodDef = "getCombinedInfoDto") Param combined) throws IOException {
+        return searchService.searchProduct(session, flow, aid, tid, siteId, lgId, keepPriId1, searchParamString, combined);
+    }
+
     @Cmd(MgProductInfCmd.Cmd.GET_INFO_4ES)
     public int getPdInfo4Es(final FaiSession session,
                             @ArgFlow final int flow,
@@ -387,7 +401,7 @@ public class MgProductInfHandler extends FaiHandler {
         if (!Str.isEmpty(xid)) {
             RootContext.bind(xid, flow);
         }
-        return specService.unionSetPdScInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, rlPdId, addList, delList, updaterList);
+        return specService.unionSetPdScInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, rlPdId, xid, addList, delList, updaterList);
     }
 
     @Cmd(MgProductInfCmd.ProductSpecCmd.GET_LIST)
@@ -1540,7 +1554,7 @@ public class MgProductInfHandler extends FaiHandler {
     MgProductInfService mgProductInfService = ServiceProxy.create(new MgProductInfService());
     ProductBasicService basicService = ServiceProxy.create(new ProductBasicService());
 
-    ProductSearchService searchService = new ProductSearchService();
+    ProductSearchService searchService = ServiceProxy.create(new ProductSearchService());
     ProductPropService propService = new ProductPropService();
     ProductSpecService specService = new ProductSpecService();
     ProductStoreService storeService = new ProductStoreService();

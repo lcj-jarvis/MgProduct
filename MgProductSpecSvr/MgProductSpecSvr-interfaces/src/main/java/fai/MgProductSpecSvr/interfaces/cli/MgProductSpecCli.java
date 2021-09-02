@@ -657,14 +657,11 @@ public class MgProductSpecCli extends MgProductInternalCli {
         }
     }
 
-    public int unionSetPdScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<Param> addList, FaiList<Integer> delList, FaiList<ParamUpdater> updaterList) {
-        return unionSetPdScInfoList(aid, tid, unionPriId, pdId, addList, delList, updaterList, null);
-    }
     /**
      * 修改产品规格总接口
      * 批量修改(包括增、删、改)指定商品的商品规格总接口；会自动生成sku规格，并且会调用商品库存服务的“刷新商品库存销售sku”
      */
-    public int unionSetPdScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<Param> addList, FaiList<Integer> delList, FaiList<ParamUpdater> updaterList, FaiList<Param> rtPdScSkuInfoList) {
+    public int unionSetPdScInfoList(int aid, int tid, int unionPriId, String xid, int pdId, FaiList<Param> addList, FaiList<Integer> delList, FaiList<ParamUpdater> updaterList, FaiList<Param> rtPdScSkuInfoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -679,6 +676,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             sendBody.putInt(ProductSpecDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(ProductSpecDto.Key.TID, tid);
             sendBody.putInt(ProductSpecDto.Key.PD_ID, pdId);
+            sendBody.putString(ProductSpecDto.Key.XID, xid);
             if(addList != null){
                 m_rt = addList.toBuffer(sendBody, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.getInfoDto());
                 if(m_rt != Errno.OK){

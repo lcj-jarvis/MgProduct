@@ -104,5 +104,6 @@ public class MgProductDto {
         public static final int UNIONPRI_ID = 20;
         public static final int PD_ID = 21;
         public static final int SYS_TYPE = 22;
+        public static final int TOTAL = 23;
     }
 }

@@ -4,7 +4,13 @@ import fai.MgProductSpecSvr.domain.comm.LockUtil;
 import fai.MgProductSpecSvr.domain.entity.SpecStrEntity;
 import fai.MgProductSpecSvr.domain.repository.SpecStrCacheCtrl;
 import fai.MgProductSpecSvr.domain.repository.SpecStrDaoCtrl;
+import fai.MgProductSpecSvr.domain.repository.SpecStrSagaDaoCtrl;
+import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.util.*;
+import fai.mgproduct.comm.Util;
+import fai.mgproduct.comm.entity.SagaEntity;
+import fai.mgproduct.comm.entity.SagaValObj;
+import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.Calendar;
 import java.util.HashSet;
@@ -15,16 +21,25 @@ public class SpecStrProc {
         m_flow = flow;
     }
 
+    public SpecStrProc(int flow, int aid, TransactionCtrl tc) {
+        m_daoCtrl = SpecStrDaoCtrl.getInstance(flow, aid);
+        m_sagaDaoCtrl = SpecStrSagaDaoCtrl.getInstanceWithRegistered(flow, aid, tc);
+        if (!tc.register(m_daoCtrl) || m_sagaDaoCtrl == null) {
+            throw new RuntimeException(String.format("SpecStrDaoCtrl or SpecStrSagaDaoCtrl init error;flow=%d;aid=%d", flow, aid));
+        }
+        m_flow = flow;
+    }
+
     public int getListWithBatchAdd(int aid, FaiList<String> nameList, Param nameIdMap) {
-        return getListWithBatchAdd(aid, nameList, nameIdMap, null);
+        return getListWithBatchAdd(aid, nameList, nameIdMap, false);
     }
     /**
      * 需要外部加锁
      * 根据规格字符串获取对应的id, 不存在的话就生成。
      * @param nameIdMap 规格字符串和对应id的映射
-     * @param sagaNeedAddList saga 模式下记录添加的规格名称
+     * @param isSaga 是否是分布式事务状态下
      */
-    public int getListWithBatchAdd(int aid, FaiList<String> nameList, Param nameIdMap, Ref<FaiList<String>> sagaNeedAddList) {
+    public int getListWithBatchAdd(int aid, FaiList<String> nameList, Param nameIdMap, boolean isSaga) {
         if(aid <= 0 || nameList == null || nameList.isEmpty() || nameIdMap == null){
             Log.logErr("arg err;aid=%d;nameList=%s;nameIdMap=%s;", aid, nameList, nameIdMap);
             return Errno.ARGS_ERROR;
@@ -46,22 +61,58 @@ public class SpecStrProc {
         }
 
         FaiList<Param> needBatchAddList = new FaiList<>(nameSet.size());
-        FaiList<String> sagaNameList = new FaiList<>();
         for (String name : nameSet) {
-            if (sagaNeedAddList != null) {
-                sagaNameList.add(name);
-            }
             needBatchAddList.add(new Param().setString(SpecStrEntity.Info.NAME, name));
-        }
-        // 记录补偿
-        if (!sagaNameList.isEmpty()) {
-            sagaNeedAddList.value = sagaNameList;
         }
         if(!needBatchAddList.isEmpty()){
             rt = batchAdd(aid, needBatchAddList, nameIdMap);
         }
+        // 添加 Saga 操作记录
+        if (isSaga) {
+            FaiList<Param> sagaOpList = new FaiList<>();
+            String xid = RootContext.getXID();
+            Long branchId = RootContext.getBranchId();
+            Calendar now = Calendar.getInstance();
+            nameSet.forEach(name -> {
+                Param sagaOpInfo = new Param();
+                sagaOpInfo.setInt(SpecStrEntity.Info.AID, aid);
+                sagaOpInfo.setString(SpecStrEntity.Info.NAME, name);
+                sagaOpInfo.setString(SagaEntity.Common.XID, xid);
+                sagaOpInfo.setLong(SagaEntity.Common.BRANCH_ID, branchId);
+                sagaOpInfo.setInt(SagaEntity.Common.SAGA_OP, SagaValObj.SagaOp.ADD);
+                sagaOpInfo.setCalendar(SagaEntity.Common.SAGA_TIME, now);
+                sagaOpList.add(sagaOpInfo);
+            });
+            if (!Util.isEmptyList(sagaOpList)) {
+                rt = m_sagaDaoCtrl.batchInsert(sagaOpList, null, false);
+                if (rt != Errno.OK) {
+                    Log.logErr(rt, "dao.insert sagaOpList error;flow=%d;aid=%d;sagaOpList=%s",m_flow, aid, sagaOpList);
+                    return rt;
+                }
+            }
+        }
         return rt;
     }
+
+    public int batchAddRollback(int aid, FaiList<Param> sagaOpList) {
+        int rt;
+        if (Util.isEmptyList(sagaOpList)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args err;sagaOpList is empty");
+            return rt;
+        }
+        FaiList<String> nameList = new FaiList<>();
+        sagaOpList.forEach(sagaOpInfo -> nameList.add(sagaOpInfo.getString(SpecStrEntity.Info.NAME)));
+        ParamMatcher matcher = new ParamMatcher(SpecStrEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SpecStrEntity.Info.NAME, ParamMatcher.IN, nameList);
+        rt = m_daoCtrl.delete(matcher);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "batchAddRollback err;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher);
+            return rt;
+        }
+        return rt;
+    }
+
     public int batchAdd(int aid, FaiList<Param> infoList, Param rtInfo) {
         return batchAdd(aid, infoList, null, rtInfo);
     }
@@ -224,6 +275,26 @@ public class SpecStrProc {
         return rt = Errno.OK;
     }
 
+    /**
+     * 获取 Saga 操作记录
+     * @param xid 全局事务di
+     * @param branchId 分支事务id
+     * @param specStrSagaOpListRef 接收参数
+     * @return {@link Errno}
+     */
+    public int getSagaOpList(String xid, Long branchId, Ref<FaiList<Param>> specStrSagaOpListRef) {
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(SagaEntity.Info.XID, ParamMatcher.EQ, xid);
+        searchArg.matcher.and(SagaEntity.Info.BRANCH_ID, ParamMatcher.EQ, branchId);
+
+        int rt = m_sagaDaoCtrl.select(searchArg, specStrSagaOpListRef);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            Log.logErr(rt, "SpecStrProc dao.getSagaOpList error;flow=%d", m_flow);
+            return rt;
+        }
+        return rt;
+    }
+
     private void getListFromCache(int aid, FaiList<Integer> scStrIdList, HashSet<Integer> scStrIdSet, FaiList<Param> resultList) {
         FaiList<Param> cacheList = SpecStrCacheCtrl.getCacheList(aid, scStrIdList);
         if(cacheList != null){
@@ -237,7 +308,12 @@ public class SpecStrProc {
         }
     }
 
+    public void restoreMaxId(int aid, boolean needLock) {
+        m_daoCtrl.restoreMaxId(needLock);
+        m_daoCtrl.clearIdBuilderCache(aid);
+    }
 
     private int m_flow;
     private SpecStrDaoCtrl m_daoCtrl;
+    private SpecStrSagaDaoCtrl m_sagaDaoCtrl;
 }

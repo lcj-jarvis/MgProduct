@@ -25,6 +25,7 @@ import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 操作商品基础数据
@@ -761,6 +762,75 @@ public class ProductBasicService extends BasicParentService {
         session.write(sendBuf);
         rt = Errno.OK;
         Log.logDbg("get ok;flow=%d;aid=%d;unionPriId=%d;pdId=%d;", flow, aid, unionPriId, pdId);
+
+        return rt;
+    }
+
+    /**
+     * 根据商品id集合，获取商品数据
+     */
+    @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
+    public int getPdListByPdIds(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> pdIds) throws IOException {
+        int rt;
+        if(Utils.isEmptyList(pdIds)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, pdIds is not valid;aid=%d;uid=%d;pdIds=%s;", aid, unionPriId, pdIds);
+            return rt;
+        }
+        FaiList<Param> list = new FaiList<>();
+        //统一控制事务
+        TransactionCtrl tc = new TransactionCtrl();
+        try {
+            // 业务关系表
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+            FaiList<Param> relList = relProc.getProductRelList(aid, unionPriId, pdIds);
+            if(Utils.isEmptyList(relList)) {
+                return Errno.NOT_FOUND;
+            }
+
+            // 基础表
+            ProductProc pdProc = new ProductProc(flow, aid, tc);
+            FaiList<Param> basicList = pdProc.getProductList(aid, pdIds);
+            if(Utils.isEmptyList(basicList)) {
+                return Errno.NOT_FOUND;
+            }
+
+            // 绑定分类
+            Map<Integer, List<Param>> bindGroupMap = new HashMap<>();
+            if(useProductGroup()) {
+                ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                FaiList<Param> bindGroups = bindGroupProc.getPdBindGroupList(aid, unionPriId, pdIds);
+                if(!Utils.isEmptyList(bindGroups)) {
+                    bindGroupMap = bindGroups.stream().collect(Collectors.groupingBy(x -> x.getInt(ProductBindGroupEntity.Info.PD_ID)));
+                }
+            }
+
+            // 数据整合
+            Map<Integer, Param> relMap = Utils.getMap(relList, ProductRelEntity.Info.PD_ID);
+            Map<Integer, Param> basicMap = Utils.getMap(relList, ProductEntity.Info.PD_ID);
+            for(Map.Entry<Integer, Param> entry : relMap.entrySet()) {
+                Integer pdId = entry.getKey();
+                Param info = entry.getValue();
+                Param basicInfo = basicMap.get(pdId);
+                // 业务表和基础表都有status字段，业务方感知的应该是relInfo中的status
+                basicInfo.remove(ProductEntity.Info.STATUS);
+                // 整合基础表数据
+                info.assign(basicInfo);
+                // 整合绑定分类表数据
+                List<Param> bindGroups = bindGroupMap.get(pdId);
+                FaiList<Integer> rlGroupIds = Utils.getValList(bindGroups, ProductBindGroupEntity.Info.RL_GROUP_ID);
+                info.setList(ProductRelEntity.Info.RL_GROUP_IDS, rlGroupIds);
+
+                list.add(info);
+            }
+        } finally {
+            tc.closeDao();
+        }
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        list.toBuffer(sendBuf, ProductRelDto.Key.INFO_LIST, ProductRelDto.getRelAndPdDto());
+        session.write(sendBuf);
+        rt = Errno.OK;
+        Log.logDbg("get list ok;flow=%d;aid=%d;unionPriId=%d;pdIds=%s;", flow, aid, unionPriId, pdIds);
 
         return rt;
     }
@@ -2082,7 +2152,7 @@ public class ProductBasicService extends BasicParentService {
         if(Str.isEmpty(mgSwitch)) {
             return false;
         }
-        boolean useProductGroup = mgSwitch.getBoolean("useProductGroup", false);
+        boolean useProductGroup = mgSwitch.getBoolean("useProductBindGroup", false);
         return useProductGroup;
     }
 

@@ -245,6 +245,13 @@ public class MgProductInfCli extends MgProductInfCli7ForProductTag {
                 return m_rt;
             }
 
+            int rlRestoreId = mgProductArg.getRlBackupId();
+            if(rlRestoreId <= 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;rlRestoreId is err;aid=%d;rlRestoreId=%d;", aid, rlRestoreId);
+                return m_rt;
+            }
+
             int rlBackupId = mgProductArg.getRlBackupId();
             if(rlBackupId <= 0) {
                 m_rt = Errno.ARGS_ERROR;
@@ -267,6 +274,7 @@ public class MgProductInfCli extends MgProductInfCli7ForProductTag {
             FaiBuffer sendBody = getDefaultFaiBuffer();
             primaryKey.toBuffer(sendBody, MgProductDto.Key.PRIMARY_KEY, MgProductDto.getPrimaryKeyDto());
             restorePrimaryKeys.toBuffer(sendBody, MgProductDto.Key.PRIMARY_KEYS, MgProductDto.getPrimaryKeyDto());
+            sendBody.putInt(MgProductDto.Key.RL_RESTOREID, rlRestoreId);
             sendBody.putInt(MgProductDto.Key.RL_BACKUPID, rlBackupId);
             if(restoreOption != null) {
                 restoreOption.toBuffer(sendBody, MgProductDto.Key.OPTION, MgProductDto.getOptionDto());

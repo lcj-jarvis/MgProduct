@@ -153,9 +153,10 @@ public class MgProductTagHandler extends MiddleGroundHandler {
                                  @ArgFlow final int flow,
                                  @ArgAid int aid,
                                  @ArgList(keyMatch = ProductTagRelDto.Key.UNION_PRI_ID) FaiList<Integer> unionPriIds,
+                                 @ArgBodyInteger(ProductTagRelDto.Key.RESTORE_ID) int restoreId,
                                  @ArgParam(classDef = MgBackupDto.class, methodDef = "getInfoDto",
                                          keyMatch = ProductTagRelDto.Key.BACKUP_INFO) Param backupInfo) throws IOException {
-        return tagService.restoreBackupData(session, flow, aid, unionPriIds, backupInfo);
+        return tagService.restoreBackupData(session, flow, aid, unionPriIds, restoreId, backupInfo);
     }
 
     @WrittenCmd

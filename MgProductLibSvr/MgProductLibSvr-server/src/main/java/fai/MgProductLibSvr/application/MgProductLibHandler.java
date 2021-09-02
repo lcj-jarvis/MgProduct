@@ -151,9 +151,10 @@ public class MgProductLibHandler extends MiddleGroundHandler {
                                  @ArgFlow final int flow,
                                  @ArgAid int aid,
                                  @ArgList(keyMatch = ProductLibRelDto.Key.UNION_PRI_ID) FaiList<Integer> unionPriIds,
+                                 @ArgBodyInteger(ProductLibRelDto.Key.RESTORE_ID) int restoreId,
                                  @ArgParam(classDef = MgBackupDto.class, methodDef = "getInfoDto",
                                          keyMatch = ProductLibRelDto.Key.BACKUP_INFO) Param backupInfo) throws IOException {
-        return libService.restoreBackupData(session, flow, aid, unionPriIds, backupInfo);
+        return libService.restoreBackupData(session, flow, aid, unionPriIds, restoreId, backupInfo);
     }
 
     @WrittenCmd

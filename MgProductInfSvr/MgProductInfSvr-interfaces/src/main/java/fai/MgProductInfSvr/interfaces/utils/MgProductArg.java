@@ -20,6 +20,7 @@ public class MgProductArg {
     private Param option;
     private Param fromPrimaryKey;
     private int rlBackupId;
+    private int rlRestoreId;
 
     private FaiList<Param> addList;
     private boolean isBiz;
@@ -86,6 +87,7 @@ public class MgProductArg {
         this.option = builder.option;
         this.fromPrimaryKey = builder.fromPrimaryKey;
         this.rlBackupId = builder.rlBackupId;
+        this.rlRestoreId = builder.rlRestoreId;
 
         this.primaryKeys = builder.primaryKeys;
         this.updaterList = builder.updaterList;
@@ -159,6 +161,10 @@ public class MgProductArg {
 
     public int getRlBackupId() {
         return rlBackupId;
+    }
+
+    public int getRlRestoreId() {
+        return rlRestoreId;
     }
 
     public int getAid() {
@@ -381,6 +387,7 @@ public class MgProductArg {
         protected Param option;
         protected Param fromPrimaryKey;
         protected int rlBackupId;
+        protected int rlRestoreId;
 
         protected FaiList<Param> addList;
         protected FaiList<Param> primaryKeys;
@@ -400,6 +407,7 @@ public class MgProductArg {
         public abstract Builder setOption(Param option);
         public abstract Builder setFromPrimaryKey(Param fromPrimaryKey);
         public abstract Builder setRlBackupId(int rlBackupId);
+        public abstract Builder setRlRestoreId(int rlRestoreId);
         public abstract Builder setAddList(FaiList<Param> addList);
         public abstract Builder setPrimaryList(FaiList<Param> primaryKeys);
         public abstract Builder setUpdaterList(FaiList<ParamUpdater> updaterList);
@@ -655,6 +663,12 @@ public class MgProductArg {
         @Override
         public Builder setRlBackupId(int rlBackupId) {
             this.rlBackupId = rlBackupId;
+            return this;
+        }
+
+        @Override
+        public Builder setRlRestoreId(int rlRestoreId) {
+            this.rlRestoreId = rlRestoreId;
             return this;
         }
 

@@ -1222,10 +1222,11 @@ public class MgProductInfHandler extends FaiHandler {
                                   keyMatch = MgProductDto.Key.PRIMARY_KEY) Param primaryKey,
                           @ArgList(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
                                   keyMatch = MgProductDto.Key.PRIMARY_KEYS) FaiList<Param> backupPrimaryKeys,
+                          @ArgBodyInteger(MgProductDto.Key.RL_RESTOREID) int restoreId,
                           @ArgBodyInteger(MgProductDto.Key.RL_BACKUPID) int rlBackupId,
                           @ArgParam(classDef = MgProductDto.class, methodDef = "getOptionDto",
                                   keyMatch = MgProductDto.Key.OPTION, useDefault = true) Param restoreOption) throws IOException {
-        return mgProductInfService.restoreBackupData(session, flow, aid, primaryKey, backupPrimaryKeys, rlBackupId, restoreOption);
+        return mgProductInfService.restoreBackupData(session, flow, aid, primaryKey, backupPrimaryKeys, restoreId, rlBackupId, restoreOption);
     }
 
     @WrittenCmd

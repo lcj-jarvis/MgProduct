@@ -401,11 +401,11 @@ public class MgProductInfService extends ServicePub {
      * 还原备份
      */
     @SuccessRt(Errno.OK)
-    public int restoreBackupData(FaiSession session, int flow, int aid, Param primaryKey, FaiList<Param> restorePrimaryKeys, int rlBackupId, Param restoreOption) throws IOException {
+    public int restoreBackupData(FaiSession session, int flow, int aid, Param primaryKey, FaiList<Param> restorePrimaryKeys, int restoreId, int rlBackupId, Param restoreOption) throws IOException {
         int rt;
-        if(Str.isEmpty(primaryKey) || Utils.isEmptyList(restorePrimaryKeys) || rlBackupId <= 0) {
+        if(Str.isEmpty(primaryKey) || Utils.isEmptyList(restorePrimaryKeys) || rlBackupId <= 0 || restoreId <= 0) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr("args error;flow=%d;aid=%d;key=%s;restorePrimaryKeys=%s;rlBackupId=%s;", flow, aid, primaryKey, restorePrimaryKeys, rlBackupId);
+            Log.logErr("args error;flow=%d;aid=%d;key=%s;restorePrimaryKeys=%s;rlBackupId=%s;restoreId=%s;", flow, aid, primaryKey, restorePrimaryKeys, rlBackupId, restoreId);
             return rt;
         }
         int tid = primaryKey.getInt(MgPrimaryKeyEntity.Info.TID);
@@ -427,19 +427,19 @@ public class MgProductInfService extends ServicePub {
         // 还原分类数据
         if(restoreAll || restoreOption.getBoolean(MgProductEntity.Option.GROUP, false)) {
             ProductGroupProc groupProc = new ProductGroupProc(flow);
-            groupProc.restoreBackup(aid, unionPriIds, backupInfo);
+            groupProc.restoreBackup(aid, unionPriIds, restoreId, backupInfo);
         }
 
         //TODO 还原基础数据
         //还原库数据
         if (restoreAll || restoreOption.getBoolean(MgProductEntity.Option.LIB, false)) {
             ProductLibProc libProc = new ProductLibProc(flow);
-            libProc.restoreBackup(aid, unionPriIds, backupInfo);
+            libProc.restoreBackup(aid, unionPriIds, restoreId, backupInfo);
         }
         //还原标签数据
         if (restoreAll || restoreOption.getBoolean(MgProductEntity.Option.LIB, false)) {
             ProductTagProc tagProc = new ProductTagProc(flow);
-            tagProc.restoreBackup(aid, unionPriIds, backupInfo);
+            tagProc.restoreBackup(aid, unionPriIds, restoreId, backupInfo);
         }
         //TODO 还原参数数据
 

@@ -491,6 +491,7 @@ public class ProductSpecProc {
             listRef.value.forEach(info -> {
                 Param sagaOpInfo = new Param();
                 maxUpdaterKeys.add(ProductSpecEntity.Info.PD_SC_ID);
+                maxUpdaterKeys.add(ProductSpecEntity.Info.SYS_UPDATE_TIME);
                 maxUpdaterKeys.forEach(key -> {
                     if (ProductSpecEntity.Info.IN_PD_SC_VAL_LIST.equals(key)) {
                         sagaOpInfo.setString(key, info.getList(key).toJson());
@@ -499,6 +500,7 @@ public class ProductSpecProc {
                     }
                 });
                 maxUpdaterKeys.remove(ProductSpecEntity.Info.PD_SC_ID);
+                maxUpdaterKeys.remove(ProductSpecEntity.Info.SYS_UPDATE_TIME);
                 sagaOpInfo.setInt(ProductSpecEntity.Info.AID, aid);
                 sagaOpInfo.setInt(ProductSpecEntity.Info.PD_ID, pdId);
                 sagaOpInfo.setString(SagaEntity.Common.XID, xid);

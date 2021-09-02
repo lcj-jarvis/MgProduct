@@ -620,11 +620,9 @@ public class ProductSpecSkuProc {
             Log.logErr(rt, "arg err;delSagaOpList is empty");
             return rt;
         }
-        int pdId = delSagaOpList.get(0).getInt(ProductSpecSkuEntity.Info.PD_ID);
-        Set<Long> skuIdList = new HashSet<>();
+        FaiList<Long> skuIdList = new FaiList<>();
+        delSagaOpList.forEach(sgagOpInfo -> skuIdList.add(sgagOpInfo.getLong(ProductSpecSkuEntity.Info.SKU_ID)));
         ParamMatcher matcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
-        matcher.and(ProductSpecSkuEntity.Info.FLAG, ParamMatcher.LAND_NE, ProductSpecSkuValObj.FLag.SPU, ProductSpecSkuValObj.FLag.SPU);
         matcher.and(ProductSpecSkuEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
         ParamUpdater updater = new ParamUpdater(new Param().setInt(ProductSpecSkuEntity.Info.STATUS, ProductSpecSkuValObj.Status.DEFAULT));
         rt = m_daoCtrl.update(updater, matcher);

@@ -1,7 +1,6 @@
 package fai.MgProductSearchSvr.application;
 
 import fai.MgProductSearchSvr.domain.repository.cache.MgProductSearchCache;
-import fai.MgProductSearchSvr.domain.repository.cache.MgProductSearchCacheTemp;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.cache.redis.config.RedisClientConfig;
 import fai.comm.cache.redis.pool.JedisPool;
@@ -40,8 +39,11 @@ public class MgProductSearchSvr {
         RedisCacheManager m_cache = new RedisCacheManager(jedisPool, redisConfig.getExpire(), redisConfig.getExpireRandom());
 
         // 数据缓存组件
+        /*ParamCacheRecycle cacheRecycle = new ParamCacheRecycle(config.getName(),
+                svrOption.getCacheHours() * 3600, svrOption.getCacheRecycleIntervalHours() * 3600);*/
+        // 临时设置成120s进行测试
         ParamCacheRecycle cacheRecycle = new ParamCacheRecycle(config.getName(),
-                svrOption.getCacheHours() * 3600, svrOption.getCacheRecycleIntervalHours() * 3600);
+                svrOption.getCacheHours() * 20, svrOption.getCacheRecycleIntervalHours() * 60);
 
         // 公共配置文件, 在svr main 的方法做一次初始化
         ConfPool.setFaiConfigGlobalConf(MgProductSearchSvr.SvrConfigGlobalConf.svrConfigGlobalConfKey, FaiConfig.EtcType.ENV);
@@ -91,6 +93,5 @@ public class MgProductSearchSvr {
 
     public static void init(RedisCacheManager cache, ParamCacheRecycle cacheRecycle) {
         MgProductSearchCache.init(cache, cacheRecycle);
-        MgProductSearchCacheTemp.init(cache, cacheRecycle);
     }
 }

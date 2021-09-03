@@ -8,8 +8,7 @@ import fai.MgProductInfSvr.interfaces.dto.ProductStoreDto;
 import fai.MgProductInfSvr.interfaces.entity.MgProductEntity;
 import fai.MgProductInfSvr.interfaces.entity.ProductStoreEntity;
 import fai.MgProductInfSvr.interfaces.utils.MgProductArg;
-import fai.MgProductInfSvr.interfaces.utils.MgProductEsSearch;
-import fai.MgProductInfSvr.interfaces.utils.MgProductSearch;
+import fai.MgProductInfSvr.interfaces.utils.MgProductSearchArg;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
 
@@ -20,11 +19,10 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
 
     @Deprecated
     public int mgProductSearch(int aid, int tid, int siteId, int lgId, int keepPriId1,
-                               MgProductEsSearch mgProductEsSearch,
-                               MgProductSearch mgProductSearch, Param searchResult){
+                               MgProductSearchArg mgProductSearchArg,
+                               Param searchResult){
         MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
-                .setMgProductEsSearch(mgProductEsSearch)
-                .setMgProductSearch(mgProductSearch)
+                .setMgProductSearchArg(mgProductSearchArg)
                 .build();
         return mgProductSearch(mgProductArg, searchResult);
     }
@@ -146,16 +144,23 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      * 商品中台搜索，根据 mgProductSearch（fai.MgProductInfSvr.interfaces.utils.MgProductSearch）, 在 商品中台内 搜索商品
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
-     *                 .setMgProductEsSearch(mgProductEsSearch) // 选填 es的搜索条件
-     *                 .setMgProductSearch(mgProductSearch) // 必填 搜索条件
+     *                 .setMgProductSearchArg(mgProductSearchArg)  //搜索条件必填
      *                 .build();
-     * @param searchResult 搜索结果，对应 MgProductSearchResult 实体
+     * @param searchResult 搜索结果，对应 {@link fai.MgProductInfSvr.interfaces.utils.MgProductSearchResult.Info} 实体
      * @return {@link Errno}
      */
     public int mgProductSearch(MgProductArg mgProductArg, Param searchResult){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
+            MgProductSearchArg mgProductSearchArg = mgProductArg.getMgProductSearchArg();
+            // 搜索条件为空，直接结束
+            if (mgProductSearchArg == null || mgProductSearchArg.isEsAndDbSearchEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "mgProductSearchArg == null error or mgProductSearchArg esSearch and dbSearch is Empty");
+                return Errno.ARGS_ERROR;
+            }
+            // 接收结果的类为空，直接结束
             if(searchResult == null){
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "searchResult == null error");
@@ -164,26 +169,20 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             searchResult.clear();
 
             // 获取es的查询条件
-            MgProductEsSearch mgProductEsSearch = mgProductArg.getMgProductEsSearch();
-            if (mgProductEsSearch == null) {
-                mgProductEsSearch = new MgProductEsSearch();
-            }
-
-            // 如果没有筛选条件，返回空数据，防止误调用
-            MgProductSearch mgProductSearch = mgProductArg.getMgProductSearch();
-            if(mgProductSearch == null || mgProductSearch.isEmpty()){
-                m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "mgProductSearch == null error");
-                return Errno.ARGS_ERROR;
-            }
+            Param esSearchParam = mgProductSearchArg.getEsSearchParam();
+            // 获取db的查询条件
+            Param dbSearchParam = mgProductSearchArg.getDbSearchParam();
             int tid = mgProductArg.getTid();
             int siteId = mgProductArg.getSiteId();
             int lgId = mgProductArg.getLgId();
             int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
-            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(MgProductSearchDto.Key.TID, tid), new Pair(MgProductSearchDto.Key.SITE_ID, siteId), new Pair(MgProductSearchDto.Key.LGID, lgId), new Pair(MgProductSearchDto.Key.KEEP_PRIID1, keepPriId1));
-            sendBody.putString(MgProductSearchDto.Key.ES_SEARCH_PARAM_STRING, mgProductEsSearch.getSearchParam().toJson());
-            sendBody.putString(MgProductSearchDto.Key.SEARCH_PARAM_STRING, mgProductSearch.getSearchParam().toJson());
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(MgProductSearchDto.Key.TID, tid),
+                new Pair(MgProductSearchDto.Key.SITE_ID, siteId),
+                new Pair(MgProductSearchDto.Key.LGID, lgId),
+                new Pair(MgProductSearchDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putString(MgProductSearchDto.Key.ES_SEARCH_PARAM_STRING, esSearchParam.toJson());
+            sendBody.putString(MgProductSearchDto.Key.DB_SEARCH_PARAM_STRING, dbSearchParam.toJson());
             int aid = mgProductArg.getAid();
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.MgProductSearchCmd.SEARCH_LIST, sendBody, true);

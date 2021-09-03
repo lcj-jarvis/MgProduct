@@ -24,7 +24,7 @@ public abstract class BaseMgProductSearch {
 
     /**
      * 上下架开始
-     * 默认是全部的, 对应 ProductRelValObj.Status
+     * 默认是上下架都搜索, 对应 ProductRelValObj.Status字段
      */
     protected int upSalesStatus = UpSalesStatusEnum.ALL.upSalesStatus;
 
@@ -60,9 +60,11 @@ public abstract class BaseMgProductSearch {
     protected int start = 0;
 
     /**
-     * 分页限制条数开始，默认最大是 100
+     * 分页限制条数开始，默认最大是 200
      */
-    protected int limit = 100;
+    protected int limit = MAX_LIMIT;
+
+    public static final Integer MAX_LIMIT = 200;
 
     /**
      * 上下架搜索参数封装
@@ -86,7 +88,6 @@ public abstract class BaseMgProductSearch {
             return upSalesStatus;
         }
     }
-
 
     /**
      * 把查询条件转换为 Param
@@ -169,13 +170,14 @@ public abstract class BaseMgProductSearch {
         this.secondComparatorKeyOrderByDesc = baseSearchParam.getBoolean(BaseSearchInfo.SECOND_COMPARATOR_KEY_ORDER_BY_DESC, false);
 
         this.start = baseSearchParam.getInt(BaseSearchInfo.START, 0);
-        this.limit = baseSearchParam.getInt(BaseSearchInfo.LIMIT, 100);
+        // 最大分页数设置为200
+        this.limit = baseSearchParam.getInt(BaseSearchInfo.LIMIT, MAX_LIMIT);
     }
 
     /**
      * 将公共的查询条件转换为Param
      */
-    public Param getBaseSearchParam() {
+    protected Param getBaseSearchParam() {
         Param baseParam = new Param();
 
         baseParam.setString(BaseSearchInfo.SEARCH_KEYWORD, searchKeyWord);
@@ -236,5 +238,9 @@ public abstract class BaseMgProductSearch {
 
     public int getLimit() {
         return limit;
+    }
+
+    public boolean isEnableSearchProductName() {
+        return enableSearchProductName;
     }
 }

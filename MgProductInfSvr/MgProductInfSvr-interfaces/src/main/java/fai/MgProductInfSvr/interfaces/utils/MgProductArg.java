@@ -34,8 +34,7 @@ public class MgProductArg {
     private ParamUpdater combinedUpdater;
     private Param inOutStoreRecordInfo;
     private FaiList<Param> importProductList;
-    private MgProductSearch mgProductSearch;
-    private MgProductEsSearch mgProductEsSearch;
+    private MgProductSearchArg mgProductSearchArg;
     private Param addInfo;
     private Param bindRlPdInfo;
     private Param pdRelInfo;
@@ -100,8 +99,7 @@ public class MgProductArg {
         this.combined = builder.combined;
         this.combinedUpdater = builder.combinedUpdater;
         this.inOutStoreRecordInfo = builder.inOutStoreRecordInfo;
-        this.mgProductSearch = builder.mgProductSearch;
-        this.mgProductEsSearch = builder.mgProductEsSearch;
+        this.mgProductSearchArg = builder.mgProductSearchArg;
         this.importProductList = builder.importProductList;
         this.addInfo = builder.addInfo;
         this.bindRlPdInfo = builder.bindRlPdInfo;
@@ -243,12 +241,8 @@ public class MgProductArg {
         return rlGroupIds;
     }
 
-    public MgProductSearch getMgProductSearch() {
-        return mgProductSearch;
-    }
-
-    public MgProductEsSearch getMgProductEsSearch() {
-        return mgProductEsSearch;
+    public MgProductSearchArg getMgProductSearchArg() {
+        return mgProductSearchArg;
     }
 
     public FaiList<Param> getImportProductList() {
@@ -393,8 +387,7 @@ public class MgProductArg {
         protected FaiList<ParamUpdater> updaterList;
         protected Param combined;
         protected ParamUpdater combinedUpdater;
-        protected MgProductSearch mgProductSearch;
-        protected MgProductEsSearch mgProductEsSearch;
+        protected MgProductSearchArg mgProductSearchArg;
         protected FaiList<Param> importProductList;
         protected ParamUpdater updater;
         protected boolean softDel;
@@ -412,8 +405,7 @@ public class MgProductArg {
         public abstract Builder setUpdaterList(FaiList<ParamUpdater> updaterList);
         public abstract Builder setCombined(Param combined);
         public abstract Builder setCombinedUpdater(ParamUpdater combinedUpdater);
-        public abstract Builder setMgProductSearch(MgProductSearch mgProductSearch);
-        public abstract Builder setMgProductEsSearch(MgProductEsSearch mgProductEsSearch);
+        public abstract Builder setMgProductSearchArg(MgProductSearchArg mgProductSearchArg);
         public abstract Builder setImportProductList(FaiList<Param> importProductList);
         public abstract Builder setUpdater(ParamUpdater updater);
         public abstract Builder setSoftDel(boolean softDel);
@@ -562,14 +554,8 @@ public class MgProductArg {
         }
 
         @Override
-        public Builder setMgProductSearch(MgProductSearch mgProductSearch) {
-            this.mgProductSearch = mgProductSearch;
-            return this;
-        }
-
-        @Override
-        public Builder setMgProductEsSearch(MgProductEsSearch mgProductEsSearch) {
-            this.mgProductEsSearch = mgProductEsSearch;
+        public Builder setMgProductSearchArg(MgProductSearchArg mgProductSearchArg) {
+            this.mgProductSearchArg = mgProductSearchArg;
             return this;
         }
 

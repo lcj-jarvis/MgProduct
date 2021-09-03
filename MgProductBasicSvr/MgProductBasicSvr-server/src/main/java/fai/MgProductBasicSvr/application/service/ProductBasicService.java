@@ -817,7 +817,8 @@ public class ProductBasicService extends BasicParentService {
                 // 整合基础表数据
                 info.assign(basicInfo);
                 // 整合绑定分类表数据
-                List<Param> bindGroups = bindGroupMap.get(pdId);
+                List<Param> bindGroupsTemp = bindGroupMap.get(pdId);
+                FaiList<Param> bindGroups = new FaiList<>(bindGroupsTemp);
                 FaiList<Integer> rlGroupIds = Utils.getValList(bindGroups, ProductBindGroupEntity.Info.RL_GROUP_ID);
                 info.setList(ProductRelEntity.Info.RL_GROUP_IDS, rlGroupIds);
 

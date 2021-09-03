@@ -63,6 +63,16 @@ public class MgProductDbSearch extends BaseMgProductSearch {
      */
     private FaiList<?> customComparatorList;
 
+    /**
+     * 不包含rlPdId的表
+     */
+    public static final FaiList<String> NOT_HAVE_RLPDID_TABLE = new FaiList<String>();
+
+    static {
+        NOT_HAVE_RLPDID_TABLE.add(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName);
+        NOT_HAVE_RLPDID_TABLE.add(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU_CODE.searchTableName);
+    }
+
     @Override
     public Param getSearchParam() {
         // 先获取公共查询条件的Param
@@ -70,7 +80,7 @@ public class MgProductDbSearch extends BaseMgProductSearch {
 
         param.setList(DbSearchInfo.RL_GROUP_ID_LIST, rlGroupIdList);   // 业务商品分类
         param.setList(DbSearchInfo.RL_TAG_ID_LIST, rlTagIdList);   // 业务商品标签
-        param.setList(DbSearchInfo.RL_PD_ID_LIST, rlPdIdList);          // priceEnd
+        param.setList(DbSearchInfo.RL_PD_ID_LIST, rlPdIdList);          // rlPdIdList
         param.setList(DbSearchInfo.TYPE_LIST, typeList);                // 商品类型：实物、卡密、酒店， 对应 ProductEntity.DbSearchInfo.PD_TYPE 字段
         param.setList(DbSearchInfo.RL_LIB_ID_LIST, rlLibIdList);           //  在哪些库搜索，默认是全部库
         param.setInt(DbSearchInfo.RL_FLAG, rlFlag); //对应商品的rlFlag
@@ -117,9 +127,9 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         this.rlFlag = dbSearchParam.getInt(DbSearchInfo.RL_FLAG);   // 对应商品的rlFlag
         this.enableRlFlagUseLandNe = dbSearchParam.getBoolean(DbSearchInfo.ENABLE_RLFLAG_USE_LANDNE, false); // 是否允许rlFlag使用 &<>作为查询条件
 
-        this.enableSearchProductProp = dbSearchParam.getBoolean(DbSearchInfo.ENABLE_SEARCH_PRODUCT_PROP);  // 是否允许搜索商品参数, 默认是 false
+        this.enableSearchProductProp = dbSearchParam.getBoolean(DbSearchInfo.ENABLE_SEARCH_PRODUCT_PROP, false);  // 是否允许搜索商品参数, 默认是 false
         this.keyWordSearchInPropIdList = dbSearchParam.getList(DbSearchInfo.KEY_WORD_SEARCH_IN_PROP_ID_LIST);  //  在哪些参数下筛选
-        this.enableSearchProductRemark = dbSearchParam.getBoolean(DbSearchInfo.ENABLE_SEARCH_PRODUCT_REMARK); // 是否允许搜索商品详情, 默认是 false
+        this.enableSearchProductRemark = dbSearchParam.getBoolean(DbSearchInfo.ENABLE_SEARCH_PRODUCT_REMARK, false); // 是否允许搜索商品详情, 默认是 false
         this.searchProductRemarkKeyList = dbSearchParam.getList(DbSearchInfo.SEARCH_PRODUCT_REMARK_KEY_LIST);
         this.rlPropValIdList = dbSearchParam.getList(DbSearchInfo.RL_PROP_VAL_ID_LIST);   // 根据 参数值 搜索
 
@@ -255,9 +265,9 @@ public class MgProductDbSearch extends BaseMgProductSearch {
     public boolean isEmpty(){
         return getProductRemarkSearchOrMatcher(null).isEmpty() && getProductPropValSearchOrMatcher(null).isEmpty() &&
             getProductBasicSearchOrMatcher(null).isEmpty() && getProductBasicSearchMatcher(null).isEmpty() &&
-            getProductBindPropSearchMatcher(null).isEmpty() && getProductBindGroupSearchMatcher(null).isEmpty() &&
-            getProductBindTagSearchMatcher(null).isEmpty() && getProductSpuBizSummarySearchMatcher(null).isEmpty() &&
-            getProductSpecSkuCodeSearchMatcher(null).isEmpty();
+            getProductRelSearchMatcher(null).isEmpty() && getProductBindPropSearchMatcher(null).isEmpty() &&
+            getProductBindGroupSearchMatcher(null).isEmpty() && getProductBindTagSearchMatcher(null).isEmpty() &&
+            getProductSpuBizSummarySearchMatcher(null).isEmpty() && getProductSpecSkuCodeSearchMatcher(null).isEmpty();
     }
 
 
@@ -356,18 +366,19 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         if (upSalesStatus == UpSalesStatusEnum.UP_AND_DOWN_SALES.upSalesStatus) {
             // 上架或者下架的，或者两种都有
             FaiList<Integer> statusList = new FaiList<Integer>();
-            statusList.add(ProductBasicValObj.ProductRelValObj.Status.UP);
-            statusList.add(ProductBasicValObj.ProductRelValObj.Status.DOWN);
+            statusList.add(ProductBasicValObj.ProductValObj.Status.UP);
+            statusList.add(ProductBasicValObj.ProductValObj.Status.DOWN);
             paramMatcher.and(ProductBasicEntity.ProductInfo.STATUS, ParamMatcher.IN, statusList);
         } else if (upSalesStatus != UpSalesStatusEnum.ALL.upSalesStatus) {
-            //  非全部的，单独是某种状态
+            // 非全部的，单独是某种状态
             paramMatcher.and(ProductBasicEntity.ProductInfo.STATUS, ParamMatcher.EQ, upSalesStatus);
         }
 
         // 商品的rlFlag
         if (rlFlag != null) {
             String operation = enableRlFlagUseLandNe ? ParamMatcher.LAND_NE: ParamMatcher.LAND;
-            paramMatcher.and(ProductBasicEntity.ProductInfo.RL_FLAG, operation, rlFlag);
+            ParamMatcher matcher = new ParamMatcher(ProductBasicEntity.ProductInfo.RL_FLAG, operation, rlFlag, rlFlag);
+            paramMatcher.and(matcher);
         }
 
         //  商品录入时间
@@ -403,7 +414,7 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         return paramMatcher;
     }
 
-    // 在 "分类业务关系表" mgProductBindGroup_xxxx 搜索
+    // 在 "商品与分类关联表" mgProductBindGroup_xxxx 搜索
     public ParamMatcher getProductBindGroupSearchMatcher(ParamMatcher paramMatcher){
         if(paramMatcher == null){
             paramMatcher = new ParamMatcher();
@@ -419,7 +430,7 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         return paramMatcher;
     }
 
-    // 在 "标签业务关系表" mgProductBindTag_xxxx 搜索
+    // 在 "商品与标签关联表" mgProductBindTag_xxxx 搜索
     public ParamMatcher getProductBindTagSearchMatcher(ParamMatcher paramMatcher){
         if(paramMatcher == null){
             paramMatcher = new ParamMatcher();

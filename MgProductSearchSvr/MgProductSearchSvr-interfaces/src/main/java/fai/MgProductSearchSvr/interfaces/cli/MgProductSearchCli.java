@@ -21,7 +21,8 @@ public class MgProductSearchCli extends FaiClient {
     }
 
 
-    public int searchList(int aid, int tid, int unionPriId, int productCount, String esSearchParamString, String searchParamString, Param searchResult){
+    public int searchList(int aid, int tid, int unionPriId, int productCount,
+                          String esSearchParamString, String dbSearchParamString, Param searchResult){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -32,18 +33,19 @@ public class MgProductSearchCli extends FaiClient {
             }
             searchResult.clear();
             // 如果没有筛选条件，返回空数据，防止误调用  包括 {} 这个判断
-            if(Str.isEmpty(searchParamString) || searchParamString.length() == 2){
+            if (Str.isEmpty(esSearchParamString) && Str.isEmpty(dbSearchParamString)) {
                 m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "mgProductSearch == null error");
+                Log.logErr(m_rt, "search conditions not exists error");
                 return Errno.ARGS_ERROR;
             }
+
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(MgProductSearchDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(MgProductSearchDto.Key.TID, tid);
             sendBody.putInt(MgProductSearchDto.Key.PRODUCT_COUNT, productCount);
             sendBody.putString(MgProductSearchDto.Key.ES_SEARCH_PARAM_STRING, esSearchParamString);
-            sendBody.putString(MgProductSearchDto.Key.SEARCH_PARAM_STRING, searchParamString);
+            sendBody.putString(MgProductSearchDto.Key.DB_SEARCH_PARAM_STRING, dbSearchParamString);
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setAid(aid);
             sendProtocol.setCmd(MgProductSearchCmd.SearchCmd.SEARCH_LIST);

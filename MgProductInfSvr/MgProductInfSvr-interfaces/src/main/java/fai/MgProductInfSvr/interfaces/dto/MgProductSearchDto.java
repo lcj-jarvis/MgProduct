@@ -20,15 +20,13 @@ public class MgProductSearchDto {
 
     public static class Key {
         public static final int RESULT_INFO = 0;
-        public static final int SEARCH_PARAM_STRING = 1;
-        public static final int TID = 2;
-        public static final int SITE_ID = 3;
-        public static final int LGID = 4;
-        public static final int KEEP_PRIID1 = 5;
-        public static final int UNION_PRI_ID = 6;
-        public static final int PRODUCT_COUNT = 7;
-
-        public static final int ES_SEARCH_PARAM_STRING = 8;
-        public static final int DB_SEARCH_PARAM_STRING = 9;
+        public static final int TID = 1;
+        public static final int SITE_ID = 2;
+        public static final int LGID = 3;
+        public static final int KEEP_PRIID1 = 4;
+        public static final int UNION_PRI_ID = 5;
+        public static final int PRODUCT_COUNT = 6;
+        public static final int ES_SEARCH_PARAM_STRING = 7;
+        public static final int DB_SEARCH_PARAM_STRING = 8;
     }
 }

@@ -21,7 +21,7 @@ public class MgProductEsSearch extends BaseMgProductSearch{
      *  FaiSearchExDef.SearchField.FieldType.CALENDAR
      *  ...
      */
-    private Byte firstComparatorKeyType;
+    private Integer firstComparatorKeyType;
 
     /**
      * es中第二排序字段的类型。设置了第二排序字段，则必填第二排序字段对应的类型
@@ -31,8 +31,17 @@ public class MgProductEsSearch extends BaseMgProductSearch{
      *  FaiSearchExDef.SearchField.FieldType.INTEGER
      *  FaiSearchExDef.SearchField.FieldType.CALENDAR
      */
-    private Byte secondComparatorKeyType;
+    private Integer secondComparatorKeyType;
 
+    /**
+     * es限制的from + size 《= 3w
+     */
+    public static final Integer MAX_LIMIT_IN_ES = 30000;
+
+    /**
+     * 一次es请求限制的分页Limit。目前es那边限制5000。超过5000，就分次去拿。
+     */
+    public static final Integer ONCE_REQUEST_LIMIT = 5000;
 
     /**
      * 把查询条件转换为 Param
@@ -41,9 +50,8 @@ public class MgProductEsSearch extends BaseMgProductSearch{
     public Param getSearchParam() {
         // 先获取公共搜索条件的Param
         Param esParam = getBaseSearchParam();
-
-        esParam.setByte(EsSearchInfo.FIRST_COMPARATOR_KEY_TYPE, firstComparatorKeyType);
-        esParam.setByte(EsSearchInfo.SECOND_COMPARATOR_KEY_TYPE, secondComparatorKeyType);
+        esParam.setInt(EsSearchInfo.FIRST_COMPARATOR_KEY_TYPE, firstComparatorKeyType);
+        esParam.setInt(EsSearchInfo.SECOND_COMPARATOR_KEY_TYPE, secondComparatorKeyType);
 
         return esParam;
     }
@@ -57,8 +65,8 @@ public class MgProductEsSearch extends BaseMgProductSearch{
         // 先初始化公共搜索字段。
         initBaseSearchParam(esSearchParam);
 
-        this.firstComparatorKeyType = esSearchParam.getByte(EsSearchInfo.FIRST_COMPARATOR_KEY_TYPE);
-        this.secondComparatorKeyType = esSearchParam.getByte(EsSearchInfo.SECOND_COMPARATOR_KEY_TYPE);
+        this.firstComparatorKeyType = esSearchParam.getInt(EsSearchInfo.FIRST_COMPARATOR_KEY_TYPE);
+        this.secondComparatorKeyType = esSearchParam.getInt(EsSearchInfo.SECOND_COMPARATOR_KEY_TYPE);
     }
 
     public static final class EsSearchInfo {
@@ -90,11 +98,11 @@ public class MgProductEsSearch extends BaseMgProductSearch{
         public static final String NAME = "name";
     }
 
-    public byte getFirstComparatorKeyType() {
+    public Integer getFirstComparatorKeyType() {
         return firstComparatorKeyType;
     }
 
-    public byte getSecondComparatorKeyType() {
+    public Integer getSecondComparatorKeyType() {
         return secondComparatorKeyType;
     }
 

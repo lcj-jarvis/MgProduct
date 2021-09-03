@@ -9,6 +9,7 @@ import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 
 public class MgProductSpecCli extends MgProductInternalCli {
+
     public MgProductSpecCli(int flow) {
         super(flow, "MgProductSpecCli");
     }

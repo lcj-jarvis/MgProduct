@@ -32,11 +32,12 @@ public class MgProductInfHandler extends FaiHandler {
                            @ArgBodyInteger(MgProductSearchDto.Key.SITE_ID) int siteId,
                            @ArgBodyInteger(MgProductSearchDto.Key.LGID) int lgId,
                            @ArgBodyInteger(MgProductSearchDto.Key.KEEP_PRIID1) int keepPriId1,
-                          @ArgBodyString(MgProductSearchDto.Key.ES_SEARCH_PARAM_STRING) String esSearchParamString,
-                           @ArgBodyString(MgProductSearchDto.Key.SEARCH_PARAM_STRING) String searchParamString) throws IOException {
+                           @ArgBodyString(MgProductSearchDto.Key.ES_SEARCH_PARAM_STRING) String esSearchParamString,
+                           @ArgBodyString(MgProductSearchDto.Key.DB_SEARCH_PARAM_STRING) String searchParamString) throws IOException {
         return searchService.searchList(session, flow, aid, tid, siteId, lgId, keepPriId1, esSearchParamString, searchParamString);
     }
 
+    // TODO : 目前还没有其他地方用到
     @Cmd(MgProductInfCmd.MgProductSearchCmd.SEARCH_PD)
     public int searchProduct(final FaiSession session,
                                   @ArgFlow final int flow,
@@ -45,10 +46,10 @@ public class MgProductInfHandler extends FaiHandler {
                                   @ArgBodyInteger(MgProductDto.Key.SITE_ID) int siteId,
                                   @ArgBodyInteger(MgProductDto.Key.LGID) int lgId,
                                   @ArgBodyInteger(MgProductDto.Key.KEEP_PRIID1) int keepPriId1,
-                                  @ArgBodyString(MgProductSearchDto.Key.SEARCH_PARAM_STRING) String searchParamString,
-                                  @ArgParam(keyMatch = MgProductDto.Key.COMBINED,
-                                          classDef = MgProductDto.class, methodDef = "getCombinedInfoDto") Param combined) throws IOException {
-        return searchService.searchProduct(session, flow, aid, tid, siteId, lgId, keepPriId1, searchParamString, combined);
+                                  @ArgBodyString(MgProductSearchDto.Key.ES_SEARCH_PARAM_STRING) String esSearchParamString,
+                                  @ArgBodyString(MgProductSearchDto.Key.DB_SEARCH_PARAM_STRING) String dbSearchParamString,
+                                  @ArgParam(keyMatch = MgProductDto.Key.COMBINED, classDef = MgProductDto.class, methodDef = "getCombinedInfoDto") Param combined) throws IOException {
+        return searchService.searchProduct(session, flow, aid, tid, siteId, lgId, keepPriId1, esSearchParamString, dbSearchParamString, combined);
     }
 
     @Cmd(MgProductInfCmd.Cmd.GET_INFO_4ES)

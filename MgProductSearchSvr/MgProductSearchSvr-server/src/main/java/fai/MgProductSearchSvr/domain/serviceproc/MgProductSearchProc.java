@@ -3,7 +3,8 @@ package fai.MgProductSearchSvr.domain.serviceproc;
 import fai.MgProductBasicSvr.interfaces.cli.MgProductBasicCli;
 import fai.MgProductBasicSvr.interfaces.entity.ProductEntity;
 import fai.MgProductBasicSvr.interfaces.entity.ProductRelEntity;
-import fai.MgProductInfSvr.interfaces.utils.MgProductSearch;
+import fai.MgProductInfSvr.interfaces.utils.BaseMgProductSearch;
+import fai.MgProductInfSvr.interfaces.utils.MgProductDbSearch;
 import fai.MgProductSearchSvr.application.MgProductSearchSvr;
 import fai.MgProductSearchSvr.domain.repository.cache.MgProductSearchCache;
 import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
@@ -13,6 +14,7 @@ import fai.mgproduct.comm.DataStatus;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Objects;
 
 /**
  * @author LuChaoJi
@@ -42,7 +44,6 @@ public class MgProductSearchProc {
         }
         return filterList;
     }
-
 
     /**
      * 由ParamList 提取业务商品 idList
@@ -118,7 +119,7 @@ public class MgProductSearchProc {
                                               MgProductSpecCli mgProductSpecCli){
         Param remoteDataStatusInfo = new Param();
         int rt;
-        if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName.equals(tableName)){
             // 从远端获取数据, 待完善
             rt = mgProductBasicCli.getPdDataStatus(aid, remoteDataStatusInfo);
             if(rt != Errno.OK){
@@ -127,7 +128,7 @@ public class MgProductSearchProc {
             // Log.logDbg("getPdDataStatus, remoteDataStatusInfo=%s;", remoteDataStatusInfo);
         }
 
-        if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_REL.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_REL.searchTableName.equals(tableName)){
             // 从远端获取数据
             rt = mgProductBasicCli.getPdRelDataStatus(aid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
@@ -136,7 +137,7 @@ public class MgProductSearchProc {
             //Log.logDbg("getPdRelDataStatus, remoteDataStatusInfo=%s;", remoteDataStatusInfo);
         }
 
-        if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.searchTableName.equals(tableName)){
             // 从远端获取数据
             rt = mgProductBasicCli.getBindPropDataStatus(aid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
@@ -145,7 +146,7 @@ public class MgProductSearchProc {
             //Log.logDbg("getBindPropDataStatus, remoteDataStatusInfo=%s;", remoteDataStatusInfo);
         }
 
-        if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.searchTableName.equals(tableName)){
             // 从远端获取数据
             rt = mgProductBasicCli.getBindGroupDataStatus(aid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
@@ -154,7 +155,7 @@ public class MgProductSearchProc {
             //Log.logDbg("getBindGroupDataStatus, remoteDataStatusInfo=%s;", remoteDataStatusInfo);
         }
 
-        if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.searchTableName.equals(tableName)){
             // 从远端获取数据
             rt = mgProductBasicCli.getBindTagDataStatus(aid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
@@ -163,7 +164,7 @@ public class MgProductSearchProc {
             //Log.logDbg("getBindGroupDataStatus, remoteDataStatusInfo=%s;", remoteDataStatusInfo);
         }
 
-        if(MgProductSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.searchTableName.equals(tableName)){
             // 从远端获取数据, 待完善
             rt = mgProductStoreCli.getSpuBizSummaryDataStatus(aid, tid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
@@ -172,7 +173,7 @@ public class MgProductSearchProc {
             // Log.logDbg("getSpuBizSummaryDataStatus,remoteDataStatusInfo=%s;", remoteDataStatusInfo);
         }
 
-        if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU_CODE.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU_CODE.searchTableName.equals(tableName)){
             // 从远端获取数据, 待完善
             rt = mgProductSpecCli.getSkuCodeDataStatus(aid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
@@ -255,7 +256,7 @@ public class MgProductSearchProc {
             String cacheKey = MgProductSearchCache.LocalDataStatusCache.getDataStatusCacheKey(aid, unionPriId, tableName);
             MgProductSearchCache.LocalDataStatusCache.addLocalDataStatusCache(cacheKey, dataStatusInfo);
         } else {
-            // TODO 需要注意的一点就是，按照条件进行搜索的时候，要看搜索结果的字段是否包含排序的字段，不然也排不了顺
+            // TODO 需要注意的一点就是，按照条件进行搜索的时候，要看搜索结果的字段是否包含排序的字段，不然也排不了序
 
             // 后面上线后需要干掉getSearchResult(searchMatcher, searchDataList, resultList, searchKey) 调用，
             // 因为已经 把 matcher 放到 client 中，远端已经进行过了搜索
@@ -274,7 +275,7 @@ public class MgProductSearchProc {
         int rt;
         // 需要真正获取的数据
         FaiList<Param> searchDataList = new FaiList<>();
-        if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName.equals(tableName)){
             if(needLoadFromDb){
                 rt = mgProductBasicCli.searchPdFromDb(aid, searchArg, searchDataList);
                 if(rt != Errno.OK){
@@ -290,7 +291,7 @@ public class MgProductSearchProc {
             }
         }
 
-        if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_REL.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_REL.searchTableName.equals(tableName)){
             if(needLoadFromDb){
                 rt = mgProductBasicCli.searchPdRelFromDb(aid, unionPriId, searchArg, searchDataList);
                 if(rt != Errno.OK){
@@ -306,7 +307,7 @@ public class MgProductSearchProc {
             }
         }
 
-        if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.searchTableName.equals(tableName)){
             if(needLoadFromDb){
                 rt = mgProductBasicCli.searchBindPropFromDb(aid, unionPriId, searchArg, searchDataList);
                 if(rt != Errno.OK){
@@ -322,7 +323,7 @@ public class MgProductSearchProc {
             }
         }
 
-        if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.searchTableName.equals(tableName)){
             if(needLoadFromDb){
                 rt = mgProductBasicCli.searchBindGroupFromDb(aid, unionPriId, searchArg, searchDataList);
                 if(rt != Errno.OK){
@@ -338,7 +339,7 @@ public class MgProductSearchProc {
             }
         }
 
-        if(MgProductSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.searchTableName.equals(tableName)){
             if(needLoadFromDb){
                 rt = mgProductBasicCli.getPdBindTagFromDb(aid, unionPriId, searchArg, searchDataList);
                 if(rt != Errno.OK){
@@ -354,7 +355,7 @@ public class MgProductSearchProc {
             }
         }
 
-        if(MgProductSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.searchTableName.equals(tableName)){
             if(needLoadFromDb){
                 rt = mgProductStoreCli.searchSpuBizSummaryFromDb(aid, tid, unionPriId, searchArg, searchDataList);
                 if(rt != Errno.OK){
@@ -375,7 +376,7 @@ public class MgProductSearchProc {
         // Info.SKU_CODE,
         // Info.PD_ID,
         // Info.SKU_ID
-        if (MgProductSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU_CODE.searchTableName.equals(tableName)) {
+        if (MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU_CODE.searchTableName.equals(tableName)) {
             if(needLoadFromDb){
                 rt = mgProductSpecCli.searchSkuCodeFromDb(aid, unionPriId, searchArg, searchDataList);
                 if(rt != Errno.OK){
@@ -427,7 +428,7 @@ public class MgProductSearchProc {
     public int getInSqlThreshold() {
         Param conf = ConfPool.getConf(MgProductSearchSvr.SvrConfigGlobalConf.svrConfigGlobalConfKey);
         int defaultThreshold = 1000;
-        if(Str.isEmpty(conf) || Str.isEmpty(conf.getParam(MgProductSearchSvr.SvrConfigGlobalConf.useIdFromEsAsInSqlThresholdKey))){
+        if(Str.isEmpty(conf) || Objects.isNull(conf.getInt(MgProductSearchSvr.SvrConfigGlobalConf.useIdFromEsAsInSqlThresholdKey))){
             return defaultThreshold;
         }
         return conf.getInt(MgProductSearchSvr.SvrConfigGlobalConf.useIdFromEsAsInSqlThresholdKey, defaultThreshold);

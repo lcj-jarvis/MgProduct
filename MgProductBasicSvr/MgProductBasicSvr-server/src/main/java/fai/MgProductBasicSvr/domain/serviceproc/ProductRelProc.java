@@ -120,6 +120,12 @@ public class ProductRelProc {
         return count;
     }
 
+    public FaiList<Param> getBindBizInfo(int aid, FaiList<Integer> pdIds) {
+        ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        return searchFromDb(aid, matcher, Utils.asFaiList(ProductRelEntity.Info.AID, ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.RL_PD_ID));
+    }
+
     // 清空指定aid+unionPriId的数据
     public int clearData(int aid, int unionPriId, boolean softDel) {
         int rt;

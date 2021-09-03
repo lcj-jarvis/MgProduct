@@ -32,6 +32,33 @@ import java.util.stream.Collectors;
  */
 public class ProductBasicService extends BasicParentService {
 
+    @SuccessRt(Errno.OK)
+    public int getPdBindBizInfo(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds) throws IOException {
+        int rt;
+        if(aid <= 0 || Utils.isEmptyList(rlPdIds)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args error;flow=%d;aid=%d;uid=%d;sysType=%d;rlPdIds=%s;", flow, aid, unionPriId, sysType, rlPdIds);
+            return rt;
+        }
+
+        FaiList<Param> list;
+        TransactionCtrl tc = new TransactionCtrl();
+        try {
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+            FaiList<Integer> pdIds = relProc.getPdIds(aid, unionPriId, sysType, new HashSet<>(rlPdIds));
+            list = relProc.getBindBizInfo(aid, pdIds);
+        }finally {
+            tc.closeDao();
+        }
+
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        list.toBuffer(sendBuf, ProductRelDto.Key.INFO_LIST, ProductRelDto.getReducedInfoDto());
+        session.write(sendBuf);
+        Log.logDbg("get bind biz ok;flow=%d;aid=%d;uid=%d;sysType=%s;rlPdId=%s;", flow, aid, unionPriId, sysType, rlPdIds);
+        rt = Errno.OK;
+        return rt;
+    }
+
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getProductInfo(FaiSession session, int flow, int aid, int unionPriId, int sysType, int rlPdId) throws IOException {
         int rt;

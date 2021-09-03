@@ -155,6 +155,29 @@ public class ProductBasicDto {
         return g_bindTagDef;
     }
 
+
+    private static ParamDef g_pdReduceDef = new ParamDef();
+    static {
+        g_pdReduceDef.add(ProductBasicEntity.ProductInfo.TID, 0, Var.Type.INT);
+        g_pdReduceDef.add(ProductBasicEntity.ProductInfo.SITE_ID, 1, Var.Type.INT);
+        g_pdReduceDef.add(ProductBasicEntity.ProductInfo.LGID, 2, Var.Type.INT);
+        g_pdReduceDef.add(ProductBasicEntity.ProductInfo.KEEP_PRI_ID1, 3, Var.Type.INT);
+        g_pdReduceDef.add(ProductBasicEntity.ProductInfo.RL_PD_ID, 4, Var.Type.INT);
+    }
+    public static ParamDef getPdReduceDto() {
+        return g_pdReduceDef;
+    }
+
+    /*** 商品绑定的业务 ***/
+    private static ParamDef g_bindBizDef = new ParamDef();
+    static {
+        g_bindBizDef.add(ProductBasicEntity.ProductInfo.RL_PD_ID, 0);
+        g_bindBizDef.add(ProductBasicEntity.ProductInfo.BIND_BIZ, 1, g_pdReduceDef);
+    }
+    public static ParamDef getBindBizDto() {
+        return g_bindBizDef;
+    }
+
     public static class Key {
         public static final int BIND_PROP_INFO  = 1;
         public static final int TID  = 2;

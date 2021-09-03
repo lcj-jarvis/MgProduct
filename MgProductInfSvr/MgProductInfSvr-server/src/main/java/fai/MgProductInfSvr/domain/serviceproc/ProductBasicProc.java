@@ -2,6 +2,7 @@ package fai.MgProductInfSvr.domain.serviceproc;
 
 import fai.MgProductBasicSvr.interfaces.cli.MgProductBasicCli;
 import fai.comm.util.*;
+import fai.middleground.svrutil.exception.MgException;
 
 /**
  * 商品基础信息服务
@@ -13,6 +14,15 @@ public class ProductBasicProc {
         if(!m_cli.init()) {
             m_cli = null;
         }
+    }
+
+    public FaiList<Param> getPdBindBiz(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds) {
+        FaiList<Param> list = new FaiList<>();
+        int rt = m_cli.getPdBindBiz(aid, unionPriId, sysType, rlPdIds, list);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "getProductList error;flow=%d;aid=%d;uid=%d;rlPdIds=%s;", m_flow, aid, unionPriId, rlPdIds);
+        }
+        return list;
     }
 
     public int getProductList(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, FaiList<Param> list) {

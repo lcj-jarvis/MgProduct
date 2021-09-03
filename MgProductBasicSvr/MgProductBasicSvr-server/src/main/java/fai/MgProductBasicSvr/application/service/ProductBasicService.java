@@ -35,27 +35,44 @@ public class ProductBasicService extends BasicParentService {
     @SuccessRt(Errno.OK)
     public int getPdBindBizInfo(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds) throws IOException {
         int rt;
-        if(aid <= 0 || Utils.isEmptyList(rlPdIds)) {
+        if(aid <= 0) {
             rt = Errno.ARGS_ERROR;
             Log.logErr(rt, "args error;flow=%d;aid=%d;uid=%d;sysType=%d;rlPdIds=%s;", flow, aid, unionPriId, sysType, rlPdIds);
             return rt;
         }
+        if(!MgProductCheck.RequestLimit.checkReadSize(aid, rlPdIds)) {
+            return Errno.SIZE_LIMIT;
+        }
 
-        FaiList<Param> list;
+        FaiList<Param> result;
         TransactionCtrl tc = new TransactionCtrl();
         try {
             ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
-            FaiList<Integer> pdIds = relProc.getPdIds(aid, unionPriId, sysType, new HashSet<>(rlPdIds));
-            list = relProc.getBindBizInfo(aid, pdIds);
+            Map<Integer, Integer> pdIdMaps = relProc.getPdIdRelMap(aid, unionPriId, sysType, new HashSet<>(rlPdIds));
+            if(pdIdMaps == null || pdIdMaps.isEmpty()) {
+                rt = Errno.NOT_FOUND;
+                Log.logErr(rt, "not found;aid=%d;uid=%s;sysType=%s;rlPdIds=%s;", aid, flow, unionPriId, sysType, rlPdIds);
+                return rt;
+            }
+
+            Map<Integer, FaiList<Integer>> map = getBoundUniPriIds(flow, aid, new FaiList<>(pdIdMaps.keySet()));
+            result = new FaiList<>();
+            for(Integer pdId : map.keySet()) {
+                FaiList<Integer> unionPriIds = map.get(pdId);
+                Param resInfo = new Param();
+                resInfo.setInt(ProductRelEntity.Info.RL_PD_ID, pdIdMaps.get(pdId));
+                resInfo.setList(ProductRelEntity.Info.BIND_LIST, unionPriIds);
+                result.add(resInfo);
+            }
         }finally {
             tc.closeDao();
         }
-
         FaiBuffer sendBuf = new FaiBuffer(true);
-        list.toBuffer(sendBuf, ProductRelDto.Key.INFO_LIST, ProductRelDto.getReducedInfoDto());
+        result.toBuffer(sendBuf, ProductRelDto.Key.INFO_LIST, ProductRelDto.getPdBindBizDto());
         session.write(sendBuf);
-        Log.logDbg("get bind biz ok;flow=%d;aid=%d;uid=%d;sysType=%s;rlPdId=%s;", flow, aid, unionPriId, sysType, rlPdIds);
         rt = Errno.OK;
+        Log.logDbg("getPdBindBizInfo ok;flow=%d;aid=%d;unionPriId=%d;sysType=%s;rlPdIds=%s;size=%d;", flow, aid, unionPriId, sysType, rlPdIds, result.size());
+
         return rt;
     }
 
@@ -120,10 +137,8 @@ public class ProductBasicService extends BasicParentService {
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getProductList(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds) throws IOException {
         int rt;
-        if(rlPdIds == null || rlPdIds.isEmpty()) {
-            rt = Errno.ARGS_ERROR;
-            Log.logErr("args error rlPdIds is empty;flow=%d;aid=%d;rlPdIds=%s;", flow, aid, rlPdIds);
-            return rt;
+        if(!MgProductCheck.RequestLimit.checkReadSize(aid, rlPdIds)) {
+            return Errno.SIZE_LIMIT;
         }
 
         FaiList<Param> relList;
@@ -183,10 +198,8 @@ public class ProductBasicService extends BasicParentService {
     @SuccessRt(value = Errno.OK)
     public int batchDelPdRelBind(FaiSession session, int flow ,int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, boolean softDel) throws IOException {
         int rt;
-        if(rlPdIds == null || rlPdIds.isEmpty()) {
-            rt = Errno.ARGS_ERROR;
-            Log.logErr("args error rlPdIds is empty;flow=%d;aid=%d;rlPdIds=%s;", flow, aid, rlPdIds);
-            return rt;
+        if(!MgProductCheck.RequestLimit.checkWriteSize(aid, rlPdIds)) {
+            return Errno.SIZE_LIMIT;
         }
         LockUtil.lock(aid);
         try {
@@ -281,10 +294,8 @@ public class ProductBasicService extends BasicParentService {
             return rt;
         }
 
-        if(rlPdIds == null || rlPdIds.isEmpty()) {
-            rt = Errno.ARGS_ERROR;
-            Log.logErr("args error, rlPdIds is empty;flow=%d;aid=%d;rlPdIds=%s;", flow, aid, rlPdIds);
-            return rt;
+        if(!MgProductCheck.RequestLimit.checkWriteSize(aid, rlPdIds)) {
+            return Errno.SIZE_LIMIT;
         }
         LockUtil.lock(aid);
         try {
@@ -333,6 +344,8 @@ public class ProductBasicService extends BasicParentService {
                         bindTagProc.delPdBindTagList(aid, pdIdList);
                     }
                 }
+
+                relProc.end(aid);
 
                 commit = true;
                 tc.commit();
@@ -614,6 +627,7 @@ public class ProductBasicService extends BasicParentService {
                     ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc, xid, true);
                     bindPropProc.updatePdBindProp(aid, unionPriId, sysType, rlPdId, pdId, rlProps);
                 }
+                relProc.end(aid);
                 commit = true;
                 tc.commit();
             } finally {
@@ -799,10 +813,8 @@ public class ProductBasicService extends BasicParentService {
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getPdListByPdIds(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> pdIds) throws IOException {
         int rt;
-        if(Utils.isEmptyList(pdIds)) {
-            rt = Errno.ARGS_ERROR;
-            Log.logErr("args error, pdIds is not valid;aid=%d;uid=%d;pdIds=%s;", aid, unionPriId, pdIds);
-            return rt;
+        if(MgProductCheck.RequestLimit.checkReadSize(aid, pdIds)) {
+            return Errno.SIZE_LIMIT;
         }
         FaiList<Param> list = new FaiList<>();
         //统一控制事务
@@ -904,10 +916,8 @@ public class ProductBasicService extends BasicParentService {
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getRelListByRlIds(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds) throws IOException {
         int rt;
-        if(rlPdIds == null || rlPdIds.isEmpty()) {
-            rt = Errno.ARGS_ERROR;
-            Log.logErr("args error, pdIds is empty;aid=%d;uid=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
-            return rt;
+        if(MgProductCheck.RequestLimit.checkReadSize(aid, rlPdIds)) {
+            return Errno.SIZE_LIMIT;
         }
 
         FaiList<Param> list;
@@ -941,10 +951,8 @@ public class ProductBasicService extends BasicParentService {
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getReducedRelsByPdIds(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> pdIds) throws IOException {
         int rt;
-        if(pdIds == null || pdIds.isEmpty()) {
-            rt = Errno.ARGS_ERROR;
-            Log.logErr("args error, pdIds is empty;aid=%d;uid=%d;pdIds=%s;", aid, unionPriId, pdIds);
-            return rt;
+        if(MgProductCheck.RequestLimit.checkReadSize(aid, pdIds)) {
+            return Errno.SIZE_LIMIT;
         }
 
         FaiList<Param> list;
@@ -1064,6 +1072,7 @@ public class ProductBasicService extends BasicParentService {
                     bindTagProc.addPdBindTagList(aid, unionPriId, sysType, rlPdId, pdId, rlTagIds);
                     Log.logStd("add bind rlTagIds ok;flow=%d;aid=%d;uid=%d;rlPdId=%d;pdId=%d;rlTagIds=%s;", flow, aid, unionPriId, rlPdId, pdId, rlTagIds);
                 }
+                relProc.end(aid);
 
                 commit = true;
             } finally {
@@ -1533,6 +1542,7 @@ public class ProductBasicService extends BasicParentService {
                     bindTagProc.addPdBindTagList(aid, unionPriId, sysType, rlPdId, pdId, rlTagIds);
                     Log.logStd("add bind rlTagIds ok;flow=%d;aid=%d;uid=%d;rlPdId=%d;pdId=%d;rlTagIds=%s;", flow, aid, unionPriId, rlPdId, pdId, rlTagIds);
                 }
+                relProc.end(aid);
 
                 commit = true;
             } finally {

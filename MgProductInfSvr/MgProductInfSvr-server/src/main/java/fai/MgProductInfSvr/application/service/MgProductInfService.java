@@ -85,7 +85,7 @@ public class MgProductInfService extends ServicePub {
      * 获取unionPriId, 返回值为unionPriId, 出错直接抛异常
      */
     protected int getUnionPriId(int flow, int aid, int tid, int siteId, int lgId, int keepPriId1) {
-        int rt = Errno.ERROR;
+        int rt;
         MgPrimaryKeyCli cli = new MgPrimaryKeyCli(flow);
         if(!cli.init()) {
             rt = Errno.ERROR;
@@ -141,6 +141,26 @@ public class MgProductInfService extends ServicePub {
             return rt;
         }
         return rt;
+    }
+    /**
+     * 根据unionPriIdList 获取主键信息
+     * @param tid
+     * @param unionPriIds
+     */
+    protected FaiList<Param> getPrimaryKeyListByUnionPriIds(int flow, int aid, int tid, FaiList<Integer> unionPriIds) {
+        int rt = Errno.ERROR;
+        MgPrimaryKeyCli cli = new MgPrimaryKeyCli(flow);
+        if(!cli.init()) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "init MgPrimaryKeyCli error");
+        }
+
+        FaiList<Param> list = new FaiList<>();
+        rt = cli.getListByUnionPriIds(unionPriIds, list);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "getListByUnionPriIds error;flow=%d;aid=%d;tid=%d;unionPriIds=%s;", flow, aid, tid, unionPriIds);
+        }
+        return list;
     }
 
     protected int getPrimaryKeyList(int flow, int aid, FaiList<Param> searchArgList, FaiList<Param> list) {

@@ -86,6 +86,7 @@ public class ProductBasicEntity {
         public static final String RL_GROUP_IDS = "rlGroupIds"; // 商品分类业务ids
         public static final String RL_TAG_IDS = "rlTagIds"; // 商品标签业务ids
         public static final String RL_PROPS = "rlProps"; // 商品参数绑定关系
+        public static final String BIND_BIZ = "bindBiz"; // 商品被哪些业务绑定了
 
         public static final String REMARK = "remark"; // 富文本(商品详情)
         public static final String REMARK1 = "remark1"; // 富文本1

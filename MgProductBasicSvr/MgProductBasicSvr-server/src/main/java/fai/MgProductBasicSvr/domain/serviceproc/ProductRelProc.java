@@ -31,6 +31,7 @@ public class ProductRelProc {
         if(!Str.isEmpty(m_xid)) {
             this.m_sagaDao = ProductRelSagaDaoCtrl.getInstance(flow, aid);
             this.addSaga = addSaga;
+            this.sagaMap = new HashMap<>();
         }
         init(tc);
     }
@@ -355,38 +356,7 @@ public class ProductRelProc {
 
         // 使用分布式事务时，记录下修改的数据及主键
         if(addSaga) {
-            FaiList<ParamUpdater> updaters = new FaiList<>();
-            updaters.add(updater);
-            Set<String> validUpdaterFields = Utils.validUpdaterList(updaters, ProductRelEntity.UPDATE_FIELDS, null);
-            // 加上主键信息，一起查出来
-            validUpdaterFields.add(ProductRelEntity.Info.AID);
-            validUpdaterFields.add(ProductRelEntity.Info.UNION_PRI_ID);
-            validUpdaterFields.add(ProductRelEntity.Info.PD_ID);
-
-            SearchArg searchArg = new SearchArg();
-            searchArg.matcher = matcher;
-            FaiList<Param> oldList = searchFromDb(aid, searchArg, new FaiList<>(validUpdaterFields));
-
-            if(oldList.isEmpty()) {
-                Log.logStd("update not found;aid=%d;matcher=%s;update=%s;", aid, matcher.toJson(), updater.toJson());
-                return 0;
-            }
-
-            Calendar now = Calendar.getInstance();
-            FaiList<Param> sagaList = new FaiList<>();
-            for(Param info : oldList) {
-                Param sagaInfo = new Param();
-                Utils.assign(sagaInfo, info, validUpdaterFields);
-
-                long branchId = RootContext.getBranchId();
-                sagaInfo.setString(SagaEntity.Common.XID, m_xid);
-                sagaInfo.setLong(SagaEntity.Common.BRANCH_ID, branchId);
-                sagaInfo.setInt(SagaEntity.Common.SAGA_OP, SagaValObj.SagaOp.UPDATE);
-                sagaInfo.setCalendar(SagaEntity.Common.SAGA_TIME, now);
-                sagaList.add(sagaInfo);
-            }
-            // 插入
-            addSagaList(aid, sagaList);
+            preAddUpdateSaga(aid, updater, matcher);
         }
 
         Ref<Integer> refRowCount = new Ref<>();
@@ -395,6 +365,86 @@ public class ProductRelProc {
             throw new MgException(rt, "updatePdRel error;flow=%d;aid=%d;", m_flow, aid);
         }
         return refRowCount.value;
+    }
+    // 预记录修改操作数据 for saga
+    private void preAddUpdateSaga(int aid, ParamUpdater updater, ParamMatcher matcher) {
+        FaiList<ParamUpdater> updaters = new FaiList<>();
+        updaters.add(updater);
+        Set<String> validUpdaterFields = new HashSet<>();
+        validUpdaterFields.addAll(ProductRelEntity.UPDATE_FIELDS);
+        // 加上主键信息，一起查出来
+        validUpdaterFields.add(ProductRelEntity.Info.AID);
+        validUpdaterFields.add(ProductRelEntity.Info.UNION_PRI_ID);
+        validUpdaterFields.add(ProductRelEntity.Info.PD_ID);
+
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        FaiList<Param> oldList = searchFromDb(aid, searchArg, new FaiList<>(validUpdaterFields));
+
+        if(oldList.isEmpty()) {
+            Log.logStd("update not found;aid=%d;matcher=%s;update=%s;", aid, matcher.toJson(), updater.toJson());
+            return;
+        }
+
+        Calendar now = Calendar.getInstance();
+        for(Param info : oldList) {
+            int unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
+            int pdId = info.getInt(ProductRelEntity.Info.PD_ID);
+            PrimaryKey primaryKey = new PrimaryKey(aid, unionPriId, pdId);
+            if(sagaMap.containsKey(primaryKey)) {
+                continue;
+            }
+
+            long branchId = RootContext.getBranchId();
+            info.setString(SagaEntity.Common.XID, m_xid);
+            info.setLong(SagaEntity.Common.BRANCH_ID, branchId);
+            info.setInt(SagaEntity.Common.SAGA_OP, SagaValObj.SagaOp.UPDATE);
+            info.setCalendar(SagaEntity.Common.SAGA_TIME, now);
+            sagaMap.put(primaryKey, info);
+        }
+    }
+    // 事务的最后调用
+    public void end(int aid) {
+        // db记录 修改操作 涉及的数据 for saga
+        if(addSaga && sagaMap != null && !sagaMap.isEmpty()) {
+            addSagaList(aid, new FaiList<>(sagaMap.values()));
+        }
+    }
+    private Map<PrimaryKey, Param> sagaMap;
+    private class PrimaryKey {
+        int aid;
+        int unionPirId;
+        int pdId;
+
+        public PrimaryKey(int aid, int unionPirId, int pdId) {
+            this.aid = aid;
+            this.unionPirId = unionPirId;
+            this.pdId = pdId;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            PrimaryKey that = (PrimaryKey) o;
+            return aid == that.aid &&
+                    unionPirId == that.unionPirId &&
+                    pdId == that.pdId;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(aid, unionPirId, pdId);
+        }
+
+        @Override
+        public String toString() {
+            return "PrimaryKey{" +
+                    "aid=" + aid +
+                    ", unionPirId=" + unionPirId +
+                    ", pdId=" + pdId +
+                    '}';
+        }
     }
 
     // saga补偿
@@ -407,14 +457,15 @@ public class ProductRelProc {
         // 按操作分类
         Map<Integer, List<Param>> groupBySagaOp = list.stream().collect(Collectors.groupingBy(x -> x.getInt(SagaEntity.Common.SAGA_OP)));
 
+        // 保证顺序：回滚删除操作 -> 回滚新增操作 -> 回滚修改操作
+        // 回滚删除操作
+        rollback4Delete(aid, groupBySagaOp.get(SagaValObj.SagaOp.DEL));
+
         // 回滚新增操作
         rollback4Add(aid, groupBySagaOp.get(SagaValObj.SagaOp.ADD));
 
         // 回滚修改操作
         rollback4Update(aid, groupBySagaOp.get(SagaValObj.SagaOp.UPDATE));
-
-        // 回滚删除操作
-        rollback4Delete(aid, groupBySagaOp.get(SagaValObj.SagaOp.DEL));
     }
 
     /**
@@ -680,6 +731,11 @@ public class ProductRelProc {
         FaiList<Param> list = getPdIdRels(aid, unionPriId, sysType, rlPdIds);
 
         return Utils.getValList(list, ProductRelEntity.Info.PD_ID);
+    }
+
+    public Map<Integer, Integer> getPdIdRelMap(int aid, int unionPriId, int sysType, HashSet<Integer> rlPdIds) {
+        FaiList<Param> list = getPdIdRels(aid, unionPriId, sysType, rlPdIds);
+        return Utils.getMap(list, ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID);
     }
 
     public FaiList<Param> getPdIdRels(int aid, int unionPriId, int sysType, HashSet<Integer> rlPdIds) {

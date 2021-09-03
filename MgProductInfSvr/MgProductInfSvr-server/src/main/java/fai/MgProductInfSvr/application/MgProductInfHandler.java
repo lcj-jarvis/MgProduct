@@ -514,6 +514,19 @@ public class MgProductInfHandler extends FaiHandler {
         return basicService.getProductList(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, rlPdIds);
     }
 
+    @Cmd(MgProductInfCmd.BasicCmd.GET_PD_BIND_BIZS)
+    public int getPdBindBizs(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid final int aid,
+                              @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
+                              @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
+                              @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
+                              @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
+                              @ArgBodyInteger(value = ProductBasicDto.Key.SYS_TYPE, useDefault = true) int sysType,
+                              @ArgList(keyMatch = ProductBasicDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
+        return basicService.getPdBindBiz(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, rlPdIds);
+    }
+
     @WrittenCmd
     @Cmd(MgProductInfCmd.ProductSpecSkuCmd.GET_SKU_CODE_LIST)
     public int getExistsSkuCodeList(final FaiSession session,

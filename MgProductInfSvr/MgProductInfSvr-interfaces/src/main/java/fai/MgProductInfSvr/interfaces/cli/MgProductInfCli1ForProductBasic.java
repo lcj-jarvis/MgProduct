@@ -6,6 +6,7 @@ import fai.MgProductInfSvr.interfaces.dto.MgProductSearchDto;
 import fai.MgProductInfSvr.interfaces.dto.ProductBasicDto;
 import fai.MgProductInfSvr.interfaces.dto.ProductStoreDto;
 import fai.MgProductInfSvr.interfaces.entity.MgProductEntity;
+import fai.MgProductInfSvr.interfaces.entity.ProductBasicValObj;
 import fai.MgProductInfSvr.interfaces.entity.ProductStoreEntity;
 import fai.MgProductInfSvr.interfaces.utils.MgProductArg;
 import fai.MgProductInfSvr.interfaces.utils.MgProductSearch;
@@ -248,7 +249,9 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
      *                 .setRlPdIds(rlPdIds) // 必填 商品业务id集合
+     *                 .setSysType(sysType)
      *                 .build();
+     * sysType: 类型 商品/服务/... {@link ProductBasicValObj.ProductValObj.SysType} 选填，默认为0
      * @param list 接收结果的集合
      * @return {@link Errno}
      */
@@ -276,6 +279,49 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             Ref<Integer> keyRef = new Ref<Integer>();
             m_rt = list.fromBuffer(recvBody, keyRef, ProductBasicDto.getProductDto());
             if (m_rt != Errno.OK || keyRef.value != ProductBasicDto.Key.PD_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    /**
+     * 根据rlPdIds获取商品在哪些业务下绑定了
+     * @param mgProductArg
+     *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *                 .setRlPdIds(rlPdIds) // 必填 商品业务id集合
+     *                 .build();
+     * @param list 接收结果的集合
+     * @return {@link Errno}
+     */
+    public int getPdBindBizs(MgProductArg mgProductArg, FaiList<Param> list) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            list.clear();
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            // packaging send data
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductBasicDto.Key.SYS_TYPE, mgProductArg.getSysType());
+            FaiList<Integer> rlPdIds = mgProductArg.getRlPdIds();
+            rlPdIds.toBuffer(sendBody, ProductBasicDto.Key.RL_PD_IDS);
+            int aid = mgProductArg.getAid();
+            // send and recv
+            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.GET_PD_BIND_BIZS, sendBody, true);
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = list.fromBuffer(recvBody, keyRef, ProductBasicDto.getBindBizDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductBasicDto.Key.PD_REL_INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
             }

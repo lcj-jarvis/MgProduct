@@ -813,7 +813,7 @@ public class ProductBasicService extends BasicParentService {
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getPdListByPdIds(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> pdIds) throws IOException {
         int rt;
-        if(MgProductCheck.RequestLimit.checkReadSize(aid, pdIds)) {
+        if(!MgProductCheck.RequestLimit.checkReadSize(aid, pdIds)) {
             return Errno.SIZE_LIMIT;
         }
         FaiList<Param> list = new FaiList<>();
@@ -916,7 +916,7 @@ public class ProductBasicService extends BasicParentService {
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getRelListByRlIds(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds) throws IOException {
         int rt;
-        if(MgProductCheck.RequestLimit.checkReadSize(aid, rlPdIds)) {
+        if(!MgProductCheck.RequestLimit.checkReadSize(aid, rlPdIds)) {
             return Errno.SIZE_LIMIT;
         }
 
@@ -951,7 +951,7 @@ public class ProductBasicService extends BasicParentService {
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getReducedRelsByPdIds(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> pdIds) throws IOException {
         int rt;
-        if(MgProductCheck.RequestLimit.checkReadSize(aid, pdIds)) {
+        if(!MgProductCheck.RequestLimit.checkReadSize(aid, pdIds)) {
             return Errno.SIZE_LIMIT;
         }
 

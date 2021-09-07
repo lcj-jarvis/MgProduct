@@ -1,5 +1,7 @@
 package fai.MgProductInfSvr.interfaces.cli;
 
+import fai.MgProductInfSvr.interfaces.dto.ProductSpecDto;
+import fai.MgProductInfSvr.interfaces.utils.MgProductArg;
 import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.Errno;
@@ -31,6 +33,14 @@ public class MgProductParentInfCli extends FaiClient {
             }
         }
         return sendBody;
+    }
+
+    public FaiBuffer getPrimaryKeyBuffer(MgProductArg mgProductArg){
+        int tid = mgProductArg.getTid();
+        int siteId = mgProductArg.getSiteId();
+        int lgId = mgProductArg.getLgId();
+        int keepPriId1 = mgProductArg.getKeepPriId1();
+        return getDefaultFaiBuffer(new Pair(ProductSpecDto.Key.TID, tid), new Pair(ProductSpecDto.Key.SITE_ID, siteId), new Pair(ProductSpecDto.Key.LGID, lgId), new Pair(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1));
     }
 
 

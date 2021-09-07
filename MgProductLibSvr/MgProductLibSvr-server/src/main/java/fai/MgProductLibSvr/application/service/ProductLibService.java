@@ -16,10 +16,10 @@ import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
-import fai.mgproduct.comm.Util;
 import fai.comm.middleground.app.CloneDef;
 import fai.middleground.svrutil.annotation.SuccessRt;
 import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.repository.BackupStatusCtrl;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
@@ -234,7 +234,7 @@ public class ProductLibService {
                 }
                 commit = true;
                 // commit之前设置10s过期时间，避免脏数据，保持一致性
-                if(!Util.isEmptyList(updaterList)) {
+                if(!Utils.isEmptyList(updaterList)) {
                     ProductLibRelCache.InfoCache.setExpire(aid, unionPriId);
                 }
                 if(!libUpdaterList.isEmpty()) {
@@ -244,7 +244,7 @@ public class ProductLibService {
                 if(commit) {
                     transactionCtrl.commit();
                     ProductLibCache.updateCacheList(aid, libUpdaterList);
-                    if(!Util.isEmptyList(updaterList)) {
+                    if(!Utils.isEmptyList(updaterList)) {
                         ProductLibRelCache.InfoCache.updateCacheList(aid, unionPriId, updaterList);
                         // 修改数据，更新dataStatus 的管理态字段更新时间
                         ProductLibRelCache.DataStatusCache.update(aid, unionPriId);
@@ -486,7 +486,7 @@ public class ProductLibService {
             ProductLibRelProc relLibProc = new ProductLibRelProc(flow, aid, tc);
             try {
                 // 删除
-                if (!Util.isEmptyList(delRlLibIds)) {
+                if (!Utils.isEmptyList(delRlLibIds)) {
                     // 先获取要删除的库id
                     delLibIdList = relLibProc.getLibIdsByRlLibIds(aid, unionPriId, delRlLibIds);
 
@@ -500,7 +500,7 @@ public class ProductLibService {
                 }
 
                 // 修改
-                if (!Util.isEmptyList(updaterList)) {
+                if (!Utils.isEmptyList(updaterList)) {
                     // 修改库业务关系表
                     relLibProc.setLibRelList(aid, unionPriId, updaterList, libUpdaterList);
 
@@ -511,7 +511,7 @@ public class ProductLibService {
                 }
 
                 // 添加
-                if (!Util.isEmptyList(addInfoList)) {
+                if (!Utils.isEmptyList(addInfoList)) {
                    maxSort = addLibBatch(flow, aid, unionPriId, tid, libProc, relLibProc,
                                 addInfoList, libInfoList, relInfoList, rlLibIds);
                 }
@@ -528,7 +528,7 @@ public class ProductLibService {
             }
 
             // 处理缓存
-            if (!Util.isEmptyList(delRlLibIds)) {
+            if (!Utils.isEmptyList(delRlLibIds)) {
                 // 设置过期时间
                 ProductLibCache.setExpire(aid);
                 ProductLibRelCache.InfoCache.setExpire(aid, unionPriId);
@@ -537,11 +537,11 @@ public class ProductLibService {
                 ProductLibRelCache.DataStatusCache.update(aid, unionPriId, delRlLibIds.size(), false);
             }
 
-            if (!Util.isEmptyList(updaterList)) {
+            if (!Utils.isEmptyList(updaterList)) {
                 // 设置过期时间
                 ProductLibCache.setExpire(aid);
                 ProductLibCache.updateCacheList(aid, libUpdaterList);
-                if(!Util.isEmptyList(updaterList)) {
+                if(!Utils.isEmptyList(updaterList)) {
                     ProductLibRelCache.InfoCache.setExpire(aid, unionPriId);
                     ProductLibRelCache.InfoCache.updateCacheList(aid, unionPriId, updaterList);
                     // 修改数据，更新dataStatus 的管理态字段更新时间
@@ -549,7 +549,7 @@ public class ProductLibService {
                 }
             }
 
-            boolean isSuccess = !(Util.isEmptyList(libInfoList) && Util.isEmptyList(relInfoList));
+            boolean isSuccess = !(Utils.isEmptyList(libInfoList) && Utils.isEmptyList(relInfoList));
             if (isSuccess) {
                 //设置过期时间
                 ProductLibCache.setExpire(aid);
@@ -570,7 +570,7 @@ public class ProductLibService {
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
 
-        if (!Util.isEmptyList(addInfoList)) {
+        if (!Utils.isEmptyList(addInfoList)) {
            rlLibIds.toBuffer(sendBuf, ProductLibRelDto.Key.RL_LIB_IDS);
         }
         session.write(sendBuf);
@@ -615,7 +615,7 @@ public class ProductLibService {
 
     private void doClone(int flow, int toAid, int fromAid, FaiList<Param> cloneUnionPriIds, boolean incrementalClone) {
         int rt;
-        if(Util.isEmptyList(cloneUnionPriIds)) {
+        if(Utils.isEmptyList(cloneUnionPriIds)) {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "args error, cloneUnionPriIds is empty;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
         }
@@ -770,20 +770,21 @@ public class ProductLibService {
         int rt;
         LockUtil.BackupLock.lock(aid);
         try {
-            if (checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.BACKUP, aid, backupInfo)) {
+            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID);
+            if (checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.BACKUP, aid, backupId)) {
                 FaiBuffer sendBuf = new FaiBuffer(true);
                 session.write(sendBuf);
                 return Errno.OK;
             }
 
-            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
             int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
             TransactionCtrl tc = new TransactionCtrl();
-            ProductLibRelProc relProc = new ProductLibRelProc(flow, aid, tc);
-            ProductLibProc proc = new ProductLibProc(flow, aid, tc);
             boolean commit = false;
             try {
                 tc.setAutoCommit(false);
+
+                ProductLibRelProc relProc = new ProductLibRelProc(flow, aid, tc);
+                ProductLibProc proc = new ProductLibProc(flow, aid, tc);
 
                 // 可能之前备份没有成功，先操作删除之前的备份
                 deleteBackupData(relProc, proc, aid, backupId, backupFlag);
@@ -823,42 +824,46 @@ public class ProductLibService {
     }
 
     @SuccessRt(value = Errno.OK)
-    public int restoreBackupData(FaiSession session, int flow, int aid, FaiList<Integer> unionPriIds, Param backupInfo) throws IOException {
+    public int restoreBackupData(FaiSession session, int flow, int aid, FaiList<Integer> unionPriIds, int restoreId, Param backupInfo) throws IOException {
         if (verifyBackupArgs(flow, aid, unionPriIds, backupInfo, true)) {
+            return Errno.ARGS_ERROR;
+        }
+        if(restoreId <= 0) {
+            Log.logErr("args error, restoreId error;flow=%d;aid=%d;unionPriIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPriIds, restoreId, backupInfo);
             return Errno.ARGS_ERROR;
         }
         int rt;
         LockUtil.BackupLock.lock(aid);
         try {
-            if (checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.RESTORE, aid, backupInfo)) {
+            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID);
+            if (checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.RESTORE, aid, restoreId)) {
                 FaiBuffer sendBuf = new FaiBuffer(true);
                 session.write(sendBuf);
                 return Errno.OK;
             }
 
-            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
             int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
-            TransactionCtrl tc = new TransactionCtrl();
-            ProductLibRelProc relProc = new ProductLibRelProc(flow, aid, tc);
-            ProductLibProc proc = new ProductLibProc(flow, aid, tc);
             boolean commit = false;
+            TransactionCtrl tc = new TransactionCtrl();
             try {
                 tc.setAutoCommit(false);
 
                 // 还原关系表数据
+                ProductLibRelProc relProc = new ProductLibRelProc(flow, aid, tc);
                 relProc.restoreBackupData(aid, unionPriIds, backupId, backupFlag);
 
                 // 还原库表数据
+                ProductLibProc proc = new ProductLibProc(flow, aid, tc);
                 proc.restoreBackupData(aid, unionPriIds, backupId, backupFlag);
 
                 commit = true;
             }finally {
                 if(commit) {
                     tc.commit();
-                    backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.RESTORE, aid, backupId);
+                    backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.RESTORE, aid, restoreId);
                 }else {
                     tc.rollback();
-                    backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.RESTORE, aid, backupId);
+                    backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.RESTORE, aid, restoreId);
                 }
                 tc.closeDao();
             }
@@ -882,13 +887,13 @@ public class ProductLibService {
         int rt;
         LockUtil.BackupLock.lock(aid);
         try {
-            if (checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.DELETE, aid, backupInfo)) {
+            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID);
+            if (checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.DELETE, aid, backupId)) {
                 FaiBuffer sendBuf = new FaiBuffer(true);
                 session.write(sendBuf);
                 return Errno.OK;
             }
 
-            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
             int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
             TransactionCtrl tc = new TransactionCtrl();
             ProductLibRelProc relProc = new ProductLibRelProc(flow, aid, tc);
@@ -936,31 +941,30 @@ public class ProductLibService {
         }
 
         if (needVerifyUnionPriIds) {
-            if(Util.isEmptyList(unionPriIds)) {
+            if(Utils.isEmptyList(unionPriIds)) {
                 throw new MgException(Errno.ARGS_ERROR, "uids is empty;aid=%d;uids=%s;backupId=%d;backupFlag=%d;", aid, unionPriIds, backupId, backupFlag);
             }
         }
         return false;
     }
 
-    private boolean checkAndSetBackupStatus(int flow, BackupStatusCtrl.Action action, int aid, Param backupInfo) {
-        int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
-        String backupStatus = backupStatusCtrl.getStatus(action, aid, backupId);
+    private boolean checkAndSetBackupStatus(int flow, BackupStatusCtrl.Action action, int aid, int actionId) {
+        String backupStatus = backupStatusCtrl.getStatus(action, aid, actionId);
         if (backupStatus != null) {
             int rt = Errno.ALREADY_EXISTED;
             if (backupStatusCtrl.isDoing(backupStatus)) {
-                throw new MgException(rt, action + " is doing;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+                throw new MgException(rt, action + " is doing;flow=%d;aid=%d;id=%s;", flow, aid, actionId);
             } else if (backupStatusCtrl.isFinish(backupStatus)) {
                 rt = Errno.OK;
-                Log.logStd(rt, action + " is already ok;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+                Log.logStd(rt, action + " is already ok;flow=%d;aid=%d;id=%s;", flow, aid, actionId);
                 return true;
             } else if (backupStatusCtrl.isFail(backupStatus)) {
-                Log.logStd(rt, action + " is fail, going retry;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+                Log.logStd(rt, action + " is fail, going retry;flow=%d;aid=%d;id=%s;", flow, aid, actionId);
                 return false;
             }
         }
         // 设置备份执行中
-        backupStatusCtrl.setStatusIsDoing(action, aid, backupId);
+        backupStatusCtrl.setStatusIsDoing(action, aid, actionId);
         return false;
     }
 

@@ -490,18 +490,6 @@ public class MgProductLibCli extends FaiClient {
     }
 
     public int backupData(int aid, FaiList<Integer> unionPriIds, Param backupInfo) {
-        return operateBackup(aid, unionPriIds, backupInfo, MgProductLibCmd.LibCmd.BACKUP);
-    }
-
-    public int restoreBackupData(int aid, FaiList<Integer> unionPriIds, Param backupInfo) {
-        return operateBackup(aid, unionPriIds, backupInfo, MgProductLibCmd.LibCmd.RESTORE);
-    }
-
-    public int delBackupData(int aid, Param backupInfo) {
-        return operateBackup(aid, null, backupInfo, MgProductLibCmd.LibCmd.DEL_BACKUP);
-    }
-
-    private int operateBackup(int aid, FaiList<Integer> unionPriIds, Param backupInfo, int cmd) {
         if (!useProductLib()) {
             return Errno.OK;
         }
@@ -515,11 +503,9 @@ public class MgProductLibCli extends FaiClient {
             }
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
-            if (!Util.isEmptyList(unionPriIds)) {
-                unionPriIds.toBuffer(sendBody, ProductLibRelDto.Key.UNION_PRI_ID);
-            }
+            unionPriIds.toBuffer(sendBody, ProductLibRelDto.Key.UNION_PRI_ID);
             backupInfo.toBuffer(sendBody, ProductLibRelDto.Key.BACKUP_INFO, MgBackupDto.getInfoDto());
-            sendAndReceive(aid, cmd, sendBody, false);
+            sendAndReceive(aid, MgProductLibCmd.LibCmd.BACKUP, sendBody, false);
             m_rt = Errno.OK;
             return m_rt;
         } finally {
@@ -528,6 +514,55 @@ public class MgProductLibCli extends FaiClient {
         }
     }
 
+    public int restoreBackupData(int aid, FaiList<Integer> unionPriIds, int restoreId, Param backupInfo) {
+        if (!useProductLib()) {
+            return Errno.OK;
+        }
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0 || Util.isEmptyList(unionPriIds) || Str.isEmpty(backupInfo)) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;aid=%d;uids=%s;backupInfo=%s;", aid, unionPriIds, backupInfo);
+                return m_rt;
+            }
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            unionPriIds.toBuffer(sendBody, ProductLibRelDto.Key.UNION_PRI_ID);
+            sendBody.putInt(ProductLibRelDto.Key.RESTORE_ID, restoreId);
+            backupInfo.toBuffer(sendBody, ProductLibRelDto.Key.BACKUP_INFO, MgBackupDto.getInfoDto());
+            sendAndReceive(aid, MgProductLibCmd.LibCmd.RESTORE, sendBody, false);
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    public int delBackupData(int aid, Param backupInfo) {
+        if (!useProductLib()) {
+            return Errno.OK;
+        }
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0 || Str.isEmpty(backupInfo)) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;aid=%d;backupInfo=%s;", aid, backupInfo);
+                return m_rt;
+            }
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            backupInfo.toBuffer(sendBody, ProductLibRelDto.Key.BACKUP_INFO, MgBackupDto.getInfoDto());
+            sendAndReceive(aid, MgProductLibCmd.LibCmd.DEL_BACKUP, sendBody, false);
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
 
     /**
      * 发送和接收数据，并且验证发送和接收是否成功

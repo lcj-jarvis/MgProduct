@@ -295,7 +295,7 @@ public class ProductSpecService extends ServicePub {
 
             Map<ProductSpecValKey, ProductSpecValKey> oldNewProductSpecValKeyMap = new HashMap<>();
             if(hasSet){
-                rt = checkAndReplaceUpdaterList(flow, aid, pdId, updaterList, oldNewProductSpecValKeyMap);
+                rt = checkAndReplaceUpdaterList(flow, aid, pdId, updaterList, oldNewProductSpecValKeyMap, isSaga);
                 if(rt != Errno.OK){
                     return rt;
                 }
@@ -556,12 +556,8 @@ public class ProductSpecService extends ServicePub {
                     Ref<FaiList<Param>> specSkuSagaOpListRef = new Ref<>();
                     Ref<FaiList<Param>> specSkuCodeSagaOpListRef = new Ref<>();
                     rt = getSagaOpList(xid, branchId, productSpecProc, productSpecSkuProc, productSpecSkuCodeProc, null, specSagaOpListRef, specSkuSagaOpListRef, specSkuCodeSagaOpListRef, null);
-                    if (rt != Errno.OK) {
-                        if (rt == Errno.NOT_FOUND) {
-                            commit = true;
-                            Log.logStd("sagaOpList is empty");
-                            rt = Errno.OK;
-                        }
+                    if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                        Log.logErr("get sagaOpList err;xid=%s;branchId=%s", xid, branchId);
                         return rt;
                     }
                     FaiList<Param> specSagaOpList = specSagaOpListRef.value;
@@ -581,7 +577,7 @@ public class ProductSpecService extends ServicePub {
                         FaiList<Param> delSagaOpList = new FaiList<>();
                         FaiList<Param> modifySagaOpList = new FaiList<>();
                         // 做数据区分，之前的操作可能有软删除，修改，以及新增
-                        diffSagaOpList(specSagaOpList, addSagaOpList, delSagaOpList, modifySagaOpList);
+                        diffSagaOpList(specSkuSagaOpList, addSagaOpList, delSagaOpList, modifySagaOpList);
                         // 补偿添加的数据
                         if (!fai.middleground.svrutil.misc.Utils.isEmptyList(addSagaOpList)) {
                             rt = productSpecSkuProc.batchAddRollback(aid, addSagaOpList);
@@ -783,12 +779,8 @@ public class ProductSpecService extends ServicePub {
                     Ref<FaiList<Param>> specSkuSagaOpListRef = new Ref<>();
                     Ref<FaiList<Param>> specSkuCodeSagaOpListRef = new Ref<>();
                     rt = getSagaOpList(xid, branchId, productSpecProc, productSpecSkuProc, productSpecSkuCodeProc, null, specSagaOpListRef, specSkuSagaOpListRef, specSkuCodeSagaOpListRef, null);
-                    if (rt != Errno.OK) {
-                        if (rt == Errno.NOT_FOUND) {
-                            commit = true;
-                            Log.logStd("sagaOpList is empty");
-                            rt = Errno.OK;
-                        }
+                    if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                        Log.logErr("get sagaOpList err;xid=%s;branchId=%s", xid, branchId);
                         return rt;
                     }
                     FaiList<Param> specSagaOpList = specSagaOpListRef.value;
@@ -1324,12 +1316,8 @@ public class ProductSpecService extends ServicePub {
                         Ref<FaiList<Param>> specSkuSagaOpListRef = new Ref<>();
                         Ref<FaiList<Param>> specSkuCodeSagaOpListRef = new Ref<>();
                         rt = getSagaOpList(xid, branchId, null, productSpecSkuProc, productSpecSkuCodeProc, specStrProc, null, specSkuSagaOpListRef, specSkuCodeSagaOpListRef, specStrSagaOpListRef);
-                        if (rt != Errno.OK) {
-                            if (rt == Errno.NOT_FOUND) {
-                                commit = true;
-                                Log.logStd("sagaOpList is empty");
-                                rt = Errno.OK;
-                            }
+                        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                            Log.logErr("get sagaOpList err;xid=%s;branchId=%s", xid, branchId);
                             return rt;
                         }
                         FaiList<Param> specStrSagaOpList = specStrSagaOpListRef.value;
@@ -1901,10 +1889,12 @@ public class ProductSpecService extends ServicePub {
     public int importPdScWithSku(FaiSession session, int flow, int aid, String xid, int tid, int unionPriId, FaiList<Param> specList, FaiList<Param> specSkuList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
+        // 开启分布式事务标志
+        boolean isSaga = !Str.isEmpty(xid);
         try {
             Param nameIdMap = new Param(true);
             // 检查并替换商品规格的名称和规格值，例：橙色 -> 15 (scStrId)，nameIdMap 是 名称为 key，规格字符串id为 value (橙色:15)
-            rt = checkAndReplaceAddPdScInfoList(flow, aid, tid, unionPriId, null, specList, nameIdMap, false);
+            rt = checkAndReplaceAddPdScInfoList(flow, aid, tid, unionPriId, null, specList, nameIdMap, isSaga);
             if(rt != Errno.OK){
                 return rt;
             }
@@ -2006,8 +1996,6 @@ public class ProductSpecService extends ServicePub {
                 try {
                     LockUtil.lock(aid);
                     try {
-                        // 开启分布式事务标志
-                        boolean isSaga = !Str.isEmpty(xid);
                         transactionCtrl.setAutoCommit(false);
                         // 添加 商品规格表数据 mgProductSpec_0xxx
                         rt = productSpecProc.batchAdd(aid, pdIdSpecListMap, null, isSaga);
@@ -2148,12 +2136,8 @@ public class ProductSpecService extends ServicePub {
                         Ref<FaiList<Param>> specSkuSagaOpListRef = new Ref<>();
                         Ref<FaiList<Param>> specSkuCodeSagaOpListRef = new Ref<>();
                         rt = getSagaOpList(xid, branchId, productSpecProc, productSpecSkuProc, productSpecSkuCodeProc, null, specSagaOpListRef, specSkuSagaOpListRef, specSkuCodeSagaOpListRef, null);
-                        if (rt != Errno.OK) {
-                            if (rt == Errno.NOT_FOUND) {
-                                commit = true;
-                                Log.logStd("sagaOpList is empty");
-                                rt = Errno.OK;
-                            }
+                        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                            Log.logErr("get sagaOpList err;xid=%s;branchId=%s", xid, branchId);
                             return rt;
                         }
                         FaiList<Param> specSagaOpList = specSagaOpListRef.value;
@@ -2515,7 +2499,7 @@ public class ProductSpecService extends ServicePub {
     /**
      * 这里只替换 产品规格名称，规格值不替换！
      */
-    private int checkAndReplaceUpdaterList(int flow, int aid, int pdId, FaiList<ParamUpdater> updaterList, Map<ProductSpecValKey, ProductSpecValKey> oldNewProductSpecValKeyMap) {
+    private int checkAndReplaceUpdaterList(int flow, int aid, int pdId, FaiList<ParamUpdater> updaterList, Map<ProductSpecValKey, ProductSpecValKey> oldNewProductSpecValKeyMap, boolean isSaga) {
         Set<String> specStrNameSet = new HashSet<>();
         for (ParamUpdater updater : updaterList) {
             Param data = updater.getData();
@@ -2552,7 +2536,7 @@ public class ProductSpecService extends ServicePub {
             SpecStrProc specStrProc = new SpecStrProc(specStrDaoCtrl, flow);
             try {
                 LockUtil.lock(aid);
-                int rt = specStrProc.getListWithBatchAdd(aid, new FaiList<>(specStrNameSet), nameIdMap);
+                int rt = specStrProc.getListWithBatchAdd(aid, new FaiList<>(specStrNameSet), nameIdMap, isSaga);
                 if(rt != Errno.OK){
                     return rt;
                 }
@@ -2810,8 +2794,8 @@ public class ProductSpecService extends ServicePub {
     /**
      * 公共 — 获取 Saga 操作记录
      *
-     * @param xid
-     * @param branchId
+     * @param xid 分布式事务全局id
+     * @param branchId 分布式事务分支id
      * @param specProc 业务 proc
      * @param specSkuProc 业务 proc
      * @param specSkuCodeProc 业务 proc

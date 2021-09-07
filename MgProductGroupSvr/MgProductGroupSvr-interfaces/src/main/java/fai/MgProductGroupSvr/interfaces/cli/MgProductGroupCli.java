@@ -755,7 +755,7 @@ public class MgProductGroupCli extends FaiClient {
         }
     }
 
-    public int restoreBackupData(int aid, FaiList<Integer> unionPriIds, Param backupInfo) {
+    public int restoreBackupData(int aid, FaiList<Integer> unionPriIds, int restoreId, Param backupInfo) {
         if (!useProductGroup()) {
             return Errno.OK;
         }
@@ -771,6 +771,7 @@ public class MgProductGroupCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             unionPriIds.toBuffer(sendBody, ProductGroupRelDto.Key.UNION_PRI_ID);
+            sendBody.putInt(ProductGroupRelDto.Key.RESTORE_ID, restoreId);
             backupInfo.toBuffer(sendBody, ProductGroupRelDto.Key.BACKUP_INFO, MgBackupDto.getInfoDto());
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setAid(aid);

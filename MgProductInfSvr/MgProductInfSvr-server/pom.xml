@@ -109,12 +109,6 @@
         </dependency>
 
         <dependency>
-            <groupId>fai-comm-cache</groupId>
-            <artifactId>fai-comm-cache</artifactId>
-            <version>${fai-comm-cache-ver}</version>
-        </dependency>
-
-        <dependency>
             <groupId>fai-comm-distributedkit</groupId>
             <artifactId>fai-comm-distributedkit</artifactId>
             <version>${fai-comm-distributedkit-ver}</version>

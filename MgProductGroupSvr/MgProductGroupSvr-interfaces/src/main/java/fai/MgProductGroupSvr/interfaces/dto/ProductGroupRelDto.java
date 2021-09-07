@@ -96,5 +96,6 @@ public class ProductGroupRelDto {
         public static final int SOFT_DEL = 16;
         public static final int SYS_TYPE = 17;
         public static final int GROUP_LEVEL = 18;
+        public static final int RESTORE_ID = 19;
     }
 }

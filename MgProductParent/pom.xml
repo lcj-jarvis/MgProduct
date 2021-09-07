@@ -35,7 +35,7 @@
         <fai-comm-netkit-ver>1.0.0</fai-comm-netkit-ver>
         <fai-comm-config-ver>1.0.0</fai-comm-config-ver>
         <fai-comm-mq-ver>1.0.1</fai-comm-mq-ver>
-        <fai-comm-cache-ver>1.0.0</fai-comm-cache-ver>
+        <fai-comm-cache-ver>1.0.5</fai-comm-cache-ver>
         <fai-comm-jnetkit-ver>1.1.2</fai-comm-jnetkit-ver>
         <fai-comm-mskit-ver>1.0.0</fai-comm-mskit-ver>
         <fai-comm-zkcli-ver>1.0.0</fai-comm-zkcli-ver>
@@ -54,7 +54,7 @@
         <fai-middleground-svrutil-ver>[1.0.0, 2.0.0)</fai-middleground-svrutil-ver>
         <MgCommon-MgPrimaryKeySvr-interfaces-ver>[1.0.0, 2.0.0)</MgCommon-MgPrimaryKeySvr-interfaces-ver>
         <MgCommon-MgBackupSvr-interfaces-ver>[1.0.0, 2.0.0)</MgCommon-MgBackupSvr-interfaces-ver>
-        <MgProduct-MgProductInfSvr-interfaces-ver>1.0.0</MgProduct-MgProductInfSvr-interfaces-ver>
+        <MgProduct-MgProductInfSvr-interfaces-ver>[1.0.0, 2.0.0)</MgProduct-MgProductInfSvr-interfaces-ver>
         <MgProduct-MgProductPropSvr-interfaces-ver>1.0.0</MgProduct-MgProductPropSvr-interfaces-ver>
         <MgProduct-MgProductSearchSvr-interfaces-ver>1.0.0</MgProduct-MgProductSearchSvr-interfaces-ver>
         <MgProduct-MgProductBasicSvr-interfaces-ver>1.0.0</MgProduct-MgProductBasicSvr-interfaces-ver>

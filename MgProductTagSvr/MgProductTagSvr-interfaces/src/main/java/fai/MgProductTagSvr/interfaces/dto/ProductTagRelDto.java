@@ -70,5 +70,6 @@ public class ProductTagRelDto {
         public static final int FROM_UNION_PRI_ID = 14;
 
         public static final int BACKUP_INFO = 15;
+        public static final int RESTORE_ID = 16;
     }
 }

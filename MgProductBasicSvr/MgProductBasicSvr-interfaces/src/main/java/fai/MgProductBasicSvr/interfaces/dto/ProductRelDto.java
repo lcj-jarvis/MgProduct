@@ -8,6 +8,7 @@ public class ProductRelDto {
     private static ParamDef g_infoDtoDef = new ParamDef();
     private static ParamDef g_reducedInfoDtoDef = new ParamDef();
     private static ParamDef g_relAndPdDtoDef = new ParamDef();
+    private static ParamDef g_getPdBindBizDef = new ParamDef();
 
     private static ParamDef g_tmpBindRef = new ParamDef(); // 给悦客接入进销存临时使用的
 
@@ -79,6 +80,11 @@ public class ProductRelDto {
     }
 
     static {
+        g_getPdBindBizDef.add(ProductRelEntity.Info.RL_PD_ID, 0);
+        g_getPdBindBizDef.add(ProductRelEntity.Info.BIND_LIST, 1, g_reducedInfoDtoDef);
+    }
+
+    static {
         g_tmpBindRef.add(ProductRelEntity.Info.PD_ID, 0);
         g_tmpBindRef.add(ProductRelEntity.Info.BIND_LIST, 1, g_relAndPdDtoDef);
     }
@@ -93,6 +99,10 @@ public class ProductRelDto {
 
     public static ParamDef getRelAndPdDto() {
         return g_relAndPdDtoDef;
+    }
+
+    public static ParamDef getPdBindBizDto() {
+        return g_getPdBindBizDef;
     }
 
     public static ParamDef getTmpBindDto() {

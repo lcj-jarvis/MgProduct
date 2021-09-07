@@ -227,6 +227,54 @@ public class ProductBasicService extends MgProductInfService {
     }
 
     /**
+     * 获取商品数据（商品表+业务表）
+     */
+    @SuccessRt(Errno.OK)
+    public int getPdBindBiz(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, FaiList<Integer> rlPdIds) throws IOException {
+        int rt;
+        if (!FaiValObj.TermId.isValidTid(tid)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+            return rt;
+        }
+        if (Utils.isEmptyList(rlPdIds)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args error, rlPdIds is empty;flow=%d;aid=%d;", flow, aid);
+            return rt;
+        }
+        // 获取unionPriId
+        int unionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
+
+        ProductBasicProc basicProc = new ProductBasicProc(flow);
+        FaiList<Param> list = basicProc.getPdBindBiz(aid, unionPriId, sysType, rlPdIds);
+        HashSet<Integer> unionPriIds = new HashSet<>();
+        for(Param info : list) {
+            unionPriIds.addAll(info.getList(ProductRelEntity.Info.BIND_LIST));
+        }
+
+        FaiList<Param> primaryKeys = getPrimaryKeyListByUnionPriIds(flow, aid, tid, new FaiList<>(unionPriIds));
+        Map<Integer, Param> unionPriId_biz = Utils.getMap(primaryKeys, ProductRelEntity.Info.UNION_PRI_ID);
+        for(Param info : list) {
+            FaiList<Integer> curUnionPriIds = info.getList(ProductRelEntity.Info.BIND_LIST);
+            FaiList<Param> bizList = new FaiList<>();
+            for(int curUid : curUnionPriIds) {
+                Param bizInfo = unionPriId_biz.get(curUid);
+                bizList.add(bizInfo);
+            }
+            info.setList(ProductRelEntity.Info.BIND_BIZ, bizList);
+        }
+        System.out.println(list);
+
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        list.toBuffer(sendBuf, ProductBasicDto.Key.PD_REL_INFO_LIST, ProductBasicDto.getBindBizDto());
+        session.write(sendBuf);
+        Log.logDbg("get ok;flow=%d;aid=%d;unionPriId=%d;rlPdIds=%s;", flow, aid, unionPriId, rlPdIds);
+
+        rt = Errno.OK;
+        return rt;
+    }
+
+    /**
      * 新增商品数据，并添加与当前unionPriId的关联
      */
     public int addProductAndRel(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, Param info) throws IOException {

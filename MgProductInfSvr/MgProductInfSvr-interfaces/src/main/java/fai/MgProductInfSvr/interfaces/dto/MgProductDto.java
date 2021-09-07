@@ -105,5 +105,6 @@ public class MgProductDto {
         public static final int PD_ID = 21;
         public static final int SYS_TYPE = 22;
         public static final int TOTAL = 23;
+        public static final int RL_RESTOREID = 24;
     }
 }

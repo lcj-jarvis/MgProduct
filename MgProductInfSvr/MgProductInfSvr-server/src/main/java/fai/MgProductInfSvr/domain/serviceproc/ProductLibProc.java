@@ -143,10 +143,10 @@ public class ProductLibProc {
      * @param unionPriIds
      * @param backupInfo
      */
-    public void restoreBackup(int aid, FaiList<Integer> unionPriIds, Param backupInfo) {
-        int rt = m_cli.restoreBackupData(aid, unionPriIds, backupInfo);
+    public void restoreBackup(int aid, FaiList<Integer> unionPriIds, int restoreId, Param backupInfo) {
+        int rt = m_cli.restoreBackupData(aid, unionPriIds, restoreId, backupInfo);
         if (rt != Errno.OK) {
-            throw new MgException(rt, "restoreBackup error;flow=%d;aid=%d;uid=%s;backupInfo=%s;", m_flow, aid, unionPriIds, backupInfo);
+            throw new MgException(rt, "restoreBackup error;flow=%d;aid=%d;uid=%s;restoreId=%s;backupInfo=%s;", m_flow, aid, unionPriIds, restoreId, backupInfo);
         }
     }
 

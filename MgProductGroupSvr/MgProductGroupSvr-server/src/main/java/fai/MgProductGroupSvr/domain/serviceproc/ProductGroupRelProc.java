@@ -437,6 +437,7 @@ public class ProductGroupRelProc {
         // 查出备份数据
         SearchArg bakSearchArg = new SearchArg();
         bakSearchArg.matcher = new ParamMatcher(MgBackupEntity.Comm.BACKUP_ID_FLAG, ParamMatcher.LAND, backupFlag, backupFlag);
+        bakSearchArg.matcher.and(ProductGroupRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
         FaiList<Param> fromList = searchBakList(aid, bakSearchArg);
         for(Param fromInfo : fromList) {
             fromInfo.remove(MgBackupEntity.Comm.BACKUP_ID);

@@ -894,11 +894,11 @@ public class ProductGroupService extends ServicePub {
     }
 
     @SuccessRt(Errno.OK)
-    public int restoreBackupData(FaiSession session, int flow, int aid, FaiList<Integer> unionPirIds, Param backupInfo) throws IOException {
+    public int restoreBackupData(FaiSession session, int flow, int aid, FaiList<Integer> unionPirIds, int restoreId, Param backupInfo) throws IOException {
         int rt;
         if(aid <= 0 || Str.isEmpty(backupInfo)) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr("args error;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+            Log.logErr("args error;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
             return rt;
         }
 
@@ -906,30 +906,30 @@ public class ProductGroupService extends ServicePub {
         int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
         if(backupId == 0 || backupFlag == 0) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr("args error, backupInfo error;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+            Log.logErr("args error, backupInfo error;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
             return rt;
         }
 
         LockUtil.BackupLock.lock(aid);
         try {
-            String backupStatus = backupStatusCtrl.getStatus(BackupStatusCtrl.Action.RESTORE, aid, backupId);
+            String backupStatus = backupStatusCtrl.getStatus(BackupStatusCtrl.Action.RESTORE, aid, restoreId);
             if(backupStatus != null) {
                 if(backupStatusCtrl.isDoing(backupStatus)) {
                     rt = Errno.ALREADY_EXISTED;
-                    throw new MgException(rt, "restore is doing;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+                    throw new MgException(rt, "restore is doing;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
                 }else if(backupStatusCtrl.isFinish(backupStatus)) {
                     rt = Errno.OK;
-                    Log.logStd(rt, "restore is already ok;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+                    Log.logStd(rt, "restore is already ok;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
                     FaiBuffer sendBuf = new FaiBuffer(true);
                     session.write(sendBuf);
                     return Errno.OK;
                 }else if(backupStatusCtrl.isFail(backupStatus)) {
                     rt = Errno.ALREADY_EXISTED;
-                    Log.logStd(rt, "restore is fail, going retry;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+                    Log.logStd(rt, "restore is fail, going retry;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
                 }
             }
             // 设置备份执行中
-            backupStatusCtrl.setStatusIsDoing(BackupStatusCtrl.Action.RESTORE, aid, backupId);
+            backupStatusCtrl.setStatusIsDoing(BackupStatusCtrl.Action.RESTORE, aid, restoreId);
 
             TransactionCtrl tc = new TransactionCtrl();
             ProductGroupRelProc relProc = new ProductGroupRelProc(flow, aid, tc);
@@ -948,10 +948,10 @@ public class ProductGroupService extends ServicePub {
             }finally {
                 if(commit) {
                     tc.commit();
-                    backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.RESTORE, aid, backupId);
+                    backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.RESTORE, aid, restoreId);
                 }else {
                     tc.rollback();
-                    backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.RESTORE, aid, backupId);
+                    backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.RESTORE, aid, restoreId);
                 }
                 tc.closeDao();
             }
@@ -962,7 +962,7 @@ public class ProductGroupService extends ServicePub {
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
         session.write(sendBuf);
-        Log.logStd("restore backupData ok;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+        Log.logStd("restore backupData ok;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
         return rt;
     }
 

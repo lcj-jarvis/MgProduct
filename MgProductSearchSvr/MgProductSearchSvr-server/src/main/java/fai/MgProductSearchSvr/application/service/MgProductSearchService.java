@@ -924,17 +924,6 @@ public class MgProductSearchService {
             // 将最终结果转化为pdIdList，添加到缓存
             FaiList<Integer> idList = searchProc.toIdList(finalResultList, ProductEntity.Info.PD_ID);
 
-            // log输出太长了，不方便查看。测试输出便于查看。
-            /*searchSorterInfoList.forEach(searchInfo -> {
-                System.out.println("搜索的表：" + searchInfo.getString(MgProductSearchProc.SearchSorterInfo.SEARCH_TABLE));
-                System.out.println("搜索表中的totalSize: " + searchInfo.getInt(DataStatus.Info.TOTAL_SIZE));
-                System.out.println("是否需要重新加载db：" + searchInfo.getBoolean(MgProductSearchProc.SearchSorterInfo.NEED_GET_DATA_FROM_REMOTE));
-                System.out.println("要搜索的表对应的搜索条件：" + searchInfo.getObject(MgProductSearchProc.SearchSorterInfo.SEARCH_MATCHER));
-                System.out.println("============================");
-            });
-            System.out.println("最终结果：" + finalResultList);
-            finalResultList.forEach(System.out::println);*/
-
             Log.logStd("unionDbSearch finish;aid=%d,unionPriId=%d,searchSorterInfoList=%s,final search resultList=%s;", aid, unionPriId, searchSorterInfoList, finalResultList);
             // 添加缓存
             return integrateAndAddCache(idList, resultManageCacheTime, resultVisitorCacheTime, resultCacheKey);

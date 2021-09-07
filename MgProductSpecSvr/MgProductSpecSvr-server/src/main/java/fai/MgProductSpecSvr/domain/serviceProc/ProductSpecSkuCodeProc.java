@@ -756,7 +756,7 @@ public class ProductSpecSkuCodeProc {
                 if(needInitManage){
                     info.setLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME, System.currentTimeMillis());
                 }
-                boolean set = ProductSpecSkuCodeCacheCtrl.DataStatusCache.set(aid, unionPriId, info);
+                ProductSpecSkuCodeCacheCtrl.DataStatusCache.set(aid, unionPriId, info);
             }finally {
                 LockUtil.unReadLock(aid);
             }

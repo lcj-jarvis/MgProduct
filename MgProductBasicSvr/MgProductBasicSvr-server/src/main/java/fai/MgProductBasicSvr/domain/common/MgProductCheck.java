@@ -8,6 +8,7 @@ import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.misc.Utils;
 
 import java.util.Collection;
+import java.util.HashSet;
 
 public class MgProductCheck {
     public static class RequestLimit {
@@ -16,7 +17,8 @@ public class MgProductCheck {
                 Log.logErr(Errno.SIZE_LIMIT, "args error, rlPdIds is empty;aid=%d;list=%s;", aid, list);
                 return false;
             }
-            if(list.size() > WRITE_SIZE_LIMIT) {
+            // 先去重再校验数量
+            if(new HashSet<>(list).size() > WRITE_SIZE_LIMIT) {
                 Log.logErr(Errno.SIZE_LIMIT, "args error, write size is too long;aid=%d;list size=%d;limit size=%d;", aid, list.size(), WRITE_SIZE_LIMIT);
                 return false;
             }
@@ -27,7 +29,8 @@ public class MgProductCheck {
             if(Utils.isEmptyList(list)) {
                 throw new MgException(Errno.ARGS_ERROR, "args error, rlPdIds is empty;aid=%d;list=%s;", aid, list);
             }
-            if(list.size() > READ_SIZE_LIMIT) {
+            // 先去重再校验数量
+            if(new HashSet<>(list).size() > READ_SIZE_LIMIT) {
                 Log.logErr(Errno.SIZE_LIMIT, "args error, read size is too long;aid=%d;list size=%d;limit size=%d;", aid, list.size(), READ_SIZE_LIMIT);
                 return false;
             }

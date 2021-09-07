@@ -548,7 +548,7 @@ public class MgProductDbSearch extends BaseMgProductSearch {
     }
 
     /**
-     * 把查询条件转换为 SearchArg
+     * 把查询条件转换为 SearchArg。并设置分页
      */
     public void setSearArgStartAndLimit(SearchArg searchArg){
         if(searchArg == null){
@@ -817,6 +817,10 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         return !Str.isEmpty(customComparatorKey) && !Util.isEmptyList(customComparatorList);
     }
 
+    /**
+     * 是否有第一排序
+     * @return true 表示有
+     */
     public boolean hasFirstComparator() {
         return !Str.isEmpty(firstComparatorKey) && !Str.isEmpty(firstComparatorTable);
     }

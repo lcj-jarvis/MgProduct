@@ -55,20 +55,23 @@ public class MgProductSearchService {
             int rt = Errno.ERROR;
             throw new MgException(rt, "flow=%s;aid=%d;unionPriId=%d;tid=%d; FaiSearchExCli init err", flow, aid, unionPriId);
         }
-        // 如果只在es里搜索，然后进行分页，就进行设置。如果db有搜索条件的话，就只会用db那边的分页。db那里的分页会不设置的话，默认start=0，limit=200
-        // 如果没有设置分页。start默认是0，limit默认是100。见FaiSearchExCli就知道
+        // 如果只在es里搜索，要进行分页，就进行设置。如果db有搜索条件的话，就用db那边的分页。
+        // db那里的分页会不设置的话，默认start=0，limit=200
         MgProductDbSearch mgProductDbSearch = mgProductSearchArg.getMgProductDbSearch();
         if (Objects.isNull(mgProductDbSearch)) {
            // db 搜索条件为空，这里就设置为es里的分页。默认返回前200条数据。如果在初始化查询条件时设置了，就采用设置的。
            cli.setSearchLimit(mgProductEsSearch.getStart(), mgProductEsSearch.getLimit());
         } else {
-           // db有搜索条件，使用db的分页。获取前5000条的es搜索结果。
-            // 因为运维那边封装的es的cli的start默认是0，limit默认是100。见FaiSearchExCli就知道。如果不设置最多返回100条数据。
+           // db有搜索条件，使用db的分页。这里获取前5000条的es搜索结果。
+            // 运维那边封装的es，如果没有设置分页。start默认是0，limit默认是100。见FaiSearchExCli就知道。所以没有做分页的时候，也要设置from和limit。不然只返回前100条数据。
            // TODO: 实际上是要获取全部的数据才合理的。因为运维那边的es设置了分片为5000，如果es的命中条数超过5000，就要分多次去获取数据。(开多个线程去分次拿)
            //  目前先设置为5000，已经可以满足门店那边的搜索
            // from：0 limit = 5000;
            cli.setSearchLimit(mgProductEsSearch.getStart(), MgProductEsSearch.ONCE_REQUEST_LIMIT);
         }
+        // 简化
+        // int limit = Objects.isNull(mgProductDbSearch) ? mgProductEsSearch.getLimit() : MgProductEsSearch.ONCE_REQUEST_LIMIT;
+        // cli.setSearchLimit(mgProductEsSearch.getStart(), limit);
 
         // 设置搜索的内容
         FaiSearchExDef.SearchWord searchWord = FaiSearchExDef.SearchWord.create(name);
@@ -138,11 +141,11 @@ public class MgProductSearchService {
     /**
      *  作用
      * （1）如果es中搜索过的字段，db中不再搜索
-     * （2）设置排序：如果有自定义的排序，则自定义的排序优先级最高，es里的排序无效
+     * （2）设置排序：如果有自定义的排序，则自定义的排序优先级最高，es里的第一、二排序无效，db里的第一、第二排序无效
      *             如果无自定义的排序，此时如果es里设置了排序，就移除db里的排序
      */
     public void removeSameSearchFieldsAndSetSort(Param esSearchParam, Param dbSearchParam) {
-        // 避免空指针
+        // 避免NPE
         if (esSearchParam == null) {
             esSearchParam = new Param();
         }
@@ -198,25 +201,26 @@ public class MgProductSearchService {
         TreeSet<Long> manageDataChangeTimeSet = new TreeSet<>();
         TreeSet<Long> visitorDataChangeTimeSet = new TreeSet<>();
 
-        // TODO 两个方法还好，方法多了要考虑优化
+        // TODO 两个方法还好，方法多了要考虑简化
         Param statusInfo = new Param();
         mgProductBasicCli.getPdDataStatus(aid, statusInfo);
-        Long manageLastUpdateTime = statusInfo.getLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME);
-        Long visitorLastUpdateTime = statusInfo.getLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME);
-        manageDataChangeTimeSet.add(manageLastUpdateTime);
-        visitorDataChangeTimeSet.add(visitorLastUpdateTime);
+        manageDataChangeTimeSet.add(statusInfo.getLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME));
+        visitorDataChangeTimeSet.add(statusInfo.getLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME));
         statusInfo.clear();
 
         mgProductBasicCli.getPdRelDataStatus(aid, unionPriId, statusInfo);
-        manageLastUpdateTime = statusInfo.getLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME);
-        visitorLastUpdateTime = statusInfo.getLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME);
-        manageDataChangeTimeSet.add(manageLastUpdateTime);
-        visitorDataChangeTimeSet.add(visitorLastUpdateTime);
+        manageDataChangeTimeSet.add(statusInfo.getLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME));
+        visitorDataChangeTimeSet.add(statusInfo.getLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME));
 
         manageDataMaxChangeTime.value = Math.max(manageDataMaxChangeTime.value, manageDataChangeTimeSet.last());
         visitorDataMaxChangeTime.value = Math.max(visitorDataMaxChangeTime.value, visitorDataChangeTimeSet.last());
     }
 
+    /**
+     * @param esSearchParamString json形式的es的搜索条件
+     * @param dbSearchParamString json形式的db的搜索条件
+     * @return {@link Errno}
+     */
     @SuccessRt(value = Errno.OK)
     public int searchList(FaiSession session, int flow, int aid, int unionPriId, int tid,
                           int productCount, String esSearchParamString, String dbSearchParamString) throws IOException {
@@ -225,7 +229,7 @@ public class MgProductSearchService {
         try {
             Param esSearchParam = Param.parseParam(esSearchParamString);
             Param dbSearchParam = Param.parseParam(dbSearchParamString);
-            // 去除db中和es重复的搜索字段和设置优先排序等
+            // 去除db中和es重复的搜索字段和设置排序等
             removeSameSearchFieldsAndSetSort(esSearchParam, dbSearchParam);
 
             // 初始化搜索条件.
@@ -234,9 +238,9 @@ public class MgProductSearchService {
             MgProductEsSearch mgProductEsSearch = mgProductSearchArg.getMgProductEsSearch();
             MgProductDbSearch mgProductDbSearch = mgProductSearchArg.getMgProductDbSearch();
             // 判断查询条件是否为空
-            if (mgProductSearchArg.isEsAndDbSearchEmpty()) {
+            if (mgProductSearchArg.isEmpty()) {
                 rt = Errno.ARGS_ERROR;
-                throw new MgException(rt, "flow=%s;aid=%d;unionPriId=%d;tid=%d; searchParam is null err", flow, aid, unionPriId, tid);
+                throw new MgException(rt, "flow=%s;aid=%d;unionPriId=%d; searchParam is null err", flow, aid, unionPriId);
             }
             boolean overLimit = Objects.nonNull(mgProductDbSearch) && mgProductDbSearch.getLimit() > BaseMgProductSearch.MAX_LIMIT ||
                 Objects.nonNull(mgProductEsSearch) && mgProductEsSearch.getLimit() > BaseMgProductSearch.MAX_LIMIT;
@@ -257,7 +261,7 @@ public class MgProductSearchService {
                 if (MgProductSearchCache.ResultCache.existsCache(cacheKey)) {
                     Param resultCacheInfo = MgProductSearchCache.ResultCache.getCacheInfo(cacheKey);
 
-                    // 如果es搜索条件为空，db条件不为空，就去查询es数据来源的表，获取管理态和访客态最新的修改时间
+                    // 如果es搜索条件不为空，db条件为空，就去查询es数据来源的表，获取管理态和访客态最新的修改时间
                     // 如果当前的时间 - 获取到的管理态或者访客态最新的修改 < 30s ,
                     // 此时的缓存认为是无效的（因为es的数据还没有在db那边同步过来），需要再查询一次es
                     // 反之如果 > 30s,就认为缓存生效了。不需要再次查询es。
@@ -272,27 +276,28 @@ public class MgProductSearchService {
                         // 在es中获取到的idList
                         FaiList<Integer> idListFromEs = searchProc.toIdList(esSearchResult, ProductEntity.Info.PD_ID);
                         // 添加缓存
-                        resultCacheInfo = integrateAndAddCache(idListFromEs.size(), idListFromEs, manageDataMaxChangeTime.value, visitorDataMaxChangeTime.value, cacheKey);
+                        resultCacheInfo = integrateAndAddCache(idListFromEs, manageDataMaxChangeTime.value, visitorDataMaxChangeTime.value, cacheKey);
                     }
-                    Log.logStd("Don't need uniteDbSearch;return es searchResult;aid=%d,unionPriId=%d;mgProductDbSearch=%s;resultInfo=%s", aid, unionPriId, mgProductDbSearch, resultCacheInfo);
+                    Log.logStd("mgProductDbSearch is empty;Don't need uniteDbSearch;return es searchResult;aid=%d,unionPriId=%d;resultInfo=%s", aid, unionPriId, resultCacheInfo);
                     resultCacheInfo.toBuffer(sendBuf, MgProductSearchDto.Key.RESULT_INFO, MgProductSearchDto.getProductSearchDto());
                     session.write(sendBuf);
                     return Errno.OK;
                 }
             }
 
-            // 执行到这里说明“es有搜索条件，db无搜索条件”的这种情况是无缓存或者db的搜索条件不为空。
+            // 执行到这里说明“es有搜索条件，db无搜索条件”的这种情况是无缓存 或者db的搜索条件不为空。
             FaiList<Param> esSearchResult = esSearch(flow, aid, unionPriId, mgProductSearchArg);
             // 在es中获取到的idList
             FaiList<Integer> idListFromEs = searchProc.toIdList(esSearchResult, ProductEntity.Info.PD_ID);
 
-            // (1) es 的搜索结果为空，直接返回
+            // (1) es 查询条件不为空，但是 es 的搜索结果为空，直接返回
             // (2) es 查询条件不为空，db的查询条件为空，添加缓存，返回es的搜索结果
-            if (Utils.isEmptyList(idListFromEs) || Objects.isNull(mgProductDbSearch) || mgProductDbSearch.isEmpty()) {
-
+            boolean notUniteDbSearch = (Objects.nonNull(mgProductEsSearch) && Utils.isEmptyList(idListFromEs)) ||
+                Objects.isNull(mgProductDbSearch) || mgProductDbSearch.isEmpty();
+            if (notUniteDbSearch) {
                 getEsDataStatus(flow, aid, unionPriId, manageDataMaxChangeTime, visitorDataMaxChangeTime);
                 // 添加缓存
-                Param resultCacheInfo = integrateAndAddCache(idListFromEs.size(), idListFromEs, manageDataMaxChangeTime.value, visitorDataMaxChangeTime.value, cacheKey);
+                Param resultCacheInfo = integrateAndAddCache(idListFromEs, manageDataMaxChangeTime.value, visitorDataMaxChangeTime.value, cacheKey);
                 resultCacheInfo.toBuffer(sendBuf, MgProductSearchDto.Key.RESULT_INFO, MgProductSearchDto.getProductSearchDto());
                 session.write(sendBuf);
                 Log.logStd("Don't need uniteDbSearch;return es searchResult;aid=%d,unionPriId=%d;mgProductDbSearch=%s;resultInfo=%s", aid, unionPriId, mgProductDbSearch, resultCacheInfo);
@@ -313,12 +318,17 @@ public class MgProductSearchService {
 
     /**
      * 整合并添加缓存
+     * @param idList 缓存的pdId List
+     * @param manageDataCacheTime 管理态数据最新的修改时间
+     * @param visitDataCacheTime  访客态数据的最新修改时间
+     * @param cacheKey 缓存的key
+     * @return 返回包含缓存结果的Param
      */
-    private Param integrateAndAddCache(int total, FaiList<Integer> idList, Long manageDataCacheTime, Long visitDataCacheTime, String cacheKey) {
+    private Param integrateAndAddCache(FaiList<Integer> idList, Long manageDataCacheTime, Long visitDataCacheTime, String cacheKey) {
         // 缓存的数据
         Param resultCacheInfo = new Param();
-        resultCacheInfo.setInt(MgProductSearchResult.Info.TOTAL, total);
         resultCacheInfo.setList(MgProductSearchResult.Info.ID_LIST, idList);
+        resultCacheInfo.setInt(MgProductSearchResult.Info.TOTAL, idList.size());
         resultCacheInfo.setLong(MgProductSearchResult.Info.MANAGE_DATA_CACHE_TIME, manageDataCacheTime);
         resultCacheInfo.setLong(MgProductSearchResult.Info.VISTOR_DATA_CACHE_TIME, visitDataCacheTime);
         // 缓存处理，先删除再添加
@@ -328,7 +338,7 @@ public class MgProductSearchService {
     }
 
     /**
-     *  获取各个表的数据状态
+     *  获取各个表的数据状态,同时初始化db的查询条件
      * @param manageDataMaxChangeTime 管理态的最大修改时间
      * @param visitorDataMaxChangeTime 访客态的最大修改时间
      * @param searchSorterInfoList 参考{@see initSearchSorterInfoList()}
@@ -552,7 +562,7 @@ public class MgProductSearchService {
         Param resultCacheInfo = MgProductSearchCache.ResultCache.getCacheInfo(resultCacheKey);
         Log.logStd("aid=%d,unionPriId=%d,resultCacheKey=%s,resultCacheInfo=%s", aid, unionPriId, resultCacheKey, resultCacheInfo);
 
-        // 补充的搜索信息list，比如 排序字段 没有在搜索表中、或者只是搜索了 商品基础表，没有 rlPdId
+        // 补充的搜索信息list，比如排序字段 没有在搜索表中、或者只是搜索了没有包含rlPdId的表
 
         // TODO 后面将排序的逻辑抽成一个方法
         /*
@@ -562,12 +572,6 @@ public class MgProductSearchService {
         ParamComparator paramComparator = mgProductDbSearch.getParamComparator();
         // 是否需要排序
         boolean needCompare = !paramComparator.isEmpty();
-        // 没有被重写之前的自定义排序表
-        String initialCustomComparatorTable = mgProductDbSearch.getCustomComparatorTable();
-        // 没有被重写之前的第一排序表
-        String initialFirstComparatorTable = mgProductDbSearch.getFirstComparatorTable();
-        // 没有被重写之前的第二排序表
-        String initialSecondComparatorTable = mgProductDbSearch.getSecondComparatorTable();
         // 自定义排序的key
         String customComparatorKey = mgProductDbSearch.getCustomComparatorKey();
         // 第一排序的key
@@ -583,19 +587,19 @@ public class MgProductSearchService {
         // 是否有除PdId，RlPdId之外的“其他自定义的排序字段”。
         boolean hasOtherCustomComparator = !ProductEntity.Info.PD_ID.equals(customComparatorKey) &&
             !ProductRelEntity.Info.RL_PD_ID.equals(customComparatorKey);
-        // 是否有除PdId，RlPdId之外的其他第一排序字段
+        // 是否有除PdId，RlPdId之外的“其他第一排序字段”
         boolean hasOtherFirstComparatorKey = !ProductEntity.Info.PD_ID.equals(firstComparatorKey) &&
             !ProductRelEntity.Info.RL_PD_ID.equals(firstComparatorKey);
-        // 是否有除PdId，RlPdId之外的其他第二排序字段
+        // 是否有除PdId，RlPdId之外的“其他第二排序字段”
         boolean hasOtherSecondComparatorKey = !ProductEntity.Info.PD_ID.equals(secondComparatorKey) &&
             !ProductRelEntity.Info.RL_PD_ID.equals(secondComparatorKey);
         // 是否需要第二排序
         boolean needSecondComparatorSorting = mgProductDbSearch.isNeedSecondComparatorSorting();
         if (needCompare) {
             // 执行到这里说明：
-            // 如果设置了自定义排序，paramComparator只包含自定义的排序。其他的排序无效
-            // 如果没设置自定义排序，此时如果有第一排序，则第一排序就生效，第二排序看是否开启
-            // 如果没设置自定义排序，也没第一排序，则第二排序一定存在。
+            // （1）如果设置了自定义排序，paramComparator只包含自定义的排序。其他的排序无效
+            // （2）如果没设置自定义排序，此时如果有第一排序，则第一排序就生效，第二排序看是否开启
+            // （3）如果没设置自定义排序，也没第一排序，则第二排序一定存在。
 
             // TODO 待优化代码，提取公共的for循环
             boolean findComparatorTable = false;
@@ -637,7 +641,7 @@ public class MgProductSearchService {
 
             // 将补偿的排序表放到最后
             // 如果补偿的排序表是“其他第一排序字段所在的表”，并有“其他第二排序字段所在的表”，
-            // 则此时补偿的“其他第一排序字段所在的表”就在倒数第二的位置）
+            // 则此时补偿的“其他第一排序字段所在的表”就在倒数第二的位置，因为有“其他第二排序字段所在的表”
             if (!Str.isEmpty(supplementSearchTable)) {
                 // 后面会根据上一次的搜索结果，搜索会加上对应的 in PD_ID 进行搜索
                 ParamMatcher defaultMatcher = new ParamMatcher();
@@ -670,7 +674,7 @@ public class MgProductSearchService {
          * 需要重新排序表的情况：
          * (1)自定义的排序字段是PdId或者是RlPdId。
          * (2)不存在自定义排序，存在第一排序，并且第一排序字段是PdId或者是RlPdId。
-         * (3)不存在自定义排序，第二排序字段是PdId或者是RlPdId。
+         * (3)不存在自定义排序，第二排序字段是PdId或者是RlPdId。（第一排序字段可能存在，也可能不存在）
          */
         boolean rewriteComparatorTable = (hasCustomComparator && !hasOtherCustomComparator) ||
             (hasFirstComparator && !hasOtherFirstComparatorKey) ||
@@ -705,8 +709,6 @@ public class MgProductSearchService {
             for (int i = size - 1; i >= 0; i--) {
                 String tableName = searchSorterInfoList.get(i).getString(MgProductSearchProc.SearchSorterInfo.SEARCH_TABLE);
                 if (!MgProductDbSearch.NOT_HAVE_RLPDID_TABLE.contains(tableName)) {
-                    // TODO : 待考虑要不要重新set，还是存到一个局部变量里。后面的逻辑都是根据重新set写的，还是建议采用重新set的方式。
-                    //   因为如果排序字段是rlPdId或者PdId的话，重新set应该是没有影响的。但是set的话，要注意缓存的key
                     // 如果该排序的表是自定义的，就设置在自定义上。如果是第一排序的，就设置在第一排序上。
                     if (hasCustomComparator) {
                         mgProductDbSearch.setCustomComparatorTable(tableName);
@@ -823,11 +825,13 @@ public class MgProductSearchService {
                     // 不存在自定义的排序。存在第一排序
                     if (hasFirstComparator && !Utils.isEmptyList(firstComparatorResultList)) {
                         listForFirstComparator = getListForSort(lastSearchTable, hasOtherFirstComparatorKey, firstComparatorTable, resultList, firstComparatorResultList);
+                        Log.logStd("get listForFirstComparator;aid=%d,unionPriId=%d,listForFirstComparator=%s", aid, unionPriId, listForFirstComparator);
                     }
 
                     // 不存在自定义的排序。需要第二排序
                     if (needSecondComparatorSorting && !Utils.isEmptyList(secondComparatorResultList)) {
                         listForSecondComparator = getListForSort(lastSearchTable, hasOtherSecondComparatorKey, secondComparatorTable, resultList, secondComparatorResultList);
+                        Log.logStd("get listForSecondComparator;aid=%d,unionPriId=%d,listForSecondComparator=%s", aid, unionPriId, listForSecondComparator);
                     }
 
                     // 整合第一排序字段和第二排序字段到同一个List保存的Param中。
@@ -837,9 +841,19 @@ public class MgProductSearchService {
                             // 第一排序字段和第二排序字段同时存在才需要整合
                             // 使用map尽量提高效率。初始化容量，减少扩容次数
                             Map<Integer, Param> pdIdMappingParam = new HashMap<>(listForSecondComparator.size() * 4 / 3 + 1);
+
+                            // TODO 判断以pdId为key是否会导致数据丢失.如果pdId和第二排序字段是一对一的话，目前这样就没有问题。
+                            // 比如第一字段排序是rlGroupId，第二字段排序是rlPdId。这样即使Map的key重复了，value覆盖的话也没关系
+                            // 因为rlPdId和pdId具有一对一的确定关系。
+                            // 但是第一排序字段是rlGroupId，第二排序字段是rlTagId这种，就会存在问题。
+                            // 如果Map的key重复了，value覆盖的话，因为pdId和rlTagId是一对多的关系，这样覆盖的话，就会有问题。
+                            // 但是目前第二排序都是能够唯一确定的排序，一般和pdId都是一对一的关系。暂时这样写是没问题的。
                             listForSecondComparator.forEach(info -> pdIdMappingParam.put(info.getInt(ProductEntity.Info.PD_ID), info));
+                            Log.logStd("pdId mapping secondComparatorParam;aid=%d,unionPriId=%d,pdIdMappingParam=%s", aid, unionPriId, pdIdMappingParam);
+
                             for (Param info : listForFirstComparator) {
                                 Integer pdId = info.getInt(ProductEntity.Info.PD_ID);
+
                                 if (pdIdMappingParam.containsKey(pdId)) {
                                     Param infoInListForSecondComparator = pdIdMappingParam.get(pdId);
                                     // 将第二排序字段的值复制到第一排序的每个结果里
@@ -892,7 +906,7 @@ public class MgProductSearchService {
                     resultList.sort(customComparatorOfEs);
                 }
             }
-            Log.logStd("aid=%d,unionPriId=%d,finish sort resultList;resultList=%s;", aid, unionPriId, resultList);
+            Log.logStd("finish sort resultList;aid=%d,unionPriId=%d;resultList=%s;", aid, unionPriId, resultList);
 
             // 管理态变更的缓存时间
             resultManageCacheTime = Math.max(resultManageCacheTime, manageDataMaxChangeTime.value);
@@ -910,7 +924,7 @@ public class MgProductSearchService {
             // 将最终结果转化为pdIdList，添加到缓存
             FaiList<Integer> idList = searchProc.toIdList(finalResultList, ProductEntity.Info.PD_ID);
 
-            // 测试
+            // log输出太长了，不方便查看。测试输出便于查看。
             /*searchSorterInfoList.forEach(searchInfo -> {
                 System.out.println("搜索的表：" + searchInfo.getString(MgProductSearchProc.SearchSorterInfo.SEARCH_TABLE));
                 System.out.println("搜索表中的totalSize: " + searchInfo.getInt(DataStatus.Info.TOTAL_SIZE));
@@ -921,25 +935,10 @@ public class MgProductSearchService {
             System.out.println("最终结果：" + finalResultList);
             finalResultList.forEach(System.out::println);*/
 
-            // 因为有可能排序表被重新设置过了（PdId和rlPdId）。会导致不同的查询条件，在重新设置排序表的时候用的是同一张表，这时候缓存的key就不能用
-            // 重新设置的表去做，这样就会造成不同查询条件下缓存的key是一样的（因为重写设置排序表后使用的同一张表）。
-            // 所以排序完后，设置回最初查询条件的排序表。这样才能保证缓存的key不一样。
-            if (rewriteComparatorTable) {
-                // 设置回最初的查询表，保证缓存的key不一致
-                mgProductDbSearch.setCustomComparatorTable(initialCustomComparatorTable);
-                mgProductDbSearch.setFirstComparatorTable(initialFirstComparatorTable);
-                mgProductDbSearch.setSecondComparatorTable(initialSecondComparatorTable);
-                esSearchParamString = mgProductSearchArg.getEsSearchParam().toJson();
-                dbSearchParamString = mgProductSearchArg.getDbSearchParam().toJson();
-                resultCacheKey = MgProductSearchCache.ResultCache.getResultCacheKey(aid, unionPriId, esSearchParamString, dbSearchParamString);
-                Log.logStd("ComparatorKey is pdId or rlPdId,comparatorTable had already rewrite,need restore init resultCacheKey;aid=%d,unionPriId=%d,resultCacheKey=%s", aid, unionPriId, resultCacheKey);
-            }
-
             Log.logStd("unionDbSearch finish;aid=%d,unionPriId=%d,searchSorterInfoList=%s,final search resultList=%s;", aid, unionPriId, searchSorterInfoList, finalResultList);
             // 添加缓存
-            return integrateAndAddCache(finalResultList.size(), idList, resultManageCacheTime, resultVisitorCacheTime, resultCacheKey);
+            return integrateAndAddCache(idList, resultManageCacheTime, resultVisitorCacheTime, resultCacheKey);
         } else {
-            System.out.println("缓存中获取的搜索结果：" + resultCacheInfo);
             Log.logStd("unionDbSearch finish;Don't need reLoad;get result from cache;aid=%d,unionPriId=%d,resultCacheKey=%s,resultCacheInfo=%s", aid, unionPriId, resultCacheKey, resultCacheInfo);
             // 从缓存中获取数据
             return resultCacheInfo;
@@ -954,8 +953,8 @@ public class MgProductSearchService {
      * @return 返回交集后的结果
      *
      *   TODO 考虑是否会存在并发修改异常的问题.因为idListTemp和idListFromEs都是非线程安全的。
-     *        但他们都是局部变量，不存在并发修改异常的问题。
-     *        如果出现并发修改异常，就使用写时复制类,或者将结果另存。
+     *        目前他们都是局部变量，不存在并发修改异常的问题。
+     *        如果出现并发修改异常，就使用写时复制类,或者不适用remove方式，将结果另存。
      *        CopyOnWriteArraySet<Integer> objects = new CopyOnWriteArraySet<>();
      */
     public FaiList<Param> unionEsSearchResult(FaiList<Param> esSearchResult, FaiList<Param> dbSearchResult, boolean comparatorInEs) {

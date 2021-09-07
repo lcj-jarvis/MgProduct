@@ -232,7 +232,7 @@ public abstract class BaseMgProductSearch {
     }
 
     public BaseMgProductSearch setLimit(int limit){
-        this.limit = limit >= 0 ? limit : this.limit;
+        this.limit = limit;
         return this;
     }
 

@@ -17,10 +17,11 @@ import java.util.HashSet;
 import java.util.Objects;
 
 /**
- * @author LuChaoJi
+ * @author Lu
  * @date 2021-08-06 9:48
  */
 public class MgProductSearchProc {
+
     /**
      * 根据 ProductRelEntity.Info.PD_ID 去重
      * @param resultList 去重的集合
@@ -76,22 +77,6 @@ public class MgProductSearchProc {
         }
         return filterList;
     }
-
-    public void resultListFixedRlPdId(int aid, int unionPriId, int flow, FaiList<Param> resultList, FaiList<Param> includeRlPdIdResultList){
-        String key = ProductEntity.Info.PD_ID;
-        // 转换为 set 的集合
-        HashMap<Integer, Param> searchHashMap = faiListToHashMap(includeRlPdIdResultList, key);
-        for(Param info : resultList){
-            Param matchInfo = searchHashMap.get(info.getInt(key));
-            if(matchInfo != null){
-                info.assign(matchInfo, ProductRelEntity.Info.RL_PD_ID);
-            }else{
-                info.assign(info, ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID);
-                Log.logErr("matchInfo null err, aid=%d;unionPriId=%d;flow=%d;info=%s;", aid, unionPriId, flow, info);
-            }
-        }
-    }
-
 
     public FaiList<Param> getSearchResult(ParamMatcher searchMatcher, FaiList<Param> searchList, FaiList<Param> resultList, String searchKey){
         // 非第一次搜索，进入 set<id> 的过滤逻辑，减少搜索集合，提高性能

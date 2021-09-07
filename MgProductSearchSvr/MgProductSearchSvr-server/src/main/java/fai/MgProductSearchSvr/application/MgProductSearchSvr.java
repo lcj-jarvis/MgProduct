@@ -41,7 +41,7 @@ public class MgProductSearchSvr {
         // 数据缓存组件
         /*ParamCacheRecycle cacheRecycle = new ParamCacheRecycle(config.getName(),
                 svrOption.getCacheHours() * 3600, svrOption.getCacheRecycleIntervalHours() * 3600);*/
-        // 临时设置成120s进行测试
+        // 临时设置成20s进行测试
         ParamCacheRecycle cacheRecycle = new ParamCacheRecycle(config.getName(),
                 svrOption.getCacheHours() * 20, svrOption.getCacheRecycleIntervalHours() * 60);
 

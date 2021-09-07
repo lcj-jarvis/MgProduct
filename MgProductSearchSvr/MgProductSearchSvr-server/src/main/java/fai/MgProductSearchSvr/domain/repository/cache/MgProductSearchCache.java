@@ -16,7 +16,7 @@ public class MgProductSearchCache {
     public static void init(RedisCacheManager cache, ParamCacheRecycle cacheRecycle){
         m_result_cache = cache;
         m_cacheRecycle = cacheRecycle;
-        m_cacheRecycle.addParamCache("localDataStatusCache", m_localDataStatusCache);
+        m_cacheRecycle.addParamCache("localDataStatusCache", M_LOCAL_DATA_STATUS_CACHE);
     }
 
     /**
@@ -28,24 +28,24 @@ public class MgProductSearchCache {
      * 各个表的本地数据缓存
      * ConcurrentHashMap<Integer, ParamListCache1>  eg: <unionPriId, ParamCache1>
      */
-    private static final ConcurrentHashMap<Integer, ParamListCache1> m_localMgProductSearchDataCache = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Integer, ParamListCache1> M_LOCAL_MG_PRODUCT_SEARCH_DATA_CACHE = new ConcurrentHashMap<>();
     public static String getLocalMgProductSearchDataCacheKey(int aid, String searchTableName){
         return aid + "-" + searchTableName;
     }
 
     public static ParamListCache1 getLocalMgProductSearchDataCache(int unionPriId) {
-        ParamListCache1 cache = m_localMgProductSearchDataCache.get(unionPriId);
+        ParamListCache1 cache = M_LOCAL_MG_PRODUCT_SEARCH_DATA_CACHE.get(unionPriId);
         if (cache != null) {
             return cache;
         }
-        synchronized (m_localMgProductSearchDataCache) {
+        synchronized (M_LOCAL_MG_PRODUCT_SEARCH_DATA_CACHE) {
             // double check
-            cache = m_localMgProductSearchDataCache.get(unionPriId);
+            cache = M_LOCAL_MG_PRODUCT_SEARCH_DATA_CACHE.get(unionPriId);
             if (cache != null) {
                 return cache;
             }
             cache = new ParamListCache1();
-            m_localMgProductSearchDataCache.put(unionPriId, cache);
+            M_LOCAL_MG_PRODUCT_SEARCH_DATA_CACHE.put(unionPriId, cache);
             m_cacheRecycle.addParamCache("mgpd-" + unionPriId, cache);
             return cache;
         }
@@ -55,18 +55,18 @@ public class MgProductSearchCache {
     /**
      * 数据的更新时间和总条数的缓存
      */
-    private static final ParamCache1 m_localDataStatusCache = new ParamCache1();
+    private static final ParamCache1 M_LOCAL_DATA_STATUS_CACHE = new ParamCache1();
     public static class LocalDataStatusCache {
         public static String getDataStatusCacheKey(int aid, int unionPriId, String searchTableName) {
             return aid + "-" + unionPriId + "-" + searchTableName;
         }
 
         public static Param getLocalDataStatusCache(String cacheKey) {
-            return m_localDataStatusCache.get(cacheKey);
+            return M_LOCAL_DATA_STATUS_CACHE.get(cacheKey);
         }
 
         public static void addLocalDataStatusCache(String cacheKey, Param dataStatusInfo) {
-            m_localDataStatusCache.put(cacheKey, dataStatusInfo);
+            M_LOCAL_DATA_STATUS_CACHE.put(cacheKey, dataStatusInfo);
         }
     }
 
@@ -78,14 +78,15 @@ public class MgProductSearchCache {
     public static class ResultCache {
 
         // 无效的缓存时间 30s
-        public static final Long INVALID_CACHE_TIME = 3000L;
+        public static final Long INVALID_CACHE_TIME = 30000L;
         public static final String CACHE_CONFIG_KEY = "cacheConfigKey";
 
         public static String getResultCacheKey(int aid, int unionPriId, String esSearchParamString, String dbSearchParamString){
             // 根据搜索词的 md5
             return aid + "-" + unionPriId + "-" + getSearchResultCacheConfigKey() + "-"
                 + MD5Util.MD5Encode(esSearchParamString, "utf-8") + "-"
-                + MD5Util.MD5Encode(dbSearchParamString, "utf-8");        }
+                + MD5Util.MD5Encode(dbSearchParamString, "utf-8");
+        }
 
         public static Param  getCacheInfo(String resultCacheKey) {
             return m_result_cache.getParam(resultCacheKey, MgProductSearchDto.Key.RESULT_INFO, MgProductSearchDto.getProductSearchDto());

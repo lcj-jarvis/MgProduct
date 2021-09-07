@@ -22,7 +22,7 @@ public class CliFactory {
             cli = constructor.newInstance(flow);
             Method initMethod = cliType.getDeclaredMethod("init");
             if (!(boolean) initMethod.invoke(cli)) {
-                Log.logErr("init " + cliType.getSimpleName() + " err, flow=%s;", flow);
+                Log.logErr("init " + cliType.getSimpleName() + " err, flow=%d;", flow);
                 cli = null;
             }
         } catch (Exception e) {

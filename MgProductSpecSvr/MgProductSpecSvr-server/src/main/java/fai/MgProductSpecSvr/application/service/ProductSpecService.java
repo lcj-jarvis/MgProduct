@@ -1824,7 +1824,9 @@ public class ProductSpecService extends ServicePub {
                     return rt;
                 }
             }finally {
-                productSpecSkuCodeDaoCtrl.closeDao();
+                if (Objects.nonNull(productSpecSkuCodeDaoCtrl)) {
+                    productSpecSkuCodeDaoCtrl.closeDao();
+                }
             }
 
             FaiBuffer sendBody = new FaiBuffer();

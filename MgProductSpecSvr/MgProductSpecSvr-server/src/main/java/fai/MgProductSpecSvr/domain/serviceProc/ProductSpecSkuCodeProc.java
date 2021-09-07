@@ -740,6 +740,7 @@ public class ProductSpecSkuCodeProc {
                 info = ProductSpecSkuCodeCacheCtrl.DataStatusCache.get(aid, unionPriId);
                 needInitTotalSize = info.getInt(DataStatus.Info.TOTAL_SIZE, -1) < 0;
                 needInitManage = info.getLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME) == null;
+                info.setLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME, 0L);
                 if(needInitTotalSize){
                     SearchArg searchArg = new SearchArg();
                     searchArg.matcher = new ParamMatcher(ProductSpecSkuCodeEntity.Info.AID, ParamMatcher.EQ, aid);
@@ -755,7 +756,7 @@ public class ProductSpecSkuCodeProc {
                 if(needInitManage){
                     info.setLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME, System.currentTimeMillis());
                 }
-                ProductSpecSkuCodeCacheCtrl.DataStatusCache.set(aid, unionPriId, info);
+                boolean set = ProductSpecSkuCodeCacheCtrl.DataStatusCache.set(aid, unionPriId, info);
             }finally {
                 LockUtil.unReadLock(aid);
             }

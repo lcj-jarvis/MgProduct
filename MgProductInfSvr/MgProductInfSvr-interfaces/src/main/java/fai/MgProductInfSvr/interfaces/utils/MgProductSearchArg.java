@@ -74,7 +74,7 @@ public class MgProductSearchArg {
      * es和db的查询条件都为空
      * @return true 表示es和db的查询条件都为空
      */
-    public boolean isEsAndDbSearchEmpty() {
+    public boolean isEmpty() {
         return mgProductEsSearch == null && mgProductDbSearch == null;
     }
 }

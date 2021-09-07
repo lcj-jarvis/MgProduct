@@ -155,7 +155,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
         try {
             MgProductSearchArg mgProductSearchArg = mgProductArg.getMgProductSearchArg();
             // 搜索条件为空，直接结束
-            if (mgProductSearchArg == null || mgProductSearchArg.isEsAndDbSearchEmpty()) {
+            if (mgProductSearchArg == null || mgProductSearchArg.isEmpty()) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "mgProductSearchArg == null error or mgProductSearchArg esSearch and dbSearch is Empty");
                 return Errno.ARGS_ERROR;

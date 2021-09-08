@@ -18,6 +18,7 @@ import fai.comm.util.Param;
 import fai.comm.util.ParamUpdater;
 import fai.comm.util.SearchArg;
 import fai.middleground.svrutil.service.MiddleGroundHandler;
+import fai.middleground.svrutil.service.ServiceProxy;
 
 import java.io.IOException;
 
@@ -418,7 +419,7 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
 
     private SpecTempService m_specTempService = new SpecTempService();
 
-    private ProductSpecService m_productSpecService = new ProductSpecService();
+    private ProductSpecService m_productSpecService = ServiceProxy.create(new ProductSpecService());
 
     private SpecStrService m_specStrService = new SpecStrService();
 

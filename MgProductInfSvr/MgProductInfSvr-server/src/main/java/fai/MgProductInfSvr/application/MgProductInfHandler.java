@@ -1571,7 +1571,7 @@ public class MgProductInfHandler extends FaiHandler {
 
     ProductSearchService searchService = ServiceProxy.create(new ProductSearchService());
     ProductPropService propService = new ProductPropService();
-    ProductSpecService specService = new ProductSpecService();
+    ProductSpecService specService = ServiceProxy.create(new ProductSpecService());
     ProductStoreService storeService = new ProductStoreService();
     ProductGroupService groupService = ServiceProxy.create(new ProductGroupService());
     ProductLibService libService = ServiceProxy.create(new ProductLibService());

@@ -43,7 +43,7 @@ public class SpecStrSagaDaoCtrl extends DaoCtrl {
 
     @Override
     protected String getTableName() {
-        return TABLE_NAME + "_" + String.format("%02d", aid % 10);
+        return TABLE_NAME + "_" + String.format("%03d", aid % 100);
     }
 
     private static final String TABLE_NAME = "mgSpecStrSaga";

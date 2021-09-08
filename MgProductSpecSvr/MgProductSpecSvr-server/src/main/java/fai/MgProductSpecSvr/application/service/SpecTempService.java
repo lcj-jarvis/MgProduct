@@ -16,13 +16,12 @@ import fai.MgProductSpecSvr.interfaces.dto.SpecTempDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
 import fai.middleground.svrutil.repository.TransactionCtrl;
-import fai.middleground.svrutil.service.ServicePub;
 
 import java.io.IOException;
 import java.util.*;
 
 
-public class SpecTempService extends ServicePub {
+public class SpecTempService extends SpecParentService {
     /**
      * 批量添加规格模板
      */

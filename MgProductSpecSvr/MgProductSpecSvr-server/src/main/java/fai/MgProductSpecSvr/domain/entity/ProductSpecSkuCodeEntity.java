@@ -26,4 +26,14 @@ public class ProductSpecSkuCodeEntity {
         };
     }
 
+    public static String[] getSagaKeys() {
+        return new String[] {
+                Info.AID,
+                Info.UNION_PRI_ID,
+                Info.SKU_CODE,
+                Info.SKU_ID,
+                Info.SORT
+        };
+    }
+
 }

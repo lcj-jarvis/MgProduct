@@ -31,4 +31,22 @@ public class ProductSpecSkuEntity {
     public static String[] getValidKeys(){
         return VALID_KEYS;
     }
+
+    /**
+     * Saga 修改需要记录的所有字段
+     */
+    private static final String[] SAGA_KEYS = new String[]{
+            Info.AID,
+            Info.SKU_ID,
+            Info.SORT,
+            Info.FLAG,
+            Info.SKU_CODE,
+            Info.IN_PD_SC_STR_ID_LIST,
+            Info.STATUS,
+            Info.SYS_UPDATE_TIME
+    };
+
+    public static String[] getSagaKeys() {
+        return SAGA_KEYS;
+    }
 }

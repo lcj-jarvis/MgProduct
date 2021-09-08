@@ -10,6 +10,8 @@ import fai.comm.util.*;
 import fai.mgproduct.comm.Util;
 import fai.mgproduct.comm.entity.SagaEntity;
 import fai.mgproduct.comm.entity.SagaValObj;
+import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.Calendar;
@@ -69,46 +71,10 @@ public class SpecStrProc {
         }
         // 添加 Saga 操作记录
         if (isSaga) {
-            FaiList<Param> sagaOpList = new FaiList<>();
-            String xid = RootContext.getXID();
-            Long branchId = RootContext.getBranchId();
-            Calendar now = Calendar.getInstance();
-            nameSet.forEach(name -> {
-                Param sagaOpInfo = new Param();
-                sagaOpInfo.setInt(SpecStrEntity.Info.AID, aid);
-                sagaOpInfo.setString(SpecStrEntity.Info.NAME, name);
-                sagaOpInfo.setString(SagaEntity.Common.XID, xid);
-                sagaOpInfo.setLong(SagaEntity.Common.BRANCH_ID, branchId);
-                sagaOpInfo.setInt(SagaEntity.Common.SAGA_OP, SagaValObj.SagaOp.ADD);
-                sagaOpInfo.setCalendar(SagaEntity.Common.SAGA_TIME, now);
-                sagaOpList.add(sagaOpInfo);
-            });
-            if (!Util.isEmptyList(sagaOpList)) {
-                rt = m_sagaDaoCtrl.batchInsert(sagaOpList, null, false);
-                if (rt != Errno.OK) {
-                    Log.logErr(rt, "dao.insert sagaOpList error;flow=%d;aid=%d;sagaOpList=%s",m_flow, aid, sagaOpList);
-                    return rt;
-                }
+            rt = addInsOp4Saga(aid, nameList);
+            if (rt != Errno.OK) {
+                return rt;
             }
-        }
-        return rt;
-    }
-
-    public int batchAddRollback(int aid, FaiList<Param> sagaOpList) {
-        int rt;
-        if (Util.isEmptyList(sagaOpList)) {
-            rt = Errno.ARGS_ERROR;
-            Log.logErr(rt, "args err;sagaOpList is empty");
-            return rt;
-        }
-        FaiList<String> nameList = new FaiList<>();
-        sagaOpList.forEach(sagaOpInfo -> nameList.add(sagaOpInfo.getString(SpecStrEntity.Info.NAME)));
-        ParamMatcher matcher = new ParamMatcher(SpecStrEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(SpecStrEntity.Info.NAME, ParamMatcher.IN, nameList);
-        rt = m_daoCtrl.delete(matcher);
-        if (rt != Errno.OK) {
-            Log.logErr(rt, "batchAddRollback err;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher);
-            return rt;
         }
         return rt;
     }
@@ -293,6 +259,74 @@ public class SpecStrProc {
             return rt;
         }
         return rt;
+    }
+
+    // 记录添加操作
+    public int addInsOp4Saga(int aid, FaiList<String> nameList) {
+        int rt;
+        if (Util.isEmptyList(nameList)) {
+            Log.logStd("addInsOp4Saga nameList is empty");
+            return Errno.OK;
+        }
+        FaiList<Param> sagaOpList = new FaiList<>();
+        String xid = RootContext.getXID();
+        Long branchId = RootContext.getBranchId();
+        Calendar now = Calendar.getInstance();
+        nameList.forEach(name -> {
+            Param sagaOpInfo = new Param();
+            sagaOpInfo.setInt(SpecStrEntity.Info.AID, aid);
+            sagaOpInfo.setString(SpecStrEntity.Info.NAME, name);
+            sagaOpInfo.setString(SagaEntity.Common.XID, xid);
+            sagaOpInfo.setLong(SagaEntity.Common.BRANCH_ID, branchId);
+            sagaOpInfo.setInt(SagaEntity.Common.SAGA_OP, SagaValObj.SagaOp.ADD);
+            sagaOpInfo.setCalendar(SagaEntity.Common.SAGA_TIME, now);
+            sagaOpList.add(sagaOpInfo);
+        });
+        rt = m_sagaDaoCtrl.batchInsert(sagaOpList, null, false);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "dao.insert sagaOpList error;flow=%d;aid=%d;sagaOpList=%s",m_flow, aid, sagaOpList);
+            return rt;
+        }
+        return rt;
+    }
+
+    /**
+     * specStr 回滚
+     * @param aid aid
+     * @param xid 全局事务id
+     * @param branchId 分支事务id
+     */
+    public void rollback4Saga(int aid, String xid, Long branchId) {
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        int rt = getSagaOpList(xid, branchId, listRef);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "get sagaOpList err;flow=%d;aid=%;xid=%s;branchId=%s", m_flow, aid, xid, branchId);
+        }
+        if (listRef.value.isEmpty()) {
+            Log.logStd("specStrProc sagaOpList is empty");
+            return;
+        }
+
+        // 这里只有添加类型的 Saga 记录
+        // 回滚添加
+        rollback4Add(aid, listRef.value);
+    }
+
+    // 回滚添加
+    private void rollback4Add(int aid, FaiList<Param> list) {
+        if (Util.isEmptyList(list)) {
+            return;
+        }
+        FaiList<String> nameList = Utils.getValList(list, SpecStrEntity.Info.NAME);
+        ParamMatcher matcher = new ParamMatcher(SpecStrEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SpecStrEntity.Info.NAME, ParamMatcher.IN, nameList);
+
+        int rt = m_daoCtrl.delete(matcher);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "delete err;flow=%d;aid=%d;nameList=%s", m_flow, aid, nameList);
+        }
+        restoreMaxId(aid, false);
+        Log.logStd("rollback add ok;flow=%d;aid=%d", m_flow, aid);
     }
 
     private void getListFromCache(int aid, FaiList<Integer> scStrIdList, HashSet<Integer> scStrIdSet, FaiList<Param> resultList) {

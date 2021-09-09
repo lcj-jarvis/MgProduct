@@ -726,7 +726,7 @@ public class ProductSpecProc {
             return;
         }
         String[] sagaKeys = ProductSpecEntity.getPriAndUpdateKey();
-        List<String> keys = Arrays.asList(sagaKeys);
+        FaiList<String> keys = new FaiList<>(Arrays.asList(sagaKeys));
         // 去除主键 (这里比较特殊，因为主键之一的 scStrId 是修改字段 (这里不去除)，在修改时我们是通过 aid + pdId + pdScId 去匹配修改)
         keys.remove(ProductSpecEntity.Info.AID);
         keys.remove(ProductSpecEntity.Info.PD_ID);

@@ -1148,7 +1148,7 @@ public class ProductSpecSkuProc {
             return;
         }
         String[] sagaKeys = ProductSpecSkuEntity.getSagaKeys();
-        List<String> keys = Arrays.asList(sagaKeys);
+        FaiList<String> keys = new FaiList<>(Arrays.asList(sagaKeys));
         // 去除主键
         keys.remove(ProductSpecSkuEntity.Info.AID);
         keys.remove(ProductSpecSkuEntity.Info.SKU_ID);

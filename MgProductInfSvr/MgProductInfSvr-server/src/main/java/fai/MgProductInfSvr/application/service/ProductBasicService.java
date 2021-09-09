@@ -19,8 +19,6 @@ import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
 import fai.middleground.svrutil.annotation.SuccessRt;
-
-import fai.middleground.svrutil.*;
 import fai.middleground.svrutil.misc.Utils;
 
 import java.io.IOException;
@@ -694,11 +692,11 @@ public class ProductBasicService extends MgProductInfService {
                 /** 修改富文本 end */
 
             } finally {
-                /*if (rt != Errno.OK) {
+                if (rt != Errno.OK) {
                     tx.rollback();
                 } else {
                     tx.commit();
-                }*/
+                }
             }
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);

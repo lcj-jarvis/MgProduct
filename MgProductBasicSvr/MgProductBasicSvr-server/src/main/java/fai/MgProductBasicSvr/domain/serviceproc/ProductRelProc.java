@@ -129,6 +129,7 @@ public class ProductRelProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
         FaiList<String> fields = new FaiList<>();
+        fields.add(ProductRelEntity.Info.UNION_PRI_ID);
         fields.add(ProductRelEntity.Info.PD_ID);
         FaiList<Param> list = searchFromDb(aid, searchArg, fields);
         ESUtil.batchPreLog(aid, list, DocOplogDef.Operation.DELETE_ONE);

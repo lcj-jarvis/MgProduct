@@ -1,6 +1,7 @@
 package fai.MgProductBasicSvr.domain.serviceproc;
 
 import fai.MgProductBasicSvr.domain.entity.ProductBindPropEntity;
+import fai.MgProductBasicSvr.domain.entity.ProductRelEntity;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductBindPropCache;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductBindPropDaoCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.saga.ProductBindPropSagaDaoCtrl;
@@ -37,6 +38,35 @@ public class ProductBindPropProc {
 
     public FaiList<Param> getPdBindPropList(int aid, int unionPriId, int sysType, int rlPdId) {
         return getList(aid, unionPriId, sysType, rlPdId);
+    }
+
+    public void cloneBizBind(int aid, int fromUnionPriId, int toUnionPriId) {
+        ParamMatcher delMatcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
+        delMatcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, toUnionPriId);
+
+        int rt = m_bindPropDao.delete(delMatcher);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "clear old list error;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+        }
+
+        ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, fromUnionPriId);
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        FaiList<Param> list = searchFromDb(aid, searchArg, null);
+        if(list.isEmpty()) {
+            return;
+        }
+        Calendar now = Calendar.getInstance();
+        for(Param info : list) {
+            info.setInt(ProductRelEntity.Info.UNION_PRI_ID, toUnionPriId);
+            info.setCalendar(ProductRelEntity.Info.CREATE_TIME, now);
+        }
+        rt = m_bindPropDao.batchInsert(list, null, true);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "cloneBizBind error;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+        }
+        Log.logStd("cloneBizBind ok;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
     }
 
     public void addPdBindPropList(int aid, int unionPriId, int sysType, int rlPdId, int pdId, FaiList<Param> infoList) {

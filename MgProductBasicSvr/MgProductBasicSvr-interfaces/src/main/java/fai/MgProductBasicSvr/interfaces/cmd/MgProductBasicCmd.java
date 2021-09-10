@@ -66,6 +66,9 @@ public class MgProductBasicCmd {
         public static final int NUM25 = 1025; /** @see BasicCmd#ADD_PD_AND_REL_ROLLBACK */
         public static final int NUM26 = 1026; /** @see BasicCmd#SET_SINGLE_PD_ROLLBACK */
         public static final int NUM27 = 1027; /** @see BasicCmd#DEL_PDS_ROLLBACK */
+        public static final int NUM28 = 1028; /** @see BasicCmd#CLONE_BIZ_BIND */
+        public static final int NUM29 = 1029; /** @see BasicCmd#BATCH_SET_4YK */
+        public static final int NUM30 = 1030; /** @see BasicCmd#BATCH_SET_4YK_ROLLBACK */
     }
 
     /**
@@ -136,6 +139,9 @@ public class MgProductBasicCmd {
         public static final int ADD_PD_AND_REL_ROLLBACK = WriteCmdNum.NUM25;
         public static final int SET_SINGLE_PD_ROLLBACK = WriteCmdNum.NUM26;
         public static final int DEL_PDS_ROLLBACK = WriteCmdNum.NUM27;
+        public static final int CLONE_BIZ_BIND = WriteCmdNum.NUM28;
+        public static final int BATCH_SET_4YK = WriteCmdNum.NUM29;
+        public static final int BATCH_SET_4YK_ROLLBACK = WriteCmdNum.NUM30;
     }
 
 }

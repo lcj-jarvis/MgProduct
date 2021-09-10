@@ -142,6 +142,8 @@ public class MgProductInfCmd {
         public static final int NUM60 = 1060; /**@see Cmd#DEL_BACKUP */
         public static final int NUM61 = 1061; /**@see GroupCmd#SET_ALL_GROUP_LIST */
         public static final int NUM62 = 1062; /**@see BasicCmd#DEL_PD_TAG_LIST */
+        public static final int NUM63 = 1063; /**@see Cmd#CLONE_BIZ_BIND */
+        public static final int NUM64 = 1064; /**@see BasicCmd#BATCH_SET_4YK */
 
     }
 
@@ -193,6 +195,7 @@ public class MgProductInfCmd {
         public static final int SET_PD_INFO = WriteCmdNum.NUM43;
         public static final int SET_PD_BIND_TAG = WriteCmdNum.NUM55;
         public static final int DEL_PD_TAG_LIST = WriteCmdNum.NUM62;
+        public static final int BATCH_SET_4YK = WriteCmdNum.NUM64;
     }
 
     public static class GroupCmd {
@@ -376,5 +379,6 @@ public class MgProductInfCmd {
         public static final int BACKUP = WriteCmdNum.NUM58;
         public static final int RESTORE = WriteCmdNum.NUM59;
         public static final int DEL_BACKUP = WriteCmdNum.NUM60;
+        public static final int CLONE_BIZ_BIND = WriteCmdNum.NUM63;
     }
 }

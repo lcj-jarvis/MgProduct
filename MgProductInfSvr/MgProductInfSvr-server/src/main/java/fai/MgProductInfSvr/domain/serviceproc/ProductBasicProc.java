@@ -222,6 +222,41 @@ public class ProductBasicProc {
     }
 
     /**
+     * 批量设置商品的状态
+     * for 门店通总店批量设置上下架，若门店数据不存在，则添加
+     * @return
+     */
+    public FaiList<Param> batchSet4YK(int aid, String xid, int ownUnionPriId, int sysType, FaiList unionPriIds, FaiList<Integer> rlPdIds, ParamUpdater updater) {
+        int rt;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get ProductBasicCli error;aid=%d;ownUid=%d;uids=%s;sysType=%s;rlPdIds=%s;updater=%s;", aid, ownUnionPriId, unionPriIds, sysType, rlPdIds, updater.toJson());
+        }
+        FaiList<Param> addList = new FaiList<>();
+        rt = m_cli.batchSet4YK(aid, xid, ownUnionPriId, sysType, unionPriIds, rlPdIds, updater, addList);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "batchSet4YK error;aid=%d;ownUid=%d;uids=%s;sysType=%s;rlPdIds=%s;updater=%s;", aid, ownUnionPriId, unionPriIds, sysType, rlPdIds, updater.toJson());
+        }
+        return addList;
+    }
+
+    /**
+     * 克隆业务绑定关系数据
+     * @return
+     */
+    public void cloneBizBind(int aid, int fromUnionPriId, int toUnionPriId) {
+        int rt;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get ProductBasicCli error;flow=%d;aid=%d;fromUnionPriId=%s;toUnionPriId=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+        }
+        rt = m_cli.cloneBizBind(aid, fromUnionPriId, toUnionPriId);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "cloneBizBind error;flow=%d;aid=%d;fromUnionPriId=%s;toUnionPriId=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+        }
+    }
+
+    /**
      * 取消 rlPdIds 的商品业务关联
      * @return
      */

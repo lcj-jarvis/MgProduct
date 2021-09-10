@@ -15,6 +15,7 @@ import java.util.List;
  * 方便统一初始化各个CacheCtrl的RedisCacheManager
  */
 public class CacheCtrl {
+	private static final int EXPIRE_SEC = 10;
 	/**
 	 * 获取版本
 	 */
@@ -32,6 +33,11 @@ public class CacheCtrl {
 	public static boolean clearCacheVersion(int aid){
 		String cacheVersionKey = getCacheVersionKey(aid);
 		return m_cache.del(cacheVersionKey);
+	}
+
+	public static void setExpire(int aid) {
+		String cacheVersionKey = getCacheVersionKey(aid);
+		m_cache.expire(cacheVersionKey, EXPIRE_SEC);
 	}
 
 	private static String getCacheVersionKey(int aid){

@@ -16,4 +16,5 @@ public class CommDtoKey {
     public static final int UNION_PRI_IDS = 12;
     public static final int REPORT_COUNT = 13;
     public static final int REPORT_PRICE = 14;
+    public static final int FROM_UNION_PRI_ID = 15;
 }

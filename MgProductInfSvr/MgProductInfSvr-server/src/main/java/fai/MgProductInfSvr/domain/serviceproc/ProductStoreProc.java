@@ -3,6 +3,7 @@ package fai.MgProductInfSvr.domain.serviceproc;
 import fai.MgProductStoreSvr.interfaces.cli.MgProductStoreCli;
 import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuValObj;
 import fai.comm.util.*;
+import fai.middleground.svrutil.exception.MgException;
 
 import java.util.Calendar;
 
@@ -12,6 +13,38 @@ public class ProductStoreProc extends AbstractProductProc{
         m_cli = new MgProductStoreCli(flow);
         if (!m_cli.init()) {
             m_cli = null;
+        }
+    }
+
+    /**
+     * 克隆业务绑定数据
+     * for 门店通
+     */
+    public void cloneBizBind(int aid, int fromUnionPriId, int toUnionPriId) {
+        int rt;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get MgProductStoreCli error;flow=%d;aid=%d;fromUid=%d;toUid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+        }
+        rt = m_cli.cloneBizBind(aid, fromUnionPriId, toUnionPriId);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "error;flow=%d;aid=%d;fromUid=%d;toUid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+        }
+    }
+
+    /**
+     * 克隆业务绑定数据
+     * for 门店通
+     */
+    public void copyBizBind(int aid, int fromUnionPriId, FaiList<Param> list) {
+        int rt;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get MgProductStoreCli error;flow=%d;aid=%d;fromUid=%d;list=%s;", m_flow, aid, fromUnionPriId, list);
+        }
+        rt = m_cli.copyBizBind(aid, fromUnionPriId, list);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "error;flow=%d;aid=%d;fromUid=%d;list=%s;", m_flow, aid, fromUnionPriId, list);
         }
     }
 

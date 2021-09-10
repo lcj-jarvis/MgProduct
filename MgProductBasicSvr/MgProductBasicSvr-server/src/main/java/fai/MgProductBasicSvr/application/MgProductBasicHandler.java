@@ -296,6 +296,42 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductBasicCmd.BasicCmd.BATCH_SET_4YK)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductBasicCmd.BasicCmd.BATCH_SET_4YK_ROLLBACK)
+    public int batchSet4YK(final FaiSession session,
+                            @ArgFlow final int flow,
+                            @ArgAid final int aid,
+                            @ArgBodyXid(value = ProductRelDto.Key.XID, useDefault = true) String xid,
+                            @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int ownUnionPriId,
+                            @ArgBodyInteger(value = ProductRelDto.Key.SYS_TYPE, useDefault = true) int sysType,
+                            @ArgList(keyMatch = ProductRelDto.Key.UNION_PRI_IDS) FaiList<Integer> unionPriIds,
+                            @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
+                            @ArgParamUpdater(keyMatch = ProductRelDto.Key.UPDATER, classDef = ProductRelDto.class,
+                            methodDef = "getRelAndPdDto") ParamUpdater updater) throws IOException {
+        return service.batchSet4YK(session, flow, aid, xid, ownUnionPriId, sysType, unionPriIds, rlPdIds, updater);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BasicCmd.BATCH_SET_4YK_ROLLBACK)
+    public int batchSet4YKRollback(final FaiSession session,
+                                   @ArgFlow final int flow,
+                                   @ArgAid final int aid,
+                                   @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                   @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return service.batchSet4YKRollback(session, flow, aid, xid, branchId);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BasicCmd.CLONE_BIZ_BIND)
+    public int cloneBizBind(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid final int aid,
+                                 @ArgBodyInteger(ProductRelDto.Key.FROM_UNION_PRI_ID) int fromUnionPriId,
+                                 @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int toUnionPriId) throws IOException {
+        return service.cloneBizBind(session, flow, aid, fromUnionPriId, toUnionPriId);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductBasicCmd.BasicCmd.DEL_REL_BIND)
     public int batchDelPdRelBind(final FaiSession session,
                                  @ArgFlow final int flow,

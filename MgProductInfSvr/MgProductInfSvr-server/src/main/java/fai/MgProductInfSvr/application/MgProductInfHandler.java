@@ -1216,6 +1216,34 @@ public class MgProductInfHandler extends FaiHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductInfCmd.Cmd.CLONE_BIZ_BIND)
+    public int cloneBizBind(final FaiSession session,
+                                @ArgFlow final int flow,
+                                @ArgAid final int aid,
+                                @ArgParam(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
+                                        keyMatch = MgProductDto.Key.PRIMARY_KEY) Param primaryKey,
+                                @ArgParam(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
+                                        keyMatch = MgProductDto.Key.FROM_PRIMARY_KEY) Param fromPrimaryKey) throws IOException {
+        return mgProductInfService.cloneBizBind(session, flow, aid, primaryKey, fromPrimaryKey);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.BasicCmd.BATCH_SET_4YK)
+    public int batchSet4YK(final FaiSession session,
+                            @ArgFlow final int flow,
+                            @ArgAid final int aid,
+                            @ArgParam(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
+                                    keyMatch = ProductBasicDto.Key.PRIMARY_KEY) Param ownPrimaryKey,
+                            @ArgBodyInteger(value = ProductBasicDto.Key.SYS_TYPE, useDefault = true) int sysType,
+                            @ArgList(keyMatch = ProductBasicDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
+                            @ArgList(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
+                                    keyMatch = ProductBasicDto.Key.PRIMARY_KEYS) FaiList<Param> toPrimaryKeys,
+                            @ArgParamUpdater(classDef = ProductBasicDto.class, methodDef = "getProductDto",
+                                    keyMatch = ProductBasicDto.Key.UPDATER) ParamUpdater updater) throws IOException, TransactionException {
+        return mgProductInfService.batchSet4YK(session, flow, aid, ownPrimaryKey, sysType, rlPdIds, toPrimaryKeys, updater);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductInfCmd.Cmd.BACKUP)
     public int backupData(final FaiSession session,
                                 @ArgFlow final int flow,

@@ -171,6 +171,54 @@ public class MgProductInfCli extends MgProductInfCli7ForProductTag {
     }
 
     /**
+     * 克隆业务绑定数据
+     * for 门店通新增门店场景
+     * 克隆
+     *  1. 基础服务业务关联表数据
+     *  2. 库存销售数据，库存相关会初始化为0
+     * @param mgProductArg
+     * @return
+     */
+    public int cloneBizBInd(MgProductArg mgProductArg) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            int aid = mgProductArg.getAid();
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            Param fromPrimaryKey = mgProductArg.getFromPrimaryKey();
+            if(Str.isEmpty(fromPrimaryKey)) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;fromPrimaryKey is null;aid=%d;", aid);
+                return m_rt;
+            }
+
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            Param primaryKey = new Param();
+            primaryKey.setInt(MgProductEntity.Info.TID, tid);
+            primaryKey.setInt(MgProductEntity.Info.SITE_ID, siteId);
+            primaryKey.setInt(MgProductEntity.Info.LGID, lgId);
+            primaryKey.setInt(MgProductEntity.Info.KEEP_PRI_ID1, keepPriId1);
+            // packaging send data
+            FaiBuffer sendBody = getDefaultFaiBuffer();
+            primaryKey.toBuffer(sendBody, MgProductDto.Key.PRIMARY_KEY, MgProductDto.getPrimaryKeyDto());
+            fromPrimaryKey.toBuffer(sendBody, MgProductDto.Key.FROM_PRIMARY_KEY, MgProductDto.getPrimaryKeyDto());
+            // send and recv
+            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.Cmd.CLONE_BIZ_BIND, sendBody, false, false);
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    /**
      * 备份
      * @param mgProductArg
      * @return

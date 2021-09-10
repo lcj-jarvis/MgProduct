@@ -5,7 +5,6 @@ import fai.MgProductStoreSvr.application.MgProductStoreSvr;
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
 import fai.MgProductStoreSvr.domain.comm.PdKey;
 import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
-import fai.MgProductStoreSvr.domain.comm.Utils;
 import fai.MgProductStoreSvr.domain.entity.*;
 import fai.MgProductStoreSvr.domain.repository.StoreSalesSkuCacheCtrl;
 import fai.MgProductStoreSvr.domain.repository.StoreSalesSkuDaoCtrl;
@@ -14,6 +13,7 @@ import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.util.*;
 import fai.mgproduct.comm.MgProductErrno;
 import fai.mgproduct.comm.Util;
+import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.*;
@@ -149,6 +149,61 @@ public class StoreSalesSkuProc {
             }
         }
         Log.logStd("batchAddRollback ok;flow=%d;aid=%d", m_flow, aid);
+        return rt;
+    }
+    public int cloneBizBind(int aid, int fromUnionPriId, int toUnionPriId) {
+        ParamMatcher delMatcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        delMatcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, toUnionPriId);
+
+        int rt = m_daoCtrl.delete(delMatcher);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "clear old list error;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+            return rt;
+        }
+        return copyBizBind(aid, fromUnionPriId, toUnionPriId, null);
+    }
+
+    public int copyBizBind(int aid, int fromUnionPriId, int toUnionPriId, FaiList<Integer> pdIds) {
+        ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, fromUnionPriId);
+        if(!Utils.isEmptyList(pdIds)) {
+            matcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        }
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        int rt = m_daoCtrl.select(searchArg, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            Log.logErr(rt, "cloneBizBind error;flow=%d;aid=%d;fromUid=%s;toUid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+            return rt;
+        }
+
+        FaiList<Param> list = listRef.value;
+
+        Calendar now = Calendar.getInstance();
+        for(Param info : list) {
+            info.remove(StoreSalesSkuEntity.Info.COUNT);
+            info.remove(StoreSalesSkuEntity.Info.REMAIN_COUNT);
+            info.remove(StoreSalesSkuEntity.Info.HOLDING_COUNT);
+            info.remove(StoreSalesSkuEntity.Info.MW_COST);
+            info.remove(StoreSalesSkuEntity.Info.MW_TOTAL_COST);
+            info.remove(StoreSalesSkuEntity.Info.FIFO_TOTAL_COST);
+            info.remove(StoreSalesSkuEntity.Info.VIRTUAL_COUNT);
+
+            info.setCalendar(StoreSalesSkuEntity.Info.SYS_CREATE_TIME, now);
+            info.setCalendar(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, now);
+
+            info.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, toUnionPriId);
+
+        }
+        rt = m_daoCtrl.batchInsert(list, null, true);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "cloneBizBind error;flow=%d;aid=%d;fromUid=%s;toUid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+            return rt;
+        }
+
+        Log.logStd("copyBizBind ok;flow=%d;aid=%d;fromUid=%s;toUid=%s;pdIds=%s;", m_flow, aid, fromUnionPriId, toUnionPriId, pdIds);
         return rt;
     }
 
@@ -382,7 +437,7 @@ public class StoreSalesSkuProc {
         int rt;
         FaiList<Long> skuIdList = new FaiList<>(updaterList.size());
         // 需要更新的最多key集
-        Set<String> maxUpdaterKeys = Utils.validUpdaterList(updaterList, StoreSalesSkuEntity.getValidKeys(), data->{
+        Set<String> maxUpdaterKeys = Utils.validUpdaterList(updaterList, Utils.asFaiList(StoreSalesSkuEntity.getValidKeys()), data->{
             skuIdList.add(data.getLong(StoreSalesSkuEntity.Info.SKU_ID));
         });
         if(maxUpdaterKeys.contains(StoreSalesSkuEntity.Info.PRICE)){
@@ -506,7 +561,7 @@ public class StoreSalesSkuProc {
         FaiList<ParamUpdater> updaterList = new FaiList<>();
         storeSalesSkuSagaList.clone().forEach(data -> updaterList.add(new ParamUpdater(data)));
         // 获取更新最大key
-        Set<String> maxUpdaterKeys = Utils.validUpdaterList(updaterList, StoreSalesSkuEntity.getValidKeys(), null);
+        Set<String> maxUpdaterKeys = Utils.validUpdaterList(updaterList, Utils.asFaiList(StoreSalesSkuEntity.getValidKeys()), null);
         if(maxUpdaterKeys.contains(StoreSalesSkuEntity.Info.PRICE)){
             maxUpdaterKeys.add(StoreSalesSkuEntity.Info.FLAG);
         }

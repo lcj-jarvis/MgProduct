@@ -192,6 +192,181 @@ public class ProductBasicService extends BasicParentService {
     }
 
     /**
+     * 给悦客提供的批量修改接口
+     * 可同时修改多个unionPriId * 多个rlPdId的数据
+     * 目前仅支持修改status 和 绑定分类
+     *
+     * 修改status时，若对应unionPriId下没有数据，则克隆一份总店数据到对应unionPriId下
+     */
+    @SuccessRt(Errno.OK)
+    public int batchSet4YK(FaiSession session, int flow, int aid, String xid, int ownUnionPriId, int sysType, FaiList<Integer> unionPriIds, FaiList<Integer> rlPdIds, ParamUpdater updater) throws IOException {
+        int rt;
+        if(aid <= 0 || ownUnionPriId <= 0 || Utils.isEmptyList(unionPriIds) || Utils.isEmptyList(rlPdIds)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args error;flow=%d;aid=%d;ownUid=%d;uids=%s;rlPdIds=%s;updater=%s;", flow, aid, ownUnionPriId, unionPriIds, rlPdIds, updater.toJson());
+            return rt;
+        }
+        Param updateInfo = updater.getData();
+        if(Str.isEmpty(updateInfo)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args error, update is empty;flow=%d;aid=%d;ownUid=%d;uids=%s;rlPdIds=%s;updater=%s;", flow, aid, ownUnionPriId, unionPriIds, rlPdIds, updater.toJson());
+            return rt;
+        }
+
+        Integer status = updateInfo.getInt(ProductRelEntity.Info.STATUS);
+        FaiList<Integer> rlGroupIds = updateInfo.getList(ProductRelEntity.Info.RL_GROUP_IDS);
+        if(status == null && rlGroupIds == null) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args error, update is empty;flow=%d;aid=%d;ownUid=%d;uids=%s;rlPdIds=%s;updater=%s;", flow, aid, ownUnionPriId, unionPriIds, rlPdIds, updater.toJson());
+            return rt;
+        }
+        FaiList<Param> addList = new FaiList<>();
+
+        LockUtil.lock(aid);
+        try {
+            TransactionCtrl tc = new TransactionCtrl();
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+
+
+                ProductRelProc relProc = new ProductRelProc(flow, aid, tc, xid, true);
+                FaiList<Integer> pdIds = relProc.getPdIds(aid, ownUnionPriId, sysType, new HashSet<>(rlPdIds));
+                if(status != null) {
+                    addList = relProc.setPdStatus(aid, ownUnionPriId, unionPriIds, pdIds, status);
+                }
+
+                // 更新分类绑定
+                if(rlGroupIds != null) {
+                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, true);
+                    for(int unionPirId : unionPriIds) {
+                        FaiList<Param> relList = relProc.getProductRelList(aid, unionPirId, pdIds);
+                        Map<Integer, Integer> pdId_rlPdId = Utils.getMap(relList, ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID);
+                        // 组装新设置的分类绑定关系
+                        FaiList<Param> newBindGroupList = new FaiList<>();
+                        for(int pdId : pdIds) {
+                            int rlPdId = pdId_rlPdId.get(pdId);
+                            for(int rlGroupId : rlGroupIds) {
+                                Param newBind = new Param();
+                                newBind.setInt(ProductBindGroupEntity.Info.SYS_TYPE, sysType);
+                                newBind.setInt(ProductBindGroupEntity.Info.RL_GROUP_ID, rlGroupId);
+                                newBind.setInt(ProductBindGroupEntity.Info.RL_PD_ID, rlPdId);
+                                newBind.setInt(ProductBindGroupEntity.Info.PD_ID, pdId);
+                                newBindGroupList.add(newBind);
+                            }
+                        }
+                        bindGroupProc.updateBindGroupList(aid, unionPirId, pdIds, newBindGroupList);
+                    }
+                }
+
+                // 提交前设置下临时过期时间
+                CacheCtrl.setExpire(aid);
+                commit = true;
+            }finally {
+                if(!commit) {
+                    tc.rollback();
+                }else {
+                    tc.commit();
+                }
+                tc.closeDao();
+            }
+
+            // 删除缓存
+            CacheCtrl.clearCacheVersion(aid);
+
+            // 同步修改给es
+            ESUtil.commitPre(flow, aid);
+        }finally {
+            LockUtil.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        addList.toBuffer(sendBuf, ProductRelDto.Key.REDUCED_INFO, ProductRelDto.getReducedInfoDto());
+        session.write(sendBuf);
+        Log.logStd("setPdStatus ok;flow=%d;aid=%d;ownUid=%d;uids=%s;rlPdIds=%s;updater=%s;", flow, aid, ownUnionPriId, unionPriIds, rlPdIds, updater.toJson());
+        return rt;
+    }
+
+    @SuccessRt(Errno.OK)
+    public int batchSet4YKRollback(FaiSession session, int flow, int aid, String xid, long branchId) throws IOException {
+        SagaRollback sagaRollback = (tc) -> {
+            // 回滚商品业务关系表数据
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc, xid, false);
+            relProc.rollback4Saga(aid, branchId);
+
+            ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, false);
+            bindGroupProc.rollback4Saga(aid, branchId);
+        };
+
+        int branchStatus = doRollback(flow, aid, xid, branchId, sagaRollback);
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, branchStatus);
+        session.write(sendBuf);
+        return Errno.OK;
+    }
+
+    @SuccessRt(Errno.OK)
+    public int cloneBizBind(FaiSession session, int flow, int aid, int fromUnionPriId, int toUnionPriId) throws IOException {
+        int rt;
+        if(aid <= 0 || fromUnionPriId <= 0 || toUnionPriId <= 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args error;flow=%d;aid=%d;fromUid=%d;toUid=%s;", flow, aid, fromUnionPriId, toUnionPriId);
+            return rt;
+        }
+        LockUtil.lock(aid);
+        try {
+            TransactionCtrl tc = new TransactionCtrl();
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+                // 克隆业务表数据
+                ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+                relProc.cloneBizBind(aid, fromUnionPriId, toUnionPriId);
+
+                // 克隆分类关联数据
+                if(useProductGroup()) {
+                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                    bindGroupProc.cloneBizBind(aid, fromUnionPriId, toUnionPriId);
+                }
+
+                // 克隆标签关联数据
+                if(useProductTag()) {
+                    ProductBindTagProc bindGroupProc = new ProductBindTagProc(flow, aid, tc);
+                    bindGroupProc.cloneBizBind(aid, fromUnionPriId, toUnionPriId);
+                }
+
+                // 克隆参数关联数据
+                ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
+                bindPropProc.cloneBizBind(aid, fromUnionPriId, toUnionPriId);
+
+                commit = true;
+            }finally {
+                if(!commit) {
+                    tc.rollback();
+                }else {
+                    tc.commit();
+                }
+                tc.closeDao();
+            }
+
+            // 删除缓存
+            CacheCtrl.clearCacheVersion(aid);
+            // 同步修改给es
+            ESUtil.commitPre(flow, aid);
+
+        }finally {
+            LockUtil.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("cloneBizBind ok;flow=%d;aid=%d;fromUid=%s;toUid=%s;", flow, aid, fromUnionPriId, toUnionPriId);
+        return rt;
+    }
+
+    /**
      * 取消商品业务关联
      * softDel: 是否软删除，软删除实际只是置起标志位
      */

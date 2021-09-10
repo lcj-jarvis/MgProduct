@@ -1,10 +1,7 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
-import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryEntity;
-import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryValObj;
-import fai.MgProductStoreSvr.domain.entity.StoreSagaEntity;
-import fai.MgProductStoreSvr.domain.entity.StoreSagaValObj;
+import fai.MgProductStoreSvr.domain.entity.*;
 import fai.MgProductStoreSvr.domain.repository.DataType;
 import fai.MgProductStoreSvr.domain.repository.SpuBizSummaryCacheCtrl;
 import fai.MgProductStoreSvr.domain.repository.SpuBizSummaryDaoCtrl;
@@ -12,6 +9,7 @@ import fai.MgProductStoreSvr.domain.repository.SpuBizSummarySagaDaoCtrl;
 import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.util.*;
 import fai.mgproduct.comm.Util;
+import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.*;
@@ -29,6 +27,60 @@ public class SpuBizSummaryProc {
             throw new RuntimeException(String.format("SpuBizSummaryDaoCtrl or SpuBizSummarySagaDaoCtrl init err;flow=%s;aid=%s;", flow, aid));
         }
         m_flow = flow;
+    }
+
+    public int cloneBizBind(int aid, int fromUnionPriId, int toUnionPriId) {
+        ParamMatcher delMatcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        delMatcher.and(SpuBizSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, toUnionPriId);
+
+        int rt = m_daoCtrl.delete(delMatcher);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "clear old list error;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+            return rt;
+        }
+
+        return copyBizBind(aid, fromUnionPriId, toUnionPriId, null);
+    }
+
+    public int copyBizBind(int aid, int fromUnionPriId, int toUnionPriId, FaiList<Integer> pdIds) {
+        ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SpuBizSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, fromUnionPriId);
+        if(!Utils.isEmptyList(pdIds)) {
+            matcher.and(SpuBizSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        }
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        int rt = m_daoCtrl.select(searchArg, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            Log.logErr(rt, "copyBizBind error;flow=%d;aid=%d;fromUid=%s;toUid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+            return rt;
+        }
+
+        FaiList<Param> list = listRef.value;
+
+        Calendar now = Calendar.getInstance();
+        for(Param info : list) {
+            // 业务场景如此，库存相关数据不复制过来
+            info.remove(SpuBizSummaryEntity.Info.VIRTUAL_SALES);
+            info.remove(SpuBizSummaryEntity.Info.SALES);
+            info.remove(SpuBizSummaryEntity.Info.COUNT);
+            info.remove(SpuBizSummaryEntity.Info.REMAIN_COUNT);
+            info.remove(SpuBizSummaryEntity.Info.HOLDING_COUNT);
+
+            info.setCalendar(SpuBizSummaryEntity.Info.SYS_CREATE_TIME, now);
+            info.setCalendar(SpuBizSummaryEntity.Info.SYS_UPDATE_TIME, now);
+            info.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, toUnionPriId);
+        }
+        rt = m_daoCtrl.batchInsert(list, null, true);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "copyBizBind error;flow=%d;aid=%d;fromUid=%s;toUid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+            return rt;
+        }
+
+        Log.logStd("copyBizBind ok;flow=%d;aid=%d;fromUid=%s;toUid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+        return rt;
     }
 
     public int report4synSPU2SKU(int aid, Map<Integer, Map<Integer, Param>> unionPriId_pdId_bizSalesSummaryInfoMapMap) {

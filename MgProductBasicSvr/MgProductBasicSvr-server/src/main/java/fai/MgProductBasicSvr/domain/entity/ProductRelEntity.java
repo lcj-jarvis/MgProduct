@@ -35,7 +35,7 @@ public class ProductRelEntity {
 
     public static final FaiList<String> MANAGE_FIELDS; // 管理态字段
     public static final FaiList<String> VISITOR_FIELDS; // 访客态字段
-    public static final FaiList<String> UPDATE_FIELDS; // 访客态字段
+    public static final FaiList<String> UPDATE_FIELDS; // 可修改字段
     static {
         MANAGE_FIELDS = new FaiList<>();
         MANAGE_FIELDS.add(Info.RL_PD_ID);

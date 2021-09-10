@@ -36,6 +36,107 @@ public class ProductRelProc {
         init(tc);
     }
 
+    public void cloneBizBind(int aid, int fromUnionPriId, int toUnionPriId) {
+        ParamMatcher delMatcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        delMatcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, toUnionPriId);
+
+        int rt = m_dao.delete(delMatcher);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "clear old list error;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+        }
+
+        ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, fromUnionPriId);
+        FaiList<Param> list = searchFromDb(aid, matcher, null);
+        if(list.isEmpty()) {
+            return;
+        }
+        Calendar now = Calendar.getInstance();
+        for(Param info : list) {
+            info.setInt(ProductRelEntity.Info.UNION_PRI_ID, toUnionPriId);
+            info.setCalendar(ProductRelEntity.Info.CREATE_TIME, now);
+            info.setCalendar(ProductRelEntity.Info.UPDATE_TIME, now);
+        }
+        // 记录要同步给es的数据
+        ESUtil.batchPreLog(aid, list, DocOplogDef.Operation.UPDATE_ONE);
+        // insert
+        rt = m_dao.batchInsert(list, null, true);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "cloneBizBind error;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+        }
+        // 处理idBuidler
+        restoreMaxId(aid, toUnionPriId, false);
+
+        Log.logStd("cloneBizBind ok;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+    }
+
+    public FaiList<Param> setPdStatus(int aid, int ownUnionPriId, FaiList<Integer> unionPriIds, FaiList<Integer> pdIds, int status) {
+        if(Utils.isEmptyList(unionPriIds) || Utils.isEmptyList(pdIds)) {
+            throw new MgException(Errno.ARGS_ERROR, "arg error;aid=%s;uids=%s;pdIds=%s;status=%s;", aid, unionPriIds, pdIds, status);
+        }
+        HashSet<Pair<Integer, Integer>> addSet = new HashSet();
+        for(int unionPriId : unionPriIds) {
+            for(int pdId : pdIds) {
+                addSet.add(new Pair<>(unionPriId, pdId));
+            }
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+        FaiList<Param> list = searchFromDb(aid, matcher, Utils.asFaiList(ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.PD_ID));
+        for(Param info : list) {
+            int unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
+            int pdId = info.getInt(ProductRelEntity.Info.PD_ID);
+            addSet.remove(new Pair<>(unionPriId, pdId));
+        }
+
+        FaiList<Param> addList = new FaiList<>();
+        Calendar now = Calendar.getInstance();
+        if(!addSet.isEmpty()) {
+            HashSet<Integer> addPdIds = new HashSet<>();
+            for(Pair pair : addSet) {
+                addPdIds.add((Integer) pair.second);
+            }
+            FaiList<Param> sourceList = getListByPdId(aid, ownUnionPriId, addPdIds);
+            Map<Integer, Param> pdId_pdInfo = Utils.getMap(sourceList, ProductRelEntity.Info.PD_ID);
+            HashSet<Integer> needAddUnionPriIds = new HashSet<>();
+            for(Pair pair : addSet) {
+                int unionPriId = (int) pair.first;
+                int pdId = (int) pair.second;
+                Param info = new Param();
+                Param sourceInfo = pdId_pdInfo.get(pdId);
+                info.assign(sourceInfo);
+                info.setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId);
+                info.setCalendar(ProductRelEntity.Info.CREATE_TIME, now);
+                info.setCalendar(ProductRelEntity.Info.UPDATE_TIME, now);
+                addList.add(info);
+                needAddUnionPriIds.add(unionPriId);
+            }
+            int rt = m_dao.batchInsert(addList, null, false);
+            if(rt != Errno.OK) {
+                throw new MgException(rt, "batch insert err;aid=%d;addList=%s;", aid, addList);
+            }
+            // 处理idBuidler
+            for(int unionPirId : needAddUnionPriIds) {
+                restoreMaxId(aid, unionPirId, false);
+            }
+            // 记录要同步给es的数据
+            ESUtil.batchPreLog(aid, addList, DocOplogDef.Operation.UPDATE_ONE);
+        }
+
+        Param updaterInfo = new Param();
+        updaterInfo.setCalendar(ProductRelEntity.Info.UPDATE_TIME, now);
+        updaterInfo.setCalendar(ProductRelEntity.Info.LAST_UPDATE_TIME, now);
+        updaterInfo.setInt(ProductRelEntity.Info.STATUS, status);
+        ParamUpdater updater = new ParamUpdater(updaterInfo);
+
+        int count = updatePdRel(aid, matcher, updater);
+
+        Log.logStd("set status ok;aid=%s;update cnt=%s;updater=%s;matcher=%s;", aid, count, updater.toJson(), matcher.toJson());
+
+        return addList;
+    }
+
     public int addProductRel(int aid, int unionPriId, Param relData) {
         int rt;
         if(Str.isEmpty(relData)) {

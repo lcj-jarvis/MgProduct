@@ -208,6 +208,8 @@ public class ProductBasicDto {
         public static final int DEL_BIND_TAG_IDS = 26;
         public static final int SYS_TYPE = 27;
         public static final int XID = 28;
+        public static final int PRIMARY_KEY = 29;
+        public static final int PRIMARY_KEYS = 30;
     }
 
 

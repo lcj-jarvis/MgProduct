@@ -91,6 +91,27 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.CLONE_BIZ_BIND)
+    private int cloneBizBind(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid final int aid,
+                              @ArgBodyInteger(StoreSalesSkuDto.Key.FROM_UNION_PRI_ID) final int fromUnionPriId,
+                              @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int toUnionPriId) throws IOException {
+        return m_storeSalesSkuService.cloneBizBind(session, flow, aid, fromUnionPriId, toUnionPriId);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.COPY_BIZ_BIND)
+    private int copyBizBind(final FaiSession session,
+                             @ArgFlow final int flow,
+                             @ArgAid final int aid,
+                             @ArgBodyInteger(StoreSalesSkuDto.Key.FROM_UNION_PRI_ID) final int fromUnionPriId,
+                             @ArgList(keyMatch = StoreSalesSkuDto.Key.INFO_LIST, classDef = StoreSalesSkuDto.class,
+                             methodDef = "getCopyDto") FaiList<Param> copyBindList) throws IOException {
+        return m_storeSalesSkuService.copyBizBind(session, flow, aid, fromUnionPriId, copyBindList);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.REPORT)
     private int reportSummary(final FaiSession session,
                                      @ArgFlow final int flow,

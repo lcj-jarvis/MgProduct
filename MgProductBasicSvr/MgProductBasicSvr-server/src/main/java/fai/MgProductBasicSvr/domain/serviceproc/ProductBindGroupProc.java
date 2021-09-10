@@ -1,6 +1,7 @@
 package fai.MgProductBasicSvr.domain.serviceproc;
 
 import fai.MgProductBasicSvr.domain.entity.ProductBindGroupEntity;
+import fai.MgProductBasicSvr.domain.entity.ProductBindPropEntity;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductBindGroupCache;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductBindGroupDaoCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.saga.ProductBindGroupSagaDaoCtrl;
@@ -42,6 +43,35 @@ public class ProductBindGroupProc {
         return getList(aid, unionPriId, new HashSet<>(pdIds));
     }
 
+    public void cloneBizBind(int aid, int fromUnionPriId, int toUnionPriId) {
+        ParamMatcher delMatcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
+        delMatcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, toUnionPriId);
+
+        int rt = m_dao.delete(delMatcher);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "clear old list error;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+        }
+
+        ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, fromUnionPriId);
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        FaiList<Param> list = searchFromDb(aid, searchArg, null);
+        if(list.isEmpty()) {
+            return;
+        }
+        Calendar now = Calendar.getInstance();
+        for(Param info : list) {
+            info.setInt(ProductBindPropEntity.Info.UNION_PRI_ID, toUnionPriId);
+            info.setCalendar(ProductBindPropEntity.Info.CREATE_TIME, now);
+        }
+        rt = m_dao.batchInsert(list, null, true);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "cloneBizBind error;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+        }
+        Log.logStd("cloneBizBind ok;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+    }
+
     public void updateBindGroupList(int aid, int unionPriId, int sysType, int rlPdId, int pdId, FaiList<Integer> rlGroupIdList) {
         if(rlGroupIdList == null) {
             return;
@@ -69,6 +99,18 @@ public class ProductBindGroupProc {
         // 删除
         if(!delGroupIds.isEmpty()) {
             delPdBindGroupList(aid, unionPriId, pdId, delGroupIds);
+        }
+    }
+
+    public void updateBindGroupList(int aid, int unionPriId, FaiList<Integer> pdIds, FaiList<Param> newList) {
+        if(newList == null) {
+            return;
+        }
+        // 删除旧数据
+        delPdBindGroupList(aid, unionPriId, pdIds);
+        // 添加新设置的数据
+        if(!newList.isEmpty()) {
+            batchBindGroupList(aid, unionPriId, newList);
         }
     }
 
@@ -240,6 +282,23 @@ public class ProductBindGroupProc {
         ParamMatcher matcher = new ParamMatcher(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         matcher.and(ProductBindGroupEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+
+        // 开启了分布式事务，记录删除的数据
+        if(addSaga) {
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = matcher;
+            FaiList<Param> list = searchFromDb(aid, searchArg, null);
+            Calendar now = Calendar.getInstance();
+            for(Param info : list) {
+                info.setString(SagaEntity.Common.XID, m_xid);
+                info.setLong(SagaEntity.Common.BRANCH_ID, RootContext.getBranchId());
+                info.setInt(SagaEntity.Common.SAGA_OP, SagaValObj.SagaOp.DEL);
+                info.setCalendar(SagaEntity.Common.SAGA_TIME, now);
+            }
+            // 插入
+            addSagaList(aid, list);
+        }
+
         Ref<Integer> refRowCount = new Ref<>();
         rt = m_dao.delete(matcher, refRowCount);
         if(rt != Errno.OK) {

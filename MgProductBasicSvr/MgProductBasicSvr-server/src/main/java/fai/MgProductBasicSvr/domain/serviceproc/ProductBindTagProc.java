@@ -185,6 +185,35 @@ public class ProductBindTagProc {
         return statusInfo;
     }
 
+    public void cloneBizBind(int aid, int fromUnionPriId, int toUnionPriId) {
+        ParamMatcher delMatcher = new ParamMatcher(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, aid);
+        delMatcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, toUnionPriId);
+
+        int rt = m_dao.delete(delMatcher);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "clear old list error;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+        }
+
+        ParamMatcher matcher = new ParamMatcher(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, fromUnionPriId);
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        FaiList<Param> list = getListByConditions(aid, searchArg, null);
+        if(list.isEmpty()) {
+            return;
+        }
+        Calendar now = Calendar.getInstance();
+        for(Param info : list) {
+            info.setInt(ProductBindTagEntity.Info.UNION_PRI_ID, toUnionPriId);
+            info.setCalendar(ProductBindTagEntity.Info.CREATE_TIME, now);
+        }
+        rt = m_dao.batchInsert(list, null, true);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "cloneBizBind error;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+        }
+        Log.logStd("cloneBizBind ok;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+    }
+
     public int delPdBindTagList(int aid, int unionPriId, int pdId, FaiList<Integer> delRlTagIds) {
         int rt;
         if(Utils.isEmptyList(delRlTagIds)) {

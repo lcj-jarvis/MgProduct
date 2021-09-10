@@ -127,5 +127,7 @@ public class ProductRelDto {
         public static final int UNION_PRI_IDS = 15;
         public static final int XID = 16;
         public static final int SYS_TYPE = 17;
+        public static final int FROM_UNION_PRI_ID = 18;
+        public static final int STATUS = 19;
     }
 }

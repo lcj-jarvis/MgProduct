@@ -49,6 +49,16 @@ public class StoreSalesSkuDto {
         return g_dtoDef;
     }
 
+    private static ParamDef g_copyDtoDef = new ParamDef();
+    static {
+        g_copyDtoDef.add(StoreSalesSkuEntity.Info.UNION_PRI_ID, 0, Var.Type.INT);
+        g_copyDtoDef.add(StoreSalesSkuEntity.Info.PD_ID, 1, Var.Type.INT);
+    }
+
+    public static ParamDef getCopyDto() {
+        return g_copyDtoDef;
+    }
+
     public static class Key extends CommDtoKey{
         public static final int RL_ORDER_CODE = 11;
         public static final int COUNT = 12;

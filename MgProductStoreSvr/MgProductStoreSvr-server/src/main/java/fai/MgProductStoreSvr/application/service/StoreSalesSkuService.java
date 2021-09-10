@@ -2,7 +2,10 @@ package fai.MgProductStoreSvr.application.service;
 
 import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
-import fai.MgProductStoreSvr.domain.comm.*;
+import fai.MgProductStoreSvr.domain.comm.LockUtil;
+import fai.MgProductStoreSvr.domain.comm.PdKey;
+import fai.MgProductStoreSvr.domain.comm.RecordKey;
+import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
 import fai.MgProductStoreSvr.domain.entity.*;
 import fai.MgProductStoreSvr.domain.repository.*;
 import fai.MgProductStoreSvr.domain.serviceProc.*;
@@ -22,17 +25,141 @@ import fai.comm.mq.exception.MqClientException;
 import fai.comm.mq.message.FaiMqMessage;
 import fai.comm.util.*;
 import fai.mgproduct.comm.MgProductErrno;
-import fai.mgproduct.comm.Util;
+import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 主要处理 库存销售sku相关 请求
  */
 public class StoreSalesSkuService extends StoreService {
+    /**
+     * for 门店通新增门店
+     */
+    public int cloneBizBind(FaiSession session, int flow, int aid, int fromUnionPriId, int toUnionPriId) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || fromUnionPriId <= 0 || toUnionPriId <= 0) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;aid=%s;fromUid=%s;toUid=%s;",aid, fromUnionPriId, toUnionPriId);
+                return rt;
+            }
+
+            TransactionCtrl tc = new TransactionCtrl();
+            LockUtil.lock(aid);
+            try {
+
+                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, tc);
+                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
+                try {
+                    tc.setAutoCommit(false);
+                    rt = storeSalesSkuProc.cloneBizBind(aid, fromUnionPriId, toUnionPriId);
+                    if(rt != Errno.OK) {
+                        return rt;
+                    }
+
+                    rt = spuBizSummaryProc.cloneBizBind(aid, fromUnionPriId, toUnionPriId);
+                    if(rt != Errno.OK) {
+                        return rt;
+                    }
+
+                }finally {
+                    if(rt != Errno.OK){
+                        tc.rollback();
+                        return rt;
+                    }
+                    // 事务提交前先设置一个较短的过期时间
+                    spuBizSummaryProc.setDirtyCacheEx(aid);
+                    tc.commit();
+                    // 提交成功再删除缓存
+                    spuBizSummaryProc.deleteDirtyCache(aid);
+                }
+            }finally {
+                LockUtil.unlock(aid);
+                tc.closeDao();
+            }
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("cloneBizBind ok;aid=%s;fromUid=%s;toUid=%s;",aid, fromUnionPriId, toUnionPriId);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    /**
+     * for 门店通批量上下架时，需新增绑定商品数据，同步价格等信息
+     */
+    public int copyBizBind(FaiSession session, int flow, int aid, int fromUnionPriId, FaiList<Param> copyBindList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || fromUnionPriId <= 0 || Utils.isEmptyList(copyBindList)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;aid=%s;fromUid=%s;list=%s;",aid, fromUnionPriId, copyBindList);
+                return rt;
+            }
+
+            TransactionCtrl tc = new TransactionCtrl();
+            LockUtil.lock(aid);
+            try {
+
+                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, tc);
+                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
+                try {
+                    tc.setAutoCommit(false);
+                    Map<Integer, List<Param>> uid_list = new HashMap<>();
+                    try {
+
+                        uid_list = copyBindList.stream().collect(Collectors.groupingBy(x -> x.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID)));
+                    }catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    for(Map.Entry<Integer, List<Param>> entry : uid_list.entrySet()) {
+                        int unionPriId = entry.getKey();
+                        List<Param> list = entry.getValue();
+                        FaiList<Integer> pdIds = Utils.getValList(list, StoreSalesSkuEntity.Info.PD_ID);
+
+                        rt = storeSalesSkuProc.copyBizBind(aid, fromUnionPriId, unionPriId, pdIds);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+
+                        rt = spuBizSummaryProc.copyBizBind(aid, fromUnionPriId, unionPriId, pdIds);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+                    }
+                }finally {
+                    if(rt != Errno.OK){
+                        tc.rollback();
+                        return rt;
+                    }
+                    // 事务提交前先设置一个较短的过期时间
+                    spuBizSummaryProc.setDirtyCacheEx(aid);
+                    tc.commit();
+                    // 提交成功再删除缓存
+                    spuBizSummaryProc.deleteDirtyCache(aid);
+                }
+            }finally {
+                LockUtil.unlock(aid);
+                tc.closeDao();
+            }
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("copy ok;aid=%s;fromUid=%s;copyBindList=%s;",aid, fromUnionPriId, copyBindList);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
     public int reportSummary(FaiSession session, int flow, int aid, FaiList<Integer> pdIds, FaiList<Long> skuIds, boolean reportCount, boolean reportPrice) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
@@ -294,8 +421,8 @@ public class StoreSalesSkuService extends StoreService {
                         }
                         FaiList<Param> skuSumDelSagaList = skuSummaryDelSagaListRef.value;
                         // 存在没有修改的场景，只需要直接返回 OK 就行了
-                        if (Util.isEmptyList(storeSalesAllSagaList) && Util.isEmptyList(spuBizAllSagaList)
-                                && Util.isEmptyList(spuSummaryAllSagaList) && Util.isEmptyList(skuSumDelSagaList)) {
+                        if (Utils.isEmptyList(storeSalesAllSagaList) && Utils.isEmptyList(spuBizAllSagaList)
+                                && Utils.isEmptyList(spuSummaryAllSagaList) && Utils.isEmptyList(skuSumDelSagaList)) {
                             commit = true;
                             return rt = Errno.OK;
                         }
@@ -335,20 +462,20 @@ public class StoreSalesSkuService extends StoreService {
 
                         // --------------------------------------------- 补偿 start ------------------------------------------------
                         // 1、对添加的上报做补偿
-                        if (!Util.isEmptyList(spuSummaryAddSagaList)) {
+                        if (!Utils.isEmptyList(spuSummaryAddSagaList)) {
                             rt = spuSummaryProc.batchAddRollback(aid, spuSummaryAddSagaList);
                             if (rt != Errno.OK) {
                                 return rt;
                             }
                         }
-                        if (!Util.isEmptyList(spuBizAddSagaList)) {
+                        if (!Utils.isEmptyList(spuBizAddSagaList)) {
                             rt = spuBizSummaryProc.batchAddRollback(aid, spuBizAddSagaList);
                             if (rt != Errno.OK) {
                                 return rt;
                             }
                         }
                         // 2、对添加的库存 sku 销售做补偿
-                        if (!Util.isEmptyList(storeSalesAddSagaList)) {
+                        if (!Utils.isEmptyList(storeSalesAddSagaList)) {
                             rt = storeSalesSkuProc.batchAddRollback(aid, storeSalesAddSagaList);
                             if (rt != Errno.OK) {
                                 return rt;
@@ -357,7 +484,7 @@ public class StoreSalesSkuService extends StoreService {
                         // 后面上报需要使用
                         int pdId = 0;
                         // 3、对删除的信息做补偿
-                        if (!Util.isEmptyList(spuSummaryDelSagaList)) {
+                        if (!Utils.isEmptyList(spuSummaryDelSagaList)) {
                             rt = spuSummaryProc.batchDelRollback(aid, spuSummaryDelSagaList);
                             if (rt != Errno.OK) {
                                 return rt;
@@ -366,7 +493,7 @@ public class StoreSalesSkuService extends StoreService {
                                 spuSummaryDelSagaList.get(0).getInt(SpuSummaryEntity.Info.PD_ID);
                             }
                         }
-                        if (!Util.isEmptyList(spuBizDelSagaList)) {
+                        if (!Utils.isEmptyList(spuBizDelSagaList)) {
                             rt = spuBizSummaryProc.batchDelRollback(aid, spuBizDelSagaList);
                             if (rt != Errno.OK) {
                                 return rt;
@@ -375,7 +502,7 @@ public class StoreSalesSkuService extends StoreService {
                                 spuSummaryDelSagaList.get(0).getInt(SpuSummaryEntity.Info.PD_ID);
                             }
                         }
-                        if (!Util.isEmptyList(skuSumDelSagaList)) {
+                        if (!Utils.isEmptyList(skuSumDelSagaList)) {
                             rt = skuSummaryProc.batchDelRollback(aid, skuSumDelSagaList);
                             if (rt != Errno.OK) {
                                 return rt;
@@ -384,7 +511,7 @@ public class StoreSalesSkuService extends StoreService {
                                 spuSummaryDelSagaList.get(0).getInt(SpuSummaryEntity.Info.PD_ID);
                             }
                         }
-                        if (!Util.isEmptyList(storeSalesDelSagaList)) {
+                        if (!Utils.isEmptyList(storeSalesDelSagaList)) {
                             rt = storeSalesSkuProc.batchDelRollback(aid, storeSalesDelSagaList);
                             if (rt != Errno.OK) {
                                 return rt;
@@ -679,7 +806,7 @@ public class StoreSalesSkuService extends StoreService {
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
 
-            if (aid <= 0 || Util.isEmptyList(unionPriIdList) || pdId <= 0 || rlPdId <= 0 || updaterList == null || updaterList.isEmpty()) {
+            if (aid <= 0 || Utils.isEmptyList(unionPriIdList) || pdId <= 0 || rlPdId <= 0 || updaterList == null || updaterList.isEmpty()) {
                 rt = Errno.ARGS_ERROR;
                 Log.logErr("arg err;flow=%d;aid=%d;unionPriIdList=%s;pdId=%s;rlPdId=%s;updaterList=%s", flow, aid, unionPriIdList, pdId, rlPdId, updaterList);
                 return rt;
@@ -819,7 +946,7 @@ public class StoreSalesSkuService extends StoreService {
                             return rt;
                         }
                         FaiList<Param> skuSummarySagaList = skuSummarySagaListRef.value;
-                        if (!Util.isEmptyList(skuSummarySagaList)) {
+                        if (!Utils.isEmptyList(skuSummarySagaList)) {
                             rt = skuSummaryProc.batchAddRollback(aid, skuSummarySagaList);
                             if (rt != Errno.OK) {
                                 return rt;
@@ -832,7 +959,7 @@ public class StoreSalesSkuService extends StoreService {
                             return rt;
                         }
                         FaiList<Param> spuSummarySagaList = spuSummarySagaListRef.value;
-                        if (!Util.isEmptyList(spuSummarySagaList)) {
+                        if (!Utils.isEmptyList(spuSummarySagaList)) {
                             rt = spuSummaryProc.batchAddRollback(aid, spuSummarySagaList);
                             if (rt != Errno.OK) {
                                 return rt;
@@ -846,7 +973,7 @@ public class StoreSalesSkuService extends StoreService {
                             return rt;
                         }
                         FaiList<Param> spuBizSummarySagaList = spuBizSummarySagaListRef.value;
-                        if (!Util.isEmptyList(spuBizSummarySagaList)) {
+                        if (!Utils.isEmptyList(spuBizSummarySagaList)) {
                             rt = spuBizSummaryProc.batchAddRollback(aid, spuBizSummarySagaList);
                             if (rt != Errno.OK) {
                                 return rt;
@@ -862,7 +989,7 @@ public class StoreSalesSkuService extends StoreService {
                         FaiList<Param> storeSalesSkuSagaList = storeSalesSkuSagaListRef.value;
                         int pdId = 0;
                         Set<Long> skuIdSet = new HashSet<>();
-                        if (!Util.isEmptyList(storeSalesSkuSagaList)) {
+                        if (!Utils.isEmptyList(storeSalesSkuSagaList)) {
                             // 获取 pdId 用于之后的上报
                             pdId = storeSalesSkuSagaList.get(0).getInt(StoreSalesSkuEntity.Info.PD_ID);
                             // 获取 skuList 用于之后的上报
@@ -921,7 +1048,7 @@ public class StoreSalesSkuService extends StoreService {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
-            if (aid <= 0 || sourceTid<=0 || sourceUnionPriId <= 0|| Util.isEmptyList(storeSaleSkuList)) {
+            if (aid <= 0 || sourceTid<=0 || sourceUnionPriId <= 0|| Utils.isEmptyList(storeSaleSkuList)) {
                 rt = Errno.ARGS_ERROR;
                 Log.logErr("arg err;flow=%d;aid=%d;sourceUnionPriId=%s;storeSaleSkuList=%s;", flow, aid, sourceUnionPriId, storeSaleSkuList);
                 return rt;
@@ -2019,7 +2146,7 @@ public class StoreSalesSkuService extends StoreService {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
-            if (aid <= 0 || Util.isEmptyList(uidList) || Util.isEmptyList(pdIdList)) {
+            if (aid <= 0 || Utils.isEmptyList(uidList) || Utils.isEmptyList(pdIdList)) {
                 rt = Errno.ARGS_ERROR;
                 Log.logErr("arg err;flow=%d;aid=%d;uidList=%s;pdIdList=%s;", flow, aid, uidList, pdIdList);
                 return rt;
@@ -2051,7 +2178,7 @@ public class StoreSalesSkuService extends StoreService {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
-            if (aid <= 0 || Util.isEmptyList(uidList) || Util.isEmptyList(skuIdList)) {
+            if (aid <= 0 || Utils.isEmptyList(uidList) || Utils.isEmptyList(skuIdList)) {
                 rt = Errno.ARGS_ERROR;
                 Log.logErr("arg err;flow=%d;aid=%d;uidList=%s;skuIdList=%s;", flow, aid, uidList, skuIdList);
                 return rt;

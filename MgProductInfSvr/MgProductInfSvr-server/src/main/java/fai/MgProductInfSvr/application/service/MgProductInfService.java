@@ -374,6 +374,53 @@ public class MgProductInfService extends ServicePub {
     }
 
     /**
+     * 克隆业务绑定关系数据
+     * for 门店通新增门店场景
+     */
+    @SuccessRt(Errno.OK)
+    public int cloneBizBind(FaiSession session, int flow, int aid, Param primaryKey, Param fromPrimaryKey) throws IOException {
+        int rt;
+        if(Str.isEmpty(primaryKey) || Str.isEmpty(fromPrimaryKey)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, primaryKeys is empty;flow=%d;aid=%d;primaryKey=%s;fromPrimaryKey=%s;", flow, aid, primaryKey, fromPrimaryKey);
+            return rt;
+        }
+
+        int fromTid = fromPrimaryKey.getInt(MgPrimaryKeyEntity.Info.TID);
+        int tid = primaryKey.getInt(MgPrimaryKeyEntity.Info.TID);
+        if(fromTid != FaiValObj.TermId.YK || tid != FaiValObj.TermId.YK) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, tid is not YK;flow=%d;aid=%d;primaryKey=%s;fromPrimaryKey=%s;", flow, aid, primaryKey, fromPrimaryKey);
+            return rt;
+        }
+
+        int fromSiteId = fromPrimaryKey.getInt(MgPrimaryKeyEntity.Info.SITE_ID);
+        int fromLgId = fromPrimaryKey.getInt(MgPrimaryKeyEntity.Info.LGID);
+        int fromKeepPriId1 = fromPrimaryKey.getInt(MgPrimaryKeyEntity.Info.KEEP_PRI_ID1);
+        int fromUnionPriId = getUnionPriIdWithoutAdd(flow, aid, fromTid, fromSiteId, fromLgId, fromKeepPriId1);
+
+        int siteId = primaryKey.getInt(MgPrimaryKeyEntity.Info.SITE_ID);
+        int lgId = primaryKey.getInt(MgPrimaryKeyEntity.Info.LGID);
+        int keepPriId1 = primaryKey.getInt(MgPrimaryKeyEntity.Info.KEEP_PRI_ID1);
+        int toUnionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
+
+
+        // 克隆基础服务数据
+        ProductBasicProc basicProc = new ProductBasicProc(flow);
+        basicProc.cloneBizBind(aid, fromUnionPriId, toUnionPriId);
+
+        // 克隆库存服务数据
+        ProductStoreProc storeProc = new ProductStoreProc(flow);
+        storeProc.cloneBizBind(aid, fromUnionPriId, toUnionPriId);
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd(rt, "cloneBizBind ok;flow=%d;aid=%d;primaryKey=%s;fromPrimaryKey=%s;", flow, aid, primaryKey, fromPrimaryKey);
+        return rt;
+    }
+
+    /**
      * 备份
      */
     @SuccessRt(Errno.OK)
@@ -926,6 +973,65 @@ public class MgProductInfService extends ServicePub {
         }finally {
             stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
         }
+        return rt;
+    }
+
+    /**
+     * 批量设置商品的状态
+     * for 门店通总店批量设置上下架：若门店数据不存在，则添加
+     */
+    @SuccessRt(Errno.OK)
+    public int batchSet4YK(FaiSession session, int flow, int aid, Param ownPrimaryKey, int sysType, FaiList<Integer> rlPdIds, FaiList<Param> primaryKeys, ParamUpdater updater) throws IOException, TransactionException {
+        int rt;
+        if(Str.isEmpty(ownPrimaryKey) || Utils.isEmptyList(rlPdIds) || Utils.isEmptyList(primaryKeys)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, primaryKeys is empty;flow=%d;aid=%d;ownPrimaryKey=%s;sysType=%s;rlPdIds=%s;primaryKeys=%s;updater=%s;", flow, aid, ownPrimaryKey, sysType, rlPdIds, primaryKeys, updater.toJson());
+            return rt;
+        }
+
+        FaiList<Param> list = new FaiList<>();
+        rt = getPrimaryKeyList(flow, aid, primaryKeys, list);
+        if(rt != Errno.OK){
+            return rt;
+        }
+        FaiList<Integer> unionPriIds = new FaiList<>();
+        for(Param primaryKeyInfo : list) {
+            Integer tmpUnionPriId = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.UNION_PRI_ID);
+            unionPriIds.add(tmpUnionPriId);
+        }
+
+        int tid = ownPrimaryKey.getInt(MgPrimaryKeyEntity.Info.TID);
+        int siteId = ownPrimaryKey.getInt(MgPrimaryKeyEntity.Info.SITE_ID);
+        int lgId = ownPrimaryKey.getInt(MgPrimaryKeyEntity.Info.LGID);
+        int keepPriId1 = ownPrimaryKey.getInt(MgPrimaryKeyEntity.Info.KEEP_PRI_ID1);
+        int ownUnionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
+
+        boolean commit = false;
+        /*GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
+        tx.begin(aid, 60000, "mgProduct-setPdStatus", flow);*/
+        String xid = "";
+        try {
+            ProductBasicProc basicProc = new ProductBasicProc(flow);
+            FaiList<Param> addList = basicProc.batchSet4YK(aid, xid, ownUnionPriId, sysType, unionPriIds, rlPdIds, updater);
+            if(!Utils.isEmptyList(addList)) {
+                // 如果存在新增的商品数据，则需同步库存销售的价格等信息
+                ProductStoreProc storeProc = new ProductStoreProc(flow);
+                storeProc.copyBizBind(aid, ownUnionPriId, addList);
+            }
+
+            commit = true;
+        }finally {
+            /*if(commit) {
+                tx.commit();
+            }else {
+                tx.rollback();
+            }*/
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd(rt, "setPdStatus ok;flow=%d;aid=%d;ownPrimaryKey=%s;sysType=%s;rlPdIds=%s;primaryKeys=%s;updater=%s;", flow, aid, ownPrimaryKey, sysType, rlPdIds, primaryKeys, updater.toJson());
         return rt;
     }
 

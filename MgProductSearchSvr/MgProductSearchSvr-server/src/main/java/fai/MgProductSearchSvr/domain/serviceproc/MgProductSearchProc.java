@@ -23,7 +23,7 @@ import java.util.Objects;
 public class MgProductSearchProc {
 
     /**
-     * 根据 ProductRelEntity.Info.PD_ID 去重
+     * 根据 ProductEntity.Info.PD_ID 去重
      * @param resultList 去重的集合
      * @param resultListKey 去重的key
      * @return 返回去重后的集合
@@ -63,6 +63,7 @@ public class MgProductSearchProc {
         return idList;
     }
 
+    // 可以理解为取resultList和searchList根据resultListKey的交集部分，但是返回的交集部分的结果是在searchList的结果
     // 根据 set 的缓存重新过滤数据
     // 先获取包含在resultList中searchKey对应的数据，保存到Set中。
     // 再遍历searchList，保存searchList中包含在Set中的数据到List中，最后返回List。

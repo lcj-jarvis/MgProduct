@@ -42,18 +42,18 @@ public class MgProductDbSearch extends BaseMgProductSearch {
     private String skuCode; // sku编号（条形码）
 
     private String firstComparatorTable;  // 第一排序字段的table
-    private String secondComparatorTable = SearchTableNameEnum.MG_PRODUCT_REL.searchTableName;   // 第二排序字段的table,默认是
+    private String secondComparatorTable = SearchTableNameEnum.MG_PRODUCT_REL.searchTableName;   // 第二排序字段的table,默认是MG_PRODUCT_REL
 
     /**
      * 自定义的排序字段，优先级：自定义排序字段 > 第一排序字段 > 第二排序字段
-     * 如果设置了自定义的排序，其他的排序无效
+     * 暂时只支持int类型的字段做自定义的排序
      */
     private String customComparatorKey;
 
     /**
-     * 自定义排序字段所在的表。如果是PdId或者是RlPdId的自定义排序，可以不填
+     * 自定义排序字段所在的表。如果是PdId或者是RlPdId的自定义排序，可以不填,采用默认的MG_PRODUCT_REL
      */
-    private String customComparatorTable;
+    private String customComparatorTable = SearchTableNameEnum.MG_PRODUCT_REL.searchTableName;   // 第二排序字段的table,默认是MG_PRODUCT_REL
 
     /**
      * 自定义的排序字段的顺序，且FaiList保存的内容为同一类型
@@ -61,17 +61,7 @@ public class MgProductDbSearch extends BaseMgProductSearch {
      * 例如customComparatorKey为id
      * 增加key对应的顺序，例如id的order是1,3,2,4，比较时将采用此order进行比较排序
      */
-    private FaiList<?> customComparatorList;
-
-    /**
-     * 不包含rlPdId的表
-     */
-    public static final FaiList<String> NOT_HAVE_RLPDID_TABLE = new FaiList<String>();
-
-    static {
-        NOT_HAVE_RLPDID_TABLE.add(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName);
-        NOT_HAVE_RLPDID_TABLE.add(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU_CODE.searchTableName);
-    }
+    private FaiList<Integer> customComparatorList;
 
     @Override
     public Param getSearchParam() {
@@ -146,11 +136,11 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         // 排序相关
         this.customComparatorKey = dbSearchParam.getString(DbSearchInfo.CUSTOM_COMPARATOR_KEY); // 自定义的排序，如果设置了该排序，其他的排序无效（包括es里的排序）
         this.customComparatorList = dbSearchParam.getList(DbSearchInfo.CUSTOM_COMPARATOR_LIST); // 自定义排序的List
-        this.customComparatorTable = dbSearchParam.getString(DbSearchInfo.CUSTOM_COMPARATOR_TABLE); // 自定义排序字段所在的表
+        this.customComparatorTable = dbSearchParam.getString(DbSearchInfo.CUSTOM_COMPARATOR_TABLE, SearchTableNameEnum.MG_PRODUCT_REL.searchTableName); // 自定义排序字段所在的表,默认是MG_PRODUCT_REL
         this.firstComparatorTable = dbSearchParam.getString(DbSearchInfo.FIRST_COMPARATOR_TABLE); // 第一排序字段table
         this.secondComparatorTable = dbSearchParam.getString(DbSearchInfo.SECOND_COMPARATOR_TABLE, SearchTableNameEnum.MG_PRODUCT_REL.searchTableName); // 第二排序字段table,默认是商品业务关系表
 
-        // db查询条件里的第二排序字段默认是false。所以重新赋值一次
+        // db查询条件里的第二排序字段默认是rlPdId
         this.secondComparatorKey = dbSearchParam.getString(BaseSearchInfo.SECOND_COMPARATOR_KEY, ProductBasicEntity.ProductInfo.RL_PD_ID);
     }
 
@@ -525,24 +515,22 @@ public class MgProductDbSearch extends BaseMgProductSearch {
 
     /**
      * 把排序转换为 ParamComparator
-     * 暂时不允许第一排序和第二排序字段key是一样的，如果第二排序字段key重复，
-     * 只有第一排序字段生效，可以看 setSecondComparator
      */
     public ParamComparator getParamComparator(){
         ParamComparator paramComparator = new ParamComparator();
-        // 自定义排序，设置了这个排序，其他设置的排序就无效了
+        // 按优先级设置 自定义的排序 > 第一排序 > 第二排序
+        // 自定义的排序
         if (hasCustomComparator()) {
             paramComparator.addKey(customComparatorKey, customComparatorList);
-        }else{
-            // 第一排序
-            if(hasFirstComparator()){
-                paramComparator.addKey(this.firstComparatorKey, this.firstComparatorKeyOrderByDesc);
-            }
-            // 第二排序
-            if(needSecondComparatorSorting){
-                // secondComparatorKey 默认是rlPdId
-                paramComparator.addKey(secondComparatorKey, secondComparatorKeyOrderByDesc);
-            }
+        }
+        // 第一排序
+        if(hasFirstComparator()){
+            paramComparator.addKey(this.firstComparatorKey, this.firstComparatorKeyOrderByDesc);
+        }
+        // 第二排序
+        if(needSecondComparatorSorting){
+            // secondComparatorKey 默认是rlPdId,升序
+            paramComparator.addKey(secondComparatorKey, secondComparatorKeyOrderByDesc);
         }
         return paramComparator;
     }
@@ -558,7 +546,6 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         searchArg.limit = this.limit;
     }
 
-    /**==============================================================================================================*/
     public FaiList<Integer> getRlTagIdList() {
         return rlTagIdList;
     }
@@ -627,8 +614,6 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         this.enableSearchProductName = enableSearchProductName;
         return this;
     }
-
-
 
     public boolean getEnableSearchProductProp() {
         return enableSearchProductProp;
@@ -747,12 +732,11 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         return this.secondComparatorKeyOrderByDesc;
     }
 
-
     public String getCustomComparatorKey() {
         return customComparatorKey;
     }
 
-    public FaiList<?> getCustomComparatorList() {
+    public FaiList<Integer> getCustomComparatorList() {
         return customComparatorList;
     }
 
@@ -760,55 +744,47 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         return customComparatorTable;
     }
 
-    /**
-     * 设置了自定义的排序，默认设置不开启第二排序
-     * @param customComparatorKey 自定义排序的key
-     * @param customComparatorList 自定义排序的List
-     */
-    public MgProductDbSearch setCustomComparatorKeyAndList(String customComparatorKey, FaiList<?> customComparatorList) {
-        return setCustomComparatorKeyAndList(customComparatorKey, customComparatorList, false, false);
-    }
 
-    public MgProductDbSearch setCustomComparatorKeyAndList(String customComparatorKey,
-                                                           FaiList<?> customComparatorList,
-                                                           boolean needSecondComparatorSorting,
-                                                           boolean secondComparatorKeyOrderByDesc) {
+    public MgProductDbSearch setCustomComparator(String customComparatorKey, String customComparatorTable, FaiList<Integer> customComparatorList) {
         this.customComparatorKey = customComparatorKey;
+        this.customComparatorTable = customComparatorTable;
         this.customComparatorList = customComparatorList;
+        return this;
+    }
+
+    public MgProductDbSearch setFirstComparator(String firstComparatorKey, String firstComparatorTable, boolean firstComparatorKeyOrderByDesc) {
+        this.firstComparatorKey = firstComparatorKey;
+        this.firstComparatorTable = firstComparatorTable;
+        this.firstComparatorKeyOrderByDesc = firstComparatorKeyOrderByDesc;
+        return this;
+    }
+
+    public MgProductDbSearch setSecondComparator(boolean needSecondComparatorSorting, String secondComparatorKey, String secondComparatorTable, boolean secondComparatorKeyOrderByDesc) {
         this.needSecondComparatorSorting = needSecondComparatorSorting;
+        this.secondComparatorKey = secondComparatorKey;
+        this.secondComparatorTable = secondComparatorTable;
         this.secondComparatorKeyOrderByDesc = secondComparatorKeyOrderByDesc;
         return this;
     }
 
-    /**
-     * 设置一个排序后，支持是否开启默认的第二个排序。这里默认是不开启的
-     * 默认的第二排序，能够确认唯一排序字段：secondComparatorKey = ProductBasicEntity.ProductInfo.RL_PD_ID，相当于创建时间排序
-     */
-    public MgProductDbSearch setComparator(Pair<MgProductDbSearch.SearchTableNameEnum, String> comparatorTableAndKey, boolean desc){
-        return setComparator(comparatorTableAndKey, desc, false, false);
-    }
+    public MgProductDbSearch setComparator(String customComparatorKey, String customComparatorTable, FaiList<Integer> customComparatorList,
+                                           String firstComparatorKey, String firstComparatorTable, boolean firstComparatorKeyOrderByDesc,
+                                           boolean needSecondComparatorSorting, String secondComparatorKey, String secondComparatorTable, boolean secondComparatorKeyOrderByDesc) {
+        this.customComparatorKey = customComparatorKey;
+        this.customComparatorTable = customComparatorTable;
+        this.customComparatorList = customComparatorList;
 
-    /**
-     * 设置一个排序后，支持是否开启默认的第二个排序
-     * @param comparatorTableAndKey
-     * @param desc
-     * @param needSecondComparatorSorting
-     * @param secondComparatorKeyOrderByDesc
-     * @return
-     */
-    public MgProductDbSearch setComparator(Pair<MgProductDbSearch.SearchTableNameEnum, String> comparatorTableAndKey, boolean desc,
-                                           boolean needSecondComparatorSorting,
-                                           boolean secondComparatorKeyOrderByDesc){
-        if(Str.isEmpty(comparatorTableAndKey.first.searchTableName) || Str.isEmpty(comparatorTableAndKey.second)){
-            return this;
-        }
-        this.firstComparatorTable = comparatorTableAndKey.first.searchTableName;
-        this.firstComparatorKey = comparatorTableAndKey.second;
-        this.firstComparatorKeyOrderByDesc = desc;
+        this.firstComparatorKey = firstComparatorKey;
+        this.firstComparatorTable = firstComparatorTable;
+        this.firstComparatorKeyOrderByDesc = firstComparatorKeyOrderByDesc;
+
         this.needSecondComparatorSorting = needSecondComparatorSorting;
+        this.secondComparatorKey = secondComparatorKey;
+        this.secondComparatorTable = secondComparatorTable;
         this.secondComparatorKeyOrderByDesc = secondComparatorKeyOrderByDesc;
         return this;
     }
+
 
     /**
      * 是否有自定义的排序
@@ -826,18 +802,7 @@ public class MgProductDbSearch extends BaseMgProductSearch {
     }
 
     public String getFirstComparatorTable() {
-        if (Str.isEmpty(customComparatorKey) || Util.isEmptyList(customComparatorList)) {
-            return firstComparatorTable;
-        }
-        return null;
-    }
-
-    @Override
-    public String getFirstComparatorKey(){
-        if (Str.isEmpty(customComparatorKey) || Util.isEmptyList(customComparatorList)) {
-            return firstComparatorKey;
-        }
-        return null;
+        return firstComparatorTable;
     }
 
     public MgProductDbSearch setFirstComparatorTable(String firstComparatorTable) {

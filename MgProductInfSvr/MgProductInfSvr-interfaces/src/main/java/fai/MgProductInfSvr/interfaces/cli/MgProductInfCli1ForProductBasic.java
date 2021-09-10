@@ -155,8 +155,9 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
             MgProductSearchArg mgProductSearchArg = mgProductArg.getMgProductSearchArg();
-            // 搜索条件为空，直接结束
-            if (mgProductSearchArg == null || mgProductSearchArg.isEmpty()) {
+            // 搜索条件为空，mgProductSearchArg必填。不调用initSearchParam就证明没有搜索和排序条件
+            if (mgProductSearchArg == null) {
+                // 搜索条件为空。默认收拾MgProductRel的数据.mgProductSearchArg.isEmpty()
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "mgProductSearchArg == null error or mgProductSearchArg esSearch and dbSearch is Empty");
                 return Errno.ARGS_ERROR;

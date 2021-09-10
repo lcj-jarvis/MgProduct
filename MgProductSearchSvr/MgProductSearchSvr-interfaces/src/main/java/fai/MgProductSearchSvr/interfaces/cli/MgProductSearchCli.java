@@ -32,11 +32,13 @@ public class MgProductSearchCli extends FaiClient {
                 return Errno.ARGS_ERROR;
             }
             searchResult.clear();
-            // 如果没有筛选条件，返回空数据，防止误调用  包括 {} 这个判断
-            if (Str.isEmpty(esSearchParamString) && Str.isEmpty(dbSearchParamString)) {
-                m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "search conditions not exists error");
-                return Errno.ARGS_ERROR;
+
+            // 允许空搜索，空搜索条件时返回MG_PRODUCT_REL的表里的数据
+            if (esSearchParamString == null) {
+                esSearchParamString = "";
+            }
+            if (dbSearchParamString == null) {
+                dbSearchParamString = "";
             }
 
             // send

@@ -10,10 +10,15 @@ import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
 import fai.mgproduct.comm.Util;
+import fai.mgproduct.comm.entity.SagaEntity;
+import fai.mgproduct.comm.entity.SagaValObj;
+import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class InOutStoreRecordProc {
 
@@ -29,6 +34,7 @@ public class InOutStoreRecordProc {
             throw new RuntimeException(String.format("InOutStoreRecordProc init err;flow=%s;aid=%s;", flow, aid));
         }
         m_flow = flow;
+        sagaMap = new HashMap<>();
     }
 
     public int batchResetCostPrice(int aid, int sysType, int rlPdId, FaiList<Param> infoList, Calendar optTime, Map<SkuBizKey, Param> changeCountAfterSkuStoreInfoMap) {
@@ -556,25 +562,8 @@ public class InOutStoreRecordProc {
 
         // 分布式事务，需要插入 Saga 记录
         if (isSaga) {
-            FaiList<Param> sagaList = new FaiList<>();
-            String xid = RootContext.getXID();
-            Long branchId = RootContext.getBranchId();
-            dataList.forEach(data -> {
-                Param saga = new Param();
-                saga.assign(data, InOutStoreRecordEntity.Info.AID);
-                saga.assign(data, InOutStoreRecordEntity.Info.UNION_PRI_ID);
-                saga.assign(data, InOutStoreRecordEntity.Info.SKU_ID);
-                saga.assign(data, InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID);
-                // 记录 pdId 主要是因为上报补偿的时候需要
-                saga.assign(data, InOutStoreRecordEntity.Info.PD_ID);
-                saga.setString(StoreSagaEntity.Info.XID, xid);
-                saga.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
-                saga.setInt(StoreSagaEntity.Info.SAGA_OP, StoreSagaValObj.SagaOp.ADD);
-                sagaList.add(saga);
-            });
-            rt = m_sagaDaoCtrl.batchInsert(sagaList, null, true);
-            if(rt != Errno.OK){
-                Log.logErr("saga insert err;flow=%s;aid=%s;dataList=%s", m_flow, aid, dataList);
+            rt = addInsOp4Saga(aid, dataList, RECORD_TYPE);
+            if (rt != Errno.OK) {
                 return rt;
             }
         }
@@ -884,30 +873,13 @@ public class InOutStoreRecordProc {
             searchArg.matcher = matcher;
             Ref<FaiList<Param>> listRef = new Ref<>();
             // 查询 主键数据 + pdId
-            rt = m_sagaDaoCtrl.select(searchArg, listRef, InOutStoreRecordEntity.Info.AID, InOutStoreRecordEntity.Info.UNION_PRI_ID,
-                    InOutStoreRecordEntity.Info.SKU_ID, InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, InOutStoreRecordEntity.Info.PD_ID);
+            rt = m_daoCtrl.select(searchArg, listRef, InOutStoreRecordEntity.getMaxUpdateAndPriKeys());
             if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
                 Log.logErr(rt, "select ioStoreRecList error;flow=%d;aid=%d;pdIdList=%s", m_flow, aid, pdIdList);
                 return rt;
             }
-            // 新增 Saga 操作记录
-            FaiList<Param> sagaOpList = listRef.value;
-            if (!Util.isEmptyList(sagaOpList)) {
-                String xid = RootContext.getXID();
-                Long branchId = RootContext.getBranchId();
-                // 构建数据
-                sagaOpList.forEach(sagaInfo -> {
-                    sagaInfo.setString(StoreSagaEntity.Info.XID, xid);
-                    sagaInfo.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
-                    sagaInfo.setInt(StoreSagaEntity.Info.SAGA_OP, StoreSagaValObj.SagaOp.MODIFY);
-                });
-                // 添加 Saga 操作记录
-                rt = m_sagaDaoCtrl.batchInsert(sagaOpList);
-                if (rt != Errno.OK) {
-                    Log.logErr(rt, "batchInsert SagaOperation error;flow=%d;aid=%d;sagaOpList=%s", m_flow, aid, sagaOpList);
-                    return rt;
-                }
-            }
+            // 预记录修改数据
+            preAddUpdateSaga(aid, listRef.value);
         }
         ParamUpdater updater = new ParamUpdater(new Param().setInt(InOutStoreRecordEntity.Info.STATUS, InOutStoreRecordValObj.Status.DEL));
         rt = m_daoCtrl.update(updater, matcher);
@@ -917,59 +889,6 @@ public class InOutStoreRecordProc {
             return rt;
         }
         Log.logStd("ok;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
-        return rt;
-    }
-
-    /**
-     * Saga 模式 补偿 batchDel 方法
-     * 使用这个方法有两个前提 ：1、之前的删除是软删除 2、是在 aid + pdIdList 维度下删除的
-     *
-     * @param aid aid
-     * @param sagaList Saga 操作记录
-     * @return {@link Errno}
-     */
-    public int batchDelRollback(int aid, FaiList<Param> sagaList) {
-        int rt;
-        if (Util.isEmptyList(sagaList)) {
-            rt = Errno.ARGS_ERROR;
-            Log.logErr(rt, "arg err;sagaList is empty;flow=%d;aid=%d", m_flow, aid);
-            return rt;
-        }
-        FaiList<Integer> pdIdList = new FaiList<>();
-        // 将 pdId 汇集
-        sagaList.forEach(sagaInfo -> pdIdList.add(sagaInfo.getInt(InOutStoreRecordEntity.Info.PD_ID)));
-        ParamUpdater updater = new ParamUpdater(new Param().setInt(InOutStoreRecordEntity.Info.STATUS, InOutStoreRecordValObj.Status.DEFAULT));
-        ParamMatcher matcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(InOutStoreRecordEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
-        rt = m_daoCtrl.update(updater, matcher);
-        if (rt != Errno.OK) {
-            Log.logErr(rt, "batchDelRollback err;flow=%d;aid=%d;", m_flow, aid);
-            return rt;
-        }
-        Log.logStd("inOutStoreRecord batchDelRollback ok;flow=%s;aid=%s;", m_flow, aid);
-        return rt;
-    }
-
-    /**
-     * 补偿 batchAdd 方法 (ps:同时补偿 出入库记录表 & 出入库汇总表)
-     * @param aid aid
-     * @param ioStoreRecId 出入库记录 id
-     * @return {@link Errno}
-     */
-    public int batchAddRollback(int aid, int ioStoreRecId) {
-        ParamMatcher matcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, ParamMatcher.EQ, ioStoreRecId);
-        int rt = m_daoCtrl.delete(matcher);
-        if (rt != Errno.OK) {
-            Log.logErr(rt, "batchDel4Saga-Record err;flow=%d;ioStoreRecId=%d", m_flow, ioStoreRecId);
-            return rt;
-        }
-        rt = m_sumDaoCtrl.delete(matcher);
-        if (rt != Errno.OK) {
-            Log.logErr(rt, "batchDel4Saga-Sum err;flow=%d;ioStoreRecId=%d", m_flow, ioStoreRecId);
-            return rt;
-        }
-        Log.logStd("batchDel4Saga ok;flow=%d;ioStoreRecId=%d", m_flow, ioStoreRecId);
         return rt;
     }
 
@@ -1048,32 +967,6 @@ public class InOutStoreRecordProc {
         return rt;
     }
 
-    /**
-     * 获取补偿记录
-     * @param xid 全局事务id
-     * @param branchId 分支事务id
-     * @param ioStoreRecordSagaListRef 接收查询结果
-     * @return {@link Errno}
-     */
-    public int getInOutStoreRecordSagaList(String xid, Long branchId, Ref<FaiList<Param>> ioStoreRecordSagaListRef) {
-        int rt;
-        if (Str.isEmpty(xid)) {
-            rt = Errno.ARGS_ERROR;
-            Log.logErr(rt, "args err;xid is empty;flow=%d", m_flow);
-            return rt;
-        }
-        SearchArg searchArg = new SearchArg();
-        ParamMatcher matcher = new ParamMatcher(StoreSagaEntity.Info.XID, ParamMatcher.EQ, xid);
-        matcher.and(StoreSagaEntity.Info.BRANCH_ID, ParamMatcher.EQ, branchId);
-        searchArg.matcher = matcher;
-        rt = m_sagaDaoCtrl.select(searchArg, ioStoreRecordSagaListRef);
-        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            Log.logErr(rt, "select sagaList error;flow=%d", m_flow);
-            return rt;
-        }
-        return rt;
-    }
-
     public int clearIdBuilderCache(int aid){
         int rt = m_daoCtrl.clearIdBuilderCache(aid);
         return rt;
@@ -1126,23 +1019,9 @@ public class InOutStoreRecordProc {
         }
         // 分布式事务，需要插入 Saga 记录
         if (isSaga) {
-            String xid = RootContext.getXID();
-            Long branchId = RootContext.getBranchId();
-            FaiList<Param> sagaList = new FaiList<>();
-            for (Param info : list) {
-                Param sagaInfo = new Param();
-                sagaInfo.assign(info, InOutStoreSumEntity.Info.AID);
-                sagaInfo.assign(info, InOutStoreSumEntity.Info.UNION_PRI_ID);
-                sagaInfo.assign(info, InOutStoreSumEntity.Info.IN_OUT_STORE_REC_ID);
-                sagaInfo.setString(StoreSagaEntity.Info.XID, xid);
-                sagaInfo.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
-                sagaInfo.setInt(StoreSagaEntity.Info.SAGA_OP, StoreSagaValObj.SagaOp.ADD);
-                sagaList.add(sagaInfo);
-            }
-            rt = m_sagaSumDaoCtrl.batchInsert(sagaList);
+            rt = addInsOp4Saga(aid, list, SUM_TYPE);
             if(rt != Errno.OK) {
                 Log.logErr(rt, "insert inOutStore summary saga error;flow=%d;aid=%d;", m_flow, aid);
-                return rt;
             }
         }
         Log.logStd(rt, "add ok;flow=%d;aid=%s;", m_flow, aid);
@@ -1190,9 +1069,252 @@ public class InOutStoreRecordProc {
         return tc.register(m_daoCtrl, m_sumDaoCtrl);
     }
 
+    /**
+     * 获取Saga操作记录
+     * @param xid 全局事务id
+     * @param branchId 分支事务id
+     * @param ioStoreRecordSagaListRef 接收查询结果
+     * @return {@link Errno}
+     */
+    public int getSagaList(String xid, Long branchId, Ref<FaiList<Param>> ioStoreRecordSagaListRef) {
+        SearchArg searchArg = new SearchArg();
+        ParamMatcher matcher = new ParamMatcher(SagaEntity.Info.XID, ParamMatcher.EQ, xid);
+        matcher.and(SagaEntity.Info.BRANCH_ID, ParamMatcher.EQ, branchId);
+        searchArg.matcher = matcher;
+        int rt = m_sagaDaoCtrl.select(searchArg, ioStoreRecordSagaListRef);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            Log.logErr(rt, "select sagaList error;flow=%d", m_flow);
+            return rt;
+        }
+        return rt;
+    }
+
+    // 预记录修改数据
+    private void preAddUpdateSaga(int aid, FaiList<Param> list) {
+        if (Utils.isEmptyList(list)) {
+            Log.logStd("preAddUpdateSaga list is empty;flow=%d;aid=%d", m_flow, aid);
+            return;
+        }
+        String xid = RootContext.getXID();
+        Long branchId = RootContext.getBranchId();
+        Calendar now = Calendar.getInstance();
+        String[] keys = InOutStoreRecordEntity.getMaxUpdateAndPriKeys();
+        // 构建数据
+        for (Param info : list) {
+            int ioStoreRecId = info.getInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID);
+            PrimaryKey primaryKey = new PrimaryKey(aid, ioStoreRecId);
+            if (sagaMap.containsKey(primaryKey)) {
+                continue;
+            }
+            Param sagaOpInfo = new Param();
+            for (String key : keys) {
+                sagaOpInfo.assign(info, key);
+            }
+            sagaOpInfo.setString(SagaEntity.Common.XID, xid);
+            sagaOpInfo.setLong(SagaEntity.Common.BRANCH_ID, branchId);
+            sagaOpInfo.setInt(SagaEntity.Common.SAGA_OP, SagaValObj.SagaOp.UPDATE);
+            sagaOpInfo.setCalendar(SagaEntity.Common.SAGA_TIME, now);
+            sagaMap.put(primaryKey, sagaOpInfo);
+        }
+    }
+
+    // 记录新增数据
+    private int addInsOp4Saga(int aid, FaiList<Param> dataList, int type) {
+        if (Util.isEmptyList(dataList)) {
+            Log.logStd("addInsOp4Saga list is empty");
+            return Errno.OK;
+        }
+        String xid = RootContext.getXID();
+        Long branchId = RootContext.getBranchId();
+        Calendar now = Calendar.getInstance();
+        FaiList<Param> sagaList = new FaiList<>();
+        // mgInOutStoreRecord_0xxx 的主键是 aid + unionPriId + skuId + ioStoreRecId
+        // 但是因为 ioStoreRecId 是在 aid 下自增的也就是说 aid + ioStoreRecId 就可以唯一标识一条数据，所以下面只记录 aid + ioStoreRecId，mgInOutStoreSum_0xxx 同理
+        dataList.forEach(data -> {
+            Param saga = new Param();
+            saga.assign(data, InOutStoreRecordEntity.Info.AID);
+            saga.assign(data, InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID);
+            saga.setString(SagaEntity.Common.XID, xid);
+            saga.setLong(SagaEntity.Common.BRANCH_ID, branchId);
+            saga.setInt(SagaEntity.Common.SAGA_OP, SagaValObj.SagaOp.ADD);
+            saga.setCalendar(SagaEntity.Common.SAGA_TIME, now);
+            sagaList.add(saga);
+        });
+        // 根据不同的类型调用不同的 daoCtrl
+        int rt;
+        if (type == RECORD_TYPE) {
+            rt = m_sagaDaoCtrl.batchInsert(sagaList, null, false);
+        } else {
+            rt = m_sagaSumDaoCtrl.batchInsert(sagaList, null, false);
+        }
+        if(rt != Errno.OK){
+            Log.logErr("addInsOp4Saga err;flow=%s;aid=%s;sagaList=%s;type=%d", m_flow, aid, sagaList, type);
+            return rt;
+        }
+        return rt;
+    }
+
+    // 添加 Saga 记录
+    public int addUpdateSaga2Db(int aid) {
+        int rt;
+        if (sagaMap.isEmpty()) {
+            return Errno.OK;
+        }
+        rt = m_sagaDaoCtrl.batchInsert(new FaiList<>(sagaMap.values()), null, false);
+        if (rt != Errno.OK) {
+            Log.logErr("insert sagaMap error;flow=%d;aid=%d;sagaList=%s", m_flow, aid, sagaMap.values().toString());
+            return rt;
+        }
+        return rt;
+    }
+
+    /**
+     * InOutStoreRecordProc 回滚
+     * @param aid aid
+     * @param xid 全局事务id
+     * @param branchId 分支事务id
+     */
+    public void rollback4Saga(int aid, String xid, Long branchId) {
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        int rt = getSagaList(xid, branchId, listRef);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "get sagaOpList err;flow=%d;aid=%;xid=%s;branchId=%s", m_flow, aid, xid, branchId);
+        }
+        if (listRef.value.isEmpty()) {
+            Log.logStd("InOutStoreRecordProc sagaOpList is empty");
+            return;
+        }
+
+        // 按操作分类
+        Map<Integer, List<Param>> groupBySagaOp = listRef.value.stream().collect(Collectors.groupingBy(x -> x.getInt(SagaEntity.Common.SAGA_OP)));
+
+        // 回滚删除 暂时还没有删除操作
+        // rollback4Del(aid, groupBySagaOp.get(SagaValObj.SagaOp.DEL));
+
+        // 回滚新增
+        rollback4Add(aid, groupBySagaOp.get(SagaValObj.SagaOp.ADD));
+
+        // 回滚修改
+        rollback4Update(aid, groupBySagaOp.get(SagaValObj.SagaOp.UPDATE));
+    }
+
+    // 回滚修改
+    private void rollback4Update(int aid, List<Param> list) {
+        if (Utils.isEmptyList(list)) {
+            return;
+        }
+        String[] updateKeys = InOutStoreRecordEntity.getMaxUpdateAndPriKeys();
+        FaiList<String> keys = new FaiList<>(Arrays.asList(updateKeys));
+        // 去除主键
+        keys.remove(InOutStoreRecordEntity.Info.AID);
+        keys.remove(InOutStoreRecordEntity.Info.UNION_PRI_ID);
+        keys.remove(InOutStoreRecordEntity.Info.SKU_ID);
+        FaiList<Param> dataList = new FaiList<>(list.size());
+        for (Param info : list) {
+            int unionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID);
+            long skuId = info.getLong(InOutStoreRecordEntity.Info.SKU_ID);
+            Param data = new Param();
+            // for update
+            for (String key : keys) {
+                data.assign(info, key);
+            }
+            // for matcher
+            data.setInt(InOutStoreRecordEntity.Info.AID, aid);
+            data.setInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, unionPriId);
+            data.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
+            dataList.add(data);
+        }
+        ParamUpdater updater = new ParamUpdater();
+        for (String key : keys) {
+            updater.getData().setString(key, "?");
+        }
+
+        ParamMatcher matcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, "?");
+        matcher.and(InOutStoreRecordEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
+        matcher.and(InOutStoreRecordEntity.Info.SKU_ID, ParamMatcher.EQ, "?");
+
+        int rt = m_daoCtrl.batchUpdate(updater, matcher, dataList);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "batch update err;flow=%d;aid=%d;dataList=%d", m_flow, aid, dataList);
+        }
+        Log.logStd("rollback update ok;flow=%d;aid=%d", m_flow, aid);
+    }
+
+    // 回滚删除
+    /*private void rollback4Del(int aid, List<Param> list) {
+        if (Utils.isEmptyList(list)) {
+            return;
+        }
+        // 去除 Saga 字段
+        FaiList<Param> infoList = Util.removeSpecificColumn(new FaiList<>(list), SagaEntity.Common.XID, SagaEntity.Common.BRANCH_ID, SagaEntity.Common.SAGA_OP, SagaEntity.Common.SAGA_TIME);
+        int rt = m_daoCtrl.batchInsert(infoList, null, false);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "batch insert err;flow=%d;aid=%d;infoList=%s", m_flow, aid, infoList);
+        }
+        Log.logStd("rollback del ok;flow=%d;aid=%d", m_flow, aid);
+    }*/
+
+    // 回滚新增 同时补偿 出入库记录表和汇总表
+    private void rollback4Add(int aid, List<Param> list) {
+        if (Utils.isEmptyList(list)) {
+            return;
+        }
+        FaiList<Integer> ioStoreRecIdList = Utils.getValList(list, InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID);
+        ParamMatcher matcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID, ParamMatcher.IN, ioStoreRecIdList);
+        int rt = m_daoCtrl.delete(matcher);
+        if (rt != Errno.OK) {
+            throw new MgException("delete record err;flow=%d;aid=%d;ioStoreRecIdList=%s", m_flow, aid, ioStoreRecIdList);
+        }
+        rt = m_sumDaoCtrl.delete(matcher);
+        if (rt != Errno.OK) {
+            throw new MgException("delete sum err;flow=%d;aid=%d;ioStoreRecIdList=%s", m_flow, aid, ioStoreRecIdList);
+        }
+        Log.logStd("rollback add ok;flow=%d;aid=%d", m_flow, aid);
+    }
+
+    private HashMap<PrimaryKey, Param> sagaMap;
+
+    private static class PrimaryKey {
+        int aid;
+        int ioStoreRecId;
+
+        public PrimaryKey(int aid, int ioStoreRecId) {
+            this.aid = aid;
+            this.ioStoreRecId = ioStoreRecId;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            PrimaryKey that = (PrimaryKey) o;
+            return aid == that.aid &&
+                    ioStoreRecId == that.ioStoreRecId;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(aid, ioStoreRecId);
+        }
+
+        @Override
+        public String toString() {
+            return "PrimaryKey{" +
+                    "aid=" + aid +
+                    ", ioStoreRecId=" + ioStoreRecId +
+                    '}';
+        }
+    }
+
+
     private int m_flow;
     private InOutStoreRecordDaoCtrl m_daoCtrl;
     private InOutStoreSumDaoCtrl m_sumDaoCtrl;
     private InOutStoreRecordSagaDaoCtrl m_sagaDaoCtrl;
     private InOutStoreSumSagaDaoCtrl m_sagaSumDaoCtrl;
+
+    // 标识是操作 record 表 还是 sum 表
+    private static final int RECORD_TYPE = 1;
+    private static final int SUM_TYPE = 2;
 }

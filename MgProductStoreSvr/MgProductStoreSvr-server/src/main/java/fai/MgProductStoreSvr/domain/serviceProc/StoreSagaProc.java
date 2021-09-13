@@ -1,9 +1,9 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
-import fai.MgProductStoreSvr.domain.entity.StoreSagaEntity;
-import fai.MgProductStoreSvr.domain.entity.StoreSagaValObj;
 import fai.MgProductStoreSvr.domain.repository.StoreSagaDaoCtrl;
 import fai.comm.util.*;
+import fai.mgproduct.comm.entity.SagaEntity;
+import fai.mgproduct.comm.entity.SagaValObj;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.Calendar;
@@ -40,12 +40,12 @@ public class StoreSagaProc {
         }
         Calendar now = Calendar.getInstance();
         Param info = new Param();
-        info.setInt(StoreSagaEntity.Info.AID, aid);
-        info.setString(StoreSagaEntity.Info.XID, xid);
-        info.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
-        info.setInt(StoreSagaEntity.Info.STATUS, StoreSagaValObj.Status.INIT);
-        info.setCalendar(StoreSagaEntity.Info.SYS_CREATE_TIME, now);
-        info.setCalendar(StoreSagaEntity.Info.SYS_UPDATE_TIME, now);
+        info.setInt(SagaEntity.Info.AID, aid);
+        info.setString(SagaEntity.Info.XID, xid);
+        info.setLong(SagaEntity.Info.BRANCH_ID, branchId);
+        info.setInt(SagaEntity.Info.STATUS, SagaValObj.Status.INIT);
+        info.setCalendar(SagaEntity.Info.SYS_CREATE_TIME, now);
+        info.setCalendar(SagaEntity.Info.SYS_UPDATE_TIME, now);
         rt = addInfo(info);
         if (rt != Errno.OK) {
             Log.logErr(rt, "storeSaga insert err;flow=%d;aid=%d;addInfo=%s", m_flow, aid, info);
@@ -87,10 +87,10 @@ public class StoreSagaProc {
         // 如果找不到记录，则要添加一条空记录，允许空补偿以及防悬挂
         Log.reportErr(m_flow, Errno.NOT_FOUND, "get SagaInfo not found;xid=%s,branchId=%s", xid, branchId);
         Param info = new Param();
-        info.setString(StoreSagaEntity.Info.XID, xid);
-        info.setLong(StoreSagaEntity.Info.BRANCH_ID, branchId);
-        info.setInt(StoreSagaEntity.Info.STATUS, StoreSagaValObj.Status.INIT);
-        info.setInt(StoreSagaEntity.Info.AID, 0);
+        info.setString(SagaEntity.Info.XID, xid);
+        info.setLong(SagaEntity.Info.BRANCH_ID, branchId);
+        info.setInt(SagaEntity.Info.STATUS, SagaValObj.Status.INIT);
+        info.setInt(SagaEntity.Info.AID, 0);
         int addRt = addInfo(info);
         if (addRt != Errno.OK) {
             return addRt;
@@ -101,8 +101,8 @@ public class StoreSagaProc {
 
     private Param getInfoFromDB(String xid, Long branchId) {
         SearchArg searchArg = new SearchArg();
-        searchArg.matcher = new ParamMatcher(StoreSagaEntity.Info.XID, ParamMatcher.EQ, xid);
-        searchArg.matcher.and(StoreSagaEntity.Info.BRANCH_ID, ParamMatcher.EQ, branchId);
+        searchArg.matcher = new ParamMatcher(SagaEntity.Info.XID, ParamMatcher.EQ, xid);
+        searchArg.matcher.and(SagaEntity.Info.BRANCH_ID, ParamMatcher.EQ, branchId);
         Ref<Param> infoRef = new Ref<>();
         m_dao.selectFirst(searchArg, infoRef);
         return infoRef.value;
@@ -117,9 +117,9 @@ public class StoreSagaProc {
      * @return {@link Errno}
      */
     public int setStatus(String xid, Long branchId, int status) {
-        ParamMatcher matcher = new ParamMatcher(StoreSagaEntity.Info.XID, ParamMatcher.EQ, xid);
-        matcher.and(StoreSagaEntity.Info.BRANCH_ID, ParamMatcher.EQ, branchId);
-        ParamUpdater updater = new ParamUpdater(new Param().setInt(StoreSagaEntity.Info.STATUS, status));
+        ParamMatcher matcher = new ParamMatcher(SagaEntity.Info.XID, ParamMatcher.EQ, xid);
+        matcher.and(SagaEntity.Info.BRANCH_ID, ParamMatcher.EQ, branchId);
+        ParamUpdater updater = new ParamUpdater(new Param().setInt(SagaEntity.Info.STATUS, status));
         int rt = m_dao.update(updater, matcher);
         if (rt != Errno.OK) {
             Log.logErr(rt, "setStatus err;flow=%d;xid=%s;branchId=%d;", m_flow, xid, branchId);

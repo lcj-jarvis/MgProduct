@@ -22,6 +22,7 @@ import fai.comm.mq.api.MqFactory;
 import fai.comm.mq.api.Producer;
 import fai.comm.util.*;
 import fai.middleground.svrutil.service.MiddleGroundHandler;
+import fai.middleground.svrutil.service.ServiceProxy;
 
 import java.io.IOException;
 import java.util.Calendar;
@@ -567,8 +568,8 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
     }
 
     private static final String CLI_NAME = "MgProductStoreCli";
-    private StoreService m_storeService = new StoreService();
-    private StoreSalesSkuService m_storeSalesSkuService = new StoreSalesSkuService();
+    private StoreService m_storeService = ServiceProxy.create(new StoreService());
+    private StoreSalesSkuService m_storeSalesSkuService = ServiceProxy.create(new StoreSalesSkuService());
     private RecordService m_recordService = new RecordService();
     private SummaryService m_summaryService = new SummaryService();
 }

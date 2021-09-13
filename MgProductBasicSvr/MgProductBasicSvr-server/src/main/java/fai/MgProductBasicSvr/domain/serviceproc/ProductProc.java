@@ -35,10 +35,6 @@ public class ProductProc {
         init(tc);
     }
 
-    public void setRelProc(ProductRelProc relProc) {
-        this.relProc = relProc;
-    }
-
     public int addProduct(int aid, Param pdData) {
         int rt;
         if(Str.isEmpty(pdData)) {
@@ -446,7 +442,7 @@ public class ProductProc {
     }
 
     // saga补偿
-    public void rollback4Saga(int aid, long branchId) {
+    public void rollback4Saga(int aid, long branchId, ProductRelProc relProc) {
         FaiList<Param> list = getSagaList(aid, xid, branchId);
         if(list.isEmpty()) {
             Log.logStd("pd need rollback is empty;aid=%d;xid=%s;branchId=%s;", aid, xid, branchId);
@@ -459,7 +455,7 @@ public class ProductProc {
         rollback4Add(aid, groupBySagaOp.get(SagaValObj.SagaOp.ADD));
 
         // 回滚修改操作
-        rollback4Update(aid, groupBySagaOp.get(SagaValObj.SagaOp.UPDATE));
+        rollback4Update(aid, groupBySagaOp.get(SagaValObj.SagaOp.UPDATE), relProc);
 
         // 回滚删除操作
         rollback4Delete(aid, groupBySagaOp.get(SagaValObj.SagaOp.DEL));
@@ -492,7 +488,7 @@ public class ProductProc {
      * 所以这里直接拿第一个被修改数据的字段做补偿
      * 如果可能会有多次修改，且每次修改字段不一致的，不能采用这种方式
      */
-    private void rollback4Update(int aid, List<Param> list) {
+    private void rollback4Update(int aid, List<Param> list, ProductRelProc relProc) {
         if(Utils.isEmptyList(list)) {
             return;
         }
@@ -535,7 +531,7 @@ public class ProductProc {
         Log.logStd("update pd rollback ok;flow=%d;aid=%d;dataList=%s;", m_flow, aid, dataList);
 
         // 同步数据给es 预处理
-        preLog4ES(aid, pdIds);
+        preLog4ES(aid, pdIds, relProc);
     }
 
     /**
@@ -543,7 +539,7 @@ public class ProductProc {
      * 因为除了更新操作，新增和删除必然会操作到关系表对应的数据
      * 所以在操作关系表数据的时候，同步给es就行了
      */
-    private void preLog4ES(int aid, FaiList<Integer> pdIds){
+    private void preLog4ES(int aid, FaiList<Integer> pdIds, ProductRelProc relProc){
         if(Utils.isEmptyList(pdIds) || relProc == null) {
             return;
         }
@@ -652,5 +648,4 @@ public class ProductProc {
     private boolean withSaga;
     private ProductDaoCtrl m_dao;
     private ProductSagaDaoCtrl m_sagaDao;
-    private ProductRelProc relProc;
 }

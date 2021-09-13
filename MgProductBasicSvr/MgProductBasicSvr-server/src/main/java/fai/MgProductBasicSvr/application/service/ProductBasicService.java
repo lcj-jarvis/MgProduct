@@ -559,7 +559,7 @@ public class ProductBasicService extends BasicParentService {
 
             // 回滚商品表数据
             ProductProc proc = new ProductProc(flow, aid, tc, xid, false);
-            proc.rollback4Saga(aid, branchId);
+            proc.rollback4Saga(aid, branchId, relProc);
 
             // 回滚绑定参数
             ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc, xid, false);
@@ -845,7 +845,7 @@ public class ProductBasicService extends BasicParentService {
 
             // 回滚商品表数据
             ProductProc proc = new ProductProc(flow, aid, tc, xid, false);
-            proc.rollback4Saga(aid, branchId);
+            proc.rollback4Saga(aid, branchId, relProc);
 
             // 回滚绑定参数
             ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc, xid, false);
@@ -2337,7 +2337,7 @@ public class ProductBasicService extends BasicParentService {
             // 回滚商品表数据
             if(!isBindRel) {
                 ProductProc proc = new ProductProc(flow, aid, tc, xid, false);
-                proc.rollback4Saga(aid, branchId);
+                proc.rollback4Saga(aid, branchId, relProc);
             }
 
             // 回滚绑定参数

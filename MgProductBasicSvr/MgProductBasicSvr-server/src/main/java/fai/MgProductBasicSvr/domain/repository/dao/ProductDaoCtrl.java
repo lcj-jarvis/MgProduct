@@ -9,14 +9,24 @@ import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.DaoCtrl;
 
 public class ProductDaoCtrl extends DaoCtrl {
+    private String tableName;
 
     public ProductDaoCtrl(int flow, int aid) {
         super(flow, aid);
+        setTableName(aid);
     }
 
     @Override
     public String getTableName() {
-        return TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
+        return tableName;
+    }
+
+    public void setTableName(int aid) {
+        this.tableName = TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
+    }
+
+    public void restoreTableName() {
+        setTableName(this.aid);
     }
 
     @Override

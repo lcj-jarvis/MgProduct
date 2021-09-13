@@ -79,7 +79,7 @@ public class ProductSpecSkuCodeProc {
             // 添加 Saga 操作记录
             if (isSaga) {
                 rt = addDelOp4Saga(aid, matcher);
-                if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                if (rt != Errno.OK) {
                     return rt;
                 }
             }
@@ -197,7 +197,7 @@ public class ProductSpecSkuCodeProc {
                 if (isSaga) {
                     // 添加 Saga 操作记录
                     rt = addDelOp4Saga(aid, matcher);
-                    if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                    if (rt != Errno.OK) {
                         return rt;
                     }
                 }
@@ -409,7 +409,7 @@ public class ProductSpecSkuCodeProc {
         if (isSaga) {
             // 记录 Saga 操作
             rt = addDelOp4Saga(aid, matcher);
-            if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            if (rt != Errno.OK) {
                 return rt;
             }
         }
@@ -725,24 +725,25 @@ public class ProductSpecSkuCodeProc {
         searchArg.matcher = matcher;
         Ref<FaiList<Param>> listRef = new Ref<>();
         rt = m_daoCtrl.select(searchArg, listRef);
-        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+        if (rt != Errno.OK) {
+            if (rt == Errno.NOT_FOUND) {
+                return Errno.OK;
+            }
             Log.logErr(rt, "select err;flow=%s;aid=%s;matcher=%s;", m_flow, aid, matcher);
             return rt;
         }
-        if (!Util.isEmptyList(listRef.value)) {
-            String xid = RootContext.getXID();
-            Long branchId = RootContext.getBranchId();
-            Calendar now = Calendar.getInstance();
-            listRef.value.forEach(info -> {
-                info.setString(SagaEntity.Common.XID, xid);
-                info.setLong(SagaEntity.Common.BRANCH_ID, branchId);
-                info.setInt(SagaEntity.Common.SAGA_OP, SagaValObj.SagaOp.DEL);
-                info.setCalendar(SagaEntity.Common.SAGA_TIME, now);
-            });
-            rt = m_sagaDaoCtrl.batchInsert(listRef.value, null, false);
-            if (rt != Errno.OK) {
-                Log.logErr(rt, "insert sagaOpList error;flow=%d;aid=%d;list=%s", m_flow, aid, listRef.value);
-            }
+        String xid = RootContext.getXID();
+        Long branchId = RootContext.getBranchId();
+        Calendar now = Calendar.getInstance();
+        listRef.value.forEach(info -> {
+            info.setString(SagaEntity.Common.XID, xid);
+            info.setLong(SagaEntity.Common.BRANCH_ID, branchId);
+            info.setInt(SagaEntity.Common.SAGA_OP, SagaValObj.SagaOp.DEL);
+            info.setCalendar(SagaEntity.Common.SAGA_TIME, now);
+        });
+        rt = m_sagaDaoCtrl.batchInsert(listRef.value, null, false);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "insert sagaOpList error;flow=%d;aid=%d;list=%s", m_flow, aid, listRef.value);
         }
         return rt;
     }

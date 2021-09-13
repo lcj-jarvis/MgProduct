@@ -307,6 +307,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
      *                 .setRlPdIds(rlPdIds) // 必填 商品业务id集合
+     *                 .setSysType(sysType) // 选填 系统类型，默认为0
      *                 .build();
      * @param list 接收结果的集合
      * @return {@link Errno}

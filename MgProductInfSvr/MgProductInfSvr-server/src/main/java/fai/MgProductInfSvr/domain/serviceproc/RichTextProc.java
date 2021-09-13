@@ -20,13 +20,10 @@ public class RichTextProc {
 
     public RichTextProc(int flow) {
         this.m_flow = flow;
-        //m_cli = createCli();
+        m_cli = createCli();
     }
 
-    public int addPdRichTexts(int aid, int tid, int siteId, int lgId, int keepPriId1, int pdId, FaiList<Param> richList) {
-        if(true) {
-            return Errno.OK;
-        }
+    public int addPdRichTexts(String xid, int aid, int tid, int siteId, int lgId, int keepPriId1, int pdId, FaiList<Param> richList) {
         int rt;
         if(pdId <= 0 || Utils.isEmptyList(richList)) {
             rt = Errno.ARGS_ERROR;
@@ -38,6 +35,7 @@ public class RichTextProc {
         }
         MgRichTextArg mgRichTextArg = new MgRichTextArg.Builder(aid,  tid, siteId, lgId, keepPriId1)
                 .setInfoList(richList)
+                .setXid(xid)
                 .build();
         rt = m_cli.batchAddRichText(mgRichTextArg);
         if(rt != Errno.OK) {
@@ -46,10 +44,7 @@ public class RichTextProc {
         return rt;
     }
 
-    public int batchDel(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> pdIds) {
-        if(true) {
-            return Errno.OK;
-        }
+    public int batchDel(String xid, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> pdIds) {
         int rt;
         if(Utils.isEmptyList(pdIds)) {
             rt = Errno.ARGS_ERROR;
@@ -60,6 +55,7 @@ public class RichTextProc {
         MgRichTextArg mgRichTextArg = new MgRichTextArg.Builder(aid,  tid, siteId, lgId, keepPriId1)
                 .setBizList(new FaiList<>(Arrays.asList(MgRichTextValObj.Biz.PRODUCT)))
                 .setRlIdList(pdIds)
+                .setXid(xid)
                 .build();
         rt = m_cli.delRichText(mgRichTextArg);
         if(rt != Errno.OK) {
@@ -69,9 +65,6 @@ public class RichTextProc {
     }
 
     public FaiList<Param> getPdRichText(int aid, int tid, int siteId, int lgId, int keepPriId1, int pdId) {
-        if(true) {
-            return new FaiList<>();
-        }
         int rt;
         MgRichTextSearch search = new MgRichTextSearch();
         search.setBiz(MgRichTextValObj.Biz.PRODUCT);
@@ -90,10 +83,7 @@ public class RichTextProc {
         return list;
     }
 
-    public int updatePdRichText(int aid, int tid, int siteId, int lgId, int keepPriId1, int pdId, FaiList<Param> richTextList) {
-        if(true) {
-            return Errno.OK;
-        }
+    public int updatePdRichText(String xid, int aid, int tid, int siteId, int lgId, int keepPriId1, int pdId, FaiList<Param> richTextList) {
         int rt;
         if(pdId <= 0 || Utils.isEmptyList(richTextList)) {
             rt = Errno.ARGS_ERROR;
@@ -105,6 +95,7 @@ public class RichTextProc {
         }
         MgRichTextArg mgRichTextArg = new MgRichTextArg.Builder(aid,  tid, siteId, lgId, keepPriId1)
                 .setInfoList(richTextList)
+                .setXid(xid)
                 .build();
         rt = m_cli.batchSetRichText(mgRichTextArg);
         if(rt != Errno.OK) {

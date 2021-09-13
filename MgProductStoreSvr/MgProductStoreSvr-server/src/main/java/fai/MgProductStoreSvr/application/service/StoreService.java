@@ -11,8 +11,8 @@ import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.fseata.client.core.rpc.def.CommDef;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
-import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.annotation.SuccessRt;
+import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
@@ -258,7 +258,7 @@ public class StoreService extends StoreParentService {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
-            if (aid <= 0 || sourceTid<=0 || sourceUnionPriId <= 0|| Util.isEmptyList(storeSaleSkuList) || Str.isEmpty(inStoreRecordInfo)) {
+            if (aid <= 0 || sourceTid<=0 || sourceUnionPriId <= 0|| Utils.isEmptyList(storeSaleSkuList) || Str.isEmpty(inStoreRecordInfo)) {
                 rt = Errno.ARGS_ERROR;
                 Log.logErr("arg err;flow=%d;aid=%d;sourceUnionPriId=%s;storeSaleSkuList=%s;inStoreRecordInfo=%s;", flow, aid, sourceUnionPriId, storeSaleSkuList, inStoreRecordInfo);
                 return rt;
@@ -505,14 +505,14 @@ public class StoreService extends StoreParentService {
 
                         int flag = ReportValObj.Flag.REPORT_COUNT|ReportValObj.Flag.REPORT_PRICE;
                         int batchCount = 200;
-                        FaiList<FaiList<Long>> batchSkuIds = Util.splitList(skuIds, batchCount);
+                        FaiList<FaiList<Long>> batchSkuIds = Utils.splitList(skuIds, batchCount);
                         for(FaiList<Long> itemSkuIds : batchSkuIds) {
                             rt = reportSummary(aid, null, flag, itemSkuIds, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
                             if(rt != Errno.OK) {
                                 return rt;
                             }
                         }
-                        FaiList<FaiList<Integer>> batchPdIds = Util.splitList(new FaiList<>(pdIdSet), batchCount);
+                        FaiList<FaiList<Integer>> batchPdIds = Utils.splitList(new FaiList<>(pdIdSet), batchCount);
                         for(FaiList<Integer> itemPdIds : batchPdIds) {
                             rt = reportSummary(aid, itemPdIds, flag, null, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
                             if(rt != Errno.OK) {
@@ -547,7 +547,7 @@ public class StoreService extends StoreParentService {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
-            if (aid <= 0 || Util.isEmptyList(unionPriIds)) {
+            if (aid <= 0 || Utils.isEmptyList(unionPriIds)) {
                 rt = Errno.ARGS_ERROR;
                 Log.logErr("arg err;flow=%d;aid=%d;unionPriIds=%s;", flow, aid, unionPriIds);
                 return rt;

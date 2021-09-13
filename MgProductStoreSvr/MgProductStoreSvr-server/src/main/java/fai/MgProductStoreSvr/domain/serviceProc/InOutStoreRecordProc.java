@@ -1,7 +1,10 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
 import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
-import fai.MgProductStoreSvr.domain.entity.*;
+import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordEntity;
+import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordValObj;
+import fai.MgProductStoreSvr.domain.entity.InOutStoreSumEntity;
+import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuEntity;
 import fai.MgProductStoreSvr.domain.repository.InOutStoreRecordDaoCtrl;
 import fai.MgProductStoreSvr.domain.repository.InOutStoreRecordSagaDaoCtrl;
 import fai.MgProductStoreSvr.domain.repository.InOutStoreSumDaoCtrl;
@@ -9,7 +12,6 @@ import fai.MgProductStoreSvr.domain.repository.InOutStoreSumSagaDaoCtrl;
 import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
-import fai.mgproduct.comm.Util;
 import fai.mgproduct.comm.entity.SagaEntity;
 import fai.mgproduct.comm.entity.SagaValObj;
 import fai.middleground.svrutil.exception.MgException;
@@ -1007,7 +1009,7 @@ public class InOutStoreRecordProc {
     /*** 汇总数据 start ***/
     public int addSummary(int aid, FaiList<Param> list, boolean isSaga) {
         int rt;
-        if(Util.isEmptyList(list)) {
+        if(Utils.isEmptyList(list)) {
             rt = Errno.ARGS_ERROR;
             Log.logErr(rt, "add inOutStore summary empty;flow=%d;aid=%d;", m_flow, aid);
             return rt;
@@ -1120,7 +1122,7 @@ public class InOutStoreRecordProc {
 
     // 记录新增数据
     private int addInsOp4Saga(int aid, FaiList<Param> dataList, int type) {
-        if (Util.isEmptyList(dataList)) {
+        if (Utils.isEmptyList(dataList)) {
             Log.logStd("addInsOp4Saga list is empty");
             return Errno.OK;
         }

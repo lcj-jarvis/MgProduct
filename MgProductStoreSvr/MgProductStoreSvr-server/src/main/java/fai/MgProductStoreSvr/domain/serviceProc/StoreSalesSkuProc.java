@@ -973,7 +973,7 @@ public class StoreSalesSkuProc {
     }
 
     public int getListFromDao(int aid, FaiList<Integer> uidList, FaiList<Long> skuIdList, Ref<FaiList<Param>> listRef, String ... fields){
-        if(aid <= 0 || Util.isEmptyList(skuIdList) || Util.isEmptyList(uidList) || listRef == null){
+        if(aid <= 0 || Utils.isEmptyList(skuIdList) || Utils.isEmptyList(uidList) || listRef == null){
             Log.logErr("arg error;flow=%d;aid=%s;uidList=%s;uidList=%s;listRef=%s;fields=%s", m_flow, aid, uidList, uidList, listRef, fields);
             return Errno.ARGS_ERROR;
         }
@@ -996,7 +996,7 @@ public class StoreSalesSkuProc {
     }
 
     public int getListFromDaoByPdIdListAndUidList(int aid, FaiList<Integer> pdIdList, FaiList<Integer> uidList, Ref<FaiList<Param>> listRef, String ... fields){
-        if(aid <= 0 || Util.isEmptyList(pdIdList) || (uidList != null && uidList.isEmpty()) || listRef == null){
+        if(aid <= 0 || Utils.isEmptyList(pdIdList) || (uidList != null && uidList.isEmpty()) || listRef == null){
             Log.logErr("arg error;flow=%d;aid=%s;pdIdList=%s;uidList=%s;listRef=%s;fields=%s", m_flow, aid, pdIdList, uidList, listRef, fields);
             return Errno.ARGS_ERROR;
         }
@@ -1341,7 +1341,7 @@ public class StoreSalesSkuProc {
 
     // 预记录要修改的数据
     private void preAddUpdateSaga(int aid, FaiList<Param> list) {
-        if (Util.isEmptyList(list)) {
+        if (Utils.isEmptyList(list)) {
             Log.logStd("preAddUpdateSaga list is empty;flow=%d;aid=%d", m_flow, aid);
             return;
         }
@@ -1370,7 +1370,7 @@ public class StoreSalesSkuProc {
 
     // 记录添加操作
     private int addInsOp4Saga(int aid, FaiList<Param> list) {
-        if (Util.isEmptyList(list)) {
+        if (Utils.isEmptyList(list)) {
             Log.logStd("addInsOp4Saga list is empty");
             return Errno.OK;
         }
@@ -1477,7 +1477,7 @@ public class StoreSalesSkuProc {
 
     // 回滚修改
     private void rollback4Update(int aid, List<Param> list) {
-        if (Util.isEmptyList(list)) {
+        if (Utils.isEmptyList(list)) {
             return;
         }
         String[] updateKeys = StoreSalesSkuEntity.getMaxUpdateAndPriKeys();
@@ -1521,7 +1521,7 @@ public class StoreSalesSkuProc {
 
     // 回滚删除
     private void rollback4Del(int aid, List<Param> list) {
-        if (Util.isEmptyList(list)) {
+        if (Utils.isEmptyList(list)) {
             return;
         }
         // 去除 Saga 字段
@@ -1535,7 +1535,7 @@ public class StoreSalesSkuProc {
 
     // 回滚新增
     private void rollback4Add(int aid, List<Param> list) {
-        if (Util.isEmptyList(list)) {
+        if (Utils.isEmptyList(list)) {
             return;
         }
         // 根据 unionPriId 分组，减少循环操作 db 的次数

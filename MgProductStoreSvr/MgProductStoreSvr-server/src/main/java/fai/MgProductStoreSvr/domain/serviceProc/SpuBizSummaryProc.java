@@ -447,7 +447,7 @@ public class SpuBizSummaryProc {
 
     public int batchAdd(int aid, int unionPriId, FaiList<Param> infoList){
         int rt = Errno.ARGS_ERROR;
-        if(aid <= 0 || unionPriId <= 0 || Util.isEmptyList(infoList)){
+        if(aid <= 0 || unionPriId <= 0 || Utils.isEmptyList(infoList)){
             Log.logErr(rt, "arg error;flow=%s;aid=%s;unionPriId=%s;infoList=%s;", m_flow, aid, unionPriId, infoList);
             return rt;
         }
@@ -487,7 +487,7 @@ public class SpuBizSummaryProc {
 
     public int batchSet(int aid, int unionPriId, FaiList<ParamUpdater> updaterList){
         int rt = Errno.ARGS_ERROR;
-        if(aid <= 0 || unionPriId <= 0 || Util.isEmptyList(updaterList)){
+        if(aid <= 0 || unionPriId <= 0 || Utils.isEmptyList(updaterList)){
             Log.logErr(rt, "arg error;flow=%s;aid=%s;unionPriId=%s;updaterList=%s;", m_flow, aid, unionPriId, updaterList);
             return rt;
         }
@@ -843,7 +843,7 @@ public class SpuBizSummaryProc {
 
     // 记录添加操作
     private int addInsOp4Saga(int aid, FaiList<Param> list) {
-        if (Util.isEmptyList(list)) {
+        if (Utils.isEmptyList(list)) {
             Log.logStd("addInsOp4Saga list is empty;flow=%d;aid=%d", m_flow, aid);
             return Errno.OK;
         }
@@ -873,7 +873,7 @@ public class SpuBizSummaryProc {
 
     // 预记录修改操作数据
     private void preAddUpdateSaga(int aid, FaiList<Param> list) {
-        if (Util.isEmptyList(list)) {
+        if (Utils.isEmptyList(list)) {
             Log.logStd("preAddUpdateSaga list is empty;flow=%d;aid=%d", m_flow, aid);
             return;
         }

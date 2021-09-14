@@ -1136,7 +1136,7 @@ public class ProductBasicService extends BasicParentService {
         TransactionCtrl tc = new TransactionCtrl();
         try {
             ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
-            list = relProc.getProductRelList(aid, unionPriId, pdIds);
+            list = relProc.getProductRelListWithDel(aid, unionPriId, pdIds);
         } finally {
             tc.closeDao();
         }
@@ -2263,7 +2263,7 @@ public class ProductBasicService extends BasicParentService {
             SearchArg searchArg = new SearchArg();
             searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
             searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-            list = relProc.searchFromDb(aid, searchArg, ProductRelEntity.MANAGE_FIELDS);
+            list = relProc.searchFromDbWithDel(aid, searchArg, ProductRelEntity.MANAGE_FIELDS);
         }finally {
             tc.closeDao();
         }
@@ -2289,7 +2289,7 @@ public class ProductBasicService extends BasicParentService {
         try {
             ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
             searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-            list = relProc.searchFromDb(aid, searchArg, ProductRelEntity.MANAGE_FIELDS);
+            list = relProc.searchFromDbWithDel(aid, searchArg, ProductRelEntity.MANAGE_FIELDS);
         }finally {
             tc.closeDao();
         }

@@ -1,6 +1,7 @@
 package fai.MgProductBasicSvr.application;
 
 import fai.MgProductBasicSvr.domain.common.LockUtil;
+import fai.MgProductBasicSvr.domain.common.MgProductCheck;
 import fai.MgProductBasicSvr.domain.repository.cache.CacheCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.*;
 import fai.MgProductBasicSvr.domain.repository.dao.saga.*;
@@ -80,7 +81,7 @@ public class MgProductBasicSvr {
         return daoPool;
     }
 
-    public static void init(DaoPool daoPool, RedisCacheManager cache, LockOption lockOption, SvrOption svrOption, JedisPool jedisPool) {
+    private static void init(DaoPool daoPool, RedisCacheManager cache, LockOption lockOption, SvrOption svrOption, JedisPool jedisPool) {
         // 初始化daopool
         ProductDaoCtrl.init(daoPool, cache);
         ProductSagaDaoCtrl.init(daoPool);
@@ -99,6 +100,9 @@ public class MgProductBasicSvr {
         CacheCtrl.init(cache, jedisPool, svrOption.getCacheSuffix());
 
         LockUtil.init(cache, lockOption);
+
+        // 设置isDev
+        MgProductCheck.setIsDev(svrOption.getDebug());
     }
 
     @ParamKeyMapping(path = ".svr")

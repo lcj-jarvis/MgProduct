@@ -1,6 +1,7 @@
 package fai.MgProductBasicSvr.domain.serviceproc;
 
 import fai.MgProductBasicSvr.domain.common.ESUtil;
+import fai.MgProductBasicSvr.domain.common.MgProductCheck;
 import fai.MgProductBasicSvr.domain.entity.*;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductRelCacheCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductRelDaoCtrl;
@@ -222,12 +223,6 @@ public class ProductRelProc {
         return count;
     }
 
-    public FaiList<Param> getBindBizInfo(int aid, FaiList<Integer> pdIds) {
-        ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
-        return searchFromDb(aid, matcher, Utils.asFaiList(ProductRelEntity.Info.AID, ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.RL_PD_ID));
-    }
-
     // 清空指定aid+unionPriId的数据
     public int clearData(int aid, int unionPriId, boolean softDel) {
         int rt;
@@ -340,12 +335,7 @@ public class ProductRelProc {
             if(addSaga) {
                 SearchArg searchArg = new SearchArg();
                 searchArg.matcher = matcher;
-                Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
-                rt = m_dao.select(searchArg, listRef);
-                if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-                    throw new MgException(rt, "get unionPriId error;flow=%d;aid=%d;tmpPdIds=%d;", m_flow, aid, tmpPdIds);
-                }
-                FaiList<Param> oldList = listRef.value;
+                FaiList<Param> oldList = searchFromDb(aid, searchArg, null);
                 if(Utils.isEmptyList(oldList)) {
                     return;
                 }
@@ -425,18 +415,13 @@ public class ProductRelProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
-        int rt = m_dao.select(searchArg, listRef, "max(sort) as sort");
-        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            throw new MgException(rt, "getMaxSort error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
-        }
-        if (listRef.value == null || listRef.value.isEmpty()) {
-            rt = Errno.NOT_FOUND;
-            Log.logDbg(rt, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+        FaiList<Param> resList = searchFromDbWithDel(aid, searchArg, Utils.asFaiList("max(sort) as sort"));
+        if (Utils.isEmptyList(resList)) {
+            Log.logDbg(Errno.NOT_FOUND, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return ProductRelValObj.Default.SORT;
         }
 
-        Param info = listRef.value.get(0);
+        Param info = resList.get(0);
         int sort = info.getInt(ProductRelEntity.Info.SORT, ProductRelValObj.Default.SORT);
         // 添加到缓存
         ProductRelCacheCtrl.SortCache.set(aid, unionPriId, sort);
@@ -481,7 +466,7 @@ public class ProductRelProc {
 
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
-        FaiList<Param> oldList = searchFromDb(aid, searchArg, new FaiList<>(validUpdaterFields));
+        FaiList<Param> oldList = searchFromDbWithDel(aid, searchArg, new FaiList<>(validUpdaterFields));
 
         if(oldList.isEmpty()) {
             Log.logStd("update not found;aid=%d;matcher=%s;update=%s;", aid, matcher.toJson(), updater.toJson());
@@ -699,6 +684,17 @@ public class ProductRelProc {
         return relList.get(0);
     }
 
+    public FaiList<Param> getProductRelListWithDel(int aid, int unionPriId, FaiList<Integer> pdIdList) {
+        int rt;
+        if(Utils.isEmptyList(pdIdList)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "get pdIdList is empty;aid=%d;pdIdList=%s;", aid, pdIdList);
+        }
+        HashSet<Integer> pdIds = new HashSet<Integer>(pdIdList);
+
+        return getListByPdIdWithDel(aid, unionPriId, pdIds);
+    }
+
     public FaiList<Param> getProductRelList(int aid, int unionPriId, FaiList<Integer> pdIdList) {
         int rt;
         if(Utils.isEmptyList(pdIdList)) {
@@ -715,23 +711,17 @@ public class ProductRelProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
-        //searchArg.matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.NE, ProductRelValObj.Status.DEL);
-        Ref<FaiList<Param>> listRef = new Ref<FaiList<Param>>();
+
         //只查aid+pdId+unionPriId+rlPdId
-        int rt = m_dao.select(searchArg, listRef, ProductRelEntity.Info.AID, ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID);
-        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            throw new MgException(rt, "getRlPdInfoByPdIds fail;flow=%d;aid=%d;pdIds=%d;", m_flow, aid, pdIds);
+        FaiList<Param> list = searchFromDb(aid, searchArg, Utils.asFaiList(ProductRelEntity.Info.AID, ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID));
+        if(list == null) {
+            list = new FaiList<>();
         }
-        if(listRef.value == null) {
-            listRef.value = new FaiList<Param>();
-        }
-        if(listRef.value == null || listRef.value.isEmpty()) {
-            rt = Errno.NOT_FOUND;
-            Log.logDbg(rt, "not found;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
-
+        if(list.isEmpty()) {
+            Log.logDbg(Errno.NOT_FOUND, "not found;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
         }
 
-        return listRef.value;
+        return list;
     }
 
     public Param getDataStatus(int aid, int unionPriId) {
@@ -753,7 +743,11 @@ public class ProductRelProc {
     }
 
     /**
-     * 在 aid 下搜索
+     * 在 aid 下搜索, 不包含软删数据
+     * 是否获取软删通过区分接口控制
+     * 不用参数控制的原因：
+     * 如若一个业务之前没有软删，后面支持软删，通过参数控制的方式，业务方需要全面修改接口使用
+     * 获取软删场景是较少的，所以一般默认使用过滤软删接口，需要获取软删数据的使用另外的接口
      */
     public FaiList<Param> searchFromDb(int aid, SearchArg searchArg, FaiList<String> selectFields) {
         if(searchArg == null) {
@@ -762,13 +756,37 @@ public class ProductRelProc {
         if(searchArg.matcher == null) {
             searchArg.matcher = new ParamMatcher();
         }
+        // TODO 等门店那边接入完成，需要获取软删数据的请求走了专门的接口之后，这个status的限制需要在线上开放
+        if(MgProductCheck.isDev()) {
+            searchArg.matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.NE, ProductRelValObj.Status.DEL);
+        }
+
+        return searchFromDbWithDel(aid, searchArg, selectFields);
+    }
+    /**
+     * 在 aid 下搜索, 不包含软删数据
+     */
+    public FaiList<Param> searchFromDb(int aid, ParamMatcher matcher, FaiList<String> selectFields) {
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        return searchFromDb(aid, searchArg, selectFields);
+    }
+    /**
+     * 在 aid 下搜索，包含软删数据
+     */
+    public FaiList<Param> searchFromDbWithDel(int aid, SearchArg searchArg, FaiList<String> selectFields) {
+        if(searchArg == null) {
+            searchArg = new SearchArg();
+        }
+        if(searchArg.matcher == null) {
+            searchArg.matcher = new ParamMatcher();
+        }
         searchArg.matcher.and(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
-        //searchArg.matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.NE, ProductRelValObj.Status.DEL);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
         int rt = m_dao.select(searchArg, listRef, selectFields);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            throw new MgException(rt, "get error;flow=%d;aid=%d;match=%s;", m_flow, aid, searchArg.matcher.toJson());
+            throw new MgException(rt, "get error;flow=%d;aid=%d;match=%s;selectFields=%s;", m_flow, aid, searchArg.matcher.toJson(), selectFields);
         }
         if(listRef.value == null) {
             listRef.value = new FaiList<Param>();
@@ -778,11 +796,6 @@ public class ProductRelProc {
             Log.logDbg(rt, "not found;flow=%d;aid=%d;match=%s;", m_flow, aid, searchArg.matcher.toJson());
         }
         return listRef.value;
-    }
-    public FaiList<Param> searchFromDb(int aid, ParamMatcher matcher, FaiList<String> selectFields) {
-        SearchArg searchArg = new SearchArg();
-        searchArg.matcher = matcher;
-        return searchFromDb(aid, searchArg, selectFields);
     }
 
     private int getPdRelCountFromDB(int aid, int unionPriId) {
@@ -866,28 +879,31 @@ public class ProductRelProc {
         searchArg.matcher.and(ProductRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
         searchArg.matcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.IN, noCacheIds);
 
-        Ref<FaiList<Param>> tmpRef = new Ref<>();
-        int rt = m_dao.select(searchArg, tmpRef, ProductRelEntity.Info.RL_PD_ID, ProductRelEntity.Info.PD_ID);
-        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            throw new MgException(rt, "select pdId error;aid=%d;uid=%d;sysType=%d;rlPdIds=%s;", aid, unionPriId, sysType, rlPdIds);
-        }
+        FaiList<Param> tmpList = searchFromDb(aid, searchArg, Utils.asFaiList(ProductRelEntity.Info.RL_PD_ID, ProductRelEntity.Info.PD_ID));
 
-        if(tmpRef.value != null && !tmpRef.value.isEmpty()) {
-            list.addAll(tmpRef.value);
+        if(!Utils.isEmptyList(tmpList)) {
+            list.addAll(tmpList);
             // 添加到缓存
-            ProductRelCacheCtrl.PdIdCache.addCacheList(aid, unionPriId, sysType, tmpRef.value);
+            ProductRelCacheCtrl.PdIdCache.addCacheList(aid, unionPriId, sysType, tmpList);
         }
 
         if (list.isEmpty()) {
-            rt = Errno.NOT_FOUND;
-            Log.logDbg(rt, "not found;flow=%d;aid=%d;", m_flow, aid);
+            Log.logDbg(Errno.NOT_FOUND, "not found;flow=%d;aid=%d;", m_flow, aid);
             return list;
         }
 
         return list;
     }
 
+    private FaiList<Param> getListByPdIdWithDel(int aid, int unionPriId, HashSet<Integer> pdIds) {
+        return getList(aid, unionPriId, pdIds, true);
+    }
+
     private FaiList<Param> getListByPdId(int aid, int unionPriId, HashSet<Integer> pdIds) {
+        return getList(aid, unionPriId, pdIds, false);
+    }
+
+    private FaiList<Param> getList(int aid, int unionPriId, HashSet<Integer> pdIds, boolean withDel) {
         int rt;
         if(Utils.isEmptyList(pdIds)) {
             rt = Errno.ARGS_ERROR;
@@ -914,18 +930,14 @@ public class ProductRelProc {
         }
 
         // db中获取
-        Ref<FaiList<Param>> tmpRef = new Ref<>();
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, noCacheIds);
-        //searchArg.matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.NE, ProductRelValObj.Status.DEL);
-        rt = m_dao.select(searchArg, tmpRef);
-        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
-            throw new MgException(rt, "get list error;aid=%d;uid=%d;pdIds=%s;", aid, unionPriId, pdIds);
-        }
-        if(tmpRef.value != null && !tmpRef.value.isEmpty()) {
-            list.addAll(tmpRef.value);
+
+        FaiList<Param> tmpList = withDel ? searchFromDb(aid, searchArg, null) : searchFromDbWithDel(aid, searchArg, null);
+        if(!Utils.isEmptyList(tmpList)) {
+            list.addAll(tmpList);
         }
         if (list.isEmpty()) {
             rt = Errno.NOT_FOUND;
@@ -934,7 +946,7 @@ public class ProductRelProc {
         }
 
         // 添加到缓存
-        ProductRelCacheCtrl.InfoCache.addCacheList(aid, unionPriId, tmpRef.value);
+        ProductRelCacheCtrl.InfoCache.addCacheList(aid, unionPriId, tmpList);
 
         return list;
     }

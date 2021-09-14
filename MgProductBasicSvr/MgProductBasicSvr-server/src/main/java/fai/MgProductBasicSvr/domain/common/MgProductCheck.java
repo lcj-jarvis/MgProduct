@@ -1,6 +1,7 @@
 package fai.MgProductBasicSvr.domain.common;
 
 import fai.MgProductBasicSvr.domain.entity.ProductValObj;
+import fai.comm.config.FaiConfig;
 import fai.comm.util.Errno;
 import fai.comm.util.Log;
 import fai.comm.util.Str;
@@ -11,6 +12,13 @@ import java.util.Collection;
 import java.util.HashSet;
 
 public class MgProductCheck {
+    public static void setIsDev(boolean isDev) {
+        IS_DEV = isDev;
+    }
+    public static boolean isDev() {
+        return IS_DEV;
+    }
+
     public static class RequestLimit {
         public static <T> boolean checkWriteSize(int aid, Collection<T> list) {
             if(Utils.isEmptyList(list)) {
@@ -51,4 +59,5 @@ public class MgProductCheck {
         return true;
     }
 
+    private static boolean IS_DEV = false;
 }

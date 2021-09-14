@@ -105,7 +105,7 @@ public class MgProductSearchProc {
                                               MgProductSpecCli mgProductSpecCli){
         Param remoteDataStatusInfo = new Param();
         int rt;
-        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT.getSearchTableName().equals(tableName)){
             // 从远端获取数据, 待完善
             rt = mgProductBasicCli.getPdDataStatus(aid, remoteDataStatusInfo);
             if(rt != Errno.OK){
@@ -114,7 +114,7 @@ public class MgProductSearchProc {
             // Log.logDbg("getPdDataStatus, remoteDataStatusInfo=%s;", remoteDataStatusInfo);
         }
 
-        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_REL.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_REL.getSearchTableName().equals(tableName)){
             // 从远端获取数据
             rt = mgProductBasicCli.getPdRelDataStatus(aid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
@@ -123,7 +123,7 @@ public class MgProductSearchProc {
             //Log.logDbg("getPdRelDataStatus, remoteDataStatusInfo=%s;", remoteDataStatusInfo);
         }
 
-        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.getSearchTableName().equals(tableName)){
             // 从远端获取数据
             rt = mgProductBasicCli.getBindPropDataStatus(aid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
@@ -132,7 +132,7 @@ public class MgProductSearchProc {
             //Log.logDbg("getBindPropDataStatus, remoteDataStatusInfo=%s;", remoteDataStatusInfo);
         }
 
-        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.getSearchTableName().equals(tableName)){
             // 从远端获取数据
             rt = mgProductBasicCli.getBindGroupDataStatus(aid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
@@ -141,7 +141,7 @@ public class MgProductSearchProc {
             //Log.logDbg("getBindGroupDataStatus, remoteDataStatusInfo=%s;", remoteDataStatusInfo);
         }
 
-        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.getSearchTableName().equals(tableName)){
             // 从远端获取数据
             rt = mgProductBasicCli.getBindTagDataStatus(aid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
@@ -150,7 +150,7 @@ public class MgProductSearchProc {
             //Log.logDbg("getBindGroupDataStatus, remoteDataStatusInfo=%s;", remoteDataStatusInfo);
         }
 
-        if(MgProductDbSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.getSearchTableName().equals(tableName)){
             // 从远端获取数据, 待完善
             rt = mgProductStoreCli.getSpuBizSummaryDataStatus(aid, tid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
@@ -159,7 +159,7 @@ public class MgProductSearchProc {
             // Log.logDbg("getSpuBizSummaryDataStatus,remoteDataStatusInfo=%s;", remoteDataStatusInfo);
         }
 
-        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU_CODE.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU_CODE.getSearchTableName().equals(tableName)){
             // 从远端获取数据, 待完善
             rt = mgProductSpecCli.getSkuCodeDataStatus(aid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
@@ -261,7 +261,7 @@ public class MgProductSearchProc {
         int rt;
         // 需要真正获取的数据
         FaiList<Param> searchDataList = new FaiList<>();
-        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT.getSearchTableName().equals(tableName)){
             if(needLoadFromDb){
                 rt = mgProductBasicCli.searchPdFromDb(aid, searchArg, searchDataList);
                 if(rt != Errno.OK){
@@ -277,7 +277,7 @@ public class MgProductSearchProc {
             }
         }
 
-        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_REL.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_REL.getSearchTableName().equals(tableName)){
             if(needLoadFromDb){
                 rt = mgProductBasicCli.searchPdRelFromDb(aid, unionPriId, searchArg, searchDataList);
                 if(rt != Errno.OK){
@@ -293,7 +293,7 @@ public class MgProductSearchProc {
             }
         }
 
-        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.getSearchTableName().equals(tableName)){
             if(needLoadFromDb){
                 rt = mgProductBasicCli.searchBindPropFromDb(aid, unionPriId, searchArg, searchDataList);
                 if(rt != Errno.OK){
@@ -309,7 +309,7 @@ public class MgProductSearchProc {
             }
         }
 
-        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.getSearchTableName().equals(tableName)){
             if(needLoadFromDb){
                 rt = mgProductBasicCli.searchBindGroupFromDb(aid, unionPriId, searchArg, searchDataList);
                 if(rt != Errno.OK){
@@ -325,7 +325,7 @@ public class MgProductSearchProc {
             }
         }
 
-        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.getSearchTableName().equals(tableName)){
             if(needLoadFromDb){
                 rt = mgProductBasicCli.getPdBindTagFromDb(aid, unionPriId, searchArg, searchDataList);
                 if(rt != Errno.OK){
@@ -341,7 +341,7 @@ public class MgProductSearchProc {
             }
         }
 
-        if(MgProductDbSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.searchTableName.equals(tableName)){
+        if(MgProductDbSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.getSearchTableName().equals(tableName)){
             if(needLoadFromDb){
                 rt = mgProductStoreCli.searchSpuBizSummaryFromDb(aid, tid, unionPriId, searchArg, searchDataList);
                 if(rt != Errno.OK){
@@ -362,7 +362,7 @@ public class MgProductSearchProc {
         // Info.SKU_CODE,
         // Info.PD_ID,
         // Info.SKU_ID
-        if (MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU_CODE.searchTableName.equals(tableName)) {
+        if (MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU_CODE.getSearchTableName().equals(tableName)) {
             if(needLoadFromDb){
                 rt = mgProductSpecCli.searchSkuCodeFromDb(aid, unionPriId, searchArg, searchDataList);
                 if(rt != Errno.OK){

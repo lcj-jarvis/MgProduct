@@ -68,7 +68,7 @@ public class ProductSearchService extends MgProductInfService {
         Param searchResult = searchPd(flow, aid, unionPriId, tid, esSearchParamString, dbSearchParamString);
         FaiList<Integer> pdIds = searchResult.getList(MgProductSearchResult.Info.ID_LIST);
         if(pdIds == null) {
-            Log.logDbg("not found;aid=%d;uid=%d;search=%s;", aid, unionPriId, dbSearchParamString);
+            Log.logDbg("not found;aid=%d;uid=%d;esSearchParamString=%s;dbSearchParamString=%s", aid, unionPriId, esSearchParamString, dbSearchParamString);
             return Errno.NOT_FOUND;
         }
         Integer total = searchResult.getInt(MgProductSearchResult.Info.TOTAL);

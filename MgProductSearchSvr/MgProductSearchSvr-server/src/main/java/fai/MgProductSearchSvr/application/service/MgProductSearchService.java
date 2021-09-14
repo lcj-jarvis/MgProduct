@@ -91,13 +91,13 @@ public class MgProductSearchService {
         // 等值过滤
         filters.add(FaiSearchExDef.SearchFilter.createEqual(MgProductEsSearch.EsSearchFields.AID, FaiSearchExDef.SearchField.FieldType.INTEGER, aid));
         filters.add(FaiSearchExDef.SearchFilter.createEqual(MgProductEsSearch.EsSearchFields.UNIONPRIID, FaiSearchExDef.SearchField.FieldType.INTEGER, unionPriId));
-        if (status == BaseMgProductSearch.UpSalesStatusEnum.UP_AND_DOWN_SALES.upSalesStatus) {
+        if (status == BaseMgProductSearch.UpSalesStatusEnum.UP_AND_DOWN_SALES.getUpSalesStatus()) {
             // 上架或者下架的，或者两种都有。使用in过滤
             FaiList<Integer> statusList = new FaiList<>();
             statusList.add(ProductBasicValObj.ProductValObj.Status.UP);
             statusList.add(ProductBasicValObj.ProductValObj.Status.DOWN);
             filters.add(FaiSearchExDef.SearchFilter.createIn(MgProductEsSearch.EsSearchFields.STATUS, FaiSearchExDef.SearchField.FieldType.INTEGER, statusList));
-        } else if (status != BaseMgProductSearch.UpSalesStatusEnum.ALL.upSalesStatus) {
+        } else if (status != BaseMgProductSearch.UpSalesStatusEnum.ALL.getUpSalesStatus()) {
             // 非全部的，单独是某种状态.使用等值过滤
             filters.add(FaiSearchExDef.SearchFilter.createEqual(MgProductEsSearch.EsSearchFields.STATUS, FaiSearchExDef.SearchField.FieldType.INTEGER, status));
         }
@@ -152,10 +152,16 @@ public class MgProductSearchService {
         if (dbSearchParam == null) {
             dbSearchParam = new Param();
         }
-        // 判断是否有公共的查询字段
-        if (esSearchParam.containsKey(BaseMgProductSearch.BaseSearchInfo.SEARCH_KEYWORD)) {
+
+        /*if (esSearchParam.containsKey(BaseMgProductSearch.BaseSearchInfo.SEARCH_KEYWORD)) {
             dbSearchParam.remove(BaseMgProductSearch.BaseSearchInfo.SEARCH_KEYWORD);
-        }
+        }*/
+        // 如果关键词已经在es用做了商品名称搜索，就不在db中用作商品名称搜索了
+        boolean useSearchKeywordAsPdNameInEs = esSearchParam.containsKey(BaseMgProductSearch.BaseSearchInfo.SEARCH_KEYWORD) &&
+            esSearchParam.getBoolean(BaseMgProductSearch.BaseSearchInfo.ENABLE_SEARCH_PRODUCT_NAME, false);
+        dbSearchParam.setBoolean(BaseMgProductSearch.BaseSearchInfo.ENABLE_SEARCH_PRODUCT_NAME, !useSearchKeywordAsPdNameInEs);
+
+        // 判断是否有公共的查询字段。es中搜索过了，db中不再进行搜索
         if (esSearchParam.containsKey(BaseMgProductSearch.BaseSearchInfo.UP_SALES_STATUS)) {
             dbSearchParam.remove(BaseMgProductSearch.BaseSearchInfo.UP_SALES_STATUS);
         }
@@ -355,7 +361,7 @@ public class MgProductSearchService {
 
         // 1、在 "商品与参数值关联表" mgProductBindProp_xxxx 搜索
         ParamMatcher productBindPropDataSearchMatcher = mgProductDbSearch.getProductBindPropSearchMatcher(null);
-        String searchTableName = MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.searchTableName;
+        String searchTableName = MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.getSearchTableName();
         if(!productBindPropDataSearchMatcher.isEmpty()){
             if (!idListFromEsParamMatcher.isEmpty()) {
                 // 添加es的idList作为查询条件
@@ -366,7 +372,7 @@ public class MgProductSearchService {
 
         // 2、在 "商品业务销售总表" mgSpuBizSummary_xxxx 搜索
         ParamMatcher mgSpuBizSummarySearchMatcher = mgProductDbSearch.getProductSpuBizSummarySearchMatcher(null);
-        searchTableName = MgProductDbSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.searchTableName;
+        searchTableName = MgProductDbSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.getSearchTableName();
         if(!mgSpuBizSummarySearchMatcher.isEmpty()){
             if (!idListFromEsParamMatcher.isEmpty()) {
                 // 添加es的idList作为查询条件
@@ -377,7 +383,7 @@ public class MgProductSearchService {
 
         // 3、"标签业务关系表" mgProductBindTag_xxxx 搜索， 还没有标签功能，暂时没开放
         ParamMatcher mgProductBindTagSearchMatcher = mgProductDbSearch.getProductBindTagSearchMatcher(null);
-        searchTableName = MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.searchTableName;
+        searchTableName = MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.getSearchTableName();
         if (!mgProductBindTagSearchMatcher.isEmpty()) {
             if (!idListFromEsParamMatcher.isEmpty()) {
                 // 添加es的idList作为查询条件
@@ -388,7 +394,7 @@ public class MgProductSearchService {
 
         // 4、在 "分类业务关系表" mgProductBindGroup_xxxx 搜索
         ParamMatcher mgProductBindGroupSearchMatcher = mgProductDbSearch.getProductBindGroupSearchMatcher(null);
-        searchTableName = MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.searchTableName;
+        searchTableName = MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.getSearchTableName();
         if(!mgProductBindGroupSearchMatcher.isEmpty()){
             if (!idListFromEsParamMatcher.isEmpty()) {
                 // 添加es的idList作为查询条件
@@ -399,7 +405,7 @@ public class MgProductSearchService {
 
         // 5、在 "商品业务关系表" mgProductRel_xxxx 搜索
         ParamMatcher productRelSearchMatcher = mgProductDbSearch.getProductRelSearchMatcher(null);
-        searchTableName = MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_REL.searchTableName;
+        searchTableName = MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_REL.getSearchTableName();
         if (mgProductDbSearch.isEmpty()) {
             // 执行到这里说明es和db的搜索条件都为空.因为es搜索条件不为空，db搜索条件为空的情况，在前面已经直接返回es里的搜索结果了。
             // db搜索的表为空，就补充一张MG_PRODUCT_REL作为空搜索条件的表
@@ -417,7 +423,7 @@ public class MgProductSearchService {
 
         // 6、在"商品规格skuCode表" mgProductSpecSkuCode_0xxx 搜索
         ParamMatcher mgProductSpecSkuSearchMatcher = mgProductDbSearch.getProductSpecSkuCodeSearchMatcher(null);
-        searchTableName = MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU_CODE.searchTableName;
+        searchTableName = MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU_CODE.getSearchTableName();
         if (!mgProductSpecSkuSearchMatcher.isEmpty()) {
             if (!idListFromEsParamMatcher.isEmpty()) {
                 // 添加es的idList作为查询条件
@@ -428,7 +434,7 @@ public class MgProductSearchService {
 
         // 7、在 "商品基础表" mgProduct_xxxx 搜索
         ParamMatcher productBasicSearchMatcher = mgProductDbSearch.getProductBasicSearchMatcher(null);
-        searchTableName = MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT.searchTableName;
+        searchTableName = MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT.getSearchTableName();
         if(!productBasicSearchMatcher.isEmpty()){
             if (!idListFromEsParamMatcher.isEmpty()) {
                 // 添加es的idList作为查询条件

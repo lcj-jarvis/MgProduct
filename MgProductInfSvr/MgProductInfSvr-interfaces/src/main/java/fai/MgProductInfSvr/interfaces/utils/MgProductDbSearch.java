@@ -67,7 +67,6 @@ public class MgProductDbSearch extends BaseMgProductSearch {
     public Param getSearchParam() {
         // 先获取公共查询条件的Param
         Param param = getBaseSearchParam();
-
         param.setList(DbSearchInfo.RL_GROUP_ID_LIST, rlGroupIdList);   // 业务商品分类
         param.setList(DbSearchInfo.RL_TAG_ID_LIST, rlTagIdList);   // 业务商品标签
         param.setList(DbSearchInfo.RL_PD_ID_LIST, rlPdIdList);          // rlPdIdList
@@ -81,7 +80,7 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         param.setList(DbSearchInfo.KEY_WORD_SEARCH_IN_PROP_ID_LIST, keyWordSearchInPropIdList);     //  在哪些参数下搜索, 与 searchKeyWord 匹配使用
         param.setBoolean(DbSearchInfo.ENABLE_SEARCH_PRODUCT_REMARK, enableSearchProductRemark);  // 是否允许搜索商品详情, 默认是 false
         param.setList(DbSearchInfo.SEARCH_PRODUCT_REMARK_KEY_LIST, searchProductRemarkKeyList);
-          
+
         param.setList(DbSearchInfo.RL_PROP_VAL_ID_LIST, rlPropValIdList);  //  根据 参数值 搜索
         param.setCalendar(DbSearchInfo.ADD_TIME_BEGIN, addTimeBegin);  // 搜索商品  开始录入时间
         param.setCalendar(DbSearchInfo.ADD_TIME_END, addTimeEnd);      // 搜索商品  结束录入时间
@@ -134,7 +133,7 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         this.skuCode = dbSearchParam.getString(DbSearchInfo.SKU_CODE); // 搜索商品的sku编号（条形码）
 
         // 排序相关
-        this.customComparatorKey = dbSearchParam.getString(DbSearchInfo.CUSTOM_COMPARATOR_KEY); // 自定义的排序，如果设置了该排序，其他的排序无效（包括es里的排序）
+        this.customComparatorKey = dbSearchParam.getString(DbSearchInfo.CUSTOM_COMPARATOR_KEY); // 自定义的排序
         this.customComparatorList = dbSearchParam.getList(DbSearchInfo.CUSTOM_COMPARATOR_LIST); // 自定义排序的List
         this.customComparatorTable = dbSearchParam.getString(DbSearchInfo.CUSTOM_COMPARATOR_TABLE, SearchTableNameEnum.MG_PRODUCT_REL.searchTableName); // 自定义排序字段所在的表,默认是MG_PRODUCT_REL
         this.firstComparatorTable = dbSearchParam.getString(DbSearchInfo.FIRST_COMPARATOR_TABLE); // 第一排序字段table
@@ -198,11 +197,12 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         // 对应mgProductSpecSkuCode，商品规格skuCode表
         MG_PRODUCT_SPEC_SKU_CODE("pssc");
 
-        public String searchTableName;
+        private String searchTableName;
         SearchTableNameEnum(String searchTableName) {
             this.searchTableName = searchTableName;
         }
-        public String getSortTableName(){
+
+        public String getSearchTableName() {
             return searchTableName;
         }
     }
@@ -353,13 +353,13 @@ public class MgProductDbSearch extends BaseMgProductSearch {
 
         // 商品的状态（商品业务表）
         // 执行到这里说明该字段没有在es中没搜索过
-        if (upSalesStatus == UpSalesStatusEnum.UP_AND_DOWN_SALES.upSalesStatus) {
+        if (upSalesStatus == UpSalesStatusEnum.UP_AND_DOWN_SALES.getUpSalesStatus()) {
             // 上架或者下架的，或者两种都有
             FaiList<Integer> statusList = new FaiList<Integer>();
             statusList.add(ProductBasicValObj.ProductValObj.Status.UP);
             statusList.add(ProductBasicValObj.ProductValObj.Status.DOWN);
             paramMatcher.and(ProductBasicEntity.ProductInfo.STATUS, ParamMatcher.IN, statusList);
-        } else if (upSalesStatus != UpSalesStatusEnum.ALL.upSalesStatus) {
+        } else if (upSalesStatus != UpSalesStatusEnum.ALL.getUpSalesStatus()) {
             // 非全部的，单独是某种状态
             paramMatcher.and(ProductBasicEntity.ProductInfo.STATUS, ParamMatcher.EQ, upSalesStatus);
         }
@@ -562,7 +562,7 @@ public class MgProductDbSearch extends BaseMgProductSearch {
     }
 
     public MgProductDbSearch setUpSalesStatus(MgProductDbSearch.UpSalesStatusEnum upSalesStatusEnum){
-        this.upSalesStatus = upSalesStatusEnum.upSalesStatus;
+        this.upSalesStatus = upSalesStatusEnum.getUpSalesStatus();
         return this;
     }
 

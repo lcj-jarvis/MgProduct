@@ -70,18 +70,18 @@ public abstract class BaseMgProductSearch {
      * 上下架搜索参数封装
      */
     public enum UpSalesStatusEnum{
+        // 删除
+        DELETE(-1),
         // 全部的状态
         ALL(0),
         // 上架
         UP_SALES(1),
         // 下架
         DOWN_SALES(2),
-        // 删除
-        DELETE(3),
         // 上架和下架的
         UP_AND_DOWN_SALES(4);
-        public int upSalesStatus;
-        private UpSalesStatusEnum(int upSalesStatus){
+        private int upSalesStatus;
+        UpSalesStatusEnum(int upSalesStatus){
             this.upSalesStatus = upSalesStatus;
         }
         public int getUpSalesStatus(){

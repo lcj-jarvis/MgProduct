@@ -145,7 +145,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      * 商品中台搜索，根据 mgProductSearch（fai.MgProductInfSvr.interfaces.utils.MgProductSearch）, 在 商品中台内 搜索商品
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
-     *                 .setMgProductSearchArg(mgProductSearchArg)  //搜索条件必填
+     *                 .setMgProductSearchArg(mgProductSearchArg)  //搜索条件。不设置就默认搜索MgProductRel的数据
      *                 .build();
      * @param searchResult 搜索结果，对应 {@link fai.MgProductInfSvr.interfaces.utils.MgProductSearchResult.Info} 实体
      * @return {@link Errno}
@@ -155,12 +155,11 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
             MgProductSearchArg mgProductSearchArg = mgProductArg.getMgProductSearchArg();
-            // 搜索条件为空，mgProductSearchArg必填。不调用initSearchParam就证明没有搜索和排序条件
+            // 搜索条件为空
             if (mgProductSearchArg == null) {
-                // 搜索条件为空。默认收拾MgProductRel的数据.mgProductSearchArg.isEmpty()
-                m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "mgProductSearchArg == null error or mgProductSearchArg esSearch and dbSearch is Empty");
-                return Errno.ARGS_ERROR;
+                mgProductSearchArg = new MgProductSearchArg();
+                // 搜索条件为空。默认搜索MgProductRel的数据.mgProductSearchArg.isEmpty()
+                Log.logStd("mgProductSearchArg == null;flow=%d", m_flow);
             }
             // 接收结果的类为空，直接结束
             if(searchResult == null){

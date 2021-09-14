@@ -16,4 +16,23 @@ public class SpuSummaryEntity {
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
     }
+
+    private static final String[] MAX_UPDATE_AND_PRI_KEYS = new String[]{
+            Info.AID,
+            Info.PD_ID,
+            Info.MIN_PRICE,
+            Info.MAX_PRICE,
+            Info.COUNT,
+            Info.REMAIN_COUNT,
+            Info.HOLDING_COUNT,
+            Info.SYS_UPDATE_TIME
+    };
+
+    /**
+     * 获取能修改的字段，以及主键
+     */
+    public static String[] getMaxUpdateAndPriKeys(){
+        return MAX_UPDATE_AND_PRI_KEYS;
+    }
+
 }

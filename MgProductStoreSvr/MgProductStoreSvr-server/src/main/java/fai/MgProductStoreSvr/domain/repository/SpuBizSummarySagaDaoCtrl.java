@@ -41,7 +41,7 @@ public class SpuBizSummarySagaDaoCtrl extends DaoCtrl {
 
     @Override
     protected String getTableName() {
-        return TABLE_ENUM.getTable() + "_" + String.format("%02d", aid % 10);
+        return TABLE_ENUM.getTable() + "_" + String.format("%03d", aid % 100);
     }
 
     public static final TableDBMapping.TableEnum TABLE_ENUM = TableDBMapping.TableEnum.MG_SPU_BIZ_SUMMARY_SAGA;

@@ -263,27 +263,6 @@ public class ProductSpecProc {
         return rt;
     }
 
-    /**
-     * batchDel 的补偿方法
-     */
-    public int batchDelRollback(int aid, FaiList<Param> sagaOpList) {
-        int rt;
-        if (Util.isEmptyList(sagaOpList)) {
-            rt = Errno.ARGS_ERROR;
-            Log.logErr(rt, "arg err;sagaOpList is empty;");
-            return rt;
-        }
-        // 去除 Saga 字段
-        Util.removeSpecificColumn(sagaOpList, SagaEntity.Common.XID, SagaEntity.Common.BRANCH_ID, SagaEntity.Common.SAGA_OP, SagaEntity.Common.SAGA_TIME );
-        rt = m_daoCtrl.batchInsert(sagaOpList, null, false);
-        if (rt != Errno.OK) {
-            Log.logErr(rt, "batchDel rollback error;flow=%d;aid=%s;sagaOpList=%s;", m_flow, aid, sagaOpList);
-            return rt;
-        }
-        Log.logStd("batchDel rollback ok;flow=%d;aid=%d;", m_flow, aid);
-        return rt;
-    }
-
     public int batchDel(int aid, int pdId, FaiList<Integer> pdScIdList, Ref<Boolean> needRefreshSkuRef) {
         return batchDel(aid, pdId, pdScIdList, needRefreshSkuRef, false);
     }
@@ -317,7 +296,7 @@ public class ProductSpecProc {
         // 记录 Saga 操作
         if (isSaga) {
             rt = addDelOp4Saga(aid, matcher);
-            if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            if (rt != Errno.OK) {
                 return rt;
             }
         }
@@ -588,7 +567,10 @@ public class ProductSpecProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
         rt = m_daoCtrl.select(searchArg, listRef);
-        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+        if (rt != Errno.OK) {
+            if (rt == Errno.NOT_FOUND) {
+                return Errno.OK;
+            }
             Log.logErr("select productSpec error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher.toJson());
             return rt;
         }

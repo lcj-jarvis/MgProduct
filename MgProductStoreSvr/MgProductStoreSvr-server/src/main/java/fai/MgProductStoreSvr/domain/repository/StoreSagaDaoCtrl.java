@@ -40,7 +40,7 @@ public class StoreSagaDaoCtrl extends DaoCtrl {
 
     @Override
     protected String getTableName() {
-        return TABLE_ENUM.getTable() + "_" + String.format("%02d", aid % 10);
+        return TABLE_ENUM.getTable();
     }
 
     public static final TableDBMapping.TableEnum TABLE_ENUM = TableDBMapping.TableEnum.MG_STORE_SAGA;

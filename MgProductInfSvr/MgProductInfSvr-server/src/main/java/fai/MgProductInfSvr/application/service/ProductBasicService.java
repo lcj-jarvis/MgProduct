@@ -679,10 +679,9 @@ public class ProductBasicService extends MgProductInfService {
                 /** 库存信息修改 end */
 
                 /** 修改富文本 start */
-                // 富文本中台暂时未接入分布式事务，所以保持最后一个操作
                 if(!Utils.isEmptyList(remarkList)) {
                     RichTextProc richTextProc = new RichTextProc(flow);
-                    rt = richTextProc.updatePdRichText(aid, tid, siteId, lgId, keepPriId1, pdId, remarkList);
+                    rt = richTextProc.updatePdRichText(xid, aid, tid, siteId, lgId, keepPriId1, pdId, remarkList);
                     if(rt != Errno.OK) {
                         Oss.logAlarm("updatePdRichText err;aid=" + aid + ";unionPriId=" + unionPriId + ";pdId=" + pdId);
                         Log.logErr(rt, "updatePdRichText err;aid=%d;uid=%d;pdId=%d;remarks=%s;", aid, unionPriId, pdId, remarkList);
@@ -853,9 +852,8 @@ public class ProductBasicService extends MgProductInfService {
                 }
 
                 // 删除富文本
-                // 富文本未接入分布式事务，需保证最后一个操作
                 RichTextProc richTextProc = new RichTextProc(flow);
-                rt = richTextProc.batchDel(aid, tid, siteId, lgId, keepPriId1, pdIdList);
+                rt = richTextProc.batchDel(xid, aid, tid, siteId, lgId, keepPriId1, pdIdList);
                 if(rt != Errno.OK) {
                     Log.logErr(rt, "batchDel richText err;aid=%s;tid=%s;pdIdList=%s;", aid, tid, pdIdList);
                     return rt;
@@ -1002,10 +1000,9 @@ public class ProductBasicService extends MgProductInfService {
                 }
 
                 // 添加富文本
-                // TODO 富文本暂时未接入分布式事务，保持最后一个操作
                 FaiList<Param> remarkList = RichTextConverter.getRemarkList(basicInfo, true);
                 RichTextProc richTextProc = new RichTextProc(flow);
-                rt = richTextProc.addPdRichTexts(aid, tid, siteId, lgId, keepPriId1, pdIdRef.value, remarkList);
+                rt = richTextProc.addPdRichTexts(xid, aid, tid, siteId, lgId, keepPriId1, pdIdRef.value, remarkList);
                 if(rt != Errno.OK) {
                     return rt;
                 }

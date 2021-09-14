@@ -16,8 +16,8 @@
         <module>MgProductSpecSvr</module>
         <module>MgProductStoreSvr</module>
         <module>MgProductSearchSvr</module>
-        <module>MgProductInfSvr</module>
         <module>MgProductLibSvr</module>
         <module>MgProductTagSvr</module>
+        <module>MgProductInfSvr</module>
     </modules>
 </project>

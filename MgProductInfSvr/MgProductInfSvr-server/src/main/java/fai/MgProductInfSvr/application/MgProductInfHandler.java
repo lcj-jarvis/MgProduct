@@ -1232,6 +1232,7 @@ public class MgProductInfHandler extends FaiHandler {
     public int batchSet4YK(final FaiSession session,
                             @ArgFlow final int flow,
                             @ArgAid final int aid,
+                            @ArgBodyXid(value = MgProductDto.Key.XID, useDefault = true) String xid,
                             @ArgParam(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
                                     keyMatch = ProductBasicDto.Key.PRIMARY_KEY) Param ownPrimaryKey,
                             @ArgBodyInteger(value = ProductBasicDto.Key.SYS_TYPE, useDefault = true) int sysType,
@@ -1240,6 +1241,9 @@ public class MgProductInfHandler extends FaiHandler {
                                     keyMatch = ProductBasicDto.Key.PRIMARY_KEYS) FaiList<Param> toPrimaryKeys,
                             @ArgParamUpdater(classDef = ProductBasicDto.class, methodDef = "getProductDto",
                                     keyMatch = ProductBasicDto.Key.UPDATER) ParamUpdater updater) throws IOException, TransactionException {
+        if(!Str.isEmpty(xid)) {
+            RootContext.bind(xid, flow); // 方便后面使用GlobalTransactionContext.getCurrentOrCreate
+        }
         return mgProductInfService.batchSet4YK(session, flow, aid, ownPrimaryKey, sysType, rlPdIds, toPrimaryKeys, updater);
     }
 
@@ -1600,7 +1604,7 @@ public class MgProductInfHandler extends FaiHandler {
     ProductSearchService searchService = ServiceProxy.create(new ProductSearchService());
     ProductPropService propService = new ProductPropService();
     ProductSpecService specService = ServiceProxy.create(new ProductSpecService());
-    ProductStoreService storeService = new ProductStoreService();
+    ProductStoreService storeService = ServiceProxy.create(new ProductStoreService());
     ProductGroupService groupService = ServiceProxy.create(new ProductGroupService());
     ProductLibService libService = ServiceProxy.create(new ProductLibService());
     ProductTagService tagService = ServiceProxy.create(new ProductTagService());

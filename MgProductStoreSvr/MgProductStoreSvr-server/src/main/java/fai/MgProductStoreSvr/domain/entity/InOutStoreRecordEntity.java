@@ -39,5 +39,23 @@ public class InOutStoreRecordEntity {
         public static final String STATUS = "status";                               // int 数据状态
     }
 
+    private static final String[] MAX_UPDATE_AND_PRI_KEYS = new String[]{
+            Info.AID,
+            Info.IN_OUT_STORE_REC_ID,
+            Info.UNION_PRI_ID,
+            Info.SKU_ID,
+            Info.PRICE,
+            Info.MW_PRICE,
+            Info.FLAG,
+            Info.AVAILABLE_COUNT,
+            Info.STATUS,
+            Info.SYS_UPDATE_TIME
+    };
 
+    /**
+     * 获取能修改的字段，以及主键
+     */
+    public static String[] getMaxUpdateAndPriKeys(){
+        return MAX_UPDATE_AND_PRI_KEYS;
+    }
 }

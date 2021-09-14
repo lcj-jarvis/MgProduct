@@ -30,6 +30,35 @@ public class SpuBizSummaryEntity {
         public static final String KEEP_INT_PROP1 = "keepIntProp1";                 // int 整型 保留字段1 TODO
     }
 
+    private static final String[] MAX_UPDATE_AND_PRI_KEYS = new String[]{
+            Info.AID ,
+            Info.UNION_PRI_ID,
+            Info.PD_ID,
+
+            Info.PRICE_TYPE,
+            Info.MODE_TYPE,
+            Info.MARKET_PRICE,
+            Info.MIN_PRICE,
+            Info.MAX_PRICE,
+            Info.VIRTUAL_SALES,
+            Info.SALES,
+            Info.DISTRIBUTE_LIST,
+            Info.SYS_TYPE,
+            Info.FLAG,
+            Info.COUNT,
+            Info.REMAIN_COUNT,
+            Info.HOLDING_COUNT,
+            Info.SOURCE_UNION_PRI_ID,
+            Info.SYS_UPDATE_TIME
+    };
+
+    /**
+     * 获取能修改的字段，以及主键
+     */
+    public static String[] getMaxUpdateAndPriKeys(){
+        return MAX_UPDATE_AND_PRI_KEYS;
+    }
+
     private static final String[] VALID_KEYS = new String[]{
             Info.PRICE_TYPE
             , Info.MODE_TYPE

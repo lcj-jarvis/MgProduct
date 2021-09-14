@@ -398,10 +398,14 @@ public class ProductBindGroupProc {
         searchArg.matcher.and(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, aid);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
+        // 存在克隆场景需要拿其他aid的数据，设置下表名
+        m_dao.setTableName(aid);
         int rt = m_dao.select(searchArg, listRef, selectFields);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             throw new MgException(rt, "get error;flow=%d;aid=%d;matcher=%s;", m_flow, aid, searchArg.matcher.toJson());
         }
+        // 查完之后恢复下表名
+        m_dao.restoreTableName();
         if(listRef.value == null) {
             listRef.value = new FaiList<Param>();
         }

@@ -13,9 +13,7 @@ import fai.MgProductInfSvr.domain.entity.RichTextConverter;
 import fai.MgProductInfSvr.domain.serviceproc.*;
 import fai.MgProductInfSvr.interfaces.dto.MgProductDto;
 import fai.MgProductInfSvr.interfaces.entity.*;
-import fai.MgProductInfSvr.interfaces.utils.MgProductSearchResult;
 import fai.MgProductPropSvr.interfaces.cli.MgProductPropCli;
-import fai.MgProductSearchSvr.interfaces.cli.MgProductSearchCli;
 import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuValObj;
@@ -1007,9 +1005,9 @@ public class MgProductInfService extends ServicePub {
         int ownUnionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
 
         boolean commit = false;
-        /*GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
-        tx.begin(aid, 60000, "mgProduct-setPdStatus", flow);*/
-        String xid = "";
+        GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
+        tx.begin(aid, 60000, "mgProduct-setPdStatus", flow);
+        String xid = tx.getXid();
         try {
             ProductBasicProc basicProc = new ProductBasicProc(flow);
             FaiList<Param> addList = basicProc.batchSet4YK(aid, xid, ownUnionPriId, sysType, unionPriIds, rlPdIds, updater);
@@ -1021,11 +1019,11 @@ public class MgProductInfService extends ServicePub {
 
             commit = true;
         }finally {
-            /*if(commit) {
+            if(commit) {
                 tx.commit();
             }else {
                 tx.rollback();
-            }*/
+            }
         }
 
         rt = Errno.OK;
@@ -1224,9 +1222,9 @@ public class MgProductInfService extends ServicePub {
             }
             int ownerUnionPriId = idRef.value;
 
-            /*GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
+            GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
             tx.begin(aid, 60000, "mgProduct-importProduct", flow);
-            xid = tx.getXid();*/
+            xid = tx.getXid();
             boolean commit = false;
             try {
                 HashSet<String> skuCodeSet = new HashSet<>();
@@ -1552,10 +1550,10 @@ public class MgProductInfService extends ServicePub {
                     }
                 }
                 commit = true;
-                //tx.commit();
+                tx.commit();
             } finally {
                 if (!commit) {
-                    //tx.rollback();
+                    tx.rollback();
                 }
             }
             Log.logStd("end;flow=%s;aid=%s;ownerTid=%s;ownerUnionPriId=%s;",flow, aid, ownerTid, ownerUnionPriId);

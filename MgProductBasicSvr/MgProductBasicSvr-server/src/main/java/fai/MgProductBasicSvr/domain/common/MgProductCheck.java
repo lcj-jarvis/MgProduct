@@ -2,9 +2,7 @@ package fai.MgProductBasicSvr.domain.common;
 
 import fai.MgProductBasicSvr.domain.entity.ProductValObj;
 import fai.comm.config.FaiConfig;
-import fai.comm.util.Errno;
-import fai.comm.util.Log;
-import fai.comm.util.Str;
+import fai.comm.util.*;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.misc.Utils;
 
@@ -28,7 +26,12 @@ public class MgProductCheck {
             // 先去重再校验数量
             if(new HashSet<>(list).size() > WRITE_SIZE_LIMIT) {
                 Log.logErr(Errno.SIZE_LIMIT, "args error, write size is too long;aid=%d;list size=%d;limit size=%d;", aid, list.size(), WRITE_SIZE_LIMIT);
-                return false;
+                // 本地直接报错, 线上统计告警
+                if(IS_DEV) {
+                    return false;
+                }else {
+                    Fdp.bssMonitor(11017);
+                }
             }
             return true;
         }
@@ -40,7 +43,12 @@ public class MgProductCheck {
             // 先去重再校验数量
             if(new HashSet<>(list).size() > READ_SIZE_LIMIT) {
                 Log.logErr(Errno.SIZE_LIMIT, "args error, read size is too long;aid=%d;list size=%d;limit size=%d;", aid, list.size(), READ_SIZE_LIMIT);
-                return false;
+                // 本地直接报错, 线上统计告警
+                if(IS_DEV) {
+                    return false;
+                }else {
+                    Fdp.bssMonitor(11017);
+                }
             }
             return true;
         }

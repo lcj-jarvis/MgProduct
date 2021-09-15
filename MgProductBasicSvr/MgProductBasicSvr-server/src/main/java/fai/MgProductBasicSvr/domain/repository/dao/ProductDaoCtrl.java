@@ -131,7 +131,7 @@ public class ProductDaoCtrl extends DaoCtrl {
     private static final String TABLE_PREFIX = "mgProduct";
     private static IdBuilderWrapper m_idBuilder;
     private static final int ID_BUILDER_INIT = 1;
-    private static IdBuilderConfig idBuilderConfig = new IdBuilderConfig.HeavyweightBuilder()	// 渠道统计的stat
+    private static IdBuilderConfig idBuilderConfig = new IdBuilderConfig.HeavyweightBuilder()
             .buildTableName("mgProduct")
             .buildAssistTableSuffix("idBuilder")
             .buildPrimaryMatchField("aid")

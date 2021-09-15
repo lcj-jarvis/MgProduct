@@ -8,6 +8,7 @@ import fai.MgProductBasicSvr.domain.repository.dao.ProductRelDaoCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.saga.ProductRelSagaDaoCtrl;
 import fai.app.DocOplogDef;
 import fai.comm.fseata.client.core.context.RootContext;
+import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.entity.SagaEntity;
@@ -138,7 +139,7 @@ public class ProductRelProc {
         return addList;
     }
 
-    public int addProductRel(int aid, int unionPriId, Param relData) {
+    public int addProductRel(int aid, int tid, int unionPriId, Param relData) {
         int rt;
         if(Str.isEmpty(relData)) {
             rt = Errno.ARGS_ERROR;
@@ -149,7 +150,7 @@ public class ProductRelProc {
             rt = Errno.COUNT_LIMIT;
             throw new MgException(rt, "over limit;flow=%d;aid=%d;uid=%d;count=%d;limit=%d;", m_flow, aid, unionPriId, count, ProductRelValObj.Limit.COUNT_MAX);
         }
-        int rlPdId = createAndSetRlPdId(aid, unionPriId, relData);
+        int rlPdId = createAndSetRlPdId(aid, tid, unionPriId, relData);
         rt = m_dao.insert(relData);
         if(rt != Errno.OK) {
             throw new MgException(rt, "insert product rel error;flow=%d;aid=%d;uid=%d;relData=%s;", m_flow, aid, unionPriId, relData);
@@ -173,7 +174,7 @@ public class ProductRelProc {
         return rlPdId;
     }
 
-    public FaiList<Integer> batchAddProductRel(int aid, int unionPriId, FaiList<Param> relDataList) {
+    public FaiList<Integer> batchAddProductRel(int aid, int tid, int unionPriId, FaiList<Param> relDataList) {
         int rt;
         if(relDataList == null || relDataList.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -186,31 +187,12 @@ public class ProductRelProc {
             throw new MgException(rt, "over limit;flow=%d;aid=%d;uid=%d;count=%d;limit=%d;", m_flow, aid, unionPriId, count, ProductRelValObj.Limit.COUNT_MAX);
         }
 
-        int maxId = m_dao.getId(aid, unionPriId);
-        FaiList<Integer> rlPdIds = new FaiList<Integer>();
-        for(Param relData : relDataList) {
-            /*if(!Str.isEmpty(pdInfo)) {
-                relData.assign(pdInfo, ProductRelEntity.Info.PD_ID);
-                relData.assign(pdInfo, ProductRelEntity.Info.PD_TYPE);
-            }*/
-            Integer curPdId = relData.getInt(ProductRelEntity.Info.PD_ID);
-            if(curPdId == null) {
-                rt = Errno.ARGS_ERROR;
-                throw new MgException(rt, "args error, pdId is null;flow=%d;aid=%d;uid=%d;", m_flow, aid);
-            }
-
-            int rlPdId = relData.getInt(ProductRelEntity.Info.RL_PD_ID, ++maxId);
-            if(rlPdId > maxId) {
-                maxId = rlPdId;
-            }
-            rlPdIds.add(rlPdId);
-        }
+        FaiList<Integer> rlPdIds = batchCreatAndSetId(aid, tid, unionPriId, relDataList);
 
         rt = m_dao.batchInsert(relDataList, null, false);
         if(rt != Errno.OK) {
             throw new MgException(rt, "batch insert product rel error;flow=%d;aid=%d;", m_flow, aid);
         }
-        m_dao.updateId(aid, unionPriId, maxId, false);
         return rlPdIds;
     }
 
@@ -811,9 +793,55 @@ public class ProductRelProc {
         return countRef.value;
     }
 
-    private int createAndSetRlPdId(int aid, int unionPriId, Param relData) {
+    private FaiList<Integer> batchCreatAndSetId(int aid, int tid, int unionPriId, FaiList<Param> relDataList) {
+        // 如果是门店通的请求，为了保证同一个商品在所有门店下id的一致性
+        // 门店通的rlPdId 直接使用 pdId
+        if(tid == FaiValObj.TermId.YK) {
+            for(Param relData : relDataList) {
+                // TODO 如果设置了rlPdId，则不处理。门店完全接入后，可以去掉continue这个逻辑
+                int curRlPdId = relData.getInt(ProductRelEntity.Info.RL_PD_ID, 0);
+                if(curRlPdId > 0) {
+                    continue;
+                }
+                Integer curPdId = relData.getInt(ProductRelEntity.Info.PD_ID);
+                if(curPdId == null) {
+                    throw new MgException(Errno.ARGS_ERROR, "args error, pdId is null;flow=%d;aid=%d;uid=%d;", m_flow, aid);
+                }
+                relData.setInt(ProductRelEntity.Info.RL_PD_ID, curPdId);
+            }
+        }
+        int maxId = m_dao.getId(aid, unionPriId);
+        FaiList<Integer> rlPdIds = new FaiList<Integer>();
+        for(Param relData : relDataList) {
+            Integer curPdId = relData.getInt(ProductRelEntity.Info.PD_ID);
+            if(curPdId == null) {
+                throw new MgException(Errno.ARGS_ERROR, "args error, pdId is null;flow=%d;aid=%d;uid=%d;", m_flow, aid);
+            }
+
+            int rlPdId = relData.getInt(ProductRelEntity.Info.RL_PD_ID, ++maxId);
+            if(rlPdId > maxId) {
+                maxId = rlPdId;
+            }
+            rlPdIds.add(rlPdId);
+        }
+
+        m_dao.updateId(aid, unionPriId, maxId, false);
+        return rlPdIds;
+    }
+    private int createAndSetRlPdId(int aid, int tid, int unionPriId, Param relData) {
         int rt;
         Integer rlPdId = relData.getInt(ProductRelEntity.Info.RL_PD_ID, 0);
+        // 如果是门店通的请求，为了保证同一个商品在所有门店下id的一致性
+        // 门店通的rlPdId 直接使用 pdId
+        // TODO 如果设置了rlPdId，则不处理。门店完全接入后，可以去掉rlPdId <= 0这个判断
+        if(rlPdId <= 0 && tid == FaiValObj.TermId.YK) {
+            Integer pdId = relData.getInt(ProductRelEntity.Info.PD_ID);
+            if(pdId == null) {
+                throw new MgException(Errno.ARGS_ERROR, "args error, pdId is null;flow=%d;aid=%d;uid=%d;", m_flow, aid);
+            }
+            relData.setInt(ProductRelEntity.Info.RL_PD_ID, pdId);
+            rlPdId = pdId;
+        }
         if(rlPdId <= 0) {
             rlPdId = m_dao.buildId(aid, unionPriId, false);
             if (rlPdId == null) {

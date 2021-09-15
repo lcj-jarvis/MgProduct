@@ -1225,7 +1225,7 @@ public class ProductBasicService extends BasicParentService {
                     relData.setInt(ProductRelEntity.Info.SORT, ++maxSort);
                 }
 
-                rlPdId = relProc.addProductRel(aid, unionPriId, relData);
+                rlPdId = relProc.addProductRel(aid, tid, unionPriId, relData);
 
                 int sysType = relData.getInt(ProductRelEntity.Info.SYS_TYPE);
 
@@ -1359,7 +1359,7 @@ public class ProductBasicService extends BasicParentService {
                         relData.setInt(ProductRelEntity.Info.SORT, ++maxSort);
                     }
                 }
-                relProc.batchAddProductRel(aid, unionPriId, relDataList);
+                relProc.batchAddProductRel(aid, tid, unionPriId, relDataList);
 
                 // 新增绑定关系
                 for(int i = 0;i < relDataList.size(); i++) {
@@ -1694,7 +1694,7 @@ public class ProductBasicService extends BasicParentService {
                 relData.assign(bindInfo, ProductRelEntity.Info.PD_TYPE);
 
                 // 新增商品业务关系
-                rlPdId = relProc.addProductRel(aid, unionPriId, relData);
+                rlPdId = relProc.addProductRel(aid, tid, unionPriId, relData);
 
                 // 新增商品参数绑定关系
                 FaiList<Param> bindProps = info.getList(ProductRelEntity.Info.RL_PROPS);
@@ -1902,7 +1902,7 @@ public class ProductBasicService extends BasicParentService {
                             info.setInt(ProductRelEntity.Info.SORT, ++maxSort);
                         }
                     }
-                    FaiList<Integer> tmpRlIds = relProc.batchAddProductRel(aid, unionPriId, curList);
+                    FaiList<Integer> tmpRlIds = relProc.batchAddProductRel(aid, tid, unionPriId, curList);
                     rlPdIds.addAll(tmpRlIds);
 
                     // 记录要同步给es的数据
@@ -2093,7 +2093,7 @@ public class ProductBasicService extends BasicParentService {
                             info.setInt(ProductRelEntity.Info.SORT, ++maxSort);
                         }
                     }
-                    relProc.batchAddProductRel(aid, unionPriId, list);
+                    relProc.batchAddProductRel(aid, tid, unionPriId, list);
                     // 记录要同步给es 的数据
                     ESUtil.batchPreLog(aid, list, DocOplogDef.Operation.UPDATE_ONE);
                 }

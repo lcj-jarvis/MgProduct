@@ -2034,6 +2034,7 @@ public class ProductBasicService extends BasicParentService {
         try {
             CacheCtrl.clearCacheVersion(aid);
             ProductCacheCtrl.clearAllCache(aid);
+            ProductDaoCtrl.clearIdBuilderCache(aid);
         }finally {
             LockUtil.unlock(aid);
         }

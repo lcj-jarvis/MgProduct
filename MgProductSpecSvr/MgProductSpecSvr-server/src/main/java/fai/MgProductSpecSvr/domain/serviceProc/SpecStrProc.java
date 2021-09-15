@@ -68,12 +68,12 @@ public class SpecStrProc {
         }
         if(!needBatchAddList.isEmpty()){
             rt = batchAdd(aid, needBatchAddList, nameIdMap);
-        }
-        // 添加 Saga 操作记录
-        if (isSaga) {
-            rt = addInsOp4Saga(aid, nameList);
-            if (rt != Errno.OK) {
-                return rt;
+            // 添加 Saga 操作记录
+            if (isSaga) {
+                rt = addInsOp4Saga(aid, new FaiList<>(nameSet));
+                if (rt != Errno.OK) {
+                    return rt;
+                }
             }
         }
         return rt;

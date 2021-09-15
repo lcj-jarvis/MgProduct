@@ -1428,6 +1428,7 @@ public class StoreSalesSkuProc {
             Log.logErr(rt, "batchInsert SagaOperation error;flow=%d;aid=%d;sagaOpList=%s", m_flow, aid, sagaOpList);
             return rt;
         }
+        Log.logStd("addDelOp4Saga ok;flow=%d;aid=%d", m_flow, aid);
         return rt;
     }
 
@@ -1442,6 +1443,7 @@ public class StoreSalesSkuProc {
             Log.logErr("insert sagaMap error;flow=%d;aid=%d;sagaList=%s", m_flow, aid, sagaMap.values().toString());
             return rt;
         }
+        Log.logStd("addUpdateSaga2Db ok;flow=%d;aid=%d", m_flow, aid);
         return rt;
     }
 

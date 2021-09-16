@@ -22,10 +22,8 @@ import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.misc.Utils;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.TreeSet;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Lu
@@ -159,8 +157,9 @@ public class MgProductSearchService {
         // 如果关键词已经在es用做了商品名称搜索，就不在db中用作商品名称搜索了
         boolean useSearchKeywordAsPdNameInEs = esSearchParam.containsKey(BaseMgProductSearch.BaseSearchInfo.SEARCH_KEYWORD) &&
             esSearchParam.getBoolean(BaseMgProductSearch.BaseSearchInfo.ENABLE_SEARCH_PRODUCT_NAME, false);
-        dbSearchParam.setBoolean(BaseMgProductSearch.BaseSearchInfo.ENABLE_SEARCH_PRODUCT_NAME, !useSearchKeywordAsPdNameInEs);
-
+        if (useSearchKeywordAsPdNameInEs) {
+            dbSearchParam.remove(BaseMgProductSearch.BaseSearchInfo.ENABLE_SEARCH_PRODUCT_NAME);
+        }
         // 判断是否有公共的查询字段。es中搜索过了，db中不再进行搜索
         if (esSearchParam.containsKey(BaseMgProductSearch.BaseSearchInfo.UP_SALES_STATUS)) {
             dbSearchParam.remove(BaseMgProductSearch.BaseSearchInfo.UP_SALES_STATUS);
@@ -230,9 +229,8 @@ public class MgProductSearchService {
             MgProductDbSearch mgProductDbSearch = mgProductSearchArg.getMgProductDbSearch();
 
             // 目前查询条件为空的话，就搜索MG_PRODUCT_REL表下的aid + unionPriId 所有数据
-
-            boolean overLimit = Objects.nonNull(mgProductDbSearch) && mgProductDbSearch.getLimit() > BaseMgProductSearch.MAX_LIMIT ||
-                Objects.nonNull(mgProductEsSearch) && mgProductEsSearch.getLimit() > BaseMgProductSearch.MAX_LIMIT;
+            boolean overLimit = Objects.nonNull(mgProductDbSearch) && mgProductDbSearch.getLimit() > BaseMgProductSearch.DEFAULT_LIMIT ||
+                Objects.nonNull(mgProductEsSearch) && mgProductEsSearch.getLimit() > BaseMgProductSearch.DEFAULT_LIMIT;
             if (overLimit) {
                 // 分页限制，允许最大的分页为200，如果超过的话，直接抛出异常
                 rt = Errno.ARGS_ERROR;
@@ -834,8 +832,7 @@ public class MgProductSearchService {
      * @return 整合排序的字段到resultList后的resultList
      */
     public FaiList<Param> integrateComparatorFieldToResultList(String comparatorKey, FaiList<Param> listForComparator, FaiList<Param> resultList) {
-        Map<Integer, FaiList<Param>> pdIdMappingInfoList = new HashMap<>(listForComparator.size() * 4 / 3 + 1);
-
+        // Map<Integer, FaiList<Param>> pdIdMappingInfoList = new HashMap<>(listForComparator.size() * 4 / 3 + 1);
         /*      pdId          rlGroupId
          *       1                 1
          *       1                 2
@@ -846,18 +843,20 @@ public class MgProductSearchService {
          *       ......
          */
         // pdId一对一、一对多都可以满足
-        listForComparator.forEach(info -> {
+        /*listForComparator.forEach(info -> {
             Integer pdId = info.getInt(ProductEntity.Info.PD_ID);
             FaiList<Param> infoList = Objects.isNull(pdIdMappingInfoList.get(pdId))? new FaiList<>() : pdIdMappingInfoList.get(pdId);
             infoList.add(info);
             pdIdMappingInfoList.put(pdId, infoList);
-        });
+        });*/
+
+        Map<Integer, List<Param>> pdIdMappingInfoList = listForComparator.stream().collect(Collectors.groupingBy(info -> info.getInt(ProductEntity.Info.PD_ID)));
 
         // resultList肯定不为空。因为在调用方法之前做了非空判断
         FaiList<Param> tempList = new FaiList<>();
         for (Param info:resultList) {
             Integer pdId = info.getInt(ProductEntity.Info.PD_ID);
-            FaiList<Param> infoList = pdIdMappingInfoList.get(pdId);
+            List<Param> infoList = pdIdMappingInfoList.get(pdId);
             if (!Utils.isEmptyList(infoList)) {
                 infoList.forEach(containComparatorKeyInfo -> {
                     // 将排序字段赋值到resultList的Param中

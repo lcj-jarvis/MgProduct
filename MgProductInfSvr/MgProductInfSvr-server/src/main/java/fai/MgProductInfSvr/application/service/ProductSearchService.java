@@ -85,9 +85,8 @@ public class ProductSearchService extends MgProductInfService {
         boolean getSpecSku = combined.getBoolean(MgProductEntity.Info.SPEC_SKU, false);
         boolean getStoreSales = combined.getBoolean(MgProductEntity.Info.STORE_SALES, false);
         boolean getSpuSales = combined.getBoolean(MgProductEntity.Info.SPU_SALES, false);
-        // 2 获取商品基础信息
-        // 3 ... 获取商品参数啥的 ... ↓
-        // 3.1 获取规格相关
+        // 2 ... 获取商品参数啥的 ... ↓
+        // 2.1 获取规格相关
         ProductSpecProc productSpecProc = new ProductSpecProc(flow);
         // 获取商品规格
         Map<Integer, List<Param>> pdScInfoMap = new HashMap<>();
@@ -111,7 +110,7 @@ public class ProductSearchService extends MgProductInfService {
             pdScSkuInfoMap = pdScSkuInfoList.stream().collect(Collectors.groupingBy(info->info.getInt(ProductSpecSkuEntity.Info.PD_ID)));
         }
 
-        // 3.2 获取销售库存相关
+        // 2.2 获取销售库存相关
         ProductStoreProc productStoreProc = new ProductStoreProc(flow);
         Map<Integer, List<Param>> pdScSkuSalesStoreInfoMap = new HashMap<>();
         if(getStoreSales) {
@@ -122,7 +121,7 @@ public class ProductSearchService extends MgProductInfService {
             }
             pdScSkuSalesStoreInfoMap = pdScSkuSalesStoreInfoList.stream().collect(Collectors.groupingBy(info->info.getInt(StoreSalesSkuEntity.Info.PD_ID)));
         }
-        // 3.2.2 spu销售库存相关
+        // 2.2.2 spu销售库存相关
         Map<Integer, List<Param>> spuSalesStoreInfoMap = new HashMap<>();
         if(getSpuSales) {
             FaiList<Param> spuSalesStoreInfoList = new FaiList<>();

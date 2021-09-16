@@ -62,9 +62,9 @@ public abstract class BaseMgProductSearch {
     /**
      * 分页限制条数开始，默认最大是 200
      */
-    protected int limit = MAX_LIMIT;
+    protected int limit = DEFAULT_LIMIT;
 
-    public static final Integer MAX_LIMIT = 200;
+    public static final Integer DEFAULT_LIMIT = 200;
 
     /**
      * 上下架搜索参数封装
@@ -171,7 +171,7 @@ public abstract class BaseMgProductSearch {
 
         this.start = baseSearchParam.getInt(BaseSearchInfo.START, 0);
         // 最大分页数设置为200
-        this.limit = baseSearchParam.getInt(BaseSearchInfo.LIMIT, MAX_LIMIT);
+        this.limit = baseSearchParam.getInt(BaseSearchInfo.LIMIT, DEFAULT_LIMIT);
     }
 
     /**

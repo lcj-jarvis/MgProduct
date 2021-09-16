@@ -19,16 +19,6 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
     }
 
     @Deprecated
-    public int mgProductSearch(int aid, int tid, int siteId, int lgId, int keepPriId1,
-                               MgProductSearchArg mgProductSearchArg,
-                               Param searchResult){
-        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
-                .setMgProductSearchArg(mgProductSearchArg)
-                .build();
-        return mgProductSearch(mgProductArg, searchResult);
-    }
-
-    @Deprecated
     public int getProductFullInfo(int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, Param combinedInfo){
         MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
                 .setRlPdId(rlPdId)
@@ -147,10 +137,10 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
      *                 .setMgProductSearchArg(mgProductSearchArg)  //搜索条件。不设置就默认搜索MgProductRel的数据
      *                 .build();
-     * @param searchResult 搜索结果，对应 {@link fai.MgProductInfSvr.interfaces.utils.MgProductSearchResult.Info} 实体
+     * @param searchResultDef 接收搜索结果，对应到的Param参考 {@link fai.MgProductInfSvr.interfaces.utils.MgProductSearchResult.Info} 实体
      * @return {@link Errno}
      */
-    public int mgProductSearch(MgProductArg mgProductArg, Param searchResult){
+    public int mgProductSearch(MgProductArg mgProductArg, Ref<Param> searchResultDef){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -162,12 +152,9 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 Log.logStd("mgProductSearchArg == null;flow=%d", m_flow);
             }
             // 接收结果的类为空，直接结束
-            if(searchResult == null){
-                m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "searchResult == null error");
-                return Errno.ARGS_ERROR;
+            if(searchResultDef == null){
+                searchResultDef = new Ref<Param>();
             }
-            searchResult.clear();
 
             // 获取es的查询条件
             Param esSearchParam = mgProductSearchArg.getEsSearchParam();
@@ -192,8 +179,90 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
+            Param searchResult = new Param();
             searchResult.fromBuffer(recvBody, keyRef, MgProductSearchDto.getProductSearchDto());
             if (m_rt != Errno.OK || keyRef.value != MgProductSearchDto.Key.RESULT_INFO) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            searchResultDef.value = searchResult;
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    /**
+     * 获取商品及其组合的信息
+     * @param mgProductArg
+     *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *          .setMgProductSearchArg(mgProductSearchArg)  // 搜索条件（选填）。不设置就默认搜索MgProductRel表的数据
+     *          .setCombined(combined) // 设置需要获取商品哪些相关信息（选填）。不设置的话默认获取商品的(基础)信息
+     *          .build();
+     *
+     *        combined: 设置需要获取商品哪些相关信息。Param的key参考{@link MgProductEntity.Info}
+     *        默认获取商品的(基础)信息，可以根据需要进行以下获取进行设置获取更多的信息。
+     *        combined.setBoolean(MgProductEntity.Info.SPEC, true); 获取商品规格
+     *        combined.setBoolean(MgProductEntity.Info.SPEC_SKU, true); 获取商品规格sku
+     *        combined.setBoolean(MgProductEntity.Info.STORE_SALES, true);  获取库存销售数据
+     *        combined.setBoolean(MgProductEntity.Info.SPU_SALES, true); 获取库存销售数据(spu汇总)
+     * @param resultList 接收搜索的结果集。resultList里的Param保存的内容结构如下
+     *            Param key                               Param value
+     *       MgProductEntity.Info.BASIC               商品（基础）信息的Param  详见基础服务（商品Entity）
+     *       MgProductEntity.Info.SPEC                商品规格信息的FaiList<Param>  详见规格服务（商品规格Entity）
+     *       MgProductEntity.Info.SPEC_SKU            商品规格sku信息的FaiList<Param> 详见规格服务（商品规格SKU Entity）
+     *       MgProductEntity.Info.STORE_SALES         销售库存相关的FaiList<Param> 详见库存服务（商品规格库存销售 SKU Entity）
+     *       MgProductEntity.Info.SPU_SALES           spu销售库存相关的FaiList<Param> 详见库存服务（spu业务库存销售汇总 Entity）
+     * @return {@link Errno}
+     */
+    public int searchProduct(MgProductArg mgProductArg, FaiList<Param> resultList) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            MgProductSearchArg mgProductSearchArg = mgProductArg.getMgProductSearchArg();
+
+            // 搜索条件为空
+            if (mgProductSearchArg == null) {
+                mgProductSearchArg = new MgProductSearchArg();
+                // 搜索条件为空。默认搜索MgProductRel的数据.mgProductSearchArg.isEmpty()
+                Log.logStd("mgProductSearchArg == null;flow=%d", m_flow);
+            }
+            Param combined = mgProductArg.getCombined();
+            if (combined == null) {
+                combined = new Param();
+            }
+            if (resultList == null) {
+                resultList = new FaiList<Param>();
+            }
+            resultList.clear();
+            // 获取es的查询条件
+            Param esSearchParam = mgProductSearchArg.getEsSearchParam();
+            // 获取db的查询条件
+            Param dbSearchParam = mgProductSearchArg.getDbSearchParam();
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            // packaging send data
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(MgProductSearchDto.Key.TID, tid),
+                new Pair(MgProductSearchDto.Key.SITE_ID, siteId),
+                new Pair(MgProductSearchDto.Key.LGID, lgId),
+                new Pair(MgProductSearchDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putString(MgProductSearchDto.Key.ES_SEARCH_PARAM_STRING, esSearchParam.toJson());
+            sendBody.putString(MgProductSearchDto.Key.DB_SEARCH_PARAM_STRING, dbSearchParam.toJson());
+            combined.toBuffer(sendBody, MgProductDto.Key.COMBINED, MgProductDto.getCombinedInfoDto());
+            int aid = mgProductArg.getAid();
+            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.MgProductSearchCmd.SEARCH_PD, sendBody, true);
+
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = resultList.fromBuffer(recvBody, keyRef, MgProductDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != MgProductDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
             }
@@ -203,6 +272,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
         }
     }
+
 
     /**
      * 获取的商品全部组合信息

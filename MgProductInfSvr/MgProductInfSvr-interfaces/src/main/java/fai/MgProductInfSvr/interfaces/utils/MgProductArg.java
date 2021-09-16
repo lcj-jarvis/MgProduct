@@ -90,6 +90,7 @@ public class MgProductArg {
     private FaiList<Integer> delRlTagIds;
 
 
+
     private MgProductArg(Builder builder) {
         this.usedVar = builder.usedVar;
         this.aid = builder.aid;

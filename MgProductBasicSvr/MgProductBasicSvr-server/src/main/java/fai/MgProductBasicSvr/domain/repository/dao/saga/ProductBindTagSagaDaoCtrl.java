@@ -11,7 +11,7 @@ public class ProductBindTagSagaDaoCtrl extends DaoCtrl {
 
     @Override
     public String getTableName() {
-        return TABLE_PREFIX + "_" + String.format("%02d", aid % 10);
+        return TABLE_PREFIX + "_" + String.format("%03d", aid % 100);
     }
 
     @Override

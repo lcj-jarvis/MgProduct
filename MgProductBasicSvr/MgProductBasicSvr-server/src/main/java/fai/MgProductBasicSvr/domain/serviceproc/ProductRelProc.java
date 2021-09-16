@@ -963,7 +963,7 @@ public class ProductRelProc {
         searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, noCacheIds);
 
-        FaiList<Param> tmpList = withDel ? searchFromDb(aid, searchArg, null) : searchFromDbWithDel(aid, searchArg, null);
+        FaiList<Param> tmpList = withDel ? searchFromDbWithDel(aid, searchArg, null) : searchFromDb(aid, searchArg, null);
         if(!Utils.isEmptyList(tmpList)) {
             list.addAll(tmpList);
         }

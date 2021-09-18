@@ -2,8 +2,6 @@ package fai.MgProductSearchSvr.domain.serviceproc;
 
 import fai.MgProductBasicSvr.interfaces.cli.MgProductBasicCli;
 import fai.MgProductBasicSvr.interfaces.entity.ProductEntity;
-import fai.MgProductBasicSvr.interfaces.entity.ProductRelEntity;
-import fai.MgProductInfSvr.interfaces.utils.BaseMgProductSearch;
 import fai.MgProductInfSvr.interfaces.utils.MgProductDbSearch;
 import fai.MgProductSearchSvr.application.MgProductSearchSvr;
 import fai.MgProductSearchSvr.domain.repository.cache.MgProductSearchCache;

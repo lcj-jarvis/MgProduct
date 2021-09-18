@@ -37,7 +37,6 @@ public class MgProductInfHandler extends FaiHandler {
         return searchService.searchList(session, flow, aid, tid, siteId, lgId, keepPriId1, esSearchParamString, searchParamString);
     }
 
-    // TODO : 目前还没有其他地方用到
     @Cmd(MgProductInfCmd.MgProductSearchCmd.SEARCH_PD)
     public int searchProduct(final FaiSession session,
                                   @ArgFlow final int flow,

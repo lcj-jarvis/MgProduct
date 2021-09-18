@@ -51,6 +51,7 @@ public class ProductSearchService extends MgProductInfService {
         return rt;
     }
 
+    // TODO : 是否考虑加多一层缓存
     @SuccessRt({Errno.OK, Errno.NOT_FOUND})
     public int searchProduct(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1,
                              String esSearchParamString, String dbSearchParamString, Param combined) throws IOException {

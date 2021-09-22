@@ -69,6 +69,8 @@ public class ProductBasicDto {
         g_productDef.add(ProductBasicEntity.ProductInfo.REMARK9, 48, Var.Type.STRING);
         g_productDef.add(ProductBasicEntity.ProductInfo.REMARK10, 49, Var.Type.STRING);
         g_productDef.add(ProductBasicEntity.ProductInfo.REMARK11, 50, Var.Type.STRING);
+
+        g_productDef.add(ProductBasicEntity.ProductInfo.TOP, 51);
     }
 
     public static ParamDef getProductDto() {
@@ -101,6 +103,9 @@ public class ProductBasicDto {
 
         g_productRelDef.add(ProductBasicEntity.ProductInfo.PD_TYPE, 18);
         g_productRelDef.add(ProductBasicEntity.ProductInfo.SYS_TYPE, 19);
+
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.SORT, 20);
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.TOP, 21);
     }
 
     public static ParamDef getProductRelDto() {

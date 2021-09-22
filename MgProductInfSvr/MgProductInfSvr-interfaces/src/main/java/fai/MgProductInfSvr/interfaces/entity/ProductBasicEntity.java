@@ -77,6 +77,7 @@ public class ProductBasicEntity {
         public static final String UP_SALE_TIME = "upSaleTime"; // datetime 上架时间
         public static final String RL_FLAG = "rlFlag"; // int
         public static final String SORT = "sort"; // int 排序
+        public static final String TOP = "top"; // datetime 置顶时间
 
         public static final String TID = "tid";  // int 项目id
         public static final String SITE_ID = "siteId"; // int 站点id

@@ -773,6 +773,14 @@ public class ProductBasicService extends BasicParentService {
                 }
 
                 if(relUpdate != null) {
+                    // 如果修改置顶时间，则将sort置为最大
+                    Param updateInfo = relUpdate.getData();
+                    Calendar top = updateInfo.getCalendar(ProductRelEntity.Info.TOP);
+                    Integer sort = updateInfo.getInt(ProductRelEntity.Info.SORT);
+                    if(top != null && sort == null) {
+                        int maxSort = relProc.getMaxSort(aid, unionPriId);
+                        updateInfo.setInt(ProductRelEntity.Info.SORT, ++maxSort);
+                    }
                     ProductRelCacheCtrl.InfoCache.setExpire(aid, unionPriId); // 设置过期时间，最大努力的避免脏数据
                     relProc.setSingle(aid, unionPriId, pdId, relUpdate);
                 }
@@ -821,6 +829,7 @@ public class ProductBasicService extends BasicParentService {
             ProductBindPropCache.delCache(aid, unionPriId, sysType, rlPdId);
             ProductBindGroupCache.delCache(aid, unionPriId, pdId);
             ProductBindTagCache.delCache(aid, unionPriId, pdId);
+            ProductRelCacheCtrl.SortCache.del(aid, unionPriId); // sort缓存
 
             // 同步数据给es
             ESUtil.logDocId(flow, aid, pdId, unionPriId, DocOplogDef.Operation.UPDATE_ONE);
@@ -1544,6 +1553,7 @@ public class ProductBasicService extends BasicParentService {
         relData.assign(info, ProductRelEntity.Info.FLAG);
         relData.assign(info, ProductRelEntity.Info.SORT);
         relData.assign(info, ProductRelEntity.Info.PD_TYPE);
+        relData.assign(info, ProductRelEntity.Info.TOP);
 
         pdData.setInt(ProductEntity.Info.AID, aid);
         pdData.setInt(ProductEntity.Info.SOURCE_TID, sourceTid);
@@ -1658,6 +1668,7 @@ public class ProductBasicService extends BasicParentService {
         relData.assign(info, ProductRelEntity.Info.UP_SALE_TIME);
         relData.assign(info, ProductRelEntity.Info.FLAG);
         relData.assign(info, ProductRelEntity.Info.SORT);
+        relData.assign(info, ProductRelEntity.Info.TOP);
 
         Integer rlPdId;
         Integer pdId;
@@ -1856,6 +1867,7 @@ public class ProductBasicService extends BasicParentService {
             relData.assign(info, ProductRelEntity.Info.UP_SALE_TIME);
             relData.assign(info, ProductRelEntity.Info.FLAG);
             relData.assign(info, ProductRelEntity.Info.SORT);
+            relData.assign(info, ProductRelEntity.Info.TOP);
 
             FaiList<Param> curUidList = listOfUid.get(unionPriId);
             if(curUidList == null) {
@@ -2053,6 +2065,7 @@ public class ProductBasicService extends BasicParentService {
                 relData.assign(info, ProductRelEntity.Info.FLAG);
                 relData.assign(info, ProductRelEntity.Info.SORT);
                 relData.assign(info, ProductRelEntity.Info.PD_TYPE);
+                relData.assign(info, ProductRelEntity.Info.TOP);
 
                 FaiList<Param> curUidList = listOfUid.get(unionPriId);
                 if(curUidList == null) {

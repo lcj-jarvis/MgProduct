@@ -23,6 +23,7 @@ public class ProductRelEntity {
         public static final String PD_TYPE = "productType"; // int 商品类型 (为了方便搜索，冗余商品表的该字段)
         public static final String SYS_TYPE = "sysType"; // int 商品系统类型 (服务/商品)
         public static final String SORT = "sort"; // int 排序
+        public static final String TOP = "top"; // datetime 置顶时间
 
         /*** 未入库属性 ***/
         public static final String RL_GROUP_IDS = "rlGroupIds"; // FaiList<Integer> 商品分类业务id集合
@@ -48,6 +49,7 @@ public class ProductRelEntity {
         MANAGE_FIELDS.add(Info.UP_SALE_TIME);
         MANAGE_FIELDS.add(Info.FLAG);
         MANAGE_FIELDS.add(Info.SORT);
+        MANAGE_FIELDS.add(Info.TOP);
         MANAGE_FIELDS.setReadOnly(true);
 
         VISITOR_FIELDS = new FaiList<>();
@@ -64,6 +66,7 @@ public class ProductRelEntity {
         UPDATE_FIELDS.add(Info.UPDATE_TIME);
         UPDATE_FIELDS.add(Info.FLAG);
         UPDATE_FIELDS.add(Info.SORT);
+        UPDATE_FIELDS.add(Info.TOP);
         UPDATE_FIELDS.setReadOnly(true);
     }
 }

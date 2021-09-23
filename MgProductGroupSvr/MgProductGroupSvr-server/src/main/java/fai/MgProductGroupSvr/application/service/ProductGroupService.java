@@ -16,7 +16,6 @@ import fai.comm.middleground.app.CloneDef;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
-import fai.middleground.infutil.MgConfPool;
 import fai.middleground.svrutil.annotation.SuccessRt;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.misc.Utils;
@@ -380,11 +379,11 @@ public class ProductGroupService extends ServicePub {
 
                 if (!map.isEmpty()) {
                     // 要删除的分类业务id
-                    FaiList<Integer> delRlGroupIdList = new FaiList<>(map.keySet());
+                    delRlGroupIds = new FaiList<>(map.keySet());
                     // 获取要删除的分类id
                     delGroupIdList = new FaiList<>(map.values());
                     // 删除分类业务表数据
-                    relProc.delGroupList(aid, unionPriId, delRlGroupIdList, sysType, softDel);
+                    relProc.delGroupList(aid, unionPriId, delRlGroupIds, sysType, softDel);
                     // 删除分类表数据
                     groupProc.delGroupList(aid, delGroupIdList, softDel);
                 }

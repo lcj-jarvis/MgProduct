@@ -1619,7 +1619,7 @@ public class MgProductBasicCli extends FaiClient {
     }
 
     /**
-     * 获取aid + unionPriId 下所有商品分类关联数据
+     * 获取aid + unionPriId 下所有商品数据
      */
     public int getAllPdData(int aid, FaiList<Param> list) {
         m_rt = Errno.ERROR;

@@ -50,6 +50,19 @@
             <version>${fai-comm-netkit-ver}</version>
         </dependency>
 
+        <!--核心包 fai-comm-rpc-client-->
+        <dependency>
+            <groupId>fai-comm-rpc-client</groupId>
+            <artifactId>fai-comm-rpc-client</artifactId>
+            <version>${fai-comm-rpc-client-ver}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>fai-comm-jnetkit</groupId>
+            <artifactId>fai-comm-jnetkit</artifactId>
+            <version>${fai-comm-jnetkit-ver}</version>
+        </dependency>
+
         <dependency>
             <groupId>fai-comm-util-opt</groupId>
             <artifactId>fai-comm-util-opt</artifactId>

@@ -478,6 +478,9 @@ public class MgProductSearchService {
              */
             needGetDataFromRemote = localDataStatusCacheInfo.getLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME) < remoteDataStatusInfo.getLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME) ||
                 (!isOnlySearchManageData && localDataStatusCacheInfo.getLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME) < remoteDataStatusInfo.getLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME));
+            if (needGetDataFromRemote) {
+                localDataStatusCacheInfo = remoteDataStatusInfo;
+            }
         }else if (Str.isEmpty(localDataStatusCacheInfo) && !Str.isEmpty(remoteDataStatusInfo)){
             // 本地没有了数据，如果进入搜索逻辑，则需要重新reload数据
             // 赋值到新的 cache

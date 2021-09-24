@@ -56,6 +56,7 @@ public class MgProductStoreCmd {
 		public static final int NUM26 = 1026;
 		public static final int NUM27 = 1027;
 		public static final int NUM28 = 1028;
+		public static final int NUM29 = 1029;
 	}
 
 	////////////////// cmd对外定义，实际做cmd读写分离 ////////////////////
@@ -157,5 +158,9 @@ public class MgProductStoreCmd {
 	 */
 	public static class HoldingRecordCmd{
 		public static final int GET_LIST = ReadCmdNum.NUM12;
+	}
+
+	public static class Cmd {
+		public static final int MIGRATE = WriteCmdNum.NUM29;
 	}
 }

@@ -194,7 +194,7 @@ public class ProductSearchService extends MgProductInfService {
     private MgProductSearchCli createSearchCli(int flow) {
         MgProductSearchCli cli = new MgProductSearchCli(flow);
         if (!cli.init()) {
-            throw new RuntimeException("MgProductBasicCli init error, flow="+ flow);
+            throw new RuntimeException("MgProductSearchCli init error, flow="+ flow);
         }
         return cli;
     }

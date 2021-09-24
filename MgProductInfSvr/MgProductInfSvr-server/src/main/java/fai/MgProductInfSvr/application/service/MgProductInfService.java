@@ -98,6 +98,21 @@ public class MgProductInfService extends ServicePub {
         return idRef.value;
     }
 
+    protected Param getByUnionPriId(int flow, int aid, int unionPriId) {
+        int rt;
+        MgPrimaryKeyCli cli = new MgPrimaryKeyCli(flow);
+        if(!cli.init()) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "init MgPrimaryKeyCli error");
+        }
+        Param info = new Param();
+        rt = cli.getByUnionPriId(unionPriId, info);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "getByUnionPriId error;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+        }
+        return info;
+    }
+
     /**
      * 获取unionPriId
      * @return unionPriId

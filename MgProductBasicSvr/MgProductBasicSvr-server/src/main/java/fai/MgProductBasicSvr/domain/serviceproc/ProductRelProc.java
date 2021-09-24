@@ -340,6 +340,53 @@ public class ProductRelProc {
         }
     }
 
+    public void batchSet(int aid, FaiList<Param> list) {
+        if(Utils.isEmptyList(list)) {
+            return;
+        }
+        Param first = list.get(0);
+        Set<String> keySet = first.keySet();
+        keySet.remove(ProductRelEntity.Info.AID);
+        keySet.remove(ProductRelEntity.Info.UNION_PRI_ID);
+        keySet.remove(ProductRelEntity.Info.PD_ID);
+        keySet.remove(ProductRelEntity.Info.RL_PD_ID);
+        FaiList<String> keyList = new FaiList<>(keySet);
+
+        FaiList<Param> dataList = new FaiList<>();
+        for(Param info : list) {
+            int unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
+            int pdId = info.getInt(ProductRelEntity.Info.PD_ID);
+            Param data = new Param();
+            // for updater
+            for(String key : keyList) {
+                data.assign(info, key);
+            }
+            // for matcher
+            data.setInt(ProductRelEntity.Info.AID, aid);
+            data.setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId);
+            data.setInt(ProductRelEntity.Info.PD_ID, pdId);
+            dataList.add(data);
+        }
+        ParamUpdater updater = new ParamUpdater();
+        for(String key : keyList) {
+            updater.getData().setString(key, "?");
+        }
+
+        ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, "?");
+        matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
+        matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.EQ, "?");
+
+        int rt = m_dao.batchUpdate(updater, matcher, dataList);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "updatePdRel error;flow=%d;aid=%d;dataList=%s;", m_flow, aid, dataList);
+        }
+
+        // es同步数据 预处理
+        ESUtil.batchPreLog(aid, new FaiList<>(list), DocOplogDef.Operation.UPDATE_ONE);
+
+        Log.logStd("batchSet ok;flow=%d;aid=%d;", m_flow, aid);
+    }
+
     public void setSingle(int aid, int unionPriId, Integer pdId, ParamUpdater recvUpdater) {
         if (recvUpdater == null || recvUpdater.isEmpty()) {
             return;

@@ -1595,10 +1595,19 @@ public class MgProductInfHandler extends FaiHandler {
     }
     /**商品和标签的关联 end*/
 
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.Cmd.MIGRATE)
+    public int migrateData(final FaiSession session,
+                           @ArgFlow final int flow,
+                           @ArgAid final int aid) throws IOException {
+        return dataMigrateService.migrateYK(session, flow, aid);
+    }
+
     //MgProductInfService mgProductInfService = new MgProductInfService();
     //ProductBasicService basicService = new ProductBasicService();
     MgProductInfService mgProductInfService = ServiceProxy.create(new MgProductInfService());
     ProductBasicService basicService = ServiceProxy.create(new ProductBasicService());
+    DataMigrateService dataMigrateService = ServiceProxy.create(new DataMigrateService());
 
     ProductSearchService searchService = ServiceProxy.create(new ProductSearchService());
     ProductPropService propService = new ProductPropService();

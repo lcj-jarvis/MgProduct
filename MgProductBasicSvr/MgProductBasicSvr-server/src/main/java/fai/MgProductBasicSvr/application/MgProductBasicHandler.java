@@ -1,9 +1,6 @@
 package fai.MgProductBasicSvr.application;
 
-import fai.MgProductBasicSvr.application.service.ProductBasicService;
-import fai.MgProductBasicSvr.application.service.ProductBindGroupService;
-import fai.MgProductBasicSvr.application.service.ProductBindPropService;
-import fai.MgProductBasicSvr.application.service.ProductBindTagService;
+import fai.MgProductBasicSvr.application.service.*;
 import fai.MgProductBasicSvr.domain.common.ESUtil;
 import fai.MgProductBasicSvr.interfaces.cmd.MgProductBasicCmd;
 import fai.MgProductBasicSvr.interfaces.dto.*;
@@ -623,10 +620,24 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
         return tagBindService.getBindTagFromDb(session, flow, aid, unionPriId, searchArg);
     }
     /**==========================================操作商品与标签关联结束===========================================================*/
+
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.Cmd.MIGRATE)
+    public int dataMigrate(final FaiSession session,
+                                @ArgFlow final int flow,
+                                @ArgAid final int aid,
+                                @ArgBodyInteger(ProductDto.Key.TID) int tid,
+                                @ArgList(keyMatch = ProductDto.Key.INFO_LIST, methodDef = "getInfoDto",
+                                classDef = MigrateDef.Dto.class) FaiList<Param> list) throws IOException {
+        return dataMigrateService.dataMigrate(session, flow, aid, tid, list);
+    }
+
     private ProductBasicService service = ServiceProxy.create(new ProductBasicService());
     private ProductBindGroupService groupBindService = ServiceProxy.create(new ProductBindGroupService());
     private ProductBindPropService propBindService = ServiceProxy.create(new ProductBindPropService());
     private ProductBindTagService tagBindService = ServiceProxy.create(new ProductBindTagService());
+
+    private DataMigrateService dataMigrateService = ServiceProxy.create(new DataMigrateService());
 
     private final static String CLI_NAME = "MgProductBasicCli";
 }

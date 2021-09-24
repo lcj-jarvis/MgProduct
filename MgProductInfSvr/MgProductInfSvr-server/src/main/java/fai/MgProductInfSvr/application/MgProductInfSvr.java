@@ -1,4 +1,5 @@
 package fai.MgProductInfSvr.application;
+import fai.MgProductInfSvr.application.service.DataMigrateService;
 import fai.comm.jnetkit.config.ParamKeyMapping;
 import fai.comm.jnetkit.server.ServerConfig;
 import fai.comm.jnetkit.server.fai.FaiServer;
@@ -12,6 +13,8 @@ public class MgProductInfSvr {
         SVR_OPTION = config.getConfigObject(SvrOption.class);
         Log.logStd("SVR_OPTION=%s", SVR_OPTION);
 
+        DataMigrateService.init(SVR_OPTION);
+
         server.setHandler(new MgProductInfHandler(server));
         server.start();
     }
@@ -20,6 +23,15 @@ public class MgProductInfSvr {
     public static class SvrOption {
         /** 导入商品数据的最大批次 */
         private int importProductMaxSize = 100;
+        private boolean debug;
+
+        public boolean getDebug() {
+            return debug;
+        }
+
+        public void setDebug(boolean debug) {
+            this.debug = debug;
+        }
 
         public int getImportProductMaxSize() {
             return importProductMaxSize;

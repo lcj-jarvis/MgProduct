@@ -38,5 +38,6 @@ public class SpuBizSummaryDto {
         public static final int SEARCH_ARG = 11;
         public static final int TOTAL_SIZE = 12;
         public static final int UID_LIST = 13;
+        public static final int DATA_STATUS = 16;
     }
 }

@@ -331,6 +331,39 @@ public class MgProductSearchService {
         return resultCacheInfo;
     }
 
+    public void asyncCheckDataStatus(int flow, int aid, int unionPriId, int tid,
+                                     MgProductBasicCli mgProductBasicCli,
+                                     MgProductStoreCli mgProductStoreCli,
+                                     MgProductSpecCli mgProductSpecCli,
+                                     MgProductDbSearch mgProductDbSearch,
+                                     FaiList<Param> esSearchResult,
+                                     Ref<Long> manageDataMaxChangeTime,
+                                     Ref<Long> visitorDataMaxChangeTime,
+                                     FaiList<Param> searchSorterInfoList) {
+        // 是否将es的idList直接当作db的查询条件
+        ParamMatcher idListFromEsParamMatcher = new ParamMatcher();
+        if (!Utils.isEmptyList(esSearchResult)) {
+            // 先手动给一个值用于测试
+            // int inSqlThreshold = 5;
+            int inSqlThreshold = searchProc.getInSqlThreshold();
+            if (esSearchResult.size() == 1) {
+                Integer pdId = esSearchResult.get(0).getInt(ProductEntity.Info.PD_ID);
+                idListFromEsParamMatcher.and(ProductBasicEntity.ProductInfo.PD_ID, ParamMatcher.EQ, pdId);
+            } else if (esSearchResult.size() <= inSqlThreshold) {
+                FaiList<Integer> idListFromEs = searchProc.toIdList(esSearchResult, ProductEntity.Info.PD_ID);
+                idListFromEsParamMatcher.and(ProductBasicEntity.ProductInfo.PD_ID, ParamMatcher.IN, idListFromEs);
+            }
+        }
+
+
+    }
+
+
+
+
+
+
+
     /**
      *  获取各个表的数据状态,同时初始化db的查询条件，以及要搜索哪些表的数据
      * @param manageDataMaxChangeTime 管理态的最大修改时间

@@ -311,7 +311,7 @@ public class SummaryService extends StoreService {
                     .setLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME, manageDataLastUpdateTime)
                     ;
             FaiBuffer sendBody = new FaiBuffer();
-            dataStatus.toBuffer(sendBody, SpuBizSummaryDto.Key.INFO, DataStatus.Dto.getDataStatusDto());
+            dataStatus.toBuffer(sendBody, SpuBizSummaryDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
             session.write(sendBody);
             Log.logDbg("ok;aid=%d;unionPriId=%s;", aid, unionPriId);
         }finally {

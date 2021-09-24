@@ -33,7 +33,7 @@ public interface MgProductStoreCli extends BaseRpcClient {
      */
     @Async
     @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.GET_DATA_STATUS)
-    @RecvDecoder(value = @RecvDecoder.Decoder(key = SpuBizSummaryDto.Key.INFO, keyClass = Param.class,
+    @RecvDecoder(value = @RecvDecoder.Decoder(key = SpuBizSummaryDto.Key.DATA_STATUS, keyClass = Param.class,
         classDef = DataStatus.Dto.class, methodDef = "getDataStatusDto"))
     DefaultFuture getSpuBizSummaryDataStatus(@ArgAid int aid, @ArgBodyInteger(SpuBizSummaryDto.Key.TID) final int tid, @ArgBodyInteger(SpuBizSummaryDto.Key.UNION_PRI_ID) final int unionPriId);
 

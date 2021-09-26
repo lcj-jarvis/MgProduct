@@ -71,8 +71,10 @@ public class InOutStoreRecordDto {
         public static final int RL_PD_ID = 4;
         public static final int INFO_LIST = 6;
         public static final int PRICE = 10;
-        public static final int OPT_TIME = 11;
-        public static final int TOTAL_SIZE = 11;// TODO 和optTime重复了
+        @Deprecated
+        public static final int OPT_TIME = 11;// TODO 重复了，暂时先标记废弃，用来提示开发不要同时使用
+        @Deprecated
+        public static final int TOTAL_SIZE = 11;// TODO 重复了，暂时先标记废弃，用来提示开发不要同时使用
         public static final int IS_SOURCE = 12;
         public static final int SEARCH_ARG = 13;
         public static final int SYS_TYPE = 14;

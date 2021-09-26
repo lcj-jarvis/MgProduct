@@ -136,7 +136,7 @@ public class ProductBindGroupProc {
         int rt;
         if(Utils.isEmptyList(infoList)) {
             rt = Errno.ARGS_ERROR;
-            throw new MgException(rt, "args error;flow=%d;aid=%d;");
+            throw new MgException(rt, "args error;flow=%d;aid=%d;", m_flow, aid);
         }
         FaiList<Param> addList = new FaiList<>();
         FaiList<Param> sagaList = new FaiList<>();
@@ -145,9 +145,9 @@ public class ProductBindGroupProc {
             int rlPdId = info.getInt(ProductBindGroupEntity.Info.RL_PD_ID, 0);
             int rlGroupId = info.getInt(ProductBindGroupEntity.Info.RL_GROUP_ID, 0);
             int pdId = info.getInt(ProductBindGroupEntity.Info.PD_ID, 0);
-            if(rlPdId <= 0 || rlGroupId <= 0 || pdId <= 0) {
+            if(rlPdId <= 0 || rlGroupId < 0 || pdId <= 0) {
                 rt = Errno.ARGS_ERROR;
-                throw new MgException(rt, "args error;flow=%d;aid=%d;info=%s;", info);
+                throw new MgException(rt, "args error;flow=%d;aid=%d;info=%s;", m_flow, aid, info);
             }
             int sysType = info.getInt(ProductBindGroupEntity.Info.SYS_TYPE, 0);
             Param addData = new Param();

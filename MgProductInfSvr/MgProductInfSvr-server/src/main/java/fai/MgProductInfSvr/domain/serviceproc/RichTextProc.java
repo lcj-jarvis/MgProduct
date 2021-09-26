@@ -44,6 +44,22 @@ public class RichTextProc {
         return rt;
     }
 
+    public void batchAdd(String xid, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> richList) {
+        int rt;
+        if(Utils.isEmptyList(richList)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "batchAddRich arg err;aid=%d;tid=%d;siteId=%d;lgId=%d;keepId=%d;", aid, tid, siteId, lgId, keepPriId1);
+        }
+        MgRichTextArg mgRichTextArg = new MgRichTextArg.Builder(aid,  tid, siteId, lgId, keepPriId1)
+                .setInfoList(richList)
+                .setXid(xid)
+                .build();
+        rt = m_cli.batchAddRichText(mgRichTextArg);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "updatePdRichText err;aid=%d;tid=%d;siteId=%d;lgId=%d;keepId=%d;", aid, tid, siteId, lgId, keepPriId1);
+        }
+    }
+
     public int batchDel(String xid, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> pdIds) {
         int rt;
         if(Utils.isEmptyList(pdIds)) {
@@ -60,6 +76,19 @@ public class RichTextProc {
         rt = m_cli.delRichText(mgRichTextArg);
         if(rt != Errno.OK) {
             throw new MgException(rt, "batchDel err;aid=%d;tid=%d;siteId=%d;lgId=%d;keepId=%d;pdIds=%s;", aid, tid, siteId, lgId, keepPriId1, pdIds);
+        }
+        return rt;
+    }
+    public int migrateDel(int aid, int tid, int siteId, int lgId, int keepPriId1) {
+        int rt;
+
+        MgRichTextArg mgRichTextArg = new MgRichTextArg.Builder(aid,  tid, siteId, lgId, keepPriId1)
+                .setBizList(new FaiList<>(Arrays.asList(MgRichTextValObj.Biz.PRODUCT)))
+                .setXid("")
+                .build();
+        rt = m_cli.delRichText(mgRichTextArg);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "batchDel err;aid=%d;tid=%d;siteId=%d;lgId=%d;keepId=%d;", aid, tid, siteId, lgId, keepPriId1);
         }
         return rt;
     }

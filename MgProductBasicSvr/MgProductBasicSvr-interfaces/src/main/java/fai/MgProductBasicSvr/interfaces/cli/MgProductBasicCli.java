@@ -2877,4 +2877,66 @@ public class MgProductBasicCli extends FaiClient {
     }
     /**==========================================操作商品与标签关联结束===========================================================*/
 
+    public int dataMigrate(int aid, int tid, FaiList<Param> addList, FaiList<Param> returnList) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0 || addList == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;");
+                return m_rt;
+            }
+            if(addList == null || addList.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;addList and delList all empty");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductDto.Key.TID, tid);
+            addList.toBuffer(sendBody, ProductDto.Key.INFO_LIST, MigrateDef.Dto.getInfoDto());
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductBasicCmd.Cmd.MIGRATE);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = returnList.fromBuffer(recvBody, keyRef, ProductRelDto.getReducedInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.REDUCED_INFO) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
 }

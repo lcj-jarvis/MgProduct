@@ -1647,7 +1647,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
             m_rt = dataStatusInfo.fromBuffer(recvBody, keyRef, DataStatus.Dto.getDataStatusDto());
-            if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuCodeDao.Key.INFO) {
+            if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuCodeDao.Key.DATA_STATUS) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
             }

@@ -9,6 +9,7 @@ import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
 import fai.MgProductStoreSvr.interfaces.cli.MgProductStoreCli;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
+import fai.middleground.svrutil.exception.MgException;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -107,63 +108,56 @@ public class MgProductSearchProc {
             // 从远端获取数据, 待完善
             rt = mgProductBasicCli.getPdDataStatus(aid, remoteDataStatusInfo);
             if(rt != Errno.OK){
-                Log.logErr(rt,"getPdDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
+                throw new MgException(rt, "getPdDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
             }
-            // Log.logDbg("getPdDataStatus, remoteDataStatusInfo=%s;", remoteDataStatusInfo);
         }
 
         if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_REL.getSearchTableName().equals(tableName)){
             // 从远端获取数据
             rt = mgProductBasicCli.getPdRelDataStatus(aid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
-                Log.logErr(rt,"getPdRelDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
+                throw new MgException(rt, "getPdRelDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
             }
-            //Log.logDbg("getPdRelDataStatus, remoteDataStatusInfo=%s;", remoteDataStatusInfo);
         }
 
         if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.getSearchTableName().equals(tableName)){
             // 从远端获取数据
             rt = mgProductBasicCli.getBindPropDataStatus(aid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
-                Log.logErr(rt,"getBindPropDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
+                throw new MgException(rt, "getBindPropDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
             }
-            //Log.logDbg("getBindPropDataStatus, remoteDataStatusInfo=%s;", remoteDataStatusInfo);
         }
 
         if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.getSearchTableName().equals(tableName)){
             // 从远端获取数据
             rt = mgProductBasicCli.getBindGroupDataStatus(aid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
-                Log.logErr(rt,"getBindGroupDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
+                throw new MgException(rt, "getBindGroupDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
             }
-            //Log.logDbg("getBindGroupDataStatus, remoteDataStatusInfo=%s;", remoteDataStatusInfo);
         }
 
         if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.getSearchTableName().equals(tableName)){
             // 从远端获取数据
             rt = mgProductBasicCli.getBindTagDataStatus(aid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
-                Log.logErr(rt,"getBindTagDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
+                throw new MgException(rt, "getBindTagDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
             }
-            //Log.logDbg("getBindGroupDataStatus, remoteDataStatusInfo=%s;", remoteDataStatusInfo);
         }
 
         if(MgProductDbSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.getSearchTableName().equals(tableName)){
             // 从远端获取数据, 待完善
             rt = mgProductStoreCli.getSpuBizSummaryDataStatus(aid, tid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
-                Log.logErr(rt,"getSpuBizSummaryDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
+                throw new MgException(rt, "getSpuBizSummaryDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
             }
-            // Log.logDbg("getSpuBizSummaryDataStatus,remoteDataStatusInfo=%s;", remoteDataStatusInfo);
         }
 
         if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU_CODE.getSearchTableName().equals(tableName)){
             // 从远端获取数据, 待完善
             rt = mgProductSpecCli.getSkuCodeDataStatus(aid, unionPriId, remoteDataStatusInfo);
             if(rt != Errno.OK){
-                Log.logErr(rt,"getSkuCodeDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
+                throw new MgException(rt, "getSkuCodeDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
             }
-            // Log.logDbg("getSkuCodeDataStatus,remoteDataStatusInfo=%s;", remoteDataStatusInfo);
         }
         return remoteDataStatusInfo;
     }

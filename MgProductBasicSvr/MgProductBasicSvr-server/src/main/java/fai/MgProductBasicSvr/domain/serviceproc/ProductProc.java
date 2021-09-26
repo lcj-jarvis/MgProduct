@@ -99,6 +99,44 @@ public class ProductProc {
         return pdIdList;
     }
 
+    // 临时方法，门店迁移数据
+    public void batchSet(int aid, FaiList<Param> list) {
+        int rt;
+        Param first = list.get(0);
+        Set<String> keySet = first.keySet();
+        keySet.remove(ProductEntity.Info.AID);
+        keySet.remove(ProductEntity.Info.PD_ID);
+        FaiList<String> keyList = new FaiList<>(keySet);
+
+        FaiList<Param> dataList = new FaiList<>();
+        for(Param info : list) {
+            int pdId = info.getInt(ProductEntity.Info.PD_ID);
+            Param data = new Param();
+            // for updater
+            for(String key : keyList) {
+                data.assign(info, key);
+            }
+
+            // for matcher
+            data.setInt(ProductEntity.Info.AID, aid);
+            data.setInt(ProductEntity.Info.PD_ID, pdId);
+            dataList.add(data);
+        }
+
+        ParamMatcher matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, "?");
+        matcher.and(ProductEntity.Info.PD_ID, ParamMatcher.EQ, "?");
+
+        ParamUpdater updater = new ParamUpdater();
+        for(String key : keyList) {
+            updater.getData().setString(key, "?");
+        }
+
+        rt = m_dao.batchUpdate(updater, matcher, dataList);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "batchUpdate product error;flow=%d;aid=%d;", m_flow, aid);
+        }
+    }
+
     public void setSingle(int aid, int pdId, ParamUpdater recvUpdater) {
         FaiList<ParamUpdater> updaters = new FaiList<>();
         updaters.add(recvUpdater);

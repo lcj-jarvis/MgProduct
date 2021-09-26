@@ -79,6 +79,8 @@ public class ProductRelDto {
         g_relAndPdDtoDef.add(ProductRelEntity.Info.SYS_TYPE, 31);
         g_relAndPdDtoDef.add(ProductRelEntity.Info.SORT, 32);
         g_relAndPdDtoDef.add(ProductRelEntity.Info.TOP, 33);
+
+        g_relAndPdDtoDef.add(ProductEntity.Info.SOURCE_UNIONPRIID, 34);
     }
 
     static {

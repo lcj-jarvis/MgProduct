@@ -1,10 +1,7 @@
 package fai.MgProductStoreSvr.application;
 
 import fai.MgProductStoreSvr.application.mq.ReportConsumeListener;
-import fai.MgProductStoreSvr.application.service.RecordService;
-import fai.MgProductStoreSvr.application.service.StoreSalesSkuService;
-import fai.MgProductStoreSvr.application.service.StoreService;
-import fai.MgProductStoreSvr.application.service.SummaryService;
+import fai.MgProductStoreSvr.application.service.*;
 import fai.MgProductStoreSvr.interfaces.cmd.MgProductStoreCmd;
 import fai.MgProductStoreSvr.interfaces.conf.MqConfig;
 import fai.MgProductStoreSvr.interfaces.dto.*;
@@ -567,9 +564,21 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
         return m_storeService.clearAllCache(session, flow, aid);
     }
 
+    @Cmd(MgProductStoreCmd.Cmd.MIGRATE)
+    @WrittenCmd
+    private int migrate(final FaiSession session,
+                           @ArgFlow final int flow,
+                           @ArgAid final int aid,
+                           @ArgList(keyMatch = SpuBizSummaryDto.Key.INFO_LIST, methodDef = "getInfoDto",
+                           classDef = SpuBizSummaryDto.class) FaiList<Param> spuList) throws IOException {
+        return migrateService.migrate(session, flow, aid, spuList);
+    }
+
     private static final String CLI_NAME = "MgProductStoreCli";
     private StoreService m_storeService = ServiceProxy.create(new StoreService());
     private StoreSalesSkuService m_storeSalesSkuService = ServiceProxy.create(new StoreSalesSkuService());
     private RecordService m_recordService = new RecordService();
     private SummaryService m_summaryService = new SummaryService();
+
+    private MigrateService migrateService = new MigrateService();
 }

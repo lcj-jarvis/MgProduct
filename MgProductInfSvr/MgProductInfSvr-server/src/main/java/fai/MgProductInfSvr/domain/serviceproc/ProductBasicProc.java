@@ -615,4 +615,18 @@ public class ProductBasicProc {
     }
     /********************************************商品和标签的关联结束********************************************************/
 
+
+    public FaiList<Param> dataMigrate(int aid, int tid, FaiList<Param> addList) {
+        int rt;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get ProductBasicCli error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
+        }
+        FaiList<Param> returnList = new FaiList<>();
+        rt = m_cli.dataMigrate(aid, tid, addList, returnList);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "setPdBindTag error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
+        }
+        return returnList;
+    }
 }

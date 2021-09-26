@@ -36,6 +36,80 @@ public class SpuBizSummaryProc {
         sagaMap = new HashMap<>();
     }
 
+    public int migrate(int aid, FaiList<Param> list) {
+        if(Utils.isEmptyList(list)) {
+            Log.logErr("arg error;flow=%d;aid=%s;", m_flow, aid);
+            return Errno.ARGS_ERROR;
+        }
+        Map<Integer, FaiList<Integer>> unionPriId_pdIds = new HashMap<>();
+        for(Param info : list) {
+            int unionPriId = info.getInt(SpuBizSummaryEntity.Info.UNION_PRI_ID);
+            int pdId = info.getInt(SpuBizSummaryEntity.Info.PD_ID);
+            FaiList<Integer> pdIds = unionPriId_pdIds.get(unionPriId);
+            if(pdIds == null) {
+                pdIds = new FaiList<>();
+                unionPriId_pdIds.put(unionPriId, pdIds);
+            }
+
+            if(!pdIds.contains(pdId)) {
+                pdIds.add(pdId);
+            }
+        }
+        int rt;
+        // 先查一遍数据
+        for(int unionPriId : unionPriId_pdIds.keySet()) {
+            FaiList<Integer> pdIds = unionPriId_pdIds.get(unionPriId);
+            Ref<FaiList<Param>> ref = new Ref<>();
+            rt = getInfoListByPdIdListFromDao(aid, unionPriId, pdIds, ref, SpuBizSummaryEntity.Info.PD_ID);
+            if(rt != Errno.OK) {
+                Log.logErr(rt, "check old info err;aid=%d;uid=%d;pdIds=%s", aid, unionPriId, pdIds);
+                return rt;
+            }
+            if(pdIds.size() != ref.value.size()) {
+                rt = Errno.ERROR;
+                FaiList<Integer> dbPdIds = Utils.getValList(ref.value, SpuBizSummaryEntity.Info.PD_ID);
+                // 打印没查到的pdId
+                pdIds.removeAll(dbPdIds);
+                Log.logErr(rt, "old data err;aid=%d;unionPriId=%d;pdIds=%s;", aid, unionPriId, pdIds);
+                return rt;
+            }
+        }
+        FaiList<Param> dataList = new FaiList<>();
+        for(Param info : list) {
+            int unionPriId = info.getInt(SpuBizSummaryEntity.Info.UNION_PRI_ID);
+            int pdId = info.getInt(SpuBizSummaryEntity.Info.PD_ID);
+            String distributeList = info.getString(SpuBizSummaryEntity.Info.DISTRIBUTE_LIST);
+            int priceType = info.getInt(SpuBizSummaryEntity.Info.PRICE_TYPE);
+            Param data = new Param();
+            // for updater
+            data.setString(SpuBizSummaryEntity.Info.DISTRIBUTE_LIST, distributeList);
+            data.setInt(SpuBizSummaryEntity.Info.PRICE_TYPE, priceType);
+
+            // for matcher
+            data.setInt(SpuBizSummaryEntity.Info.AID, aid);
+            data.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, unionPriId);
+            data.setInt(SpuBizSummaryEntity.Info.PD_ID, pdId);
+
+            dataList.add(data);
+        }
+
+        ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, "?");
+        matcher.and(SpuBizSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
+        matcher.and(SpuBizSummaryEntity.Info.PD_ID, ParamMatcher.EQ, "?");
+
+        ParamUpdater updater = new ParamUpdater();
+        updater.getData().setString(SpuBizSummaryEntity.Info.DISTRIBUTE_LIST, "?");
+        updater.getData().setString(SpuBizSummaryEntity.Info.PRICE_TYPE, "?");
+
+        rt = m_daoCtrl.batchUpdate(updater, matcher, dataList);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "spu batchUpdate err;aid=%d;", aid);
+            return rt;
+        }
+        cacheManage.addDirtyCacheKey(aid, unionPriId_pdIds);
+        return rt;
+    }
+
     public int cloneBizBind(int aid, int fromUnionPriId, int toUnionPriId) {
         ParamMatcher delMatcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
         delMatcher.and(SpuBizSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, toUnionPriId);

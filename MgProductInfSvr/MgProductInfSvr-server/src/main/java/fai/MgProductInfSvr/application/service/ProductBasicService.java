@@ -605,8 +605,9 @@ public class ProductBasicService extends MgProductInfService {
 
                 FaiList<Param> specSkuList = updaterData.getList(MgProductEntity.Info.SPEC_SKU);
                 FaiList<Param> storeData = updaterData.getList(MgProductEntity.Info.STORE_SALES);
+                Param spuData = updaterData.getParam(MgProductEntity.Info.SPU_SALES);
                 int pdId = 0;
-                if(!Utils.isEmptyList(specSkuList) || !Utils.isEmptyList(storeData) || !Utils.isEmptyList(remarkList)) {
+                if(!Utils.isEmptyList(specSkuList) || !Utils.isEmptyList(storeData) || !Utils.isEmptyList(remarkList) || !Str.isEmpty(spuData)) {
                     // 获取 pdId
                     idRef.value = null;
                     rt = getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
@@ -672,6 +673,14 @@ public class ProductBasicService extends MgProductInfService {
                     }
                     ProductStoreProc productStoreProc = new ProductStoreProc(flow);
                     rt = productStoreProc.setSkuStoreSales(aid, tid, unionPriId, xid, pdId, rlPdId, sysType, updaterList);
+                    if(rt != Errno.OK) {
+                        return rt;
+                    }
+                }
+
+                if(!Str.isEmpty(spuData)) {
+                    ProductStoreProc productStoreProc = new ProductStoreProc(flow);
+                    rt = productStoreProc.setSpuBizSummary(aid, xid, unionPriId, pdId, new ParamUpdater(spuData));
                     if(rt != Errno.OK) {
                         return rt;
                     }

@@ -436,7 +436,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
      *              .setAddInfo(addInfo)                          // 必填
-     *              .setInOutStoreRecordInfo(inOutStoreRecordInfo)  // 必填
+     *              .setInOutStoreRecordInfo(inOutStoreRecordInfo)  // 选填
      *              .build();
      * addInfo 添加信息 {@link MgProductDto#getInfoDto()}
      *        只需要其中的 MgProductEntity.Info.BASIC、MgProductEntity.Info.SPEC、MgProductEntity.Info.SPEC_SKU、MgProductEntity.Info.STORE_SALES

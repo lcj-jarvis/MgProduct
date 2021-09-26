@@ -137,7 +137,7 @@ public class DataMigrateService extends MgProductInfService {
             }
 
             // 富文本数据, 只处理总部的数据
-            //if(keepPriId1 == 0) {
+            if(keepPriId1 == 0) {
                 FaiList<Param> remarkList = remarkMap.get(unionPriId);
                 if(remarkList == null) {
                     remarkList = new FaiList<>();
@@ -150,7 +150,7 @@ public class DataMigrateService extends MgProductInfService {
                 remarkInfo.setInt(MgRichTextEntity.Info.TYPE, RichTextValObj.Type.REMARK); //内容类型（必填）
                 remarkInfo.setString(MgRichTextEntity.Info.CONTENT, remark); // 富文本内容（选填）
                 remarkList.add(remarkInfo);
-            //}
+            }
 
             // spu数据
             Param spuInfo = new Param();

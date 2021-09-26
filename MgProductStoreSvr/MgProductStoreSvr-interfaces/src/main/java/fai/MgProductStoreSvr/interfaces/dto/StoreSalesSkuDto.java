@@ -59,16 +59,28 @@ public class StoreSalesSkuDto {
         return g_copyDtoDef;
     }
 
-    public static class Key extends CommDtoKey{
+    public static class Key{
+        public static final int INFO = 0;
+        public static final int UNION_PRI_ID = 1;
+        public static final int TID = 2;
+        public static final int PD_ID = 3;
+        public static final int RL_PD_ID = 4;
+        public static final int SKU_ID = 5;
+        public static final int INFO_LIST = 6;
+        public static final int UPDATER_LIST = 7;
+        public static final int ID_LIST = 8;
+        public static final int SOFT_DEL = 9;
         public static final int RL_ORDER_CODE = 11;
-        public static final int COUNT = 12;
-        public static final int REDUCE_MODE = 13;
-        public static final int EXPIRE_TIME_SECONDS = 14;
-        public static final int IN_OUT_STORE_RECORD_INFO = 15;
+        public static final int UNION_PRI_IDS = 12;
+        public static final int REPORT_COUNT = 13;
+        public static final int REPORT_PRICE = 14;
+        public static final int FROM_UNION_PRI_ID = 15;
+        public static final int REDUCE_MODE = 13; // TODO 重复
+        public static final int EXPIRE_TIME_SECONDS = 14; // TODO 重复
+        public static final int IN_OUT_STORE_RECORD_INFO = 15; // TODO 重复
         public static final int SKU_ID_COUNT_LIST = 16;
         public static final int UID_LIST = 17;
         public static final int STR_LIST = 18;
-        public static final int SKU_INFO_LIST = 19;
         public static final int IN_OUT_STORE_REC_ID = 20;
         public static final int RL_REFUND_ID = 21;
         public static final int XID = 22;

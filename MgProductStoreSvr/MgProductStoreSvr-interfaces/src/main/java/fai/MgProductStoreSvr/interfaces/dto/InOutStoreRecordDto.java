@@ -65,8 +65,14 @@ public class InOutStoreRecordDto {
         return g_sumDtoDef;
     }
 
-    public static class Key extends CommDtoKey{
-        public static final int TOTAL_SIZE = 11;
+    public static class Key{
+        public static final int UNION_PRI_ID = 1;
+        public static final int TID = 2;
+        public static final int RL_PD_ID = 4;
+        public static final int INFO_LIST = 6;
+        public static final int PRICE = 10;
+        public static final int OPT_TIME = 11;
+        public static final int TOTAL_SIZE = 11;// TODO 和optTime重复了
         public static final int IS_SOURCE = 12;
         public static final int SEARCH_ARG = 13;
         public static final int SYS_TYPE = 14;

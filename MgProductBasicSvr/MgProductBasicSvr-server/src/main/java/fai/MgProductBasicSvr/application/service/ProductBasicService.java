@@ -1392,7 +1392,7 @@ public class ProductBasicService extends BasicParentService {
                         }
                     }
 
-                    FaiList<Integer> curTagIds = rlGroupIds.get(i);
+                    FaiList<Integer> curTagIds = rlTagIds.get(i);
                     if(!curTagIds.isEmpty()) {
                         for(Integer rlTagId : curTagIds) {
                             Param bindTag = new Param();
@@ -1424,7 +1424,7 @@ public class ProductBasicService extends BasicParentService {
                 // 新增标签绑定
                 if(!bindRlTags.isEmpty()) {
                     ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
-                    bindTagProc.batchBindTagList(aid, unionPriId, bindRlGroups);
+                    bindTagProc.batchBindTagList(aid, unionPriId, bindRlTags);
                 }
 
                 // 新增参数绑定

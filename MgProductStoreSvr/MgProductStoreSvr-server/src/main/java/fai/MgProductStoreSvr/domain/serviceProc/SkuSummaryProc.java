@@ -176,8 +176,7 @@ public class SkuSummaryProc {
         // 预记录修改操作
         if (isSaga) {
             if (!listRef.value.isEmpty()) {
-                FaiList<Param> cloneList = listRef.value.clone();
-                preAddUpdateSaga(aid, cloneList);
+                preAddUpdateSaga(aid, listRef.value);
             }
         }
         FaiList<Param> oldInfoList = listRef.value;

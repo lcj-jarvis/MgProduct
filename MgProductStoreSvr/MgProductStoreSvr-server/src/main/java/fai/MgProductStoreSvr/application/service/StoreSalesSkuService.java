@@ -362,6 +362,7 @@ public class StoreSalesSkuService extends StoreService {
     /**
      * refreshSkuStoreSales 的补偿方法
      */
+    @SuccessRt(value = Errno.OK)
     public int refreshSkuStoreSalesRollback(FaiSession session, int flow, int aid, String xid, Long branchId) throws IOException {
         SagaRollback sagaRollback = tc -> {
             SpuSummaryProc spuSummaryProc = new SpuSummaryProc(flow, aid, tc);

@@ -318,8 +318,7 @@ public class SpuBizSummaryProc {
         // Saga 模式下需要记录下原始数据
         if (isSaga) {
             if (!listRef.value.isEmpty()) {
-                FaiList<Param> cloneList = listRef.value.clone();
-                preAddUpdateSaga(aid, cloneList);
+                preAddUpdateSaga(aid, listRef.value);
             }
         }
         // 移除unionPriId

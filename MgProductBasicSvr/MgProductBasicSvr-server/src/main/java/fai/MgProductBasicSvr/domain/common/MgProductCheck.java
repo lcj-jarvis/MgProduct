@@ -45,7 +45,9 @@ public class MgProductCheck {
                 Log.logErr(Errno.SIZE_LIMIT, "args error, read size is too long;aid=%d;list size=%d;limit size=%d;", aid, list.size(), READ_SIZE_LIMIT);
                 // 本地直接报错, 线上统计告警
                 if(IS_DEV) {
-                    return false;
+                    // TODO 这里注释掉，因为限制不合适在中台各中心服务做，这样会把中台内部自己需要拿数据的请求也限制
+                    // TODO 数量限制主要应该是限制业务的使用场景，直接在MgProductInfSvr做限制才合理
+                    //return false;
                 }else {
                     Fdp.bssMonitor(11017);
                 }

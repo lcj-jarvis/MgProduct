@@ -71,7 +71,6 @@ public class ProductStoreService extends MgProductInfService {
                     if(inPdScStrNameList == null){
                         return rt = Errno.ARGS_ERROR;
                     }
-                    Collections.sort(inPdScStrNameList);
                     inPdScStrNameInfoMap.put(inPdScStrNameList, data);
                 }
             }
@@ -87,7 +86,6 @@ public class ProductStoreService extends MgProductInfService {
                 Log.logDbg("whalelog infoList=%s", infoList);
                 for (Param info : infoList) {
                     FaiList<String> inPdScStrNameList = info.getList(ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_NAME_LIST);
-                    Collections.sort(inPdScStrNameList);
                     Param data = inPdScStrNameInfoMap.remove(inPdScStrNameList);
                     if(data == null){
                         continue;
@@ -161,7 +159,6 @@ public class ProductStoreService extends MgProductInfService {
                     if(inPdScStrNameList == null){
                         return rt = Errno.ARGS_ERROR;
                     }
-                    Collections.sort(inPdScStrNameList);
                     inPdScStrNameInfoMap.put(inPdScStrNameList, data);
                 }
             }
@@ -177,7 +174,6 @@ public class ProductStoreService extends MgProductInfService {
                 Log.logDbg("whalelog infoList=%s", infoList);
                 for (Param info : infoList) {
                     FaiList<String> inPdScStrNameList = info.getList(ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_NAME_LIST);
-                    Collections.sort(inPdScStrNameList);
                     Param data = inPdScStrNameInfoMap.remove(inPdScStrNameList);
                     if(data == null){
                         continue;
@@ -882,7 +878,6 @@ public class ProductStoreService extends MgProductInfService {
                         inPdScStrNameInfoMap = new HashMap<>();
                         ownerRlPdId_inPdScStrNameSkuIdMapMap.put(ownerRlPdId, inPdScStrNameInfoMap);
                     }
-                    Collections.sort(inPdScStrNameList);
                     inPdScStrNameInfoMap.put(inPdScStrNameList, null);
                 }else{
                     skuIdSet.add(skuId);
@@ -1021,7 +1016,6 @@ public class ProductStoreService extends MgProductInfService {
                     Map<FaiList<String>, Long> inPdScStrNameSkuIdMap = ownerRlPdId_inPdScStrNameSkuIdMapEntry.getValue();
                     for (Param pdSkuScInfo : pdSkuScInfoList) {
                         FaiList<String> inPdScStrNameList = pdSkuScInfo.getList(ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_NAME_LIST);
-                        Collections.sort(inPdScStrNameList);
                         if(!inPdScStrNameSkuIdMap.containsKey(inPdScStrNameList)){
                             continue;
                         }

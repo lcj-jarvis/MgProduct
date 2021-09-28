@@ -371,7 +371,6 @@ public class ProductSpecService extends ServicePub {
                                 HashMap<String, FaiList<Integer>> newSkuMap = new HashMap<>( skuList.size() * 4 / 3 +1);
                                 skuList.forEach(sku -> {
                                     FaiList<Integer> tmpSku = new FaiList<>(sku);
-                                    Collections.sort(tmpSku); // 排序
                                     newSkuMap.put(tmpSku.toJson(), sku); // toJson
                                 });
 
@@ -414,8 +413,6 @@ public class ProductSpecService extends ServicePub {
                                     if(tmpInPdScSrtIdList == null){
                                         tmpInPdScSrtIdList = oldInPdScStrIdList.clone();
                                     }
-                                    // 排序
-                                    Collections.sort(tmpInPdScSrtIdList);
                                     // toJson
                                     String oldSkuKey = tmpInPdScSrtIdList.toJson();
                                     // 从新的sku key集中移除 旧的sku key ，如果不存在旧的sku key,则当前的sku需要删除

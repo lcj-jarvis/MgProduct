@@ -591,7 +591,6 @@ public class ProductBasicService extends MgProductInfService {
                             if(inPdScStrNameList == null){
                                 return rt = Errno.ARGS_ERROR;
                             }
-                            Collections.sort(inPdScStrNameList);
                             inPdScStrNameInfoMap.put(inPdScStrNameList, storeInfo);
                         }
                     }
@@ -604,7 +603,6 @@ public class ProductBasicService extends MgProductInfService {
                         }
                         for (Param info : infoList) {
                             FaiList<String> inPdScStrNameList = info.getList(ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_NAME_LIST);
-                            Collections.sort(inPdScStrNameList);
                             Param storeInfo = inPdScStrNameInfoMap.remove(inPdScStrNameList);
                             if(storeInfo == null){
                                 continue;

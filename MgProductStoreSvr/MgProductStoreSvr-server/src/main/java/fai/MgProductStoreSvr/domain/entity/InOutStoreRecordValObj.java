@@ -95,7 +95,7 @@ public class InOutStoreRecordValObj {
      */
     public static final class SearchArg{
         public static final class Limit{
-            public static final int MAX = 100;
+            public static final int MAX = 500;
         }
     }
 }

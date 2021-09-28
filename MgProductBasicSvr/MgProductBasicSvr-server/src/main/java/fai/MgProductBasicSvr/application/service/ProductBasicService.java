@@ -1140,8 +1140,8 @@ public class ProductBasicService extends BasicParentService {
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getReducedRelsByPdIds(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> pdIds) throws IOException {
         int rt;
-        if(!MgProductCheck.RequestLimit.checkReadSize(aid, pdIds)) {
-            return Errno.SIZE_LIMIT;
+        if(Utils.isEmptyList(pdIds)) {
+            throw new MgException(Errno.ARGS_ERROR, "args error, pdIds is empty;aid=%d;pdIds=%s;", aid, pdIds);
         }
 
         FaiList<Param> list;

@@ -944,7 +944,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
         return setPdSkuScInfoList(aid, tid, unionPriId, pdId, updaterList, null);
     }
     public int setPdSkuScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<ParamUpdater> updaterList, FaiList<Param> rtPdScSkuInfoList) {
-        return setPdSkuScInfoList(aid, tid, unionPriId, null, pdId, updaterList, rtPdScSkuInfoList);
+        return setPdSkuScInfoList(aid, tid, unionPriId, "", pdId, updaterList, rtPdScSkuInfoList);
     }
     /**
      * 批量修改产品规格SKU

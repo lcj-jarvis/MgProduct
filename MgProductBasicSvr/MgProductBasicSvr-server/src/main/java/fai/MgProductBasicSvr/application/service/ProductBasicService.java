@@ -228,7 +228,11 @@ public class ProductBasicService extends BasicParentService {
             boolean commit = false;
             try {
                 tc.setAutoCommit(false);
-
+                // xid不为空，则开启了分布式事务，saga添加一条记录
+                if(!Str.isEmpty(xid)) {
+                    SagaProc sagaProc = new SagaProc(flow, aid, tc);
+                    sagaProc.addInfo(aid, xid);
+                }
 
                 ProductRelProc relProc = new ProductRelProc(flow, aid, tc, xid, true);
                 FaiList<Integer> pdIds = relProc.getPdIds(aid, ownUnionPriId, sysType, new HashSet<>(rlPdIds));
@@ -1136,8 +1140,8 @@ public class ProductBasicService extends BasicParentService {
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getReducedRelsByPdIds(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> pdIds) throws IOException {
         int rt;
-        if(!MgProductCheck.RequestLimit.checkReadSize(aid, pdIds)) {
-            return Errno.SIZE_LIMIT;
+        if(Utils.isEmptyList(pdIds)) {
+            throw new MgException(Errno.ARGS_ERROR, "args error, pdIds is empty;aid=%d;pdIds=%s;", aid, pdIds);
         }
 
         FaiList<Param> list;
@@ -1388,7 +1392,7 @@ public class ProductBasicService extends BasicParentService {
                         }
                     }
 
-                    FaiList<Integer> curTagIds = rlGroupIds.get(i);
+                    FaiList<Integer> curTagIds = rlTagIds.get(i);
                     if(!curTagIds.isEmpty()) {
                         for(Integer rlTagId : curTagIds) {
                             Param bindTag = new Param();
@@ -1420,7 +1424,7 @@ public class ProductBasicService extends BasicParentService {
                 // 新增标签绑定
                 if(!bindRlTags.isEmpty()) {
                     ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
-                    bindTagProc.batchBindTagList(aid, unionPriId, bindRlGroups);
+                    bindTagProc.batchBindTagList(aid, unionPriId, bindRlTags);
                 }
 
                 // 新增参数绑定

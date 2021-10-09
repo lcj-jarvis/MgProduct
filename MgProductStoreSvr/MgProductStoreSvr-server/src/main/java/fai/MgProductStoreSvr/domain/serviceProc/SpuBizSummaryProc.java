@@ -109,6 +109,24 @@ public class SpuBizSummaryProc {
         cacheManage.addDirtyCacheKey(aid, unionPriId_pdIds);
         return rt;
     }
+    public int setSingle(int aid, int unionPriId, int pdId, ParamUpdater updater, boolean isSaga) {
+        if(updater == null || updater.isEmpty()) {
+            Log.logErr("arg error;flow=%d;aid=%s;", m_flow, aid);
+            return Errno.ARGS_ERROR;
+        }
+        Map<Integer, FaiList<Integer>> unionPriId_pdIds = new HashMap<>();
+        unionPriId_pdIds.put(unionPriId, Utils.asFaiList(pdId));
+
+        ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+
+        int rt = doUpdate(aid, matcher, updater, isSaga);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "spu batchUpdate err;aid=%d;", aid);
+            return rt;
+        }
+        cacheManage.addDirtyCacheKey(aid, unionPriId_pdIds);
+        return rt;
+    }
 
     public int cloneBizBind(int aid, int fromUnionPriId, int toUnionPriId) {
         ParamMatcher delMatcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
@@ -300,8 +318,7 @@ public class SpuBizSummaryProc {
         // Saga 模式下需要记录下原始数据
         if (isSaga) {
             if (!listRef.value.isEmpty()) {
-                FaiList<Param> cloneList = listRef.value.clone();
-                preAddUpdateSaga(aid, cloneList);
+                preAddUpdateSaga(aid, listRef.value);
             }
         }
         // 移除unionPriId
@@ -889,6 +906,50 @@ public class SpuBizSummaryProc {
             Set<Integer> set = getSet(dataType);
             set.add(unionPriId);
         }
+    }
+
+    private int doUpdate(int aid, ParamMatcher matcher, ParamUpdater updater, boolean isSaga) {
+        int rt;
+        if(matcher == null || updater == null || updater.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "update args err;aid=%d;matcher=%s;updater=%s", aid, matcher.toJson(), updater.toJson());
+            return rt;
+        }
+        matcher.and(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+
+        // Saga 模式下需要记录下原始数据
+        if (isSaga) {
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            rt = searchFromDB(aid, matcher, listRef);
+            if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                return rt;
+            }
+            preAddUpdateSaga(aid, listRef.value);
+        }
+
+        rt = m_daoCtrl.update(updater, matcher);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "spu batchUpdate err;aid=%d;", aid);
+            return rt;
+        }
+
+        return rt;
+    }
+
+    private int searchFromDB(int aid, ParamMatcher matcher, Ref<FaiList<Param>> listRef) {
+        matcher.and(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        int rt = m_daoCtrl.select(searchArg, listRef);
+        if(rt == Errno.NOT_FOUND) {
+            Log.logDbg(rt, "not found;aid=%d;matcher=%s;", aid, matcher.toJson());
+           return rt;
+        }
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "select error;aid=%d;matcher=%s;", aid, matcher.toJson());
+            return rt;
+        }
+        return rt;
     }
 
     // 记录删除前的原数据

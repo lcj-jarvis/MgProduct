@@ -362,7 +362,7 @@ public class StoreSalesSkuProc {
         // 分布式事务，预记录要修改的数据
         if (isSaga) {
             if (!listRef.value.isEmpty()) {
-                preAddUpdateSaga(aid, listRef.value.clone());
+                preAddUpdateSaga(aid, listRef.value);
             }
         }
         Map<SkuBizKey, Param> oldDataMap = new HashMap<>(listRef.value.size()*4/3+1);

@@ -57,6 +57,8 @@ public class MgProductStoreCmd {
 		public static final int NUM27 = 1027;
 		public static final int NUM28 = 1028;
 		public static final int NUM29 = 1029;
+		public static final int NUM30 = 1030;
+		public static final int NUM31 = 1031;
 	}
 
 	////////////////// cmd对外定义，实际做cmd读写分离 ////////////////////
@@ -136,6 +138,10 @@ public class MgProductStoreCmd {
 		 * 直接从db搜索，返回部分字段
 		 */
 		public static final int SEARCH_PART_FIELD = ReadCmdNum.NUM11;
+
+
+		public static final int SET = WriteCmdNum.NUM30;
+		public static final int SET_ROLLBACK = WriteCmdNum.NUM31;
 	}
 
 	/**

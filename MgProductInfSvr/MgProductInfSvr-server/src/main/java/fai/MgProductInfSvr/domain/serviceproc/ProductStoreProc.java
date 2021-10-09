@@ -138,6 +138,21 @@ public class ProductStoreProc extends AbstractProductProc{
         return rt;
     }
 
+    public int setSpuBizSummary(int aid, String xid, int unionPriId, int pdId, ParamUpdater updater) {
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;uid=%s;pdId=%s;update=%s;", m_flow, aid, pdId, updater.toJson());
+            return rt;
+        }
+        rt = m_cli.setSpuBizSummary(aid, xid, unionPriId, pdId, updater);
+        if (rt != Errno.OK) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;uid=%s;pdId=%s;update=%s;", m_flow, aid, pdId, updater.toJson());
+            return rt;
+        }
+        return rt;
+    }
+
     /**
      * 批量扣减库存
      * @param skuIdCountList [{ skuId: 122, count:12},{ skuId: 142, count:2}] count > 0

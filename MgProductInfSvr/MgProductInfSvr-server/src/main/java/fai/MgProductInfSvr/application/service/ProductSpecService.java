@@ -671,7 +671,7 @@ public class ProductSpecService extends MgProductInfService {
             int pdId = idRef.value;
 
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
-            rt = productSpecProc.setPdSkuScInfoList(aid, tid, unionPriId, null, pdId, updaterList);
+            rt = productSpecProc.setPdSkuScInfoList(aid, tid, unionPriId, "", pdId, updaterList);
             if(rt != Errno.OK) {
                 return rt;
             }

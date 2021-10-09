@@ -1,4 +1,4 @@
-package fai.MgProductSearchSvr.domain.repository.cache;
+package fai.MgProductSearchSvr.domain.repository;
 
 import fai.MgProductInfSvr.interfaces.dto.MgProductSearchDto;
 import fai.MgProductSearchSvr.application.MgProductSearchSvr;
@@ -29,6 +29,7 @@ public class MgProductSearchCache {
      * ConcurrentHashMap<Integer, ParamListCache1>  eg: <unionPriId, ParamCache1>
      */
     private static final ConcurrentHashMap<Integer, ParamListCache1> M_LOCAL_MG_PRODUCT_SEARCH_DATA_CACHE = new ConcurrentHashMap<>();
+
     public static String getLocalMgProductSearchDataCacheKey(int aid, String searchTableName){
         return aid + "-" + searchTableName;
     }
@@ -56,6 +57,7 @@ public class MgProductSearchCache {
      * 数据的更新时间和总条数的缓存
      */
     private static final ParamCache1 M_LOCAL_DATA_STATUS_CACHE = new ParamCache1();
+
     public static class LocalDataStatusCache {
         public static String getDataStatusCacheKey(int aid, int unionPriId, String searchTableName) {
             return aid + "-" + unionPriId + "-" + searchTableName;
@@ -75,10 +77,12 @@ public class MgProductSearchCache {
      * 搜索结果集的缓存
      */
     private static RedisCacheManager m_result_cache;
+
     public static class ResultCache {
 
         // 无效的缓存时间 30s
         public static final Long INVALID_CACHE_TIME = 30000L;
+
         public static final String CACHE_CONFIG_KEY = "cacheConfigKey";
 
         public static String getResultCacheKey(int aid, int unionPriId, String esSearchParamString, String dbSearchParamString){

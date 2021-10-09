@@ -209,5 +209,5 @@ public interface MgProductBasicCli extends BaseRpcClient {
     @Async
     @Cmd(MgProductBasicCmd.BindTagCmd.GET_ALL_DATA)
     @RecvDecoder(value = {@RecvDecoder.Decoder(key = ProductBindTagDto.Key.INFO_LIST, keyClass = FaiList.class, classDef = ProductBindTagDto.class, methodDef = "getInfoDto")})
-    DefaultFuture getAllPdBindTag(@ArgAid final int aid, @ArgBodyInteger(ProductBindTagDto.Key.UNION_PRI_ID) int unionPriId);
+    DefaultFuture getAllPdBindTagData(@ArgAid final int aid, @ArgBodyInteger(ProductBindTagDto.Key.UNION_PRI_ID) int unionPriId);
 }

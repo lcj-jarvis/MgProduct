@@ -1,19 +1,30 @@
 package fai.MgProductSearchSvr.domain.serviceproc;
 
-import fai.MgProductBasicSvr.interfaces.cli.MgProductBasicCli;
+import fai.MgProductBasicSvr.interfaces.cli.async.MgProductBasicCli;
 import fai.MgProductBasicSvr.interfaces.entity.ProductEntity;
+import fai.MgProductInfSvr.interfaces.entity.ProductBasicEntity;
+import fai.MgProductInfSvr.interfaces.utils.BaseMgProductSearch;
 import fai.MgProductInfSvr.interfaces.utils.MgProductDbSearch;
+import fai.MgProductInfSvr.interfaces.utils.MgProductSearchResult;
 import fai.MgProductSearchSvr.application.MgProductSearchSvr;
-import fai.MgProductSearchSvr.domain.repository.cache.MgProductSearchCache;
-import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
-import fai.MgProductStoreSvr.interfaces.cli.MgProductStoreCli;
+import fai.MgProductSearchSvr.domain.comm.ParseData;
+import fai.MgProductSearchSvr.domain.repository.MgProductSearchCache;
+import fai.MgProductSpecSvr.interfaces.cli.async.MgProductSpecCli;
+import fai.MgProductStoreSvr.interfaces.cli.async.MgProductStoreCli;
+import fai.comm.jnetkit.server.fai.RemoteStandResult;
+import fai.comm.rpc.client.DefaultFuture;
+import fai.comm.rpc.client.FaiClientProxyFactory;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.misc.Utils;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Objects;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.function.BiConsumer;
+
+import static fai.MgProductSearchSvr.domain.serviceproc.MgProductSearchProc.SearchSorterInfo.*;
 
 /**
  * @author Lu
@@ -22,28 +33,353 @@ import java.util.Objects;
 public class MgProductSearchProc {
 
     /**
-     * 根据 ProductEntity.Info.PD_ID 去重
-     * @param resultList 去重的集合
-     * @param resultListKey 去重的key
-     * @return 返回去重后的集合
+     * 异步获取“es数据来源的表”对应的管理态和访客态最新的修改时间
+     * @param manageDataMaxChangeTime 管理态最新的修改时间
+     * @param visitorDataMaxChangeTime 访客态最新的修改时间
      */
-    public FaiList<Param> removeRepeatedByKey(FaiList<Param> resultList, String resultListKey){
-        FaiList<Param> filterList = new FaiList<Param>();
-        if(resultList.isEmpty()){
-            return filterList;
+    public void asyncGetEsDataStatus(int flow, int aid, int unionPriId, Ref<Long> manageDataMaxChangeTime, Ref<Long> visitorDataMaxChangeTime) {
+        // final避免后面改到
+        final TreeSet<Long> manageDataChangeTimeSet = new TreeSet<>();
+        final TreeSet<Long> visitorDataChangeTimeSet = new TreeSet<>();
+
+        FaiClientProxyFactory.initFlowGenerator(() -> flow);
+        // 目前es的数据来源与商品表和商品业务表，所以搜索这两张表的数据状态
+        MgProductBasicCli asyncMgProductBasicCli = FaiClientProxyFactory.createProxy(MgProductBasicCli.class);
+
+        // 异步获取数据状态
+        DefaultFuture pdDataStatus = asyncMgProductBasicCli.getPdDaStatus(aid);
+        DefaultFuture pdRelDataStatus = asyncMgProductBasicCli.getPdRelDataStatus(aid, unionPriId);
+
+        Map<String, CompletableFuture> tableNameMappingFuture = new HashMap<>(16);
+        tableNameMappingFuture.put(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT.getSearchTableName(), pdDataStatus);
+        tableNameMappingFuture.put(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_REL.getSearchTableName(), pdRelDataStatus);
+
+        CountDownLatch countDownLatch = new CountDownLatch(tableNameMappingFuture.size());
+        tableNameMappingFuture.forEach((tableName, dataStatusFuture) -> {
+            // 异步回调获取结果
+            dataStatusFuture.whenCompleteAsync((BiConsumer<RemoteStandResult, Throwable>) (result, ex) -> {
+                if (result.isSuccess()) {
+                    Integer getParamKey = ParseData.TABLE_NAME_MAPPING_PARSE_DATA_STATUS_KEY.get(tableName);
+                    Param statusInfo = result.getObject(getParamKey, Param.class);
+                    synchronized (manageDataChangeTimeSet) {
+                        manageDataChangeTimeSet.add(statusInfo.getLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME));
+                    }
+                    synchronized (visitorDataChangeTimeSet) {
+                        visitorDataChangeTimeSet.add(statusInfo.getLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME));
+                    }
+                } else {
+                    int rt = result.getRt();
+                    throw new MgException(rt, "es get " + tableName + " dataStatus error;flow=%d,aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+                }
+                // 回调完成就减一
+                countDownLatch.countDown();
+            });
+        });
+
+        try {
+            // 同步阻塞等待回调执行完成
+            countDownLatch.await();
+        } catch (Exception e) {
+            throw new MgException(Errno.ERROR, "waiting get es dataStatus time out;flow=%d,aid=%d,unionPriId=%d;", flow, aid, unionPriId);
         }
-        // 去重集合
-        HashSet<Integer> idSetList = new HashSet<>();
-        for(Param info : resultList){
-            int id = info.getInt(resultListKey);
-            if(idSetList.contains(id)){
-                continue;
-            }
-            idSetList.add(id);
-            filterList.add(info);
-        }
-        return filterList;
+
+        manageDataMaxChangeTime.value = Math.max(manageDataMaxChangeTime.value, manageDataChangeTimeSet.last());
+        visitorDataMaxChangeTime.value = Math.max(visitorDataMaxChangeTime.value, visitorDataChangeTimeSet.last());
     }
+
+    /**
+     * 异步获取要搜索的表的数据状态
+     */
+    public void asyncCheckDataStatus(int flow, int aid, int unionPriId, int tid,
+                                     MgProductDbSearch mgProductDbSearch,
+                                     FaiList<Integer> esSearchResult,
+                                     final TreeSet<Long> manageDataChangeTimeSet,
+                                     final TreeSet<Long> visitorDataChangeTimeSet,
+                                     final Map<String, Param> tableMappingSearchAndSortInfo,
+                                     MgProductBasicCli asyncMgProductBasicCli,
+                                     MgProductStoreCli asyncMgProductStoreCli,
+                                     MgProductSpecCli asyncMgProductSpecCli) {
+
+        // 是否将es的idList直接当作db的查询条件
+        ParamMatcher idListFromEsParamMatcher = new ParamMatcher();
+        if (!Utils.isEmptyList(esSearchResult)) {
+            // 先手动给一个值用于测试
+            // int inSqlThreshold = 5;
+            int inSqlThreshold = getInSqlThreshold();
+            if (esSearchResult.size() == 1) {
+                Integer pdId = esSearchResult.get(0);
+                idListFromEsParamMatcher.and(ProductBasicEntity.ProductInfo.PD_ID, ParamMatcher.EQ, pdId);
+            } else if (esSearchResult.size() <= inSqlThreshold) {
+                idListFromEsParamMatcher.and(ProductBasicEntity.ProductInfo.PD_ID, ParamMatcher.IN, esSearchResult);
+            }
+        }
+
+        // 表名映射各个异步获取数据状态返回的CompletableFuture
+        Map<String, CompletableFuture> tableNameMappingFuture = new HashMap<>();
+        // 保存每个表对应的查询条件
+        Map<String, ParamMatcher> tableNameMappingSearchMatcher = new HashMap<>();
+
+        // 1、在 "商品与参数值关联表" mgProductBindProp_xxxx 搜索
+        ParamMatcher searchMatcher = mgProductDbSearch.getProductBindPropSearchMatcher(null);
+        String searchTableName = MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.getSearchTableName();
+        asyncGetDataStatusForEachTable(aid, unionPriId, tid, searchTableName, searchMatcher, idListFromEsParamMatcher, tableNameMappingFuture, tableNameMappingSearchMatcher, asyncMgProductBasicCli, asyncMgProductStoreCli, asyncMgProductSpecCli);
+
+        // 2、在 "商品业务销售总表" mgSpuBizSummary_xxxx 搜索
+        searchMatcher = mgProductDbSearch.getProductSpuBizSummarySearchMatcher(null);
+        searchTableName = MgProductDbSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.getSearchTableName();
+        asyncGetDataStatusForEachTable(aid, unionPriId, tid, searchTableName, searchMatcher, idListFromEsParamMatcher, tableNameMappingFuture, tableNameMappingSearchMatcher, asyncMgProductBasicCli, asyncMgProductStoreCli, asyncMgProductSpecCli);
+
+        // 3、"商品与标签关联表" mgProductBindTag_xxxx 搜索
+        searchMatcher = mgProductDbSearch.getProductBindTagSearchMatcher(null);
+        searchTableName = MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.getSearchTableName();
+        asyncGetDataStatusForEachTable(aid, unionPriId, tid, searchTableName, searchMatcher, idListFromEsParamMatcher, tableNameMappingFuture, tableNameMappingSearchMatcher, asyncMgProductBasicCli, asyncMgProductStoreCli, asyncMgProductSpecCli);
+
+        // 4、在 "商品与分类关联表" mgProductBindGroup_xxxx 搜索
+        searchMatcher = mgProductDbSearch.getProductBindGroupSearchMatcher(null);
+        searchTableName = MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.getSearchTableName();
+        asyncGetDataStatusForEachTable(aid, unionPriId, tid, searchTableName, searchMatcher, idListFromEsParamMatcher, tableNameMappingFuture, tableNameMappingSearchMatcher, asyncMgProductBasicCli, asyncMgProductStoreCli, asyncMgProductSpecCli);
+
+        // 5、在 "商品业务关系表" mgProductRel_xxxx 搜索
+        searchMatcher = mgProductDbSearch.getProductRelSearchMatcher(null);
+        searchTableName = MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_REL.getSearchTableName();
+        if (mgProductDbSearch.isEmpty()) {
+            // 执行到这里说明es和db的搜索条件都为空.因为es搜索条件不为空，db搜索条件为空的情况，在前面已经直接返回es里的搜索结果了。
+            // db搜索的表为空，就补充一张MG_PRODUCT_REL作为空搜索条件的表
+            tableNameMappingSearchMatcher.put(searchTableName, searchMatcher);
+            asyncGetDataStatus(aid, unionPriId, tid, searchTableName, tableNameMappingFuture, asyncMgProductBasicCli, asyncMgProductStoreCli, asyncMgProductSpecCli);
+        }  else {
+            // 或者es的搜索条件为空，db的搜索条件不为空，或者es的不为空，db的搜索条件不为空
+            asyncGetDataStatusForEachTable(aid, unionPriId, tid, searchTableName, searchMatcher, idListFromEsParamMatcher, tableNameMappingFuture, tableNameMappingSearchMatcher, asyncMgProductBasicCli, asyncMgProductStoreCli, asyncMgProductSpecCli);
+        }
+
+        // 6、在"商品规格skuCode表" mgProductSpecSkuCode_0xxx 搜索
+        searchMatcher = mgProductDbSearch.getProductSpecSkuCodeSearchMatcher(null);
+        searchTableName = MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU_CODE.getSearchTableName();
+        asyncGetDataStatusForEachTable(aid, unionPriId, tid, searchTableName, searchMatcher, idListFromEsParamMatcher, tableNameMappingFuture, tableNameMappingSearchMatcher, asyncMgProductBasicCli, asyncMgProductStoreCli, asyncMgProductSpecCli);
+
+        // 7、在 "商品基础表" mgProduct_xxxx 搜索
+        searchMatcher = mgProductDbSearch.getProductBasicSearchMatcher(null);
+        searchTableName = MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT.getSearchTableName();
+        asyncGetDataStatusForEachTable(aid, unionPriId, tid, searchTableName, searchMatcher, idListFromEsParamMatcher, tableNameMappingFuture, tableNameMappingSearchMatcher, asyncMgProductBasicCli, asyncMgProductStoreCli, asyncMgProductSpecCli);
+
+        // 等待回调执行完成，获取结果
+        callbackGetDataStatus(flow, aid, unionPriId, tableNameMappingFuture, tableNameMappingSearchMatcher, mgProductDbSearch, manageDataChangeTimeSet, visitorDataChangeTimeSet, tableMappingSearchAndSortInfo);
+    }
+
+
+    /**
+     * 根据tableName异步获取该表的数据状态
+     * @param tableName 要获取数据状态的表
+     * @param tableNameMappingFuture 表名映射获取数据状态的DefaultFuture
+     */
+    public void asyncGetDataStatus(int aid, int unionPriId, int tid,
+                                    String tableName,
+                                    Map<String, CompletableFuture> tableNameMappingFuture,
+                                    MgProductBasicCli asyncMgProductBasicCli,
+                                    MgProductStoreCli asyncMgProductStoreCli,
+                                    MgProductSpecCli asyncMgProductSpecCli) {
+        // 从远端获取数据
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT.getSearchTableName().equals(tableName)){
+            DefaultFuture pdDaStatus = asyncMgProductBasicCli.getPdDaStatus(aid);
+            tableNameMappingFuture.put(tableName, pdDaStatus);
+        }
+
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_REL.getSearchTableName().equals(tableName)){
+            DefaultFuture pdRelDataStatus = asyncMgProductBasicCli.getPdRelDataStatus(aid, unionPriId);
+            tableNameMappingFuture.put(tableName, pdRelDataStatus);
+        }
+
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.getSearchTableName().equals(tableName)){
+            DefaultFuture bindPropDataStatus = asyncMgProductBasicCli.getBindPropDataStatus(aid, unionPriId);
+            tableNameMappingFuture.put(tableName, bindPropDataStatus);
+        }
+
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.getSearchTableName().equals(tableName)){
+            DefaultFuture bindGroupDataStatus = asyncMgProductBasicCli.getBindGroupDataStatus(aid, unionPriId);
+            tableNameMappingFuture.put(tableName, bindGroupDataStatus);
+        }
+
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.getSearchTableName().equals(tableName)){
+            DefaultFuture bindTagDataStatus = asyncMgProductBasicCli.getBindTagDataStatus(aid, unionPriId);
+            tableNameMappingFuture.put(tableName, bindTagDataStatus);
+        }
+
+        if(MgProductDbSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.getSearchTableName().equals(tableName)){
+            DefaultFuture spuBizSummaryDataStatus = asyncMgProductStoreCli.getSpuBizSummaryDataStatus(aid, tid, unionPriId);
+            tableNameMappingFuture.put(tableName, spuBizSummaryDataStatus);
+        }
+
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU_CODE.getSearchTableName().equals(tableName)){
+            DefaultFuture skuCodeDataStatus = asyncMgProductSpecCli.getSkuCodeDataStatus(aid, unionPriId);
+            tableNameMappingFuture.put(tableName, skuCodeDataStatus);
+        }
+
+    }
+
+    private void asyncGetDataStatusForEachTable(int aid, int unionPriId, int tid,
+                                                String tableName,
+                                                ParamMatcher searchMatcher,
+                                                ParamMatcher idListFromEsParamMatcher,
+                                                Map<String, CompletableFuture> tableNameMappingFuture,
+                                                Map<String, ParamMatcher> tableNameMappingSearchMatcher,
+                                                MgProductBasicCli asyncMgProductBasicCli,
+                                                MgProductStoreCli asyncMgProductStoreCli,
+                                                MgProductSpecCli asyncMgProductSpecCli) {
+        if(!searchMatcher.isEmpty()){
+            if (!idListFromEsParamMatcher.isEmpty()) {
+                // 添加es的idList作为查询条件
+                idListFromEsParamMatcher.and(idListFromEsParamMatcher);
+            }
+            tableNameMappingSearchMatcher.put(tableName, searchMatcher);
+            // 异步获取数据状态
+            asyncGetDataStatus(aid, unionPriId, tid, tableName, tableNameMappingFuture, asyncMgProductBasicCli, asyncMgProductStoreCli, asyncMgProductSpecCli);
+        }
+    }
+
+    /**
+     * 回调获取各个表的数据状态，并保存每张表对应的搜索和排序等信息到tableMappingSearchAndSortInfo
+     * @param tableNameMappingFuture 保存了表名映射获取数据状态的DefaultFuture
+     * @param tableNameMappingSearchMatcher 保存了表名映射对应的搜索条件
+     * @param manageDataChangeTimeSet 用于保存每张表关联态的修改时间
+     * @param visitorDataChangeTimeSet 用于保存每张表访客态的修改时间
+     * @param tableMappingSearchAndSortInfo 表名映射“包含搜索和排序等信息的Param”
+     */
+    public void callbackGetDataStatus(int flow, int aid, int unionPriId,
+                                      Map<String, CompletableFuture> tableNameMappingFuture,
+                                      Map<String, ParamMatcher> tableNameMappingSearchMatcher,
+                                      MgProductDbSearch mgProductDbSearch,
+                                      final TreeSet<Long> manageDataChangeTimeSet,
+                                      final TreeSet<Long> visitorDataChangeTimeSet,
+                                      final Map<String, Param> tableMappingSearchAndSortInfo) {
+        /**
+         * 为什么不用CompletableFuture的allOf方法呢，而用CountDownLatch呢?
+         * 因为CompletableFuture的allOf方法只是等待所有的CompletableFuture返回结果就停止阻塞，
+         * 而不是等待CompletableFuture的whenCompleteAsync回调执行完才停止阻塞。
+         */
+        CountDownLatch countDownLatch = new CountDownLatch(tableNameMappingFuture.size());
+        tableNameMappingFuture.forEach((tableName, defaultFuture) -> {
+            defaultFuture.whenCompleteAsync((BiConsumer<RemoteStandResult, Throwable>)(result, ex) -> {
+                if (result.isSuccess()) {
+                    // 获取缓存在本地的数据状态
+                    String cacheKey = MgProductSearchCache.LocalDataStatusCache.getDataStatusCacheKey(aid, unionPriId, tableName);
+                    Param localDataStatusCacheInfo = MgProductSearchCache.LocalDataStatusCache.getLocalDataStatusCache(cacheKey);
+
+                    // 获取远程的数据状态
+                    Integer getParamKey = ParseData.TABLE_NAME_MAPPING_PARSE_DATA_STATUS_KEY.get(tableName);
+                    Param remoteDataStatusInfo = result.getObject(getParamKey, Param.class);
+
+                    // 该表对应的查询条件
+                    ParamMatcher matcher = tableNameMappingSearchMatcher.get(tableName);
+                    initSearchAndSortInfoTask(tableName, matcher, localDataStatusCacheInfo, remoteDataStatusInfo, mgProductDbSearch, manageDataChangeTimeSet, visitorDataChangeTimeSet, tableMappingSearchAndSortInfo);
+
+                    Log.logStd(" finish getting " + tableName + " table dataStatus;flow=%d,aid=%d,unionPriId=%d;", flow, aid, unionPriId);
+                    // countDownLatch减一
+                    countDownLatch.countDown();
+                } else {
+                    int rt = result.getRt();
+                    throw new MgException(rt, "get " + tableName + " table dataStatus error;flow=%d,aid=%d,unionPriId=%d;", flow, aid, unionPriId);
+                }
+            });
+        });
+
+        // 阻塞等待回调执行完成
+        long begin = System.currentTimeMillis();
+        try {
+            // 可以设置回调超时时间
+            countDownLatch.await();
+            long end = System.currentTimeMillis();
+            Log.logStd("finish async get all dataStatus;consume " + (end - begin) + "ms;tableNameMappingFuture=%s", tableNameMappingFuture);
+        } catch (InterruptedException e) {
+            long end = System.currentTimeMillis();
+            throw new MgException(Errno.ERROR, "waiting each cli async get all dataStatus timeout;consume " + (end - begin) + "ms", tableNameMappingFuture);
+        }
+    }
+
+
+    /**
+     * 初始化每张表的搜索、排序、数据状态等信息，并保存这些信息到tableMappingSearchAndSortInfo中
+     * @param tableName 表名
+     * @param searchMatcher 该表对应的搜索条件
+     * @param localDataStatusCacheInfo 从本地缓存获取的数据状态
+     * @param remoteDataStatusInfo 从远程获取的数据状态
+     * @param manageDataChangeTimeSet 用于保存每张表关联态的修改时间
+     * @param visitorDataChangeTimeSet 用于保存每张表访客态的修改时间
+     * @param tableMappingSearchAndSortInfo 表名映射“包含搜索和排序等信息的Param”
+     */
+    public void initSearchAndSortInfoTask(String tableName,
+                                          ParamMatcher searchMatcher,
+                                          Param localDataStatusCacheInfo,
+                                          Param remoteDataStatusInfo,
+                                          MgProductDbSearch mgProductDbSearch,
+                                          final TreeSet<Long> manageDataChangeTimeSet,
+                                          final TreeSet<Long> visitorDataChangeTimeSet,
+                                          final Map<String, Param> tableMappingSearchAndSortInfo) {
+        // 首先判断本地缓存的数据和状态
+        boolean needGetDataFromRemote = false;
+        boolean isOnlySearchManageData = false;
+        if(!Str.isEmpty(localDataStatusCacheInfo) && !Str.isEmpty(remoteDataStatusInfo)){
+            // 是否只查管理态的数据
+            isOnlySearchManageData = mgProductDbSearch.getIsOnlySearchManageData(tableName);
+            /*
+                （1）管理态数据变动，影响所有的缓存, 因为管理变动可能会导致访客的数据变动
+                （2）如果有搜索访客字段，并且是访客字段时间有变动，需要 reload 数据
+                 以上两种情况满足其中一个就行
+             */
+            needGetDataFromRemote = localDataStatusCacheInfo.getLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME) < remoteDataStatusInfo.getLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME) ||
+                (!isOnlySearchManageData && localDataStatusCacheInfo.getLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME) < remoteDataStatusInfo.getLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME));
+            if (needGetDataFromRemote) {
+                localDataStatusCacheInfo = remoteDataStatusInfo;
+            }
+        } else if (Str.isEmpty(localDataStatusCacheInfo) && !Str.isEmpty(remoteDataStatusInfo)){
+            // 本地没有数据，如果进入搜索逻辑，则需要重新reload数据，赋值到新的 cache
+            localDataStatusCacheInfo = remoteDataStatusInfo;
+            needGetDataFromRemote = true;
+        } else if (Str.isEmpty(localDataStatusCacheInfo) && Str.isEmpty(remoteDataStatusInfo)){
+            throw new MgException(Errno.ERROR, "searchTableName=%s;localDataStatusCacheInfo == null && remoteDataStatusInfo == null err", tableName);
+        }
+
+        // 每次回调传过来的manageDataChangeTimeSet都是同一个对象，所以用这个锁
+        synchronized (manageDataChangeTimeSet) {
+            manageDataChangeTimeSet.add(localDataStatusCacheInfo.getLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME));
+        }
+
+        // 每次回调传过来的visitorDataChangeTimeSet都是同一个对象，所以用这个锁
+        if (!isOnlySearchManageData) {
+            synchronized (visitorDataChangeTimeSet) {
+                visitorDataChangeTimeSet.add(localDataStatusCacheInfo.getLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME));
+            }
+        }
+        int dataAllSize = localDataStatusCacheInfo.getInt(DataStatus.Info.TOTAL_SIZE);
+        long manageDataUpdateTime = localDataStatusCacheInfo.getLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME);
+        long visitorDataUpdateTime = localDataStatusCacheInfo.getLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME);
+
+        // 设置需要搜索的信息
+        initTableMappingSearchAndSortInfo(tableMappingSearchAndSortInfo, dataAllSize, manageDataUpdateTime, visitorDataUpdateTime, tableName, needGetDataFromRemote, searchMatcher);
+    }
+
+    /**
+     * 设置需要搜索的信息和排序
+     * @param tableMappingSearchAndSortInfo 线程安全的Map,表名映射“包含搜索和排序等信息的Param”
+     * @param dataAllSize 数据的总记录数
+     * @param manageDataUpdateTime 管理态最新的更新时间
+     * @param visitorDataUpdateTime 访客态最新的更新时间
+     * @param searchTableName 搜索的表
+     * @param needGetDataFromRemote 是否需要调用远程的cli从db获取数据
+     * @param searchMatcher 搜索的条件
+     */
+    private void initTableMappingSearchAndSortInfo(final Map<String, Param> tableMappingSearchAndSortInfo, int dataAllSize, long manageDataUpdateTime, long visitorDataUpdateTime, String searchTableName, boolean needGetDataFromRemote, ParamMatcher searchMatcher) {
+        Param info = new Param();
+        info.setString(MgProductSearchProc.SearchSorterInfo.SEARCH_TABLE, searchTableName);
+        info.setInt(MgProductSearchProc.SearchSorterInfo.DATA_COUNT, dataAllSize);
+        info.setBoolean(MgProductSearchProc.SearchSorterInfo.NEED_GET_DATA_FROM_REMOTE, needGetDataFromRemote);
+        info.setLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME, manageDataUpdateTime);
+        info.setLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME, visitorDataUpdateTime);
+        info.setInt(DataStatus.Info.TOTAL_SIZE, dataAllSize);
+        info.setObject(SEARCH_MATCHER, searchMatcher);
+        // 线程安全的Map
+        tableMappingSearchAndSortInfo.put(searchTableName, info);
+    }
+
 
     /**
      * 由ParamList 提取业务商品 idList
@@ -52,7 +388,7 @@ public class MgProductSearchProc {
      * @return 返回提取后的List
      */
     public FaiList<Integer> toIdList(FaiList<Param> resultList, String key){
-        FaiList<Integer> idList = new FaiList<Integer>();
+        FaiList<Integer> idList = new FaiList<>();
         for(Param info : resultList){
             Integer keyVal = info.getInt(key);
             if(keyVal != null){
@@ -62,335 +398,346 @@ public class MgProductSearchProc {
         return idList;
     }
 
-    // 可以理解为取resultList和searchList根据resultListKey的交集部分，但是返回的交集部分的结果是在searchList的结果
-    // 根据 set 的缓存重新过滤数据
-    // 先获取包含在resultList中searchKey对应的数据，保存到Set中。
-    // 再遍历searchList，保存searchList中包含在Set中的数据到List中，最后返回List。
-    public FaiList<Param> searchListFilterBySearchResultList(FaiList<Param> resultList, String resultListKey, FaiList<Param> searchList, String searchListKey){
-        FaiList<Param> filterList = new FaiList<Param>();
-        // 转换为 set 的集合
-        HashSet<Integer> resultSetList = faiListToHashIdSet(resultList, resultListKey);
-        for(Param info : searchList){
-            if(resultSetList.contains(info.getInt(searchListKey))){
-                filterList.add(info);
-            }
-        }
-        return filterList;
+    /**
+     * 整合并添加搜索结果到缓存
+     * @param idList 缓存的pdId List
+     * @param manageDataCacheTime 管理态数据最新的修改时间
+     * @param visitDataCacheTime  访客态数据的最新修改时间
+     * @param cacheKey 缓存的key
+     * @return 返回包含缓存结果的Param
+     */
+    public Param integrateAndAddCache(FaiList<Integer> idList, Long manageDataCacheTime, Long visitDataCacheTime, String cacheKey) {
+        // 缓存的数据
+        Param resultCacheInfo = new Param();
+        resultCacheInfo.setList(MgProductSearchResult.Info.ID_LIST, idList);
+        resultCacheInfo.setInt(MgProductSearchResult.Info.TOTAL, idList.size());
+        resultCacheInfo.setLong(MgProductSearchResult.Info.MANAGE_DATA_CACHE_TIME, manageDataCacheTime);
+        resultCacheInfo.setLong(MgProductSearchResult.Info.VISTOR_DATA_CACHE_TIME, visitDataCacheTime);
+        // 缓存处理，先删除再添加
+        MgProductSearchCache.ResultCache.delCache(cacheKey);
+        MgProductSearchCache.ResultCache.addCacheInfo(cacheKey, resultCacheInfo);
+        return resultCacheInfo;
     }
 
-    public FaiList<Param> getSearchResult(ParamMatcher searchMatcher, FaiList<Param> searchList, FaiList<Param> resultList, String searchKey){
-        // 非第一次搜索，进入 set<id> 的过滤逻辑，减少搜索集合，提高性能
-        if(resultList != null && !resultList.isEmpty()){
-            // 先获取包含在resultList中searchKey对应的数据，保存到Set中。
-            // 再遍历searchList，保存searchList中包含在Set中的数据到List中，最后返回List。
-            searchList = searchListFilterBySearchResultList(resultList, searchKey, searchList, searchKey);
+    /**
+     *  作用
+     * （1）如果es中搜索过的字段，db中不再搜索
+     */
+    public void removeSameSearchFields(Param esSearchParam, Param dbSearchParam) {
+        // 避免NPE
+        if (esSearchParam == null) {
+            esSearchParam = new Param();
         }
-        if(searchList.isEmpty()){
-            return searchList;
+        if (dbSearchParam == null) {
+            dbSearchParam = new Param();
         }
+
+        /*if (esSearchParam.containsKey(BaseMgProductSearch.BaseSearchInfo.SEARCH_KEYWORD)) {
+            dbSearchParam.remove(BaseMgProductSearch.BaseSearchInfo.SEARCH_KEYWORD);
+        }*/
+        // 如果关键词已经在es用做了商品名称搜索，就不在db中用作商品名称搜索了
+        boolean useSearchKeywordAsPdNameInEs = esSearchParam.containsKey(BaseMgProductSearch.BaseSearchInfo.SEARCH_KEYWORD) &&
+            esSearchParam.getBoolean(BaseMgProductSearch.BaseSearchInfo.ENABLE_SEARCH_PRODUCT_NAME, false);
+        if (useSearchKeywordAsPdNameInEs) {
+            dbSearchParam.remove(BaseMgProductSearch.BaseSearchInfo.ENABLE_SEARCH_PRODUCT_NAME);
+        }
+        // 判断是否有公共的查询字段。es中搜索过了，db中不再进行搜索
+        if (esSearchParam.containsKey(BaseMgProductSearch.BaseSearchInfo.UP_SALES_STATUS)) {
+            dbSearchParam.remove(BaseMgProductSearch.BaseSearchInfo.UP_SALES_STATUS);
+        }
+
+        // 不移除以下代码的话：自定义排序 > db里设置的第一排序 > db里设置的第二排序 > es里设置的排序
+        // 根据看情况要不要移除吧，目前先移除
+        // 判断第一排序或者第二排序是否在es中
+//        boolean sortKeyInEs = esSearchParam.containsKey(BaseMgProductSearch.BaseSearchInfo.FIRST_COMPARATOR_KEY) ||
+//            esSearchParam.containsKey(BaseMgProductSearch.BaseSearchInfo.NEED_SECOND_COMPARATOR_SORTING);
+//        if (sortKeyInEs) {
+//            // 如果第一排序或者第二排序在es，则移除db里的第一排序和第二排序
+//            dbSearchParam.remove(BaseMgProductSearch.BaseSearchInfo.FIRST_COMPARATOR_KEY);
+//            dbSearchParam.remove(MgProductDbSearch.DbSearchInfo.FIRST_COMPARATOR_TABLE);
+//            dbSearchParam.remove(BaseMgProductSearch.BaseSearchInfo.NEED_SECOND_COMPARATOR_SORTING);
+//            dbSearchParam.remove(BaseMgProductSearch.BaseSearchInfo.SECOND_COMPARATOR_KEY);
+//            dbSearchParam.remove(MgProductDbSearch.DbSearchInfo.SECOND_COMPARATOR_TABLE);
+//        }
+    }
+
+    /**
+     * TODO 【注意】搜索结果返回的只是部分字段，如果要排序，要注意排序字段是否存在搜索结果中
+     * 从远端异步获取数据
+     * @param tableName 搜索的表
+     * @param searchArg 搜索条件
+     * @param addDataToLocalCache true表示全量load数据，并将数据到本地缓存
+     * @param tableNameMappingRemoteGetDataFuture 表名映射“从远程获取数据的异步任务”
+     */
+    private void asyncGetDataFromRemote(int aid, int tid, int unionPriId,
+                                       String tableName, SearchArg searchArg, boolean addDataToLocalCache,
+                                       Map<String, CompletableFuture> tableNameMappingRemoteGetDataFuture,
+                                       MgProductBasicCli asyncMgProductBasicCli,
+                                       MgProductStoreCli asyncMgProductStoreCli,
+                                       MgProductSpecCli asyncMgProductSpecCli) {
+
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT.getSearchTableName().equals(tableName)){
+            DefaultFuture pdDataFuture = addDataToLocalCache ? asyncMgProductBasicCli.getAllPdData(aid) : asyncMgProductBasicCli.searchPdFromDb(aid, searchArg);
+            tableNameMappingRemoteGetDataFuture.put(tableName, pdDataFuture);
+        }
+
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_REL.getSearchTableName().equals(tableName)){
+            DefaultFuture pdRelDataFuture = addDataToLocalCache ? asyncMgProductBasicCli.getAllPdRelData(aid, unionPriId) : asyncMgProductBasicCli.searchPdRelFromDb(aid, unionPriId, searchArg);
+            tableNameMappingRemoteGetDataFuture.put(tableName, pdRelDataFuture);
+        }
+
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.getSearchTableName().equals(tableName)){
+            DefaultFuture pdBindPropDataFuture = addDataToLocalCache ? asyncMgProductBasicCli.getAllBindPropData(aid, unionPriId) : asyncMgProductBasicCli.searchBindPropFromDb(aid, unionPriId, searchArg);
+            tableNameMappingRemoteGetDataFuture.put(tableName, pdBindPropDataFuture);
+        }
+
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.getSearchTableName().equals(tableName)){
+            DefaultFuture pdBindGroupDataFuture = addDataToLocalCache ? asyncMgProductBasicCli.getAllBindGroupData(aid, unionPriId) : asyncMgProductBasicCli.searchBindGroupFromDb(aid, unionPriId, searchArg);
+            tableNameMappingRemoteGetDataFuture.put(tableName, pdBindGroupDataFuture);
+        }
+
+        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.getSearchTableName().equals(tableName)){
+            DefaultFuture pdBindTagDataFuture = addDataToLocalCache ? asyncMgProductBasicCli.getAllPdBindTagData(aid, unionPriId) : asyncMgProductBasicCli.searchBindTagFromDb(aid, unionPriId, searchArg);
+            tableNameMappingRemoteGetDataFuture.put(tableName, pdBindTagDataFuture);
+        }
+
+        if(MgProductDbSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.getSearchTableName().equals(tableName)){
+            DefaultFuture spuBizSummaryDataFuture = addDataToLocalCache ? asyncMgProductStoreCli.getSpuBizSummaryAllData(aid, tid, unionPriId) : asyncMgProductStoreCli.searchSpuBizSummaryFromDb(aid, tid, unionPriId, searchArg);
+            tableNameMappingRemoteGetDataFuture.put(tableName, spuBizSummaryDataFuture);
+        }
+
+        // 目前提供的接口查询结果，只有这三个字段，Info.SKU_CODE, Info.PD_ID, Info.SKU_ID
+        if (MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU_CODE.getSearchTableName().equals(tableName)) {
+            DefaultFuture skuCodeDataFuture = addDataToLocalCache ? asyncMgProductSpecCli.getSkuCodeAllData(aid, unionPriId) : asyncMgProductSpecCli.searchSkuCodeFromDb(aid, unionPriId, searchArg);
+            tableNameMappingRemoteGetDataFuture.put(tableName, skuCodeDataFuture);
+        }
+    }
+
+    /**
+     * 从本地缓存中获取搜索结果
+     * @param tableName 表名
+     * @param searchMatcher 搜索条件
+     * @param localCacheDataList 本地缓存的结果
+     * @param tableNameMappingPdIdParam 表名 -> pdId -> Param 主要用于排序，目前排序的场景都是 pdId 与排序字段是一对一
+     * @param tableNameMappingPdIdBitSet 表名映射每张表的pdId的BitSet，主要用于取交集。多线程回调，使用线程安全的Map
+     * @return 返回本地缓存保存的搜索结果
+     */
+    public FaiList<Param> getSearchResult(String tableName, ParamMatcher searchMatcher,
+                                          FaiList<Param> localCacheDataList,
+                                          Map<String, Map<Integer, Param>> tableNameMappingPdIdParam,
+                                          Map<String, BitSet> tableNameMappingPdIdBitSet) {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = searchMatcher;
         Searcher searcher = new Searcher(searchArg);
-        searchList = searcher.getParamList(searchList);
-        return searchList;
+        // 用搜索条件过滤后的结果
+        FaiList<Param> searchResult = searcher.getParamList(localCacheDataList);
+
+        // 使用BitSet 是为了提高取交集的效率.最好初始化一下BitSet的大小。默认是64
+        BitSet pdIdBitSet = new BitSet();
+
+        // 目前pdId 和 排序字段都是一对一的场景
+        Map<Integer, Param> pdIdMappingParam = new HashMap<>(searchResult.size());
+
+        searchResult.forEach(info -> {
+            Integer pdId = info.getInt(ProductEntity.Info.PD_ID);
+            // BitSet 不包含，才保存
+            if (!pdIdBitSet.get(pdId)) {
+                pdIdBitSet.set(pdId);
+            }
+
+            if (!pdIdMappingParam.containsKey(pdId)) {
+                pdIdMappingParam.put(pdId, info);
+            }
+        });
+        Log.logStd("tableName=%s;pdIdBitSet=%s", tableName, pdIdBitSet);
+        // 主要用于排序
+        tableNameMappingPdIdParam.put(tableName, pdIdMappingParam);
+        // 主要用于取交集
+        tableNameMappingPdIdBitSet.put(tableName, pdIdBitSet);
+        return searchResult;
     }
 
     /**
-     * 从远端获取数据
+     * 异步获取搜索结果
+     * @param searchAndSortInfo 保存搜索和排序等信息
+     * @param tableNameMappingRemoteGetDataFuture 表名映射“从远程获取数据的异步任务”
+     * @param tableNameMappingLocalGetDataFuture 表名映射“从本地缓存获取数据异步任务”
+     * @param tableNameMappingPdIdParamList 表名 -> pdId -> Param 主要用于排序，目前排序的场景都是 pdId 与排序字段是一对一
+     * @param tableNameMappingPdIdBitSet 表名映射每张表的pdId的BitSet，主要用于取交集。多线程回调，使用线程安全的Map
      */
-    public Param getDataStatusInfoFromEachSvr(int aid, int unionPriId, int tid, int flow, String tableName,
-                                              MgProductBasicCli mgProductBasicCli,
-                                              MgProductStoreCli mgProductStoreCli,
-                                              MgProductSpecCli mgProductSpecCli){
-        Param remoteDataStatusInfo = new Param();
-        int rt;
-        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT.getSearchTableName().equals(tableName)){
-            // 从远端获取数据, 待完善
-            rt = mgProductBasicCli.getPdDataStatus(aid, remoteDataStatusInfo);
-            if(rt != Errno.OK){
-                throw new MgException(rt, "getPdDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
-            }
-        }
+    public void asyncGetData(int flow, int aid, int tid, int unionPriId,
+                             Param searchAndSortInfo,
+                             Map<String, CompletableFuture> tableNameMappingRemoteGetDataFuture,
+                             Map<String, CompletableFuture> tableNameMappingLocalGetDataFuture,
+                             Map<String, Map<Integer, Param>> tableNameMappingPdIdParamList,
+                             Map<String, BitSet> tableNameMappingPdIdBitSet,
+                             MgProductBasicCli asyncMgProductBasicCli,
+                             MgProductStoreCli asyncMgProductStoreCli,
+                             MgProductSpecCli asyncMgProductSpecCli) {
 
-        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_REL.getSearchTableName().equals(tableName)){
-            // 从远端获取数据
-            rt = mgProductBasicCli.getPdRelDataStatus(aid, unionPriId, remoteDataStatusInfo);
-            if(rt != Errno.OK){
-                throw new MgException(rt, "getPdRelDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
-            }
-        }
-
-        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.getSearchTableName().equals(tableName)){
-            // 从远端获取数据
-            rt = mgProductBasicCli.getBindPropDataStatus(aid, unionPriId, remoteDataStatusInfo);
-            if(rt != Errno.OK){
-                throw new MgException(rt, "getBindPropDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
-            }
-        }
-
-        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.getSearchTableName().equals(tableName)){
-            // 从远端获取数据
-            rt = mgProductBasicCli.getBindGroupDataStatus(aid, unionPriId, remoteDataStatusInfo);
-            if(rt != Errno.OK){
-                throw new MgException(rt, "getBindGroupDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
-            }
-        }
-
-        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.getSearchTableName().equals(tableName)){
-            // 从远端获取数据
-            rt = mgProductBasicCli.getBindTagDataStatus(aid, unionPriId, remoteDataStatusInfo);
-            if(rt != Errno.OK){
-                throw new MgException(rt, "getBindTagDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
-            }
-        }
-
-        if(MgProductDbSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.getSearchTableName().equals(tableName)){
-            // 从远端获取数据, 待完善
-            rt = mgProductStoreCli.getSpuBizSummaryDataStatus(aid, tid, unionPriId, remoteDataStatusInfo);
-            if(rt != Errno.OK){
-                throw new MgException(rt, "getSpuBizSummaryDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
-            }
-        }
-
-        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU_CODE.getSearchTableName().equals(tableName)){
-            // 从远端获取数据, 待完善
-            rt = mgProductSpecCli.getSkuCodeDataStatus(aid, unionPriId, remoteDataStatusInfo);
-            if(rt != Errno.OK){
-                throw new MgException(rt, "getSkuCodeDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
-            }
-        }
-        return remoteDataStatusInfo;
-    }
-
-    /**
-     * 返回联合多个表进行查询得到的结果（实际上是逐个表进行查询，然后根据PdId取结果的交集）
-     */
-    public FaiList<Param> getSearchDataAndSearchResultList(int flow, int aid, int tid, int unionPriId,
-                                                           Param searchSorterInfo, FaiList<Param> resultList,
-                                                           MgProductBasicCli mgProductBasicCli,
-                                                           MgProductStoreCli mgProductStoreCli,
-                                                           MgProductSpecCli mgProductSpecCli){
-        String tableName = searchSorterInfo.getString(SearchSorterInfo.SEARCH_TABLE);
-        // 所有的表都有这个字段，用这个字段作为 filter 的过滤条件
-        String searchKey = ProductEntity.Info.PD_ID;
-        ParamMatcher searchMatcher = (ParamMatcher) searchSorterInfo.getObject(SearchSorterInfo.SEARCH_MATCHER);
-        int dataCount = searchSorterInfo.getInt(SearchSorterInfo.DATA_COUNT);
+        String tableName = searchAndSortInfo.getString(SearchSorterInfo.SEARCH_TABLE);
+        // 获取查询条件
+        ParamMatcher searchMatcher = (ParamMatcher) searchAndSortInfo.getObject(SearchSorterInfo.SEARCH_MATCHER);
+        int dataCount = searchAndSortInfo.getInt(SearchSorterInfo.DATA_COUNT);
+        // 全量缓存的阈值
         int dataLoadFromDbThreshold = getLoadFromDbThreshold(tableName);
-        boolean needLoadFromDb = dataCount > dataLoadFromDbThreshold;
-        if(!needLoadFromDb && searchMatcher.isEmpty() && !resultList.isEmpty()){
-            // 给补偿的搜索表补偿过滤条件
-            // 获取resultList中的idList
-            FaiList<Integer> idList = toIdList(resultList, searchKey);
-            searchMatcher.and(searchKey, ParamMatcher.IN, idList);
-        }
-        boolean needGetDataFromRemote = searchSorterInfo.getBoolean(SearchSorterInfo.NEED_GET_DATA_FROM_REMOTE);
-        // 直接从缓存中拿
-        if(!needGetDataFromRemote){
-            // ParamListCache1 localMgProductSearchData = getLocalMgProductSearchDataCache(unionPriId);
+        // 添加数据到本地缓存
+        boolean addDataToLocalCache = dataCount <= dataLoadFromDbThreshold;
+        searchAndSortInfo.setBoolean(SearchSorterInfo.ADD_DATA_TO_LOCAL_CACHE, addDataToLocalCache);
+        // 是否需要从远端获取数据
+        boolean needGetDataFromRemote = searchAndSortInfo.getBoolean(SearchSorterInfo.NEED_GET_DATA_FROM_REMOTE);
+        // 直接从缓存拿
+        if (!needGetDataFromRemote) {
+            // 从一级缓存获取数据
             ParamListCache1 localMgProductSearchData = MgProductSearchCache.getLocalMgProductSearchDataCache(unionPriId);
             String cacheKey = MgProductSearchCache.getLocalMgProductSearchDataCacheKey(aid, tableName);
-            if(localMgProductSearchData.containsKey(cacheKey)){
-                FaiList<Param> searchList = localMgProductSearchData.get(cacheKey);
-                searchSorterInfo.setList(SearchSorterInfo.SEARCH_DATA_LIST, searchList);
-                // 可以理解为先取resultList中对应searchKey的数据和searchList取交集，然后再取searchMatcher中满足条件的。
-                resultList = getSearchResult(searchMatcher, searchList, resultList, searchKey);
-                // Log.logDbg("needGetDataFromRemote=%s;tableName=%s;searchDataList=%s;", needGetDataFromRemote, tableName, searchSorterInfo.getList(SearchSorterInfo.SEARCH_DATA_LIST));
-                return resultList;
-            }else{
-                // 可能缓存被回收了，乐观点，重新获取数据吧
-                // searchSorterInfo.setList(SearchSorterInfo.SEARCH_DATA_LIST, new FaiList<Param>());
-                Log.logStd("cache1==null; flow=%s;aid=%d;unionPriId=%d;searchSorterInfo=%s;", flow, aid, unionPriId, searchSorterInfo);
+            if (localMgProductSearchData.containsKey(cacheKey)) {
+                FaiList<Param> localCacheDataList = localMgProductSearchData.get(cacheKey);
+                // 保存缓存的结果到searchAndSortInfo
+                searchAndSortInfo.setList(SearchSorterInfo.CACHE_DATA_LIST, localCacheDataList);
+                // 从缓存拿的也异步执行
+                CompletableFuture<FaiList<Param>> localGetDataFuture = CompletableFuture.supplyAsync(() -> getSearchResult(tableName, searchMatcher, localCacheDataList, tableNameMappingPdIdParamList, tableNameMappingPdIdBitSet));
+                // 添加到表名映射“从本地缓存获取数据异步任务”，用于回调
+                tableNameMappingLocalGetDataFuture.put(tableName, localGetDataFuture);
+                return;
+            } else {
+                // 可能缓存被回收，重新获取数据
+                Log.logStd("cache1==null; flow=%s;aid=%d;unionPriId=%d;searchSorterInfo=%s;", flow, aid, unionPriId, searchAndSortInfo);
             }
         }
 
-        // 需要发包获取数据
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = searchMatcher;
-        // 如果需要发包到svr进行搜索，加上 上一次的搜索结果的 idList
-        if(needLoadFromDb && !resultList.isEmpty()){
-            // 如果是按条件搜索db，就要加上前面搜索结果的PdId作为搜索的条件
-            FaiList<Integer> idList = toIdList(resultList, searchKey);
-            searchArg.matcher.and(searchKey, ParamMatcher.IN, idList);
-        }
-        // 需要真正获取的数据
-        FaiList<Param> searchDataList = getDataFromRemote(flow, aid, tid, unionPriId, tableName, needLoadFromDb, searchArg, mgProductBasicCli, mgProductStoreCli, mgProductSpecCli);
-        searchSorterInfo.setList(SearchSorterInfo.SEARCH_DATA_LIST, searchDataList);
-
-        // 全量 load 数据时，才做本地缓存
-        if(!needLoadFromDb){
-            // 进行搜索
-            resultList = getSearchResult(searchMatcher, searchDataList, resultList, searchKey);
-
-            // 设置各个表的全量本地缓存
-            ParamListCache1 localMgProductSearchData = MgProductSearchCache.getLocalMgProductSearchDataCache(unionPriId);
-            localMgProductSearchData.put(MgProductSearchCache.getLocalMgProductSearchDataCacheKey(aid, tableName), searchDataList);
-
-            // 设置各个表的本地缓存时间
-            Param dataStatusInfo = new Param();
-            dataStatusInfo.assign(searchSorterInfo, DataStatus.Info.MANAGE_LAST_UPDATE_TIME);
-            dataStatusInfo.assign(searchSorterInfo, DataStatus.Info.VISITOR_LAST_UPDATE_TIME);
-            dataStatusInfo.assign(searchSorterInfo, DataStatus.Info.TOTAL_SIZE);
-
-            String cacheKey = MgProductSearchCache.LocalDataStatusCache.getDataStatusCacheKey(aid, unionPriId, tableName);
-            MgProductSearchCache.LocalDataStatusCache.addLocalDataStatusCache(cacheKey, dataStatusInfo);
-        } else {
-            // TODO 需要注意的一点就是，按照条件进行搜索的时候，要看搜索结果的字段是否包含排序的字段，不然也排不了序
-
-            // 后面上线后需要干掉getSearchResult(searchMatcher, searchDataList, resultList, searchKey) 调用，
-            // 因为已经 把 matcher 放到 client 中，远端已经进行过了搜索
-            //resultList = getSearchResult(searchMatcher, searchDataList, resultList, searchKey);
-            resultList = searchDataList;
-        }
-        //Log.logDbg("needGetDataFromRemote=%s;needLoadFromDb=%s;tableName=%s;dataCount=%s;dataLoadFromDbThreshold=%s;resultList=%s;", needGetDataFromRemote, needLoadFromDb, tableName, dataCount, dataLoadFromDbThreshold, resultList);
-        return resultList;
+        // 从远端异步获取数据
+        asyncGetDataFromRemote(aid, tid, unionPriId, tableName, searchArg, addDataToLocalCache, tableNameMappingRemoteGetDataFuture, asyncMgProductBasicCli, asyncMgProductStoreCli, asyncMgProductSpecCli);
     }
 
-    public FaiList<Param> getDataFromRemote(int flow, int aid, int tid, int unionPriId,
-                                            String tableName, boolean needLoadFromDb, SearchArg searchArg,
-                                            MgProductBasicCli mgProductBasicCli,
-                                            MgProductStoreCli mgProductStoreCli,
-                                            MgProductSpecCli mgProductSpecCli) {
-        int rt;
-        // 需要真正获取的数据
-        FaiList<Param> searchDataList = new FaiList<>();
-        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT.getSearchTableName().equals(tableName)){
-            if(needLoadFromDb){
-                rt = mgProductBasicCli.searchPdFromDb(aid, searchArg, searchDataList);
-                if(rt != Errno.OK){
-                    Log.logErr(rt,"searchPdFromDb err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
+    /**
+     * 回调获取搜索结果
+     * @param tableNameMappingLocalGetDataFuture 表名映射“从本地缓存获取数据异步任务”
+     * @param tableNameMappingRemoteGetDataFuture 表名映射“从远程获取数据的异步任务”
+     * @param tableMappingSearchAndSortInfo  表名映射“包含搜索和排序等信息的Param”
+     * @param tableNameMappingPdIdParam  表名 -> pdId -> Param 主要用于排序，目前排序的场景都是 pdId 与排序字段是一对一
+     * @param tableNameMappingPdIdBitSet 表名映射每张表的pdId的BitSet，主要用于取交集。多线程回调，使用线程安全的Map
+     */
+    public void callbackGetResultList(int flow, int aid, int unionPriId,
+                                      Map<String, CompletableFuture> tableNameMappingLocalGetDataFuture,
+                                      Map<String, CompletableFuture> tableNameMappingRemoteGetDataFuture,
+                                      final Map<String, Param> tableMappingSearchAndSortInfo,
+                                      Map<String, Map<Integer, Param>> tableNameMappingPdIdParam,
+                                      Map<String, BitSet> tableNameMappingPdIdBitSet) {
+
+        CountDownLatch countDownLatch = new CountDownLatch(tableNameMappingLocalGetDataFuture.size() + tableNameMappingRemoteGetDataFuture.size());
+        // “从本地缓存获取数据的异步任务”回调获取结果
+        tableNameMappingLocalGetDataFuture.forEach((tableName, localGetDataFuture) -> {
+            localGetDataFuture.whenCompleteAsync((BiConsumer<FaiList<Param>, Throwable>) (searchResultList, throwable) -> {
+                Param searchAndSortInfo = tableMappingSearchAndSortInfo.get(tableName);
+                searchAndSortInfo.setList(SEARCH_RESULT_LIST, searchResultList);
+                Log.logStd("localGetDataFuture finish get data;aid=%d;unionPriId=%d;tableName=%s;searchResultList=%s", aid, unionPriId, tableName, searchResultList);
+                countDownLatch.countDown();
+            });
+        });
+
+        // “从远程获取数据的异步任务”回调获取结果
+        tableNameMappingRemoteGetDataFuture.forEach((tableName, remoteGetDataFuture) -> {
+            remoteGetDataFuture.whenCompleteAsync((BiConsumer<RemoteStandResult, Throwable>)(remoteStandResult, ex) -> {
+                if (remoteStandResult.isSuccess()) {
+                    FaiList<Param> searchResultList = remoteStandResult.getObject(ParseData.TABLE_NAME_MAPPING_PARSE_DATA_KEY.get(tableName), FaiList.class);
+                    Param searchAndSortInfo = tableMappingSearchAndSortInfo.get(tableName);
+                    Boolean addDataToLocalCache = searchAndSortInfo.getBoolean(ADD_DATA_TO_LOCAL_CACHE);
+                    if (addDataToLocalCache) {
+                        // 设置本地缓存和数据状态缓存
+                        searchAndSortInfo.setList(CACHE_DATA_LIST, searchResultList);
+                        // 设置各个表的全量数据到本地缓存
+                        ParamListCache1 localMgProductSearchData = MgProductSearchCache.getLocalMgProductSearchDataCache(unionPriId);
+                        // 线程安全类
+                        localMgProductSearchData.put(MgProductSearchCache.getLocalMgProductSearchDataCacheKey(aid, tableName), searchResultList);
+
+                        // 设置各个表的本地缓存时间
+                        Param dataStatusInfo = new Param();
+                        dataStatusInfo.assign(searchAndSortInfo, DataStatus.Info.MANAGE_LAST_UPDATE_TIME);
+                        dataStatusInfo.assign(searchAndSortInfo, DataStatus.Info.VISITOR_LAST_UPDATE_TIME);
+                        dataStatusInfo.assign(searchAndSortInfo, DataStatus.Info.TOTAL_SIZE);
+                        // 添加数据状态缓存
+                        String cacheKey = MgProductSearchCache.LocalDataStatusCache.getDataStatusCacheKey(aid, unionPriId, tableName);
+                        // 线程安全不用加锁
+                        MgProductSearchCache.LocalDataStatusCache.addLocalDataStatusCache(cacheKey, dataStatusInfo);
+
+                        // 此时的searchResultList还没有使用搜索条件过滤，使用搜索条件过滤
+                        ParamMatcher searchMatcher = (ParamMatcher) searchAndSortInfo.getObject(SEARCH_MATCHER);
+                        // 使用搜索条件过滤后的最终结果
+                        searchResultList = getSearchResult(tableName, searchMatcher, searchResultList, tableNameMappingPdIdParam, tableNameMappingPdIdBitSet);
+                    }
+                    // 保存搜索结果到searchAndSortInfo
+                    searchAndSortInfo.setList(SEARCH_RESULT_LIST, searchResultList);
+                    Log.logStd(" finish remote get " + tableName + " table data;flow=%d,aid=%d,unionPriId=%d;searchResultList=%s", flow, aid, unionPriId, searchResultList);
+                    countDownLatch.countDown();
+                } else {
+                    int rt = remoteStandResult.getRt();
+                    throw new MgException(rt, "remote get " + tableName + " table data error;flow=%d,aid=%d,unionPriId=%d;", flow, aid, unionPriId);
                 }
-                //Log.logDbg("searchPdFromDb, searchDataList=%s;", searchDataList);
-            }else{
-                rt = mgProductBasicCli.getAllPdData(aid, searchDataList);
-                if(rt != Errno.OK){
-                    Log.logErr(rt,"getAllPdData err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
-                }
-                //Log.logDbg("getAllPdData, searchDataList=%s;", searchDataList);
-            }
+            });
+        });
+
+        // 阻塞等待回调执行完成
+        long begin = System.currentTimeMillis();
+        try {
+            countDownLatch.await();
+            long end = System.currentTimeMillis();
+            Log.logStd("each table finish searching data;consume " + (end - begin) + "ms");
+        } catch (InterruptedException e) {
+            long end = System.currentTimeMillis();
+            throw new MgException("waiting for each table search data time out;consume " + (end - begin) + "ms");
         }
 
-        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_REL.getSearchTableName().equals(tableName)){
-            if(needLoadFromDb){
-                rt = mgProductBasicCli.searchPdRelFromDb(aid, unionPriId, searchArg, searchDataList);
-                if(rt != Errno.OK){
-                    Log.logErr(rt,"searchPdRelFromDb err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
-                }
-                //Log.logDbg("searchPdRelFromDb, searchDataList=%s;", searchDataList);
-            }else{
-                rt = mgProductBasicCli.getAllPdRelData(aid, unionPriId, searchDataList);
-                if(rt != Errno.OK){
-                    Log.logErr(rt,"getAllPdRelData err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
-                }
-                //Log.logDbg("getAllPdRelData, searchDataList=%s;", searchDataList);
-            }
-        }
-
-        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.getSearchTableName().equals(tableName)){
-            if(needLoadFromDb){
-                rt = mgProductBasicCli.searchBindPropFromDb(aid, unionPriId, searchArg, searchDataList);
-                if(rt != Errno.OK){
-                    Log.logErr(rt,"getBindGroupDataStatus err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
-                }
-                //Log.logDbg("searchBindPropFromDb, searchDataList=%s;", searchDataList);
-            }else{
-                rt = mgProductBasicCli.getAllBindPropData(aid, unionPriId, searchDataList);
-                if(rt != Errno.OK){
-                    Log.logErr(rt,"getAllBindPropData err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
-                }
-                //Log.logDbg("getAllBindPropData, searchDataList=%s;aid=%s;unionPriId=%s;", searchDataList, aid, unionPriId);
-            }
-        }
-
-        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.getSearchTableName().equals(tableName)){
-            if(needLoadFromDb){
-                rt = mgProductBasicCli.searchBindGroupFromDb(aid, unionPriId, searchArg, searchDataList);
-                if(rt != Errno.OK){
-                    Log.logErr(rt,"searchBindGroupFromDb err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
-                }
-                //Log.logDbg("searchBindGroupFromDb, searchDataList=%s;", searchDataList);
-            }else{
-                rt = mgProductBasicCli.getAllBindGroupData(aid, unionPriId, searchDataList);
-                if(rt != Errno.OK){
-                    Log.logErr(rt,"getAllBindGroupData err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
-                }
-                //Log.logDbg("getAllBindGroupData, searchDataList=%s;", searchDataList);
-            }
-        }
-
-        if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.getSearchTableName().equals(tableName)){
-            if(needLoadFromDb){
-                rt = mgProductBasicCli.getPdBindTagFromDb(aid, unionPriId, searchArg, searchDataList);
-                if(rt != Errno.OK){
-                    Log.logErr(rt,"searchBindTagFromDb err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
-                }
-                //Log.logDbg("searchBindGroupFromDb, searchDataList=%s;", searchDataList);
-            }else{
-                rt = mgProductBasicCli.getAllPdBindTag(aid, unionPriId, searchDataList);
-                if(rt != Errno.OK){
-                    Log.logErr(rt,"getAllBindTagData err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
-                }
-                //Log.logDbg("getAllBindGroupData, searchDataList=%s;", searchDataList);
-            }
-        }
-
-        if(MgProductDbSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.getSearchTableName().equals(tableName)){
-            if(needLoadFromDb){
-                rt = mgProductStoreCli.searchSpuBizSummaryFromDb(aid, tid, unionPriId, searchArg, searchDataList);
-                if(rt != Errno.OK){
-                    Log.logErr(rt,"searchSpuBizSummaryFromDb err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
-                }
-                //Log.logDbg("searchSpuBizSummaryFromDb, searchDataList=%s;", searchDataList);
-            }else{
-                rt = mgProductStoreCli.getSpuBizSummaryAllData(aid, tid, unionPriId, searchDataList);
-                if(rt != Errno.OK){
-                    Log.logErr(rt,"getSpuBizSummaryAllData err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
-                }
-                //Log.logDbg("getSpuBizSummaryAllData, searchDataList=%s;", searchDataList);
-            }
-        }
-
-        // 目前提供的接口查询结果
-        // 只有这三个字段
-        // Info.SKU_CODE,
-        // Info.PD_ID,
-        // Info.SKU_ID
-        if (MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU_CODE.getSearchTableName().equals(tableName)) {
-            if(needLoadFromDb){
-                rt = mgProductSpecCli.searchSkuCodeFromDb(aid, unionPriId, searchArg, searchDataList);
-                if(rt != Errno.OK){
-                    Log.logErr(rt,"searchSkuCodeFromDb err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
-                }
-                //Log.logDbg("searchSkuCodeFromDb, searchDataList=%s;", searchDataList);
-            }else{
-                rt = mgProductSpecCli.getSkuCodeAllData(aid, unionPriId, searchDataList);
-                if(rt != Errno.OK){
-                    Log.logErr(rt,"getSkuCodeAllData err, aid=%d;unionPriId=%d;flow=%d;", aid, unionPriId, flow);
-                }
-                //Log.logDbg("getSkuCodeAllData, searchDataList=%s;", searchDataList);
-            }
-        }
-        return searchDataList;
     }
 
-    // 根据指定的 key，把 FaiList 转换为 map
-    public static HashMap<Integer, Param> faiListToHashMap(FaiList<Param> resultList, String key){
-        HashMap<Integer, Param> searchHashMap = new HashMap<Integer, Param>();
-        for(Param p : resultList){
-            searchHashMap.put(p.getInt(key), p);
+    /**
+     * 整合排序字段的值到sortResult保存的Param中（用于多线程执行，先保留）
+     * @param needCompare 是否需要排序
+     * @param sortResult sortResult中的Param用于保存排序字段的值
+     * @param tableNameMappingPdIdParam 表名 -> pdId -> Param 主要用于排序，Param中包含排序字段的值，目前排序的场景都是 pdId 与排序字段是一对一
+     * @param comparatorTable 排序字段所在的表
+     * @param comparatorKey 排序字段
+     */
+    public void integrateComparatorFieldToSortResult(boolean needCompare, List<Param> sortResult, Map<String, Map<Integer, Param>> tableNameMappingPdIdParam, String comparatorTable, String comparatorKey, CountDownLatch countDownLatch) {
+        if (needCompare && !ProductEntity.Info.PD_ID.equals(comparatorKey)) {
+            // 遍历最终交集的结果
+            sortResult.forEach(info -> {
+                Integer pdId = info.getInt(ProductEntity.Info.PD_ID);
+                Map<Integer, Param> pdIdMappingParam = tableNameMappingPdIdParam.get(comparatorTable);
+                Param comparatorInfo = pdIdMappingParam.get(pdId);
+                // 将排序字段的值赋值到info上
+                synchronized (info) {
+                    info.assign(comparatorInfo, comparatorKey);
+                }
+            });
+            Log.logStd("finish integrating ComparatorField to sortResult;comparatorTable=%s;comparatorKey=%s;sortResult=%s", comparatorTable, comparatorKey, sortResult);
         }
-        return searchHashMap;
+        countDownLatch.countDown();
     }
 
-    // 根据指定的 key，把 FaiList 转换为 keySet
-    public static HashSet<Integer> faiListToHashIdSet(FaiList<Param> resultList, String key){
-        HashSet<Integer> searchSetList = new HashSet<Integer>();
-        for(Param p : resultList){
-            searchSetList.add(p.getInt(key));
+    /**
+     * 整合排序字段的值到sortResult保存的Param中（用于单线程执行，先保留）
+     * @param needCompare 是否需要排序
+     * @param info 用于保存排序字段的值
+     * @param tableNameMappingPdIdParam 表名 -> pdId -> Param 主要用于排序，Param中包含排序字段的值，目前排序的场景都是 pdId 与排序字段是一对一
+     * @param comparatorTable 排序字段所在的表
+     * @param comparatorKey 排序字段
+     */
+    public void integrateComparatorFieldToSortResult(boolean needCompare, Param info, Map<String, Map<Integer, Param>> tableNameMappingPdIdParam, String comparatorTable, String comparatorKey) {
+        if (needCompare && !ProductEntity.Info.PD_ID.equals(comparatorKey)) {
+            Integer pdId = info.getInt(ProductEntity.Info.PD_ID);
+            Map<Integer, Param> pdIdMapComparatorInfo = tableNameMappingPdIdParam.get(comparatorTable);
+            Param comparatorInfo = pdIdMapComparatorInfo.get(pdId);
+            info.assign(comparatorInfo, comparatorKey);
         }
-        return searchSetList;
     }
 
-    //  各个表从 svr load 数据的排序
+
+    /**
+     * 各表从db全量load数据的阈值
+     */
     public static int getLoadFromDbThreshold(String tableName){
         Param conf = ConfPool.getConf(MgProductSearchSvr.SvrConfigGlobalConf.svrConfigGlobalConfKey);
         int defaultThreshold = 1000;
@@ -402,7 +749,9 @@ public class MgProductSearchProc {
             .getInt(tableName, defaultThreshold);
     }
 
-    // 使用es中获取到PdId使用In Sql的阈值。
+    /**
+     * 使用es中获取到PdId使用In Sql的阈值。
+     */
     public int getInSqlThreshold() {
         Param conf = ConfPool.getConf(MgProductSearchSvr.SvrConfigGlobalConf.svrConfigGlobalConfKey);
         int defaultThreshold = 1000;
@@ -412,12 +761,14 @@ public class MgProductSearchProc {
         return conf.getInt(MgProductSearchSvr.SvrConfigGlobalConf.useIdFromEsAsInSqlThresholdKey, defaultThreshold);
     }
 
-    // 用于从哪个表的数据开始做数据搜索，做各个表的数据量大小排优处理, 由小表的数据到大表的数据做搜索
+
     public static final class SearchSorterInfo{
-        public static final String SEARCH_TABLE = "st";
-        public static final String DATA_COUNT = "dc";
-        public static final String NEED_GET_DATA_FROM_REMOTE = "ngdfr";
-        public static final String SEARCH_DATA_LIST = "sdl";
-        public static final String SEARCH_MATCHER = "sm";
+        public static final String SEARCH_TABLE = "searchTable";
+        public static final String SEARCH_MATCHER = "searchMatcher";
+        public static final String NEED_GET_DATA_FROM_REMOTE = "needGetDataFromRemote";
+        public static final String DATA_COUNT = "dataCount";
+        public static final String CACHE_DATA_LIST = "cacheDataList";
+        public static final String SEARCH_RESULT_LIST = "searchResultList";
+        public static final String ADD_DATA_TO_LOCAL_CACHE = "addDataToLocalCache";
     }
 }

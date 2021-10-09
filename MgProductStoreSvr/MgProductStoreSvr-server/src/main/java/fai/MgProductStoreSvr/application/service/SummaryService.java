@@ -303,7 +303,9 @@ public class SummaryService extends StoreService {
                     return rt;
                 }
             }finally {
-                spuBizSummaryDaoCtrl.closeDao();
+                if (spuBizSummaryDaoCtrl != null) {
+                    spuBizSummaryDaoCtrl.closeDao();
+                }
             }
             Param dataStatus = new Param()
                     .setInt(DataStatus.Info.TOTAL_SIZE, totalRef.value)

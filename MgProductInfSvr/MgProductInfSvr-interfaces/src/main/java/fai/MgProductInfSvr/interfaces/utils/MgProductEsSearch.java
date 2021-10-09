@@ -82,7 +82,7 @@ public class MgProductEsSearch extends BaseMgProductSearch{
     public static final class EsSearchPrimaryKeyOrder {
         public static final Integer AID_ORDER = 0;
         public static final Integer PDID_ORDER = 1;
-        public static final Integer UNIONPRIID_ORDER = 2;
+        public static final Integer UNION_PRIID_ORDER = 2;
     }
 
     /**

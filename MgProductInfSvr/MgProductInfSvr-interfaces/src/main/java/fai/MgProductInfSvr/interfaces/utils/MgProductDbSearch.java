@@ -197,7 +197,8 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         // 对应mgProductSpecSkuCode，商品规格skuCode表
         MG_PRODUCT_SPEC_SKU_CODE("pssc");
 
-        private String searchTableName;
+        private final String searchTableName;
+
         SearchTableNameEnum(String searchTableName) {
             this.searchTableName = searchTableName;
         }

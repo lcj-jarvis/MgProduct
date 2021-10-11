@@ -133,5 +133,7 @@ public class ProductRelDto {
         public static final int SYS_TYPE = 17;
         public static final int FROM_UNION_PRI_ID = 18;
         public static final int STATUS = 19;
+        public static final int RESTORE_ID = 20;
+        public static final int BACKUP_INFO = 21;
     }
 }

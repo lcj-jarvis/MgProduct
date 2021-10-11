@@ -461,7 +461,10 @@ public class MgProductInfService extends ServicePub {
         ProductGroupProc groupProc = new ProductGroupProc(flow);
         groupProc.backupData(aid, unionPriIds, backupInfo);
 
-        //TODO 备份基础数据
+        // 备份基础数据
+        ProductBasicProc basicProc = new ProductBasicProc(flow);
+        basicProc.backupData(aid, unionPriIds, backupInfo);
+
         //备份库数据
         ProductLibProc libProc = new ProductLibProc(flow);
         libProc.backupData(aid, unionPriIds, backupInfo);
@@ -510,7 +513,12 @@ public class MgProductInfService extends ServicePub {
             groupProc.restoreBackup(aid, unionPriIds, restoreId, backupInfo);
         }
 
-        //TODO 还原基础数据
+        // 还原基础数据
+        if(restoreAll || restoreOption.getBoolean(MgProductEntity.Option.BASIC, false)) {
+            ProductBasicProc basicProc = new ProductBasicProc(flow);
+            basicProc.restoreBackup(aid, unionPriIds, restoreId, backupInfo);
+        }
+
         //还原库数据
         if (restoreAll || restoreOption.getBoolean(MgProductEntity.Option.LIB, false)) {
             ProductLibProc libProc = new ProductLibProc(flow);
@@ -551,7 +559,10 @@ public class MgProductInfService extends ServicePub {
         ProductGroupProc groupProc = new ProductGroupProc(flow);
         groupProc.delBackup(aid, backupInfo);
 
-        //TODO 删除基础数据备份
+        // 删除基础数据备份
+        ProductBasicProc basicProc = new ProductBasicProc(flow);
+        basicProc.delBackup(aid, backupInfo);
+
         //删除库数据备份
         ProductLibProc libProc = new ProductLibProc(flow);
         libProc.delBackup(aid, backupInfo);

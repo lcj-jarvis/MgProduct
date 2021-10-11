@@ -28,6 +28,12 @@
         </dependency>
 
         <dependency>
+            <groupId>MgCommon</groupId>
+            <artifactId>MgBackupSvr-interfaces</artifactId>
+            <version>${MgCommon-MgBackupSvr-interfaces-ver}</version>
+        </dependency>
+
+        <dependency>
             <groupId>fai-comm-util-arch</groupId>
             <artifactId>fai-comm-util-arch</artifactId>
             <version>${fai-comm-util-arch-ver}</version>
@@ -57,7 +63,6 @@
             <artifactId>fai-comm-util-opt</artifactId>
             <version>${fai-comm-util-opt-ver}</version>
         </dependency>
-
     </dependencies>
 
     <distributionManagement>

@@ -70,6 +70,9 @@ public class MgProductBasicCmd {
         public static final int NUM29 = 1029; /** @see BasicCmd#BATCH_SET_4YK */
         public static final int NUM30 = 1030; /** @see BasicCmd#BATCH_SET_4YK_ROLLBACK */
         public static final int NUM31 = 1031; /** @see Cmd#MIGRATE */
+        public static final int NUM32 = 1032; /** @see Cmd#BACKUP */
+        public static final int NUM33 = 1033; /** @see Cmd#RESTORE */
+        public static final int NUM34 = 1034; /** @see Cmd#DEL_BACKUP */
     }
 
     /**
@@ -147,5 +150,8 @@ public class MgProductBasicCmd {
 
     public static class Cmd {
         public static final int MIGRATE = WriteCmdNum.NUM31;
+        public static final int BACKUP = WriteCmdNum.NUM32;
+        public static final int RESTORE = WriteCmdNum.NUM33;
+        public static final int DEL_BACKUP = WriteCmdNum.NUM34;
     }
 }

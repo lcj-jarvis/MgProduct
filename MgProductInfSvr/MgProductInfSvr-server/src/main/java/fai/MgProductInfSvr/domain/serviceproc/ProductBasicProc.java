@@ -616,6 +616,44 @@ public class ProductBasicProc {
     /********************************************商品和标签的关联结束********************************************************/
 
 
+    /**
+     * 备份数据
+     * @param aid
+     * @param unionPriIds
+     * @param backupInfo
+     */
+    public void backupData(int aid, FaiList<Integer> unionPriIds, Param backupInfo) {
+        int rt = m_cli.backupData(aid, unionPriIds, backupInfo);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "backupData error;flow=%d;aid=%d;uid=%s;backupInfo=%s;", m_flow, aid, unionPriIds, backupInfo);
+        }
+    }
+
+    /**
+     * 还原备份
+     * @param aid
+     * @param unionPriIds
+     * @param backupInfo
+     */
+    public void restoreBackup(int aid, FaiList<Integer> unionPriIds, int restoreId, Param backupInfo) {
+        int rt = m_cli.restoreBackupData(aid, unionPriIds, restoreId, backupInfo);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "restoreBackup error;flow=%d;aid=%d;uid=%s;restoreId=%s;backupInfo=%s;", m_flow, aid, unionPriIds, restoreId, backupInfo);
+        }
+    }
+
+    /**
+     * 删除备份
+     * @param aid
+     * @param backupInfo
+     */
+    public void delBackup(int aid, Param backupInfo) {
+        int rt = m_cli.delBackupData(aid, backupInfo);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "restoreBackup error;flow=%d;aid=%d;backupInfo=%s;", m_flow, aid, backupInfo);
+        }
+    }
+
     public FaiList<Param> dataMigrate(int aid, int tid, FaiList<Param> addList) {
         int rt;
         if(m_cli == null) {

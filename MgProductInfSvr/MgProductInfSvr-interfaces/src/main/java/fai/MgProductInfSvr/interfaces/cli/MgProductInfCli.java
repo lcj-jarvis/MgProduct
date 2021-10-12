@@ -293,7 +293,7 @@ public class MgProductInfCli extends MgProductInfCli7ForProductTag {
                 return m_rt;
             }
 
-            int rlRestoreId = mgProductArg.getRlBackupId();
+            int rlRestoreId = mgProductArg.getRlRestoreId();
             if(rlRestoreId <= 0) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error;rlRestoreId is err;aid=%d;rlRestoreId=%d;", aid, rlRestoreId);

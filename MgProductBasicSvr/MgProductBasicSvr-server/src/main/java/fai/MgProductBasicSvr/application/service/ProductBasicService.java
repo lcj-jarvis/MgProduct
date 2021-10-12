@@ -1,10 +1,7 @@
 package fai.MgProductBasicSvr.application.service;
 
 import fai.MgBackupSvr.interfaces.entity.MgBackupEntity;
-import fai.MgProductBasicSvr.domain.common.ESUtil;
-import fai.MgProductBasicSvr.domain.common.LockUtil;
-import fai.MgProductBasicSvr.domain.common.MgProductCheck;
-import fai.MgProductBasicSvr.domain.common.SagaRollback;
+import fai.MgProductBasicSvr.domain.common.*;
 import fai.MgProductBasicSvr.domain.entity.*;
 import fai.MgProductBasicSvr.domain.repository.cache.*;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductDaoCtrl;
@@ -730,7 +727,7 @@ public class ProductBasicService extends BasicParentService {
     }
 
     @SuccessRt(value = Errno.OK)
-    public int setSingle(FaiSession session, int flow, int aid, String xid, int unionPriId, int sysType, int rlPdId, ParamUpdater recvUpdater) throws IOException {
+    public int setSingle(FaiSession session, int flow, int aid, String xid, int tid, int siteId, int unionPriId, int sysType, int rlPdId, ParamUpdater recvUpdater) throws IOException {
         int rt;
         if(rlPdId <= 0) {
             rt = Errno.ARGS_ERROR;
@@ -798,6 +795,9 @@ public class ProductBasicService extends BasicParentService {
 
                     ProductProc pdProc = new ProductProc(flow, aid, tc, xid, true);
                     pdProc.setSingle(aid, pdId, pdUpdate);
+
+                    // gfw
+                    GfwUtil.preWriteGfwLog(aid, tid, siteId, pdId, pdUpdate.getData());
                 }
 
                 // 修改绑定的商品分类
@@ -840,6 +840,9 @@ public class ProductBasicService extends BasicParentService {
 
             // 同步数据给es
             ESUtil.logDocId(flow, aid, pdId, unionPriId, DocOplogDef.Operation.UPDATE_ONE);
+
+            // gfw
+            GfwUtil.commitPre(tid);
         }finally {
             LockUtil.unlock(aid);
         }
@@ -888,7 +891,7 @@ public class ProductBasicService extends BasicParentService {
     }
 
     @SuccessRt(value = Errno.OK)
-    public int setProducts(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, ParamUpdater recvUpdater) throws IOException {
+    public int setProducts(FaiSession session, int flow, int aid, int tid, int siteId, int unionPriId, int sysType, FaiList<Integer> rlPdIds, ParamUpdater recvUpdater) throws IOException {
         int rt;
         if(!MgProductCheck.RequestLimit.checkWriteSize(aid, rlPdIds)) {
             rt = Errno.SIZE_LIMIT;
@@ -927,6 +930,9 @@ public class ProductBasicService extends BasicParentService {
                 if(pdUpdate != null) {
                     ProductProc pdProc = new ProductProc(flow, aid, tc);
                     pdProc.setProducts(aid, pdIdList, pdUpdate);
+
+                    // gfw
+                    GfwUtil.preWriteGfwLog(aid, tid, siteId, pdIdList, pdUpdate.getData());
                 }
                 commit = true;
                 tc.commit();
@@ -946,6 +952,8 @@ public class ProductBasicService extends BasicParentService {
 
             // 同步数据给es
             ESUtil.batchLogDocId(flow, aid, unionPriId, pdIdList, DocOplogDef.Operation.UPDATE_ONE);
+            // gfw
+            GfwUtil.commitPre(tid);
         }finally {
             LockUtil.unlock(aid);
         }
@@ -1177,7 +1185,7 @@ public class ProductBasicService extends BasicParentService {
      * 5. 添加商品标签绑定关系
      */
     @SuccessRt(value = Errno.OK)
-    public int addProductAndRel(FaiSession session, int flow, int aid, String xid, int tid, int unionPriId, Param info) throws IOException {
+    public int addProductAndRel(FaiSession session, int flow, int aid, String xid, int tid, int siteId, int unionPriId, Param info) throws IOException {
         int rt;
         if(!FaiValObj.TermId.isValidTid(tid)) {
             rt = Errno.ARGS_ERROR;
@@ -1230,7 +1238,7 @@ public class ProductBasicService extends BasicParentService {
 
                 // 新增商品数据
                 ProductProc pdProc = new ProductProc(flow, aid, tc, xid, true);
-                pdId = pdProc.addProduct(aid, pdData);
+                pdId = pdProc.addProduct(aid, tid, siteId, pdData);
 
                 relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
                 // 新增业务关系
@@ -1286,6 +1294,9 @@ public class ProductBasicService extends BasicParentService {
 
             // 同步数据给es
             ESUtil.logDocId(flow, aid, pdId, unionPriId, DocOplogDef.Operation.UPDATE_ONE);
+
+            // gfw
+            GfwUtil.commitPre(tid);
         } finally {
             LockUtil.unlock(aid);
         }
@@ -1316,7 +1327,7 @@ public class ProductBasicService extends BasicParentService {
      * 批量添加商品，并添加与当前unionPriId的关联
      */
     @SuccessRt(value = Errno.OK)
-    public int batchAddProductAndRel(FaiSession session, int flow, int aid, int tid, int unionPriId, FaiList<Param> addList) throws IOException {
+    public int batchAddProductAndRel(FaiSession session, int flow, int aid, int tid, int siteId, int unionPriId, FaiList<Param> addList) throws IOException {
         int rt = Errno.ERROR;
         if(!FaiValObj.TermId.isValidTid(tid)) {
             rt = Errno.ARGS_ERROR;
@@ -1363,6 +1374,8 @@ public class ProductBasicService extends BasicParentService {
                 // 新增商品数据
                 ProductProc pdProc = new ProductProc(flow, aid, tc);
                 pdIdList = pdProc.batchAddProduct(aid, pdDataList);
+
+                GfwUtil.preWriteGfwLog(aid, tid, siteId, pdDataList);
 
                 // 新增业务关系
                 ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
@@ -1471,6 +1484,9 @@ public class ProductBasicService extends BasicParentService {
 
             // 同步数据给es
             ESUtil.batchLogDocId(flow, aid, unionPriId, pdIdList, DocOplogDef.Operation.UPDATE_ONE);
+
+            // gfw
+            GfwUtil.commitPre(tid);
         } finally {
             LockUtil.unlock(aid);
         }

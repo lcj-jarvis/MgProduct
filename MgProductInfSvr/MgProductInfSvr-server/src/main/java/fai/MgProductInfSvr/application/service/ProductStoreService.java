@@ -56,7 +56,7 @@ public class ProductStoreService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
+            rt = getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -144,7 +144,7 @@ public class ProductStoreService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
+            rt = getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -630,7 +630,7 @@ public class ProductStoreService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
+            rt = getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -1399,7 +1399,7 @@ public class ProductStoreService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
+            rt = getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }

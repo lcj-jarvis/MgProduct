@@ -135,5 +135,6 @@ public class ProductRelDto {
         public static final int STATUS = 19;
         public static final int RESTORE_ID = 20;
         public static final int BACKUP_INFO = 21;
+        public static final int SITE_ID = 22;
     }
 }

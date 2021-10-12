@@ -127,14 +127,14 @@ public class ProductBasicProc {
      * 新增商品数据，并添加与当前unionPriId的关联
      * @return
      */
-    public int addProductAndRel(int aid, int tid, int unionPriId, String xid, Param info, Ref<Integer> pdIdRef, Ref<Integer> rlPdIdRef) {
+    public int addProductAndRel(int aid, int tid, int siteId, int unionPriId, String xid, Param info, Ref<Integer> pdIdRef, Ref<Integer> rlPdIdRef) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.addProductAndRel(aid, tid, unionPriId, xid, info, pdIdRef, rlPdIdRef);
+        rt = m_cli.addProductAndRel(aid, tid, siteId, unionPriId, xid, info, pdIdRef, rlPdIdRef);
         if(rt != Errno.OK) {
             Log.logErr(rt, "addProductAndRel error;flow=%d;aid=%d;tid=%d;unionPriId=%d;", m_flow, aid, tid, unionPriId);
             return rt;
@@ -186,14 +186,14 @@ public class ProductBasicProc {
     /**
      * 修改指定商品
      */
-    public int setSinglePd(int aid, String xid, int unionPriId, int sysType, Integer rlPdId, ParamUpdater updater) {
+    public int setSinglePd(int aid, String xid, int tid, int siteId, int unionPriId, int sysType, Integer rlPdId, ParamUpdater updater) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.setSinglePd(aid, xid, unionPriId, sysType, rlPdId, updater);
+        rt = m_cli.setSinglePd(aid, xid, tid, siteId, unionPriId, sysType, rlPdId, updater);
         if(rt != Errno.OK) {
             Log.logErr(rt, "setSinglePd error;flow=%d;aid=%d;unionPriId=%d;rlPdId=%d;updater=%s;", m_flow, aid, unionPriId, rlPdId, updater.toJson());
             return rt;
@@ -205,14 +205,14 @@ public class ProductBasicProc {
     /**
      * 修改指定商品
      */
-    public int setProducts(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, ParamUpdater updater) {
+    public int setProducts(int aid, int tid, int siteId, int unionPriId, int sysType, FaiList<Integer> rlPdIds, ParamUpdater updater) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.setProducts(aid, unionPriId, sysType, rlPdIds, updater);
+        rt = m_cli.setProducts(aid, tid, siteId, unionPriId, sysType, rlPdIds, updater);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batchDelPdRelBind error;flow=%d;aid=%d;unionPriId=%d;updater=%s;", m_flow, aid, unionPriId, updater.toJson());
             return rt;
@@ -479,14 +479,14 @@ public class ProductBasicProc {
     /**
      * 批量新增商品数据，并添加与当前unionPriId的关联
      */
-    public int batchAddProductAndRel(int aid, int tid, int unionPriId, FaiList<Param> list, FaiList<Param> idInfoList){
+    public int batchAddProductAndRel(int aid, int tid, int siteId, int unionPriId, FaiList<Param> list, FaiList<Param> idInfoList){
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.batchAddProductAndRel(aid, tid, unionPriId, list, idInfoList);
+        rt = m_cli.batchAddProductAndRel(aid, tid, siteId, unionPriId, list, idInfoList);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batchAddProductAndRel error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;

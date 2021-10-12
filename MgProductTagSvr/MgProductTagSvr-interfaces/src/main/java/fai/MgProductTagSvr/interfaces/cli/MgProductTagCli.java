@@ -395,7 +395,7 @@ public class MgProductTagCli extends FaiClient {
             delRlTagIds.toBuffer(sendBody, ProductTagRelDto.Key.RL_TAG_IDS);
 
             //发送数据
-            Param result = sendAndReceive(aid, MgProductTagCmd.TagCmd.UNION_SET_TAG_LIST, sendBody, true);
+            Param result = sendAndReceive(aid, MgProductTagCmd.TagCmd.UNION_SET_TAG_LIST, sendBody, !Util.isEmptyList(addInfoList));
             Boolean success = result.getBoolean("success");
             if (!success) {
                 return m_rt;

@@ -3,6 +3,7 @@ package fai.MgProductBasicSvr.application;
 import fai.MgBackupSvr.interfaces.dto.MgBackupDto;
 import fai.MgProductBasicSvr.application.service.*;
 import fai.MgProductBasicSvr.domain.common.ESUtil;
+import fai.MgProductBasicSvr.domain.common.GfwUtil;
 import fai.MgProductBasicSvr.interfaces.cmd.MgProductBasicCmd;
 import fai.MgProductBasicSvr.interfaces.dto.*;
 import fai.comm.cache.redis.RedisCacheManager;
@@ -45,6 +46,7 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
      */
     private void afterRequest() {
         ESUtil.clear();
+        GfwUtil.clear();
     }
 
     @Cmd(MgProductBasicCmd.BindPropCmd.GET_LIST)
@@ -171,10 +173,11 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                 @ArgAid final int aid,
                                 @ArgBodyXid(value = ProductRelDto.Key.XID, useDefault = true) String xid,
                                 @ArgBodyInteger(ProductRelDto.Key.TID) int tid,
+                                @ArgBodyInteger(value = ProductRelDto.Key.SITE_ID, useDefault = true, defaultValue = -1) int siteId,
                                 @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
                                 @ArgParam(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
                                 keyMatch = ProductRelDto.Key.INFO) Param info) throws IOException {
-        return service.addProductAndRel(session, flow, aid, xid, tid, unionPriId, info);
+        return service.addProductAndRel(session, flow, aid, xid, tid, siteId, unionPriId, info);
     }
 
     @WrittenCmd
@@ -193,10 +196,11 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                @ArgFlow final int flow,
                                @ArgAid final int aid,
                                @ArgBodyInteger(ProductRelDto.Key.TID) int tid,
+                               @ArgBodyInteger(value = ProductRelDto.Key.SITE_ID, useDefault = true, defaultValue = -1) int siteId,
                                @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
                                @ArgList(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
                                        keyMatch = ProductRelDto.Key.INFO) FaiList<Param> list) throws IOException {
-        return service.batchAddProductAndRel(session, flow, aid, tid, unionPriId, list);
+        return service.batchAddProductAndRel(session, flow, aid, tid, siteId, unionPriId, list);
     }
 
     @WrittenCmd
@@ -351,12 +355,14 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                  @ArgFlow final int flow,
                                  @ArgAid final int aid,
                                  @ArgBodyXid(value = ProductRelDto.Key.XID, useDefault = true) String xid,
+                                 @ArgBodyInteger(value = ProductRelDto.Key.TID, useDefault = true) int tid,
+                                 @ArgBodyInteger(value = ProductRelDto.Key.SITE_ID, useDefault = true, defaultValue = -1) int siteId,
                                  @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
                                  @ArgBodyInteger(value = ProductRelDto.Key.SYS_TYPE, useDefault = true) int sysType,
                                  @ArgBodyInteger(ProductRelDto.Key.RL_PD_ID) Integer rlPdId,
                                  @ArgParamUpdater(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
                                  keyMatch = ProductRelDto.Key.UPDATER) ParamUpdater recvUpdater) throws IOException {
-        return service.setSingle(session, flow, aid, xid, unionPriId, sysType, rlPdId, recvUpdater);
+        return service.setSingle(session, flow, aid, xid, tid, siteId, unionPriId, sysType, rlPdId, recvUpdater);
     }
 
     @WrittenCmd
@@ -374,12 +380,14 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
     public int setProducts(final FaiSession session,
                            @ArgFlow final int flow,
                            @ArgAid final int aid,
+                           @ArgBodyInteger(value = ProductRelDto.Key.TID, useDefault = true) int tid,
+                           @ArgBodyInteger(value = ProductRelDto.Key.SITE_ID, useDefault = true, defaultValue = -1) int siteId,
                            @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
                            @ArgBodyInteger(value = ProductRelDto.Key.SYS_TYPE, useDefault = true) int sysType,
                            @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
                            @ArgParamUpdater(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
                                    keyMatch = ProductRelDto.Key.UPDATER) ParamUpdater recvUpdater) throws IOException {
-        return service.setProducts(session, flow, aid, unionPriId, sysType, rlPdIds, recvUpdater);
+        return service.setProducts(session, flow, aid, tid, siteId, unionPriId, sysType, rlPdIds, recvUpdater);
     }
 
     @Cmd(MgProductBasicCmd.BasicCmd.GET_BY_PDID)

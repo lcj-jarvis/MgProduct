@@ -2,6 +2,7 @@ package fai.MgProductBasicSvr.domain.serviceproc;
 
 import fai.MgBackupSvr.interfaces.entity.MgBackupEntity;
 import fai.MgProductBasicSvr.domain.common.ESUtil;
+import fai.MgProductBasicSvr.domain.common.GfwUtil;
 import fai.MgProductBasicSvr.domain.common.MgProductCheck;
 import fai.MgProductBasicSvr.domain.entity.*;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductCacheCtrl;
@@ -229,7 +230,7 @@ public class ProductProc {
         m_dao.clearIdBuilderCache(aid);
     }
 
-    public int addProduct(int aid, Param pdData) {
+    public int addProduct(int aid, int tid, int siteId, Param pdData) {
         int rt;
         if(Str.isEmpty(pdData)) {
             rt = Errno.ARGS_ERROR;
@@ -260,6 +261,7 @@ public class ProductProc {
             // 插入
             addSaga(aid, pdSaga);
         }
+        GfwUtil.preWriteGfwLog(aid, tid, siteId, pdData);
         return pdId;
     }
 

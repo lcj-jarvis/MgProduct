@@ -846,7 +846,7 @@ public class MgProductBasicCli extends FaiClient {
     /**
      * 新增商品数据，并添加与当前unionPriId的关联
      */
-    public int addProductAndRel(int aid, int tid, int unionPriId, String xid, Param info, Ref<Integer> pdIdRef, Ref<Integer> rlPdIdRef) {
+    public int addProductAndRel(int aid, int tid, int siteId, int unionPriId, String xid, Param info, Ref<Integer> pdIdRef, Ref<Integer> rlPdIdRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -867,6 +867,7 @@ public class MgProductBasicCli extends FaiClient {
                 sendBody.putString(ProductRelDto.Key.XID, xid);
             }
             sendBody.putInt(ProductRelDto.Key.TID, tid);
+            sendBody.putInt(ProductRelDto.Key.SITE_ID, siteId);
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
             info.toBuffer(sendBody, ProductRelDto.Key.INFO, ProductRelDto.getRelAndPdDto());
 
@@ -924,7 +925,7 @@ public class MgProductBasicCli extends FaiClient {
     /**
      * 批量新增商品数据，并添加与当前unionPriId的关联
      */
-    public int batchAddProductAndRel(int aid, int tid, int unionPriId, FaiList<Param> list, FaiList<Param> idInfoList) {
+    public int batchAddProductAndRel(int aid, int tid, int siteId, int unionPriId, FaiList<Param> list, FaiList<Param> idInfoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -943,6 +944,7 @@ public class MgProductBasicCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductRelDto.Key.TID, tid);
+            sendBody.putInt(ProductRelDto.Key.SITE_ID, siteId);
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
             list.toBuffer(sendBody, ProductRelDto.Key.INFO, ProductRelDto.getRelAndPdDto());
 
@@ -1512,7 +1514,7 @@ public class MgProductBasicCli extends FaiClient {
     /**
      * 修改单个商品数据
      */
-    public int setSinglePd(int aid, String xid, int unionPriId, int sysType, Integer rlPdId, ParamUpdater updater) {
+    public int setSinglePd(int aid, String xid, int tid, int siteId, int unionPriId, int sysType, Integer rlPdId, ParamUpdater updater) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1532,6 +1534,8 @@ public class MgProductBasicCli extends FaiClient {
             if(!Str.isEmpty(xid)) {
                 sendBody.putString(ProductRelDto.Key.XID, xid);
             }
+            sendBody.putInt(ProductRelDto.Key.TID, tid);
+            sendBody.putInt(ProductRelDto.Key.SITE_ID, siteId);
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(ProductRelDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(ProductRelDto.Key.RL_PD_ID, rlPdId);
@@ -1569,7 +1573,7 @@ public class MgProductBasicCli extends FaiClient {
     /**
      * 修改商品数据
      */
-    public int setProducts(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, ParamUpdater updater) {
+    public int setProducts(int aid, int tid, int siteId, int unionPriId, int sysType, FaiList<Integer> rlPdIds, ParamUpdater updater) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1592,6 +1596,8 @@ public class MgProductBasicCli extends FaiClient {
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductRelDto.Key.TID, tid);
+            sendBody.putInt(ProductRelDto.Key.SITE_ID, siteId);
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(ProductRelDto.Key.SYS_TYPE, sysType);
             rlPdIds.toBuffer(sendBody, ProductRelDto.Key.RL_PD_IDS);

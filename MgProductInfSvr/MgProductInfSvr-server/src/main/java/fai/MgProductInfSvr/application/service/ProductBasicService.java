@@ -300,7 +300,7 @@ public class ProductBasicService extends MgProductInfService {
             ProductBasicProc basicService = new ProductBasicProc(flow);
             Ref<Integer> rlPdIdRef = new Ref<Integer>();
             Ref<Integer> pdIdRef = new Ref<Integer>();
-            rt = basicService.addProductAndRel(aid, tid, unionPriId, null, info, pdIdRef, rlPdIdRef);
+            rt = basicService.addProductAndRel(aid, tid, siteId, unionPriId, null, info, pdIdRef, rlPdIdRef);
             if (rt != Errno.OK) {
                 return rt;
             }
@@ -542,7 +542,7 @@ public class ProductBasicService extends MgProductInfService {
             int unionPriId = idRef.value;
 
             ProductBasicProc basicService = new ProductBasicProc(flow);
-            rt = basicService.setSinglePd(aid, null, unionPriId, sysType, rlPdId, updater);
+            rt = basicService.setSinglePd(aid, null, tid, siteId, unionPriId, sysType, rlPdId, updater);
             if (rt != Errno.OK) {
                 return rt;
             }
@@ -595,7 +595,7 @@ public class ProductBasicService extends MgProductInfService {
                     remarkList = RichTextConverter.getRemarkList(basicData, false);
                     ProductBasicProc basicProc = new ProductBasicProc(flow);
                     ParamUpdater updater = new ParamUpdater(basicData);
-                    rt = basicProc.setSinglePd(aid, xid, unionPriId, sysType, rlPdId, updater);
+                    rt = basicProc.setSinglePd(aid, xid, tid, siteId, unionPriId, sysType, rlPdId, updater);
                     if (rt != Errno.OK) {
                         Log.logErr(rt,"setProductInfo error;an error occurred while modifying the basic info");
                         return rt;
@@ -610,7 +610,7 @@ public class ProductBasicService extends MgProductInfService {
                 if(!Utils.isEmptyList(specSkuList) || !Utils.isEmptyList(storeData) || !Utils.isEmptyList(remarkList) || !Str.isEmpty(spuData)) {
                     // 获取 pdId
                     idRef.value = null;
-                    rt = getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
+                    rt = getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
                     if(rt != Errno.OK) {
                         return rt;
                     }
@@ -736,7 +736,7 @@ public class ProductBasicService extends MgProductInfService {
             int unionPriId = idRef.value;
 
             ProductBasicProc basicService = new ProductBasicProc(flow);
-            rt = basicService.setProducts(aid, unionPriId, sysType, rlPdIds, updater);
+            rt = basicService.setProducts(aid, tid, siteId, unionPriId, sysType, rlPdIds, updater);
             if (rt != Errno.OK) {
                 return rt;
             }
@@ -992,7 +992,7 @@ public class ProductBasicService extends MgProductInfService {
                 ProductBasicProc basicProc = new ProductBasicProc(flow);
 
                 // 添加商品数据
-                rt = basicProc.addProductAndRel(aid, tid, unionPriId, xid, basicInfo, pdIdRef, rlPdIdRef);
+                rt = basicProc.addProductAndRel(aid, tid, siteId, unionPriId, xid, basicInfo, pdIdRef, rlPdIdRef);
                 if (rt != Errno.OK) {
                     return rt;
                 }

@@ -326,7 +326,7 @@ public class ProductSpecService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdIdWithAdd(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
+            rt = getPdIdWithAdd(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -395,7 +395,7 @@ public class ProductSpecService extends MgProductInfService {
                     );
                 }
                 FaiList<Param> idInfoList = new FaiList<>();
-                rt = productBasicProc.batchAddProductAndRel(aid, ownerTid, ownerUnionPriId, list, idInfoList);
+                rt = productBasicProc.batchAddProductAndRel(aid, ownerTid, ownerSiteId, ownerUnionPriId, list, idInfoList);
                 if(rt != Errno.OK){
                     Log.logErr(rt, "productBasicProc.batchAddProductAndRel err;aid=%s;ownerTid=%s;ownerUnionPriId=%s;list=%s;", aid, ownerTid, ownerUnionPriId, list);
                     return rt;
@@ -484,7 +484,7 @@ public class ProductSpecService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdIdWithAdd(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
+            rt = getPdIdWithAdd(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -561,7 +561,7 @@ public class ProductSpecService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
+            rt = getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -664,7 +664,7 @@ public class ProductSpecService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
+            rt = getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -706,7 +706,7 @@ public class ProductSpecService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
+            rt = getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }

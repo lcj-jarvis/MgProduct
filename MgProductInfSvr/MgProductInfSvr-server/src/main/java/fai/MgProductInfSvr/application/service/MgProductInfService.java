@@ -209,17 +209,17 @@ public class MgProductInfService extends ServicePub {
         return list;
     }
 
-    protected int getPdIdWithAdd(int flow, int aid, int tid, int unionPriId, int sysType, int rlPdId, Ref<Integer> idRef) {
-        return getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef, true);
+    protected int getPdIdWithAdd(int flow, int aid, int tid, int siteId, int unionPriId, int sysType, int rlPdId, Ref<Integer> idRef) {
+        return getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef, true);
     }
     /**
      * 获取PdId
      */
-    protected int getPdId(int flow, int aid, int tid, int unionPriId, int sysType, int rlPdId, Ref<Integer> idRef) {
-        return getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef, false);
+    protected int getPdId(int flow, int aid, int tid, int siteId, int unionPriId, int sysType, int rlPdId, Ref<Integer> idRef) {
+        return getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef, false);
     }
 
-    protected int getPdId(int flow, int aid, int tid, int unionPriId, int sysType, int rlPdId, Ref<Integer> idRef, boolean withAdd) {
+    protected int getPdId(int flow, int aid, int tid, int siteId, int unionPriId, int sysType, int rlPdId, Ref<Integer> idRef, boolean withAdd) {
         int rt = Errno.ERROR;
         MgProductBasicCli mgProductBasicCli = new MgProductBasicCli(flow);
         if(!mgProductBasicCli.init()) {
@@ -232,7 +232,7 @@ public class MgProductInfService extends ServicePub {
         rt = mgProductBasicCli.getRelInfoByRlId(aid, unionPriId, sysType, rlPdId, pdRelInfo);
         if(rt != Errno.OK) {
             if(withAdd && (rt == Errno.NOT_FOUND)){
-                rt = mgProductBasicCli.addProductAndRel(aid, tid, unionPriId, "", new Param()
+                rt = mgProductBasicCli.addProductAndRel(aid, tid, siteId, unionPriId, "", new Param()
                                 .setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId)
                                 .setBoolean(ProductRelEntity.Info.INFO_CHECK, false)
                         , idRef, new Ref<>());
@@ -1338,7 +1338,7 @@ public class MgProductInfService extends ServicePub {
 
                 FaiList<Param> idInfoList = new FaiList<>();
                 // 批量添加商品数据
-                rt = productBasicProc.batchAddProductAndRel(aid, ownerTid, ownerUnionPriId, batchAddBasicInfoList, idInfoList);
+                rt = productBasicProc.batchAddProductAndRel(aid, ownerTid, ownerSiteId, ownerUnionPriId, batchAddBasicInfoList, idInfoList);
                 if(rt != Errno.OK){
                     for (Param product : productList) {
                         product.setInt(MgProductEntity.Info.ERRNO, rt);

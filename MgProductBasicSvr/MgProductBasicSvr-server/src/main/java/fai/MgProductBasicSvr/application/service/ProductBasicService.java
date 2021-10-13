@@ -13,9 +13,12 @@ import fai.app.DocOplogDef;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.fseata.client.core.rpc.def.CommDef;
 import fai.comm.jnetkit.server.fai.FaiSession;
+import fai.comm.middleground.app.CloneDef;
 import fai.comm.util.*;
 import fai.comm.middleground.FaiValObj;
 import fai.mgproduct.comm.DataStatus;
+import fai.mgproduct.comm.Util;
+import fai.mgproduct.comm.entity.SagaEntity;
 import fai.middleground.infutil.MgConfPool;
 import fai.middleground.svrutil.annotation.SuccessRt;
 import fai.middleground.svrutil.exception.MgException;
@@ -2610,6 +2613,38 @@ public class ProductBasicService extends BasicParentService {
         return rt;
     }
 
+    @SuccessRt(value = Errno.OK)
+    public int cloneData(FaiSession session, int flow, int aid, int tid, int siteId, int fromAid, FaiList<Param> cloneUnionPriIds) throws IOException {
+        int rt;
+
+        doClone(flow, aid, fromAid, tid, siteId, cloneUnionPriIds, false);
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("cloneData ok;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, aid, fromAid, cloneUnionPriIds);
+        return rt;
+    }
+
+    @SuccessRt(value = Errno.OK)
+    public int incrementalClone(FaiSession session, int flow, int toAid, int toTid, int toSiteId, int toUnionPriId, int fromAid, int fromUnionPriId) throws IOException {
+        int rt;
+
+        Param clonePrimary = new Param();
+        clonePrimary.setInt(CloneDef.Info.FROM_PRIMARY_KEY, fromUnionPriId);
+        clonePrimary.setInt(CloneDef.Info.TO_PRIMARY_KEY, toUnionPriId);
+        FaiList<Param> cloneUnionPriIds = new FaiList<>();
+        cloneUnionPriIds.add(clonePrimary);
+
+        doClone(flow, toAid, fromAid, toTid, toSiteId, cloneUnionPriIds, true);
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("incrementalClone ok;flow=%d;toAid=%d;toUid=%d;fromAid=%d;fromUid=%d;", flow, toAid, toUnionPriId, fromAid, fromUnionPriId);
+        return rt;
+    }
+
     private void deleteBackupData(ProductRelProc relProc, ProductProc proc, ProductBindGroupProc bindGroupProc, ProductBindTagProc bindTagProc, ProductBindPropProc bindPropProc, int aid, int backupId, int backupFlag) {
 
         relProc.delBackupData(aid, backupId, backupFlag);
@@ -2621,6 +2656,274 @@ public class ProductBasicService extends BasicParentService {
         bindTagProc.delBackupData(aid, backupId, backupFlag);
 
         bindPropProc.delBackupData(aid, backupId, backupFlag);
+    }
+
+    private void doClone(int flow, int toAid, int fromAid, int toTid, int toSiteId, FaiList<Param> cloneUnionPriIds, boolean incrementalClone) {
+        int rt;
+        if(Utils.isEmptyList(cloneUnionPriIds)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args error, cloneUnionPriIds is empty;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
+        }
+
+        // toUnionPriId -> primary
+        Map<Integer, Param> toUid_primary = Utils.getMap(cloneUnionPriIds, CloneDef.Info.TO_PRIMARY_KEY);
+
+        // 组装 fromUnionPriId -> toUnionPriId 映射关系
+        Map<Integer, Integer> cloneUidMap = new HashMap<>();
+        for(Param cloneUidInfo : cloneUnionPriIds) {
+            Integer toUnionPriId = cloneUidInfo.getInt(CloneDef.Info.TO_PRIMARY_KEY);
+            Integer fromUnionPriId = cloneUidInfo.getInt(CloneDef.Info.FROM_PRIMARY_KEY);
+            if(toUnionPriId == null || fromUnionPriId == null) {
+                rt = Errno.ARGS_ERROR;
+                throw new MgException(rt, "args error, cloneUnionPriIds is error;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
+            }
+            cloneUidMap.put(fromUnionPriId, toUnionPriId);
+        }
+
+        LockUtil.lock(toAid);
+        try {
+            boolean commit = false;
+            TransactionCtrl tc = new TransactionCtrl();
+            tc.setAutoCommit(false);
+            try {
+                ProductRelProc relProc = new ProductRelProc(flow, toAid, tc);
+                ProductProc pdProc = new ProductProc(flow, toAid, tc);
+                ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, toAid, tc);
+                ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, toAid, tc);
+                ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, toAid, tc);
+                // 如果不是增量克隆，先删除原有的数据
+                if(!incrementalClone) {
+                    FaiList<Integer> toUnionPriIds = new FaiList<>(cloneUidMap.values());
+
+                    // 删除原有的业务关系表数据
+                    ParamMatcher delMatcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, toAid);
+                    delMatcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, toUnionPriIds);
+                    relProc.delProductRel(toAid, delMatcher);
+
+                    // 删除原有的商品基础信息数据
+                    delMatcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, toAid);
+                    delMatcher.and(ProductEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.IN, toUnionPriIds);
+                    pdProc.delProduct(toAid, delMatcher);
+
+                    // 删除原有的分类绑定
+                    delMatcher = new ParamMatcher(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, toAid);
+                    delMatcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.IN, toUnionPriIds);
+                    bindGroupProc.delPdBindGroup(toAid, delMatcher);
+
+                    // 删除原有的参数绑定
+                    delMatcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, toAid);
+                    delMatcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.IN, toUnionPriIds);
+                    bindPropProc.delPdBindProp(toAid, delMatcher);
+
+                    // 删除原有的标签绑定
+                    delMatcher = new ParamMatcher(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, toAid);
+                    delMatcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.IN, toUnionPriIds);
+                    bindTagProc.delPdBindTag(toAid, delMatcher);
+                }
+
+                // pdId -> addRelList
+                Map<Integer, FaiList<Param>> pdId_RelList = new HashMap<>();
+                // pdId -> sourceUnionPriId
+                Map<Integer, Integer> pdId_SourceUid = new HashMap<>();
+
+                FaiList<Param> addBindGroups = new FaiList<>();
+                FaiList<Param> addBindProps = new FaiList<>();
+                FaiList<Param> addBindTags = new FaiList<>();
+
+
+                for(Map.Entry<Integer, Integer> entry: cloneUidMap.entrySet()) {
+                    int fromUnionPriId = entry.getKey();
+                    int toUnionPriId = entry.getValue();
+                    ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, fromAid);
+                    matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, fromUnionPriId);
+                    FaiList<Param> fromRelList = relProc.searchFromDb(fromAid, matcher, null);
+
+                    if(fromRelList.isEmpty()) {
+                        continue;
+                    }
+
+                    // 查出绑定分类
+                    SearchArg searchArg = new SearchArg();
+                    searchArg.matcher = new ParamMatcher(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, fromAid);
+                    searchArg.matcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, fromUnionPriId);
+                    FaiList<Param> bindGroupList = bindGroupProc.searchFromDb(fromAid, searchArg, null);
+                    Map<Integer, List<Param>> bindGroupMap = bindGroupList.stream().collect(Collectors.groupingBy(x -> x.getInt(ProductBindGroupEntity.Info.RL_PD_ID)));
+
+                    // 查出绑定参数
+                    searchArg.matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, fromAid);
+                    searchArg.matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, fromUnionPriId);
+                    FaiList<Param> bindPropList = bindPropProc.searchFromDb(fromAid, searchArg, null);
+                    Map<Integer, List<Param>> bindPropMap = bindPropList.stream().collect(Collectors.groupingBy(x -> x.getInt(ProductBindPropEntity.Info.RL_PD_ID)));
+
+                    // 查出绑定标签
+                    searchArg.matcher = new ParamMatcher(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, fromAid);
+                    searchArg.matcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, fromUnionPriId);
+                    FaiList<Param> bindTagList = bindTagProc.getListByConditions(fromAid, searchArg, null);
+                    Map<Integer, List<Param>> bindTagMap = bindTagList.stream().collect(Collectors.groupingBy(x -> x.getInt(ProductBindTagEntity.Info.RL_PD_ID)));
+
+                    // 查出已存在的数据 for 增量克隆
+                    FaiList<Param> existedList = null;
+                    if(incrementalClone) {
+                        matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, toAid);
+                        matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, toUnionPriId);
+                        existedList = relProc.searchFromDb(toAid, matcher, null);
+                    }
+
+                    for(Param fromInfo : fromRelList) {
+                        int rlPdId = fromInfo.getInt(ProductRelEntity.Info.RL_PD_ID);
+                        // 如果是增量克隆，但是rlPdId已存在，则跳过
+                        if(incrementalClone && Misc.getFirst(existedList, ProductRelEntity.Info.RL_PD_ID, rlPdId) != null) {
+                            continue;
+                        }
+                        Param data = fromInfo.clone();
+                        data.setInt(ProductRelEntity.Info.AID, toAid);
+                        data.setInt(ProductRelEntity.Info.UNION_PRI_ID, toUnionPriId);
+                        int pdId = data.getInt(ProductRelEntity.Info.PD_ID);
+                        FaiList<Param> addList = pdId_RelList.get(pdId);
+                        if(addList == null) {
+                            addList = new FaiList<>();
+                            pdId_RelList.put(pdId, addList);
+                            pdId_SourceUid.put(pdId, toUnionPriId);
+                        }
+                        addList.add(data);
+
+                        List<Param> curBindGroups = bindGroupMap.get(rlPdId);
+                        if(curBindGroups != null) {
+                            addBindGroups.addAll(curBindGroups);
+                        }
+                        List<Param> curBindProps = bindPropMap.get(rlPdId);
+                        if(curBindProps != null) {
+                            addBindProps.addAll(curBindProps);
+                        }
+                        List<Param> curBindTags = bindTagMap.get(rlPdId);
+                        if(curBindTags != null) {
+                            addBindTags.addAll(curBindTags);
+                        }
+                    }
+                }
+
+                // 没有要克隆的数据
+                if(pdId_RelList.isEmpty()) {
+                    return;
+                }
+
+                // 根据 fromAid 和 pdId 查出对应的商品表数据
+                FaiList<FaiList<Integer>> pdIdGroups = Utils.splitList(new FaiList<>(pdId_RelList.keySet()), 1000);
+                FaiList<Param> fromPdList = new FaiList<>();
+                SearchArg pdSearch = new SearchArg();
+                for(FaiList<Integer> pdIds : pdIdGroups) {
+                    pdSearch.matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, fromAid);
+                    pdSearch.matcher.and(ProductEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+                    FaiList<Param> curDbList = pdProc.searchFromDb(fromAid, pdSearch, null);
+                    // 这里必定是会查到数据才对
+                    if(curDbList.isEmpty()) {
+                        rt = Errno.ERROR;
+                        throw new MgException(rt, "get from pd list err;flow=%d;aid=%d;fromAid=%d;uids=%s;matcher=%s;", flow, toAid, fromAid, cloneUnionPriIds, pdSearch.matcher.toJson());
+                    }
+
+                    fromPdList.addAll(curDbList);
+                }
+
+
+                // 这里 保持 fromPdIds 和 addPdList的顺序一致，是为了后面能得到fromPdId 和 toPdId的映射关系
+                FaiList<Integer> fromPdIds = new FaiList<>();
+                FaiList<Param> addPdList = new FaiList<>();
+                for(Param fromInfo : fromPdList) {
+                    Param data = fromInfo.clone();
+                    data.setInt(ProductEntity.Info.AID, toAid);
+                    int fromPdId = (Integer) data.remove(ProductEntity.Info.PD_ID);
+                    int sourceUnionPriId = pdId_SourceUid.get(fromPdId);
+                    data.setInt(ProductEntity.Info.SOURCE_UNIONPRIID, sourceUnionPriId);
+                    fromPdIds.add(fromPdId);
+                    addPdList.add(data);
+                }
+
+                // gfw预记录
+                GfwUtil.preWriteGfwLog(toAid, toTid, toSiteId, addPdList);
+
+                // 插入商品表数据
+                Map<Integer, Integer> fromPdId_toPdId = new HashMap<>();
+                FaiList<Integer> pdIds = pdProc.batchAddProduct(toAid, addPdList);
+                // 组装fromPdId 和 toPdId的映射关系
+                for(int i = 0; i < pdIds.size(); i++) {
+                    fromPdId_toPdId.put(fromPdIds.get(i), pdIds.get(i));
+                }
+
+                // 组装业务关系表增量克隆数据，设置toPdId
+                FaiList<Param> addRelList = new FaiList<>();
+                for(Integer fromPdId : pdId_RelList.keySet()) {
+                    FaiList<Param> tmpAddList = pdId_RelList.get(fromPdId);
+                    for(Param relInfo : tmpAddList) {
+                        int pdId = fromPdId_toPdId.get(fromPdId);
+                        relInfo.setInt(ProductRelEntity.Info.PD_ID, pdId);
+                        addRelList.add(relInfo);
+                    }
+                }
+
+                // 插入业务关系表克隆数据
+                relProc.insert4Clone(toAid, new FaiList<>(cloneUidMap.values()), addRelList);
+
+                // es预记录
+                ESUtil.batchPreLog(flow, addRelList, DocOplogDef.Operation.UPDATE_ONE);
+
+                // 克隆绑定分类
+                if(!addBindGroups.isEmpty()) {
+                    for(Param info : addBindGroups) {
+                        int fromUnionPriId = info.getInt(ProductBindGroupEntity.Info.UNION_PRI_ID);
+                        int fromPdId = info.getInt(ProductBindGroupEntity.Info.PD_ID);
+
+                        info.setInt(ProductBindGroupEntity.Info.AID, toAid);
+                        info.setInt(ProductBindGroupEntity.Info.UNION_PRI_ID, cloneUidMap.get(fromUnionPriId));
+                        info.setInt(ProductBindGroupEntity.Info.PD_ID, fromPdId_toPdId.get(fromPdId));
+                    }
+                    bindGroupProc.insert4Clone(toAid, addBindGroups);
+                }
+
+                // 克隆绑定参数
+                if(!addBindProps.isEmpty()) {
+                    for(Param info : addBindProps) {
+                        int fromUnionPriId = info.getInt(ProductBindPropEntity.Info.UNION_PRI_ID);
+                        int fromPdId = info.getInt(ProductBindPropEntity.Info.PD_ID);
+
+                        info.setInt(ProductBindPropEntity.Info.AID, toAid);
+                        info.setInt(ProductBindPropEntity.Info.UNION_PRI_ID, cloneUidMap.get(fromUnionPriId));
+                        info.setInt(ProductBindPropEntity.Info.PD_ID, fromPdId_toPdId.get(fromPdId));
+                    }
+                    bindPropProc.insert4Clone(toAid, addBindProps);
+                }
+
+                // 克隆绑定标签
+                if(!addBindTags.isEmpty()) {
+                    for(Param info : addBindTags) {
+                        int fromUnionPriId = info.getInt(ProductBindTagEntity.Info.UNION_PRI_ID);
+                        int fromPdId = info.getInt(ProductBindTagEntity.Info.PD_ID);
+
+                        info.setInt(ProductBindTagEntity.Info.AID, toAid);
+                        info.setInt(ProductBindTagEntity.Info.UNION_PRI_ID, cloneUidMap.get(fromUnionPriId));
+                        info.setInt(ProductBindTagEntity.Info.PD_ID, fromPdId_toPdId.get(fromPdId));
+                    }
+                    bindTagProc.insert4Clone(toAid, addBindTags);
+                }
+
+                commit = true;
+
+            }finally {
+                if(commit) {
+                    tc.commit();
+                }else {
+                    tc.rollback();
+                }
+                tc.closeDao();
+            }
+            // gfw
+            GfwUtil.commitPre(toTid);
+
+            // es
+            ESUtil.commitPre(flow, toAid);
+
+        }finally {
+            LockUtil.unlock(toAid);
+        }
     }
 
     private SagaRollback getAddRollback(int flow, int aid, String xid, long branchId, boolean isBindRel) {

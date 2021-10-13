@@ -272,6 +272,9 @@ public class MgProductInfService extends ServicePub {
         FaiList<Param> list = getPrimaryKeyListWithOutAdd(flow, aid, primaryKeys);
         Map<BizPriKey, Integer> bizPriKeyUnionPriIdMap = toBizPriKeyUnionPriIdMap(list);
 
+        Integer tid = null;
+        Integer siteId = null;
+
         FaiList<Param> cloneUnionPriIds = new FaiList<>();
         for(Param info : clonePrimaryKeys) {
             Param fromPrimary = info.getParam(CloneDef.Info.FROM_PRIMARY_KEY);
@@ -289,6 +292,15 @@ public class MgProductInfService extends ServicePub {
             int toSiteId = toPrimary.getInt(MgPrimaryKeyEntity.Info.SITE_ID);
             int toLgId = toPrimary.getInt(MgPrimaryKeyEntity.Info.LGID);
             int toKeepPriId1 = toPrimary.getInt(MgPrimaryKeyEntity.Info.KEEP_PRI_ID1);
+
+            tid = tid == null ? toTid : tid;
+            siteId = siteId == null ? toSiteId : tid;
+            if(tid != toTid || siteId != toSiteId) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr(rt, "only clone same tid and siteId;flow=%d;aid=%d;key=%s;clonePrimaryKeys=%s;cloneOption=%s;", flow, aid, primaryKey, clonePrimaryKeys, cloneOption);
+                return rt;
+            }
+
             // 直接调用cli去拿，因为之前已经查过一次，如果查到了，则cli会有缓存，如果没有，则说明需要生成
             Integer toUnionPriId = getUnionPriId(flow, aid, toTid, toSiteId, toLgId, toKeepPriId1);
 
@@ -312,7 +324,12 @@ public class MgProductInfService extends ServicePub {
             groupProc.cloneData(aid, fromAid, cloneUnionPriIds);
         }
 
-        //TODO 克隆基础数据
+        // 克隆基础数据
+        if(cloneAll || cloneOption.getBoolean(MgProductEntity.Option.BASIC, false)) {
+            ProductBasicProc basicProc = new ProductBasicProc(flow);
+            basicProc.cloneData(aid, tid, siteId, fromAid, cloneUnionPriIds);
+        }
+
         //克隆库数据
         if(cloneAll || cloneOption.getBoolean(MgProductEntity.Option.LIB, false)) {
             ProductLibProc libProc = new ProductLibProc(flow);

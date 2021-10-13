@@ -73,6 +73,8 @@ public class MgProductBasicCmd {
         public static final int NUM32 = 1032; /** @see Cmd#BACKUP */
         public static final int NUM33 = 1033; /** @see Cmd#RESTORE */
         public static final int NUM34 = 1034; /** @see Cmd#DEL_BACKUP */
+        public static final int NUM35 = 1035; /** @see Cmd#CLONE */
+        public static final int NUM36 = 1036; /** @see Cmd#INCR_CLONE */
     }
 
     /**
@@ -153,5 +155,7 @@ public class MgProductBasicCmd {
         public static final int BACKUP = WriteCmdNum.NUM32;
         public static final int RESTORE = WriteCmdNum.NUM33;
         public static final int DEL_BACKUP = WriteCmdNum.NUM34;
+        public static final int CLONE = WriteCmdNum.NUM35;
+        public static final int INCR_CLONE = WriteCmdNum.NUM36;
     }
 }

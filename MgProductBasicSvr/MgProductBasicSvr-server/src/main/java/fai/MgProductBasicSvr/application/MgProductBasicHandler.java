@@ -15,6 +15,7 @@ import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
 import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
+import fai.comm.middleground.app.CloneDef;
 import fai.comm.netkit.NKDef;
 import fai.comm.util.FaiList;
 import fai.comm.util.Param;
@@ -585,6 +586,32 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                              @ArgParam(classDef = MgBackupDto.class, methodDef = "getInfoDto",
                                      keyMatch = ProductRelDto.Key.BACKUP_INFO) Param backupInfo) throws IOException {
         return service.delBackupData(session, flow, aid, backupInfo);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.Cmd.CLONE)
+    public int cloneData(final FaiSession session,
+                         @ArgFlow final int flow,
+                         @ArgAid int aid,
+                         @ArgBodyInteger(ProductRelDto.Key.TID) int toTid,
+                         @ArgBodyInteger(ProductRelDto.Key.SITE_ID) int toSiteId,
+                         @ArgBodyInteger(ProductRelDto.Key.FROM_AID) int fromAid,
+                         @ArgList(classDef = CloneDef.Dto.class, methodDef = "getInternalDto",
+                                 keyMatch = ProductRelDto.Key.CLONE_UNION_PRI_IDS) FaiList<Param> cloneUnionPriIds) throws IOException {
+        return service.cloneData(session, flow, aid, toTid, toSiteId, fromAid, cloneUnionPriIds);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.Cmd.INCR_CLONE)
+    public int incrementalClone(final FaiSession session,
+                                @ArgFlow final int flow,
+                                @ArgAid int aid,
+                                @ArgBodyInteger(ProductRelDto.Key.TID) int toTid,
+                                @ArgBodyInteger(ProductRelDto.Key.SITE_ID) int toSiteId,
+                                @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                                @ArgBodyInteger(ProductRelDto.Key.FROM_AID) int fromAid,
+                                @ArgBodyInteger(ProductRelDto.Key.FROM_UNION_PRI_ID) int fromUnionPriId) throws IOException {
+        return service.incrementalClone(session, flow, aid, toTid, toSiteId, unionPriId, fromAid, fromUnionPriId);
     }
 
     @Cmd(NKDef.Protocol.Cmd.CLEAR_CACHE)

@@ -394,6 +394,24 @@ public class ProductRelProc {
         return rlPdIds;
     }
 
+    public void insert4Clone(int aid, FaiList<Integer> unionPriIds, FaiList<Param> relDataList) {
+        int rt;
+        if(relDataList == null || relDataList.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args err, infoList is empty;flow=%d;aid=%d;relDataList=%s;", m_flow, aid, relDataList);
+        }
+
+        rt = m_dao.batchInsert(relDataList, null, false);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "batch insert product rel error;flow=%d;aid=%d;", m_flow, aid);
+        }
+
+        for(Integer unionPriId : unionPriIds) {
+            m_dao.restoreMaxId(aid, unionPriId, false);
+            m_dao.clearIdBuilderCache(aid, unionPriId);
+        }
+    }
+
     public int getPdRelCount(int aid, int unionPriId) {
         Param dataStatus = getDataStatus(aid, unionPriId);
         Integer count = dataStatus.getInt(DataStatus.Info.TOTAL_SIZE);
@@ -480,10 +498,20 @@ public class ProductRelProc {
             ParamUpdater updater = new ParamUpdater(updateInfo);
             return updatePdRel(aid, matcher, updater);
         }
+        return delProductRel(aid, matcher);
+    }
+
+    public int delProductRel(int aid, ParamMatcher matcher) {
+        int rt;
+        if(matcher == null || matcher.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args err, matcher is null;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher);
+        }
+
         Ref<Integer> refRowCount = new Ref<>();
         rt = m_dao.delete(matcher, refRowCount);
-        if(rt != Errno.OK) {
-            throw new MgException(rt, "del product rel error;flow=%d;aid=%d;unionPridId=%d;pdIds=%d;", m_flow, aid, unionPriId, pdIds);
+        if(rt != Errno.OK){
+            throw new MgException(rt, "delProductRel error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher.toJson());
         }
         return refRowCount.value;
     }
@@ -1011,7 +1039,14 @@ public class ProductRelProc {
         searchArg.matcher.and(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
+        // 因为克隆可能获取其他aid的数据，所以根据传进来的aid设置tablename
+        m_dao.setTableName(aid);
+
         int rt = m_dao.select(searchArg, listRef, selectFields);
+
+        // 查完之后恢复之前的tablename
+        m_dao.restoreTableName();
+
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             throw new MgException(rt, "get error;flow=%d;aid=%d;match=%s;selectFields=%s;", m_flow, aid, searchArg.matcher.toJson(), selectFields);
         }

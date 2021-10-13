@@ -654,6 +654,26 @@ public class ProductBasicProc {
         }
     }
 
+    /**
+     * 克隆数据
+     */
+    public void cloneData(int aid, int tid, int siteId, int fromAid, FaiList<Param> cloneUnionPriIds) {
+        int rt = m_cli.cloneData(aid, tid, siteId, fromAid, cloneUnionPriIds);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "cloneData error;flow=%d;aid=%d;uids=%s", m_flow, aid, cloneUnionPriIds);
+        }
+    }
+
+    /**
+     * 增量克隆数据
+     */
+    public void incrementalClone(int aid, int tid, int siteId, int unionPriId, int fromAid, int fromUnionPriId) {
+        int rt = m_cli.incrementalClone(aid, tid, siteId, unionPriId, fromAid, fromUnionPriId);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "incrementalClone error;flow=%d;aid=%d;uid=%s;fromAid=%d;fromUid=%d;", m_flow, aid, unionPriId, fromAid, fromUnionPriId);
+        }
+    }
+
     public FaiList<Param> dataMigrate(int aid, int tid, FaiList<Param> addList) {
         int rt;
         if(m_cli == null) {

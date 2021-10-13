@@ -397,7 +397,7 @@ public class MgProductLibCli extends FaiClient {
             delRlLibIds.toBuffer(sendBody, ProductLibRelDto.Key.RL_LIB_IDS);
 
             //发送数据
-            Param result = sendAndReceive(aid, MgProductLibCmd.LibCmd.UNION_SET_LIB_LIST, sendBody, true);
+            Param result = sendAndReceive(aid, MgProductLibCmd.LibCmd.UNION_SET_LIB_LIST, sendBody, !Util.isEmptyList(addInfoList));
             Boolean success = result.getBoolean("success");
             if (!success) {
                 return m_rt;

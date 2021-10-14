@@ -143,6 +143,9 @@ public class ProductPropService extends MgProductInfService {
             ProductPropProc productPropProc = new ProductPropProc(flow);
             FaiList<Param> list = new FaiList<Param>();
             rt = productPropProc.getPropList(aid, tid, unionPriId, libId, searchArg, list);
+            if (list.isEmpty()) {
+                return Errno.NOT_FOUND;
+            }
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -355,6 +358,9 @@ public class ProductPropService extends MgProductInfService {
             ProductPropProc productPropProc = new ProductPropProc(flow);
             FaiList<Param> list = new FaiList<Param>();
             rt = productPropProc.getPropValList(aid, tid, unionPriId, libId, rlPropIds, list);
+            if (list.isEmpty()) {
+                return Errno.NOT_FOUND;
+            }
             if(rt != Errno.OK) {
                 return rt;
             }

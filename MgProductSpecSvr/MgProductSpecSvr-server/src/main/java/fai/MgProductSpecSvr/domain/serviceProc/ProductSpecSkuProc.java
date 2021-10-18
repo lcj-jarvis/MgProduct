@@ -132,16 +132,16 @@ public class ProductSpecSkuProc {
             return rt;
         }
         rt = m_daoCtrl.batchInsert(dataList, null, false);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "dao.batchInsert error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
+            return rt;
+        }
         // 添加 Saga 操作记录
         if (isSaga) {
             rt = addInsOp4Saga(aid, skuIdList);
             if (rt != Errno.OK) {
                 return rt;
             }
-        }
-        if(rt != Errno.OK) {
-            Log.logErr(rt, "dao.batchInsert error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
-            return rt;
         }
         Log.logStd("ok;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIdPdScSkuListMap.keySet());
         return rt;

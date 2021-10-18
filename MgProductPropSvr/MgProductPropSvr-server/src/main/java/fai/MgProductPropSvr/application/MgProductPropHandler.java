@@ -143,7 +143,7 @@ public class MgProductPropHandler extends MiddleGroundHandler {
 							  keyMatch = ProductPropValDto.Key.UPDATERLIST) FaiList<ParamUpdater> updaterList,
 							  @ArgList(keyMatch = ProductPropValDto.Key.VAL_IDS) FaiList<Integer> delValIds,
 							  @ArgList(classDef = ProductPropValDto.class, methodDef = "getInfoDto",
-							  keyMatch = ProductPropValDto.Key.INFO_LIST) FaiList<Param> addInfoList) {
+							  keyMatch = ProductPropValDto.Key.INFO_LIST) FaiList<Param> addInfoList) throws IOException {
 		return service.setPropValList(session, flow, aid, unionPriId, tid, libId, rlPropId, updaterList, delValIds, addInfoList);
 	}
 

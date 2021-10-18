@@ -591,6 +591,18 @@ public class MgProductPropCli extends FaiClient {
                 return m_rt;
             }
 
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
             return m_rt;
         } finally {
             close();

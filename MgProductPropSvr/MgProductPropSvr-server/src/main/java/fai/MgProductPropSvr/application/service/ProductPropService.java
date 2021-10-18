@@ -675,7 +675,7 @@ public class ProductPropService extends ServicePub {
 	 * 批量修改(包括增、删、改)指定商品库的商品参数值列表
 	 */
 	@SuccessRt(value = Errno.OK)
-	public int setPropValList(FaiSession session, int flow, int aid, int unionPriId, int tid, int libId, int rlPropId, FaiList<ParamUpdater> updaterList, FaiList<Integer> delValIds, FaiList<Param> addInfoList) {
+	public int setPropValList(FaiSession session, int flow, int aid, int unionPriId, int tid, int libId, int rlPropId, FaiList<ParamUpdater> updaterList, FaiList<Integer> delValIds, FaiList<Param> addInfoList) throws IOException {
 		int rt = Errno.ERROR;
 		// 先根据参数业务id获取参数id
 		FaiList<Integer> rlProIds = new FaiList<Integer>();
@@ -734,6 +734,10 @@ public class ProductPropService extends ServicePub {
 		}finally {
 			lock.unlock();
 		}
+
+		FaiBuffer sendBuf = new FaiBuffer(true);
+		session.write(sendBuf);
+
 		rt = Errno.OK;
 		Log.logStd("setPropValList ok;flow=%d;aid=%d;unionPriId=%d;tid=%d;", flow, aid, unionPriId, tid);
 		return rt;

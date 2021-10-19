@@ -1088,7 +1088,7 @@ public class MgProductBasicCli extends FaiClient {
     /**
      * 新增商品业务关联
      */
-    public int bindProductRel(int aid, int tid, int unionPriId, String xid, Param bindRlPdInfo, Param info, Ref<Integer> rlPdIdRef, Ref<Integer> pdIdRef) {
+    public int bindProductRel(int aid, int tid, int unionPriId, String xid, Param bindRlPdInfo, Param info, Ref<Integer> rlPdIdRef, Ref<Integer> pdIdRef, Ref<Boolean> existRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1145,14 +1145,21 @@ public class MgProductBasicCli extends FaiClient {
                 Ref<Integer> keyRef = new Ref<Integer>();
                 m_rt = recvBody.getInt(keyRef, rlPdIdRef);
                 if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.RL_PD_ID) {
-                    Log.logErr(m_rt, "recv sid codec err");
+                    Log.logErr(m_rt, "recv rlPdId codec err");
                     return m_rt;
                 }
                 if(pdIdRef != null) {
                     m_rt = recvBody.getInt(keyRef, pdIdRef);
                     if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.PD_ID) {
-                        Log.logErr(m_rt, "recv sid codec err");
+                        Log.logErr(m_rt, "recv pdId codec err");
                         return m_rt;
+                    }
+                    if(existRef != null) {
+                        m_rt = recvBody.getBoolean(keyRef, existRef);
+                        if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.EXIST) {
+                            Log.logErr(m_rt, "recv exist codec err");
+                            return m_rt;
+                        }
                     }
                 }
             }
@@ -1168,13 +1175,13 @@ public class MgProductBasicCli extends FaiClient {
      * 批量新增商品业务关联
      */
     public int batchBindProductRel(int aid, int tid, Param bindRlPdInfo, FaiList<Param> infoList) {
-        return batchBindProductRel(aid, tid, bindRlPdInfo, infoList, null);
+        return batchBindProductRel(aid, null, tid, bindRlPdInfo, infoList, null, null, null);
     }
 
     /**
      * 批量新增商品业务关联
      */
-    public int batchBindProductRel(int aid, int tid, Param bindRlPdInfo, FaiList<Param> infoList, Ref<FaiList<Integer>> rlPdIdsRef) {
+    public int batchBindProductRel(int aid, String xid, int tid, Param bindRlPdInfo, FaiList<Param> infoList, Ref<FaiList<Integer>> rlPdIdsRef, Ref<Integer> pdIdRef, Ref<FaiList<Integer>> existListRef) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1191,6 +1198,10 @@ public class MgProductBasicCli extends FaiClient {
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
+            if(xid == null) {
+                xid = "";
+            }
+            sendBody.putString(ProductRelDto.Key.XID, xid);
             sendBody.putInt(ProductRelDto.Key.TID, tid);
             bindRlPdInfo.toBuffer(sendBody, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto());
             infoList.toBuffer(sendBody, ProductRelDto.Key.INFO_LIST, ProductRelDto.getRelAndPdDto());
@@ -1224,14 +1235,31 @@ public class MgProductBasicCli extends FaiClient {
                     Log.logErr(m_rt, "recv body=null;aid=%d", aid);
                     return m_rt;
                 }
-                FaiList<Integer> rlPdIds = new FaiList<Integer>();
-                Ref<Integer> keyRef = new Ref<Integer>();
+                FaiList<Integer> rlPdIds = new FaiList<>();
+                Ref<Integer> keyRef = new Ref<>();
                 m_rt = rlPdIds.fromBuffer(recvBody, keyRef);
                 if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.RL_PD_IDS) {
-                    Log.logErr(m_rt, "recv sid codec err");
+                    Log.logErr(m_rt, "recv rlPdIds codec err");
                     return m_rt;
                 }
                 rlPdIdsRef.value = rlPdIds;
+
+                if(pdIdRef != null) {
+                    m_rt = recvBody.getInt(keyRef, pdIdRef);
+                    if(m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.PD_ID) {
+                        Log.logErr(m_rt, "recv pdId codec err");
+                        return m_rt;
+                    }
+                    if(existListRef != null) {
+                        FaiList<Integer> existIds = new FaiList<>();
+                        m_rt = existIds.fromBuffer(recvBody, keyRef);
+                        if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.EXIST) {
+                            Log.logErr(m_rt, "recv existIds codec err");
+                            return m_rt;
+                        }
+                        existListRef.value = existIds;
+                    }
+                }
             }
 
             return m_rt;

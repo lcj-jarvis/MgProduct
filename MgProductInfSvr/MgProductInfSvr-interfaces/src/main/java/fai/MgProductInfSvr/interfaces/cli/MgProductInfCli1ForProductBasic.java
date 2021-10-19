@@ -732,12 +732,18 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 Log.logErr(m_rt, "args error;bindRlPdInfo is empty");
                 return m_rt;
             }
+            Param inStoreRecordInfo = mgProductArg.getInOutStoreRecordInfo();
+            if(inStoreRecordInfo == null) {
+                inStoreRecordInfo = new Param();
+            }
+
             // packaging send data
             FaiBuffer sendBody = new FaiBuffer(true);
             int tid = mgProductArg.getTid();
             sendBody.putInt(ProductBasicDto.Key.TID, tid);
             bindRlPdInfo.toBuffer(sendBody, ProductBasicDto.Key.PD_BIND_INFO, ProductBasicDto.getProductRelDto());
-            infoList.toBuffer(sendBody, ProductBasicDto.Key.PD_REL_INFO_LIST, ProductBasicDto.getProductRelDto());
+            infoList.toBuffer(sendBody, ProductBasicDto.Key.PD_LIST, MgProductDto.getInfoDto());
+            inStoreRecordInfo.toBuffer(sendBody, MgProductDto.Key.IN_OUT_STORE_RECORD_INFO, ProductStoreDto.InOutStoreRecord.getInfoDto());
 
             // send and recv
             boolean rlPdIdRefsNotNull = (rlPdIdsRef != null);

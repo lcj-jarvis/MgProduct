@@ -1985,6 +1985,58 @@ public class MgProductStoreCli extends MgProductInternalCli {
         }
     }
 
+    public int batchAddSpuBizSummary(int aid, String xid, FaiList<Param> list){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "aid error");
+                return m_rt;
+            }
+            if(list == null || list.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "list error");
+                return m_rt;
+            }
+            if(xid == null) {
+                xid = "";
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putString(SpuBizSummaryDto.Key.XID, xid);
+            list.toBuffer(sendBody, SpuBizSummaryDto.Key.INFO_LIST, SpuBizSummaryDto.getInfoDto());
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.SpuBizSummaryCmd.BATCH_ADD);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
     /**
      * 获取spu库存销售汇总信息
      */

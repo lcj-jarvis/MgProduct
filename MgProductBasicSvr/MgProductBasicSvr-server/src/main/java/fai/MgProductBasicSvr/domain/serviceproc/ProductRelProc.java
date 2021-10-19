@@ -391,6 +391,28 @@ public class ProductRelProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "batch insert product rel error;flow=%d;aid=%d;", m_flow, aid);
         }
+
+        // 使用分布式事务时，记录下新增数据的主键
+        if(addSaga) {
+            FaiList<Param> pdRelSagaList = new FaiList<>();
+            Calendar now = Calendar.getInstance();
+            for(Param relData : relDataList) {
+                Param pdRelSaga = new Param();
+                pdRelSaga.assign(relData, ProductRelEntity.Info.AID);
+                pdRelSaga.assign(relData, ProductRelEntity.Info.UNION_PRI_ID);
+                pdRelSaga.assign(relData, ProductRelEntity.Info.PD_ID);
+
+                long branchId = RootContext.getBranchId();
+                pdRelSaga.setString(SagaEntity.Common.XID, m_xid);
+                pdRelSaga.setLong(SagaEntity.Common.BRANCH_ID, branchId);
+                pdRelSaga.setInt(SagaEntity.Common.SAGA_OP, SagaValObj.SagaOp.ADD);
+                pdRelSaga.setCalendar(SagaEntity.Common.SAGA_TIME, now);
+                pdRelSagaList.add(pdRelSaga);
+            }
+            // 插入
+            addSagaList(aid, pdRelSagaList);
+        }
+
         return rlPdIds;
     }
 
@@ -746,7 +768,7 @@ public class ProductRelProc {
         }
     }
     // 事务的最后调用
-    public void end(int aid) {
+    public void transactionEnd(int aid) {
         // db记录 修改操作 涉及的数据 for saga
         if(addSaga && sagaMap != null && !sagaMap.isEmpty()) {
             addSagaList(aid, new FaiList<>(sagaMap.values()));

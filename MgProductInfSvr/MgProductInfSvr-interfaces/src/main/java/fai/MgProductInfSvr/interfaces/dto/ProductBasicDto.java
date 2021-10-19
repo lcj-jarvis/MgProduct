@@ -71,6 +71,11 @@ public class ProductBasicDto {
         g_productDef.add(ProductBasicEntity.ProductInfo.REMARK11, 50, Var.Type.STRING);
 
         g_productDef.add(ProductBasicEntity.ProductInfo.TOP, 51);
+
+        g_productDef.add(ProductBasicEntity.ProductInfo.SITE_ID, 52);
+        g_productDef.add(ProductBasicEntity.ProductInfo.LGID, 53);
+        g_productDef.add(ProductBasicEntity.ProductInfo.KEEP_PRI_ID1, 54);
+        g_productDef.add(ProductBasicEntity.ProductInfo.TID, 55);
     }
 
     public static ParamDef getProductDto() {

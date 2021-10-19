@@ -616,11 +616,17 @@ public class MgProductInfHandler extends FaiHandler {
                               @ArgFlow final int flow,
                               @ArgAid final int aid,
                               @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
+                              @ArgBodyXid(value = MgProductDto.Key.XID, useDefault = true) String xid,
                               @ArgParam(classDef = ProductBasicDto.class, methodDef = "getProductRelDto",
                                       keyMatch = ProductBasicDto.Key.PD_BIND_INFO) Param bindRlPdInfo,
-                              @ArgList(classDef = ProductBasicDto.class, methodDef = "getProductRelDto",
-                                      keyMatch = ProductBasicDto.Key.PD_REL_INFO_LIST) FaiList<Param> infoList) throws IOException {
-        return basicService.batchBindProductRel(session, flow, aid, tid, bindRlPdInfo, infoList);
+                              @ArgList(classDef = MgProductDto.class, methodDef = "getInfoDto",
+                                      keyMatch = ProductBasicDto.Key.PD_LIST) FaiList<Param> infoList,
+                              @ArgParam(classDef = ProductStoreDto.InOutStoreRecord.class, methodDef = "getInfoDto",
+                                      keyMatch = MgProductDto.Key.IN_OUT_STORE_RECORD_INFO, useDefault = true) Param inStoreRecordInfo) throws IOException, TransactionException {
+        if(!Str.isEmpty(xid)) {
+            RootContext.bind(xid, flow); // 方便后面使用GlobalTransactionContext.getCurrentOrCreate
+        }
+        return basicService.batchBindProductRel(session, flow, aid, tid, bindRlPdInfo, infoList, inStoreRecordInfo);
     }
 
     @WrittenCmd

@@ -232,15 +232,26 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductBasicCmd.BasicCmd.BATCH_ADD_REL_BIND)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductBasicCmd.BasicCmd.BATCH_ADD_REL_BIND_ROLLBACK)
     public int batchBindProductRel(final FaiSession session,
                               @ArgFlow final int flow,
                               @ArgAid final int aid,
+                              @ArgBodyXid(value = ProductRelDto.Key.XID, useDefault = true) String xid,
                               @ArgBodyInteger(ProductRelDto.Key.TID) int tid,
                               @ArgParam(classDef = ProductRelDto.class, methodDef = "getInfoDto",
                                       keyMatch = ProductRelDto.Key.INFO) Param bindRlPdInfo,
                               @ArgList(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
                                       keyMatch = ProductRelDto.Key.INFO_LIST) FaiList<Param> infoList) throws IOException {
-        return service.batchBindProductRel(session, flow, aid, tid, bindRlPdInfo, infoList);
+        return service.batchBindProductRel(session, flow, xid, aid, tid, bindRlPdInfo, infoList);
+    }
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BasicCmd.BATCH_ADD_REL_BIND_ROLLBACK)
+    public int batchBindProductRelRollback(final FaiSession session,
+                                      @ArgFlow final int flow,
+                                      @ArgAid final int aid,
+                                      @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                      @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return service.batchBindProductRelRollback(session, flow, aid, xid, branchId);
     }
 
     @WrittenCmd

@@ -119,6 +119,7 @@ public class ProductStoreDto {
             g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.SITE_ID, 18, Var.Type.INT);
             g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.LGID, 19, Var.Type.INT);
             g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.KEEP_PRI_ID1, 20, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.DISTRIBUTE_LIST, 21, Var.Type.STRING);
         }
         public static ParamDef getInfoDto() {
             return g_infoDtoDef;

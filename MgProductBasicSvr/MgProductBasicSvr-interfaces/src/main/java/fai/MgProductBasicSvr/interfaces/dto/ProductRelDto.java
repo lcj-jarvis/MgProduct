@@ -139,5 +139,6 @@ public class ProductRelDto {
         public static final int FROM_AID = 23;
         public static final int CLONE_UNION_PRI_IDS = 24;
         public static final int EXIST = 25;
+        public static final int PRE_RL_PD_ID = 26;
     }
 }

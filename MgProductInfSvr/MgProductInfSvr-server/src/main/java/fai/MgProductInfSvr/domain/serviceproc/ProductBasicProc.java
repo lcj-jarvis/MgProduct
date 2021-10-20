@@ -184,6 +184,25 @@ public class ProductBasicProc {
     }
 
     /**
+     * 修改商品排序
+     */
+    public int setPdSort(int aid, int tid, int unionPriId, int sysType, int rlPdId, int preRlPdId) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.setPdSort(aid, tid, unionPriId, sysType, rlPdId, preRlPdId);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "setSinglePd error;flow=%d;aid=%d;unionPriId=%d;rlPdId=%d;preRlPdId=%s;", m_flow, aid, unionPriId, rlPdId, preRlPdId);
+            return rt;
+        }
+
+        return rt;
+    }
+
+    /**
      * 修改指定商品
      */
     public int setSinglePd(int aid, String xid, int tid, int siteId, int unionPriId, int sysType, Integer rlPdId, ParamUpdater updater) {

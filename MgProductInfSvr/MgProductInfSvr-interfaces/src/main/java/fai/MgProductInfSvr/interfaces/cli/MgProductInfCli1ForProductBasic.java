@@ -768,6 +768,39 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
         }
     }
 
+    public int setPdSort(MgProductArg mgProductArg) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            int aid = mgProductArg.getAid();
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            int sysType = mgProductArg.getSysType();
+
+            int preRlPdId = mgProductArg.getPreRlPdId();
+
+            // packaging send data
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
+            int rlPdId = mgProductArg.getRlPdId();
+            sendBody.putInt(ProductBasicDto.Key.SYS_TYPE, sysType);
+            sendBody.putInt(ProductBasicDto.Key.RL_PD_ID, rlPdId);
+            sendBody.putInt(ProductBasicDto.Key.PRE_RL_PD_ID, preRlPdId);
+            // send and recv
+            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.SET_PD_SORT, sendBody, false, false);
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
     /**
      * 根据商品 id 和 updater，修改 商品 基础信息
      * @param mgProductArg

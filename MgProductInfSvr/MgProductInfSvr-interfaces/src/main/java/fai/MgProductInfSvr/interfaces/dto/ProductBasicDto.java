@@ -220,6 +220,7 @@ public class ProductBasicDto {
         public static final int XID = 28;
         public static final int PRIMARY_KEY = 29;
         public static final int PRIMARY_KEYS = 30;
+        public static final int PRE_RL_PD_ID  = 31;
     }
 
 

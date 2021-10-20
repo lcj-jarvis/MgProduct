@@ -89,7 +89,7 @@ public class MgProductArg {
     private FaiList<Integer> addRlTagIds;
     private FaiList<Integer> delRlTagIds;
 
-
+    private int preRlPdId;
 
     private MgProductArg(Builder builder) {
         this.usedVar = builder.usedVar;
@@ -168,6 +168,8 @@ public class MgProductArg {
         this.rlTagIds = builder.rlTagIds;
         this.addRlTagIds = builder.addRlTagIds;
         this.delRlTagIds = builder.delRlTagIds;
+
+        this.preRlPdId = builder.preRlPdId;
     }
 
     public String getXid() {
@@ -442,6 +444,10 @@ public class MgProductArg {
         return groupLevel;
     }
 
+    public int getPreRlPdId() {
+        return preRlPdId;
+    }
+
     private static abstract class TopBuilder {
         protected int aid;
         protected int tid;
@@ -497,6 +503,7 @@ public class MgProductArg {
         protected Param bindRlPdInfo;
         protected Param pdRelInfo;
         protected FaiList<Param> pdRelInfoList;
+        protected int preRlPdId;
 
         public abstract Builder setRlPdId(int rlPdId);
         public abstract Builder setRlPdIds(FaiList<Integer> rlPdIds);
@@ -504,6 +511,7 @@ public class MgProductArg {
         public abstract Builder setBindRlPdInfo(Param bindRlPdInfo);
         public abstract Builder setPdRelInfo(Param pdRelInfo);
         public abstract Builder setPdRelInfoList(FaiList<Param> pdRelInfoList);
+        public abstract Builder setPreRlPdId(int preRlPdId);
     }
 
     private static abstract class GroupBuilder extends BasicBuilder {
@@ -885,6 +893,13 @@ public class MgProductArg {
         public Builder setPdRelInfoList(FaiList<Param> pdRelInfoList) {
             this.pdRelInfoList = pdRelInfoList;
             record("pdRelInfoList", this.pdRelInfoList);
+            return this;
+        }
+
+        @Override
+        public Builder setPreRlPdId(int preRlPdId) {
+            this.preRlPdId = preRlPdId;
+            record("preRlPdId", this.preRlPdId);
             return this;
         }
 

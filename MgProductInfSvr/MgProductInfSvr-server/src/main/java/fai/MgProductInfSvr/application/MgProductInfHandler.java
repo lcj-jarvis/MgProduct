@@ -630,6 +630,21 @@ public class MgProductInfHandler extends FaiHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductInfCmd.BasicCmd.SET_PD_SORT)
+    public int setPdSort(final FaiSession session,
+                           @ArgFlow final int flow,
+                           @ArgAid final int aid,
+                           @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
+                           @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
+                           @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
+                           @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
+                           @ArgBodyInteger(value = ProductBasicDto.Key.SYS_TYPE, useDefault = true) int sysType,
+                           @ArgBodyInteger( ProductBasicDto.Key.RL_PD_ID) int rlPdId,
+                           @ArgBodyInteger( ProductBasicDto.Key.PRE_RL_PD_ID) int preRlPdId) throws IOException {
+        return basicService.setPdSort(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, rlPdId, preRlPdId);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductInfCmd.BasicCmd.SET_SINGLE_PD)
     public int setSinglePd(final FaiSession session,
                            @ArgFlow final int flow,

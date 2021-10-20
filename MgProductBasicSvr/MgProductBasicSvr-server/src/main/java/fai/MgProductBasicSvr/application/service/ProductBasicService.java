@@ -728,6 +728,108 @@ public class ProductBasicService extends BasicParentService {
     }
 
     @SuccessRt(value = Errno.OK)
+    public int setPdSort(FaiSession session, int flow, int aid, int tid, int unionPriId, int sysType, int rlPdId, int preRlPdId) throws IOException {
+        int rt;
+        if(rlPdId <= 0 || preRlPdId < 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, rlPdId is not valid;aid=%d;uid=%d;rlPdId=%d;preRlPdId=%s;", aid, unionPriId, rlPdId, preRlPdId);
+            return rt;
+        }
+
+        LockUtil.lock(aid);
+        try {
+            FaiList<Integer> updatePdIds = new FaiList<>();
+            //统一控制事务
+            TransactionCtrl tc = new TransactionCtrl();
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+                HashSet<Integer> rlPdIds = new HashSet<>();
+                rlPdIds.add(rlPdId);
+                if(preRlPdId != 0) {
+                    rlPdIds.add(preRlPdId);
+                }
+
+                ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+                int oldSort = 0, preSort = 0;
+
+                FaiList<Integer> pdIds = relProc.getPdIds(aid, unionPriId, sysType, rlPdIds);
+                FaiList<Param> list = relProc.getProductRelList(aid, unionPriId, pdIds);
+                for(Param info : list) {
+                    int curRlPdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
+                    int curSort = info.getInt(ProductRelEntity.Info.SORT);
+                    if(curRlPdId == rlPdId) {
+                        oldSort = curSort;
+                    }else {
+                        preSort = curSort;
+                    }
+                }
+                boolean moveDown = oldSort < preSort;
+
+                ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+                matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+                if(moveDown) {
+                    matcher.and(ProductRelEntity.Info.SORT, ParamMatcher.LE, preSort);
+                    matcher.and(ProductRelEntity.Info.SORT, ParamMatcher.GE, oldSort);
+                }else {
+                    matcher.and(ProductRelEntity.Info.SORT, ParamMatcher.LE, oldSort);
+                    matcher.and(ProductRelEntity.Info.SORT, ParamMatcher.GE, preSort);
+                }
+
+                SearchArg searchArg = new SearchArg();
+                searchArg.matcher = matcher;
+                // 如果是moveDown，则按照sort升序排序
+                // 如果不是moveDown，则按照sort降序排序
+                // 这样，oldSort查出来一定是在队尾，只需将排好序的sortList 中的元素，从队头移至队尾，再重新和 needUpdateList 按顺序进行映射 就行了
+                searchArg.cmpor = new ParamComparator(ProductRelEntity.Info.SORT, moveDown);
+                FaiList<Param> needUpdateList = relProc.searchFromDbWithDel(aid, searchArg, Utils.asFaiList(ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.SORT));
+                FaiList<Integer> sortList = Utils.getValList(needUpdateList, ProductRelEntity.Info.SORT);
+
+                // 将firstSort从队头移到队尾
+                Integer firstSort = sortList.remove(0);
+                sortList.add(firstSort);
+
+                // 重新映射sort
+                for(int i = 0; i < needUpdateList.size(); i++) {
+                    Param info = needUpdateList.get(i);
+                    int pdId = info.getInt(ProductRelEntity.Info.PD_ID);
+                    int newSort = sortList.get(i);
+                    info.setInt(ProductRelEntity.Info.SORT, newSort);
+                    info.setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId);
+
+                    updatePdIds.add(pdId);
+                }
+                relProc.batchSet(aid, needUpdateList);
+
+                relProc.transactionEnd(aid);
+                commit = true;
+                tc.commit();
+            } finally {
+                if(!commit){
+                    tc.rollback();
+                }
+                tc.closeDao();
+            }
+            // 处理缓存
+            ProductRelCacheCtrl.InfoCache.delCacheList(aid, unionPriId, updatePdIds);
+            ProductRelCacheCtrl.DataStatusCache.del(aid, unionPriId);
+            ProductRelCacheCtrl.SortCache.del(aid, unionPriId); // sort缓存
+
+            // 同步数据给es
+            ESUtil.commitPre(flow, aid);
+        }finally {
+            LockUtil.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("set pd sort ok;flow=%d;aid=%d;uid=%d;rlPdId=%d;preRlPdId=%s;", flow, aid, unionPriId, rlPdId, preRlPdId);
+
+        return rt;
+    }
+
+    @SuccessRt(value = Errno.OK)
     public int setSingle(FaiSession session, int flow, int aid, String xid, int tid, int siteId, int unionPriId, int sysType, int rlPdId, ParamUpdater recvUpdater) throws IOException {
         int rt;
         if(rlPdId <= 0) {

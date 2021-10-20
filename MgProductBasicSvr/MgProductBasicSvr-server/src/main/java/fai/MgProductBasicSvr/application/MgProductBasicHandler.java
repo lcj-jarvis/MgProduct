@@ -361,6 +361,19 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductBasicCmd.BasicCmd.SET_SORT)
+    public int setPdSort(final FaiSession session,
+                           @ArgFlow final int flow,
+                           @ArgAid final int aid,
+                           @ArgBodyInteger(value = ProductRelDto.Key.TID, useDefault = true) int tid,
+                           @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                           @ArgBodyInteger(value = ProductRelDto.Key.SYS_TYPE, useDefault = true) int sysType,
+                           @ArgBodyInteger(ProductRelDto.Key.RL_PD_ID) Integer rlPdId,
+                           @ArgBodyInteger(ProductRelDto.Key.PRE_RL_PD_ID) Integer preRlPdId) throws IOException {
+        return service.setPdSort(session, flow, aid, tid, unionPriId, sysType, rlPdId, preRlPdId);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductBasicCmd.BasicCmd.SET_SINGLE_PD)
     @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductBasicCmd.BasicCmd.SET_SINGLE_PD_ROLLBACK)
     public int setSinglePd(final FaiSession session,

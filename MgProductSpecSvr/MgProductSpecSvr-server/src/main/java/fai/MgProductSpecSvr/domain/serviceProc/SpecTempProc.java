@@ -35,8 +35,9 @@ public class SpecTempProc {
                 rtIdList.add(tpScId);
             }
             data.setInt(SpecTempEntity.Info.TP_SC_ID, tpScId);
-            data.assign( info, SpecTempEntity.Info.NAME);
-            data.assign( info, SpecTempEntity.Info.SOURCE_TID);
+            data.assign(info, SpecTempEntity.Info.NAME);
+            data.assign(info, SpecTempEntity.Info.SOURCE_TID);
+            data.assign(info, SpecTempEntity.Info.SOURCE_UNION_PRI_ID);
             data.setCalendar(SpecTempEntity.Info.SYS_CREATE_TIME, now);
             data.setCalendar(SpecTempEntity.Info.SYS_UPDATE_TIME, now);
             dataList.add(data);

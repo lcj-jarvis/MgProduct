@@ -558,7 +558,7 @@ public class MgProductGroupCli extends FaiClient {
     /**
      * 修改分类 （包含 增删改）
      */
-    public int setAllGroupList(int aid, int tid, int unionPriId, FaiList<Param> treeDataList, int sysType, int groupLevel, boolean softDel) {
+    public int setAllGroupList(int aid, int tid, int unionPriId, FaiList<Param> treeDataList, int sysType, int groupLevel, boolean softDel, Ref<FaiList<Integer>> delRlGroupIdsRef) {
         if (!useProductGroup()) {
             return Errno.OK;
         }
@@ -604,6 +604,22 @@ public class MgProductGroupCli extends FaiClient {
             if (m_rt != Errno.OK) {
                 return m_rt;
             }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.ERROR;
+                Log.logErr(m_rt, "recv body=null;aid=%d", aid);
+                return m_rt;
+            }
+
+            Ref<Integer> keyRef = new Ref<Integer>();
+            FaiList<Integer> ids = new FaiList<Integer>();
+            m_rt = ids.fromBuffer(recvBody, keyRef);
+            if (m_rt != Errno.OK || keyRef.value != ProductGroupRelDto.Key.RL_GROUP_IDS) {
+                Log.logErr(m_rt, "recv rlGroupIds codec err");
+                return m_rt;
+            }
+            delRlGroupIdsRef.value = ids;
 
             m_rt = Errno.OK;
             return m_rt;

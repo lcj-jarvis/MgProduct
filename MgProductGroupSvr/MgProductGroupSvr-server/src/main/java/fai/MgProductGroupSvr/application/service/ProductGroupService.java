@@ -343,6 +343,7 @@ public class ProductGroupService extends ServicePub {
         // 通过读取配置文件，判断是否进行分类名称的校验
         boolean isCheck = isCheckGroupName(businessName);
 
+        FaiList<Integer> delRlGroupIds = new FaiList<>();
         LockUtil.lock(aid);
         try {
             TransactionCtrl tc = new TransactionCtrl();
@@ -351,7 +352,6 @@ public class ProductGroupService extends ServicePub {
             FaiList<Param> groupInfoList = new FaiList<>();
             FaiList<Param> relInfoList = new FaiList<>();
             FaiList<ParamUpdater> groupUpdaterList = new FaiList<>();
-            FaiList<Integer> delRlGroupIds = new FaiList<>();
             ProductGroupRelProc relProc = new ProductGroupRelProc(flow, aid, tc);
             ProductGroupProc groupProc = new ProductGroupProc(flow, aid, tc);
             try {
@@ -434,6 +434,7 @@ public class ProductGroupService extends ServicePub {
         }
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
+        delRlGroupIds.toBuffer(sendBuf, ProductGroupRelDto.Key.RL_GROUP_IDS);
         session.write(sendBuf);
         Log.logStd("setAllGroupList ok;flow=%d;aid=%d;unionPriId=%d;tid=%d;", flow, aid, unionPriId, tid);
         return rt;

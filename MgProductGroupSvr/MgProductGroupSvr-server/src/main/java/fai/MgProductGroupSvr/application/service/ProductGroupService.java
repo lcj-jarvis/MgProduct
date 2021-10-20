@@ -65,26 +65,6 @@ public class ProductGroupService extends ServicePub {
             transactionCtrl.setAutoCommit(false);
             ProductGroupProc groupProc = new ProductGroupProc(flow, aid, transactionCtrl);
             try {
-                // 判断是否需要校验名称
-                // 根据 tid 获取业务名称
-                String businessName = BusinessMapping.getName(tid);
-                // 通过读取配置文件，判断是否进行分类名称的校验
-                boolean isCheck = isCheckGroupName(businessName);
-
-                if (isCheck) {
-                    // 搜索旧数据中是否存在当前名称
-                    String name = info.getString(ProductGroupEntity.Info.GROUP_NAME);
-                    ParamMatcher matcher = new ParamMatcher(ProductGroupEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.EQ, unionPriId);
-                    matcher.and(ProductGroupEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
-                    matcher.and(ProductGroupEntity.Info.GROUP_NAME, ParamMatcher.EQ, name);
-
-                    FaiList<Param> groupList = getGroupList(aid, matcher, groupProc);
-                    if (!Utils.isEmptyList(groupList)) {
-                        rt = Errno.ALREADY_EXISTED;
-                        throw new MgException(rt, "name is existed;flow=%d;aid=%d;name=%s", flow, aid, name);
-                    }
-                }
-
                 groupId = groupProc.addGroup(aid, groupInfo);
                 relInfo.setInt(ProductGroupRelEntity.Info.GROUP_ID, groupId);
 
@@ -284,18 +264,13 @@ public class ProductGroupService extends ServicePub {
                 relProc.setGroupRelList(aid, unionPriId, oldRelList, updaterList, groupUpdaterList);
                 // 修改分类表
                 if(!groupUpdaterList.isEmpty()) {
-                    // 判断是否需要校验名称, 根据 tid 获取业务名称
-                    String businessName = BusinessMapping.getName(tid);
-                    // 通过读取配置文件，判断是否进行分类名称的校验
-                    boolean isCheck = isCheckGroupName(businessName);
-
                     // 找出旧数据当中的 groupId 集合，用于查询基础表的旧数据信息
                     List<Integer> oldGroupIds = oldRelList.stream().map(o -> o.getInt(ProductGroupEntity.Info.GROUP_ID)).collect(Collectors.toList());
                     ParamMatcher matcher = new ParamMatcher(ProductGroupEntity.Info.GROUP_ID, ParamMatcher.IN, oldGroupIds);
                     ProductGroupProc groupProc = new ProductGroupProc(flow, aid, transactionCtrl);
                     // 获取基础表旧数据
                     FaiList<Param> oldList = getGroupList(aid, matcher, groupProc);
-                    groupProc.setGroupList(aid, oldList, groupUpdaterList, isCheck);
+                    groupProc.setGroupList(aid, oldList, groupUpdaterList);
                 }
                 commit = true;
                 // commit之前设置10s过期时间，避免脏数据
@@ -337,11 +312,6 @@ public class ProductGroupService extends ServicePub {
         FaiList<ParamUpdater> modifyList = new FaiList<>();
         // 校验层级
         checkLevel(flow, aid, treeDataList, groupLevel);
-
-        // 判断是否需要校验名称, 根据 tid 获取业务名称
-        String businessName = BusinessMapping.getName(tid);
-        // 通过读取配置文件，判断是否进行分类名称的校验
-        boolean isCheck = isCheckGroupName(businessName);
 
         FaiList<Integer> delRlGroupIds = new FaiList<>();
         LockUtil.lock(aid);
@@ -402,12 +372,12 @@ public class ProductGroupService extends ServicePub {
                     relProc.setGroupRelList(aid, unionPriId, oldRelList, modifyList, groupUpdaterList);
                     // 修改分类表
                     if(!groupUpdaterList.isEmpty()) {
-                        groupProc.setGroupList(aid, oldList, groupUpdaterList, isCheck);
+                        groupProc.setGroupList(aid, oldList, groupUpdaterList);
                     }
                 }
 
                 if (!addList.isEmpty()) {
-                    addGroupList(flow, aid, unionPriId, tid, sysType, oldList, addList, groupProc, relProc, groupInfoList, relInfoList, null, isCheck);
+                    addGroupList(flow, aid, unionPriId, tid, sysType, addList, groupProc, relProc, groupInfoList, relInfoList, null);
                 }
 
                 commit = true;
@@ -497,10 +467,6 @@ public class ProductGroupService extends ServicePub {
         int rt;
         FaiList<Integer> rlGroupIds = new FaiList<>();
         int maxSort = 0;
-        // 判断是否需要校验名称, 根据 tid 获取业务名称
-        String businessName = BusinessMapping.getName(tid);
-        // 通过读取配置文件，判断是否进行分类名称的校验
-        boolean isCheck = isCheckGroupName(businessName);
         LockUtil.lock(aid);
         try {
             TransactionCtrl tc = new TransactionCtrl();
@@ -541,12 +507,12 @@ public class ProductGroupService extends ServicePub {
                     relProc.setGroupRelList(aid, unionPriId, oldRelList, updaterList, groupUpdaterList);
                     // 修改分类表
                     if(!groupUpdaterList.isEmpty()) {
-                        groupProc.setGroupList(aid, oldList, groupUpdaterList, isCheck);
+                        groupProc.setGroupList(aid, oldList, groupUpdaterList);
                     }
                 }
                 // 添加
                 if (!Util.isEmptyList(addList)) {
-                    maxSort = addGroupList(flow, aid, unionPriId, tid, sysType, oldList, addList, groupProc, relProc, groupInfoList, relInfoList, rlGroupIds, isCheck);
+                    maxSort = addGroupList(flow, aid, unionPriId, tid, sysType, addList, groupProc, relProc, groupInfoList, relInfoList, rlGroupIds);
                 }
 
                 commit = true;
@@ -601,8 +567,8 @@ public class ProductGroupService extends ServicePub {
         return rt;
     }
 
-    private int addGroupList(int flow, int aid, int unionPriId, int tid, int sysType, FaiList<Param> oldList, FaiList<Param> addList, ProductGroupProc groupProc, ProductGroupRelProc groupRelProc,
-                             FaiList<Param> groupList, FaiList<Param> relList, FaiList<Integer> rlGroupIdList, boolean check) {
+    private int addGroupList(int flow, int aid, int unionPriId, int tid, int sysType, FaiList<Param> addList, ProductGroupProc groupProc, ProductGroupRelProc groupRelProc,
+                             FaiList<Param> groupList, FaiList<Param> relList, FaiList<Integer> rlGroupIdList) {
         int rt;
         int maxSort = groupRelProc.getMaxSort(aid, unionPriId);
 
@@ -625,7 +591,7 @@ public class ProductGroupService extends ServicePub {
             relList.add(relInfo);
         }
         // 批量新增基础信息表数据
-        FaiList<Integer> groupIds = groupProc.batchAddGroup(aid, oldList, groupList, check);
+        FaiList<Integer> groupIds = groupProc.batchAddGroup(aid, groupList);
         for (int i = 0; i < relList.size(); i++) {
             Param param = relList.get(i);
             Integer groupId = groupIds.get(i);

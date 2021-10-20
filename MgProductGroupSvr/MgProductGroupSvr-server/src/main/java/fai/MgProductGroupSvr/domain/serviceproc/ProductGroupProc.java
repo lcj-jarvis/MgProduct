@@ -14,8 +14,10 @@ import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Calendar;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class ProductGroupProc {
     public ProductGroupProc(int flow, int aid, TransactionCtrl transactionCrtl) {
@@ -54,9 +56,8 @@ public class ProductGroupProc {
     /**
      * 修改商品分类
      */
-    public void setGroupList(int aid, FaiList<Param> oldList, FaiList<ParamUpdater> updaterList, boolean isCheck) {
+    public void setGroupList(int aid, FaiList<Param> oldList, FaiList<ParamUpdater> updaterList) {
         int rt;
-        HashSet<String> nameSet = new HashSet<>();
         for(ParamUpdater updater : updaterList){
             Param updateInfo = updater.getData();
             String name = updateInfo.getString(ProductGroupEntity.Info.GROUP_NAME);
@@ -64,14 +65,6 @@ public class ProductGroupProc {
             if(name != null && !ProductGroupCheck.isNameValid(name)) {
                 rt = Errno.ARGS_ERROR;
                 throw new MgException(rt, "name is not valid;flow=%d;aid=%d;name=%s", m_flow, aid, name);
-            }
-            if (isCheck) {
-                // 校验修改的名称里是否有重复
-                boolean isExisted = nameSet.add(name);
-                if (!isExisted) {
-                    rt = Errno.ALREADY_EXISTED;
-                    throw new MgException(rt, "name is existed;flow=%d;aid=%d;name=%s", m_flow, aid, name);
-                }
             }
         }
 
@@ -221,15 +214,11 @@ public class ProductGroupProc {
         m_daoCtrl.clearIdBuilderCache(aid);
     }*/
 
-    public FaiList<Integer> batchAddGroup(int aid, FaiList<Param> groupList) {
-        return batchAddGroup(aid, null, groupList, false);
-    }
-
     /**
      * 批量添加商品分类数据
      * @return 商品分类id集合
      */
-    public FaiList<Integer> batchAddGroup(int aid, FaiList<Param> oldList, FaiList<Param> groupList, boolean isCheck) {
+    public FaiList<Integer> batchAddGroup(int aid, FaiList<Param> groupList) {
         int rt;
         if(groupList == null || groupList.isEmpty()) {
             rt = Errno.ARGS_ERROR;
@@ -241,23 +230,8 @@ public class ProductGroupProc {
             throw new MgException(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductGroupValObj.Limit.COUNT_MAX);
         }
 
-        // 如果需要检验名称，先将老数据的名称转成 List
-        List<String> existNameList = new ArrayList<>();
-        if (isCheck) {
-            if (!oldList.isEmpty()) {
-                existNameList = oldList.stream().map(o -> o.getString(ProductGroupEntity.Info.GROUP_NAME)).collect(Collectors.toList());
-            }
-        }
         FaiList<Integer> ids = new FaiList<>();
         for(Param info : groupList) {
-            // 校验名称是否重复
-            if (isCheck) {
-                String name = info.getString(ProductGroupEntity.Info.GROUP_NAME);
-                if (existNameList.contains(name)) {
-                    rt = Errno.ALREADY_EXISTED;
-                    throw new MgException(rt, "name is existed;flow=%d;aid=%d;name=%s", m_flow, aid, name);
-                }
-            }
             int groupId = creatAndSetId(aid, info);
             ids.add(groupId);
         }

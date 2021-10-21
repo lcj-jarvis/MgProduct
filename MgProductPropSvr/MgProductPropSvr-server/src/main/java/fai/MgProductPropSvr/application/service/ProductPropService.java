@@ -1,17 +1,25 @@
 package fai.MgProductPropSvr.application.service;
 
+import fai.MgBackupSvr.interfaces.entity.MgBackupEntity;
 import fai.MgProductPropSvr.domain.common.LockUtil;
 import fai.MgProductPropSvr.domain.common.ProductPropCheck;
 import fai.MgProductPropSvr.domain.entity.ProductPropEntity;
 import fai.MgProductPropSvr.domain.entity.ProductPropRelEntity;
 import fai.MgProductPropSvr.domain.entity.ProductPropValEntity;
 import fai.MgProductPropSvr.domain.entity.ProductPropValObj;
-import fai.MgProductPropSvr.domain.repository.*;
+import fai.MgProductPropSvr.domain.repository.cache.CacheCtrl;
+import fai.MgProductPropSvr.domain.repository.cache.ProductPropCacheCtrl;
+import fai.MgProductPropSvr.domain.repository.cache.ProductPropRelCacheCtrl;
+import fai.MgProductPropSvr.domain.repository.cache.ProductPropValCacheCtrl;
+import fai.MgProductPropSvr.domain.repository.dao.ProductPropDaoCtrl;
+import fai.MgProductPropSvr.domain.repository.dao.ProductPropRelDaoCtrl;
+import fai.MgProductPropSvr.domain.repository.dao.ProductPropValDaoCtrl;
 import fai.MgProductPropSvr.domain.serviceproc.ProductPropProc;
 import fai.MgProductPropSvr.domain.serviceproc.ProductPropRelProc;
 import fai.MgProductPropSvr.domain.serviceproc.ProductPropValProc;
 import fai.MgProductPropSvr.interfaces.dto.ProductPropDto;
 import fai.MgProductPropSvr.interfaces.dto.ProductPropValDto;
+import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
 import fai.comm.middleground.FaiValObj;
@@ -19,6 +27,7 @@ import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.annotation.SuccessRt;
 import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.repository.BackupStatusCtrl;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 import fai.middleground.svrutil.service.ServicePub;
 
@@ -26,6 +35,7 @@ import java.io.IOException;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Set;
 import java.util.concurrent.locks.Lock;
 
 public class ProductPropService extends ServicePub {
@@ -238,8 +248,8 @@ public class ProductPropService extends ServicePub {
 		//统一控制事务
 		TransactionCtrl tc = new TransactionCtrl();
 
-		FaiList<Integer> propIds = new FaiList<Integer>();
-		HashMap<Integer, Param> propMap = new HashMap<Integer, Param>();
+		FaiList<Integer> propIds = new FaiList<>();
+		HashMap<Integer, Param> propMap = new HashMap<>();
 		FaiList<Param> list = new FaiList<>();
 		try {
 
@@ -675,7 +685,7 @@ public class ProductPropService extends ServicePub {
 	 * 批量修改(包括增、删、改)指定商品库的商品参数值列表
 	 */
 	@SuccessRt(value = Errno.OK)
-	public int setPropValList(FaiSession session, int flow, int aid, int unionPriId, int tid, int libId, int rlPropId, FaiList<ParamUpdater> updaterList, FaiList<Integer> delValIds, FaiList<Param> addInfoList) {
+	public int setPropValList(FaiSession session, int flow, int aid, int unionPriId, int tid, int libId, int rlPropId, FaiList<ParamUpdater> updaterList, FaiList<Integer> delValIds, FaiList<Param> addInfoList) throws IOException {
 		int rt = Errno.ERROR;
 		// 先根据参数业务id获取参数id
 		FaiList<Integer> rlProIds = new FaiList<Integer>();
@@ -734,6 +744,10 @@ public class ProductPropService extends ServicePub {
 		}finally {
 			lock.unlock();
 		}
+
+		FaiBuffer sendBuf = new FaiBuffer(true);
+		session.write(sendBuf);
+
 		rt = Errno.OK;
 		Log.logStd("setPropValList ok;flow=%d;aid=%d;unionPriId=%d;tid=%d;", flow, aid, unionPriId, tid);
 		return rt;
@@ -845,6 +859,243 @@ public class ProductPropService extends ServicePub {
 		return rt;
 	}
 
+	@SuccessRt(value = Errno.OK)
+	public int backupData(FaiSession session, int flow, int aid, FaiList<Integer> unionPirIds, Param backupInfo) throws IOException {
+		int rt;
+		if(aid <= 0 || Str.isEmpty(backupInfo)) {
+			rt = Errno.ARGS_ERROR;
+			Log.logErr("args error;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+			return rt;
+		}
+
+		int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+		int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
+		if(backupId == 0 || backupFlag == 0) {
+			rt = Errno.ARGS_ERROR;
+			Log.logErr("args error, backupInfo error;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+			return rt;
+		}
+
+		LockUtil.BackupLock.lock(aid);
+		try {
+			String backupStatus = backupStatusCtrl.getStatus(BackupStatusCtrl.Action.BACKUP, aid, backupId);
+			if(backupStatus != null) {
+				if(backupStatusCtrl.isDoing(backupStatus)) {
+					rt = Errno.ALREADY_EXISTED;
+					throw new MgException(rt, "backup is doing;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+				}else if(backupStatusCtrl.isFinish(backupStatus)) {
+					rt = Errno.OK;
+					Log.logStd(rt, "backup is already ok;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+					FaiBuffer sendBuf = new FaiBuffer(true);
+					session.write(sendBuf);
+					return Errno.OK;
+				}else if(backupStatusCtrl.isFail(backupStatus)) {
+					rt = Errno.ALREADY_EXISTED;
+					Log.logStd(rt, "backup is fail, going retry;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+				}
+			}
+			// 设置备份执行中
+			backupStatusCtrl.setStatusIsDoing(BackupStatusCtrl.Action.BACKUP, aid, backupId);
+
+			TransactionCtrl tc = new TransactionCtrl();
+			ProductPropRelProc relProc = new ProductPropRelProc(flow, aid, tc, true);
+			ProductPropProc proc = new ProductPropProc(flow, aid, tc, true);
+			ProductPropValProc valProc = new ProductPropValProc(flow, aid, tc, true);
+			boolean commit = false;
+			try {
+				tc.setAutoCommit(false);
+
+				// 可能之前备份没有成功，先操作删除之前的备份
+				deleteBackupData(relProc, proc, valProc, aid, backupId, backupFlag);
+
+				// 备份业务关系表数据
+				relProc.backupData(aid, unionPirIds, backupId, backupFlag);
+
+				// 备份参数表数据
+				Set<Integer> propIds = proc.backupData(aid, backupId, backupFlag, unionPirIds);
+
+				// 备份参数值表数据
+				valProc.backupData(aid, backupId, backupFlag, propIds);
+
+				commit = true;
+			}finally {
+				if(commit) {
+					tc.commit();
+					backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.BACKUP, aid, backupId);
+				}else {
+					tc.rollback();
+					backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.BACKUP, aid, backupId);
+				}
+				tc.closeDao();
+			}
+		}finally {
+			LockUtil.BackupLock.unlock(aid);
+		}
+
+		rt = Errno.OK;
+		FaiBuffer sendBuf = new FaiBuffer(true);
+		session.write(sendBuf);
+		Log.logStd("backupData ok;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+		return rt;
+	}
+
+	@SuccessRt(Errno.OK)
+	public int restoreBackupData(FaiSession session, int flow, int aid, FaiList<Integer> unionPirIds, int restoreId, Param backupInfo) throws IOException {
+		int rt;
+		if(aid <= 0 || Str.isEmpty(backupInfo)) {
+			rt = Errno.ARGS_ERROR;
+			Log.logErr("args error;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
+			return rt;
+		}
+
+		int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+		int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
+		if(backupId == 0 || backupFlag == 0) {
+			rt = Errno.ARGS_ERROR;
+			Log.logErr("args error, backupInfo error;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
+			return rt;
+		}
+
+		LockUtil.BackupLock.lock(aid);
+		try {
+			String backupStatus = backupStatusCtrl.getStatus(BackupStatusCtrl.Action.RESTORE, aid, restoreId);
+			if(backupStatus != null) {
+				if(backupStatusCtrl.isDoing(backupStatus)) {
+					rt = Errno.ALREADY_EXISTED;
+					throw new MgException(rt, "restore is doing;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
+				}else if(backupStatusCtrl.isFinish(backupStatus)) {
+					rt = Errno.OK;
+					Log.logStd(rt, "restore is already ok;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
+					FaiBuffer sendBuf = new FaiBuffer(true);
+					session.write(sendBuf);
+					return Errno.OK;
+				}else if(backupStatusCtrl.isFail(backupStatus)) {
+					rt = Errno.ALREADY_EXISTED;
+					Log.logStd(rt, "restore is fail, going retry;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
+				}
+			}
+			// 设置备份执行中
+			backupStatusCtrl.setStatusIsDoing(BackupStatusCtrl.Action.RESTORE, aid, restoreId);
+
+			TransactionCtrl tc = new TransactionCtrl();
+			ProductPropRelProc relProc = new ProductPropRelProc(flow, aid, tc, true);
+			ProductPropProc proc = new ProductPropProc(flow, aid, tc, true);
+			ProductPropValProc valProc = new ProductPropValProc(flow, aid, tc, true);
+			boolean commit = false;
+			try {
+				tc.setAutoCommit(false);
+
+				// 还原关系表数据
+				relProc.restoreBackupData(aid, unionPirIds, backupId, backupFlag);
+
+				// 还原参数表数据
+				FaiList<Integer> propIds = proc.restoreBackupData(aid, unionPirIds, backupId, backupFlag);
+
+				// 还原参数值表数据
+				valProc.restoreBackupData(aid, propIds, backupId, backupFlag);
+
+				commit = true;
+			}finally {
+				if(commit) {
+					tc.commit();
+					backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.RESTORE, aid, restoreId);
+				}else {
+					tc.rollback();
+					backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.RESTORE, aid, restoreId);
+				}
+				tc.closeDao();
+			}
+		}finally {
+			LockUtil.BackupLock.unlock(aid);
+		}
+
+		rt = Errno.OK;
+		FaiBuffer sendBuf = new FaiBuffer(true);
+		session.write(sendBuf);
+		Log.logStd("restore backupData ok;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
+		return rt;
+	}
+
+	@SuccessRt(Errno.OK)
+	public int delBackupData(FaiSession session, int flow, int aid, Param backupInfo) throws IOException {
+		int rt;
+		if(aid <= 0 || Str.isEmpty(backupInfo)) {
+			rt = Errno.ARGS_ERROR;
+			Log.logErr("args error;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+			return rt;
+		}
+
+		int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+		int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
+		if(backupId == 0 || backupFlag == 0) {
+			rt = Errno.ARGS_ERROR;
+			Log.logErr("args error, backupInfo error;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+			return rt;
+		}
+
+		LockUtil.BackupLock.lock(aid);
+		try {
+			String backupStatus = backupStatusCtrl.getStatus(BackupStatusCtrl.Action.DELETE, aid, backupId);
+			if(backupStatus != null) {
+				if(backupStatusCtrl.isDoing(backupStatus)) {
+					rt = Errno.ALREADY_EXISTED;
+					throw new MgException(rt, "del backup is doing;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+				}else if(backupStatusCtrl.isFinish(backupStatus)) {
+					rt = Errno.OK;
+					Log.logStd(rt, "del backup is already ok;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+					FaiBuffer sendBuf = new FaiBuffer(true);
+					session.write(sendBuf);
+					return Errno.OK;
+				}else if(backupStatusCtrl.isFail(backupStatus)) {
+					rt = Errno.ALREADY_EXISTED;
+					Log.logStd(rt, "del backup is fail, going retry;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+				}
+			}
+			// 设置备份执行中
+			backupStatusCtrl.setStatusIsDoing(BackupStatusCtrl.Action.DELETE, aid, backupId);
+
+			TransactionCtrl tc = new TransactionCtrl();
+			ProductPropRelProc relProc = new ProductPropRelProc(flow, aid, tc, true);
+			ProductPropProc proc = new ProductPropProc(flow, aid, tc, true);
+			ProductPropValProc valProc = new ProductPropValProc(flow, aid, tc, true);
+			boolean commit = false;
+			try {
+				tc.setAutoCommit(false);
+
+				// 删除备份
+				deleteBackupData(relProc, proc, valProc, aid, backupId, backupFlag);
+
+				commit = true;
+			}finally {
+				if(commit) {
+					tc.commit();
+					backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.DELETE, aid, backupId);
+				}else {
+					tc.rollback();
+					backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.DELETE, aid, backupId);
+				}
+				tc.closeDao();
+			}
+		}finally {
+			LockUtil.BackupLock.unlock(aid);
+		}
+
+		rt = Errno.OK;
+		FaiBuffer sendBuf = new FaiBuffer(true);
+		session.write(sendBuf);
+		Log.logStd("del backupData ok;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+		return rt;
+	}
+
+	private void deleteBackupData(ProductPropRelProc relProc, ProductPropProc proc, ProductPropValProc valProc, int aid, int backupId, int backupFlag) {
+
+		relProc.delBackupData(aid, backupId, backupFlag);
+
+		proc.delBackupData(aid, backupId, backupFlag);
+
+		valProc.delBackupData(aid, backupId, backupFlag);
+	}
+
 	private int addPropList(int flow, int aid, int unionPriId, int tid, int libId, TransactionCtrl tc, FaiList<Param> addList, FaiList<Param> propList, FaiList<Param> propRelList, FaiList<Integer> rlPropIds) {
 		int rt;
 		ProductPropRelProc propRelProc = new ProductPropRelProc(flow, aid, tc);
@@ -924,4 +1175,11 @@ public class ProductPropService extends ServicePub {
 		relInfo.setInt(ProductPropRelEntity.Info.RL_FLAG, rlFlag);
 		return rt;
 	}
+
+	public void initBackupStatus(RedisCacheManager cache) {
+		backupStatusCtrl = new BackupStatusCtrl(BAK_TYPE, cache);
+	}
+
+	private BackupStatusCtrl backupStatusCtrl;
+	private static final String BAK_TYPE = "mgPdProp";
 }

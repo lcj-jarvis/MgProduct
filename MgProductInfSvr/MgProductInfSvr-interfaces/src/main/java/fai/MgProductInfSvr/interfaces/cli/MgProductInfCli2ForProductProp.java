@@ -693,6 +693,7 @@ public class MgProductInfCli2ForProductProp extends MgProductInfCli1ForProductBa
      *                 .setAddList(addList)     // 选填
      *                 .setUpdaterList(setList) // 选填
      *                 .setDelValList(delList)  // 选填
+     *                 .setSysType(sysType)     // 选填
      *                 .build();
      * @return {@link Errno}
      */
@@ -714,7 +715,7 @@ public class MgProductInfCli2ForProductProp extends MgProductInfCli1ForProductBa
             if (setList == null) {
                 setList = new FaiList<ParamUpdater>();
             }
-            FaiList<Integer> delList = mgProductArg.getRlPropIds();
+            FaiList<Integer> delList = mgProductArg.getDelValList();
             if (delList == null) {
                 delList = new FaiList<Integer>();
             }

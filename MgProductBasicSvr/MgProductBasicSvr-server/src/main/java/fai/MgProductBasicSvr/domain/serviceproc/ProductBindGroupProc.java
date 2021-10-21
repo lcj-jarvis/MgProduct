@@ -373,20 +373,27 @@ public class ProductBindGroupProc {
         Log.logStd("batch add bind groups ok;aid=%d;uid=%d;addList=%s;", aid, unionPriId, addList);
     }
 
-    public int delPdBindGroup(int aid, int unionPriId, ParamMatcher matcher) {
+    public void insert4Clone(int aid, FaiList<Param> dataList) {
         int rt;
+        if(Utils.isEmptyList(dataList)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args err, infoList is empty;flow=%d;aid=%d;dataList=%s;", m_flow, aid, dataList);
+        }
+
+        rt = m_dao.batchInsert(dataList, null, true);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "batch insert pd bind group error;flow=%d;aid=%d;", m_flow, aid);
+        }
+    }
+
+    public int delPdBindGroup(int aid, int unionPriId, ParamMatcher matcher) {
         if(matcher == null) {
             matcher = new ParamMatcher();
         }
-        Ref<Integer> refRowCount = new Ref<>();
         matcher.and(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-        rt = m_dao.delete(matcher, refRowCount);
-        if(rt != Errno.OK) {
-            throw new MgException(rt, "del info error;flow=%d;aid=%d;matcher=%s;", m_flow, aid, matcher.toJson());
-        }
-        Log.logStd("del bind group ok;aid=%d;uid=%d;matcher=%s;", aid, unionPriId, matcher.toJson());
-        return refRowCount.value;
+
+        return delPdBindGroup(aid, matcher);
     }
 
     public int delPdBindGroupList(int aid, FaiList<Integer> pdIds) {
@@ -415,13 +422,7 @@ public class ProductBindGroupProc {
             addSagaList(aid, list);
         }
 
-        Ref<Integer> refRowCount = new Ref<>();
-        rt = m_dao.delete(matcher, refRowCount);
-        if(rt != Errno.OK) {
-            throw new MgException(rt, "del info error;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
-        }
-        Log.logStd("delPdBindGroupList ok;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
-        return refRowCount.value;
+        return delPdBindGroup(aid, matcher);
     }
 
     public int delPdBindGroupList(int aid, int unionPriId, int pdId, FaiList<Integer> rlGroupIds) {
@@ -452,14 +453,7 @@ public class ProductBindGroupProc {
             addSagaList(aid, list);
         }
 
-        Ref<Integer> refRowCount = new Ref<>();
-        rt = m_dao.delete(matcher, refRowCount);
-        if(rt != Errno.OK) {
-            throw new MgException(rt, "del info error;flow=%d;aid=%d;pdId=%d;rlGroupIds=%s;", m_flow, aid, pdId, rlGroupIds);
-        }
-
-        Log.logStd("delPdBindGroupList ok;flow=%d;aid=%d;pdId=%d;rlGroupIds=%s;", m_flow, aid, pdId, rlGroupIds);
-        return refRowCount.value;
+        return delPdBindGroup(aid, matcher);
     }
 
     public int delPdBindGroupList(int aid, int unionPriId, FaiList<Integer> pdIds) {
@@ -488,13 +482,7 @@ public class ProductBindGroupProc {
             addSagaList(aid, list);
         }
 
-        Ref<Integer> refRowCount = new Ref<>();
-        rt = m_dao.delete(matcher, refRowCount);
-        if(rt != Errno.OK) {
-            throw new MgException(rt, "del info error;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
-        }
-        Log.logStd("delPdBindGroupList ok;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
-        return refRowCount.value;
+        return delPdBindGroup(aid, matcher);
     }
 
     public int delPdBindGroupListByRlGroupIds(int aid, int unionPriId, int sysType, FaiList<Integer> rlGroupIds) {
@@ -507,12 +495,23 @@ public class ProductBindGroupProc {
         matcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
         matcher.and(ProductBindGroupEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
         matcher.and(ProductBindGroupEntity.Info.RL_GROUP_ID, ParamMatcher.IN, rlGroupIds);
+
+        return delPdBindGroup(aid, matcher);
+    }
+
+    public int delPdBindGroup(int aid, ParamMatcher matcher) {
+        int rt;
+        if(matcher == null || matcher.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args err, matcher is null;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher);
+        }
+
         Ref<Integer> refRowCount = new Ref<>();
         rt = m_dao.delete(matcher, refRowCount);
-        if(rt != Errno.OK) {
-            throw new MgException(rt, "del info error;flow=%d;aid=%d;uid=%d;rlGroupIds=%s;", m_flow, aid, unionPriId, rlGroupIds);
+        if(rt != Errno.OK){
+            throw new MgException(rt, "delPdBindGroup error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher.toJson());
         }
-        Log.logStd("delPdBindGroupList ok;flow=%d;aid=%d;uid=%d;sysType=%s;rlGroupIds=%s;", m_flow, aid, unionPriId, sysType, rlGroupIds);
+        Log.logStd("delPdBindGroup ok;flow=%d;aid=%s;matcher=%s;", m_flow, aid, matcher);
         return refRowCount.value;
     }
 
@@ -590,11 +589,12 @@ public class ProductBindGroupProc {
         // 存在克隆场景需要拿其他aid的数据，设置下表名
         m_dao.setTableName(aid);
         int rt = m_dao.select(searchArg, listRef, selectFields);
+        // 查完之后恢复下表名
+        m_dao.restoreTableName();
+
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             throw new MgException(rt, "get error;flow=%d;aid=%d;matcher=%s;", m_flow, aid, searchArg.matcher.toJson());
         }
-        // 查完之后恢复下表名
-        m_dao.restoreTableName();
         if(listRef.value == null) {
             listRef.value = new FaiList<Param>();
         }

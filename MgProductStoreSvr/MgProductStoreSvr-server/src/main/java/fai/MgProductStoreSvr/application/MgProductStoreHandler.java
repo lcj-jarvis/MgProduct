@@ -556,18 +556,21 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
         return m_summaryService.getSkuSummaryInfoList(session, flow, aid, tid, sourceUnionPriId, searchArg);
     }
 
+    @WrittenCmd
     @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.SET)
     @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductStoreCmd.SpuBizSummaryCmd.SET_ROLLBACK)
     private int setSpuBizSummary(final FaiSession session,
                                       @ArgFlow final int flow,
                                       @ArgAid final int aid,
-                                      @ArgBodyString(value = SpuBizSummaryDto.Key.XID, useDefault = true) String xid,
+                                      @ArgBodyXid(value = SpuBizSummaryDto.Key.XID, useDefault = true) String xid,
                                       @ArgBodyInteger(SpuBizSummaryDto.Key.UNION_PRI_ID) int unionPriId,
                                       @ArgBodyInteger(SpuBizSummaryDto.Key.PD_ID) int pdId,
                                       @ArgParamUpdater(keyMatch = SpuBizSummaryDto.Key.UPDATER, methodDef = "getInfoDto",
                                       classDef = SpuBizSummaryDto.class) ParamUpdater updater) throws IOException {
         return m_summaryService.setSpuBizSummary(session, flow, aid, xid, unionPriId, pdId, updater);
     }
+
+    @WrittenCmd
     @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.SET_ROLLBACK)
     private int setSpuBizSummaryRollback(final FaiSession session,
                                          @ArgFlow final int flow,
@@ -575,6 +578,28 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                          @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
                                          @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
         return m_summaryService.setSpuBizSummaryRollback(session, flow, aid, xid, branchId);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.BATCH_ADD)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductStoreCmd.SpuBizSummaryCmd.BATCH_ADD_ROLLBACK)
+    private int batchAddSpuBizSummary(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid final int aid,
+                                 @ArgBodyXid(value = SpuBizSummaryDto.Key.XID, useDefault = true) String xid,
+                                 @ArgList(keyMatch = SpuBizSummaryDto.Key.INFO_LIST, methodDef = "getInfoDto",
+                                         classDef = SpuBizSummaryDto.class) FaiList<Param> list) throws IOException {
+        return m_summaryService.batchAddSpuBizSummary(session, flow, aid, xid, list);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.BATCH_ADD_ROLLBACK)
+    private int batchAddSpuBizSummaryRollback(final FaiSession session,
+                                         @ArgFlow final int flow,
+                                         @ArgAid final int aid,
+                                         @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                         @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return m_summaryService.batchAddSpuBizSummaryRollback(session, flow, aid, xid, branchId);
     }
 
     @Cmd(NKDef.Protocol.Cmd.CLEAR_CACHE)

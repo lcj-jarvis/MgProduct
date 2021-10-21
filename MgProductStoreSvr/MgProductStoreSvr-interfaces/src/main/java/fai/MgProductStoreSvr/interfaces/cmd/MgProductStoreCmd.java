@@ -59,6 +59,8 @@ public class MgProductStoreCmd {
 		public static final int NUM29 = 1029;
 		public static final int NUM30 = 1030;
 		public static final int NUM31 = 1031;
+		public static final int NUM32 = 1032;
+		public static final int NUM33 = 1033;
 	}
 
 	////////////////// cmd对外定义，实际做cmd读写分离 ////////////////////
@@ -142,6 +144,8 @@ public class MgProductStoreCmd {
 
 		public static final int SET = WriteCmdNum.NUM30;
 		public static final int SET_ROLLBACK = WriteCmdNum.NUM31;
+		public static final int BATCH_ADD = WriteCmdNum.NUM32;
+		public static final int BATCH_ADD_ROLLBACK = WriteCmdNum.NUM33;
 	}
 
 	/**

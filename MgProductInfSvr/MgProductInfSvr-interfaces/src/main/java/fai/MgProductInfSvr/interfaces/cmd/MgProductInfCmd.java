@@ -145,6 +145,7 @@ public class MgProductInfCmd {
         public static final int NUM63 = 1063; /**@see Cmd#CLONE_BIZ_BIND */
         public static final int NUM64 = 1064; /**@see BasicCmd#BATCH_SET_4YK */
         public static final int NUM65 = 1065; /**@see Cmd#MIGRATE */
+        public static final int NUM66 = 1066; /**@see BasicCmd#SET_PD_SORT */
     }
 
 
@@ -196,6 +197,7 @@ public class MgProductInfCmd {
         public static final int SET_PD_BIND_TAG = WriteCmdNum.NUM55;
         public static final int DEL_PD_TAG_LIST = WriteCmdNum.NUM62;
         public static final int BATCH_SET_4YK = WriteCmdNum.NUM64;
+        public static final int SET_PD_SORT = WriteCmdNum.NUM66;
     }
 
     public static class GroupCmd {

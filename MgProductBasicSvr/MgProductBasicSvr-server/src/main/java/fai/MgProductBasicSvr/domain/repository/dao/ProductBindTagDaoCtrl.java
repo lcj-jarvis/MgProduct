@@ -5,6 +5,7 @@ import fai.comm.util.Log;
 import fai.middleground.svrutil.repository.DaoCtrl;
 
 public class ProductBindTagDaoCtrl extends DaoCtrl {
+    private String tableName;
 
     public static ProductBindTagDaoCtrl getInstance(int flow, int aid) {
         if(m_daoPool == null) {
@@ -16,6 +17,7 @@ public class ProductBindTagDaoCtrl extends DaoCtrl {
 
     public ProductBindTagDaoCtrl(int flow, int aid) {
         super(flow, aid);
+        setTableName(aid);
     }
 
     @Override
@@ -24,8 +26,16 @@ public class ProductBindTagDaoCtrl extends DaoCtrl {
     }
 
     @Override
-    protected String getTableName() {
-        return TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
+    public String getTableName() {
+        return tableName;
+    }
+
+    public void setTableName(int aid) {
+        this.tableName = TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
+    }
+
+    public void restoreTableName() {
+        setTableName(this.aid);
     }
 
     public static void init(DaoPool daoPool) {

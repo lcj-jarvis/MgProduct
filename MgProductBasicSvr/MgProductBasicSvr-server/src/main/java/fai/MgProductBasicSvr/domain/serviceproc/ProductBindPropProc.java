@@ -339,6 +339,19 @@ public class ProductBindPropProc {
         addSagaList(aid, sagaList);
     }
 
+    public void insert4Clone(int aid, FaiList<Param> dataList) {
+        int rt;
+        if(Utils.isEmptyList(dataList)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args err, infoList is empty;flow=%d;aid=%d;dataList=%s;", m_flow, aid, dataList);
+        }
+
+        rt = m_bindPropDao.batchInsert(dataList, null, true);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "batch insert pd bind prop error;flow=%d;aid=%d;", m_flow, aid);
+        }
+    }
+
     public void updatePdBindProp(int aid, int unionPriId, int sysType, int rlPdId, int pdId, FaiList<Param> bindPropList){
         if(bindPropList == null) {
             return;
@@ -621,7 +634,15 @@ public class ProductBindPropProc {
         searchArg.matcher.and(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
+
+        // 因为克隆可能获取其他aid的数据，所以根据传进来的aid设置tablename
+        m_bindPropDao.setTableName(aid);
+
         int rt = m_bindPropDao.select(searchArg, listRef, selectFields);
+
+        // 查完之后恢复之前的tablename
+        m_bindPropDao.restoreTableName();
+
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             throw new MgException(rt, "get error;flow=%d;aid=%d;matcher=%s;", m_flow, aid, searchArg.matcher.toJson());
         }

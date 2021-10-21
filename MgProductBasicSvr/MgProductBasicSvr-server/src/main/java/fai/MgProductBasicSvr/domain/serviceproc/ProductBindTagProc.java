@@ -2,6 +2,7 @@ package fai.MgProductBasicSvr.domain.serviceproc;
 
 import fai.MgBackupSvr.interfaces.entity.MgBackupEntity;
 import fai.MgProductBasicSvr.domain.common.LockUtil;
+import fai.MgProductBasicSvr.domain.entity.ProductBindPropEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductBindTagEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductRelEntity;
@@ -358,11 +359,19 @@ public class ProductBindTagProc {
 
         //查询
         Ref<FaiList<Param>> tmpRef = new Ref<FaiList<Param>>();
+        // 存在克隆场景需要拿其他aid的数据，设置下表名
+        m_dao.setTableName(aid);
+
         int rt = m_dao.select(searchArg, tmpRef, onlyNeedFields);
-        FaiList<Param> result = new FaiList<>();
+
+        // 查完之后恢复之前的tablename
+        m_dao.restoreTableName();
+
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             throw new MgException(rt, "get error;flow=%d;aid=%d;matcher=%s", m_flow, aid, searchArg.matcher.toJson());
         }
+
+        FaiList<Param> result = new FaiList<>();
         if(tmpRef.value != null && !tmpRef.value.isEmpty()) {
             result.addAll(tmpRef.value);
         }
@@ -521,6 +530,19 @@ public class ProductBindTagProc {
         Log.logStd("batch bind tags ok;aid=%d;uid=%d;addRlTags=%s;", aid, unionPriId, addList);
     }
 
+    public void insert4Clone(int aid, FaiList<Param> dataList) {
+        int rt;
+        if(Utils.isEmptyList(dataList)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args err, infoList is empty;flow=%d;aid=%d;dataList=%s;", m_flow, aid, dataList);
+        }
+
+        rt = m_dao.batchInsert(dataList, null, true);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "batch insert pd bind tag error;flow=%d;aid=%d;", m_flow, aid);
+        }
+    }
+
     public void updateBindTagList(int aid, int unionPriId, int sysType, int rlPdId, int pdId, FaiList<Integer> rlTagIds) {
         if(rlTagIds == null) {
             return;
@@ -590,13 +612,7 @@ public class ProductBindTagProc {
             addSagaList(aid, list);
         }
 
-        Ref<Integer> refRowCount = new Ref<>();
-        rt = m_dao.delete(matcher, refRowCount);
-        if(rt != Errno.OK) {
-            throw new MgException(rt, "del info error;flow=%d;aid=%d;matcher=%s;", m_flow, aid, matcher);
-        }
-        Log.logStd("delPdBindTagList ok;flow=%d;aid=%d;matcher=%s;", m_flow, aid, matcher);
-        return refRowCount.value;
+        return delPdBindTag(aid, matcher);
     }
 
     public int delPdBindTagList(int aid, FaiList<Integer> pdIds) {
@@ -607,6 +623,22 @@ public class ProductBindTagProc {
         }
         ParamMatcher matcher = new ParamMatcher(ProductBindTagEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
         return delPdBindTag(aid, null, matcher);
+    }
+
+    public int delPdBindTag(int aid, ParamMatcher matcher) {
+        int rt;
+        if(matcher == null) {
+            throw new MgException("matcher is null;aid=%d;", aid);
+        }
+        Ref<Integer> refRowCount = new Ref<>();
+        matcher.and(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
+        rt = m_dao.delete(matcher, refRowCount);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "del info error;flow=%d;aid=%d;matcher=%s;", m_flow, aid, matcher.toJson());
+        }
+
+        Log.logStd("del bind tag ok;aid=%d;matcher=%s;", aid, matcher.toJson());
+        return refRowCount.value;
     }
 
     /**

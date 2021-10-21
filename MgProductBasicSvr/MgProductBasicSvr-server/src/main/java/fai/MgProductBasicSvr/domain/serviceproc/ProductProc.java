@@ -2,6 +2,7 @@ package fai.MgProductBasicSvr.domain.serviceproc;
 
 import fai.MgBackupSvr.interfaces.entity.MgBackupEntity;
 import fai.MgProductBasicSvr.domain.common.ESUtil;
+import fai.MgProductBasicSvr.domain.common.GfwUtil;
 import fai.MgProductBasicSvr.domain.common.MgProductCheck;
 import fai.MgProductBasicSvr.domain.entity.*;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductCacheCtrl;
@@ -229,7 +230,7 @@ public class ProductProc {
         m_dao.clearIdBuilderCache(aid);
     }
 
-    public int addProduct(int aid, Param pdData) {
+    public int addProduct(int aid, int tid, int siteId, Param pdData) {
         int rt;
         if(Str.isEmpty(pdData)) {
             rt = Errno.ARGS_ERROR;
@@ -260,6 +261,7 @@ public class ProductProc {
             // 插入
             addSaga(aid, pdSaga);
         }
+        GfwUtil.preWriteGfwLog(aid, tid, siteId, pdData);
         return pdId;
     }
 
@@ -458,22 +460,6 @@ public class ProductProc {
         return refRowCount.value;
     }
 
-    public void delProduct(int aid, int pdId) {
-        int rt;
-        if(pdId <= 0) {
-            rt = Errno.ARGS_ERROR;
-            throw new MgException(rt, "args err;flow=%d;aid=%d;pdId=%s", m_flow, aid, pdId);
-        }
-
-        ParamMatcher matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(ProductEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
-        rt = m_dao.delete(matcher);
-        if(rt != Errno.OK) {
-            throw new MgException(rt, "del product list error;flow=%d;aid=%d;pdId=%d;", m_flow, aid, pdId);
-        }
-        Log.logStd("del product ok;aid=%d;pdId=%d;", aid, pdId);
-    }
-
     public int deleteProductList(int aid, int tid, FaiList<Integer> pdIds, boolean softDel) {
         int rt;
         if(pdIds == null || pdIds.isEmpty()) {
@@ -510,12 +496,22 @@ public class ProductProc {
             // 插入
             addSagaList(aid, list);
         }
-        Ref<Integer> refRowCount = new Ref<>();
-        rt = m_dao.delete(matcher, refRowCount);
-        if(rt != Errno.OK) {
-            throw new MgException(rt, "del product list error;flow=%d;aid=%d;pdIds=%s;", m_flow, aid, pdIds);
+
+        return delProduct(aid, matcher);
+    }
+
+    public int delProduct(int aid, ParamMatcher matcher) {
+        int rt;
+        if(matcher == null || matcher.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args err, matcher is null;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher);
         }
 
+        Ref<Integer> refRowCount = new Ref<>();
+        rt = m_dao.delete(matcher, refRowCount);
+        if(rt != Errno.OK){
+            throw new MgException(rt, "del product list error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher.toJson());
+        }
         return refRowCount.value;
     }
 
@@ -619,7 +615,15 @@ public class ProductProc {
         searchArg.matcher.and(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
+
+        // 因为克隆可能获取其他aid的数据，所以根据传进来的aid设置tablename
+        m_dao.setTableName(aid);
+
         int rt = m_dao.select(searchArg, listRef, selectFields);
+
+        // 查完之后恢复最初的tablename
+        m_dao.restoreTableName();
+
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             throw new MgException(rt, "get error;flow=%d;aid=%d;", m_flow, aid);
         }

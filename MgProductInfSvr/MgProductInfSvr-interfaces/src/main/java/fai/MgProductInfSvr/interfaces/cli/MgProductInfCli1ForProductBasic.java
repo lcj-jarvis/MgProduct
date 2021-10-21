@@ -732,12 +732,18 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 Log.logErr(m_rt, "args error;bindRlPdInfo is empty");
                 return m_rt;
             }
+            Param inStoreRecordInfo = mgProductArg.getInOutStoreRecordInfo();
+            if(inStoreRecordInfo == null) {
+                inStoreRecordInfo = new Param();
+            }
+
             // packaging send data
             FaiBuffer sendBody = new FaiBuffer(true);
             int tid = mgProductArg.getTid();
             sendBody.putInt(ProductBasicDto.Key.TID, tid);
             bindRlPdInfo.toBuffer(sendBody, ProductBasicDto.Key.PD_BIND_INFO, ProductBasicDto.getProductRelDto());
-            infoList.toBuffer(sendBody, ProductBasicDto.Key.PD_REL_INFO_LIST, ProductBasicDto.getProductRelDto());
+            infoList.toBuffer(sendBody, ProductBasicDto.Key.PD_LIST, MgProductDto.getInfoDto());
+            inStoreRecordInfo.toBuffer(sendBody, MgProductDto.Key.IN_OUT_STORE_RECORD_INFO, ProductStoreDto.InOutStoreRecord.getInfoDto());
 
             // send and recv
             boolean rlPdIdRefsNotNull = (rlPdIdsRef != null);
@@ -755,6 +761,39 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 }
                 rlPdIdsRef.value = rlPdIds;
             }
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    public int setPdSort(MgProductArg mgProductArg) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            int aid = mgProductArg.getAid();
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            int sysType = mgProductArg.getSysType();
+
+            int preRlPdId = mgProductArg.getPreRlPdId();
+
+            // packaging send data
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
+            int rlPdId = mgProductArg.getRlPdId();
+            sendBody.putInt(ProductBasicDto.Key.SYS_TYPE, sysType);
+            sendBody.putInt(ProductBasicDto.Key.RL_PD_ID, rlPdId);
+            sendBody.putInt(ProductBasicDto.Key.PRE_RL_PD_ID, preRlPdId);
+            // send and recv
+            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.SET_PD_SORT, sendBody, false, false);
             return m_rt;
         } finally {
             close();
@@ -812,7 +851,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      * 修改商品信息 包括 规格和库存服务
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
-     *                 .setCombinedUpdater(updater)   // 必填
+     *                 .setCombinedUpdater(combinedUpdater)   // 必填
      *                 .setRlPdId(rlPdId)             // 必填
      *                 .build();
      * updater说明： updater详见 {@link MgProductDto#getInfoDto}
@@ -830,8 +869,8 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
-            ParamUpdater updater = mgProductArg.getCombinedUpdater();
-            if (updater == null || updater.isEmpty()) {
+            Param combinedUpdater = mgProductArg.getCombinedUpdater();
+            if (Str.isEmpty(combinedUpdater)) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr("arg error;updater is empty");
                 return m_rt;
@@ -848,7 +887,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             sendBody.putInt(ProductBasicDto.Key.SYS_TYPE, sysType);
             sendBody.putString(MgProductDto.Key.XID, xid);
             sendBody.putInt(ProductBasicDto.Key.RL_PD_ID, rlPdId);
-            updater.toBuffer(sendBody, ProductBasicDto.Key.UPDATER, MgProductDto.getInfoDto());
+            combinedUpdater.toBuffer(sendBody, ProductBasicDto.Key.UPDATER, MgProductDto.getInfoDto());
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.SET_PD_INFO, sendBody, false, false);
             return m_rt;

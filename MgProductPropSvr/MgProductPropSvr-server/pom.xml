@@ -34,6 +34,12 @@
         </dependency>
 
         <dependency>
+            <groupId>MgCommon</groupId>
+            <artifactId>MgBackupSvr-interfaces</artifactId>
+            <version>${MgCommon-MgBackupSvr-interfaces-ver}</version>
+        </dependency>
+
+        <dependency>
             <groupId>fai-comm-netkit</groupId>
             <artifactId>fai-comm-netkit</artifactId>
             <version>${fai-comm-netkit-ver}</version>

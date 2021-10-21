@@ -8,12 +8,12 @@ import fai.comm.util.Var;
 public class MgProductDto {
     private static ParamDef g_infoDtoDef = new ParamDef();
     static {
-        g_infoDtoDef.add(MgProductEntity.Info.BASIC, 0, ProductBasicDto.getProductDto(), Var.Type.PARAM);
-        g_infoDtoDef.add(MgProductEntity.Info.SPEC, 1, ProductSpecDto.Spec.getInfoDto(), Var.Type.FAI_LIST);
-        g_infoDtoDef.add(MgProductEntity.Info.SPEC_SKU, 2, ProductSpecDto.SpecSku.getInfoDto(), Var.Type.FAI_LIST);
-        g_infoDtoDef.add(MgProductEntity.Info.STORE_SALES, 3, ProductStoreDto.StoreSalesSku.getInfoDto(), Var.Type.FAI_LIST);
+        g_infoDtoDef.add(MgProductEntity.Info.BASIC, 0, ProductBasicDto.getProductDto());
+        g_infoDtoDef.add(MgProductEntity.Info.SPEC, 1, ProductSpecDto.Spec.getInfoDto());
+        g_infoDtoDef.add(MgProductEntity.Info.SPEC_SKU, 2, ProductSpecDto.SpecSku.getInfoDto());
+        g_infoDtoDef.add(MgProductEntity.Info.STORE_SALES, 3, ProductStoreDto.StoreSalesSku.getInfoDto());
         g_infoDtoDef.add(MgProductEntity.Info.ERRNO, 4, Var.Type.INT);
-        g_infoDtoDef.add(MgProductEntity.Info.SPU_SALES, 5, ProductStoreDto.SpuBizSummary.getInfoDto(), Var.Type.FAI_LIST);
+        g_infoDtoDef.add(MgProductEntity.Info.SPU_SALES, 5, ProductStoreDto.SpuBizSummary.getInfoDto());
     }
     public static ParamDef getInfoDto() {
         return g_infoDtoDef;

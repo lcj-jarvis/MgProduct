@@ -536,16 +536,21 @@ public class SpuBizSummaryProc {
                     "max(" + SpuBizSummaryEntity.Info.MAX_PRICE + ") as "+ SpuBizSummaryEntity.ReportInfo.MAX_PRICE+" ";
 
 
-    public int batchAdd(int aid, int unionPriId, FaiList<Param> infoList){
+    public int batchAdd(int aid, FaiList<Param> infoList, boolean isSaga){
         int rt = Errno.ARGS_ERROR;
-        if(aid <= 0 || unionPriId <= 0 || Utils.isEmptyList(infoList)){
-            Log.logErr(rt, "arg error;flow=%s;aid=%s;unionPriId=%s;infoList=%s;", m_flow, aid, unionPriId, infoList);
+        if(aid <= 0 || Utils.isEmptyList(infoList)){
+            Log.logErr(rt, "arg error;flow=%s;aid=%s;infoList=%s;", m_flow, aid, infoList);
             return rt;
         }
         FaiList<Param> addList = new FaiList<>(infoList.size());
         Calendar now = Calendar.getInstance();
         for (Param info : infoList) {
             Param data = new Param();
+            Integer unionPriId = info.getInt(SpuBizSummaryEntity.Info.UNION_PRI_ID);
+            if(unionPriId == null || unionPriId <= 0) {
+                Log.logErr(rt, "arg error, unionPriId err;flow=%s;aid=%s;infoList=%s;", m_flow, aid, infoList);
+                return rt;
+            }
             data.setInt(SpuBizSummaryEntity.Info.AID, aid);
             data.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, unionPriId);
             data.setInt(SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID, unionPriId);
@@ -569,10 +574,16 @@ public class SpuBizSummaryProc {
         }
         rt = m_daoCtrl.batchInsert(addList);
         if(rt != Errno.OK){
-            Log.logErr(rt, "arg error;flow=%s;aid=%s;unionPriId=%s;addList=%s", m_flow, aid, unionPriId, addList);
+            Log.logErr(rt, "arg error;flow=%s;aid=%s;addList=%s", m_flow, aid, addList);
             return rt;
         }
-        Log.logStd("ok;flow=%s;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+        if(isSaga) {
+            rt = addInsOp4Saga(aid, addList);
+            if (rt != Errno.OK) {
+                return rt;
+            }
+        }
+        Log.logStd("ok;flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
 

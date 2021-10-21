@@ -390,8 +390,8 @@ public class MgProductInfHandler extends FaiHandler {
                                     @ArgBodyInteger(ProductSpecDto.Key.SITE_ID) int siteId,
                                     @ArgBodyInteger(ProductSpecDto.Key.LGID) int lgId,
                                     @ArgBodyInteger(ProductSpecDto.Key.KEEP_PRIID1) int keepPriId1,
-                                    @ArgBodyInteger(value = ProductSpecDto.Key.SYS_TYPE, useDefault = true) int sysType,
                                     @ArgBodyXid(value = MgProductDto.Key.XID, useDefault = true) String xid,
+                                    @ArgBodyInteger(value = ProductSpecDto.Key.SYS_TYPE, useDefault = true) int sysType,
                                     @ArgBodyInteger(ProductSpecDto.Key.RL_PD_ID) int rlPdId,
                                     @ArgList(classDef = ProductSpecDto.Spec.class, methodDef = "getInfoDto",
                                             keyMatch = ProductSpecDto.Key.INFO_LIST, useDefault = true) FaiList<Param> addList,
@@ -616,11 +616,32 @@ public class MgProductInfHandler extends FaiHandler {
                               @ArgFlow final int flow,
                               @ArgAid final int aid,
                               @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
+                              @ArgBodyXid(value = MgProductDto.Key.XID, useDefault = true) String xid,
                               @ArgParam(classDef = ProductBasicDto.class, methodDef = "getProductRelDto",
                                       keyMatch = ProductBasicDto.Key.PD_BIND_INFO) Param bindRlPdInfo,
-                              @ArgList(classDef = ProductBasicDto.class, methodDef = "getProductRelDto",
-                                      keyMatch = ProductBasicDto.Key.PD_REL_INFO_LIST) FaiList<Param> infoList) throws IOException {
-        return basicService.batchBindProductRel(session, flow, aid, tid, bindRlPdInfo, infoList);
+                              @ArgList(classDef = MgProductDto.class, methodDef = "getInfoDto",
+                                      keyMatch = ProductBasicDto.Key.PD_LIST) FaiList<Param> infoList,
+                              @ArgParam(classDef = ProductStoreDto.InOutStoreRecord.class, methodDef = "getInfoDto",
+                                      keyMatch = MgProductDto.Key.IN_OUT_STORE_RECORD_INFO, useDefault = true) Param inStoreRecordInfo) throws IOException, TransactionException {
+        if(!Str.isEmpty(xid)) {
+            RootContext.bind(xid, flow); // 方便后面使用GlobalTransactionContext.getCurrentOrCreate
+        }
+        return basicService.batchBindProductRel(session, flow, aid, tid, bindRlPdInfo, infoList, inStoreRecordInfo);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.BasicCmd.SET_PD_SORT)
+    public int setPdSort(final FaiSession session,
+                           @ArgFlow final int flow,
+                           @ArgAid final int aid,
+                           @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
+                           @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
+                           @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
+                           @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
+                           @ArgBodyInteger(value = ProductBasicDto.Key.SYS_TYPE, useDefault = true) int sysType,
+                           @ArgBodyInteger( ProductBasicDto.Key.RL_PD_ID) int rlPdId,
+                           @ArgBodyInteger( ProductBasicDto.Key.PRE_RL_PD_ID) int preRlPdId) throws IOException {
+        return basicService.setPdSort(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, rlPdId, preRlPdId);
     }
 
     @WrittenCmd
@@ -651,12 +672,12 @@ public class MgProductInfHandler extends FaiHandler {
                               @ArgBodyInteger(value = ProductBasicDto.Key.SYS_TYPE, useDefault = true) int sysType,
                               @ArgBodyXid(value = MgProductDto.Key.XID, useDefault = true) String xid,
                               @ArgBodyInteger( ProductBasicDto.Key.RL_PD_ID) Integer rlPdId,
-                              @ArgParamUpdater(classDef = MgProductDto.class, methodDef = "getInfoDto",
-                                      keyMatch = ProductBasicDto.Key.UPDATER) ParamUpdater updater) throws IOException, TransactionException {
+                              @ArgParam(classDef = MgProductDto.class, methodDef = "getInfoDto",
+                                      keyMatch = ProductBasicDto.Key.UPDATER) Param combinedUpdater) throws IOException, TransactionException {
         if (!Str.isEmpty(xid)) {
             RootContext.bind(xid, flow);
         }
-        return basicService.setProductInfo(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, xid, rlPdId, updater);
+        return basicService.setProductInfo(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, xid, rlPdId, combinedUpdater);
     }
 
     @WrittenCmd

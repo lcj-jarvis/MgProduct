@@ -21,11 +21,21 @@ public class MgProductPropCmd {
 		public static final int NUM5 = 1005; /** @see PropCmd#UNION_SET */
 		public static final int NUM6 = 1006; /** @see PropCmd#CLEAR_REL_DATA */
 		public static final int NUM7 = 1007; /** @see PropCmd#CLEAR_ACCT */
+		public static final int NUM8 = 1008; /** @see Cmd#BACKUP */
+		public static final int NUM9 = 1009; /** @see Cmd#RESTORE */
+		public static final int NUM10 = 1010; /** @see Cmd#DEL_BACKUP */
 	}
 
 	/**
 	 * cmd对外定义，实际做cmd读写分离
 	 */
+	public static class Cmd {
+
+		public static final int BACKUP = WriteCmdNum.NUM8;
+		public static final int RESTORE = WriteCmdNum.NUM9;
+		public static final int DEL_BACKUP = WriteCmdNum.NUM10;
+	}
+
 	public static class PropCmd {
 		public static final int GET_LIST = ReadCmdNum.NUM;
 

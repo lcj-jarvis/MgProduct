@@ -73,6 +73,10 @@ public class MgProductBasicCmd {
         public static final int NUM32 = 1032; /** @see Cmd#BACKUP */
         public static final int NUM33 = 1033; /** @see Cmd#RESTORE */
         public static final int NUM34 = 1034; /** @see Cmd#DEL_BACKUP */
+        public static final int NUM35 = 1035; /** @see Cmd#CLONE */
+        public static final int NUM36 = 1036; /** @see Cmd#INCR_CLONE */
+        public static final int NUM37 = 1037; /** @see BasicCmd#BATCH_ADD_REL_BIND_ROLLBACK */
+        public static final int NUM38 = 1038; /** @see BasicCmd#SET_SORT */
     }
 
     /**
@@ -146,6 +150,8 @@ public class MgProductBasicCmd {
         public static final int CLONE_BIZ_BIND = WriteCmdNum.NUM28;
         public static final int BATCH_SET_4YK = WriteCmdNum.NUM29;
         public static final int BATCH_SET_4YK_ROLLBACK = WriteCmdNum.NUM30;
+        public static final int BATCH_ADD_REL_BIND_ROLLBACK = WriteCmdNum.NUM37;
+        public static final int SET_SORT = WriteCmdNum.NUM38;
     }
 
     public static class Cmd {
@@ -153,5 +159,7 @@ public class MgProductBasicCmd {
         public static final int BACKUP = WriteCmdNum.NUM32;
         public static final int RESTORE = WriteCmdNum.NUM33;
         public static final int DEL_BACKUP = WriteCmdNum.NUM34;
+        public static final int CLONE = WriteCmdNum.NUM35;
+        public static final int INCR_CLONE = WriteCmdNum.NUM36;
     }
 }

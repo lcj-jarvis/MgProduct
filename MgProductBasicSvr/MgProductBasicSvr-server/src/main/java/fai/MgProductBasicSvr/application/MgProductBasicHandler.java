@@ -3,6 +3,7 @@ package fai.MgProductBasicSvr.application;
 import fai.MgBackupSvr.interfaces.dto.MgBackupDto;
 import fai.MgProductBasicSvr.application.service.*;
 import fai.MgProductBasicSvr.domain.common.ESUtil;
+import fai.MgProductBasicSvr.domain.common.GfwUtil;
 import fai.MgProductBasicSvr.interfaces.cmd.MgProductBasicCmd;
 import fai.MgProductBasicSvr.interfaces.dto.*;
 import fai.comm.cache.redis.RedisCacheManager;
@@ -14,6 +15,7 @@ import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
 import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
+import fai.comm.middleground.app.CloneDef;
 import fai.comm.netkit.NKDef;
 import fai.comm.util.FaiList;
 import fai.comm.util.Param;
@@ -45,6 +47,7 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
      */
     private void afterRequest() {
         ESUtil.clear();
+        GfwUtil.clear();
     }
 
     @Cmd(MgProductBasicCmd.BindPropCmd.GET_LIST)
@@ -171,10 +174,11 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                 @ArgAid final int aid,
                                 @ArgBodyXid(value = ProductRelDto.Key.XID, useDefault = true) String xid,
                                 @ArgBodyInteger(ProductRelDto.Key.TID) int tid,
+                                @ArgBodyInteger(value = ProductRelDto.Key.SITE_ID, useDefault = true, defaultValue = -1) int siteId,
                                 @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
                                 @ArgParam(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
                                 keyMatch = ProductRelDto.Key.INFO) Param info) throws IOException {
-        return service.addProductAndRel(session, flow, aid, xid, tid, unionPriId, info);
+        return service.addProductAndRel(session, flow, aid, xid, tid, siteId, unionPriId, info);
     }
 
     @WrittenCmd
@@ -193,10 +197,11 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                @ArgFlow final int flow,
                                @ArgAid final int aid,
                                @ArgBodyInteger(ProductRelDto.Key.TID) int tid,
+                               @ArgBodyInteger(value = ProductRelDto.Key.SITE_ID, useDefault = true, defaultValue = -1) int siteId,
                                @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
                                @ArgList(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
                                        keyMatch = ProductRelDto.Key.INFO) FaiList<Param> list) throws IOException {
-        return service.batchAddProductAndRel(session, flow, aid, tid, unionPriId, list);
+        return service.batchAddProductAndRel(session, flow, aid, tid, siteId, unionPriId, list);
     }
 
     @WrittenCmd
@@ -227,15 +232,26 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductBasicCmd.BasicCmd.BATCH_ADD_REL_BIND)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductBasicCmd.BasicCmd.BATCH_ADD_REL_BIND_ROLLBACK)
     public int batchBindProductRel(final FaiSession session,
                               @ArgFlow final int flow,
                               @ArgAid final int aid,
+                              @ArgBodyXid(value = ProductRelDto.Key.XID, useDefault = true) String xid,
                               @ArgBodyInteger(ProductRelDto.Key.TID) int tid,
                               @ArgParam(classDef = ProductRelDto.class, methodDef = "getInfoDto",
                                       keyMatch = ProductRelDto.Key.INFO) Param bindRlPdInfo,
                               @ArgList(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
                                       keyMatch = ProductRelDto.Key.INFO_LIST) FaiList<Param> infoList) throws IOException {
-        return service.batchBindProductRel(session, flow, aid, tid, bindRlPdInfo, infoList);
+        return service.batchBindProductRel(session, flow, xid, aid, tid, bindRlPdInfo, infoList);
+    }
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BasicCmd.BATCH_ADD_REL_BIND_ROLLBACK)
+    public int batchBindProductRelRollback(final FaiSession session,
+                                      @ArgFlow final int flow,
+                                      @ArgAid final int aid,
+                                      @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                      @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return service.batchBindProductRelRollback(session, flow, aid, xid, branchId);
     }
 
     @WrittenCmd
@@ -345,18 +361,33 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductBasicCmd.BasicCmd.SET_SORT)
+    public int setPdSort(final FaiSession session,
+                           @ArgFlow final int flow,
+                           @ArgAid final int aid,
+                           @ArgBodyInteger(value = ProductRelDto.Key.TID, useDefault = true) int tid,
+                           @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                           @ArgBodyInteger(value = ProductRelDto.Key.SYS_TYPE, useDefault = true) int sysType,
+                           @ArgBodyInteger(ProductRelDto.Key.RL_PD_ID) Integer rlPdId,
+                           @ArgBodyInteger(ProductRelDto.Key.PRE_RL_PD_ID) Integer preRlPdId) throws IOException {
+        return service.setPdSort(session, flow, aid, tid, unionPriId, sysType, rlPdId, preRlPdId);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductBasicCmd.BasicCmd.SET_SINGLE_PD)
     @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductBasicCmd.BasicCmd.SET_SINGLE_PD_ROLLBACK)
     public int setSinglePd(final FaiSession session,
                                  @ArgFlow final int flow,
                                  @ArgAid final int aid,
                                  @ArgBodyXid(value = ProductRelDto.Key.XID, useDefault = true) String xid,
+                                 @ArgBodyInteger(value = ProductRelDto.Key.TID, useDefault = true) int tid,
+                                 @ArgBodyInteger(value = ProductRelDto.Key.SITE_ID, useDefault = true, defaultValue = -1) int siteId,
                                  @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
                                  @ArgBodyInteger(value = ProductRelDto.Key.SYS_TYPE, useDefault = true) int sysType,
                                  @ArgBodyInteger(ProductRelDto.Key.RL_PD_ID) Integer rlPdId,
                                  @ArgParamUpdater(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
                                  keyMatch = ProductRelDto.Key.UPDATER) ParamUpdater recvUpdater) throws IOException {
-        return service.setSingle(session, flow, aid, xid, unionPriId, sysType, rlPdId, recvUpdater);
+        return service.setSingle(session, flow, aid, xid, tid, siteId, unionPriId, sysType, rlPdId, recvUpdater);
     }
 
     @WrittenCmd
@@ -374,12 +405,14 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
     public int setProducts(final FaiSession session,
                            @ArgFlow final int flow,
                            @ArgAid final int aid,
+                           @ArgBodyInteger(value = ProductRelDto.Key.TID, useDefault = true) int tid,
+                           @ArgBodyInteger(value = ProductRelDto.Key.SITE_ID, useDefault = true, defaultValue = -1) int siteId,
                            @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
                            @ArgBodyInteger(value = ProductRelDto.Key.SYS_TYPE, useDefault = true) int sysType,
                            @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
                            @ArgParamUpdater(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
                                    keyMatch = ProductRelDto.Key.UPDATER) ParamUpdater recvUpdater) throws IOException {
-        return service.setProducts(session, flow, aid, unionPriId, sysType, rlPdIds, recvUpdater);
+        return service.setProducts(session, flow, aid, tid, siteId, unionPriId, sysType, rlPdIds, recvUpdater);
     }
 
     @Cmd(MgProductBasicCmd.BasicCmd.GET_BY_PDID)
@@ -577,6 +610,32 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                              @ArgParam(classDef = MgBackupDto.class, methodDef = "getInfoDto",
                                      keyMatch = ProductRelDto.Key.BACKUP_INFO) Param backupInfo) throws IOException {
         return service.delBackupData(session, flow, aid, backupInfo);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.Cmd.CLONE)
+    public int cloneData(final FaiSession session,
+                         @ArgFlow final int flow,
+                         @ArgAid int aid,
+                         @ArgBodyInteger(ProductRelDto.Key.TID) int toTid,
+                         @ArgBodyInteger(ProductRelDto.Key.SITE_ID) int toSiteId,
+                         @ArgBodyInteger(ProductRelDto.Key.FROM_AID) int fromAid,
+                         @ArgList(classDef = CloneDef.Dto.class, methodDef = "getInternalDto",
+                                 keyMatch = ProductRelDto.Key.CLONE_UNION_PRI_IDS) FaiList<Param> cloneUnionPriIds) throws IOException {
+        return service.cloneData(session, flow, aid, toTid, toSiteId, fromAid, cloneUnionPriIds);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.Cmd.INCR_CLONE)
+    public int incrementalClone(final FaiSession session,
+                                @ArgFlow final int flow,
+                                @ArgAid int aid,
+                                @ArgBodyInteger(ProductRelDto.Key.TID) int toTid,
+                                @ArgBodyInteger(ProductRelDto.Key.SITE_ID) int toSiteId,
+                                @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                                @ArgBodyInteger(ProductRelDto.Key.FROM_AID) int fromAid,
+                                @ArgBodyInteger(ProductRelDto.Key.FROM_UNION_PRI_ID) int fromUnionPriId) throws IOException {
+        return service.incrementalClone(session, flow, aid, toTid, toSiteId, unionPriId, fromAid, fromUnionPriId);
     }
 
     @Cmd(NKDef.Protocol.Cmd.CLEAR_CACHE)

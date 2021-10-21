@@ -123,18 +123,27 @@ public class ProductGroupService extends MgProductInfService {
 
     @SuccessRt(value = Errno.OK)
     public int setAllGroupList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> treeDataList, int sysType, int groupLevel, boolean softDel) throws IOException {
-        long start = System.currentTimeMillis();
         // 获取unionPriId
         int unionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
         ProductGroupProc groupProc = new ProductGroupProc(flow);
 
-        groupProc.setAllGroupList(aid, tid, unionPriId, treeDataList, sysType, groupLevel, softDel);
+        // 大保存
+        FaiList<Integer> delRlGroupIds = groupProc.setAllGroupList(aid, tid, unionPriId, treeDataList, sysType, groupLevel, softDel);
+
+        // TODO 分布式事务， 如果删除了分类，则要将基础信息中的分类绑定信息删除
+        if (!Util.isEmptyList(delRlGroupIds)) {
+            ProductBasicProc basicProc = new ProductBasicProc(flow);
+            int rt = basicProc.delPdBindGroup(aid, unionPriId, sysType, delRlGroupIds);
+            if(rt != Errno.OK) {
+                Oss.logAlarm("del pd bind group err;aid=" + aid);
+                Log.logErr("del pd bind group err;aid=%d;uid=%d;rlGroupIds=%s;", aid, unionPriId, delRlGroupIds);
+                return rt;
+            }
+        }
 
         FaiBuffer sendBuf = new FaiBuffer(true);
         session.write(sendBuf);
         Log.logStd("setAllGroupList ok;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
-        long end = System.currentTimeMillis();
-        Log.logDbg("joke ：groupSvr 耗时：%d ms", end - start);
         return Errno.OK;
     }
 }

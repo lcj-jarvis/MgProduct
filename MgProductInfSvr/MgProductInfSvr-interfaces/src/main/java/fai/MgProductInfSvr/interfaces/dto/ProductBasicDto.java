@@ -71,6 +71,11 @@ public class ProductBasicDto {
         g_productDef.add(ProductBasicEntity.ProductInfo.REMARK11, 50, Var.Type.STRING);
 
         g_productDef.add(ProductBasicEntity.ProductInfo.TOP, 51);
+
+        g_productDef.add(ProductBasicEntity.ProductInfo.SITE_ID, 52);
+        g_productDef.add(ProductBasicEntity.ProductInfo.LGID, 53);
+        g_productDef.add(ProductBasicEntity.ProductInfo.KEEP_PRI_ID1, 54);
+        g_productDef.add(ProductBasicEntity.ProductInfo.TID, 55);
     }
 
     public static ParamDef getProductDto() {
@@ -215,6 +220,7 @@ public class ProductBasicDto {
         public static final int XID = 28;
         public static final int PRIMARY_KEY = 29;
         public static final int PRIMARY_KEYS = 30;
+        public static final int PRE_RL_PD_ID  = 31;
     }
 
 

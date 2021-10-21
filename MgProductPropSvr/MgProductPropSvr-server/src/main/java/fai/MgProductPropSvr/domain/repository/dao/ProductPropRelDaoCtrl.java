@@ -1,7 +1,6 @@
-package fai.MgProductPropSvr.domain.repository;
+package fai.MgProductPropSvr.domain.repository.dao;
 
 import fai.MgProductPropSvr.domain.entity.ProductPropRelEntity;
-import fai.MgProductPropSvr.interfaces.entity.ProductPropValObj;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.distributedkit.idBuilder.domain.IdBuilderConfig;
 import fai.comm.distributedkit.idBuilder.wrapper.IdBuilderWrapper;
@@ -10,18 +9,24 @@ import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.DaoCtrl;
 
 public class ProductPropRelDaoCtrl extends DaoCtrl {
+	private String tableName;
 
 	public ProductPropRelDaoCtrl(int flow, int aid) {
 		super(flow, aid);
-	}
-
-	public ProductPropRelDaoCtrl(int flow, int aid, Dao dao) {
-		super(flow, aid, dao);
+		setTableName(aid);
 	}
 
 	@Override
 	public String getTableName() {
-		return TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
+		return this.tableName;
+	}
+
+	public void setTableName(int aid) {
+		this.tableName = TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
+	}
+
+	public void restoreTableName() {
+		setTableName(this.aid);
 	}
 
 	@Override

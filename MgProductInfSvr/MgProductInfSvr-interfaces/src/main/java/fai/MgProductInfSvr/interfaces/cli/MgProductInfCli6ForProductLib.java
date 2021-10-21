@@ -1,7 +1,6 @@
 package fai.MgProductInfSvr.interfaces.cli;
 
 import fai.MgProductInfSvr.interfaces.cmd.MgProductInfCmd;
-import fai.MgProductInfSvr.interfaces.dto.ProductGroupDto;
 import fai.MgProductInfSvr.interfaces.dto.ProductLibDto;
 import fai.MgProductInfSvr.interfaces.utils.MgProductArg;
 import fai.comm.util.*;
@@ -209,6 +208,9 @@ public class MgProductInfCli6ForProductLib extends MgProductInfCli5ForProductScA
                     new Pair(ProductLibDto.Key.SITE_ID, siteId),
                     new Pair(ProductLibDto.Key.LGID, lgId),
                     new Pair(ProductLibDto.Key.KEEP_PRIID1, keepPriId1));
+            if (searchArg == null) {
+                searchArg = new SearchArg();
+            }
             searchArg.toBuffer(sendBody, ProductLibDto.Key.SEARCH_ARG);
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.LibCmd.GET_LIB_LIST, sendBody, true);

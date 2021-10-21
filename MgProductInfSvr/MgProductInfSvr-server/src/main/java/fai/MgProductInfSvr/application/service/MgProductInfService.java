@@ -209,17 +209,17 @@ public class MgProductInfService extends ServicePub {
         return list;
     }
 
-    protected int getPdIdWithAdd(int flow, int aid, int tid, int unionPriId, int sysType, int rlPdId, Ref<Integer> idRef) {
-        return getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef, true);
+    protected int getPdIdWithAdd(int flow, int aid, int tid, int siteId, int unionPriId, int sysType, int rlPdId, Ref<Integer> idRef) {
+        return getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef, true);
     }
     /**
      * 获取PdId
      */
-    protected int getPdId(int flow, int aid, int tid, int unionPriId, int sysType, int rlPdId, Ref<Integer> idRef) {
-        return getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef, false);
+    protected int getPdId(int flow, int aid, int tid, int siteId, int unionPriId, int sysType, int rlPdId, Ref<Integer> idRef) {
+        return getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef, false);
     }
 
-    protected int getPdId(int flow, int aid, int tid, int unionPriId, int sysType, int rlPdId, Ref<Integer> idRef, boolean withAdd) {
+    protected int getPdId(int flow, int aid, int tid, int siteId, int unionPriId, int sysType, int rlPdId, Ref<Integer> idRef, boolean withAdd) {
         int rt = Errno.ERROR;
         MgProductBasicCli mgProductBasicCli = new MgProductBasicCli(flow);
         if(!mgProductBasicCli.init()) {
@@ -232,7 +232,7 @@ public class MgProductInfService extends ServicePub {
         rt = mgProductBasicCli.getRelInfoByRlId(aid, unionPriId, sysType, rlPdId, pdRelInfo);
         if(rt != Errno.OK) {
             if(withAdd && (rt == Errno.NOT_FOUND)){
-                rt = mgProductBasicCli.addProductAndRel(aid, tid, unionPriId, "", new Param()
+                rt = mgProductBasicCli.addProductAndRel(aid, tid, siteId, unionPriId, "", new Param()
                                 .setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId)
                                 .setBoolean(ProductRelEntity.Info.INFO_CHECK, false)
                         , idRef, new Ref<>());
@@ -272,6 +272,9 @@ public class MgProductInfService extends ServicePub {
         FaiList<Param> list = getPrimaryKeyListWithOutAdd(flow, aid, primaryKeys);
         Map<BizPriKey, Integer> bizPriKeyUnionPriIdMap = toBizPriKeyUnionPriIdMap(list);
 
+        Integer tid = null;
+        Integer siteId = null;
+
         FaiList<Param> cloneUnionPriIds = new FaiList<>();
         for(Param info : clonePrimaryKeys) {
             Param fromPrimary = info.getParam(CloneDef.Info.FROM_PRIMARY_KEY);
@@ -289,6 +292,15 @@ public class MgProductInfService extends ServicePub {
             int toSiteId = toPrimary.getInt(MgPrimaryKeyEntity.Info.SITE_ID);
             int toLgId = toPrimary.getInt(MgPrimaryKeyEntity.Info.LGID);
             int toKeepPriId1 = toPrimary.getInt(MgPrimaryKeyEntity.Info.KEEP_PRI_ID1);
+
+            tid = tid == null ? toTid : tid;
+            siteId = siteId == null ? toSiteId : tid;
+            if(tid != toTid || siteId != toSiteId) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr(rt, "only clone same tid and siteId;flow=%d;aid=%d;key=%s;clonePrimaryKeys=%s;cloneOption=%s;", flow, aid, primaryKey, clonePrimaryKeys, cloneOption);
+                return rt;
+            }
+
             // 直接调用cli去拿，因为之前已经查过一次，如果查到了，则cli会有缓存，如果没有，则说明需要生成
             Integer toUnionPriId = getUnionPriId(flow, aid, toTid, toSiteId, toLgId, toKeepPriId1);
 
@@ -312,7 +324,12 @@ public class MgProductInfService extends ServicePub {
             groupProc.cloneData(aid, fromAid, cloneUnionPriIds);
         }
 
-        //TODO 克隆基础数据
+        // 克隆基础数据
+        if(cloneAll || cloneOption.getBoolean(MgProductEntity.Option.BASIC, false)) {
+            ProductBasicProc basicProc = new ProductBasicProc(flow);
+            basicProc.cloneData(aid, tid, siteId, fromAid, cloneUnionPriIds);
+        }
+
         //克隆库数据
         if(cloneAll || cloneOption.getBoolean(MgProductEntity.Option.LIB, false)) {
             ProductLibProc libProc = new ProductLibProc(flow);
@@ -465,13 +482,15 @@ public class MgProductInfService extends ServicePub {
         ProductBasicProc basicProc = new ProductBasicProc(flow);
         basicProc.backupData(aid, unionPriIds, backupInfo);
 
-        //备份库数据
+        // 备份库数据
         ProductLibProc libProc = new ProductLibProc(flow);
         libProc.backupData(aid, unionPriIds, backupInfo);
-        //备份标签数据
+        // 备份标签数据
         ProductTagProc tagProc = new ProductTagProc(flow);
         tagProc.backupData(aid, unionPriIds, backupInfo);
-        //TODO 备份参数数据
+        // 备份参数数据
+        ProductPropProc propProc = new ProductPropProc(flow);
+        propProc.backupData(aid, unionPriIds, backupInfo);
 
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
@@ -519,17 +538,21 @@ public class MgProductInfService extends ServicePub {
             basicProc.restoreBackup(aid, unionPriIds, restoreId, backupInfo);
         }
 
-        //还原库数据
+        // 还原库数据
         if (restoreAll || restoreOption.getBoolean(MgProductEntity.Option.LIB, false)) {
             ProductLibProc libProc = new ProductLibProc(flow);
             libProc.restoreBackup(aid, unionPriIds, restoreId, backupInfo);
         }
-        //还原标签数据
+        // 还原标签数据
         if (restoreAll || restoreOption.getBoolean(MgProductEntity.Option.LIB, false)) {
             ProductTagProc tagProc = new ProductTagProc(flow);
             tagProc.restoreBackup(aid, unionPriIds, restoreId, backupInfo);
         }
-        //TODO 还原参数数据
+        // 还原参数数据
+        if (restoreAll || restoreOption.getBoolean(MgProductEntity.Option.PROP, false)) {
+            ProductPropProc propProc = new ProductPropProc(flow);
+            propProc.restoreBackup(aid, unionPriIds, restoreId, backupInfo);
+        }
 
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
@@ -563,13 +586,15 @@ public class MgProductInfService extends ServicePub {
         ProductBasicProc basicProc = new ProductBasicProc(flow);
         basicProc.delBackup(aid, backupInfo);
 
-        //删除库数据备份
+        // 删除库数据备份
         ProductLibProc libProc = new ProductLibProc(flow);
         libProc.delBackup(aid, backupInfo);
-        //删除标签数据备份
+        // 删除标签数据备份
         ProductTagProc tagProc = new ProductTagProc(flow);
         tagProc.delBackup(aid, backupInfo);
-        //TODO 删除参数数据备份
+        // 删除参数数据备份
+        ProductPropProc propProc = new ProductPropProc(flow);
+        propProc.delBackup(aid, backupInfo);
 
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
@@ -1338,7 +1363,7 @@ public class MgProductInfService extends ServicePub {
 
                 FaiList<Param> idInfoList = new FaiList<>();
                 // 批量添加商品数据
-                rt = productBasicProc.batchAddProductAndRel(aid, ownerTid, ownerUnionPriId, batchAddBasicInfoList, idInfoList);
+                rt = productBasicProc.batchAddProductAndRel(aid, ownerTid, ownerSiteId, ownerUnionPriId, batchAddBasicInfoList, idInfoList);
                 if(rt != Errno.OK){
                     for (Param product : productList) {
                         product.setInt(MgProductEntity.Info.ERRNO, rt);

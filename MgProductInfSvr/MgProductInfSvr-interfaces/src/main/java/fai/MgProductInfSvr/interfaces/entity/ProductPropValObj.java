@@ -31,6 +31,8 @@ public class ProductPropValObj {
             public static final int INT = 1;
             public static final int FLOAT = 2;
             public static final int DOUBLE = 3;
+            public static final int LONG = 4;
+            public static final int BOOLEAN = 5;
         }
     }
 }

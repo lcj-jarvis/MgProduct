@@ -482,13 +482,15 @@ public class MgProductInfService extends ServicePub {
         ProductBasicProc basicProc = new ProductBasicProc(flow);
         basicProc.backupData(aid, unionPriIds, backupInfo);
 
-        //备份库数据
+        // 备份库数据
         ProductLibProc libProc = new ProductLibProc(flow);
         libProc.backupData(aid, unionPriIds, backupInfo);
-        //备份标签数据
+        // 备份标签数据
         ProductTagProc tagProc = new ProductTagProc(flow);
         tagProc.backupData(aid, unionPriIds, backupInfo);
-        //TODO 备份参数数据
+        // 备份参数数据
+        ProductPropProc propProc = new ProductPropProc(flow);
+        propProc.backupData(aid, unionPriIds, backupInfo);
 
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
@@ -536,17 +538,21 @@ public class MgProductInfService extends ServicePub {
             basicProc.restoreBackup(aid, unionPriIds, restoreId, backupInfo);
         }
 
-        //还原库数据
+        // 还原库数据
         if (restoreAll || restoreOption.getBoolean(MgProductEntity.Option.LIB, false)) {
             ProductLibProc libProc = new ProductLibProc(flow);
             libProc.restoreBackup(aid, unionPriIds, restoreId, backupInfo);
         }
-        //还原标签数据
+        // 还原标签数据
         if (restoreAll || restoreOption.getBoolean(MgProductEntity.Option.LIB, false)) {
             ProductTagProc tagProc = new ProductTagProc(flow);
             tagProc.restoreBackup(aid, unionPriIds, restoreId, backupInfo);
         }
-        //TODO 还原参数数据
+        // 还原参数数据
+        if (restoreAll || restoreOption.getBoolean(MgProductEntity.Option.PROP, false)) {
+            ProductPropProc propProc = new ProductPropProc(flow);
+            propProc.restoreBackup(aid, unionPriIds, restoreId, backupInfo);
+        }
 
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
@@ -580,13 +586,15 @@ public class MgProductInfService extends ServicePub {
         ProductBasicProc basicProc = new ProductBasicProc(flow);
         basicProc.delBackup(aid, backupInfo);
 
-        //删除库数据备份
+        // 删除库数据备份
         ProductLibProc libProc = new ProductLibProc(flow);
         libProc.delBackup(aid, backupInfo);
-        //删除标签数据备份
+        // 删除标签数据备份
         ProductTagProc tagProc = new ProductTagProc(flow);
         tagProc.delBackup(aid, backupInfo);
-        //TODO 删除参数数据备份
+        // 删除参数数据备份
+        ProductPropProc propProc = new ProductPropProc(flow);
+        propProc.delBackup(aid, backupInfo);
 
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);

@@ -1,9 +1,11 @@
 package fai.MgProductPropSvr.application;
 
+import fai.MgBackupSvr.interfaces.dto.MgBackupDto;
 import fai.MgProductPropSvr.application.service.ProductPropService;
 import fai.MgProductPropSvr.interfaces.cmd.MgProductPropCmd;
 import fai.MgProductPropSvr.interfaces.dto.ProductPropDto;
 import fai.MgProductPropSvr.interfaces.dto.ProductPropValDto;
+import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
@@ -18,8 +20,9 @@ import java.io.IOException;
 
 public class MgProductPropHandler extends MiddleGroundHandler {
 
-	public MgProductPropHandler(FaiServer server) {
+	public MgProductPropHandler(FaiServer server, RedisCacheManager cache) {
 		super(server);
+		service.initBackupStatus(cache);
 	}
 
 	@Cmd(MgProductPropCmd.PropCmd.GET_LIST)
@@ -175,5 +178,39 @@ public class MgProductPropHandler extends MiddleGroundHandler {
 								   @ArgAid final int aid) throws IOException {
 		return service.clearCache(session, flow, aid);
 	}
+
+	@WrittenCmd
+	@Cmd(MgProductPropCmd.Cmd.BACKUP)
+	public int backupData(final FaiSession session,
+						  @ArgFlow final int flow,
+						  @ArgAid int aid,
+						  @ArgList(keyMatch = ProductPropDto.Key.UNION_PRI_ID) FaiList<Integer> unionPriIds,
+						  @ArgParam(classDef = MgBackupDto.class, methodDef = "getInfoDto",
+								  keyMatch = ProductPropDto.Key.BACKUP_INFO) Param backupInfo) throws IOException {
+		return service.backupData(session, flow, aid, unionPriIds, backupInfo);
+	}
+
+	@WrittenCmd
+	@Cmd(MgProductPropCmd.Cmd.RESTORE)
+	public int restoreBackupData(final FaiSession session,
+								 @ArgFlow final int flow,
+								 @ArgAid int aid,
+								 @ArgList(keyMatch = ProductPropDto.Key.UNION_PRI_ID) FaiList<Integer> unionPriIds,
+								 @ArgBodyInteger(ProductPropDto.Key.RESTORE_ID) int restoreId,
+								 @ArgParam(classDef = MgBackupDto.class, methodDef = "getInfoDto",
+										 keyMatch = ProductPropDto.Key.BACKUP_INFO) Param backupInfo) throws IOException {
+		return service.restoreBackupData(session, flow, aid, unionPriIds, restoreId, backupInfo);
+	}
+
+	@WrittenCmd
+	@Cmd(MgProductPropCmd.Cmd.DEL_BACKUP)
+	public int delBackupData(final FaiSession session,
+							 @ArgFlow final int flow,
+							 @ArgAid int aid,
+							 @ArgParam(classDef = MgBackupDto.class, methodDef = "getInfoDto",
+									 keyMatch = ProductPropDto.Key.BACKUP_INFO) Param backupInfo) throws IOException {
+		return service.delBackupData(session, flow, aid, backupInfo);
+	}
+
 	private ProductPropService service = ServiceProxy.create(new ProductPropService());
 }

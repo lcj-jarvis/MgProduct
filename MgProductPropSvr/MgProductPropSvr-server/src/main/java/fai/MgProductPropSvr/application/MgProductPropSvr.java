@@ -1,10 +1,8 @@
 package fai.MgProductPropSvr.application;
 
 import fai.MgProductPropSvr.domain.common.LockUtil;
-import fai.MgProductPropSvr.domain.repository.CacheCtrl;
-import fai.MgProductPropSvr.domain.repository.ProductPropDaoCtrl;
-import fai.MgProductPropSvr.domain.repository.ProductPropRelDaoCtrl;
-import fai.MgProductPropSvr.domain.repository.ProductPropValDaoCtrl;
+import fai.MgProductPropSvr.domain.repository.cache.CacheCtrl;
+import fai.MgProductPropSvr.domain.repository.dao.*;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.cache.redis.config.RedisClientConfig;
 import fai.comm.cache.redis.pool.JedisPool;
@@ -55,12 +53,10 @@ public class MgProductPropSvr {
 		JedisPool jedisPool = JedisPoolFactory.createJedisPool(redisConfig);
 		RedisCacheManager m_cache = new RedisCacheManager(jedisPool, redisConfig.getExpire(), redisConfig.getExpireRandom());
 
-		int lockLease = svrOption.getLockLease();
-		Log.logStd("lockLease=%d;", lockLease);
+		LockOption lockOption = server.getConfig().getConfigObject(LockOption.class);
+		init(daoPool, m_cache, lockOption);
 
-		init(daoPool, m_cache, lockLease);
-
-		server.setHandler(new MgProductPropHandler(server));
+		server.setHandler(new MgProductPropHandler(server, m_cache));
 		server.start();
 	}
 
@@ -81,11 +77,16 @@ public class MgProductPropSvr {
 		return daoPool;
 	}
 
-	public static void init(DaoPool daoPool, RedisCacheManager cache, int lockLease) {
+	public static void init(DaoPool daoPool, RedisCacheManager cache, LockOption lockOption) {
 		ProductPropDaoCtrl.init(daoPool, cache);
 		ProductPropRelDaoCtrl.init(daoPool, cache);
 		ProductPropValDaoCtrl.init(daoPool, cache);
-		LockUtil.init(cache, lockLease);
+
+		ProductPropBakDaoCtrl.init(daoPool);
+		ProductPropRelBakDaoCtrl.init(daoPool);
+		ProductPropValBakDaoCtrl.init(daoPool);
+
+		LockUtil.init(cache, lockOption);
 		CacheCtrl.init(cache);
 	}
 
@@ -104,15 +105,6 @@ public class MgProductPropSvr {
 			this.dbMaxSize = dbMaxSize;
 		}
 
-		public int getLockLease() {
-			return lockLease;
-		}
-
-		public void setLockLease(int lockLease) {
-			this.lockLease = lockLease;
-		}
-
-
 		public boolean getDebug() {
 			return debug;
 		}
@@ -127,6 +119,56 @@ public class MgProductPropSvr {
 
 		public void setDbInstance(String dbInstance) {
 			this.dbInstance = dbInstance;
+		}
+	}
+
+	@ParamKeyMapping(path = ".svr.lock")
+	public static class LockOption {
+		private int lockLease = 1000;
+		private int lockLength = 500;
+		private int bakLockLength = 100;
+		private int readLockLength = 200;
+
+		public int getLockLength() {
+			return lockLength;
+		}
+
+		public void setLockLength(int lockLength) {
+			this.lockLength = lockLength;
+		}
+
+		public int getBakLockLength() {
+			return bakLockLength;
+		}
+
+		public void setBakLockLength(int bakLockLength) {
+			this.bakLockLength = bakLockLength;
+		}
+
+		public int getLockLease() {
+			return lockLease;
+		}
+
+		public void setLockLease(int lockLease) {
+			this.lockLease = lockLease;
+		}
+
+		public int getReadLockLength() {
+			return readLockLength;
+		}
+
+		public void setReadLockLength(int readLockLength) {
+			this.readLockLength = readLockLength;
+		}
+
+		@Override
+		public String toString() {
+			return "LockOption{" +
+					"lockLease=" + lockLease +
+					", lockLength=" + lockLength +
+					", bakLockLength=" + bakLockLength +
+					", readLockLength=" + readLockLength +
+					'}';
 		}
 	}
 }

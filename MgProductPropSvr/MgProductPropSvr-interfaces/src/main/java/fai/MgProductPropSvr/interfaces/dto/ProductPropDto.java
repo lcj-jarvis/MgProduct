@@ -59,5 +59,7 @@ public class ProductPropDto {
 		public static final int RL_PROP_ID = 9;
 		public static final int RL_PROP_IDS = 10;
 		public static final int UNION_PRI_IDS = 11;
+		public static final int BACKUP_INFO = 12;
+		public static final int RESTORE_ID = 13;
 	}
 }

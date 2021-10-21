@@ -4,18 +4,18 @@ import fai.comm.util.FaiList;
 
 public class ProductPropValValObj {
 	public static final class DataType {
-		public static final byte STRING = 1;
-		public static final byte INT = 2;
-		public static final byte LONG = 3;
-		public static final byte FLOAT = 4;
-		public static final byte DOUBLE = 5;
-		public static final byte BOOLEAN = 6;
+		public static final int STRING = 0;
+		public static final int INT = 1;
+		public static final int FLOAT = 2;
+		public static final int DOUBLE = 3;
+		public static final int LONG = 4;
+		public static final int BOOLEAN = 5;
 
 		public boolean isValid(int dataType) {
 			return dataTyeList.contains(dataType);
 		}
 
-		public static FaiList<Byte> dataTyeList = new FaiList<Byte>();
+		public static FaiList<Integer> dataTyeList = new FaiList<>();
 		static {
 			dataTyeList.add(STRING);
 			dataTyeList.add(INT);

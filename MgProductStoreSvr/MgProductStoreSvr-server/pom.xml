@@ -43,15 +43,6 @@
             <version>${fai-comm-jnetkit-ver}</version>
         </dependency>
 
-
-        <!--TODO 测试完搜索服务就删除-->
-        <!--控制台显示日志-->
-        <!--<dependency>
-            <groupId>fai-comm-rpc-client</groupId>
-            <artifactId>fai-comm-rpc-client</artifactId>
-            <version>${fai-comm-rpc-client-ver}</version>
-        </dependency>-->
-
         <dependency>
             <groupId>fai-comm-config</groupId>
             <artifactId>fai-comm-config</artifactId>

@@ -102,8 +102,6 @@ public class MgProductSearchProc {
         // 是否将es的idList直接当作db的查询条件
         ParamMatcher idListFromEsParamMatcher = new ParamMatcher();
         if (!Utils.isEmptyList(esSearchResult)) {
-            // 先手动给一个值用于测试
-            // int inSqlThreshold = 5;
             int inSqlThreshold = getInSqlThreshold();
             if (esSearchResult.size() == 1) {
                 Integer pdId = esSearchResult.get(0);

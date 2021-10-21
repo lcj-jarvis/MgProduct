@@ -462,8 +462,6 @@ public class MgProductSearchService {
                 Log.logStd("finish taking the intersection of db searchResult;flow=%d,aid=%d,unionPriId=%d,intersection=%s", flow, aid, unionPriId, pdIdBitSet);
 
                 // 整合es的搜索结果
-                // 先手动给一个值,用于测试
-                // int inSqlThreshold = 5;
                 int inSqlThreshold = searchProc.getInSqlThreshold();
                 // 是否需要和es的搜索结果取交集。大于in sql的阈值，就取交集。
                 boolean needUnionEs = esSearchResult.size() > inSqlThreshold;

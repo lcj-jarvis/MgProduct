@@ -32,16 +32,12 @@
         <fai-comm-distributedkit-ver>1.4.3</fai-comm-distributedkit-ver>
 
         <!--升级支持异步功能-->
-        <!--<fai-comm-util-arch-ver>1.0.6</fai-comm-util-arch-ver>-->
         <fai-comm-util-arch-ver>1.1.3</fai-comm-util-arch-ver>
         <fai-comm-rpc-client-ver>1.1.0</fai-comm-rpc-client-ver>
         <fai-comm-netkit-ver>beta-1.1.5</fai-comm-netkit-ver>
         <fai-comm-jnetkit-ver>1.1.2</fai-comm-jnetkit-ver>
 
-        <!--升级支持异步功能-->
-        <!--<fai-comm-config-ver>1.0.2</fai-comm-config-ver>-->
         <fai-comm-config-ver>1.0.0</fai-comm-config-ver>
-
         <fai-comm-mq-ver>1.0.1</fai-comm-mq-ver>
         <fai-comm-cache-ver>1.0.5</fai-comm-cache-ver>
         <fai-comm-mskit-ver>1.0.0</fai-comm-mskit-ver>

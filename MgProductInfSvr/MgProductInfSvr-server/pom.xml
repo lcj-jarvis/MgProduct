@@ -16,30 +16,12 @@
             <groupId>fai-comm-middleground</groupId>
             <artifactId>fai-comm-middleground</artifactId>
             <version>${fai-comm-middleground-ver}</version>
-            <!--解决异步超时问题-->
-            <!--<exclusions>
-                <exclusion>
-                    <artifactId>fai-comm-config</artifactId>
-                    <groupId>fai-comm-config</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>fai-comm-jnetkit</artifactId>
-                    <groupId>fai-comm-jnetkit</groupId>
-                </exclusion>
-            </exclusions>-->
         </dependency>
 
         <dependency>
             <groupId>MgRichText</groupId>
             <artifactId>MgRichTextInfSvr-interfaces</artifactId>
             <version>${MgRichText-MgRichTextInfSvr-ver}</version>
-            <!--解决异步超时问题-->
-            <!--<exclusions>
-                <exclusion>
-                    <artifactId>fai-comm-netkit</artifactId>
-                    <groupId>fai-comm-netkit</groupId>
-                </exclusion>
-            </exclusions>-->
         </dependency>
 
         <dependency>
@@ -76,13 +58,6 @@
             <groupId>MgProduct</groupId>
             <artifactId>MgProductBasicSvr-interfaces</artifactId>
             <version>${MgProduct-MgProductBasicSvr-interfaces-ver}</version>
-            <!--解决异步超时问题-->
-           <!-- <exclusions>
-                <exclusion>
-                    <artifactId>fai-comm-netkit</artifactId>
-                    <groupId>fai-comm-netkit</groupId>
-                </exclusion>
-            </exclusions>-->
         </dependency>
 
         <dependency>
@@ -114,14 +89,6 @@
             <artifactId>MgProductTagSvr-interfaces</artifactId>
             <version>${MgProduct-MgProductTagSvr-interfaces-ver}</version>
         </dependency>
-
-        <!--核心包 fai-comm-rpc-client-->
-        <!--控制台打印日志-->
-        <!--<dependency>
-            <groupId>fai-comm-rpc-client</groupId>
-            <artifactId>fai-comm-rpc-client</artifactId>
-            <version>${fai-comm-rpc-client-ver}</version>
-        </dependency>-->
 
         <dependency>
             <groupId>fai-comm-netkit</groupId>

@@ -741,7 +741,7 @@ public class ProductBasicService extends MgProductInfService {
     /**
      *  修改商品数据 包括 规格、库存、分类、标签
      */
-    public int setProductInfo(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, String xid, Integer rlPdId, ParamUpdater recvUpdater) throws IOException, TransactionException {
+    public int setProductInfo(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, String xid, Integer rlPdId, Param combinedUpdater) throws IOException, TransactionException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -769,15 +769,13 @@ public class ProductBasicService extends MgProductInfService {
                 tx.begin(aid, 60000, "mgProduct-setProductInfo", flow);
                 xid = tx.getXid();
                 // 分配修改内容
-                Param updaterData = recvUpdater.getData();
                 /** 基础信息修改 start */
-                Param basicData = updaterData.getParam(MgProductEntity.Info.BASIC);
+                ParamUpdater basicUpdater = (ParamUpdater) combinedUpdater.getObject(MgProductEntity.Info.BASIC);
                 FaiList<Param> remarkList = null;
-                if (!Str.isEmpty(basicData)) {
-                    remarkList = RichTextConverter.getRemarkList(basicData, false);
+                if (basicUpdater != null && !basicUpdater.isEmpty()) {
+                    remarkList = RichTextConverter.getRemarkList(basicUpdater.getData(), false);
                     ProductBasicProc basicProc = new ProductBasicProc(flow);
-                    ParamUpdater updater = new ParamUpdater(basicData);
-                    rt = basicProc.setSinglePd(aid, xid, tid, siteId, unionPriId, sysType, rlPdId, updater);
+                    rt = basicProc.setSinglePd(aid, xid, tid, siteId, unionPriId, sysType, rlPdId, basicUpdater);
                     if (rt != Errno.OK) {
                         Log.logErr(rt,"setProductInfo error;an error occurred while modifying the basic info");
                         return rt;
@@ -785,11 +783,11 @@ public class ProductBasicService extends MgProductInfService {
                 }
                 /** 基础信息修改 end */
 
-                FaiList<Param> specSkuList = updaterData.getList(MgProductEntity.Info.SPEC_SKU);
-                FaiList<Param> storeData = updaterData.getList(MgProductEntity.Info.STORE_SALES);
-                Param spuData = updaterData.getParam(MgProductEntity.Info.SPU_SALES);
+                FaiList<ParamUpdater> specSkuUpdaterList = combinedUpdater.getList(MgProductEntity.Info.SPEC_SKU);
+                FaiList<ParamUpdater> storeUpdaters = combinedUpdater.getList(MgProductEntity.Info.STORE_SALES);
+                ParamUpdater spuUpdater = (ParamUpdater) combinedUpdater.getObject(MgProductEntity.Info.SPU_SALES);
                 int pdId = 0;
-                if(!Utils.isEmptyList(specSkuList) || !Utils.isEmptyList(storeData) || !Utils.isEmptyList(remarkList) || !Str.isEmpty(spuData)) {
+                if(!Utils.isEmptyList(specSkuUpdaterList) || !Utils.isEmptyList(storeUpdaters) || !Utils.isEmptyList(remarkList) || (spuUpdater != null && !spuUpdater.isEmpty())) {
                     // 获取 pdId
                     idRef.value = null;
                     rt = getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
@@ -800,11 +798,7 @@ public class ProductBasicService extends MgProductInfService {
                 }
 
                 /** 规格SKU 修改 start */
-                if (!Utils.isEmptyList(specSkuList)) {
-                    FaiList<ParamUpdater> specSkuUpdaterList = new FaiList<>();
-                    for (Param specSkuInfo : specSkuList) {
-                        specSkuUpdaterList.add(new ParamUpdater(specSkuInfo));
-                    }
+                if (!Utils.isEmptyList(specSkuUpdaterList)) {
                     ProductSpecProc productSpecProc = new ProductSpecProc(flow);
                     rt = productSpecProc.setPdSkuScInfoList(aid, tid, unionPriId, xid, pdId, specSkuUpdaterList);
                     if(rt != Errno.OK) {
@@ -814,9 +808,10 @@ public class ProductBasicService extends MgProductInfService {
                 /** 规格SKU 修改 end */
 
                 /** 库存信息修改 start */
-                if (!Utils.isEmptyList(storeData)) {
+                if (!Utils.isEmptyList(storeUpdaters)) {
                     Map<FaiList<String>, Param> inPdScStrNameInfoMap = new HashMap<>();
-                    for (Param storeInfo : storeData) {
+                    for (ParamUpdater storeUpdater : storeUpdaters) {
+                        Param storeInfo = storeUpdater.getData();
                         Long skuId = storeInfo.getLong(ProductStoreEntity.StoreSalesSkuInfo.SKU_ID);
                         if(skuId == null){
                             FaiList<String> inPdScStrNameList = storeInfo.getList(ProductStoreEntity.StoreSalesSkuInfo.IN_PD_SC_STR_NAME_LIST);
@@ -847,20 +842,16 @@ public class ProductBasicService extends MgProductInfService {
                         }
                     }
 
-                    FaiList<ParamUpdater> updaterList = new FaiList<>();
-                    for (Param storeInfo : storeData) {
-                        updaterList.add(new ParamUpdater(storeInfo));
-                    }
                     ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-                    rt = productStoreProc.setSkuStoreSales(aid, tid, unionPriId, xid, pdId, rlPdId, sysType, updaterList);
+                    rt = productStoreProc.setSkuStoreSales(aid, tid, unionPriId, xid, pdId, rlPdId, sysType, storeUpdaters);
                     if(rt != Errno.OK) {
                         return rt;
                     }
                 }
 
-                if(!Str.isEmpty(spuData)) {
+                if(spuUpdater != null && !spuUpdater.isEmpty()) {
                     ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-                    rt = productStoreProc.setSpuBizSummary(aid, xid, unionPriId, pdId, new ParamUpdater(spuData));
+                    rt = productStoreProc.setSpuBizSummary(aid, xid, unionPriId, pdId, spuUpdater);
                     if(rt != Errno.OK) {
                         return rt;
                     }

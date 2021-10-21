@@ -851,7 +851,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      * 修改商品信息 包括 规格和库存服务
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
-     *                 .setCombinedUpdater(updater)   // 必填
+     *                 .setCombinedUpdater(combinedUpdater)   // 必填
      *                 .setRlPdId(rlPdId)             // 必填
      *                 .build();
      * updater说明： updater详见 {@link MgProductDto#getInfoDto}
@@ -869,8 +869,8 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
-            ParamUpdater updater = mgProductArg.getCombinedUpdater();
-            if (updater == null || updater.isEmpty()) {
+            Param combinedUpdater = mgProductArg.getCombinedUpdater();
+            if (Str.isEmpty(combinedUpdater)) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr("arg error;updater is empty");
                 return m_rt;
@@ -887,7 +887,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             sendBody.putInt(ProductBasicDto.Key.SYS_TYPE, sysType);
             sendBody.putString(MgProductDto.Key.XID, xid);
             sendBody.putInt(ProductBasicDto.Key.RL_PD_ID, rlPdId);
-            updater.toBuffer(sendBody, ProductBasicDto.Key.UPDATER, MgProductDto.getInfoDto());
+            combinedUpdater.toBuffer(sendBody, ProductBasicDto.Key.UPDATER, MgProductDto.getInfoDto());
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.SET_PD_INFO, sendBody, false, false);
             return m_rt;

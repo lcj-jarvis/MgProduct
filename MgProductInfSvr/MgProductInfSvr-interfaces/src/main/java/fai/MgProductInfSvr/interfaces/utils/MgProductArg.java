@@ -39,7 +39,7 @@ public class MgProductArg {
     private FaiList<Long> skuIds;
     private FaiList<ParamUpdater> updaterList;
     private Param combined;
-    private ParamUpdater combinedUpdater;
+    private Param combinedUpdater;
     private Param inOutStoreRecordInfo;
     private FaiList<Param> importProductList;
     private MgProductSearchArg mgProductSearchArg;
@@ -264,7 +264,7 @@ public class MgProductArg {
         return combined;
     }
 
-    public ParamUpdater getCombinedUpdater() {
+    public Param getCombinedUpdater() {
         return combinedUpdater;
     }
 
@@ -467,7 +467,7 @@ public class MgProductArg {
         protected FaiList<Param> primaryKeys;
         protected FaiList<ParamUpdater> updaterList;
         protected Param combined;
-        protected ParamUpdater combinedUpdater;
+        protected Param combinedUpdater;
         protected MgProductSearchArg mgProductSearchArg;
         protected FaiList<Param> importProductList;
         protected ParamUpdater updater;
@@ -487,7 +487,7 @@ public class MgProductArg {
         public abstract Builder setPrimaryList(FaiList<Param> primaryKeys);
         public abstract Builder setUpdaterList(FaiList<ParamUpdater> updaterList);
         public abstract Builder setCombined(Param combined);
-        public abstract Builder setCombinedUpdater(ParamUpdater combinedUpdater);
+        public abstract Builder setCombinedUpdater(Param combinedUpdater);
         public abstract Builder setMgProductSearchArg(MgProductSearchArg mgProductSearchArg);
         public abstract Builder setImportProductList(FaiList<Param> importProductList);
         public abstract Builder setUpdater(ParamUpdater updater);
@@ -661,7 +661,7 @@ public class MgProductArg {
         }
 
         @Override
-        public Builder setCombinedUpdater(ParamUpdater combinedUpdater) {
+        public Builder setCombinedUpdater(Param combinedUpdater) {
             this.combinedUpdater = combinedUpdater;
             record("combinedUpdater", this.combinedUpdater);
             return this;

@@ -672,12 +672,12 @@ public class MgProductInfHandler extends FaiHandler {
                               @ArgBodyInteger(value = ProductBasicDto.Key.SYS_TYPE, useDefault = true) int sysType,
                               @ArgBodyXid(value = MgProductDto.Key.XID, useDefault = true) String xid,
                               @ArgBodyInteger( ProductBasicDto.Key.RL_PD_ID) Integer rlPdId,
-                              @ArgParamUpdater(classDef = MgProductDto.class, methodDef = "getInfoDto",
-                                      keyMatch = ProductBasicDto.Key.UPDATER) ParamUpdater updater) throws IOException, TransactionException {
+                              @ArgParam(classDef = MgProductDto.class, methodDef = "getInfoDto",
+                                      keyMatch = ProductBasicDto.Key.UPDATER) Param combinedUpdater) throws IOException, TransactionException {
         if (!Str.isEmpty(xid)) {
             RootContext.bind(xid, flow);
         }
-        return basicService.setProductInfo(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, xid, rlPdId, updater);
+        return basicService.setProductInfo(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, xid, rlPdId, combinedUpdater);
     }
 
     @WrittenCmd

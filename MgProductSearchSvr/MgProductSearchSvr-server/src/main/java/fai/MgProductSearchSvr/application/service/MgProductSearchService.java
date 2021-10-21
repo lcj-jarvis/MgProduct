@@ -23,7 +23,11 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Collectors;
+
+import static fai.MgProductSearchSvr.domain.serviceproc.MgProductSearchProc.EsSearchSorterInfo.ES_SEARCH_RESULT;
+import static fai.MgProductSearchSvr.domain.serviceproc.MgProductSearchProc.EsSearchSorterInfo.ES_SEARCH_RESULT_BITSET;
 
 /**
  * @author Lu
@@ -33,27 +37,16 @@ public class MgProductSearchService {
 
     private final MgProductSearchProc searchProc = new MgProductSearchProc();
 
-    // TODO 先保留
-    public static final Integer INTEGRATE_COMPARATOR_FIELD_THREAD_NUM = 3;
-    /**
-     * 线程池最大线程数，CPU密集型最大线程数，设置为CPU核数 + 1
-     */
-    public static final Integer MAX_THREAD_NUM = Runtime.getRuntime().availableProcessors() + 1;
-
-    public static final Integer KEEP_ALIVE_TIME = 20;
-
-    public static final Integer BLOCKING_DEQUE_CAPACITY = 100;
-
     /**
      * 在es中进行搜索
      * @return 返回搜索到的pdIdList
      */
-    public FaiList<Integer> esSearch(int flow, int aid, int unionPriId, MgProductSearchArg mgProductSearchArg) {
+    public Param esSearch(int flow, int aid, int unionPriId, MgProductSearchArg mgProductSearchArg) {
         FaiList<Integer> esSearchResult = new FaiList<>();
         MgProductEsSearch mgProductEsSearch = mgProductSearchArg.getMgProductEsSearch();
         if (Objects.isNull(mgProductEsSearch)) {
             Log.logStd("mgProductEsSearch is null;Don't need search from es;flow=%d,aid=%d,unionPriId=%d", flow, aid, unionPriId);
-            return esSearchResult;
+            return new Param();
         }
 
         // 搜索的字段
@@ -143,13 +136,22 @@ public class MgProductSearchService {
 
         // TODO 可以根据命中条数，并发多个线程去获取es数据
 
-        Set<Integer> pdIdSet = new HashSet<>();
-        // 获取PdId，保证不重复
-        resultList.forEach(docId -> pdIdSet.add((Integer) docId.getVal(MgProductEsSearch.EsSearchPrimaryKeyOrder.PDID_ORDER)));
-        // TODO 注意要保证确保经过排序的结果不会乱序
-        esSearchResult.addAll(pdIdSet);
+        BitSet pdIdBitSet = new BitSet();
+        resultList.forEach(docId -> {
+            Integer pdId = (Integer) docId.getVal(MgProductEsSearch.EsSearchPrimaryKeyOrder.PDID_ORDER);
+            if (!esSearchResult.contains(pdId)) {
+                esSearchResult.add(pdId);
+            }
+
+            if (!pdIdBitSet.get(pdId)) {
+                pdIdBitSet.set(pdId);
+            }
+        });
+        Param esResultInfo = new Param();
+        esResultInfo.setList(ES_SEARCH_RESULT, esSearchResult);
+        esResultInfo.setObject(ES_SEARCH_RESULT_BITSET, pdIdBitSet);
         Log.logStd(" finish getting pdIdList from es search result;flow=%d,aid=%d,unionPriId=%d,idList=%s", flow, aid, unionPriId, esSearchResult);
-        return esSearchResult;
+        return esResultInfo;
     }
 
     /**
@@ -204,7 +206,8 @@ public class MgProductSearchService {
                 if (currentTime - latestDataChangeTime < MgProductSearchCache.ResultCache.INVALID_CACHE_TIME) {
                     Log.logStd("mgProductDbSearch is empty and cache is invalid;need get result from es once again;flow=%d,aid=%d,unionPriId=%d;", flow, aid, unionPriId);
                     // 重新搜索es，加载新的内容到缓存
-                    FaiList<Integer> esSearchResult = esSearch(flow, aid, unionPriId, mgProductSearchArg);
+                    Param esResultInfo = esSearch(flow, aid, unionPriId, mgProductSearchArg);
+                    FaiList<Integer> esSearchResult = esResultInfo.getList(ES_SEARCH_RESULT);
                     // 添加缓存
                     resultCacheInfo = searchProc.integrateAndAddCache(esSearchResult, manageDataMaxChangeTime.value, visitorDataMaxChangeTime.value, cacheKey);
                 }
@@ -221,7 +224,8 @@ public class MgProductSearchService {
                (3) mgProductEsSearch和mgProductDbSearch都为null
              */
             // 在es中获取到的idList
-            FaiList<Integer> esSearchResult = esSearch(flow, aid, unionPriId, mgProductSearchArg);
+            Param esResultInfo = esSearch(flow, aid, unionPriId, mgProductSearchArg);
+            FaiList<Integer> esSearchResult = esResultInfo.getList(ES_SEARCH_RESULT);
 
             // (1) es 查询条件不为空，但是 es 的搜索结果为空，直接返回
             // (2) es 查询条件不为空，mgProductDbSearch为null，添加缓存，返回es的搜索结果
@@ -233,12 +237,13 @@ public class MgProductSearchService {
                 resultCacheInfo.toBuffer(sendBuf, MgProductSearchDto.Key.RESULT_INFO, MgProductSearchDto.getProductSearchDto());
                 session.write(sendBuf);
                 Log.logStd("Don't need to unite db search;finish es search;return es searchResult;flow=%d,aid=%d,unionPriId=%d;mgProductDbSearch=%s;resultInfo=%s", flow, aid, unionPriId, mgProductDbSearch, resultCacheInfo);
-                return Errno.OK;
+                rt = Errno.OK;
+                return rt;
             }
 
             // 执行到这里说明mgProductEsSearch和mgProductDbSearch都为null，或者es的搜索条件可能为空也可能不为空，db的搜索条件不为空
             // 执行到这里说明要走db的搜索逻辑.联合db查询,得到最终的搜索结果
-            Param resultCacheInfo = uniteDbSearch(flow, aid, unionPriId, tid, mgProductSearchArg, esSearchResult);
+            Param resultCacheInfo = uniteDbSearch(flow, aid, unionPriId, tid, mgProductSearchArg, esResultInfo);
             resultCacheInfo.toBuffer(sendBuf, MgProductSearchDto.Key.RESULT_INFO, MgProductSearchDto.getProductSearchDto());
             session.write(sendBuf);
             rt = Errno.OK;
@@ -252,19 +257,23 @@ public class MgProductSearchService {
     /**
      * es搜索完后整合db的进行搜索
      * @param mgProductSearchArg 搜索条件
-     * @param esSearchResult es的搜索结果
+     * @param esResultInfo es的搜索结果
      * @return 返回包含idList的Param
      */
     public Param uniteDbSearch(int flow, int aid, int unionPriId, int tid,
-                               MgProductSearchArg mgProductSearchArg, FaiList<Integer> esSearchResult) {
+                               MgProductSearchArg mgProductSearchArg, Param esResultInfo) {
         MgProductDbSearch mgProductDbSearch = mgProductSearchArg.getMgProductDbSearch();
+        FaiList<Integer> esSearchResult = esResultInfo.getList(ES_SEARCH_RESULT);
+        if (Objects.isNull(esSearchResult)) {
+            esSearchResult = new FaiList<>();
+        }
         Log.logStd("need to unite db search;begin invoke uniteDbSearch method;flow=%d,aid=%d,unionPriId=%d,mgProductDbSearch=%s,esSearchResult=%s", flow, aid, unionPriId, mgProductDbSearch, esSearchResult);
 
         // 初始化需要用到的 异步client
-        FaiClientProxyFactory.initFlowGenerator(() -> flow);
         MgProductBasicCli asyncMgProductBasicCli = FaiClientProxyFactory.createProxy(MgProductBasicCli.class);
         MgProductStoreCli asyncMgProductStoreCli = FaiClientProxyFactory.createProxy(MgProductStoreCli.class);
         MgProductSpecCli asyncMgProductSpecCli = FaiClientProxyFactory.createProxy(MgProductSpecCli.class);
+
 
         // 记录了管理态数据的最新改变时间，用于判断搜索结果的缓存数据是否失效
         Ref<Long> manageDataMaxChangeTime = new Ref<>(0L);
@@ -279,10 +288,11 @@ public class MgProductSearchService {
 
         // 表名映射“包含搜索和排序等信息的Param”
         final Map<String, Param> tableMappingSearchAndSortInfo = new ConcurrentHashMap<>();
-        // 保存 各个表 管理态 修改的最新时间
-        final TreeSet<Long> manageDataChangeTimeSet = new TreeSet<>();
-        // 保存 各个表 访客态 修改的最新时间
-        final TreeSet<Long> visitorDataChangeTimeSet = new TreeSet<>();
+        //【阿里巴巴规范】高并发时，同步调用应该去考量锁的性能损耗。能用无锁数据结构，就不要用锁；能锁区块，就不要锁整个方法体；能用对象锁，就不要用类锁。
+        // 保存 各个表 管理态 修改的最新时间，相当于线程安全的TreeSet，查询的效率和TreeSet一样都是O(logN)
+        final ConcurrentSkipListSet<Long> manageDataChangeTimeSet = new ConcurrentSkipListSet<>();
+        // 保存 各个表 访客态 修改的最新时间，相当于线程安全的TreeSet，查询的效率和TreeSet一样都是O(logN)
+        final ConcurrentSkipListSet<Long> visitorDataChangeTimeSet = new ConcurrentSkipListSet<>();
         // 异步搜索各个表的数据状态
         searchProc.asyncCheckDataStatus(flow, aid, unionPriId, tid, mgProductDbSearch, esSearchResult, manageDataChangeTimeSet, visitorDataChangeTimeSet, tableMappingSearchAndSortInfo, asyncMgProductBasicCli, asyncMgProductStoreCli, asyncMgProductSpecCli);
 
@@ -328,7 +338,7 @@ public class MgProductSearchService {
                 // 异步
                 ParamMatcher defaultMatcher = new ParamMatcher();
                 tableNameMappingSearchMatcher.put(customComparatorTable, defaultMatcher);
-                searchProc.asyncGetDataStatus(aid, unionPriId, tid, customComparatorTable, tableNameMappingFuture, asyncMgProductBasicCli, asyncMgProductStoreCli, asyncMgProductSpecCli);
+                searchProc.asyncGetDataStatus(flow, aid, unionPriId, tid, customComparatorTable, tableNameMappingFuture, asyncMgProductBasicCli, asyncMgProductStoreCli, asyncMgProductSpecCli);
             }
 
             compensateTable = hasFirstComparator && !tableMappingSearchAndSortInfo.containsKey(firstComparatorTable);
@@ -338,7 +348,7 @@ public class MgProductSearchService {
                 // 异步
                 ParamMatcher defaultMatcher = new ParamMatcher();
                 tableNameMappingSearchMatcher.put(firstComparatorTable, defaultMatcher);
-                searchProc.asyncGetDataStatus(aid, unionPriId, tid, firstComparatorTable, tableNameMappingFuture, asyncMgProductBasicCli, asyncMgProductStoreCli, asyncMgProductSpecCli);
+                searchProc.asyncGetDataStatus(flow, aid, unionPriId, tid, firstComparatorTable, tableNameMappingFuture, asyncMgProductBasicCli, asyncMgProductStoreCli, asyncMgProductSpecCli);
             }
 
             // 第二排序的key默认是rlPdId，默认的排序表是MG_PRODUCT_REL
@@ -349,7 +359,7 @@ public class MgProductSearchService {
                 // 异步
                 ParamMatcher defaultMatcher = new ParamMatcher();
                 tableNameMappingSearchMatcher.put(secondComparatorTable, defaultMatcher);
-                searchProc.asyncGetDataStatus(aid, unionPriId, tid, secondComparatorTable, tableNameMappingFuture, asyncMgProductBasicCli, asyncMgProductStoreCli, asyncMgProductSpecCli);
+                searchProc.asyncGetDataStatus(flow, aid, unionPriId, tid, secondComparatorTable, tableNameMappingFuture, asyncMgProductBasicCli, asyncMgProductStoreCli, asyncMgProductSpecCli);
             }
         }
 
@@ -377,7 +387,7 @@ public class MgProductSearchService {
 
         // 不用非空判断其实也没问题，默认会搜索MgProductRel表，manageDataChangeTimeSet不可能为空
         manageDataMaxChangeTime.value = manageDataChangeTimeSet.last();
-        // 该TreeSet可能没有元素。因为如果last()方法获取不到，则抛出NoSuchElementException，所以保存访客态的要判空
+        // 该ConcurrentSkipListSet可能没有元素。因为如果last()方法获取不到，则抛出NoSuchElementException，所以保存访客态的要判空
         if (!visitorDataChangeTimeSet.isEmpty()) {
             visitorDataMaxChangeTime.value = visitorDataChangeTimeSet.last();
         }
@@ -428,6 +438,18 @@ public class MgProductSearchService {
             List<Param> sortResult = new FaiList<>();
             if (!tableNameMappingPdIdBitSet.isEmpty()) {
 
+
+                /**
+                 * 取交集的方式
+                 * （1）for循环遍历其中一个list
+                 *  注意到多个交集的集合必定是任一个集合的子集，所以只需遍历一个集合。
+                 *  查看这个集合里的数在剩余的集合存不存在，如果剩余的任一集合不包含这个数，
+                 *  那肯定不属于交集，这样就可以减少判断的次数。
+                 *
+                 * (2)使用BitSet，取交集，直接进行逻辑与即可
+                 * 以下采用第二种方式:
+                 * 因为如果数据量上来了，BitSet直接按位与来取交集的效率是for循环的上千倍
+                 */
                 // 取交集。
                 // 【注】为什么用BitSet取交集呢？因为如果数据量上来了，BitSet取交集的效率是for循环的上千倍
                 BitSet[] pdIdBitSetArrays = tableNameMappingPdIdBitSet.values().toArray(new BitSet[0]);
@@ -452,18 +474,12 @@ public class MgProductSearchService {
 
                 // 是否需要和ES取交集
                 if (!pdIdBitSet.isEmpty() && needUnionEs) {
-                    BitSet esBitSet = new BitSet();
-                    esSearchResult.forEach(pdId -> {
-                        if (!esBitSet.get(pdId)) {
-                            esBitSet.set(pdId);
-                        }
-                    });
-
+                    BitSet esPdIdBitSet = (BitSet) esResultInfo.getObject(ES_SEARCH_RESULT_BITSET);
                     // db的搜索结果和es的搜索结果根据pdId取交集
-                    pdIdBitSet.and(esBitSet);
+                    pdIdBitSet.and(esPdIdBitSet);
 
                     // 如果有排序在es。先按照es的排序结果进行定制排序。
-                    Log.logStd("finish taking the intersection of es and db searchResult;aid=%d,unionPriId=%d,esResult=%s,intersection=%s", aid, unionPriId, esBitSet, pdIdBitSet);
+                    Log.logStd("finish taking the intersection of es and db searchResult;aid=%d,unionPriId=%d,esResult=%s,intersection=%s", aid, unionPriId, esPdIdBitSet, pdIdBitSet);
                 }
 
 
@@ -471,6 +487,7 @@ public class MgProductSearchService {
                 //     需要将交集sortResult先按照“es里的排序结果”进行排序。因为整合出来的结果是乱序的。
                 //  (2)如果es里有排序，sortResult是es的搜索结果作为db的查询条件查询出来的，
                 //     那么此时的sortResult也有可能是乱序的。但是已经在es里排序了，所以sortResult要按照“es里的排序结果”进行排序。
+                // TODO: 待考虑看是否可以减少这个循环,O(n)
                 pdIdBitSet.stream().forEach(pdId -> sortResult.add(new Param().setInt(ProductEntity.Info.PD_ID, pdId)));
                 if (!sortResult.isEmpty() && hasComparatorInEs) {
                     // 根据es的结果进行定制排序
@@ -486,36 +503,7 @@ public class MgProductSearchService {
 
                 // db里的排序
                 if (!sortResult.isEmpty() && needCompare) {
-
-                    // TODO 数据量少的时候，单线程好，数据量大的时候，看不同数据量的耗时，待考虑用多线程的方式还是单线程方式。
-                    // 阿里巴巴开发规范: 使用线程池的好处是减少在创建和销毁线程上所花的时间以及系统资源的开销，解决资源不足的问题。
-                    //  如果不使用线程池，有可能造成系统创建大量同类线程而导致消耗完内存或者“过度切换”的问题。所以不采用单独new的方式
-                    // 3 为整合排序字段到sortResult的线程数
-                    /*CountDownLatch countDownLatch = new CountDownLatch(INTEGRATE_COMPARATOR_FIELD_THREAD_NUM);
-                    ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(INTEGRATE_COMPARATOR_FIELD_THREAD_NUM, MAX_THREAD_NUM, KEEP_ALIVE_TIME, TimeUnit.SECONDS,
-                        new LinkedBlockingDeque<>(BLOCKING_DEQUE_CAPACITY),
-                        Executors.defaultThreadFactory(),
-                        new ThreadPoolExecutor.CallerRunsPolicy());
-                    try {
-                        // 整合自定义排序字段到sortResult的线程
-                        threadPoolExecutor.execute(() -> searchProc.integrateComparatorFieldToSortResult(hasCustomComparator, sortResult, tableNameMappingPdIdParam, customComparatorTable, customComparatorKey, countDownLatch));
-                        // 整合第一排序字段到sortResult的线程
-                        threadPoolExecutor.execute(() -> searchProc.integrateComparatorFieldToSortResult(hasFirstComparator, sortResult, tableNameMappingPdIdParam, firstComparatorTable, firstComparatorKey, countDownLatch));
-                        // 整合第二排序字段到sortResult的线程
-                        threadPoolExecutor.execute(() -> searchProc.integrateComparatorFieldToSortResult(needSecondComparatorSorting, sortResult, tableNameMappingPdIdParam, secondComparatorTable, secondComparatorKey, countDownLatch));
-
-                        // 等待执行完成
-                        countDownLatch.await();
-                        Log.logStd("finish integrating all comparatorField to sortResult;flow=%d;aid=%d,unionPriId=%d;sortResult=%s", flow, aid, unionPriId, sortResult);
-                    } catch (Exception e) {
-                        // 等待执行完成超时
-                        throw new MgException(Errno.ERROR, "waiting integrate comparatorField to sortResult error;flow=%d;aid=%d,unionPriId=%d;", flow, aid, unionPriId);
-                    } finally {
-                        // 及时关闭线程池，避免内存泄漏
-                        threadPoolExecutor.shutdownNow();
-                    }*/
-
-                    // TODO 数据量少的时候，单线程好，数据量大的时候，看不同数据量的耗时，待考虑用多线程的方式还是单线程方式。
+                    // 整合排序字段
                     sortResult.forEach(info -> {
                         searchProc.integrateComparatorFieldToSortResult(hasCustomComparator, info, tableNameMappingPdIdParam, customComparatorTable, customComparatorKey);
                         searchProc.integrateComparatorFieldToSortResult(hasFirstComparator, info, tableNameMappingPdIdParam, firstComparatorTable, firstComparatorKey);

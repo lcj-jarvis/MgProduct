@@ -3,6 +3,7 @@ package fai.MgProductInfSvr.interfaces.utils;
 import fai.MgProductInfSvr.interfaces.entity.*;
 import fai.comm.util.*;
 import fai.mgproduct.comm.Util;
+import org.apache.poi.ss.formula.functions.T;
 
 import java.util.Calendar;
 
@@ -11,6 +12,7 @@ import java.util.Calendar;
  * @date 2021-08-17 15:17
  *
  * Db 专用的搜索类
+ * 【注】set方法，业务方已经没有使用的必要了，先保留着
  */
 public class MgProductDbSearch extends BaseMgProductSearch {
 
@@ -61,7 +63,7 @@ public class MgProductDbSearch extends BaseMgProductSearch {
      * 例如customComparatorKey为id
      * 增加key对应的顺序，例如id的order是1,3,2,4，比较时将采用此order进行比较排序
      */
-    private FaiList<Integer> customComparatorList;
+    private FaiList<?> customComparatorList;
 
     @Override
     public Param getSearchParam() {
@@ -737,7 +739,7 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         return customComparatorKey;
     }
 
-    public FaiList<Integer> getCustomComparatorList() {
+    public FaiList<?> getCustomComparatorList() {
         return customComparatorList;
     }
 

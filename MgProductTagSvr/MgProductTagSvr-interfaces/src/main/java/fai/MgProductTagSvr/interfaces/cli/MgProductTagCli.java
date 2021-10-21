@@ -355,7 +355,8 @@ public class MgProductTagCli extends FaiClient {
      * @param delRlTagIds  要删除的标签
      * @param rlTagIdsRef  接收新增标签的标签id
      */
-    public int unionSetTagList(int aid, int tid, int unionPriId, FaiList<Param> addInfoList,
+    public int unionSetTagList(int aid, int tid, int unionPriId,
+                               FaiList<Param> addInfoList,
                                FaiList<ParamUpdater> updaterList,
                                FaiList<Integer> delRlTagIds,
                                FaiList<Integer> rlTagIdsRef) {
@@ -393,6 +394,7 @@ public class MgProductTagCli extends FaiClient {
                 delRlTagIds = new FaiList<Integer>();
             }
             delRlTagIds.toBuffer(sendBody, ProductTagRelDto.Key.RL_TAG_IDS);
+
 
             //发送数据
             Param result = sendAndReceive(aid, MgProductTagCmd.TagCmd.UNION_SET_TAG_LIST, sendBody, !Util.isEmptyList(addInfoList));

@@ -741,7 +741,7 @@ public class ProductSpecService extends SpecParentService {
             // 查db的，不能pdIds的数量不能过多
             if(pdIds.size() > 200) {
                 rt = Errno.LEN_LIMIT;
-                Log.logErr("pdIds size more than 100;flow=%d;aid=%d;pdIds=%s;", flow, aid, pdIds);
+                Log.logErr("pdIds size more than 200;flow=%d;aid=%d;pdIds=%s;", flow, aid, pdIds);
                 return rt;
             }
             Ref<FaiList<Param>> listRef = new Ref<>();

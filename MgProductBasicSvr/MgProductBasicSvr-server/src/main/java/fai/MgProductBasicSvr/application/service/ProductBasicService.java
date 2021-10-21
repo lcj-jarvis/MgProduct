@@ -2463,6 +2463,7 @@ public class ProductBasicService extends BasicParentService {
         info.toBuffer(sendBuf, ProductRelDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
         session.write(sendBuf);
         rt = Errno.OK;
+
         Log.logDbg("getProductRelDataStatus ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
         return rt;
     }

@@ -357,7 +357,8 @@ public class MgProductLibCli extends FaiClient {
      * @param rlLibIdsRef  接收新增库的库业务id
      * @return
      */
-    public int unionSetLibList(int aid, int tid, int unionPriId, FaiList<Param> addInfoList,
+    public int unionSetLibList(int aid, int tid, int unionPriId,
+                                 FaiList<Param> addInfoList,
                                  FaiList<ParamUpdater> updaterList,
                                  FaiList<Integer> delRlLibIds,
                                  FaiList<Integer> rlLibIdsRef) {

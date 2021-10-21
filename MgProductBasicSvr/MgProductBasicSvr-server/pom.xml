@@ -63,6 +63,16 @@
             <version>${fai-comm-cache-ver}</version>
         </dependency>
 
+
+
+        <!--TODO 测试完搜索服务就删除-->
+        <!--控制台显示日志-->
+        <!--<dependency>
+            <groupId>fai-comm-rpc-client</groupId>
+            <artifactId>fai-comm-rpc-client</artifactId>
+            <version>${fai-comm-rpc-client-ver}</version>
+        </dependency>-->
+
         <dependency>
             <groupId>fai-comm-distributedkit</groupId>
             <artifactId>fai-comm-distributedkit</artifactId>

@@ -66,7 +66,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
         }
     }
 
-    public int copyBizBind(int aid, int fromUnionPriId, FaiList<Param> copyBindList) {
+    public int copyBizBind(int aid, String xid, int fromUnionPriId, FaiList<Param> copyBindList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -83,6 +83,10 @@ public class MgProductStoreCli extends MgProductInternalCli {
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
+            if(xid == null) {
+                xid = "";
+            }
+            sendBody.putString(StoreSalesSkuDto.Key.XID, xid);
             sendBody.putInt(StoreSalesSkuDto.Key.FROM_UNION_PRI_ID, fromUnionPriId);
             copyBindList.toBuffer(sendBody, StoreSalesSkuDto.Key.INFO_LIST, StoreSalesSkuDto.getCopyDto());
 
@@ -1981,7 +1985,61 @@ public class MgProductStoreCli extends MgProductInternalCli {
             return m_rt;
         } finally {
             close();
-            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    public int batchSetSpuBizSummary(int aid, String xid, FaiList<Integer> unionPriIds, FaiList<Integer> pdIds, ParamUpdater updater){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "aid error");
+                return m_rt;
+            }
+            if(updater == null || updater.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "updater error");
+                return m_rt;
+            }
+            if(xid == null) {
+                xid = "";
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putString(SpuBizSummaryDto.Key.XID, xid);
+            unionPriIds.toBuffer(sendBody, SpuBizSummaryDto.Key.UID_LIST);
+            pdIds.toBuffer(sendBody, SpuBizSummaryDto.Key.PD_ID);
+            updater.toBuffer(sendBody, SpuBizSummaryDto.Key.UPDATER, SpuBizSummaryDto.getInfoDto());
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.SpuBizSummaryCmd.BATCH_SET);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
         }
     }
 
@@ -2033,7 +2091,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
             return m_rt;
         } finally {
             close();
-            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+            stat.end(m_rt != Errno.OK, m_rt);
         }
     }
 

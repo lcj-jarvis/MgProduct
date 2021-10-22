@@ -974,8 +974,8 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 Log.logErr(m_rt, "args error;rlPdIds is empty;aid=%d;", aid);
                 return m_rt;
             }
-            ParamUpdater updater = mgProductArg.getUpdater();
-            if(updater == null || updater.isEmpty()) {
+            Param combinedUpdater = mgProductArg.getCombinedUpdater();
+            if(combinedUpdater == null || combinedUpdater.isEmpty()) {
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "args error;updater is empty;aid=%d;", aid);
                 return m_rt;
@@ -996,7 +996,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             sendBody.putInt(ProductBasicDto.Key.SYS_TYPE, mgProductArg.getSysType());
             rlPdIds.toBuffer(sendBody, ProductBasicDto.Key.RL_PD_IDS);
             primaryKeys.toBuffer(sendBody, ProductBasicDto.Key.PRIMARY_KEYS, MgProductDto.getPrimaryKeyDto());
-            updater.toBuffer(sendBody, ProductBasicDto.Key.UPDATER, ProductBasicDto.getProductDto());
+            combinedUpdater.toBuffer(sendBody, ProductBasicDto.Key.UPDATER, MgProductDto.getInfoDto());
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.BATCH_SET_4YK, sendBody, false, false);
             return m_rt;

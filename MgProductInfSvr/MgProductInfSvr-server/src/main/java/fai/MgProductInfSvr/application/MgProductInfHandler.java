@@ -1259,12 +1259,12 @@ public class MgProductInfHandler extends FaiHandler {
                             @ArgList(keyMatch = ProductBasicDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
                             @ArgList(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
                                     keyMatch = ProductBasicDto.Key.PRIMARY_KEYS) FaiList<Param> toPrimaryKeys,
-                            @ArgParamUpdater(classDef = ProductBasicDto.class, methodDef = "getProductDto",
-                                    keyMatch = ProductBasicDto.Key.UPDATER) ParamUpdater updater) throws IOException, TransactionException {
+                            @ArgParam(classDef = MgProductDto.class, methodDef = "getInfoDto",
+                                    keyMatch = ProductBasicDto.Key.UPDATER) Param combinedUpdate) throws IOException, TransactionException {
         if(!Str.isEmpty(xid)) {
             RootContext.bind(xid, flow); // 方便后面使用GlobalTransactionContext.getCurrentOrCreate
         }
-        return mgProductInfService.batchSet4YK(session, flow, aid, ownPrimaryKey, sysType, rlPdIds, toPrimaryKeys, updater);
+        return mgProductInfService.batchSet4YK(session, flow, aid, ownPrimaryKey, sysType, rlPdIds, toPrimaryKeys, combinedUpdate);
     }
 
     @WrittenCmd

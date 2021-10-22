@@ -635,6 +635,24 @@ public class ProductRelProc {
         Log.logStd("batchSet ok;flow=%d;aid=%d;", m_flow, aid);
     }
 
+    public void batchSet(int aid, FaiList<Integer> unionPriIds, FaiList<Integer> pdIds, ParamUpdater updater) {
+        if(Utils.isEmptyList(unionPriIds) || Utils.isEmptyList(pdIds) || updater == null || updater.isEmpty()) {
+            return;
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+        matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+
+        updatePdRel(aid, matcher, updater);
+
+        // es同步数据 预处理
+        for(int unionPriId : unionPriIds) {
+            ESUtil.batchPreLog(aid, unionPriId, pdIds, DocOplogDef.Operation.UPDATE_ONE);
+        }
+
+        Log.logStd("batchSet ok;flow=%d;aid=%d;uid=%s;pdIds=%s;update=%s;", m_flow, aid, unionPriIds, pdIds, updater.toJson());
+    }
+
     public void setSingle(int aid, int unionPriId, Integer pdId, ParamUpdater recvUpdater) {
         if (recvUpdater == null || recvUpdater.isEmpty()) {
             return;

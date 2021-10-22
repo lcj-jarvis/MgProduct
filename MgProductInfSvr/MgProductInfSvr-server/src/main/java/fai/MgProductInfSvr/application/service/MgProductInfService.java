@@ -248,6 +248,23 @@ public class MgProductInfService extends ServicePub {
         return rt;
     }
 
+    protected FaiList<Integer> getPdIds(int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds) {
+        int rt;
+        MgProductBasicCli mgProductBasicCli = new MgProductBasicCli(flow);
+        if(!mgProductBasicCli.init()) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "init MgProductBasicCli error");
+        }
+
+        FaiList<Param> list = new FaiList<>();
+        rt = mgProductBasicCli.getRelListByRlIds(aid, unionPriId, sysType, rlPdIds, list);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "getRelInfoByRlId error;flow=%d;aid=%d;unionPriId=%d;rlPdId=%s;", flow, aid, unionPriId, rlPdIds);
+        }
+        FaiList<Integer> pdIds = Utils.getValList(list, ProductRelEntity.Info.PD_ID);
+        return pdIds;
+    }
+
     /**
      * 克隆
      */
@@ -1030,11 +1047,19 @@ public class MgProductInfService extends ServicePub {
      * for 门店通总店批量设置上下架：若门店数据不存在，则添加
      */
     @SuccessRt(Errno.OK)
-    public int batchSet4YK(FaiSession session, int flow, int aid, Param ownPrimaryKey, int sysType, FaiList<Integer> rlPdIds, FaiList<Param> primaryKeys, ParamUpdater updater) throws IOException, TransactionException {
+    public int batchSet4YK(FaiSession session, int flow, int aid, Param ownPrimaryKey, int sysType, FaiList<Integer> rlPdIds, FaiList<Param> primaryKeys, Param combinedUpdate) throws IOException, TransactionException {
         int rt;
         if(Str.isEmpty(ownPrimaryKey) || Utils.isEmptyList(rlPdIds) || Utils.isEmptyList(primaryKeys)) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr("args error, primaryKeys is empty;flow=%d;aid=%d;ownPrimaryKey=%s;sysType=%s;rlPdIds=%s;primaryKeys=%s;updater=%s;", flow, aid, ownPrimaryKey, sysType, rlPdIds, primaryKeys, updater.toJson());
+            Log.logErr("args error, primaryKeys is empty;flow=%d;aid=%d;ownPrimaryKey=%s;sysType=%s;rlPdIds=%s;primaryKeys=%s;updater=%s;", flow, aid, ownPrimaryKey, sysType, rlPdIds, primaryKeys, combinedUpdate);
+            return rt;
+        }
+
+        ParamUpdater basicUpdater = (ParamUpdater) combinedUpdate.getObject(MgProductEntity.Info.BASIC);
+        ParamUpdater spuUpdater = (ParamUpdater) combinedUpdate.getObject(MgProductEntity.Info.SPU_SALES);
+        if((basicUpdater == null || basicUpdater.isEmpty()) && (spuUpdater == null && spuUpdater.isEmpty()) ) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, update is empty;flow=%d;aid=%d;ownPrimaryKey=%s;sysType=%s;rlPdIds=%s;primaryKeys=%s;updater=%s;", flow, aid, ownPrimaryKey, sysType, rlPdIds, primaryKeys, combinedUpdate);
             return rt;
         }
 
@@ -1057,15 +1082,23 @@ public class MgProductInfService extends ServicePub {
 
         boolean commit = false;
         GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
-        tx.begin(aid, 60000, "mgProduct-setPdStatus", flow);
+        tx.begin(aid, 60000, "mgProduct-batchSet4YK", flow);
         String xid = tx.getXid();
         try {
             ProductBasicProc basicProc = new ProductBasicProc(flow);
-            FaiList<Param> addList = basicProc.batchSet4YK(aid, xid, ownUnionPriId, sysType, unionPriIds, rlPdIds, updater);
-            if(!Utils.isEmptyList(addList)) {
-                // 如果存在新增的商品数据，则需同步库存销售的价格等信息
-                ProductStoreProc storeProc = new ProductStoreProc(flow);
-                storeProc.copyBizBind(aid, ownUnionPriId, addList);
+            ProductStoreProc storeProc = new ProductStoreProc(flow);
+
+            if(basicUpdater != null && !basicUpdater.isEmpty()) {
+                FaiList<Param> addList = basicProc.batchSet4YK(aid, xid, ownUnionPriId, sysType, unionPriIds, rlPdIds, basicUpdater);
+                if(!Utils.isEmptyList(addList)) {
+                    // 如果存在新增的商品数据，则需同步库存销售的价格等信息
+                    storeProc.copyBizBind(aid, xid, ownUnionPriId, addList);
+                }
+            }
+
+            if(spuUpdater != null && !spuUpdater.isEmpty()) {
+                FaiList<Integer> pdIds = getPdIds(flow, aid, ownUnionPriId, sysType, rlPdIds);
+                storeProc.batchSetSpuBizSummary(aid, xid, unionPriIds, pdIds, spuUpdater);
             }
 
             commit = true;
@@ -1080,7 +1113,7 @@ public class MgProductInfService extends ServicePub {
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
         session.write(sendBuf);
-        Log.logStd(rt, "setPdStatus ok;flow=%d;aid=%d;ownPrimaryKey=%s;sysType=%s;rlPdIds=%s;primaryKeys=%s;updater=%s;", flow, aid, ownPrimaryKey, sysType, rlPdIds, primaryKeys, updater.toJson());
+        Log.logStd(rt, "setPdStatus ok;flow=%d;aid=%d;ownPrimaryKey=%s;sysType=%s;rlPdIds=%s;primaryKeys=%s;updater=%s;", flow, aid, ownPrimaryKey, sysType, rlPdIds, primaryKeys, combinedUpdate);
         return rt;
     }
 

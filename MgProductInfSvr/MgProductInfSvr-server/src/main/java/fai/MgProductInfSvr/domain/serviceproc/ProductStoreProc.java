@@ -36,13 +36,13 @@ public class ProductStoreProc extends AbstractProductProc{
      * 克隆业务绑定数据
      * for 门店通
      */
-    public void copyBizBind(int aid, int fromUnionPriId, FaiList<Param> list) {
+    public void copyBizBind(int aid, String xid, int fromUnionPriId, FaiList<Param> list) {
         int rt;
         if (m_cli == null) {
             rt = Errno.ERROR;
             throw new MgException(rt, "get MgProductStoreCli error;flow=%d;aid=%d;fromUid=%d;list=%s;", m_flow, aid, fromUnionPriId, list);
         }
-        rt = m_cli.copyBizBind(aid, fromUnionPriId, list);
+        rt = m_cli.copyBizBind(aid, xid, fromUnionPriId, list);
         if (rt != Errno.OK) {
             throw new MgException(rt, "error;flow=%d;aid=%d;fromUid=%d;list=%s;", m_flow, aid, fromUnionPriId, list);
         }
@@ -142,12 +142,27 @@ public class ProductStoreProc extends AbstractProductProc{
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
-            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;uid=%s;pdId=%s;update=%s;", m_flow, aid, pdId, updater.toJson());
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;uid=%s;pdId=%s;update=%s;", m_flow, aid, unionPriId, pdId, updater.toJson());
             return rt;
         }
         rt = m_cli.setSpuBizSummary(aid, xid, unionPriId, pdId, updater);
         if (rt != Errno.OK) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;uid=%s;pdId=%s;update=%s;", m_flow, aid, pdId, updater.toJson());
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;uid=%s;pdId=%s;update=%s;", m_flow, aid, unionPriId, pdId, updater.toJson());
+            return rt;
+        }
+        return rt;
+    }
+
+    public int batchSetSpuBizSummary(int aid, String xid, FaiList<Integer> unionPriIds, FaiList<Integer> pdIds, ParamUpdater updater) {
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;uid=%s;pdIds=%s;update=%s;", m_flow, aid, unionPriIds, pdIds, updater.toJson());
+            return rt;
+        }
+        rt = m_cli.batchSetSpuBizSummary(aid, xid, unionPriIds, pdIds, updater);
+        if (rt != Errno.OK) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;uid=%s;pdIds=%s;update=%s;", m_flow, aid, unionPriIds, pdIds, updater.toJson());
             return rt;
         }
         return rt;

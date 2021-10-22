@@ -111,13 +111,15 @@ public class SpuBizSummaryProc {
     }
     public int setSingle(int aid, int unionPriId, int pdId, ParamUpdater updater, boolean isSaga) {
         if(updater == null || updater.isEmpty()) {
-            Log.logErr("arg error;flow=%d;aid=%s;", m_flow, aid);
+            Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;uid=%s;", m_flow, aid, pdId, unionPriId);
             return Errno.ARGS_ERROR;
         }
         Map<Integer, FaiList<Integer>> unionPriId_pdIds = new HashMap<>();
         unionPriId_pdIds.put(unionPriId, Utils.asFaiList(pdId));
 
         ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SpuBizSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(SpuBizSummaryEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
 
         int rt = doUpdate(aid, matcher, updater, isSaga);
         if(rt != Errno.OK) {
@@ -138,10 +140,10 @@ public class SpuBizSummaryProc {
             return rt;
         }
 
-        return copyBizBind(aid, fromUnionPriId, toUnionPriId, null);
+        return copyBizBind(aid, fromUnionPriId, toUnionPriId, null, false);
     }
 
-    public int copyBizBind(int aid, int fromUnionPriId, int toUnionPriId, FaiList<Integer> pdIds) {
+    public int copyBizBind(int aid, int fromUnionPriId, int toUnionPriId, FaiList<Integer> pdIds, boolean isSaga) {
         ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(SpuBizSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, fromUnionPriId);
         if(!Utils.isEmptyList(pdIds)) {
@@ -171,6 +173,13 @@ public class SpuBizSummaryProc {
             info.setCalendar(SpuBizSummaryEntity.Info.SYS_CREATE_TIME, now);
             info.setCalendar(SpuBizSummaryEntity.Info.SYS_UPDATE_TIME, now);
             info.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, toUnionPriId);
+        }
+        // 分布式事务需要添加 Saga 记录
+        if (isSaga) {
+            rt = addInsOp4Saga(aid, list);
+            if (rt != Errno.OK) {
+                return rt;
+            }
         }
         rt = m_daoCtrl.batchInsert(list, null, true);
         if(rt != Errno.OK) {
@@ -587,16 +596,30 @@ public class SpuBizSummaryProc {
         return rt;
     }
 
-    public int batchSet(int aid, int unionPriId, FaiList<ParamUpdater> updaterList){
+    public int batchSet(int aid, FaiList<Integer> unionPriIds, FaiList<Integer> pdIds, ParamUpdater updater, boolean isSaga){
         int rt = Errno.ARGS_ERROR;
-        if(aid <= 0 || unionPriId <= 0 || Utils.isEmptyList(updaterList)){
-            Log.logErr(rt, "arg error;flow=%s;aid=%s;unionPriId=%s;updaterList=%s;", m_flow, aid, unionPriId, updaterList);
+        if(aid <= 0 || Utils.isEmptyList(pdIds) || Utils.isEmptyList(unionPriIds) || updater == null || updater.isEmpty()){
+            Log.logErr(rt, "arg error;flow=%s;aid=%s;pdIds=%s;unionPriId=%s;updater=%s;", m_flow, aid, pdIds, unionPriIds, updater.toJson());
             return rt;
         }
 
-        //TODO
+        Map<Integer, FaiList<Integer>> unionPriId_pdIds = new HashMap<>();
+        for(int unionPriId : unionPriIds) {
+            unionPriId_pdIds.put(unionPriId, pdIds);
+        }
 
-        Log.logStd("ok;flow=%s;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
+        ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SpuBizSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+        matcher.and(SpuBizSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+
+        rt = doUpdate(aid, matcher, updater, isSaga);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "spu batchUpdate err;aid=%d;", aid);
+            return rt;
+        }
+        cacheManage.addDirtyCacheKey(aid, unionPriId_pdIds);
+
+        Log.logStd("batchSet ok;flow=%s;aid=%s;pdIds=%s;unionPriId=%s;update=%s;", m_flow, aid, pdIds, unionPriIds, updater.toJson());
         return rt;
     }
 

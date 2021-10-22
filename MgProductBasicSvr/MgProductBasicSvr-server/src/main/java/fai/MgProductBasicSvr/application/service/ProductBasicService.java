@@ -214,8 +214,8 @@ public class ProductBasicService extends BasicParentService {
             return rt;
         }
 
-        Integer status = updateInfo.getInt(ProductRelEntity.Info.STATUS);
-        FaiList<Integer> rlGroupIds = updateInfo.getList(ProductRelEntity.Info.RL_GROUP_IDS);
+        Integer status = (Integer) updateInfo.remove(ProductRelEntity.Info.STATUS);
+        FaiList<Integer> rlGroupIds = (FaiList<Integer>) updateInfo.remove(ProductRelEntity.Info.RL_GROUP_IDS);
         if(status == null && rlGroupIds == null) {
             rt = Errno.ARGS_ERROR;
             Log.logErr(rt, "args error, update is empty;flow=%d;aid=%d;ownUid=%d;uids=%s;rlPdIds=%s;updater=%s;", flow, aid, ownUnionPriId, unionPriIds, rlPdIds, updater.toJson());
@@ -262,6 +262,11 @@ public class ProductBasicService extends BasicParentService {
                         }
                         bindGroupProc.updateBindGroupList(aid, unionPirId, pdIds, newBindGroupList);
                     }
+                }
+
+                // 还有其他修改最后执行
+                if(!updater.isEmpty()) {
+                    relProc.batchSet(aid, unionPriIds, pdIds, updater);
                 }
 
                 // 提交前设置下临时过期时间

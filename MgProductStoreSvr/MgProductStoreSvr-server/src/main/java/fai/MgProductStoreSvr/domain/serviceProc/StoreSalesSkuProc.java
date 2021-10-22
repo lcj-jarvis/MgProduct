@@ -125,10 +125,10 @@ public class StoreSalesSkuProc {
             Log.logErr(rt, "clear old list error;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
             return rt;
         }
-        return copyBizBind(aid, fromUnionPriId, toUnionPriId, null);
+        return copyBizBind(aid, fromUnionPriId, toUnionPriId, null, false);
     }
 
-    public int copyBizBind(int aid, int fromUnionPriId, int toUnionPriId, FaiList<Integer> pdIds) {
+    public int copyBizBind(int aid, int fromUnionPriId, int toUnionPriId, FaiList<Integer> pdIds, boolean isSaga) {
         ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, fromUnionPriId);
         if(!Utils.isEmptyList(pdIds)) {
@@ -161,6 +161,13 @@ public class StoreSalesSkuProc {
 
             info.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, toUnionPriId);
 
+        }
+        // 如果开启了分布式事务 需要向当前表的Saga表 插入Saga记录
+        if (isSaga) {
+            rt = addInsOp4Saga(aid, list);
+            if (rt != Errno.OK) {
+                return rt;
+            }
         }
         rt = m_daoCtrl.batchInsert(list, null, true);
         if(rt != Errno.OK) {

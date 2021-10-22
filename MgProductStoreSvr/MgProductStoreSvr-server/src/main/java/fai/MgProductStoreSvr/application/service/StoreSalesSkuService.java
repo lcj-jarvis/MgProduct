@@ -92,7 +92,7 @@ public class StoreSalesSkuService extends StoreService {
     /**
      * for 门店通批量上下架时，需新增绑定商品数据，同步价格等信息
      */
-    public int copyBizBind(FaiSession session, int flow, int aid, int fromUnionPriId, FaiList<Param> copyBindList) throws IOException {
+    public int copyBizBind(FaiSession session, int flow, int aid, String xid, int fromUnionPriId, FaiList<Param> copyBindList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -105,29 +105,33 @@ public class StoreSalesSkuService extends StoreService {
             TransactionCtrl tc = new TransactionCtrl();
             LockUtil.lock(aid);
             try {
+                boolean isSaga = !Str.isEmpty(xid);
 
                 StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, tc);
                 SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
                 try {
                     tc.setAutoCommit(false);
-                    Map<Integer, List<Param>> uid_list = new HashMap<>();
-                    try {
-
-                        uid_list = copyBindList.stream().collect(Collectors.groupingBy(x -> x.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID)));
-                    }catch (Exception e) {
-                        e.printStackTrace();
+                    if(isSaga) {
+                        // 记录 Saga 状态
+                        StoreSagaProc storeSagaProc = new StoreSagaProc(flow, aid, tc);
+                        rt = storeSagaProc.add(aid, xid, RootContext.getBranchId());
+                        if (rt != Errno.OK) {
+                            return rt;
+                        }
                     }
+                    Map<Integer, List<Param>> uid_list = copyBindList.stream().collect(Collectors.groupingBy(x -> x.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID)));
+
                     for(Map.Entry<Integer, List<Param>> entry : uid_list.entrySet()) {
                         int unionPriId = entry.getKey();
                         List<Param> list = entry.getValue();
                         FaiList<Integer> pdIds = Utils.getValList(list, StoreSalesSkuEntity.Info.PD_ID);
 
-                        rt = storeSalesSkuProc.copyBizBind(aid, fromUnionPriId, unionPriId, pdIds);
+                        rt = storeSalesSkuProc.copyBizBind(aid, fromUnionPriId, unionPriId, pdIds, isSaga);
                         if(rt != Errno.OK) {
                             return rt;
                         }
 
-                        rt = spuBizSummaryProc.copyBizBind(aid, fromUnionPriId, unionPriId, pdIds);
+                        rt = spuBizSummaryProc.copyBizBind(aid, fromUnionPriId, unionPriId, pdIds, isSaga);
                         if(rt != Errno.OK) {
                             return rt;
                         }
@@ -155,6 +159,25 @@ public class StoreSalesSkuService extends StoreService {
             stat.end(rt != Errno.OK, rt);
         }
         return rt;
+    }
+
+    /**
+     * copyBizBind 的补偿方法
+     */
+    @SuccessRt(value = Errno.OK)
+    public int copyBizBindRollback(FaiSession session, int flow, int aid, String xid, Long branchId) throws IOException {
+        SagaRollback sagaRollback = tc -> {
+            SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
+            spuBizSummaryProc.rollback4Saga(aid, xid, branchId);
+
+            StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, tc);
+            storeSalesSkuProc.rollback4Saga(aid, xid, branchId);
+        };
+        int branchStatus = doRollback(flow, aid, xid, branchId, sagaRollback);
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, branchStatus);
+        session.write(sendBuf);
+        return Errno.OK;
     }
 
     public int reportSummary(FaiSession session, int flow, int aid, FaiList<Integer> pdIds, FaiList<Long> skuIds, boolean reportCount, boolean reportPrice) throws IOException {

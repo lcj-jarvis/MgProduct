@@ -100,13 +100,25 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.COPY_BIZ_BIND)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductStoreCmd.StoreSalesSkuCmd.COPY_BIZ_BIND_ROLLBACK)
     private int copyBizBind(final FaiSession session,
                              @ArgFlow final int flow,
                              @ArgAid final int aid,
+                             @ArgBodyXid(value = StoreSalesSkuDto.Key.XID, useDefault = true) final String xid,
                              @ArgBodyInteger(StoreSalesSkuDto.Key.FROM_UNION_PRI_ID) final int fromUnionPriId,
                              @ArgList(keyMatch = StoreSalesSkuDto.Key.INFO_LIST, classDef = StoreSalesSkuDto.class,
                              methodDef = "getCopyDto") FaiList<Param> copyBindList) throws IOException {
-        return m_storeSalesSkuService.copyBizBind(session, flow, aid, fromUnionPriId, copyBindList);
+        return m_storeSalesSkuService.copyBizBind(session, flow, aid, xid, fromUnionPriId, copyBindList);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.COPY_BIZ_BIND_ROLLBACK)
+    private int copyBizBindRollback(final FaiSession session,
+                                         @ArgFlow final int flow,
+                                         @ArgAid final int aid,
+                                         @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                         @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return m_storeSalesSkuService.copyBizBindRollback(session, flow, aid, xid, branchId);
     }
 
     @WrittenCmd
@@ -578,6 +590,30 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                          @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
                                          @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
         return m_summaryService.setSpuBizSummaryRollback(session, flow, aid, xid, branchId);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.BATCH_SET)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductStoreCmd.SpuBizSummaryCmd.BATCH_SET_ROLLBACK)
+    private int batchSetSpuBizSummary(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid final int aid,
+                                 @ArgBodyXid(value = SpuBizSummaryDto.Key.XID, useDefault = true) String xid,
+                                 @ArgList(keyMatch = SpuBizSummaryDto.Key.UID_LIST) FaiList<Integer> unionPriIds,
+                                 @ArgList(keyMatch = SpuBizSummaryDto.Key.PD_ID) FaiList<Integer> pdIds,
+                                 @ArgParamUpdater(keyMatch = SpuBizSummaryDto.Key.UPDATER, methodDef = "getInfoDto",
+                                         classDef = SpuBizSummaryDto.class) ParamUpdater updater) throws IOException {
+        return m_summaryService.batchSetSpuBizSummary(session, flow, aid, xid, unionPriIds, pdIds, updater);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.BATCH_SET_ROLLBACK)
+    private int batchSetSpuBizSummaryRollback(final FaiSession session,
+                                         @ArgFlow final int flow,
+                                         @ArgAid final int aid,
+                                         @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                         @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return m_summaryService.batchSetSpuBizSummaryRollback(session, flow, aid, xid, branchId);
     }
 
     @WrittenCmd

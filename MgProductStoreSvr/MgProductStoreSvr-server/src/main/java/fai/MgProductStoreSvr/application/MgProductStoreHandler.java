@@ -186,9 +186,11 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_SET_LIST)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductStoreCmd.StoreSalesSkuCmd.SET_SKU_STORE_SALES_ROLLBACK)
     private int batchSetSkuStoreSales(final FaiSession session,
                                       @ArgFlow final int flow,
                                       @ArgAid final int aid,
+                                      @ArgBodyXid(value = StoreSalesSkuDto.Key.XID, useDefault = true) final String xid,
                                       @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
                                       @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int ownerUnionPriId,
                                       @ArgList(keyMatch = StoreSalesSkuDto.Key.UID_LIST) final FaiList<Integer> unionPriIdList,
@@ -197,7 +199,7 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                       @ArgBodyInteger(value = StoreSalesSkuDto.Key.SYS_TYPE, useDefault = true) final int sysType,
                                       @ArgList(classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto", keyMatch = StoreSalesSkuDto.Key.UPDATER_LIST)
                                               FaiList<ParamUpdater> updaterList) throws IOException {
-        return m_storeSalesSkuService.batchSetSkuStoreSales(session, flow, aid, tid, ownerUnionPriId, unionPriIdList, pdId, rlPdId, sysType, updaterList);
+        return m_storeSalesSkuService.batchSetSkuStoreSales(session, flow, aid, tid, ownerUnionPriId, unionPriIdList, xid, pdId, rlPdId, sysType, updaterList);
     }
 
     @WrittenCmd

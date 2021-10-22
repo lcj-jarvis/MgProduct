@@ -1259,12 +1259,32 @@ public class MgProductInfHandler extends FaiHandler {
                             @ArgList(keyMatch = ProductBasicDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
                             @ArgList(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
                                     keyMatch = ProductBasicDto.Key.PRIMARY_KEYS) FaiList<Param> toPrimaryKeys,
-                            @ArgParam(classDef = MgProductDto.class, methodDef = "getInfoDto",
-                                    keyMatch = ProductBasicDto.Key.UPDATER) Param combinedUpdate) throws IOException, TransactionException {
+                           @ArgParamUpdater(classDef = ProductBasicDto.class, methodDef = "getProductDto",
+                                   keyMatch = ProductBasicDto.Key.UPDATER) ParamUpdater updater) throws IOException, TransactionException {
         if(!Str.isEmpty(xid)) {
             RootContext.bind(xid, flow); // 方便后面使用GlobalTransactionContext.getCurrentOrCreate
         }
-        return mgProductInfService.batchSet4YK(session, flow, aid, ownPrimaryKey, sysType, rlPdIds, toPrimaryKeys, combinedUpdate);
+        return mgProductInfService.batchSet4YK(session, flow, aid, ownPrimaryKey, sysType, rlPdIds, toPrimaryKeys, updater);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.BasicCmd.BATCH_SET_BIZ)
+    public int batchSetBizBind(final FaiSession session,
+                           @ArgFlow final int flow,
+                           @ArgAid final int aid,
+                           @ArgBodyXid(value = MgProductDto.Key.XID, useDefault = true) String xid,
+                           @ArgParam(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
+                                   keyMatch = ProductBasicDto.Key.PRIMARY_KEY) Param ownPrimaryKey,
+                           @ArgBodyInteger(value = ProductBasicDto.Key.SYS_TYPE, useDefault = true) int sysType,
+                           @ArgBodyInteger(ProductBasicDto.Key.RL_PD_ID) int rlPdId,
+                           @ArgList(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
+                                   keyMatch = ProductBasicDto.Key.PRIMARY_KEYS) FaiList<Param> toPrimaryKeys,
+                           @ArgParam(classDef = MgProductDto.class, methodDef = "getInfoDto",
+                                   keyMatch = ProductBasicDto.Key.UPDATER) Param combinedUpdater) throws IOException, TransactionException {
+        if(!Str.isEmpty(xid)) {
+            RootContext.bind(xid, flow); // 方便后面使用GlobalTransactionContext.getCurrentOrCreate
+        }
+        return mgProductInfService.batchSetBizBind(session, flow, aid, ownPrimaryKey, sysType, rlPdId, toPrimaryKeys, combinedUpdater);
     }
 
     @WrittenCmd

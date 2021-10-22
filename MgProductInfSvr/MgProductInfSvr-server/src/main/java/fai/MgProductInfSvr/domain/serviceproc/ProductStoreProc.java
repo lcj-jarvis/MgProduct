@@ -123,14 +123,14 @@ public class ProductStoreProc extends AbstractProductProc{
     /**
      * 修改sku库存销售信息
      */
-    public int batchSetSkuStoreSales(int aid, int tid, int ownerUnionPriId, FaiList<Integer> unionPriIds, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) {
+    public int batchSetSkuStoreSales(int aid, String xid, int tid, int ownerUnionPriId, FaiList<Integer> unionPriIds, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) {
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
             return rt;
         }
-        rt = m_cli.batchSetSkuStoreSales(aid, tid, ownerUnionPriId, unionPriIds, pdId, rlPdId, updaterList);
+        rt = m_cli.batchSetSkuStoreSales(aid, xid, tid, ownerUnionPriId, unionPriIds, pdId, rlPdId, updaterList);
         if (rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriIds=%s;rlPdId=%s;", m_flow, aid, unionPriIds, rlPdId);
             return rt;

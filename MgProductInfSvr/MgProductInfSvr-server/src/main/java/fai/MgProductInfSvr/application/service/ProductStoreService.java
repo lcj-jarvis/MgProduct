@@ -187,7 +187,7 @@ public class ProductStoreService extends MgProductInfService {
             }
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-            rt = productStoreProc.batchSetSkuStoreSales(aid, tid, unionPriId, new FaiList<>(unionPriIdBizPriKeyMap.keySet()), pdId, rlPdId, updaterList);
+            rt = productStoreProc.batchSetSkuStoreSales(aid, "", tid, unionPriId, new FaiList<>(unionPriIdBizPriKeyMap.keySet()), pdId, rlPdId, updaterList);
             if(rt != Errno.OK) {
                 return rt;
             }

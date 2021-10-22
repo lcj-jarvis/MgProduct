@@ -636,9 +636,6 @@ public class StoreSalesSkuService extends StoreService {
     public int setSkuStoreSales(FaiSession session, int flow, int aid, int tid, int unionPriId, String xid, int pdId, int rlPdId, int sysType, FaiList<ParamUpdater> updaterList) throws IOException {
         return batchSetSkuStoreSales(session, flow, aid, tid, null, new FaiList<>(Collections.singletonList(unionPriId)), xid, pdId, rlPdId, sysType, updaterList);
     }
-    public int batchSetSkuStoreSales(FaiSession session, int flow, int aid, int tid, Integer ownerUnionPriId, FaiList<Integer> unionPriIdList, int pdId, int rlPdId, int sysType, FaiList<ParamUpdater> updaterList) throws IOException {
-        return batchSetSkuStoreSales(session, flow, aid, tid, ownerUnionPriId, unionPriIdList, null, pdId, rlPdId, sysType, updaterList);
-    }
     /**
      * 批量修改库存销售sku信息
      */

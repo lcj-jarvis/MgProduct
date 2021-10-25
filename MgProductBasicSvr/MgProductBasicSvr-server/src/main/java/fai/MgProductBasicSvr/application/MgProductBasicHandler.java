@@ -231,6 +231,22 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductBasicCmd.BasicCmd.BATCH_BIND_PDS_REL)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductBasicCmd.BasicCmd.BATCH_ADD_REL_BIND_ROLLBACK)
+    public int batchBindProductRel(final FaiSession session,
+                                   @ArgFlow final int flow,
+                                   @ArgAid final int aid,
+                                   @ArgBodyXid(value = ProductRelDto.Key.XID, useDefault = true) String xid,
+                                   @ArgBodyInteger(ProductRelDto.Key.TID) int tid,
+                                   @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int toUnionPriId,
+                                   @ArgBodyInteger(ProductRelDto.Key.FROM_UNION_PRI_ID) int fromUnionPriId,
+                                   @ArgBodyInteger(ProductRelDto.Key.SYS_TYPE) int sysType,
+                                   @ArgList(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
+                                           keyMatch = ProductRelDto.Key.INFO_LIST) FaiList<Param> infoList) throws IOException {
+        return service.batchBindProductRel(session, flow, xid, aid, tid, toUnionPriId, fromUnionPriId, sysType, infoList);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductBasicCmd.BasicCmd.BATCH_ADD_REL_BIND)
     @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductBasicCmd.BasicCmd.BATCH_ADD_REL_BIND_ROLLBACK)
     public int batchBindProductRel(final FaiSession session,

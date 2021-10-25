@@ -1201,6 +1201,11 @@ public class ProductRelProc {
         return Utils.getMap(list, ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID);
     }
 
+    public Map<Integer, Integer> getRlPdIdRelMap(int aid, int unionPriId, int sysType, HashSet<Integer> rlPdIds) {
+        FaiList<Param> list = getPdIdRels(aid, unionPriId, sysType, rlPdIds);
+        return Utils.getMap(list, ProductRelEntity.Info.RL_PD_ID, ProductRelEntity.Info.PD_ID);
+    }
+
     public FaiList<Param> getPdIdRels(int aid, int unionPriId, int sysType, HashSet<Integer> rlPdIds) {
         FaiList<Param> list = ProductRelCacheCtrl.PdIdCache.getCacheList(aid, unionPriId, sysType, rlPdIds);
         if(list == null) {

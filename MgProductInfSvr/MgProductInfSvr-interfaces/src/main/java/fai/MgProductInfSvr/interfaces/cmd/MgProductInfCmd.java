@@ -147,6 +147,7 @@ public class MgProductInfCmd {
         public static final int NUM65 = 1065; /**@see Cmd#MIGRATE */
         public static final int NUM66 = 1066; /**@see BasicCmd#SET_PD_SORT */
         public static final int NUM67 = 1067; /**@see BasicCmd#BATCH_SET_BIZ */
+        public static final int NUM68 = 1068; /**@see BasicCmd#BATCH_BIND_PDS_REL */
     }
 
 
@@ -200,6 +201,7 @@ public class MgProductInfCmd {
         public static final int BATCH_SET_4YK = WriteCmdNum.NUM64;
         public static final int SET_PD_SORT = WriteCmdNum.NUM66;
         public static final int BATCH_SET_BIZ = WriteCmdNum.NUM67;
+        public static final int BATCH_BIND_PDS_REL = WriteCmdNum.NUM68;
     }
 
     public static class GroupCmd {

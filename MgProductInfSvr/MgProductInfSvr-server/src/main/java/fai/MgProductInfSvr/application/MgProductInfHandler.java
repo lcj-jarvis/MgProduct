@@ -603,7 +603,7 @@ public class MgProductInfHandler extends FaiHandler {
                                 @ArgParam(classDef = ProductBasicDto.class, methodDef = "getProductRelDto",
                                         keyMatch = MgProductDto.Key.BIND_PD_INFO) Param bindPdInfo,
                                 @ArgParam(classDef = ProductStoreDto.InOutStoreRecord.class, methodDef = "getInfoDto",
-                                        keyMatch = MgProductDto.Key.IN_OUT_STORE_RECORD_INFO) Param inStoreRecordInfo) throws IOException, TransactionException {
+                                        keyMatch = ProductBasicDto.Key.IN_OUT_RECOED) Param inStoreRecordInfo) throws IOException, TransactionException {
         if(!Str.isEmpty(xid)) {
             RootContext.bind(xid, flow); // 方便后面使用GlobalTransactionContext.getCurrentOrCreate
         }
@@ -622,11 +622,32 @@ public class MgProductInfHandler extends FaiHandler {
                               @ArgList(classDef = MgProductDto.class, methodDef = "getInfoDto",
                                       keyMatch = ProductBasicDto.Key.PD_LIST) FaiList<Param> infoList,
                               @ArgParam(classDef = ProductStoreDto.InOutStoreRecord.class, methodDef = "getInfoDto",
-                                      keyMatch = MgProductDto.Key.IN_OUT_STORE_RECORD_INFO, useDefault = true) Param inStoreRecordInfo) throws IOException, TransactionException {
+                                      keyMatch = ProductBasicDto.Key.IN_OUT_RECOED, useDefault = true) Param inStoreRecordInfo) throws IOException, TransactionException {
         if(!Str.isEmpty(xid)) {
             RootContext.bind(xid, flow); // 方便后面使用GlobalTransactionContext.getCurrentOrCreate
         }
         return basicService.batchBindProductRel(session, flow, aid, tid, bindRlPdInfo, infoList, inStoreRecordInfo);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.BasicCmd.BATCH_BIND_PDS_REL)
+    public int batchBindProductsRel(final FaiSession session,
+                                   @ArgFlow final int flow,
+                                   @ArgAid final int aid,
+                                   @ArgBodyString(value = ProductBasicDto.Key.XID, useDefault = true) String xid,
+                                   @ArgParam(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
+                                            keyMatch = ProductBasicDto.Key.PRIMARY_KEY) Param primaryKey,
+                                   @ArgParam(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
+                                            keyMatch = ProductBasicDto.Key.FROM_PRIMARY_KEY) Param fromPrimaryKey,
+                                   @ArgBodyInteger(value = ProductBasicDto.Key.SYS_TYPE, useDefault = true) int sysType,
+                                   @ArgList(classDef = MgProductDto.class, methodDef = "getInfoDto",
+                                           keyMatch = ProductBasicDto.Key.PD_LIST) FaiList<Param> infoList,
+                                   @ArgParam(classDef = ProductStoreDto.InOutStoreRecord.class, methodDef = "getInfoDto",
+                                           keyMatch = ProductBasicDto.Key.IN_OUT_RECOED, useDefault = true) Param inStoreRecordInfo) throws IOException, TransactionException {
+        if(!Str.isEmpty(xid)) {
+            RootContext.bind(xid, flow); // 方便后面使用GlobalTransactionContext.getCurrentOrCreate
+        }
+        return basicService.batchBindProductsRel(session, flow, aid, primaryKey, fromPrimaryKey, sysType, infoList, inStoreRecordInfo);
     }
 
     @WrittenCmd

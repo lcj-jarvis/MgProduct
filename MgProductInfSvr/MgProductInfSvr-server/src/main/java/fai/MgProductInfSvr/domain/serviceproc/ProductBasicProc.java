@@ -184,6 +184,26 @@ public class ProductBasicProc {
     }
 
     /**
+     * 批量新增商品业务关联
+     * @return
+     */
+    public int batchBindProductsRel(int aid, String xid, int tid, int unionPriId, int fromUnionPriId, int sysType, FaiList<Param> infoList, Ref<FaiList<Integer>> rlPdIdsRef, Ref<FaiList<Integer>> pdIdsRef, Ref<FaiList<Integer>> existListRef) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
+            return rt;
+        }
+        rt = m_cli.batchBindProductsRel(aid, xid, tid, unionPriId, fromUnionPriId, sysType, infoList, rlPdIdsRef, pdIdsRef, existListRef);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "batchBindProductsRel error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
+            return rt;
+        }
+
+        return rt;
+    }
+
+    /**
      * 修改商品排序
      */
     public int setPdSort(int aid, int tid, int unionPriId, int sysType, int rlPdId, int preRlPdId) {

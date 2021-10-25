@@ -25,7 +25,6 @@ import java.io.IOException;
 public class MgProductSpecHandler extends MiddleGroundHandler {
     public MgProductSpecHandler(FaiServer server) {
         super(server);
-        System.out.println(m_specTempService);
     }
 
 

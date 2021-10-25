@@ -678,7 +678,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             sendBody.putString(MgProductDto.Key.XID, xid);
             addInfo.toBuffer(sendBody, MgProductDto.Key.INFO, MgProductDto.getInfoDto());
             bindRlPdInfo.toBuffer(sendBody, MgProductDto.Key.BIND_PD_INFO, ProductBasicDto.getProductRelDto());
-            inStoreRecordInfo.toBuffer(sendBody, MgProductDto.Key.IN_OUT_STORE_RECORD_INFO, ProductStoreDto.InOutStoreRecord.getInfoDto());
+            inStoreRecordInfo.toBuffer(sendBody, ProductBasicDto.Key.IN_OUT_RECOED, ProductStoreDto.InOutStoreRecord.getInfoDto());
             // send and recv
             boolean rlPdIdRefNotNull = (rlPdIdRef != null);
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.ADD_PD_BIND, sendBody, false, rlPdIdRefNotNull);
@@ -743,11 +743,83 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             sendBody.putInt(ProductBasicDto.Key.TID, tid);
             bindRlPdInfo.toBuffer(sendBody, ProductBasicDto.Key.PD_BIND_INFO, ProductBasicDto.getProductRelDto());
             infoList.toBuffer(sendBody, ProductBasicDto.Key.PD_LIST, MgProductDto.getInfoDto());
-            inStoreRecordInfo.toBuffer(sendBody, MgProductDto.Key.IN_OUT_STORE_RECORD_INFO, ProductStoreDto.InOutStoreRecord.getInfoDto());
+            inStoreRecordInfo.toBuffer(sendBody, ProductBasicDto.Key.IN_OUT_RECOED, ProductStoreDto.InOutStoreRecord.getInfoDto());
 
             // send and recv
             boolean rlPdIdRefsNotNull = (rlPdIdsRef != null);
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.BATCH_ADD_PD_BIND, sendBody, false, rlPdIdRefsNotNull);
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+            if (rlPdIdRefsNotNull) {
+                FaiList<Integer> rlPdIds = new FaiList<Integer>();
+                Ref<Integer> keyRef = new Ref<Integer>();
+                m_rt = rlPdIds.fromBuffer(recvBody, keyRef);
+                if (m_rt != Errno.OK || keyRef.value != ProductBasicDto.Key.RL_PD_IDS) {
+                    Log.logErr(m_rt, "recv rlPdIds codec err");
+                    return m_rt;
+                }
+                rlPdIdsRef.value = rlPdIds;
+            }
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    public int batchBindProductsRel(MgProductArg mgProductArg, Ref<FaiList<Integer>> rlPdIdsRef) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            int aid = mgProductArg.getAid();
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            FaiList<Param> infoList = mgProductArg.getAddList();
+            if (infoList == null || infoList.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;infoList is empty");
+                return m_rt;
+            }
+            Param fromPrimaryKey = mgProductArg.getFromPrimaryKey();
+            if (Str.isEmpty(fromPrimaryKey)) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;fromPrimaryKey is empty");
+                return m_rt;
+            }
+            Param inStoreRecordInfo = mgProductArg.getInOutStoreRecordInfo();
+            if(inStoreRecordInfo == null) {
+                inStoreRecordInfo = new Param();
+            }
+            String xid = mgProductArg.getXid();
+
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            Param primaryKey = new Param();
+            primaryKey.setInt(MgProductEntity.Info.TID, tid);
+            primaryKey.setInt(MgProductEntity.Info.SITE_ID, siteId);
+            primaryKey.setInt(MgProductEntity.Info.LGID, lgId);
+            primaryKey.setInt(MgProductEntity.Info.KEEP_PRI_ID1, keepPriId1);
+
+            // packaging send data
+            FaiBuffer sendBody = new FaiBuffer(true);
+            if(!Str.isEmpty(xid)) {
+                sendBody.putString(ProductBasicDto.Key.XID, xid);
+            }
+            primaryKey.toBuffer(sendBody, ProductBasicDto.Key.PRIMARY_KEY, MgProductDto.getPrimaryKeyDto());
+            fromPrimaryKey.toBuffer(sendBody, ProductBasicDto.Key.FROM_PRIMARY_KEY, MgProductDto.getPrimaryKeyDto());
+            sendBody.putInt(ProductBasicDto.Key.SYS_TYPE, mgProductArg.getSysType());
+            infoList.toBuffer(sendBody, ProductBasicDto.Key.PD_LIST, MgProductDto.getInfoDto());
+            inStoreRecordInfo.toBuffer(sendBody, ProductBasicDto.Key.IN_OUT_RECOED, ProductStoreDto.InOutStoreRecord.getInfoDto());
+
+            // send and recv
+            boolean rlPdIdRefsNotNull = (rlPdIdsRef != null);
+            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.BATCH_BIND_PDS_REL, sendBody, false, rlPdIdRefsNotNull);
             if (m_rt != Errno.OK) {
                 return m_rt;
             }

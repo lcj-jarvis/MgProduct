@@ -2280,6 +2280,7 @@ public class ProductBasicService extends BasicParentService {
                 SearchArg searchArg = new SearchArg();
                 searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
                 searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, new FaiList<>(unionPriIds));
+                searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
                 searchArg.matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.EQ, ProductRelValObj.Status.DEL);
                 FaiList<Param> existList = relProc.searchFromDbWithDel(aid, searchArg, Utils.asFaiList(ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.RL_PD_ID));
                 Map<Integer, Integer> existMap = Utils.getMap(existList, ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.RL_PD_ID);

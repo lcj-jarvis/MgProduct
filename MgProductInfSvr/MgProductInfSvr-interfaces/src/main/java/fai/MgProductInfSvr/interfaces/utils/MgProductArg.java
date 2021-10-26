@@ -525,18 +525,12 @@ public class MgProductArg {
 
         @Override
         public Builder setPrimaryList(FaiList<Param> primaryKeys) {
-            if(primaryKeys == null || primaryKeys.isEmpty()) {
-                throw new RuntimeException();
-            }
             this.primaryKeys = primaryKeys;
             return this;
         }
 
         @Override
         public Builder setUpdaterList(FaiList<ParamUpdater> updaterList) {
-            if(updaterList == null) {
-                throw new RuntimeException();
-            }
             this.updaterList = updaterList;
             return this;
         }
@@ -579,9 +573,6 @@ public class MgProductArg {
 
         @Override
         public Builder setSkuList(FaiList<Param> skuList) {
-            if(skuList == null || skuList.isEmpty()) {
-                throw new RuntimeException();
-            }
             this.skuList = skuList;
             return this;
         }
@@ -660,9 +651,6 @@ public class MgProductArg {
 
         @Override
         public Builder setAddList(FaiList<Param> addList) {
-            if(addList == null || addList.isEmpty()) {
-                throw new RuntimeException();
-            }
             this.addList = addList;
             return this;
         }

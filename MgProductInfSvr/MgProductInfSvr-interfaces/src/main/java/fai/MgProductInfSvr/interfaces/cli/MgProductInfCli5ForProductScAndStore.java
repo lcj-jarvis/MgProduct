@@ -1548,7 +1548,7 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
                 Log.logErr(m_rt, "args error");
                 return m_rt;
             }
-            FaiList<Param> skuIdCountList = mgProductArg.getSkuList();
+            FaiList<Param> skuIdCountList = mgProductArg.getSkuIdCounts();
             if(skuIdCountList == null || skuIdCountList.isEmpty()){
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "skuIdCountList error");

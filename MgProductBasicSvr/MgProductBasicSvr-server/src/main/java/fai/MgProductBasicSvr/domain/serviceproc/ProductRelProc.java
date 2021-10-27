@@ -1232,7 +1232,7 @@ public class ProductRelProc {
         searchArg.matcher.and(ProductRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
         searchArg.matcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.IN, noCacheIds);
 
-        FaiList<Param> tmpList = searchFromDb(aid, searchArg, Utils.asFaiList(ProductRelEntity.Info.RL_PD_ID, ProductRelEntity.Info.PD_ID));
+        FaiList<Param> tmpList = searchFromDbWithDel(aid, searchArg, Utils.asFaiList(ProductRelEntity.Info.RL_PD_ID, ProductRelEntity.Info.PD_ID));
 
         if(!Utils.isEmptyList(tmpList)) {
             list.addAll(tmpList);

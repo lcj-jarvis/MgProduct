@@ -213,6 +213,33 @@ public class ProductPropProc {
         }
     }
 
+    /**
+     * 克隆数据
+     * @param aid
+     * @param fromAid
+     * @param cloneUnionPriIds
+     */
+    public void cloneData(int aid, int fromAid, FaiList<Param> cloneUnionPriIds) {
+        int rt = m_cli.cloneData(aid, fromAid, cloneUnionPriIds);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "cloneData error;flow=%d;aid=%d;uids=%s", m_flow, aid, cloneUnionPriIds);
+        }
+    }
+
+    /**
+     * 增量克隆数据
+     * @param aid
+     * @param unionPriId
+     * @param fromAid
+     * @param fromUnionPriId
+     */
+    public void incrementalClone(int aid, int unionPriId, int fromAid, int fromUnionPriId) {
+        int rt = m_cli.incrementalClone(aid, unionPriId, fromAid, fromUnionPriId);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "incrementalClone error;flow=%d;aid=%d;uid=%s;fromAid=%d;fromUid=%d;", m_flow, aid, unionPriId, fromAid, fromUnionPriId);
+        }
+    }
+
     private int m_flow;
     private MgProductPropCli m_cli;
 }

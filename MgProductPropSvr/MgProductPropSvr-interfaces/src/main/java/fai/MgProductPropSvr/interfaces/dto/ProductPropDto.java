@@ -61,5 +61,8 @@ public class ProductPropDto {
 		public static final int UNION_PRI_IDS = 11;
 		public static final int BACKUP_INFO = 12;
 		public static final int RESTORE_ID = 13;
+		public static final int FROM_AID = 14;
+		public static final int FROM_UNION_PRI_ID = 15;
+		public static final int CLONE_UNION_PRI_IDS = 16;
 	}
 }

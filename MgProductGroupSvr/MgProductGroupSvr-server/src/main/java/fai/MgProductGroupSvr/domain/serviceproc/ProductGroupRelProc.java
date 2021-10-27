@@ -105,7 +105,7 @@ public class ProductGroupRelProc {
     }
 
     public void insert4Clone(int aid, FaiList<Integer> unionPriIds, FaiList<Param> list) {
-        if(Util.isEmptyList(list)) {
+        if(Utils.isEmptyList(list)) {
             Log.logStd("incrementalClone list is empty;aid=%d;uid=%s;", aid, unionPriIds);
             return;
         }

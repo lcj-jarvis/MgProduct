@@ -638,7 +638,7 @@ public class ProductGroupService extends ServicePub {
 
     private void doClone(int flow, int toAid, int fromAid, FaiList<Param> cloneUnionPriIds, boolean incrementalClone) {
         int rt;
-        if(Util.isEmptyList(cloneUnionPriIds)) {
+        if(Utils.isEmptyList(cloneUnionPriIds)) {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "args error, cloneUnionPriIds is empty;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
         }

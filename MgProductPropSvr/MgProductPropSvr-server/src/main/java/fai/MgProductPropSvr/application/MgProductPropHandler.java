@@ -11,6 +11,7 @@ import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
 import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
+import fai.comm.middleground.app.CloneDef;
 import fai.comm.netkit.NKDef;
 import fai.comm.util.*;
 import fai.middleground.svrutil.service.MiddleGroundHandler;
@@ -210,6 +211,28 @@ public class MgProductPropHandler extends MiddleGroundHandler {
 							 @ArgParam(classDef = MgBackupDto.class, methodDef = "getInfoDto",
 									 keyMatch = ProductPropDto.Key.BACKUP_INFO) Param backupInfo) throws IOException {
 		return service.delBackupData(session, flow, aid, backupInfo);
+	}
+
+	@WrittenCmd
+	@Cmd(MgProductPropCmd.Cmd.CLONE)
+	public int cloneData(final FaiSession session,
+						 @ArgFlow final int flow,
+						 @ArgAid int aid,
+						 @ArgBodyInteger(ProductPropDto.Key.FROM_AID) int fromAid,
+						 @ArgList(classDef = CloneDef.Dto.class, methodDef = "getInternalDto",
+								 keyMatch = ProductPropDto.Key.CLONE_UNION_PRI_IDS) FaiList<Param> cloneUnionPriIds) throws IOException {
+		return service.cloneData(session, flow, aid, fromAid, cloneUnionPriIds);
+	}
+
+	@WrittenCmd
+	@Cmd(MgProductPropCmd.Cmd.INCR_CLONE)
+	public int incrementalClone(final FaiSession session,
+								@ArgFlow final int flow,
+								@ArgAid int aid,
+								@ArgBodyInteger(ProductPropDto.Key.UNION_PRI_ID) int unionPriId,
+								@ArgBodyInteger(ProductPropDto.Key.FROM_AID) int fromAid,
+								@ArgBodyInteger(ProductPropDto.Key.FROM_UNION_PRI_ID) int fromUnionPriId) throws IOException {
+		return service.incrementalClone(session, flow, aid, unionPriId, fromAid, fromUnionPriId);
 	}
 
 	private ProductPropService service = ServiceProxy.create(new ProductPropService());

@@ -21,21 +21,20 @@ import fai.MgProductPropSvr.interfaces.dto.ProductPropDto;
 import fai.MgProductPropSvr.interfaces.dto.ProductPropValDto;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.jnetkit.server.fai.FaiSession;
+import fai.comm.middleground.app.CloneDef;
 import fai.comm.util.*;
 import fai.comm.middleground.FaiValObj;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.annotation.SuccessRt;
 import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.repository.BackupStatusCtrl;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 import fai.middleground.svrutil.service.ServicePub;
 
 import java.io.IOException;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 
 public class ProductPropService extends ServicePub {
@@ -773,7 +772,7 @@ public class ProductPropService extends ServicePub {
 		info.toBuffer(sendBuf, ProductPropValDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
 		session.write(sendBuf);
 		rt = Errno.OK;
-		Log.logDbg("getGroupRelDataStatus ok;flow=%d;aid=%d;", flow, aid);
+		Log.logDbg("getPropRelDataStatus ok;flow=%d;aid=%d;", flow, aid);
 		return rt;
 	}
 
@@ -791,7 +790,7 @@ public class ProductPropService extends ServicePub {
 			// 查aid下所有数据，传入空的searchArg
 			SearchArg searchArg = new SearchArg();
 			ProductPropValProc valProc = new ProductPropValProc(flow, aid, transactionCtrl);
-			list = valProc.searchFromDb(aid, searchArg);
+			list = valProc.searchFromDb(aid, searchArg, null);
 
 		}finally {
 			transactionCtrl.closeDao();
@@ -817,7 +816,7 @@ public class ProductPropService extends ServicePub {
 		TransactionCtrl transactionCtrl = new TransactionCtrl();
 		try {
 			ProductPropValProc valProc = new ProductPropValProc(flow, aid, transactionCtrl);
-			list = valProc.searchFromDb(aid, searchArg);
+			list = valProc.searchFromDb(aid, searchArg, null);
 
 		}finally {
 			transactionCtrl.closeDao();
@@ -1087,6 +1086,38 @@ public class ProductPropService extends ServicePub {
 		return rt;
 	}
 
+	@SuccessRt(value = Errno.OK)
+	public int cloneData(FaiSession session, int flow, int aid, int fromAid, FaiList<Param> cloneUnionPriIds) throws IOException {
+		int rt;
+
+		doClone(flow, aid, fromAid, cloneUnionPriIds, false);
+
+		rt = Errno.OK;
+		FaiBuffer sendBuf = new FaiBuffer(true);
+		session.write(sendBuf);
+		Log.logStd("cloneData ok;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, aid, fromAid, cloneUnionPriIds);
+		return rt;
+	}
+
+	@SuccessRt(value = Errno.OK)
+	public int incrementalClone(FaiSession session, int flow, int toAid, int toUnionPriId, int fromAid, int fromUnionPriId) throws IOException {
+		int rt;
+
+		Param clonePrimary = new Param();
+		clonePrimary.setInt(CloneDef.Info.FROM_PRIMARY_KEY, fromUnionPriId);
+		clonePrimary.setInt(CloneDef.Info.TO_PRIMARY_KEY, toUnionPriId);
+		FaiList<Param> cloneUnionPriIds = new FaiList<>();
+		cloneUnionPriIds.add(clonePrimary);
+
+		doClone(flow, toAid, fromAid, cloneUnionPriIds, true);
+
+		rt = Errno.OK;
+		FaiBuffer sendBuf = new FaiBuffer(true);
+		session.write(sendBuf);
+		Log.logStd("incrementalClone ok;flow=%d;toAid=%d;toUid=%d;fromAid=%d;fromUid=%d;", flow, toAid, toUnionPriId, fromAid, fromUnionPriId);
+		return rt;
+	}
+
 	private void deleteBackupData(ProductPropRelProc relProc, ProductPropProc proc, ProductPropValProc valProc, int aid, int backupId, int backupFlag) {
 
 		relProc.delBackupData(aid, backupId, backupFlag);
@@ -1094,6 +1125,183 @@ public class ProductPropService extends ServicePub {
 		proc.delBackupData(aid, backupId, backupFlag);
 
 		valProc.delBackupData(aid, backupId, backupFlag);
+	}
+
+	private void doClone(int flow, int toAid, int fromAid, FaiList<Param> cloneUnionPriIds, boolean incrementalClone) {
+		int rt;
+		if(Utils.isEmptyList(cloneUnionPriIds)) {
+			rt = Errno.ARGS_ERROR;
+			throw new MgException(rt, "args error, cloneUnionPriIds is empty;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
+		}
+
+		// 组装 fromUnionPriId -> toUnionPriId 映射关系
+		Map<Integer, Integer> cloneUidMap = new HashMap<>();
+		for(Param cloneUidInfo : cloneUnionPriIds) {
+			Integer toUnionPriId = cloneUidInfo.getInt(CloneDef.Info.TO_PRIMARY_KEY);
+			Integer fromUnionPriId = cloneUidInfo.getInt(CloneDef.Info.FROM_PRIMARY_KEY);
+			if(toUnionPriId == null || fromUnionPriId == null) {
+				rt = Errno.ARGS_ERROR;
+				throw new MgException(rt, "args error, cloneUnionPriIds is error;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
+			}
+			cloneUidMap.put(fromUnionPriId, toUnionPriId);
+		}
+
+		Lock lock = LockUtil.getLock(toAid);
+		lock.lock();
+		try {
+			boolean commit = false;
+			TransactionCtrl tc = new TransactionCtrl();
+			tc.setAutoCommit(false);
+			try {
+				ProductPropRelProc relProc = new ProductPropRelProc(flow, toAid, tc);
+				ProductPropProc propProc = new ProductPropProc(flow, toAid, tc);
+				ProductPropValProc valProc = new ProductPropValProc(flow, toAid, tc);
+
+				if(!incrementalClone) {
+					FaiList<Integer> toUnionPriIds = new FaiList<>(cloneUidMap.values());
+					// 删除原有的业务关系表数据
+					ParamMatcher delMatcher = new ParamMatcher(ProductPropRelEntity.Info.AID, ParamMatcher.EQ, toAid);
+					delMatcher.and(ProductPropRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, toUnionPriIds);
+					relProc.delPropRelList(toAid, delMatcher);
+
+					// 删除原有的参数表数据
+					delMatcher = new ParamMatcher(ProductPropEntity.Info.AID, ParamMatcher.EQ, toAid);
+					delMatcher.and(ProductPropEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.IN, toUnionPriIds);
+
+					SearchArg searchArg = new SearchArg();
+					searchArg.matcher = delMatcher;
+					// 先获取要删除的propId
+					FaiList<Param> oldPropList = propProc.searchFromDb(toAid, searchArg, ProductPropEntity.Info.PROP_ID);
+					FaiList<Integer> delPropIds = Utils.getValList(oldPropList, ProductPropEntity.Info.PROP_ID);
+					// 删除原有的参数表数据
+					propProc.delPropList(toAid, delMatcher);
+
+					// 删除原有的参数值表数据
+					FaiList<FaiList<Integer>> delPropIdProps = Utils.splitList(delPropIds, 1000);
+					for(FaiList<Integer> curPropIds : delPropIdProps) {
+						valProc.delValListByPropIds(toAid, curPropIds);
+					}
+				}
+
+				// propId -> addRelList
+				Map<Integer, FaiList<Param>> propId_RelList = new HashMap<>();
+				// propId -> sourceUnionPriId
+				Map<Integer, Integer> propId_SourceUid = new HashMap<>();
+				// 查出要克隆的业务关系表数据
+				for(Map.Entry<Integer, Integer> entry: cloneUidMap.entrySet()) {
+					int fromUnionPriId = entry.getKey();
+					int toUnionPriId = entry.getValue();
+					FaiList<Param> fromRelList = relProc.searchFromDB(fromAid, fromUnionPriId, null);
+
+					if(fromRelList.isEmpty()) {
+						continue;
+					}
+
+					// 查出已存在的数据 for 增量克隆
+					FaiList<Param> existedList = null;
+					if(incrementalClone) {
+						existedList = relProc.searchFromDB(toAid, toUnionPriId, null);
+					}
+					for(Param fromInfo : fromRelList) {
+						int rlPropId = fromInfo.getInt(ProductPropRelEntity.Info.RL_PROP_ID);
+						// 如果是增量克隆，但是rlPropId已存在，则跳过
+						if(incrementalClone && Misc.getFirst(existedList, ProductPropRelEntity.Info.RL_PROP_ID, rlPropId) != null) {
+							continue;
+						}
+						Param data = fromInfo.clone();
+						data.setInt(ProductPropRelEntity.Info.AID, toAid);
+						data.setInt(ProductPropRelEntity.Info.UNION_PRI_ID, toUnionPriId);
+						int propId = data.getInt(ProductPropRelEntity.Info.PROP_ID);
+						FaiList<Param> addList = propId_RelList.get(propId);
+						if(addList == null) {
+							addList = new FaiList<>();
+							propId_RelList.put(propId, addList);
+							propId_SourceUid.put(propId, toUnionPriId);
+						}
+						addList.add(data);
+					}
+
+				}
+
+				// 没有要克隆的数据
+				if(propId_RelList.isEmpty()) {
+					return;
+				}
+
+				// 根据 fromAid 和 propId 查出对应的分类表数据
+				SearchArg propSearch = new SearchArg();
+				propSearch.matcher = new ParamMatcher(ProductPropEntity.Info.AID, ParamMatcher.EQ, fromAid);
+				propSearch.matcher.and(ProductPropEntity.Info.PROP_ID, ParamMatcher.IN, new FaiList<>(propId_RelList.keySet()));
+
+				FaiList<Param> fromPropList = propProc.searchFromDb(fromAid, propSearch);
+				// 这里必定是会查到数据才对
+				if(fromPropList.isEmpty()) {
+					rt = Errno.ERROR;
+					throw new MgException(rt, "get from prop list err;flow=%d;aid=%d;fromAid=%d;matcher=%s;", flow, toAid, fromAid, propSearch.matcher.toJson());
+				}
+
+				// 查出from参数值数据
+				FaiList<Param> fromPropValList = valProc.searchFromDb(fromAid, propSearch, null);
+
+				// 这里 保持 fromPropIds 和 addPropList的顺序一致，是为了后面能得到fromPropId 和 toPropId的映射关系
+				FaiList<Integer> fromPropIds = new FaiList<>();
+				FaiList<Param> addPropList = new FaiList<>();
+				for(Param fromInfo : fromPropList) {
+					Param data = fromInfo.clone();
+					data.setInt(ProductPropEntity.Info.AID, toAid);
+					int fromPropId = (Integer) data.remove(ProductPropEntity.Info.PROP_ID);
+					int sourceUnionPriId = propId_SourceUid.get(fromPropId);
+					data.setInt(ProductPropEntity.Info.SOURCE_UNIONPRIID, sourceUnionPriId);
+					fromPropIds.add(fromPropId);
+					addPropList.add(data);
+				}
+
+				Map<Integer, Integer> fromPropId_toPropId = new HashMap<>();
+				FaiList<Integer> propIds = propProc.addPropList(toAid, addPropList);
+				// 组装fromPropId 和 toPropId的映射关系
+				for(int i = 0; i < propIds.size(); i++) {
+					fromPropId_toPropId.put(fromPropIds.get(i), propIds.get(i));
+				}
+
+				// 组装业务关系表增量克隆数据，设置toPropId
+				FaiList<Param> addRelList = new FaiList<>();
+				for(Integer fromPropId : propId_RelList.keySet()) {
+					FaiList<Param> tmpAddList = propId_RelList.get(fromPropId);
+					for(Param relInfo : tmpAddList) {
+						int propId = fromPropId_toPropId.get(fromPropId);
+						relInfo.setInt(ProductPropRelEntity.Info.PROP_ID, propId);
+						addRelList.add(relInfo);
+					}
+				}
+				// 插入业务关系表克隆数据
+				relProc.insert4Clone(toAid, new FaiList<>(cloneUidMap.values()), addRelList);
+
+				// 插入参数值表数据
+				FaiList<Param> addValList = new FaiList<>();
+				for(Param valInfo : fromPropValList) {
+					int fromPropId = valInfo.getInt(ProductPropValEntity.Info.PROP_ID);
+					int toPropId = fromPropId_toPropId.get(fromPropId);
+					valInfo.setInt(ProductPropValEntity.Info.AID, toAid);
+					valInfo.setInt(ProductPropValEntity.Info.PROP_ID, toPropId);
+					valInfo.remove(ProductPropValEntity.Info.PROP_VAL_ID);
+					addValList.add(valInfo);
+				}
+				valProc.batchInsert(toAid, addValList, false);
+
+				commit = true;
+			}finally {
+				if(commit) {
+					tc.commit();
+				}else {
+					tc.rollback();
+				}
+				tc.closeDao();
+			}
+		}finally {
+			lock.unlock();
+		}
+
+		Log.logStd("cloneData ok;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
 	}
 
 	private int addPropList(int flow, int aid, int unionPriId, int tid, int libId, TransactionCtrl tc, FaiList<Param> addList, FaiList<Param> propList, FaiList<Param> propRelList, FaiList<Integer> rlPropIds) {

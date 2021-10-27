@@ -40,8 +40,11 @@ public class ProductPropProc {
 			rt = Errno.COUNT_LIMIT;
 			throw new MgException(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductPropValObj.Limit.COUNT_MAX);
 		}
+		int sourceUnionPriId = info.getInt(ProductPropEntity.Info.SOURCE_UNIONPRIID);
 		String name = info.getString(ProductPropEntity.Info.NAME);
-		Param existInfo = Misc.getFirst(list, ProductPropEntity.Info.NAME, name);
+		ParamMatcher existMatcher = new ParamMatcher(ProductPropEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.EQ, sourceUnionPriId);
+		existMatcher.and(ProductPropEntity.Info.NAME, ParamMatcher.EQ, name);
+		Param existInfo = Misc.getFirst(list, existMatcher);
 		if(!Str.isEmpty(existInfo)) {
 			rt = Errno.ALREADY_EXISTED;
 			throw new MgException(rt, "prop name is existed;flow=%d;aid=%d;name=%s;", m_flow, aid, name);
@@ -70,8 +73,11 @@ public class ProductPropProc {
 		FaiList<Integer> propIds = new FaiList<>();
 		// 校验参数名是否已经存在
 		for(Param info : propList) {
+			int sourceUnionPriId = info.getInt(ProductPropEntity.Info.SOURCE_UNIONPRIID);
 			String name = info.getString(ProductPropEntity.Info.NAME);
-			Param existInfo = Misc.getFirst(list, ProductPropEntity.Info.NAME, name);
+			ParamMatcher existMatcher = new ParamMatcher(ProductPropEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.EQ, sourceUnionPriId);
+			existMatcher.and(ProductPropEntity.Info.NAME, ParamMatcher.EQ, name);
+			Param existInfo = Misc.getFirst(list, existMatcher);
 			if(!Str.isEmpty(existInfo)) {
 				rt = Errno.ALREADY_EXISTED;
 				throw new MgException(rt, "prop name is existed;flow=%d;aid=%d;name=%s;", m_flow, aid, name);

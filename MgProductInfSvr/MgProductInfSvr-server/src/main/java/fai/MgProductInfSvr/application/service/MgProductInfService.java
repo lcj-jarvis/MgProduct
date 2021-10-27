@@ -330,17 +330,21 @@ public class MgProductInfService extends ServicePub {
             basicProc.cloneData(aid, tid, siteId, fromAid, cloneUnionPriIds);
         }
 
-        //克隆库数据
+        // 克隆库数据
         if(cloneAll || cloneOption.getBoolean(MgProductEntity.Option.LIB, false)) {
             ProductLibProc libProc = new ProductLibProc(flow);
             libProc.cloneData(aid, fromAid, cloneUnionPriIds);
         }
-        //克隆标签数据
+        // 克隆标签数据
         if(cloneAll || cloneOption.getBoolean(MgProductEntity.Option.TAG, false)) {
             ProductTagProc tagProc = new ProductTagProc(flow);
             tagProc.cloneData(aid, fromAid, cloneUnionPriIds);
         }
-        //TODO 克隆参数数据
+        // 克隆参数数据
+        if(cloneAll || cloneOption.getBoolean(MgProductEntity.Option.PROP, false)) {
+            ProductPropProc propProc = new ProductPropProc(flow);
+            propProc.cloneData(aid, fromAid, cloneUnionPriIds);
+        }
 
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
@@ -383,18 +387,27 @@ public class MgProductInfService extends ServicePub {
             groupProc.incrementalClone(aid, unionPriId, fromAid, fromUnionPriId);
         }
 
-        //TODO 克隆基础数据
-        //克隆库数据
+        // 克隆基础数据
+        if(cloneAll || cloneOption.getBoolean(MgProductEntity.Option.BASIC, false)) {
+            ProductBasicProc basicProc = new ProductBasicProc(flow);
+            basicProc.incrementalClone(aid, tid, siteId, unionPriId, fromAid, fromUnionPriId);
+        }
+
+        // 克隆库数据
         if(cloneAll || cloneOption.getBoolean(MgProductEntity.Option.LIB, false)) {
             ProductLibProc libProc = new ProductLibProc(flow);
             libProc.incrementalClone(aid, unionPriId, fromAid, fromUnionPriId);
         }
-        //克隆标签数据
+        // 克隆标签数据
         if(cloneAll || cloneOption.getBoolean(MgProductEntity.Option.TAG, false)) {
             ProductTagProc tagProc = new ProductTagProc(flow);
             tagProc.incrementalClone(aid, unionPriId, fromAid, fromUnionPriId);
         }
-        //TODO 克隆参数数据
+        // 克隆参数数据
+        if(cloneAll || cloneOption.getBoolean(MgProductEntity.Option.PROP, false)) {
+            ProductPropProc propProc = new ProductPropProc(flow);
+            propProc.incrementalClone(aid, unionPriId, fromAid, fromUnionPriId);
+        }
 
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);

@@ -69,6 +69,22 @@ public class ProductPropRelProc {
 		return rlPropIds;
 	}
 
+	public void insert4Clone(int aid, FaiList<Integer> unionPriIds, FaiList<Param> list) {
+		if(Utils.isEmptyList(list)) {
+			Log.logStd("incrementalClone list is empty;aid=%d;uid=%s;", aid, unionPriIds);
+			return;
+		}
+		int rt = m_relDao.batchInsert(list, null, false);
+		if(rt != Errno.OK) {
+			throw new MgException(rt, "batch insert prop rel error;flow=%d;aid=%d;", m_flow, aid);
+		}
+
+		for(Integer unionPriId : unionPriIds) {
+			m_relDao.restoreMaxId(aid, unionPriId, m_flow, false);
+			m_relDao.clearIdBuilderCache(aid, unionPriId);
+		}
+	}
+
 	private int creatAndSetId(int aid, int unionPriId, Param info) {
 		int rt;
 		Integer rlPropId = info.getInt(ProductPropRelEntity.Info.RL_PROP_ID, 0);

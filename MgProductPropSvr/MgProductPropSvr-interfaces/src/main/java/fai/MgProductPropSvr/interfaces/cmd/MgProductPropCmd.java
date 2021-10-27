@@ -24,6 +24,8 @@ public class MgProductPropCmd {
 		public static final int NUM8 = 1008; /** @see Cmd#BACKUP */
 		public static final int NUM9 = 1009; /** @see Cmd#RESTORE */
 		public static final int NUM10 = 1010; /** @see Cmd#DEL_BACKUP */
+		public static final int NUM11 = 1011; /** @see Cmd#CLONE */
+		public static final int NUM12 = 1012; /** @see Cmd#INCR_CLONE */
 	}
 
 	/**
@@ -34,6 +36,8 @@ public class MgProductPropCmd {
 		public static final int BACKUP = WriteCmdNum.NUM8;
 		public static final int RESTORE = WriteCmdNum.NUM9;
 		public static final int DEL_BACKUP = WriteCmdNum.NUM10;
+		public static final int CLONE = WriteCmdNum.NUM11;
+		public static final int INCR_CLONE = WriteCmdNum.NUM12;
 	}
 
 	public static class PropCmd {

@@ -156,7 +156,25 @@ public class ProductPropValProc {
 		}
 	}
 
-	public FaiList<Param> searchFromDb(int aid, SearchArg searchArg) {
+	public void batchInsert(int aid, FaiList<Param> valList, boolean needLock) {
+		int rt;
+		if(valList == null || valList.isEmpty()) {
+			rt = Errno.ARGS_ERROR;
+			throw new MgException(rt, "valList is null;flow=%d;aid=%d;", m_flow, aid);
+		}
+		// 数据
+		for(int i = 0; i < valList.size(); i++) {
+			int valId = m_valDao.buildId(aid, needLock);
+			Param info  = valList.get(i);
+			info.setInt(ProductPropValEntity.Info.PROP_VAL_ID, valId);
+		}
+		rt = m_valDao.batchInsert(valList.clone(), null, true);
+		if(rt != Errno.OK) {
+			throw new MgException(rt, "batch insert prop val error;flow=%d;aid=%d;", m_flow, aid);
+		}
+	}
+
+	public FaiList<Param> searchFromDb(int aid, SearchArg searchArg, FaiList<String> fields) {
 		if(searchArg == null) {
 			searchArg = new SearchArg();
 		}
@@ -166,7 +184,7 @@ public class ProductPropValProc {
 		searchArg.matcher.and(ProductPropValEntity.Info.AID, ParamMatcher.EQ, aid);
 
 		Ref<FaiList<Param>> listRef = new Ref<>();
-		int rt = m_valDao.select(searchArg, listRef, ProductPropValEntity.MANAGE_FIELDS);
+		int rt = m_valDao.select(searchArg, listRef, fields);
 		if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
 			throw new MgException(rt, "get error;flow=%d;aid=%d;", m_flow, aid);
 		}
@@ -291,7 +309,7 @@ public class ProductPropValProc {
 		for(FaiList<Integer> propIds : propIdGroups) {
 			SearchArg searchArg = new SearchArg();
 			searchArg.matcher = new ParamMatcher(ProductPropValEntity.Info.PROP_ID, ParamMatcher.IN, propIds);
-			FaiList<Param> list = searchFromDb(aid, searchArg);
+			FaiList<Param> list = searchFromDb(aid, searchArg, null);
 			fromList.addAll(list);
 
 			FaiList<Calendar> updateTimeList = new FaiList<>();

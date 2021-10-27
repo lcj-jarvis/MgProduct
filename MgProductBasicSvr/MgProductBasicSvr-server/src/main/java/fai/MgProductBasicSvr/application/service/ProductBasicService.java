@@ -1222,7 +1222,7 @@ public class ProductBasicService extends BasicParentService {
      * 根据业务商品id集合，获取商品业务关系数据集合
      */
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
-    public int getRelListByRlIds(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds) throws IOException {
+    public int getRelListByRlIds(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, boolean withSoftDel) throws IOException {
         int rt;
         if(!MgProductCheck.RequestLimit.checkReadSize(aid, rlPdIds)) {
             return Errno.SIZE_LIMIT;
@@ -1237,7 +1237,7 @@ public class ProductBasicService extends BasicParentService {
             if(Utils.isEmptyList(pdIds)) {
                 return Errno.NOT_FOUND;
             }
-            list = relProc.getProductRelList(aid, unionPriId, pdIds);
+            list = withSoftDel ? relProc.getProductRelListWithDel(aid, unionPriId, pdIds) : relProc.getProductRelList(aid, unionPriId, pdIds);
         } finally {
             tc.closeDao();
         }

@@ -812,7 +812,7 @@ public class ProductSpecService extends MgProductInfService {
             // 获取pdId
             ProductBasicProc productBasicProc = new ProductBasicProc(flow);
             FaiList<Param> list = new FaiList<>();
-            rt = productBasicProc.getRelListByRlIds(aid, unionPriId, sysType, rlPdIdList, list);
+            rt = productBasicProc.getRelListByRlIds(aid, unionPriId, sysType, rlPdIdList, true, list);
             if(rt != Errno.OK) {
                 return rt;
             }

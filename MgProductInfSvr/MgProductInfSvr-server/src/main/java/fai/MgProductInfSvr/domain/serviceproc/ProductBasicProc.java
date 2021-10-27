@@ -457,13 +457,16 @@ public class ProductBasicProc {
      * 根据业务商品id集合，获取商品业务关系数据集合
      */
     public int getRelListByRlIds(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, FaiList<Param> list) {
+        return getRelListByRlIds(aid, unionPriId, sysType, rlPdIds, false, list);
+    }
+    public int getRelListByRlIds(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, boolean withSoftDel, FaiList<Param> list) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.getRelListByRlIds(aid, unionPriId, sysType, rlPdIds, list);
+        rt = m_cli.getRelListByRlIds(aid, unionPriId, sysType, rlPdIds, withSoftDel, list);
         if(rt != Errno.OK) {
             if(rt != Errno.NOT_FOUND) {
                 Log.logErr(rt, "getRelListByRlIds error;flow=%d;aid=%d;unionPriId=%d;list=%s;", m_flow, aid, unionPriId, list);

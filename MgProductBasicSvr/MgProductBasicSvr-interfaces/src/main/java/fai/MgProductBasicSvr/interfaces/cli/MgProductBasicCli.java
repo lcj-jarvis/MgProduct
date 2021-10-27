@@ -798,6 +798,9 @@ public class MgProductBasicCli extends FaiClient {
      * 根据业务商品id集合，获取商品业务关系数据集合
      */
     public int getRelListByRlIds(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, FaiList<Param> list) {
+        return getRelListByRlIds(aid, unionPriId, sysType, rlPdIds, false, list);
+    }
+    public int getRelListByRlIds(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, boolean withSoftDel, FaiList<Param> list) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -818,6 +821,7 @@ public class MgProductBasicCli extends FaiClient {
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(ProductRelDto.Key.SYS_TYPE, sysType);
             rlPdIds.toBuffer(sendBody, ProductRelDto.Key.RL_PD_IDS);
+            sendBody.putBoolean(ProductRelDto.Key.SOFT_DEL, withSoftDel);
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setAid(aid);
             sendProtocol.setCmd(MgProductBasicCmd.BasicCmd.GET_REL_LIST);

@@ -153,8 +153,9 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                 @ArgAid final int aid,
                                 @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
                                 @ArgBodyInteger(value = ProductRelDto.Key.SYS_TYPE, useDefault = true) int sysType,
-                                @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds) throws IOException {
-        return service.getRelListByRlIds(session, flow, aid, unionPriId, sysType, rlPdIds);
+                                @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
+                                @ArgBodyBoolean(value = ProductRelDto.Key.SOFT_DEL, useDefault = true) boolean withSoftDel) throws IOException {
+        return service.getRelListByRlIds(session, flow, aid, unionPriId, sysType, rlPdIds, withSoftDel);
     }
 
     @Cmd(MgProductBasicCmd.BasicCmd.GET_REDUCED_REL_LIST)

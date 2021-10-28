@@ -600,7 +600,9 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             String xid = mgProductArg.getXid();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
-            sendBody.putString(MgProductDto.Key.XID, xid);
+            if(!Str.isEmpty(xid)) {
+                sendBody.putString(ProductBasicDto.Key.XID, xid);
+            }
             m_rt = addInfo.toBuffer(sendBody, ProductBasicDto.Key.UNION_INFO, MgProductDto.getInfoDto());
             if(m_rt != Errno.OK){
                 Log.logErr(m_rt, "addInfo.toBuffer error;addInfo=%s;", addInfo);
@@ -737,10 +739,15 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 inStoreRecordInfo = new Param();
             }
 
+            String xid = mgProductArg.getXid();
+
             // packaging send data
             FaiBuffer sendBody = new FaiBuffer(true);
             int tid = mgProductArg.getTid();
             sendBody.putInt(ProductBasicDto.Key.TID, tid);
+            if(!Str.isEmpty(xid)) {
+                sendBody.putString(ProductBasicDto.Key.XID, xid);
+            }
             bindRlPdInfo.toBuffer(sendBody, ProductBasicDto.Key.PD_BIND_INFO, ProductBasicDto.getProductRelDto());
             infoList.toBuffer(sendBody, ProductBasicDto.Key.PD_LIST, MgProductDto.getInfoDto());
             inStoreRecordInfo.toBuffer(sendBody, ProductBasicDto.Key.IN_OUT_RECOED, ProductStoreDto.InOutStoreRecord.getInfoDto());
@@ -957,7 +964,9 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
             sendBody.putInt(ProductBasicDto.Key.SYS_TYPE, sysType);
-            sendBody.putString(MgProductDto.Key.XID, xid);
+            if(!Str.isEmpty(xid)) {
+                sendBody.putString(ProductBasicDto.Key.XID, xid);
+            }
             sendBody.putInt(ProductBasicDto.Key.RL_PD_ID, rlPdId);
             combinedUpdater.toBuffer(sendBody, ProductBasicDto.Key.UPDATER, MgProductDto.getInfoDto());
             // send and recv
@@ -1062,8 +1071,14 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             primaryKey.setInt(MgProductEntity.Info.SITE_ID, siteId);
             primaryKey.setInt(MgProductEntity.Info.LGID, lgId);
             primaryKey.setInt(MgProductEntity.Info.KEEP_PRI_ID1, keepPriId1);
+
+            String xid = mgProductArg.getXid();
+
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer();
+            if(!Str.isEmpty(xid)) {
+                sendBody.putString(ProductBasicDto.Key.XID, xid);
+            }
             primaryKey.toBuffer(sendBody, ProductBasicDto.Key.PRIMARY_KEY, MgProductDto.getPrimaryKeyDto());
             sendBody.putInt(ProductBasicDto.Key.SYS_TYPE, mgProductArg.getSysType());
             rlPdIds.toBuffer(sendBody, ProductBasicDto.Key.RL_PD_IDS);
@@ -1122,8 +1137,12 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             primaryKey.setInt(MgProductEntity.Info.SITE_ID, siteId);
             primaryKey.setInt(MgProductEntity.Info.LGID, lgId);
             primaryKey.setInt(MgProductEntity.Info.KEEP_PRI_ID1, keepPriId1);
+            String xid = mgProductArg.getXid();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer();
+            if(!Str.isEmpty(xid)) {
+                sendBody.putString(ProductBasicDto.Key.XID, xid);
+            }
             primaryKey.toBuffer(sendBody, ProductBasicDto.Key.PRIMARY_KEY, MgProductDto.getPrimaryKeyDto());
             sendBody.putInt(ProductBasicDto.Key.SYS_TYPE, mgProductArg.getSysType());
             sendBody.putInt(ProductBasicDto.Key.RL_PD_ID, rlPdId);

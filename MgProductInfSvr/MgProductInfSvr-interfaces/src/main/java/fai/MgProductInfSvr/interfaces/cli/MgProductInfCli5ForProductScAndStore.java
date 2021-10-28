@@ -1346,10 +1346,13 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
                 Log.logErr(m_rt, "args 2 error");
                 return m_rt;
             }
+            String xid = mgProductArg.getXid();
 
             // packaging send data
             FaiBuffer sendBody = getPrimaryKeyBuffer(mgProductArg);
-            sendBody.putString(MgProductDto.Key.XID, mgProductArg.getXid());
+            if(!Str.isEmpty(xid)) {
+                sendBody.putString(ProductSpecDto.Key.XID, mgProductArg.getXid());
+            }
             sendBody.putInt(ProductSpecDto.Key.SYS_TYPE, mgProductArg.getSysType());
             sendBody.putInt(ProductSpecDto.Key.RL_PD_ID, mgProductArg.getRlPdId());
             if (addList != null) {

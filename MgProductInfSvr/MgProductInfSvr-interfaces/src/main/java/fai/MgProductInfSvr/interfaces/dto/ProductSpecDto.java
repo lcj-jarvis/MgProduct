@@ -157,6 +157,7 @@ public class ProductSpecDto {
         public static final int WITH_SPU_INFO = 14;
         public static final int SPU_INFO = 15;
         public static final int SYS_TYPE = 16;
+        public static final int XID = 17;
     }
 
 }

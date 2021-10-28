@@ -698,9 +698,6 @@ public class MgProductArg {
 
         @Override
         public Builder setSpuList(FaiList<Param> spuList) {
-            if(spuList == null || spuList.isEmpty()) {
-                throw new RuntimeException();
-            }
             this.spuList = spuList;
             record("spuList", this.spuList);
             return this;
@@ -827,9 +824,6 @@ public class MgProductArg {
 
         @Override
         public Builder setDelIdList(FaiList<Integer> delIdList) {
-            if(delIdList == null || delIdList.isEmpty()) {
-                throw new RuntimeException();
-            }
             this.delIdList = delIdList;
             record("delIdList", this.delIdList);
             return this;

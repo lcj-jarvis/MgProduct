@@ -223,7 +223,7 @@ public class ProductSpecService extends SpecParentService {
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = productSpecSkuProc.batchSynchronousSPU2SKU(aid, pdId_pdScSkuInfoMap, pdIdSkuIdMap);
+                        rt = productSpecSkuProc.batchSynchronousSPU2SKU(productSpecProc, aid, pdId_pdScSkuInfoMap, pdIdSkuIdMap);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -356,7 +356,7 @@ public class ProductSpecService extends SpecParentService {
                                 Log.logErr(rt,"arg 2 error;flow=%s;aid=%s;pdId=%s;addPdScInfoList=%s;delPdScIdList=%s;updaterList=%s;skuList=%s;", flow, aid, pdId, addPdScInfoList, delPdScIdList, updaterList, skuList);
                                 return rt;
                             }
-                            rt = productSpecSkuProc.updateAllowEmptySku(aid, tid, unionPriId, pdId, skuList.get(0), isSaga);
+                            rt = productSpecSkuProc.updateAllowEmptySku(productSpecProc, aid, tid, unionPriId, pdId, skuList.get(0), isSaga);
                             if(rt != Errno.OK){
                                 return rt;
                             }
@@ -426,7 +426,7 @@ public class ProductSpecService extends SpecParentService {
 
                                 if(skuUpdaterList.size() > 0){
                                     // 修改替换名称的sku
-                                    rt = productSpecSkuProc.batchSet(aid, pdId, skuUpdaterList, isSaga);
+                                    rt = productSpecSkuProc.batchSet(productSpecProc, aid, pdId, skuUpdaterList, isSaga);
                                     if(rt != Errno.OK){
                                         return rt;
                                     }
@@ -443,14 +443,14 @@ public class ProductSpecService extends SpecParentService {
                                                         .setInt(ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID, unionPriId)
                                         );
                                     });
-                                    rt = productSpecSkuProc.batchAdd(aid, pdId, addPdScSkuInfoList, isSaga);
+                                    rt = productSpecSkuProc.batchAdd(productSpecProc, aid, pdId, addPdScSkuInfoList, isSaga);
                                     if (rt != Errno.OK) {
                                         return rt;
                                     }
                                 }
 
                             } else {
-                                rt = productSpecSkuProc.refreshSku(aid, tid, unionPriId, pdId, skuList, isSaga);
+                                rt = productSpecSkuProc.refreshSku(productSpecProc, aid, tid, unionPriId, pdId, skuList, isSaga);
                                 if (rt != Errno.OK) {
                                     Log.logDbg(rt,"refreshSku err aid=%s;pdId=%s;", aid, pdId);
                                     return rt;
@@ -798,13 +798,15 @@ public class ProductSpecService extends SpecParentService {
             }
             Map<Integer, Long> pdIdSkuIdMap = new HashMap<>(pdIdList.size()*4/3+1);
             ProductSpecSkuDaoCtrl productSpecSkuDaoCtrl = ProductSpecSkuDaoCtrl.getInstance(flow, aid);
+            ProductSpecDaoCtrl productSpecDaoCtrl = ProductSpecDaoCtrl.getInstance(flow, aid);
             try {
                 ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(productSpecSkuDaoCtrl, flow);
+                ProductSpecProc productSpecProc = new ProductSpecProc(productSpecDaoCtrl, flow);
                 try {
                     LockUtil.lock(aid);
                     try {
                         productSpecSkuDaoCtrl.setAutoCommit(false);
-                        rt = productSpecSkuProc.batchGenSkuRepresentSpuInfo(aid, tid, unionPriId, pdIdList, pdIdSkuIdMap);
+                        rt = productSpecSkuProc.batchGenSkuRepresentSpuInfo(productSpecProc, aid, tid, unionPriId, pdIdList, pdIdSkuIdMap);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -1026,12 +1028,13 @@ public class ProductSpecService extends SpecParentService {
             try {
                 ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(flow, aid, tc);
                 ProductSpecSkuCodeProc productSpecSkuCodeProc = new ProductSpecSkuCodeProc(flow, aid, tc);
+                ProductSpecProc productSpecProc = new ProductSpecProc(flow, aid, tc);
                 try {
                     LockUtil.lock(aid);
                     try {
                         tc.setAutoCommit(false);
                         // 批量修改 商品规格SKU表
-                        rt = productSpecSkuProc.batchSet(aid, pdId, updaterList, isSaga);
+                        rt = productSpecSkuProc.batchSet(productSpecProc, aid, pdId, updaterList, isSaga);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -1115,6 +1118,7 @@ public class ProductSpecService extends SpecParentService {
         TransactionCtrl tc = new TransactionCtrl();
         try {
             ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(flow, aid, tc);
+            ProductSpecProc productSpecProc = new ProductSpecProc(flow, aid, tc);
             rt = productSpecSkuProc.getSkuIdRepresentSpu(aid, pdId, skuIdRef);
             if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                 return rt;
@@ -1126,7 +1130,7 @@ public class ProductSpecService extends SpecParentService {
             try {
                 try {
                     tc.setAutoCommit(false);
-                    rt = productSpecSkuProc.genSkuRepresentSpuInfo(aid, unionPriId, tid, pdId, skuIdRef, isSaga);
+                    rt = productSpecSkuProc.genSkuRepresentSpuInfo(productSpecProc, aid, unionPriId, tid, pdId, skuIdRef, isSaga);
                 }finally {
                     if(rt != Errno.OK){
                         productSpecSkuProc.clearIdBuilderCache(aid);
@@ -1712,7 +1716,7 @@ public class ProductSpecService extends SpecParentService {
                             return rt;
                         }
                         // 添加 商品规格sku表数据 mgProductSpecSku_0xxx
-                        rt = productSpecSkuProc.batchAdd(aid, pdIdPdScSkuListMap, pdIdInPdScStrIdListJsonSkuIdMap, skuIdListRef, isSaga);
+                        rt = productSpecSkuProc.batchAdd(productSpecProc, aid, pdIdPdScSkuListMap, pdIdInPdScStrIdListJsonSkuIdMap, skuIdListRef, isSaga);
                         if(rt != Errno.OK){
                             return rt;
                         }

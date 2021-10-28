@@ -2,17 +2,16 @@ package fai.MgProductSpecSvr.domain.serviceProc;
 
 
 import fai.MgProductSpecSvr.domain.comm.LockUtil;
-import fai.MgProductSpecSvr.domain.comm.Utils;
 import fai.MgProductSpecSvr.domain.entity.*;
 import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuCacheCtrl;
 import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuDaoCtrl;
 import fai.MgProductSpecSvr.domain.repository.ProductSpecSkuSagaDaoCtrl;
 import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.util.*;
-import fai.mgproduct.comm.Util;
 import fai.mgproduct.comm.entity.SagaEntity;
 import fai.mgproduct.comm.entity.SagaValObj;
 import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.*;
@@ -23,11 +22,6 @@ public class ProductSpecSkuProc {
         m_daoCtrl = daoCtrl;
         m_flow = flow;
         sagaMap = new HashMap<>();
-    }
-    public ProductSpecSkuProc(ProductSpecSkuDaoCtrl daoCtrl, ProductSpecSkuSagaDaoCtrl sagaDaoCtrl, int flow) {
-        m_daoCtrl = daoCtrl;
-        m_sagaDaoCtrl = sagaDaoCtrl;
-        m_flow = flow;
     }
     public ProductSpecSkuProc(int flow, int aid, TransactionCtrl transactionCtrl) {
         m_daoCtrl = ProductSpecSkuDaoCtrl.getInstance(flow, aid);
@@ -41,23 +35,11 @@ public class ProductSpecSkuProc {
         m_flow = flow;
         sagaMap = new HashMap<>();
     }
-    public int batchAdd(int aid, int pdId, FaiList<Param> infoList) {
-        return batchAdd(aid, Collections.singletonMap(pdId, infoList), null);
+
+    public int batchAdd(ProductSpecProc specProc, int aid, int pdId, FaiList<Param> infoList, boolean isSaga) {
+        return batchAdd(specProc, aid, Collections.singletonMap(pdId, infoList), null, null, isSaga);
     }
-    public int batchAdd(int aid, int pdId, FaiList<Param> infoList, boolean isSaga) {
-        return batchAdd(aid, Collections.singletonMap(pdId, infoList), null, isSaga);
-    }
-    public int batchAdd(int aid, Map<Integer, FaiList<Param>> pdIdPdScSkuListMap, Map<Integer, Map<String, Long>> pdIdInPdScStrIdListJsonSkuIdMap) {
-        return batchAdd(aid, pdIdPdScSkuListMap, pdIdInPdScStrIdListJsonSkuIdMap, null);
-    }
-    public int batchAdd(int aid, Map<Integer, FaiList<Param>> pdIdPdScSkuListMap, Map<Integer, Map<String, Long>> pdIdInPdScStrIdListJsonSkuIdMap, boolean isSaga) {
-        return batchAdd(aid, pdIdPdScSkuListMap, pdIdInPdScStrIdListJsonSkuIdMap, null, isSaga);
-    }
-    public int batchAdd(int aid, Map<Integer, FaiList<Param>> pdIdPdScSkuListMap, Map<Integer, Map<String, Long>> pdIdInPdScStrIdListJsonSkuIdMap,
-                        Ref<FaiList<Long>> skuIdListRef) {
-        return batchAdd(aid, pdIdPdScSkuListMap, pdIdInPdScStrIdListJsonSkuIdMap, skuIdListRef, false);
-    }
-    public int batchAdd(int aid, Map<Integer, FaiList<Param>> pdIdPdScSkuListMap, Map<Integer, Map<String, Long>> pdIdInPdScStrIdListJsonSkuIdMap,
+    public int batchAdd(ProductSpecProc specProc, int aid, Map<Integer, FaiList<Param>> pdIdPdScSkuListMap, Map<Integer, Map<String, Long>> pdIdInPdScStrIdListJsonSkuIdMap,
                         Ref<FaiList<Long>> skuIdListRef, boolean isSaga) {
         int rt = Errno.ARGS_ERROR;
         if(aid <= 0){
@@ -75,7 +57,7 @@ public class ProductSpecSkuProc {
         for (Map.Entry<Integer, FaiList<Param>> pdIdInfoListEntry : pdIdPdScSkuListMap.entrySet()) {
             Integer pdId = pdIdInfoListEntry.getKey();
             List<Param> infoList = pdIdInfoListEntry.getValue();
-            if(pdId == null || pdId <= 0 || Util.isEmptyList(infoList)){
+            if(pdId == null || pdId <= 0 || Utils.isEmptyList(infoList)){
                 Log.logErr(rt, "arg error;flow=%d;aid=%s;pdId=%s;infoList=%s;", m_flow, aid, pdId, infoList);
                 return rt;
             }
@@ -131,6 +113,12 @@ public class ProductSpecSkuProc {
             Log.logErr(rt, "dao.updateId error;flow=%d;aid=%s;skuId=%s;", m_flow, aid, skuId);
             return rt;
         }
+        // 若设置了inPdScStrIdList，需同步设置inPdScList
+        rt = assemblyInPdScList4Insert(specProc, aid, dataList);
+        if(rt != Errno.OK) {
+            Log.logErr("assemblyInPdScList err;aid=%s;dataList=%s;", aid, dataList);
+            return rt;
+        }
         rt = m_daoCtrl.batchInsert(dataList, null, false);
         if(rt != Errno.OK) {
             Log.logErr(rt, "dao.batchInsert error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
@@ -154,7 +142,7 @@ public class ProductSpecSkuProc {
      * @param pdIdSkuIdMap
      * @return
      */
-    public int batchSynchronousSPU2SKU(int aid, Map<Integer, Param> pdId_pdScSkuInfoMap, Map<Integer, Long> pdIdSkuIdMap) {
+    public int batchSynchronousSPU2SKU(ProductSpecProc specProc, int aid, Map<Integer, Param> pdId_pdScSkuInfoMap, Map<Integer, Long> pdIdSkuIdMap) {
         if(aid <= 0 || pdId_pdScSkuInfoMap == null || pdIdSkuIdMap == null){
             Log.logErr(" arg error;flow=%d;aid=%s;pdId_pdScSkuInfoMap=%s;pdIdSkuIdMap=%s;", m_flow, aid, pdId_pdScSkuInfoMap, pdIdSkuIdMap);
             return Errno.ARGS_ERROR;
@@ -212,6 +200,12 @@ public class ProductSpecSkuProc {
 
                 batchAddDataList.add(data);
             }
+            // 若设置了inPdScStrIdList，需同步设置inPdScList
+            rt = assemblyInPdScList4Insert(specProc, aid, batchAddDataList);
+            if(rt != Errno.OK) {
+                Log.logErr("assemblyInPdScList err;aid=%s;dataList=%s;", aid, batchAddDataList);
+                return rt;
+            }
             rt = m_daoCtrl.batchInsert(batchAddDataList, null);
             if(rt != Errno.OK) {
                 Log.logErr(rt, "dao batchInsert error;flow=%d;aid=%s;batchAddDataList=%s;", m_flow, aid, batchAddDataList);
@@ -223,8 +217,8 @@ public class ProductSpecSkuProc {
         return rt;
     }
 
-    public int batchGenSkuRepresentSpuInfo(int aid, int tid, int unionPriId, FaiList<Integer> pdIdList, Map<Integer/*pdId*/, Long/*skuId*/> pdIdSkuIdMap){
-        return batchGenSkuRepresentSpuInfo(aid, tid, unionPriId, pdIdList, pdIdSkuIdMap, false);
+    public int batchGenSkuRepresentSpuInfo(ProductSpecProc specProc, int aid, int tid, int unionPriId, FaiList<Integer> pdIdList, Map<Integer/*pdId*/, Long/*skuId*/> pdIdSkuIdMap){
+        return batchGenSkuRepresentSpuInfo(specProc, aid, tid, unionPriId, pdIdList, pdIdSkuIdMap, false);
     }
     /**
      * 批量生成代表spu的sku
@@ -233,7 +227,7 @@ public class ProductSpecSkuProc {
      * @param unionPriId
      * @return
      */
-    public int batchGenSkuRepresentSpuInfo(int aid, int tid, int unionPriId, FaiList<Integer> pdIdList, Map<Integer/*pdId*/, Long/*skuId*/> pdIdSkuIdMap, boolean isSaga){
+    public int batchGenSkuRepresentSpuInfo(ProductSpecProc specProc, int aid, int tid, int unionPriId, FaiList<Integer> pdIdList, Map<Integer/*pdId*/, Long/*skuId*/> pdIdSkuIdMap, boolean isSaga){
         int rt;
         ParamMatcher matcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
@@ -281,6 +275,12 @@ public class ProductSpecSkuProc {
                 data.setCalendar(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME, now);
                 addList.add(data);
             }
+            // 若设置了inPdScStrIdList，需同步设置inPdScList
+            rt = assemblyInPdScList4Insert(specProc, aid, addList);
+            if(rt != Errno.OK) {
+                Log.logErr("assemblyInPdScList err;aid=%s;dataList=%s;", aid, addList);
+                return rt;
+            }
             rt = m_daoCtrl.batchInsert(addList, null, !isSaga);
             if(rt != Errno.OK){
                 Log.logErr(rt,"dao.batchInsert error;flow=%d;aid=%s;addList=%s;", m_flow, aid, addList);
@@ -304,7 +304,7 @@ public class ProductSpecSkuProc {
     /**
      * genSkuRepresentSpuInfo
      */
-    public int genSkuRepresentSpuInfo(int aid, int tid, int unionPriId, int pdId, Ref<Long> skuIdRef, boolean isSaga){
+    public int genSkuRepresentSpuInfo(ProductSpecProc specProc, int aid, int tid, int unionPriId, int pdId, Ref<Long> skuIdRef, boolean isSaga){
         int rt;
         // 查一下
         rt = getSkuIdRepresentSpu(aid, pdId, skuIdRef);
@@ -317,7 +317,7 @@ public class ProductSpecSkuProc {
         // 没有就添加
         HashMap<Integer, Long> pdIdSkuIdMap = new HashMap<>();
         FaiList<Integer> pdIdList = new FaiList<>(Arrays.asList(pdId));
-        rt = batchGenSkuRepresentSpuInfo(aid, tid, unionPriId, pdIdList, pdIdSkuIdMap, isSaga);
+        rt = batchGenSkuRepresentSpuInfo(specProc,aid, tid, unionPriId, pdIdList, pdIdSkuIdMap, isSaga);
         if(rt != Errno.OK){
             return rt;
         }
@@ -448,7 +448,7 @@ public class ProductSpecSkuProc {
     }
 
     public int clearData(int aid, FaiList<Integer> unionPriIds) {
-        if(aid <= 0 || Util.isEmptyList(unionPriIds)){
+        if(aid <= 0 || Utils.isEmptyList(unionPriIds)){
             Log.logErr("arg error;flow=%d;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
             return Errno.ARGS_ERROR;
         }
@@ -465,7 +465,7 @@ public class ProductSpecSkuProc {
         return rt;
     }
 
-    public int refreshSku(int aid, int tid, int unionPriId, int pdId, FaiList<FaiList<Integer>> skuList, boolean isSaga) {
+    public int refreshSku(ProductSpecProc specProc, int aid, int tid, int unionPriId, int pdId, FaiList<FaiList<Integer>> skuList, boolean isSaga) {
         if(aid <= 0 || pdId <= 0 || skuList == null){
             Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;skuList=%s;", m_flow, aid, pdId, skuList);
             return Errno.ARGS_ERROR;
@@ -487,7 +487,7 @@ public class ProductSpecSkuProc {
                     .setInt(ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID, unionPriId)
             );
         });
-        rt = batchAdd(aid, pdId, infoList, isSaga);
+        rt = batchAdd(specProc, aid, pdId, infoList, isSaga);
         if(rt != Errno.OK){
             return rt;
         }
@@ -495,14 +495,21 @@ public class ProductSpecSkuProc {
         return rt;
     }
 
-    public int batchSet(int aid, int pdId, FaiList<ParamUpdater> updaterList, boolean isSaga){
+    public int batchSet(ProductSpecProc specProc, int aid, int pdId, FaiList<ParamUpdater> updaterList, boolean isSaga){
         if(aid <= 0 || pdId <=0 || updaterList == null || updaterList.isEmpty()){
             Log.logErr("arg error;flow=%d;aid=%s;pdId=%updaterList=%s;", m_flow, aid, pdId, updaterList);
             return Errno.ARGS_ERROR;
         }
         int rt;
+        // 若设置了inPdScStrIdList，需同步设置inPdScList
+        rt = assemblyInPdScList4Update(specProc, aid, pdId, updaterList);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "assemblyInPdScList err;aid=%d;pdId=%s;updates=%s;", aid, pdId, updaterList.toJson());
+            return rt;
+        }
+
         FaiList<Long> skuIdList = new FaiList<>(updaterList.size());
-        Set<String> maxUpdaterKeys = Utils.retainValidUpdaterList(updaterList, ProductSpecSkuEntity.getValidKeys(), data->{
+        Set<String> maxUpdaterKeys = Utils.validUpdaterList(updaterList, Utils.asFaiList(ProductSpecSkuEntity.getValidKeys()), data->{
             skuIdList.add(data.getLong(ProductSpecSkuEntity.Info.SKU_ID));
         });
 
@@ -574,7 +581,7 @@ public class ProductSpecSkuProc {
         return rt;
     }
 
-    public int updateAllowEmptySku(int aid, int tid, int unionPriId, int pdId, FaiList<Integer> inPdScStrIdList, boolean isSaga) {
+    public int updateAllowEmptySku(ProductSpecProc specProc, int aid, int tid, int unionPriId, int pdId, FaiList<Integer> inPdScStrIdList, boolean isSaga) {
         int rt;
         Ref<FaiList<Param>> listRef = new Ref<>();
         {
@@ -626,6 +633,12 @@ public class ProductSpecSkuProc {
             if (isSaga) {
                 addInsOp4Saga(aid, new FaiList<>(Collections.singletonList(skuId)));
             }
+            // 若设置了inPdScStrIdList，需同步设置inPdScList
+            rt = assemblyInPdScList4Insert(specProc, aid, addInfo);
+            if(rt != Errno.OK) {
+                Log.logErr("assemblyInPdScList err;aid=%s;addInfo=%s;", aid, addInfo);
+                return rt;
+            }
             rt = m_daoCtrl.insert(addInfo);
             if(rt != Errno.OK){
                 Log.logErr(rt, "dao.insert err;flow=%d;aid=%s;pdId=%s;skuId=%s;", m_flow, aid, pdId, skuId);
@@ -640,6 +653,13 @@ public class ProductSpecSkuProc {
             ParamMatcher matcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
             matcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
             matcher.and(ProductSpecSkuEntity.Info.SKU_ID, ParamMatcher.EQ, allowEmptySkuId);
+
+            // 若设置了inPdScStrIdList，需同步设置inPdScList
+            rt = assemblyInPdScList4Update(specProc, aid, pdId, Utils.asFaiList(updater));
+            if(rt != Errno.OK) {
+                Log.logErr(rt, "assemblyInPdScList err;aid=%d;pdId=%s;updater=%s;", aid, pdId, updater.toJson());
+                return rt;
+            }
 
             // 预记录修改数据
             if (isSaga) {
@@ -754,7 +774,7 @@ public class ProductSpecSkuProc {
         if(onlyNeedFields != null && onlyNeedFields.length > 0){
             boolean needInit = false;
             for (String onlyNeedField : onlyNeedFields) {
-                if(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST.equals(onlyNeedField)){
+                if(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST.equals(onlyNeedField) || ProductSpecSkuEntity.Info.IN_PD_SC_LIST.equals(onlyNeedField)){
                     needInit = true;
                     break;
                 }
@@ -765,7 +785,9 @@ public class ProductSpecSkuProc {
         }
         infoList.forEach(info->{
             String inPdScStrIdListStr = info.getString(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST);
+            String inPdScListStr = info.getString(ProductSpecSkuEntity.Info.IN_PD_SC_LIST);
             info.setList(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, FaiList.parseIntList(inPdScStrIdListStr, new FaiList<>()));
+            info.setList(ProductSpecSkuEntity.Info.IN_PD_SC_LIST, FaiList.parseStringList(inPdScListStr, new FaiList<>()));
         });
     }
 
@@ -992,6 +1014,120 @@ public class ProductSpecSkuProc {
         }
     }
 
+    // 修改数据时，若修改了inPdScStrIdList字段，则需同步修改 inPdScList字段
+    private int assemblyInPdScList4Update(ProductSpecProc specProc, int aid, int pdId, FaiList<ParamUpdater> updaters) {
+        int rt;
+        if(Utils.isEmptyList(updaters)) {
+            return Errno.OK;
+        }
+        Map<Integer, FaiList<Integer>> pdScIdMap = new HashMap<>();
+        rt = getPdScIds(specProc, aid, Utils.asFaiList(pdId), pdScIdMap);
+        if(rt != Errno.OK) {
+            return rt;
+        }
+        for(ParamUpdater updater : updaters) {
+            Param data = updater.getData();
+            if(Str.isEmpty(data)) {
+                continue;
+            }
+            String inPdScStrIdListJson = data.getString(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST);
+            FaiList<Integer> inPdScStrIdList = FaiList.parseIntList(inPdScStrIdListJson);
+            // 没有inPdScStrIdList的就不用组装inPdScList了
+            if(Utils.isEmptyList(inPdScStrIdList)) {
+                continue;
+            }
+
+            FaiList<Integer> pdScIds = pdScIdMap.get(pdId);
+            if(pdScIds == null || pdScIds.size() != inPdScStrIdList.size()) {
+                rt = Errno.ERROR;
+                Log.logErr("sku not match spec err;aid=%d;pdId=%s;inPdScStrIdList=%s;pdScIds=%s;", aid, pdId, inPdScStrIdList, pdScIds);
+                return rt;
+            }
+            FaiList<String> inPdScInfoList = new FaiList<>();
+            for(int i = 0; i < inPdScStrIdList.size(); i++) {
+                int pdScId = pdScIds.get(i);
+                int si = inPdScStrIdList.get(i);
+                inPdScInfoList.add(pdScId + JOINER + si);
+            }
+            data.setString(ProductSpecSkuEntity.Info.IN_PD_SC_LIST, inPdScInfoList.toJson());
+        }
+        return Errno.OK;
+    }
+
+    // 新增数据时，若设置了inPdScStrIdList字段，则需同步设置 inPdScList字段
+    private int assemblyInPdScList4Insert(ProductSpecProc specProc, int aid, Param data) {
+        return assemblyInPdScList4Insert(specProc, aid, Utils.asFaiList(data));
+    }
+    private int assemblyInPdScList4Insert(ProductSpecProc specProc, int aid, FaiList<Param> dataList) {
+        int rt;
+        if(Utils.isEmptyList(dataList)) {
+            return Errno.OK;
+        }
+        FaiList<Integer> pdIds = Utils.getValList(dataList, ProductSpecSkuEntity.Info.PD_ID);
+        if(Utils.isEmptyList(pdIds)) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "assemblyInPdScList err;aid=%s;dataList=%s;", aid, dataList);
+            return rt;
+        }
+        Map<Integer, FaiList<Integer>> pdScIdMap = new HashMap<>();
+        rt = getPdScIds(specProc, aid, new FaiList<>(pdIds), pdScIdMap);
+        if(rt != Errno.OK) {
+            return rt;
+        }
+        for(Param data : dataList) {
+            String inPdScStrIdListJson = data.getString(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST);
+            FaiList<Integer> inPdScStrIdList = FaiList.parseIntList(inPdScStrIdListJson);
+            // 没有inPdScStrIdList的就不用组装inPdScList了
+            if(Utils.isEmptyList(inPdScStrIdList)) {
+                continue;
+            }
+            int pdId = data.getInt(ProductSpecSkuEntity.Info.PD_ID);
+
+            FaiList<Integer> pdScIds = pdScIdMap.get(pdId);
+            if(pdScIds == null || pdScIds.size() != inPdScStrIdList.size()) {
+                rt = Errno.ERROR;
+                Log.logErr("sku not match spec err;aid=%d;pdId=%s;inPdScStrIdList=%s;pdScIds=%s;", aid, pdId, inPdScStrIdList, pdScIds);
+                return rt;
+            }
+            FaiList<String> inPdScInfoList = new FaiList<>();
+            for(int i = 0; i < inPdScStrIdList.size(); i++) {
+                int pdScId = pdScIds.get(i);
+                int si = inPdScStrIdList.get(i);
+                inPdScInfoList.add(pdScId + JOINER + si);
+            }
+            data.setString(ProductSpecSkuEntity.Info.IN_PD_SC_LIST, inPdScInfoList.toJson());
+        }
+        return Errno.OK;
+    }
+
+    private int getPdScIds(ProductSpecProc specProc, int aid, FaiList<Integer> pdIds, Map<Integer, FaiList<Integer>> pdScIdMap) {
+        if(Utils.isEmptyList(pdIds)) {
+            return Errno.OK;
+        }
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        int rt = specProc.getListFromDao(aid, pdIds, listRef, ProductSpecEntity.Info.PD_ID, ProductSpecEntity.Info.PD_SC_ID, ProductSpecEntity.Info.SORT);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "getPdScIds err;aid=%s;pdIds=%s;", aid, pdIds);
+            return rt;
+        }
+        ParamComparator comparator = new ParamComparator(ProductSpecEntity.Info.SORT);
+        comparator.addKey(ProductSpecEntity.Info.PD_SC_ID);
+        comparator.sort(listRef.value);
+
+        for(Param info : listRef.value) {
+            int pdId = info.getInt(ProductSpecEntity.Info.PD_ID);
+            int pdScId = info.getInt(ProductSpecEntity.Info.PD_SC_ID);
+            FaiList<Integer> pdScIds = pdScIdMap.get(pdId);
+            if(pdScIds == null) {
+                pdScIds = new FaiList<>();
+                pdScIdMap.put(pdId, pdScIds);
+            }
+            pdScIds.add(pdScId);
+        }
+
+        return Errno.OK;
+    }
+
     /**
      * 获取 Saga 操作记录
      * @param xid 全局事务id
@@ -1014,7 +1150,7 @@ public class ProductSpecSkuProc {
 
     // 记录删除操作
     private int addDelOp4Saga(int aid, FaiList<Param> list) {
-        if (Util.isEmptyList(list)) {
+        if (Utils.isEmptyList(list)) {
             Log.logStd("addDelOp4Saga list is empty");
             return Errno.OK;
         }
@@ -1070,7 +1206,7 @@ public class ProductSpecSkuProc {
      * @param list 旧数据
      */
     private void preAddUpdateSaga(int aid, FaiList<Param> list) {
-        if (Util.isEmptyList(list)) {
+        if (Utils.isEmptyList(list)) {
             Log.logStd("preAddUpdateSaga list is empty;flow=%d;aid=%d;", m_flow, aid);
             return;
         }
@@ -1344,4 +1480,5 @@ public class ProductSpecSkuProc {
         }
     }
 
+    private static final String JOINER = "-";
 }

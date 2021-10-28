@@ -22,6 +22,7 @@ public class ProductSpecSkuDto {
         g_dtoDef.add(ProductSpecSkuEntity.Info.STATUS, 12, Var.Type.INT);
         g_dtoDef.add(ProductSpecSkuEntity.Info.SKU_CODE_LIST, 13, Var.Type.FAI_LIST);
         g_dtoDef.add(ProductSpecSkuEntity.Info.SPU, 14, Var.Type.BOOLEAN);
+        g_dtoDef.add(ProductSpecSkuEntity.Info.IN_PD_SC_LIST, 15, Var.Type.FAI_LIST);
     }
     public static ParamDef getInfoDto() {
         return g_dtoDef;
@@ -66,6 +67,7 @@ public class ProductSpecSkuDto {
             g_cacheDtoDef.add(ProductSpecSkuEntity.Info.SYS_UPDATE_TIME, 10);
             g_cacheDtoDef.add(ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID, 11, Var.Type.INT);
             g_cacheDtoDef.add(ProductSpecSkuEntity.Info.STATUS, 12, Var.Type.INT);
+            g_cacheDtoDef.add(ProductSpecSkuEntity.Info.IN_PD_SC_LIST, 13, Var.Type.FAI_LIST);
         }
 
         public static ParamDef getCacheDto() {

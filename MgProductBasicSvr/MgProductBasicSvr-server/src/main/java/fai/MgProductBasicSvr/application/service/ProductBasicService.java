@@ -2939,6 +2939,8 @@ public class ProductBasicService extends BasicParentService {
                 }
                 tc.closeDao();
             }
+            // 清缓存
+            CacheCtrl.clearCacheVersion(aid);
         }finally {
             LockUtil.BackupLock.unlock(aid);
         }
@@ -3325,6 +3327,8 @@ public class ProductBasicService extends BasicParentService {
                 }
                 tc.closeDao();
             }
+            // 清缓存
+            CacheCtrl.clearCacheVersion(toAid);
             // gfw
             GfwUtil.commitPre(toTid);
 
@@ -3334,6 +3338,7 @@ public class ProductBasicService extends BasicParentService {
         }finally {
             LockUtil.unlock(toAid);
         }
+        Log.logStd("do clone ok;toAid=%s;fromAid=%s;inc=%s;cloneUids=%s;", toAid, fromAid, incrementalClone, cloneUnionPriIds);
     }
 
     private SagaRollback getAddRollback(int flow, int aid, String xid, long branchId, boolean isBindRel) {

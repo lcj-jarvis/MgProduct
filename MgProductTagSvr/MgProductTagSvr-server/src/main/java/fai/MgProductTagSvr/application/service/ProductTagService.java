@@ -7,6 +7,7 @@ import fai.MgProductTagSvr.application.domain.entity.ProductTagEntity;
 import fai.MgProductTagSvr.application.domain.entity.ProductTagRelEntity;
 import fai.MgProductTagSvr.application.domain.entity.ProductTagRelValObj;
 import fai.MgProductTagSvr.application.domain.entity.ProductTagValObj;
+import fai.MgProductTagSvr.application.domain.repository.cache.CacheCtrl;
 import fai.MgProductTagSvr.application.domain.repository.cache.ProductTagCache;
 import fai.MgProductTagSvr.application.domain.repository.cache.ProductTagRelCache;
 import fai.MgProductTagSvr.application.domain.serviceproc.ProductTagProc;
@@ -731,6 +732,8 @@ public class ProductTagService {
                 }
                 tc.closeDao();
             }
+            // 清缓存
+            CacheCtrl.clearCacheVersion(toAid);
         }finally {
             lock.unlock();
         }
@@ -881,6 +884,8 @@ public class ProductTagService {
                 }
                 tc.closeDao();
             }
+            // 清缓存
+            CacheCtrl.clearCacheVersion(aid);
         }finally {
             LockUtil.BackupLock.unlock(aid);
         }

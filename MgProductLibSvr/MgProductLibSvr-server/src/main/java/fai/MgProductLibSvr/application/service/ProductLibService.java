@@ -7,6 +7,7 @@ import fai.MgProductLibSvr.domain.entity.ProductLibEntity;
 import fai.MgProductLibSvr.domain.entity.ProductLibRelEntity;
 import fai.MgProductLibSvr.domain.entity.ProductLibRelValObj;
 import fai.MgProductLibSvr.domain.entity.ProductLibValObj;
+import fai.MgProductLibSvr.domain.repository.cache.CacheCtrl;
 import fai.MgProductLibSvr.domain.repository.cache.ProductLibCache;
 import fai.MgProductLibSvr.domain.repository.cache.ProductLibRelCache;
 import fai.MgProductLibSvr.domain.serviceproc.ProductLibProc;
@@ -754,6 +755,8 @@ public class ProductLibService {
                 }
                 tc.closeDao();
             }
+            // 清缓存
+            CacheCtrl.clearCacheVersion(toAid);
         }finally {
             lock.unlock();
         }
@@ -867,6 +870,8 @@ public class ProductLibService {
                 }
                 tc.closeDao();
             }
+            // 清缓存
+            CacheCtrl.clearCacheVersion(aid);
         }finally {
             LockUtil.BackupLock.unlock(aid);
         }

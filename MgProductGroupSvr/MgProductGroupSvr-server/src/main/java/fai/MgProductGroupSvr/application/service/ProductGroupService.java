@@ -775,6 +775,8 @@ public class ProductGroupService extends ServicePub {
                 }
                 tc.closeDao();
             }
+            // 清缓存
+            CacheCtrl.clearCacheVersion(toAid);
         }finally {
             LockUtil.unlock(toAid);
         }
@@ -921,6 +923,8 @@ public class ProductGroupService extends ServicePub {
                 }
                 tc.closeDao();
             }
+            // 清缓存
+            CacheCtrl.clearCacheVersion(aid);
         }finally {
             LockUtil.BackupLock.unlock(aid);
         }

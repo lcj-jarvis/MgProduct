@@ -38,5 +38,6 @@ public interface MgProductSearchCli extends BaseRpcClient {
                                  @ArgBodyInteger(MgProductSearchDto.Key.TID) int tid,
                                  @ArgBodyInteger(MgProductSearchDto.Key.PRODUCT_COUNT) int productCount,
                                  @ArgBodyString(MgProductSearchDto.Key.ES_SEARCH_PARAM_STRING) String esSearchParamString,
-                                 @ArgBodyString(MgProductSearchDto.Key.DB_SEARCH_PARAM_STRING) String dbSearchParamString);
+                                 @ArgBodyString(MgProductSearchDto.Key.DB_SEARCH_PARAM_STRING) String dbSearchParamString,
+                                 @ArgBodyString(MgProductSearchDto.Key.PAGE_INFO_STRING) String pageInfoString);
 }

@@ -86,7 +86,7 @@ public class MgProductEsSearch extends BaseMgProductSearch{
     }
 
     /**
-     * es中的字段
+     * 目前接入es的字段
      */
     public static final class EsSearchFields {
         public static final String AID = "aid";

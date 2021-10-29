@@ -17,9 +17,9 @@ public class ParseData {
     /**
      * 通过Map的value解析到获取返回的Param
      */
-    public static final Map<String, Integer> TABLE_NAME_MAPPING_PARSE_DATA_STATUS_KEY = new HashMap<>();
+    public static final Map<String, Integer> TABLE_NAME_MAPPING_PARSE_DATA_STATUS_KEY = new HashMap<>(16);
 
-    public static final Map<String, Integer> TABLE_NAME_MAPPING_PARSE_DATA_KEY = new HashMap<>();
+    public static final Map<String, Integer> TABLE_NAME_MAPPING_PARSE_DATA_KEY = new HashMap<>(16);
 
     static  {
         TABLE_NAME_MAPPING_PARSE_DATA_STATUS_KEY.put(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT.getSearchTableName(), ProductDto.Key.DATA_STATUS);

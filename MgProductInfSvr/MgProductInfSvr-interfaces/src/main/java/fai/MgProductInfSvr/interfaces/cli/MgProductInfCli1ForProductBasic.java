@@ -1,5 +1,6 @@
 package fai.MgProductInfSvr.interfaces.cli;
 
+import com.google.common.base.Objects;
 import fai.MgProductInfSvr.interfaces.cmd.MgProductInfCmd;
 import fai.MgProductInfSvr.interfaces.dto.MgProductDto;
 import fai.MgProductInfSvr.interfaces.dto.MgProductSearchDto;
@@ -10,6 +11,7 @@ import fai.MgProductInfSvr.interfaces.entity.ProductBasicValObj;
 import fai.MgProductInfSvr.interfaces.entity.ProductStoreEntity;
 import fai.MgProductInfSvr.interfaces.utils.MgProductArg;
 import fai.MgProductInfSvr.interfaces.utils.MgProductSearchArg;
+import fai.MgProductInfSvr.interfaces.utils.MgProductSearchResult;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
 
@@ -160,6 +162,9 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             Param esSearchParam = mgProductSearchArg.getEsSearchParam();
             // 获取db的查询条件
             Param dbSearchParam = mgProductSearchArg.getDbSearchParam();
+            // 分页相关
+            Param pageInfo = mgProductSearchArg.getPageParam();
+
             int tid = mgProductArg.getTid();
             int siteId = mgProductArg.getSiteId();
             int lgId = mgProductArg.getLgId();
@@ -171,6 +176,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 new Pair(MgProductSearchDto.Key.KEEP_PRIID1, keepPriId1));
             sendBody.putString(MgProductSearchDto.Key.ES_SEARCH_PARAM_STRING, esSearchParam.toJson());
             sendBody.putString(MgProductSearchDto.Key.DB_SEARCH_PARAM_STRING, dbSearchParam.toJson());
+            sendBody.putString(MgProductSearchDto.Key.PAGE_INFO_STRING, pageInfo.toJson());
             int aid = mgProductArg.getAid();
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.MgProductSearchCmd.SEARCH_LIST, sendBody, true);
@@ -186,6 +192,9 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 return m_rt;
             }
             searchResultDef.value = searchResult;
+
+            // 设置搜索结果总数
+            mgProductSearchArg.setTotal(searchResult.getInt(MgProductSearchResult.Info.TOTAL));
 
             return m_rt;
         } finally {
@@ -208,7 +217,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      *        combined.setBoolean(MgProductEntity.Info.SPEC_SKU, true); 获取商品规格sku
      *        combined.setBoolean(MgProductEntity.Info.STORE_SALES, true);  获取库存销售数据
      *        combined.setBoolean(MgProductEntity.Info.SPU_SALES, true); 获取库存销售数据(spu汇总)
-     * @param resultList 接收搜索的结果集。resultList里的Param保存的内容结构如下
+     * @param resultList 接收搜索的结果集（经过分页后的）。resultList里的Param保存的内容结构如下
      *            Param key                               Param value
      *       MgProductEntity.Info.BASIC               商品（基础）信息的Param  详见基础服务（商品Entity）
      *       MgProductEntity.Info.SPEC                商品规格信息的FaiList<Param>  详见规格服务（商品规格Entity）
@@ -241,6 +250,8 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             Param esSearchParam = mgProductSearchArg.getEsSearchParam();
             // 获取db的查询条件
             Param dbSearchParam = mgProductSearchArg.getDbSearchParam();
+            // 分页相关
+            Param pageInfo = mgProductSearchArg.getPageParam();
             int tid = mgProductArg.getTid();
             int siteId = mgProductArg.getSiteId();
             int lgId = mgProductArg.getLgId();
@@ -252,6 +263,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 new Pair(MgProductSearchDto.Key.KEEP_PRIID1, keepPriId1));
             sendBody.putString(MgProductSearchDto.Key.ES_SEARCH_PARAM_STRING, esSearchParam.toJson());
             sendBody.putString(MgProductSearchDto.Key.DB_SEARCH_PARAM_STRING, dbSearchParam.toJson());
+            sendBody.putString(MgProductSearchDto.Key.PAGE_INFO_STRING, pageInfo.toJson());
             combined.toBuffer(sendBody, MgProductDto.Key.COMBINED, MgProductDto.getCombinedInfoDto());
             int aid = mgProductArg.getAid();
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.MgProductSearchCmd.SEARCH_PD, sendBody, true);
@@ -266,6 +278,17 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
             }
+
+            // recv total
+            Ref<Integer> totalRef = new Ref<Integer>();
+            m_rt = recvBody.getInt(keyRef, totalRef);
+            if (m_rt != Errno.OK || keyRef.value != MgProductDto.Key.TOTAL) {
+                Log.logErr(m_rt, "recv total codec err");
+                return m_rt;
+            }
+            // 设置搜索结果总条数
+            mgProductSearchArg.setTotal(totalRef.value);
+
             return m_rt;
         } finally {
             close();

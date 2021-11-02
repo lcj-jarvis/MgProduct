@@ -2396,11 +2396,11 @@ public class MgProductStoreCli extends MgProductInternalCli {
                 Log.logErr(m_rt, "storeSaleSkuList error");
                 return m_rt;
             }
-            if(Str.isEmpty(inStoreRecordInfo)){
+            /*if(Str.isEmpty(inStoreRecordInfo)){
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "inStoreRecordInfo error");
                 return m_rt;
-            }
+            }*/
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
@@ -2409,7 +2409,9 @@ public class MgProductStoreCli extends MgProductInternalCli {
             sendBody.putInt(StoreSalesSkuDto.Key.SYS_TYPE, sysType);
             sendBody.putString(StoreSalesSkuDto.Key.XID, xid);
             storeSaleSkuList.toBuffer(sendBody, StoreSalesSkuDto.Key.INFO_LIST, StoreSalesSkuDto.getInfoDto());
-            inStoreRecordInfo.toBuffer(sendBody, StoreSalesSkuDto.Key.IN_OUT_STORE_RECORD_INFO, InOutStoreRecordDto.getInfoDto());
+            if(!Str.isEmpty(inStoreRecordInfo)) {
+                inStoreRecordInfo.toBuffer(sendBody, StoreSalesSkuDto.Key.IN_OUT_STORE_RECORD_INFO, InOutStoreRecordDto.getInfoDto());
+            }
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.IMPORT);

@@ -506,7 +506,7 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                  @ArgList(keyMatch = StoreSalesSkuDto.Key.INFO_LIST,
                                          classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto") FaiList<Param> storeSaleSkuList,
                                  @ArgParam(keyMatch = StoreSalesSkuDto.Key.IN_OUT_STORE_RECORD_INFO,
-                                         classDef = InOutStoreRecordDto.class, methodDef = "getInfoDto") Param inStoreRecordInfo) throws IOException {
+                                         classDef = InOutStoreRecordDto.class, methodDef = "getInfoDto", useDefault = true) Param inStoreRecordInfo) throws IOException {
         return m_storeService.importStoreSales(session, flow, aid, tid, unionPriId, sysType, xid, storeSaleSkuList, inStoreRecordInfo);
     }
 

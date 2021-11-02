@@ -258,7 +258,7 @@ public class StoreService extends StoreParentService {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
-            if (aid <= 0 || sourceTid<=0 || sourceUnionPriId <= 0|| Utils.isEmptyList(storeSaleSkuList) || Str.isEmpty(inStoreRecordInfo)) {
+            if (aid <= 0 || sourceTid<=0 || sourceUnionPriId <= 0|| Utils.isEmptyList(storeSaleSkuList)) {
                 rt = Errno.ARGS_ERROR;
                 Log.logErr("arg err;flow=%d;aid=%d;sourceUnionPriId=%s;storeSaleSkuList=%s;inStoreRecordInfo=%s;", flow, aid, sourceUnionPriId, storeSaleSkuList, inStoreRecordInfo);
                 return rt;
@@ -283,19 +283,21 @@ public class StoreService extends StoreParentService {
                 long costPrice = storeSaleSku.getLong(StoreSalesSkuEntity.Info.COST_PRICE, 0L);
 
                 // 初始入库记录
-                Param addInStoreRecordInfo = inStoreRecordInfo.clone();
-                addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, unionPriId);
-                addInStoreRecordInfo.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
-                addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.PD_ID, pdId);
-                addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
-                addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.SYS_TYPE, sysType);
-                addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
-                addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.OPT_TYPE, InOutStoreRecordValObj.OptType.IN);
-                addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.CHANGE_COUNT, count);
-                addInStoreRecordInfo.setList(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList);
-                addInStoreRecordInfo.setLong(InOutStoreRecordEntity.Info.PRICE, costPrice);
-                addInStoreRecordInfo.setLong(InOutStoreRecordEntity.Info.TOTAL_PRICE, costPrice * count);
-                inStoreRecordList.add(addInStoreRecordInfo);
+                if(!Str.isEmpty(inStoreRecordInfo)) {
+                    Param addInStoreRecordInfo = inStoreRecordInfo.clone();
+                    addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.UNION_PRI_ID, unionPriId);
+                    addInStoreRecordInfo.setLong(InOutStoreRecordEntity.Info.SKU_ID, skuId);
+                    addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.PD_ID, pdId);
+                    addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.RL_PD_ID, rlPdId);
+                    addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.SYS_TYPE, sysType);
+                    addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
+                    addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.OPT_TYPE, InOutStoreRecordValObj.OptType.IN);
+                    addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.CHANGE_COUNT, count);
+                    addInStoreRecordInfo.setList(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList);
+                    addInStoreRecordInfo.setLong(InOutStoreRecordEntity.Info.PRICE, costPrice);
+                    addInStoreRecordInfo.setLong(InOutStoreRecordEntity.Info.TOTAL_PRICE, costPrice * count);
+                    inStoreRecordList.add(addInStoreRecordInfo);
+                }
             }
             // 事务
             TransactionCtrl transactionCtrl = new TransactionCtrl();
@@ -321,10 +323,12 @@ public class StoreService extends StoreParentService {
                         if (rt != Errno.OK) {
                             return rt;
                         }
-                        // 添加入库记录 及 汇总
-                        rt = inOutStoreRecordProc.batchAdd(aid, inStoreRecordList, skuBizSkuStoreSalesInfoMap, isSaga);
-                        if (rt != Errno.OK) {
-                            return rt;
+                        if(!inStoreRecordList.isEmpty()) {
+                            // 添加入库记录 及 汇总
+                            rt = inOutStoreRecordProc.batchAdd(aid, inStoreRecordList, skuBizSkuStoreSalesInfoMap, isSaga);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
                         }
                         // 更新总成本 修改表 mgStoreSaleSKU_0xxx 的 mwTotalCost、mwCost、fifoTotalCost字段 (这里不用补偿，因为修改的是刚添加的数据，补偿时删除数据即可)
                         rt = storeSalesSkuProc.batchUpdateTotalCost(aid, skuBizSkuStoreSalesInfoMap);

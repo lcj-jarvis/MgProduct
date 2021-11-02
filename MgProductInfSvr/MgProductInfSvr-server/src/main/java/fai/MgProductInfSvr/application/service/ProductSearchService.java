@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 public class ProductSearchService extends MgProductInfService {
 
     @SuccessRt({Errno.OK})
-    public int searchList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, String esSearchParamString, String dbSearchParamString) throws IOException {
+    public int searchList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, String esSearchParamString, String dbSearchParamString, String pageInfoString) throws IOException {
         int rt;
         if(!FaiValObj.TermId.isValidTid(tid)) {
             rt = Errno.ARGS_ERROR;
@@ -52,7 +52,7 @@ public class ProductSearchService extends MgProductInfService {
         // 获取unionPriId
         int unionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
 
-        Param searchResult = searchPd(flow, aid, unionPriId, tid, esSearchParamString, dbSearchParamString);
+        Param searchResult = searchPd(flow, aid, unionPriId, tid, esSearchParamString, dbSearchParamString, pageInfoString);
 
         FaiBuffer sendBuf = new FaiBuffer(true);
         searchResult.toBuffer(sendBuf, MgProductSearchDto.Key.RESULT_INFO, MgProductSearchDto.getProductSearchDto());
@@ -67,7 +67,7 @@ public class ProductSearchService extends MgProductInfService {
      */
     @SuccessRt({Errno.OK, Errno.NOT_FOUND})
     public int searchProduct(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1,
-                             String esSearchParamString, String dbSearchParamString, Param combined) throws IOException {
+                             String esSearchParamString, String dbSearchParamString, String pageInfoString, Param combined) throws IOException {
         int rt;
         if(!FaiValObj.TermId.isValidTid(tid)) {
             rt = Errno.ARGS_ERROR;
@@ -78,7 +78,7 @@ public class ProductSearchService extends MgProductInfService {
         int unionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
 
         // 先查搜索服务
-        Param searchResult = searchPd(flow, aid, unionPriId, tid, esSearchParamString, dbSearchParamString);
+        Param searchResult = searchPd(flow, aid, unionPriId, tid, esSearchParamString, dbSearchParamString, pageInfoString);
         FaiList<Integer> pdIds = searchResult.getList(MgProductSearchResult.Info.ID_LIST);
         if(pdIds == null) {
             Log.logDbg("not found;aid=%d;uid=%d;esSearchParamString=%s;dbSearchParamString=%s", aid, unionPriId, esSearchParamString, dbSearchParamString);
@@ -288,7 +288,7 @@ public class ProductSearchService extends MgProductInfService {
     // TODO : 同步的方式，先保留
     @SuccessRt({Errno.OK, Errno.NOT_FOUND})
     public int syncSearchProduct(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1,
-                             String esSearchParamString, String dbSearchParamString, Param combined) throws IOException {
+                             String esSearchParamString, String dbSearchParamString, String pageInfoString, Param combined) throws IOException {
         int rt;
         if(!FaiValObj.TermId.isValidTid(tid)) {
             rt = Errno.ARGS_ERROR;
@@ -300,7 +300,7 @@ public class ProductSearchService extends MgProductInfService {
         int unionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
 
         // 先查搜索服务
-        Param searchResult = searchPd(flow, aid, unionPriId, tid, esSearchParamString, dbSearchParamString);
+        Param searchResult = searchPd(flow, aid, unionPriId, tid, esSearchParamString, dbSearchParamString, pageInfoString);
         FaiList<Integer> pdIds = searchResult.getList(MgProductSearchResult.Info.ID_LIST);
         if(pdIds == null) {
             Log.logDbg("not found;aid=%d;uid=%d;esSearchParamString=%s;dbSearchParamString=%s", aid, unionPriId, esSearchParamString, dbSearchParamString);
@@ -412,11 +412,11 @@ public class ProductSearchService extends MgProductInfService {
         return rt;
     }
 
-    protected Param searchPd(int flow, int aid, int unionPriId, int tid,String esSearchParamString, String dbSearchParamString) {
+    protected Param searchPd(int flow, int aid, int unionPriId, int tid,String esSearchParamString, String dbSearchParamString, String pageInfoString) {
         MgProductSearchCli mgProductSearchCli = FaiClientProxyFactory.createProxy(MgProductSearchCli.class);
         // 可以发包拿数据，然后根据商品的数据 走不同的 集群，待实现
         int productCount = 100;
-        RemoteStandResult remoteStandResult = mgProductSearchCli.searchList(flow, aid, unionPriId, tid, productCount, esSearchParamString, dbSearchParamString);
+        RemoteStandResult remoteStandResult = mgProductSearchCli.searchList(flow, aid, unionPriId, tid, productCount, esSearchParamString, dbSearchParamString, pageInfoString);
         if (remoteStandResult.isSuccess()) {
             return remoteStandResult.getObject(MgProductSearchDto.Key.RESULT_INFO, Param.class);
         } else {

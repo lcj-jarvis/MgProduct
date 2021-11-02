@@ -86,7 +86,7 @@ public class MgProductEsSearch extends BaseMgProductSearch{
     }
 
     /**
-     * es中的字段
+     * 目前接入es的字段
      */
     public static final class EsSearchFields {
         public static final String AID = "aid";
@@ -108,5 +108,76 @@ public class MgProductEsSearch extends BaseMgProductSearch{
 
     public boolean hasFirstComparator() {
         return !Str.isEmpty(firstComparatorKey) && firstComparatorKeyType != null ;
+    }
+
+    public MgProductEsSearch setSearchKeyword(String searchKeyword) {
+        this.searchKeyWord = searchKeyword;
+        return this;
+    }
+
+    public MgProductEsSearch setEnableSearchProductName(boolean enableSearchProductName) {
+        this.enableSearchProductName = enableSearchProductName;
+        return this;
+    }
+
+    public MgProductEsSearch setSearchKeywordSearch(String searchKeyword, boolean enableSearchProductName) {
+        this.searchKeyWord = searchKeyword;
+        this.enableSearchProductName = enableSearchProductName;
+        return this;
+    }
+
+    public MgProductEsSearch setFirstComparatorKeyType(Integer firstComparatorKeyType) {
+        this.firstComparatorKeyType = firstComparatorKeyType;
+        return this;
+    }
+
+    public MgProductEsSearch setSecondComparatorKeyType(Integer secondComparatorKeyType) {
+        this.secondComparatorKeyType = secondComparatorKeyType;
+        return this;
+    }
+
+    public MgProductEsSearch setUpSalesStatus(int upSalesStatus) {
+        this.upSalesStatus = upSalesStatus;
+        return this;
+    }
+
+    public MgProductEsSearch setFirstComparatorKey(String firstComparatorKey) {
+        this.firstComparatorKey = firstComparatorKey;
+        return this;
+    }
+
+    public MgProductEsSearch setFirstComparatorKeyOrderByDesc(boolean firstComparatorKeyOrderByDesc) {
+        this.firstComparatorKeyOrderByDesc = firstComparatorKeyOrderByDesc;
+        return this;
+    }
+
+    public MgProductEsSearch setNeedSecondComparatorSorting(boolean needSecondComparatorSorting) {
+        this.needSecondComparatorSorting = needSecondComparatorSorting;
+        return this;
+    }
+
+    public MgProductEsSearch setSecondComparatorKey(String secondComparatorKey) {
+        this.secondComparatorKey = secondComparatorKey;
+        return this;
+    }
+
+    public MgProductEsSearch setSecondComparatorKeyOrderByDesc(boolean secondComparatorKeyOrderByDesc) {
+        this.secondComparatorKeyOrderByDesc = secondComparatorKeyOrderByDesc;
+        return this;
+    }
+
+    public MgProductEsSearch setFirstComparator(String firstComparatorKey, Integer firstComparatorKeyType, boolean firstComparatorKeyOrderByDesc) {
+        this.firstComparatorKey = firstComparatorKey;
+        this.firstComparatorKeyType = firstComparatorKeyType;
+        this.firstComparatorKeyOrderByDesc = firstComparatorKeyOrderByDesc;
+        return this;
+    }
+
+    public MgProductEsSearch setSecondComparator(boolean needSecondComparatorSorting, String secondComparatorKey, Integer secondComparatorKeyType, boolean secondComparatorKeyOrderByDesc) {
+        this.needSecondComparatorSorting = needSecondComparatorSorting;
+        this.secondComparatorKey = secondComparatorKey;
+        this.secondComparatorKeyType = secondComparatorKeyType;
+        this.secondComparatorKeyOrderByDesc = secondComparatorKeyOrderByDesc;
+        return this;
     }
 }

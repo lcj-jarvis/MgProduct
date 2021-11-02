@@ -54,17 +54,6 @@ public abstract class BaseMgProductSearch {
      */
     protected boolean secondComparatorKeyOrderByDesc = false;
 
-    /**
-     * 搜索的开始位置
-     */
-    protected int start = 0;
-
-    /**
-     * 分页限制条数开始，默认最大是 200
-     */
-    protected int limit = MAX_LIMIT;
-
-    public static final Integer MAX_LIMIT = 200;
 
     /**
      * 上下架搜索参数封装
@@ -143,15 +132,6 @@ public abstract class BaseMgProductSearch {
          */
         public static final String SECOND_COMPARATOR_KEY_ORDER_BY_DESC = "secondComparatorKeyOrderByDesc";
 
-        /**
-         * 分页位置
-         */
-        public static final String START = "start";
-
-        /**
-         * 分页条数
-         */
-        public static final String LIMIT = "limit";
     }
 
     /**
@@ -169,9 +149,6 @@ public abstract class BaseMgProductSearch {
         this.secondComparatorKey = baseSearchParam.getString(BaseSearchInfo.SECOND_COMPARATOR_KEY);
         this.secondComparatorKeyOrderByDesc = baseSearchParam.getBoolean(BaseSearchInfo.SECOND_COMPARATOR_KEY_ORDER_BY_DESC, false);
 
-        this.start = baseSearchParam.getInt(BaseSearchInfo.START, 0);
-        // 最大分页数设置为200
-        this.limit = baseSearchParam.getInt(BaseSearchInfo.LIMIT, MAX_LIMIT);
     }
 
     /**
@@ -188,8 +165,6 @@ public abstract class BaseMgProductSearch {
         baseParam.setBoolean(BaseSearchInfo.NEED_SECOND_COMPARATOR_SORTING, needSecondComparatorSorting);
         baseParam.setString(BaseSearchInfo.SECOND_COMPARATOR_KEY, secondComparatorKey);
         baseParam.setBoolean(BaseSearchInfo.SECOND_COMPARATOR_KEY_ORDER_BY_DESC, secondComparatorKeyOrderByDesc);
-        baseParam.setInt(BaseSearchInfo.START, start);
-        baseParam.setInt(BaseSearchInfo.LIMIT, limit);
 
         return baseParam;
     }
@@ -222,25 +197,47 @@ public abstract class BaseMgProductSearch {
         return secondComparatorKeyOrderByDesc;
     }
 
-    public BaseMgProductSearch setStart(int start){
-        this.start = start >= 0 ? start : this.start;
-        return this;
-    }
-
-    public int getStart() {
-        return start;
-    }
-
-    public BaseMgProductSearch setLimit(int limit){
-        this.limit = limit;
-        return this;
-    }
-
-    public int getLimit() {
-        return limit;
-    }
-
     public boolean isEnableSearchProductName() {
         return enableSearchProductName;
     }
+
+    /*public BaseMgProductSearch setSearchKeyWord(String searchKeyWord) {
+        this.searchKeyWord = searchKeyWord;
+        return this;
+    }*/
+
+    /*public BaseMgProductSearch setEnableSearchProductName(boolean enableSearchProductName) {
+        this.enableSearchProductName = enableSearchProductName;
+        return this;
+    }*/
+
+    /*public BaseMgProductSearch setUpSalesStatus(int upSalesStatus) {
+        this.upSalesStatus = upSalesStatus;
+        return this;
+    }
+
+    public BaseMgProductSearch setFirstComparatorKey(String firstComparatorKey) {
+        this.firstComparatorKey = firstComparatorKey;
+        return this;
+    }
+
+    public BaseMgProductSearch setFirstComparatorKeyOrderByDesc(boolean firstComparatorKeyOrderByDesc) {
+        this.firstComparatorKeyOrderByDesc = firstComparatorKeyOrderByDesc;
+        return this;
+    }
+
+    public BaseMgProductSearch setNeedSecondComparatorSorting(boolean needSecondComparatorSorting) {
+        this.needSecondComparatorSorting = needSecondComparatorSorting;
+        return this;
+    }
+
+    public BaseMgProductSearch setSecondComparatorKey(String secondComparatorKey) {
+        this.secondComparatorKey = secondComparatorKey;
+        return this;
+    }
+
+    public BaseMgProductSearch setSecondComparatorKeyOrderByDesc(boolean secondComparatorKeyOrderByDesc) {
+        this.secondComparatorKeyOrderByDesc = secondComparatorKeyOrderByDesc;
+        return this;
+    }*/
 }

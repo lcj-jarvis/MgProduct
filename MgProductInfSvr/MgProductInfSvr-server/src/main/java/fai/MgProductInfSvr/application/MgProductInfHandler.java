@@ -33,8 +33,9 @@ public class MgProductInfHandler extends FaiHandler {
                            @ArgBodyInteger(MgProductSearchDto.Key.LGID) int lgId,
                            @ArgBodyInteger(MgProductSearchDto.Key.KEEP_PRIID1) int keepPriId1,
                            @ArgBodyString(MgProductSearchDto.Key.ES_SEARCH_PARAM_STRING) String esSearchParamString,
-                           @ArgBodyString(MgProductSearchDto.Key.DB_SEARCH_PARAM_STRING) String searchParamString) throws IOException {
-        return searchService.searchList(session, flow, aid, tid, siteId, lgId, keepPriId1, esSearchParamString, searchParamString);
+                           @ArgBodyString(MgProductSearchDto.Key.DB_SEARCH_PARAM_STRING) String searchParamString,
+                           @ArgBodyString(MgProductSearchDto.Key.PAGE_INFO_STRING) String pageInfoString) throws IOException {
+        return searchService.searchList(session, flow, aid, tid, siteId, lgId, keepPriId1, esSearchParamString, searchParamString, pageInfoString);
     }
 
     @Cmd(MgProductInfCmd.MgProductSearchCmd.SEARCH_PD)
@@ -47,8 +48,9 @@ public class MgProductInfHandler extends FaiHandler {
                                   @ArgBodyInteger(MgProductDto.Key.KEEP_PRIID1) int keepPriId1,
                                   @ArgBodyString(MgProductSearchDto.Key.ES_SEARCH_PARAM_STRING) String esSearchParamString,
                                   @ArgBodyString(MgProductSearchDto.Key.DB_SEARCH_PARAM_STRING) String dbSearchParamString,
+                                  @ArgBodyString(MgProductSearchDto.Key.PAGE_INFO_STRING) String pageInfoString,
                                   @ArgParam(keyMatch = MgProductDto.Key.COMBINED, classDef = MgProductDto.class, methodDef = "getCombinedInfoDto") Param combined) throws IOException {
-        return searchService.searchProduct(session, flow, aid, tid, siteId, lgId, keepPriId1, esSearchParamString, dbSearchParamString, combined);
+        return searchService.searchProduct(session, flow, aid, tid, siteId, lgId, keepPriId1, esSearchParamString, dbSearchParamString, pageInfoString, combined);
     }
 
     @Cmd(MgProductInfCmd.Cmd.GET_INFO_4ES)

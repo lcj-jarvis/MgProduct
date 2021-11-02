@@ -28,8 +28,9 @@ public class MgProductSearchHandler extends MiddleGroundHandler {
                            @ArgBodyInteger(MgProductSearchDto.Key.TID) int tid,
                            @ArgBodyInteger(MgProductSearchDto.Key.PRODUCT_COUNT) int productCount,
                            @ArgBodyString(MgProductSearchDto.Key.ES_SEARCH_PARAM_STRING) String esSearchParamString,
-                           @ArgBodyString(MgProductSearchDto.Key.DB_SEARCH_PARAM_STRING) String dbSearchParamString) throws IOException {
-        return  searchService.searchList(session, flow, aid, unionPriId, tid, productCount, esSearchParamString, dbSearchParamString);
+                           @ArgBodyString(MgProductSearchDto.Key.DB_SEARCH_PARAM_STRING) String dbSearchParamString,
+                           @ArgBodyString(MgProductSearchDto.Key.PAGE_INFO_STRING) String pageInfoString) throws IOException {
+        return  searchService.searchList(session, flow, aid, unionPriId, tid, productCount, esSearchParamString, dbSearchParamString, pageInfoString);
     }
 
     private final MgProductSearchService searchService = ServiceProxy.create(new MgProductSearchService());

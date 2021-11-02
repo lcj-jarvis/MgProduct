@@ -67,6 +67,7 @@ public class MgProductSearchSvr {
         public boolean getDebug() {
             return debug;
         }
+
         public void setDebug(boolean debug) {
             this.debug = debug;
         }

@@ -701,7 +701,7 @@ public class ProductSpecSkuCodeProc {
             sagaOpInfo.setString(SagaEntity.Common.XID, xid);
             sagaOpInfo.setLong(SagaEntity.Common.BRANCH_ID, branchId);
             sagaOpInfo.setInt(SagaEntity.Common.SAGA_OP, SagaValObj.SagaOp.ADD);
-            sagaOpInfo.setCalendar(SagaEntity.Common.SAGA_OP, now);
+            sagaOpInfo.setCalendar(SagaEntity.Common.SAGA_TIME, now);
             sagaOpList.add(sagaOpInfo);
         });
         int rt = m_sagaDaoCtrl.batchInsert(sagaOpList, null, false);

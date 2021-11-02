@@ -10,6 +10,7 @@ import fai.MgProductInfSvr.interfaces.entity.MgProductEntity;
 import fai.MgProductInfSvr.interfaces.entity.ProductBasicValObj;
 import fai.MgProductInfSvr.interfaces.entity.ProductStoreEntity;
 import fai.MgProductInfSvr.interfaces.utils.MgProductArg;
+import fai.MgProductInfSvr.interfaces.utils.MgProductDbSearch;
 import fai.MgProductInfSvr.interfaces.utils.MgProductSearchArg;
 import fai.MgProductInfSvr.interfaces.utils.MgProductSearchResult;
 import fai.comm.netkit.FaiProtocol;

@@ -39,11 +39,8 @@ public class MgProductSearchSvr {
         RedisCacheManager m_cache = new RedisCacheManager(jedisPool, redisConfig.getExpire(), redisConfig.getExpireRandom());
 
         // 数据缓存组件,如果要测试的话，可以修改缓存时间
-        /*ParamCacheRecycle cacheRecycle = new ParamCacheRecycle(config.getName(),
-                svrOption.getCacheHours() * 3600, svrOption.getCacheRecycleIntervalHours() * 3600);
-*/
         ParamCacheRecycle cacheRecycle = new ParamCacheRecycle(config.getName(),
-            svrOption.getCacheHours() * 30, svrOption.getCacheRecycleIntervalHours() * 30);
+                svrOption.getCacheHours() * 3600, svrOption.getCacheRecycleIntervalHours() * 3600);
 
         // 公共配置文件, 在svr main 的方法做一次初始化
         ConfPool.setFaiConfigGlobalConf(MgProductSearchSvr.SvrConfigGlobalConf.svrConfigGlobalConfKey, FaiConfig.EtcType.ENV);

@@ -3,7 +3,6 @@ package fai.MgProductInfSvr.interfaces.utils;
 import fai.MgProductInfSvr.interfaces.entity.*;
 import fai.comm.util.*;
 import fai.mgproduct.comm.Util;
-import org.apache.poi.ss.formula.functions.T;
 
 import java.util.Calendar;
 
@@ -23,22 +22,6 @@ public class MgProductDbSearch extends BaseMgProductSearch {
     private Calendar addTimeBegin;
     private Calendar addTimeEnd;            // 如果搜索的 创建时间 开始 和 创建时间 结束是相同的，则走 EQ 的逻辑
     private FaiList<Integer> rlLibIdList;   //  在哪些库搜索，默认是全部库
-
-    /**
-     * 支持商品表Flag字段，多个位操作
-     * Cond cond1 = new Cond(true, ProductBasicEntity.ProductInfo.Flag, ParamMatcher.LAND, 0x1, 0x1)
-     * Cond cond2 = new Cond(false, ProductBasicEntity.ProductInfo.Flag, ParamMatcher.LAND, 0x4, 0x4)
-     * Cond cond3 = new Cond(true, ProductBasicEntity.ProductInfo.Flag, ParamMatcher.LAND, 0x8, 0x8)
-     * Cond cond4 = new Cond(true, ProductBasicEntity.ProductInfo.Flag, ParamMatcher.LAND_NE, 0x10, 0x10)
-     * 例如:
-     * flag & 0001 = 0001 or flag & 0100 = 0100 and flag & 1000 = 1000 and flag & 010000 != 010000
-     */
-    private FaiList<ParamMatcher.Cond> pdFlagSearchList;
-
-    /**
-     * 支持商品业务表rlFlag字段，多个位操作
-     */
-    private FaiList<ParamMatcher.Cond> pdRelRlFlagSearchList;
 
     // search keyword 相关
     private boolean enableSearchSkuCode = false; // 关键词用作条形码搜索
@@ -70,7 +53,6 @@ public class MgProductDbSearch extends BaseMgProductSearch {
     /**
      * 自定义排序字段所在的表。如果是PdId或者是RlPdId的自定义排序，可以不填,采用默认的MG_PRODUCT_REL
      */
-    // private String customComparatorTable = SearchTableNameEnum.MG_PRODUCT_REL.searchTableName;   // 第二排序字段的table,默认是MG_PRODUCT_REL
     private String customComparatorTable;   // 第二排序字段的table,默认是MG_PRODUCT_REL
 
     /**
@@ -91,8 +73,9 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         param.setList(DbSearchInfo.TYPE_LIST, typeList);                // 商品类型：实物、卡密、酒店， 对应 ProductEntity.DbSearchInfo.PD_TYPE 字段
         param.setList(DbSearchInfo.RL_LIB_ID_LIST, rlLibIdList);           //  在哪些库搜索，默认是全部库
 
-        param.setList(DbSearchInfo.PD_FLAG_SEARCH_LIST, pdFlagSearchList);
-        param.setList(DbSearchInfo.PDREL_RLFLAG_SEARCH_LIST, pdRelRlFlagSearchList);
+        // flag相关
+        param.setObject(DbSearchInfo.RLFLAG_PARAM_MATCHER, rlFlagMatcher);
+        param.setObject(DbSearchInfo.FLAG_PARAM_MATCHER, flagMatcher);
 
         // 关键词searchKeyword相关
         param.setBoolean(DbSearchInfo.ENABLE_SEARCH_SKU_CODE, enableSearchSkuCode); // 关键词用作条形码搜索
@@ -133,8 +116,8 @@ public class MgProductDbSearch extends BaseMgProductSearch {
 
         this.rlLibIdList = dbSearchParam.getList(DbSearchInfo.RL_LIB_ID_LIST);                       //  在哪些库搜索，默认是全部库
 
-        this.pdFlagSearchList = dbSearchParam.getList(DbSearchInfo.PD_FLAG_SEARCH_LIST);
-        this.pdRelRlFlagSearchList = dbSearchParam.getList(DbSearchInfo.PDREL_RLFLAG_SEARCH_LIST);
+        // 解析flag和rlFlag
+        parseParamMatcher(dbSearchParam);
 
         // 关键词相关
         this.enableSearchSkuCode = dbSearchParam.getBoolean(DbSearchInfo.ENABLE_SEARCH_SKU_CODE, false); // 关键词用作条形码搜索
@@ -157,13 +140,11 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         // 排序相关
         this.customComparatorKey = dbSearchParam.getString(DbSearchInfo.CUSTOM_COMPARATOR_KEY); // 自定义的排序
         this.customComparatorList = dbSearchParam.getList(DbSearchInfo.CUSTOM_COMPARATOR_LIST); // 自定义排序的List
-       // this.customComparatorTable = dbSearchParam.getString(DbSearchInfo.CUSTOM_COMPARATOR_TABLE, SearchTableNameEnum.MG_PRODUCT_REL.searchTableName); // 自定义排序字段所在的表,默认是MG_PRODUCT_REL
         this.customComparatorTable = dbSearchParam.getString(DbSearchInfo.CUSTOM_COMPARATOR_TABLE); // 自定义排序字段所在的表,默认是MG_PRODUCT_REL
         this.firstComparatorTable = dbSearchParam.getString(DbSearchInfo.FIRST_COMPARATOR_TABLE); // 第一排序字段table
         // db查询条件里的第二排序字段默认是rlPdId
         this.secondComparatorKey = dbSearchParam.getString(BaseSearchInfo.SECOND_COMPARATOR_KEY, ProductBasicEntity.ProductInfo.RL_PD_ID);
         this.secondComparatorTable = dbSearchParam.getString(DbSearchInfo.SECOND_COMPARATOR_TABLE, SearchTableNameEnum.MG_PRODUCT_REL.searchTableName); // 第二排序字段table,默认是商品业务关系表
-
     }
 
 
@@ -174,11 +155,6 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         public static final String TYPE_LIST = "typeList"; //商品类型：实物、卡密、酒店
 
         public static final String RL_LIB_ID_LIST = "rlLibIdList"; //在哪些库搜索，默认是全部库
-        public static final String RL_FLAG = "rlFlag"; //对应哪些flag
-
-
-        public static final String PD_FLAG_SEARCH_LIST = "pdFlagSearchList";
-        public static final String PDREL_RLFLAG_SEARCH_LIST = "pdRelRlFlagSearchList";
 
         public static final String ENABLE_SEARCH_SKU_CODE = "enableSearchSkuCode";
         public static final String ENABLE_SEARCH_PRODUCT_PROP = "enableSearchProductProp"; // 是否允许搜索商品参数, 默认是 false
@@ -196,7 +172,6 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         public static final String SALES_END = "salesEnd"; // 搜索商品 结束 销量
         public static final String REMAIN_COUNT_BEGIN = "remainCountBegin";// 搜索商品 开始 库存
         public static final String REMAIN_COUNT_END = "remainCountEnd"; // 搜索商品 结束 库存
-        public static final String SKU_CODE = "skuCode"; // sku编号（条形码）
 
         public static final String CUSTOM_COMPARATOR_KEY = "customComparatorKey";// 自定义的排序，如果设置了该排序，其他的排序无效（包括es里的排序）
         public static final String CUSTOM_COMPARATOR_TABLE = "customComparatorTable"; // 自定义排序字段所在的表
@@ -204,6 +179,9 @@ public class MgProductDbSearch extends BaseMgProductSearch {
 
         public static final String FIRST_COMPARATOR_TABLE = "firstComparatorTable"; // 第一排序字段的table
         public static final String SECOND_COMPARATOR_TABLE = "secondComparatorTable"; // 第二排序字段的table
+
+        public static final String RLFLAG_PARAM_MATCHER = "rlFlagParamMatcher";
+        public static final String FLAG_PARAM_MATCHER = "flagParamMatcher";
     }
 
     /**
@@ -369,9 +347,9 @@ public class MgProductDbSearch extends BaseMgProductSearch {
      */
     public ParamMatcher getProductBasicSearchMatcher(ParamMatcher paramMatcher){
         if (paramMatcher == null) {
-            if (!Util.isEmptyList(pdFlagSearchList)) {
+            if (flagMatcher != null) {
                 // flag支持多个位进行操作
-                paramMatcher = new ParamMatcher(pdFlagSearchList);
+                paramMatcher = flagMatcher;
             } else {
                 paramMatcher = new ParamMatcher();
             }
@@ -383,9 +361,9 @@ public class MgProductDbSearch extends BaseMgProductSearch {
     // 在 "商品业务关系表" mgProductRel_xxxx 搜索
     public ParamMatcher getProductRelSearchMatcher(ParamMatcher paramMatcher){
         if(paramMatcher == null){
-            if (!Util.isEmptyList(pdRelRlFlagSearchList)) {
+            if (rlFlagMatcher != null) {
                 // rlFlag支持多个位进行操作
-                paramMatcher = new ParamMatcher(pdRelRlFlagSearchList);
+                paramMatcher = rlFlagMatcher;
             } else {
                 paramMatcher = new ParamMatcher();
             }
@@ -562,7 +540,6 @@ public class MgProductDbSearch extends BaseMgProductSearch {
     }
 
 
-
     /**
      * 把排序转换为 ParamComparator
      */
@@ -602,11 +579,6 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         return rlPdIdList;
     }
 
-    public MgProductDbSearch setUpSalesStatus(MgProductDbSearch.UpSalesStatusEnum upSalesStatusEnum){
-        this.upSalesStatus = upSalesStatusEnum.getUpSalesStatus();
-        return this;
-    }
-
     public FaiList<Integer> getTypeList() {
         return typeList;
     }
@@ -633,6 +605,11 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         return this;
     }
 
+    public MgProductDbSearch setSearchKeyword(String searchKeyword) {
+        this.searchKeyWord = searchKeyword;
+        return this;
+    }
+
     // 如果商品参数的搜索rlPropIdList没有设置的话，那就只是代表商品名称like搜索
     public MgProductDbSearch setSearchKeyWord(String searchKeyWord,
                                               boolean enableSearchProductName,
@@ -643,7 +620,7 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         this.searchKeyWord = searchKeyWord;
         this.enableSearchProductName = enableSearchProductName;
         this.enableSearchProductProp = enableSearchProductProp;
-        this.keyWordSearchInPropIdList = keyWordSearchInPropIdList;   //  在指定 propId 进行 like  搜索
+        this.keyWordSearchInPropIdList = keyWordSearchInPropIdList;   // 在指定 propId 进行 like  搜索
         this.enableSearchProductRemark = enableSearchProductRemark;
         this.searchProductRemarkKeyList = searchProductRemarkKeyList;
         return this;
@@ -653,10 +630,6 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         return enableSearchProductName;
     }
 
-    public MgProductDbSearch setEnableSearchProductName(boolean enableSearchProductName) {
-        this.enableSearchProductName = enableSearchProductName;
-        return this;
-    }
 
     public boolean getEnableSearchProductProp() {
         return enableSearchProductProp;
@@ -788,7 +761,7 @@ public class MgProductDbSearch extends BaseMgProductSearch {
     }
 
 
-    public MgProductDbSearch setCustomComparator(String customComparatorKey, String customComparatorTable, FaiList<Integer> customComparatorList) {
+    public MgProductDbSearch setCustomComparator(String customComparatorKey, String customComparatorTable, FaiList<?> customComparatorList) {
         this.customComparatorKey = customComparatorKey;
         this.customComparatorTable = customComparatorTable;
         this.customComparatorList = customComparatorList;
@@ -810,30 +783,68 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         return this;
     }
 
-    public MgProductDbSearch setComparator(String customComparatorKey, String customComparatorTable, FaiList<Integer> customComparatorList,
+    public MgProductDbSearch setComparator(String customComparatorKey, String customComparatorTable, FaiList<?> customComparatorList,
                                            String firstComparatorKey, String firstComparatorTable, boolean firstComparatorKeyOrderByDesc,
                                            boolean needSecondComparatorSorting, String secondComparatorKey, String secondComparatorTable, boolean secondComparatorKeyOrderByDesc) {
-        this.customComparatorKey = customComparatorKey;
-        this.customComparatorTable = customComparatorTable;
-        this.customComparatorList = customComparatorList;
+        return setCustomComparator(customComparatorKey, customComparatorTable, customComparatorList)
+            .setFirstComparator(firstComparatorKey, firstComparatorTable, firstComparatorKeyOrderByDesc)
+            .setSecondComparator(needSecondComparatorSorting, secondComparatorKey, secondComparatorTable, secondComparatorKeyOrderByDesc);
+    }
 
-        this.firstComparatorKey = firstComparatorKey;
-        this.firstComparatorTable = firstComparatorTable;
-        this.firstComparatorKeyOrderByDesc = firstComparatorKeyOrderByDesc;
+    // 保存rlFlag
+    private ParamMatcher rlFlagMatcher;
 
-        this.needSecondComparatorSorting = needSecondComparatorSorting;
-        this.secondComparatorKey = secondComparatorKey;
-        this.secondComparatorTable = secondComparatorTable;
-        this.secondComparatorKeyOrderByDesc = secondComparatorKeyOrderByDesc;
+    // 保存flag
+    private ParamMatcher flagMatcher;
+
+    // rlFlag
+    public MgProductDbSearch setPdRlFlag(boolean and, String op, int mask, int value) {
+        String rlFlag = ProductBasicEntity.ProductInfo.RL_FLAG;
+        if (rlFlagMatcher == null) {
+            rlFlagMatcher = new ParamMatcher();
+        }
+
+        if (and) {
+            rlFlagMatcher.and(rlFlag, op, mask, value);
+        } else {
+            rlFlagMatcher.or(rlFlag, op, mask, value);
+        }
         return this;
     }
 
+    // flag
+    public MgProductDbSearch setPdFlag(boolean and, String op, int mask, int value) {
+        String rlFlag = ProductBasicEntity.ProductInfo.FLAG;
+        if (flagMatcher == null) {
+            flagMatcher = new ParamMatcher();
+        }
+
+        if (and) {
+            flagMatcher.and(rlFlag, op, mask, value);
+        } else {
+            flagMatcher.or(rlFlag, op, mask, value);
+        }
+
+        return this;
+    }
+
+    private void parseParamMatcher(Param dbSearchParam) {
+        FaiList<Param> flags = (FaiList<Param>) dbSearchParam.getObject(DbSearchInfo.FLAG_PARAM_MATCHER);
+        FaiList<Param> rlFlags = (FaiList<Param>) dbSearchParam.getObject(DbSearchInfo.RLFLAG_PARAM_MATCHER);
+        if (!Util.isEmptyList(rlFlags)) {
+            // 避免NPE
+            this.rlFlagMatcher = ParamMatcher.parseParamMatcher(rlFlags);
+        }
+        if (!Util.isEmptyList(flags)) {
+            // 避免NPE
+            this.flagMatcher = ParamMatcher.parseParamMatcher(flags);
+        }
+    }
 
     /**
      * 是否有自定义的排序
      */
     public boolean hasCustomComparator() {
-        // return !Str.isEmpty(customComparatorKey) && !Util.isEmptyList(customComparatorList);
         return !Str.isEmpty(customComparatorKey) && !Str.isEmpty(customComparatorTable) && !Util.isEmptyList(customComparatorList);
     }
 
@@ -861,6 +872,97 @@ public class MgProductDbSearch extends BaseMgProductSearch {
 
     public MgProductDbSearch setCustomComparatorTable(String customComparatorTable) {
         this.customComparatorTable = customComparatorTable;
+        return this;
+    }
+
+    public MgProductDbSearch setEnableSearchProductName(boolean enableSearchProductName) {
+        this.enableSearchProductName = enableSearchProductName;
+        return this;
+    }
+
+    public MgProductDbSearch setEnableSearchSkuCode(boolean enableSearchSkuCode) {
+        this.enableSearchSkuCode = enableSearchSkuCode;
+        return this;
+    }
+
+    public MgProductDbSearch setUpSalesStatus(int upSalesStatus) {
+        this.upSalesStatus = upSalesStatus;
+        return this;
+    }
+
+    public MgProductDbSearch setFirstComparatorKey(String firstComparatorKey) {
+        this.firstComparatorKey = firstComparatorKey;
+        return this;
+    }
+
+    public MgProductDbSearch setFirstComparatorKeyOrderByDesc(boolean firstComparatorKeyOrderByDesc) {
+        this.firstComparatorKeyOrderByDesc = firstComparatorKeyOrderByDesc;
+        return this;
+    }
+
+    public MgProductDbSearch setNeedSecondComparatorSorting(boolean needSecondComparatorSorting) {
+        this.needSecondComparatorSorting = needSecondComparatorSorting;
+        return this;
+    }
+
+    public MgProductDbSearch setSecondComparatorKey(String secondComparatorKey) {
+        this.secondComparatorKey = secondComparatorKey;
+        return this;
+    }
+
+    public MgProductDbSearch setSecondComparatorKeyOrderByDesc(boolean secondComparatorKeyOrderByDesc) {
+        this.secondComparatorKeyOrderByDesc = secondComparatorKeyOrderByDesc;
+        return this;
+    }
+
+    public MgProductDbSearch setAddTimeBegin(Calendar addTimeBegin) {
+        this.addTimeBegin = addTimeBegin;
+        return this;
+    }
+
+    public MgProductDbSearch setAddTimeEnd(Calendar addTimeEnd) {
+        this.addTimeEnd = addTimeEnd;
+        return this;
+    }
+
+
+    public MgProductDbSearch setPriceBegin(Long priceBegin) {
+        this.priceBegin = priceBegin;
+        return this;
+    }
+
+    public MgProductDbSearch setPriceEnd(Long priceEnd) {
+        this.priceEnd = priceEnd;
+        return this;
+    }
+
+    public MgProductDbSearch setSalesBegin(Integer salesBegin) {
+        this.salesBegin = salesBegin;
+        return this;
+    }
+
+    public MgProductDbSearch setSalesEnd(Integer salesEnd) {
+        this.salesEnd = salesEnd;
+        return this;
+    }
+
+    public MgProductDbSearch setRemainCountBegin(Integer remainCountBegin) {
+        this.remainCountBegin = remainCountBegin;
+        return this;
+    }
+
+    public MgProductDbSearch setRemainCountEnd(Integer remainCountEnd) {
+        this.remainCountEnd = remainCountEnd;
+        return this;
+    }
+
+    public MgProductDbSearch setCustomComparatorKey(String customComparatorKey) {
+        this.customComparatorKey = customComparatorKey;
+        return this;
+    }
+
+    public MgProductDbSearch setCustomComparatorList(FaiList<?> customComparatorList) {
+        this.customComparatorList = customComparatorList;
         return this;
     }
 }

@@ -200,4 +200,44 @@ public abstract class BaseMgProductSearch {
     public boolean isEnableSearchProductName() {
         return enableSearchProductName;
     }
+
+    /*public BaseMgProductSearch setSearchKeyWord(String searchKeyWord) {
+        this.searchKeyWord = searchKeyWord;
+        return this;
+    }*/
+
+    /*public BaseMgProductSearch setEnableSearchProductName(boolean enableSearchProductName) {
+        this.enableSearchProductName = enableSearchProductName;
+        return this;
+    }*/
+
+    /*public BaseMgProductSearch setUpSalesStatus(int upSalesStatus) {
+        this.upSalesStatus = upSalesStatus;
+        return this;
+    }
+
+    public BaseMgProductSearch setFirstComparatorKey(String firstComparatorKey) {
+        this.firstComparatorKey = firstComparatorKey;
+        return this;
+    }
+
+    public BaseMgProductSearch setFirstComparatorKeyOrderByDesc(boolean firstComparatorKeyOrderByDesc) {
+        this.firstComparatorKeyOrderByDesc = firstComparatorKeyOrderByDesc;
+        return this;
+    }
+
+    public BaseMgProductSearch setNeedSecondComparatorSorting(boolean needSecondComparatorSorting) {
+        this.needSecondComparatorSorting = needSecondComparatorSorting;
+        return this;
+    }
+
+    public BaseMgProductSearch setSecondComparatorKey(String secondComparatorKey) {
+        this.secondComparatorKey = secondComparatorKey;
+        return this;
+    }
+
+    public BaseMgProductSearch setSecondComparatorKeyOrderByDesc(boolean secondComparatorKeyOrderByDesc) {
+        this.secondComparatorKeyOrderByDesc = secondComparatorKeyOrderByDesc;
+        return this;
+    }*/
 }

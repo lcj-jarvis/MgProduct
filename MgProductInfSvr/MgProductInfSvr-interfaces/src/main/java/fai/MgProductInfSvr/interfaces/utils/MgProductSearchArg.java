@@ -37,22 +37,12 @@ public class MgProductSearchArg {
      */
     private int total;
 
-    /**
-     * 初始化MgProductSearchArg。
-     * @param esSearchParam 包含es搜索条件，Param里的key，可以参考MgProductEsSearch的initSearchParam方法进行设置
-     * @param dbSearchParam 包含db搜索条件，Param里的key，可以参考MgProductDbSearch的initSearchParam方法进行设置
-     */
-    public MgProductSearchArg initSearchParam(Param esSearchParam, Param dbSearchParam) {
-        // 按需加载
-        if (!Str.isEmpty(esSearchParam)) {
-            mgProductEsSearch = new MgProductEsSearch();
-            mgProductEsSearch.initSearchParam(esSearchParam);
-        }
-        if (!Str.isEmpty(dbSearchParam)) {
-            mgProductDbSearch = new MgProductDbSearch();
-            mgProductDbSearch.initSearchParam(dbSearchParam);
-        }
-        return this;
+    public MgProductSearchArg() {
+    }
+
+    public MgProductSearchArg(MgProductEsSearch mgProductEsSearch, MgProductDbSearch mgProductDbSearch) {
+        this.mgProductEsSearch = mgProductEsSearch;
+        this.mgProductDbSearch = mgProductDbSearch;
     }
 
     public Param getDbSearchParam() {
@@ -77,6 +67,7 @@ public class MgProductSearchArg {
     public MgProductDbSearch getMgProductDbSearch() {
         return mgProductDbSearch;
     }
+
 
     public MgProductSearchArg setMgProductDbSearch(MgProductDbSearch mgProductDbSearch) {
         this.mgProductDbSearch = mgProductDbSearch;
@@ -106,7 +97,7 @@ public class MgProductSearchArg {
     }
 
     public MgProductSearchArg setLimit(int limit) {
-        this.limit = limit;
+        this.limit = limit >= 0 ? limit : this.limit;
         return this;
     }
 

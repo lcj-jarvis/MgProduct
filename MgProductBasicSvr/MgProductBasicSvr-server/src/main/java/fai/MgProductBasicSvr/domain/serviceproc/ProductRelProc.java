@@ -283,7 +283,9 @@ public class ProductRelProc {
         ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
         matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
-        FaiList<Param> list = searchFromDb(aid, matcher, Utils.asFaiList(ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.PD_ID));
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        FaiList<Param> list = searchFromDbWithDel(aid, searchArg, Utils.asFaiList(ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.PD_ID));
         for(Param info : list) {
             int unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
             int pdId = info.getInt(ProductRelEntity.Info.PD_ID);

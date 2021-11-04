@@ -397,17 +397,19 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         }
 
         // 商品的状态（商品业务表）
-        // 执行到这里说明该字段没有在es中没搜索过
-        if (upSalesStatus == UpSalesStatusEnum.UP_AND_DOWN_SALES.getUpSalesStatus()) {
-            // 上架或者下架的，或者两种都有
-            FaiList<Integer> statusList = new FaiList<Integer>();
-            statusList.add(ProductBasicValObj.ProductValObj.Status.UP);
-            statusList.add(ProductBasicValObj.ProductValObj.Status.DOWN);
-            paramMatcher.and(ProductBasicEntity.ProductInfo.STATUS, ParamMatcher.IN, statusList);
-        } else if (upSalesStatus != UpSalesStatusEnum.ALL.getUpSalesStatus()) {
-            // 非全部的，单独是某种状态
-            paramMatcher.and(ProductBasicEntity.ProductInfo.STATUS, ParamMatcher.EQ, upSalesStatus);
+        if (upSalesStatus != null) {
+            if (upSalesStatus == UpSalesStatusEnum.UP_AND_DOWN_SALES.getUpSalesStatus()) {
+                // 上架或者下架的，或者两种都有
+                FaiList<Integer> statusList = new FaiList<Integer>();
+                statusList.add(ProductBasicValObj.ProductValObj.Status.UP);
+                statusList.add(ProductBasicValObj.ProductValObj.Status.DOWN);
+                paramMatcher.and(ProductBasicEntity.ProductInfo.STATUS, ParamMatcher.IN, statusList);
+            } else if (upSalesStatus != UpSalesStatusEnum.ALL.getUpSalesStatus()) {
+                // 非全部的，单独是某种状态
+                paramMatcher.and(ProductBasicEntity.ProductInfo.STATUS, ParamMatcher.EQ, upSalesStatus);
+            }
         }
+
 
         //  商品录入时间
         if(addTimeBegin != null || addTimeEnd != null){
@@ -964,5 +966,10 @@ public class MgProductDbSearch extends BaseMgProductSearch {
     public MgProductDbSearch setCustomComparatorList(FaiList<?> customComparatorList) {
         this.customComparatorList = customComparatorList;
         return this;
+    }
+
+    @Override
+    public String toString() {
+        return getSearchParam().toJson();
     }
 }

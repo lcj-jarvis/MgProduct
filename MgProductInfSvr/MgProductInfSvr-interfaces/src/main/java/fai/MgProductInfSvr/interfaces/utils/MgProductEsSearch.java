@@ -1,5 +1,6 @@
 package fai.MgProductInfSvr.interfaces.utils;
 
+import com.google.common.base.Objects;
 import fai.app.FaiSearchExDef;
 import fai.comm.util.Param;
 import fai.comm.util.Str;
@@ -179,5 +180,17 @@ public class MgProductEsSearch extends BaseMgProductSearch{
         this.secondComparatorKeyType = secondComparatorKeyType;
         this.secondComparatorKeyOrderByDesc = secondComparatorKeyOrderByDesc;
         return this;
+    }
+
+    /**
+     * @return true 表示ES的搜索条件为空
+     */
+    public boolean isEmpty() {
+        return Str.isEmpty(searchKeyWord) && upSalesStatus == null;
+    }
+
+    @Override
+    public String toString() {
+        return getSearchParam().toJson();
     }
 }

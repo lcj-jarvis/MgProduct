@@ -47,15 +47,15 @@ public class MgProductSearchService {
     public Param esSearch(int flow, int aid, int unionPriId, MgProductSearchArg mgProductSearchArg) {
         FaiList<Integer> esSearchResult = new FaiList<>();
         MgProductEsSearch mgProductEsSearch = mgProductSearchArg.getMgProductEsSearch();
-        if (Objects.isNull(mgProductEsSearch)) {
-            Log.logStd("mgProductEsSearch is null;Don't need search from es;flow=%d,aid=%d,unionPriId=%d", flow, aid, unionPriId);
+        if (Objects.isNull(mgProductEsSearch) || mgProductEsSearch.isEmpty()) {
+            Log.logStd("mgProductEsSearch is null or mgProductEsSearch search condition is empty;Don't need search from es;flow=%d,aid=%d,unionPriId=%d;mgProductEsSearch=%s;", flow, aid, unionPriId, mgProductEsSearch);
             return new Param();
         }
 
         // 搜索的字段
         String name = mgProductEsSearch.getSearchKeyWord();
         // 过滤的字段
-        int status = mgProductEsSearch.getUpSalesStatus();
+        Integer status = mgProductEsSearch.getUpSalesStatus();
 
         FaiSearchExCli cli = new FaiSearchExCli(flow);
         if (!cli.init(FaiSearchExDef.App.MG_PRODUCT, aid)) {
@@ -93,16 +93,28 @@ public class MgProductSearchService {
         // 等值过滤
         filters.add(FaiSearchExDef.SearchFilter.createEqual(MgProductEsSearch.EsSearchFields.AID, FaiSearchExDef.SearchField.FieldType.INTEGER, aid));
         filters.add(FaiSearchExDef.SearchFilter.createEqual(MgProductEsSearch.EsSearchFields.UNIONPRIID, FaiSearchExDef.SearchField.FieldType.INTEGER, unionPriId));
-        if (status == BaseMgProductSearch.UpSalesStatusEnum.UP_AND_DOWN_SALES.getUpSalesStatus()) {
-            // 上架或者下架的，或者两种都有。使用in过滤
-            FaiList<Integer> statusList = new FaiList<>();
-            statusList.add(ProductBasicValObj.ProductValObj.Status.UP);
-            statusList.add(ProductBasicValObj.ProductValObj.Status.DOWN);
-            filters.add(FaiSearchExDef.SearchFilter.createIn(MgProductEsSearch.EsSearchFields.STATUS, FaiSearchExDef.SearchField.FieldType.INTEGER, statusList));
-        } else if (status != BaseMgProductSearch.UpSalesStatusEnum.ALL.getUpSalesStatus()) {
-            // 非全部的，单独是某种状态.使用等值过滤
-            filters.add(FaiSearchExDef.SearchFilter.createEqual(MgProductEsSearch.EsSearchFields.STATUS, FaiSearchExDef.SearchField.FieldType.INTEGER, status));
+        // 状态不为空，才设置状态
+        if (status != null) {
+            if (status == BaseMgProductSearch.UpSalesStatusEnum.UP_AND_DOWN_SALES.getUpSalesStatus()) {
+                // 上架或者下架的，或者两种都有。使用in过滤
+                FaiList<Integer> statusList = new FaiList<>();
+                statusList.add(ProductBasicValObj.ProductValObj.Status.UP);
+                statusList.add(ProductBasicValObj.ProductValObj.Status.DOWN);
+                filters.add(FaiSearchExDef.SearchFilter.createIn(MgProductEsSearch.EsSearchFields.STATUS, FaiSearchExDef.SearchField.FieldType.INTEGER, statusList));
+            } else if (status != BaseMgProductSearch.UpSalesStatusEnum.ALL.getUpSalesStatus()) {
+                // 全部状态的
+                // 上架、下架、删除。使用in过滤
+                FaiList<Integer> statusList = new FaiList<>();
+                statusList.add(ProductBasicValObj.ProductValObj.Status.UP);
+                statusList.add(ProductBasicValObj.ProductValObj.Status.DOWN);
+                statusList.add(ProductBasicValObj.ProductValObj.Status.DEL);
+                filters.add(FaiSearchExDef.SearchFilter.createIn(MgProductEsSearch.EsSearchFields.STATUS, FaiSearchExDef.SearchField.FieldType.INTEGER, statusList));
+            } else {
+                // 非全部的，单独是某种状态.使用等值过滤
+                filters.add(FaiSearchExDef.SearchFilter.createEqual(MgProductEsSearch.EsSearchFields.STATUS, FaiSearchExDef.SearchField.FieldType.INTEGER, status));
+            }
         }
+
 
         // 排序列表, 首先根据第一字段排序, 再根据第二字段排序（如果有第二字段排序）
         FaiList<FaiSearchExDef.SearchSort> sorts = new FaiList<>();
@@ -130,7 +142,15 @@ public class MgProductSearchService {
         // 命中条数
         Ref<Long> foundTotalRef = new Ref<>();
         // 全文检索.
-        int rt = sorts.isEmpty()? cli.fullTextQuery(searchWord, fields, filters, resultList, foundTotalRef) : cli.fullTextQuery(searchWord, fields, filters, sorts, resultList, foundTotalRef);
+        int rt ;
+        if (!Str.isEmpty(mgProductEsSearch.getSearchKeyWord())) {
+            // 关键词搜索
+            rt = sorts.isEmpty()? cli.fullTextQuery(searchWord, fields, filters, resultList, foundTotalRef) : cli.fullTextQuery(searchWord, fields, filters, sorts, resultList, foundTotalRef);
+        } else {
+            // 只搜索状态的条件，不搜索关键字
+            rt = cli.completelyFilter(filters, sorts, resultList, foundTotalRef);
+        }
+
         if (rt != Errno.OK) {
             throw new MgException(rt, "es search error;flow=%d,aid=%d,unionPriId=%d,fields=%s,filters=%s,sorts=%s", flow, aid, unionPriId, fields, filters, sorts);
         }
@@ -177,6 +197,7 @@ public class MgProductSearchService {
                 mgProductDbSearch = new MgProductDbSearch();
                 mgProductDbSearch.initSearchParam(dbSearchParam);
             }
+            Log.logStd("flow=%d;aid=%d;unionPriId=%d;mgProductEsSearch=%s;MgProductDbSearch=%s", flow, aid, unionPriId, mgProductEsSearch, mgProductDbSearch);
 
             // 初始化搜索条件
             MgProductSearchArg mgProductSearchArg = new MgProductSearchArg(mgProductEsSearch, mgProductDbSearch)
@@ -198,7 +219,8 @@ public class MgProductSearchService {
             String cacheKey = MgProductSearchCache.ResultCache.getResultCacheKey(aid, unionPriId, mgProductSearchArg.getEsSearchParam().toJson(), mgProductSearchArg.getDbSearchParam().toJson());
             // es查询条件不为空，mgProductDbSearch为空，看看是否存在缓存。
             // 【注意】如果初始化时候在mgProductDbSearch中设置了排序，mgProductDbSearch也不为null。
-            boolean onlySearchInEs = Objects.nonNull(mgProductEsSearch) && Objects.isNull(mgProductDbSearch);
+            boolean onlySearchInEs = Objects.nonNull(mgProductEsSearch) && !mgProductEsSearch.isEmpty() && Objects.isNull(mgProductDbSearch)
+                || Objects.nonNull(mgProductEsSearch) && !mgProductEsSearch.isEmpty() && Objects.nonNull(mgProductDbSearch) && mgProductDbSearch.isEmpty() && mgProductDbSearch.getParamComparator().isEmpty();
             if (onlySearchInEs && MgProductSearchCache.ResultCache.existsCache(cacheKey)) {
                 Param resultCacheInfo = MgProductSearchCache.ResultCache.getCacheInfo(cacheKey);
                 // 如果es搜索条件不为空，db条件为空，就去查询es数据来源的表，获取管理态和访客态最新的修改时间,判断缓存是否有效
@@ -211,17 +233,18 @@ public class MgProductSearchService {
                     cachedVisitorDataMaxChangeTime < manageDataMaxChangeTime.value;
                 if (expired) {
                     // 缓存过期，重新搜索es，加载新的内容到缓存
-                    Log.logStd("mgProductDbSearch is null;result cache is invalid;need get result from es once again;flow=%d,aid=%d,unionPriId=%d;", flow, aid, unionPriId);
+                    Log.logStd("mgProductDbSearch is null or mgProductDbSearch search conditions is empty and not have comparator;result cache is invalid;need get result from es once again;flow=%d,aid=%d,unionPriId=%d;mgProductDbSearch=%s", flow, aid, unionPriId, mgProductDbSearch);
                     Param esResultInfo = esSearch(flow, aid, unionPriId, mgProductSearchArg);
                     FaiList<Integer> esSearchResult = esResultInfo.getList(PDIDLIST_FROME_ES_SEARCH_RESULT);
                     Long total = esResultInfo.getLong(ES_SEARCH_RESULT_TOTAL);
                     // 添加缓存
                     resultCacheInfo = searchProc.integrateAndAddCache(esSearchResult, total, manageDataMaxChangeTime.value, visitorDataMaxChangeTime.value, cacheKey);
                 }
-                Log.logStd("mgProductDbSearch is null;Don't need to unite db search;finish es search;return es searchResult;flow=%d,aid=%d,unionPriId=%d;resultInfo=%s", flow, aid, unionPriId, resultCacheInfo);
+                Log.logStd("mgProductDbSearch is null or mgProductDbSearch search conditions is empty and not have comparator;Don't need to unite db search;finish es search;return es searchResult;flow=%d,aid=%d,unionPriId=%d;resultInfo=%s;mgProductDbSearch=%s", flow, aid, unionPriId, resultCacheInfo, mgProductDbSearch);
                 resultCacheInfo.toBuffer(sendBuf, MgProductSearchDto.Key.RESULT_INFO, MgProductSearchDto.getProductSearchDto());
                 session.write(sendBuf);
-                return Errno.OK;
+                rt = Errno.OK;
+                return rt;
             }
 
             /*
@@ -241,7 +264,7 @@ public class MgProductSearchService {
                 Param resultCacheInfo = searchProc.integrateAndAddCache(esSearchResult, total, manageDataMaxChangeTime.value, visitorDataMaxChangeTime.value, cacheKey);
                 resultCacheInfo.toBuffer(sendBuf, MgProductSearchDto.Key.RESULT_INFO, MgProductSearchDto.getProductSearchDto());
                 session.write(sendBuf);
-                Log.logStd("mgProductDbSearch is null;Don't need to unite db search;only search in ES;finish es search;return es searchResult;flow=%d,aid=%d,unionPriId=%d;mgProductEsSearch=%s;resultInfo=%s", flow, aid, unionPriId, mgProductEsSearch, resultCacheInfo);
+                Log.logStd("mgProductDbSearch is null or mgProductDbSearch search conditions is empty and not have comparator;Don't need to unite db search;only search in ES;finish es search;return es searchResult;flow=%d,aid=%d,unionPriId=%d;mgProductEsSearch=%s;mgProductDbSearch=%s;resultInfo=%s", flow, aid, unionPriId, mgProductEsSearch, mgProductDbSearch, resultCacheInfo);
                 rt = Errno.OK;
                 return rt;
             }

@@ -26,7 +26,7 @@ public abstract class BaseMgProductSearch {
      * 上下架开始
      * 默认是上下架都搜索, 对应 ProductRelValObj.Status字段
      */
-    protected int upSalesStatus = UpSalesStatusEnum.ALL.upSalesStatus;
+    protected Integer upSalesStatus;
 
     /**
      * 第一排序字段
@@ -141,7 +141,7 @@ public abstract class BaseMgProductSearch {
     protected void initBaseSearchParam(Param baseSearchParam) {
         this.searchKeyWord = baseSearchParam.getString(BaseSearchInfo.SEARCH_KEYWORD);
         this.enableSearchProductName = baseSearchParam.getBoolean(BaseSearchInfo.ENABLE_SEARCH_PRODUCT_NAME, false);
-        this.upSalesStatus = baseSearchParam.getInt(BaseSearchInfo.UP_SALES_STATUS, UpSalesStatusEnum.ALL.upSalesStatus);
+        this.upSalesStatus = baseSearchParam.getInt(BaseSearchInfo.UP_SALES_STATUS);
 
         this.firstComparatorKey = baseSearchParam.getString(BaseSearchInfo.FIRST_COMPARATOR_KEY);
         this.firstComparatorKeyOrderByDesc = baseSearchParam.getBoolean(BaseSearchInfo.FIRST_COMPARATOR_KEY_ORDER_BY_DESC, false);
@@ -173,7 +173,7 @@ public abstract class BaseMgProductSearch {
         return searchKeyWord;
     }
 
-    public int getUpSalesStatus() {
+    public Integer getUpSalesStatus() {
         return upSalesStatus;
     }
 
@@ -200,44 +200,4 @@ public abstract class BaseMgProductSearch {
     public boolean isEnableSearchProductName() {
         return enableSearchProductName;
     }
-
-    /*public BaseMgProductSearch setSearchKeyWord(String searchKeyWord) {
-        this.searchKeyWord = searchKeyWord;
-        return this;
-    }*/
-
-    /*public BaseMgProductSearch setEnableSearchProductName(boolean enableSearchProductName) {
-        this.enableSearchProductName = enableSearchProductName;
-        return this;
-    }*/
-
-    /*public BaseMgProductSearch setUpSalesStatus(int upSalesStatus) {
-        this.upSalesStatus = upSalesStatus;
-        return this;
-    }
-
-    public BaseMgProductSearch setFirstComparatorKey(String firstComparatorKey) {
-        this.firstComparatorKey = firstComparatorKey;
-        return this;
-    }
-
-    public BaseMgProductSearch setFirstComparatorKeyOrderByDesc(boolean firstComparatorKeyOrderByDesc) {
-        this.firstComparatorKeyOrderByDesc = firstComparatorKeyOrderByDesc;
-        return this;
-    }
-
-    public BaseMgProductSearch setNeedSecondComparatorSorting(boolean needSecondComparatorSorting) {
-        this.needSecondComparatorSorting = needSecondComparatorSorting;
-        return this;
-    }
-
-    public BaseMgProductSearch setSecondComparatorKey(String secondComparatorKey) {
-        this.secondComparatorKey = secondComparatorKey;
-        return this;
-    }
-
-    public BaseMgProductSearch setSecondComparatorKeyOrderByDesc(boolean secondComparatorKeyOrderByDesc) {
-        this.secondComparatorKeyOrderByDesc = secondComparatorKeyOrderByDesc;
-        return this;
-    }*/
 }

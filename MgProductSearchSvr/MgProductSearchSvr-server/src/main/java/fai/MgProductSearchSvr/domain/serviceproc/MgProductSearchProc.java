@@ -170,7 +170,7 @@ public class MgProductSearchProc {
 
             // 只要es的搜索条件不为空，都要去检查es数据来源的表的数据状态，目前es数据来源于商品表，商品业务表
             if (searchMatcher.isEmpty()) {
-                if (mgProductEsSearch != null) {
+                if (mgProductEsSearch != null && !mgProductEsSearch.isEmpty()) {
                     // 只需要获取数据状态的信息，不需要设置搜索
                    // table_SearchMatcher.put(searchTableName, searchMatcher);
                     asyncGetDataStatus(flow, aid, unionPriId, tid, searchTableName, table_dataStatusFuture, asyncMgProductBasicCli, asyncMgProductStoreCli, asyncMgProductSpecCli);
@@ -186,7 +186,7 @@ public class MgProductSearchProc {
         searchTableName = MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT.getSearchTableName();
         // 只要es的搜索条件不为空，都要去检查es数据来源的表的数据状态，目前es数据来源于商品表，商品业务表
         if (searchMatcher.isEmpty()) {
-            if (mgProductEsSearch != null) {
+            if (mgProductEsSearch != null && !mgProductEsSearch.isEmpty()) {
                 // 只需要获取数据状态的信息，不需要设置搜索
                 // table_SearchMatcher.put(searchTableName, searchMatcher);
                 asyncGetDataStatus(flow, aid, unionPriId, tid, searchTableName, table_dataStatusFuture, asyncMgProductBasicCli, asyncMgProductStoreCli, asyncMgProductSpecCli);

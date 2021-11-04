@@ -1,5 +1,6 @@
 package fai.MgProductInfSvr.interfaces.utils;
 
+import com.google.common.base.Objects;
 import fai.comm.util.Param;
 import fai.comm.util.Str;
 
@@ -115,7 +116,11 @@ public class MgProductSearchArg {
      * @return true 表示es和db的查询条件都为空
      */
     public boolean isEmpty() {
-        return mgProductEsSearch == null && mgProductDbSearch == null;
+        return (mgProductEsSearch == null && mgProductDbSearch == null)
+            || (mgProductEsSearch != null && mgProductEsSearch.isEmpty() && mgProductDbSearch == null)
+            // 要保留它设置的排序
+            || (mgProductEsSearch != null && mgProductEsSearch.isEmpty() && mgProductDbSearch != null && mgProductDbSearch.isEmpty() && mgProductDbSearch.getParamComparator().isEmpty())
+            || (mgProductEsSearch == null && mgProductDbSearch != null && mgProductDbSearch.isEmpty() && mgProductDbSearch.getParamComparator().isEmpty());
     }
 
     public static final class PageInfo {

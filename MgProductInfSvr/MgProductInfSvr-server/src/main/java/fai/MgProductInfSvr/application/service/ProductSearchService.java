@@ -66,7 +66,7 @@ public class ProductSearchService extends MgProductInfService {
      * 异步获取
      */
     @SuccessRt({Errno.OK, Errno.NOT_FOUND})
-    public int searchProduct(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1,
+    public int asyncSearchProduct(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1,
                              String esSearchParamString, String dbSearchParamString, String pageInfoString, Param combined) throws IOException {
         int rt;
         if(!FaiValObj.TermId.isValidTid(tid)) {
@@ -114,7 +114,7 @@ public class ProductSearchService extends MgProductInfService {
         MgProductBasicCli mgProductBasicCli = FaiClientProxyFactory.createProxy(MgProductBasicCli.class);
         DefaultFuture getPdTask = mgProductBasicCli.getPdListByPdIds(flow, aid, unionPriId, pdIds);
         AtomicReference<FaiList<Param>> pdListRef = new AtomicReference<>();
-        getPdTask.whenCompleteAsync((BiConsumer<RemoteStandResult, Throwable>) (result, ex) -> {
+        getPdTask.whenComplete((BiConsumer<RemoteStandResult, Throwable>) (result, ex) -> {
             if (result.isSuccess() || result.getRt() == Errno.NOT_FOUND) {
                 FaiList<Param> pdList = result.getObject(ProductRelDto.Key.INFO_LIST, FaiList.class);
                 if (Objects.isNull(pdList)) {
@@ -131,20 +131,24 @@ public class ProductSearchService extends MgProductInfService {
             countDownLatch.countDown();
         });
 
+        Map<Integer, List<Param>> pdScInfoMap = new HashMap<>();
+        Map<Integer, List<Param>> pdScSkuInfoMap = new HashMap<>();
+        Map<Integer, List<Param>> pdScSkuSalesStoreInfoMap = new HashMap<>();
+        Map<Integer, List<Param>> spuSalesStoreInfoMap = new HashMap<>();
+
         // 2 ... 异步获取商品参数啥的 ... ↓
         // 2.1 获取规格相关
         MgProductSpecCli mgProductSpecCli = FaiClientProxyFactory.createProxy(MgProductSpecCli.class);
-        AtomicReference<Map<Integer, List<Param>>> pdScInfoMapRef = new AtomicReference<>();
         if (getSpec) {
             DefaultFuture getSpecTask = mgProductSpecCli.getPdScInfoList4Adm(flow, aid, unionPriId, pdIds, false);
-            getSpecTask.whenCompleteAsync((BiConsumer<RemoteStandResult, Throwable>) (result, ex) -> {
+            getSpecTask.whenComplete((BiConsumer<RemoteStandResult, Throwable>) (result, ex) -> {
                 if (result.isSuccess() || result.getRt() == Errno.NOT_FOUND) {
                     FaiList<Param> pdScInfoList = result.getObject(ProductSpecDto.Key.INFO_LIST, FaiList.class);
                     if (Objects.isNull(pdScInfoList)) {
                         // NOT_FOUND的时候是返回null的
                         pdScInfoList = new FaiList<>();
                     }
-                    pdScInfoMapRef.set(pdScInfoList.stream().collect(Collectors.groupingBy(info -> info.getInt(ProductSpecEntity.Info.PD_ID))));
+                    pdScInfoMap.putAll(pdScInfoList.stream().collect(Collectors.groupingBy(info -> info.getInt(ProductSpecEntity.Info.PD_ID))));
                     Log.logStd("finish getting spec info;flow=%d;aid=%d;unionPriId=%d;pdScInfoList=%s;", flow, aid, unionPriId, pdScInfoList);
                 } else {
                     // 报错
@@ -156,17 +160,16 @@ public class ProductSearchService extends MgProductInfService {
         }
 
         // 获取商品规格sku
-        AtomicReference<Map<Integer, List<Param>>> pdScSkuInfoMapRef = new AtomicReference<>();
         if(getSpecSku) {
             DefaultFuture getSpecSkuTask = mgProductSpecCli.getPdSkuInfoList4Adm(flow, aid, pdIds, true);
-            getSpecSkuTask.whenCompleteAsync((BiConsumer<RemoteStandResult, Throwable>) (result, ex) -> {
+            getSpecSkuTask.whenComplete((BiConsumer<RemoteStandResult, Throwable>) (result, ex) -> {
                 if (result.isSuccess() || result.getRt() == Errno.NOT_FOUND) {
                     FaiList<Param> pdScSkuInfoList = result.getObject(ProductSpecSkuDto.Key.INFO_LIST, FaiList.class);
                     if (Objects.isNull(pdScSkuInfoList)) {
                         // NOT_FOUND的时候是返回null的
                         pdScSkuInfoList = new FaiList<>();
                     }
-                    pdScSkuInfoMapRef.set(pdScSkuInfoList.stream().collect(Collectors.groupingBy(info -> info.getInt(ProductSpecSkuEntity.Info.PD_ID))));
+                    pdScSkuInfoMap.putAll(pdScSkuInfoList.stream().collect(Collectors.groupingBy(info -> info.getInt(ProductSpecSkuEntity.Info.PD_ID))));
                     Log.logStd("finish getting SpecSku info;flow=%d;aid=%d;pdScSkuInfoList=%s;", flow, aid, pdScSkuInfoList);
                 } else {
                     // 报错
@@ -179,17 +182,16 @@ public class ProductSearchService extends MgProductInfService {
 
         // 2.2 获取销售库存相关
         MgProductStoreCli mgProductStoreCli = FaiClientProxyFactory.createProxy(MgProductStoreCli.class);
-        AtomicReference<Map<Integer, List<Param>>> pdScSkuSalesStoreInfoMapRef = new AtomicReference<>();
         if(getStoreSales) {
             DefaultFuture getStoreSalesTask = mgProductStoreCli.batchGetSkuStoreSalesByUidAndPdId(flow, aid, tid, new FaiList<>(Collections.singletonList(unionPriId)), pdIds);
-            getStoreSalesTask.whenCompleteAsync((BiConsumer<RemoteStandResult, Throwable>) (result, ex) -> {
+            getStoreSalesTask.whenComplete((BiConsumer<RemoteStandResult, Throwable>) (result, ex) -> {
                 if (result.isSuccess() || result.getRt() == Errno.NOT_FOUND) {
                     FaiList<Param> pdScSkuSalesStoreInfoList = result.getObject(StoreSalesSkuDto.Key.INFO_LIST, FaiList.class);
                     if (Objects.isNull(pdScSkuSalesStoreInfoList)) {
                         // NOT_FOUND的时候是返回null的
                         pdScSkuSalesStoreInfoList = new FaiList<>();
                     }
-                    pdScSkuSalesStoreInfoMapRef.set(pdScSkuSalesStoreInfoList.stream().collect(Collectors.groupingBy(info -> info.getInt(StoreSalesSkuEntity.Info.PD_ID))));
+                    spuSalesStoreInfoMap.putAll(pdScSkuSalesStoreInfoList.stream().collect(Collectors.groupingBy(info -> info.getInt(StoreSalesSkuEntity.Info.PD_ID))));
                     Log.logStd("finish getting StoreSales info;flow=%d;aid=%d;pdScSkuInfoList=%s;", flow, aid, pdScSkuSalesStoreInfoList);
                 } else {
                     // 报错
@@ -201,18 +203,17 @@ public class ProductSearchService extends MgProductInfService {
         }
 
         // 2.2.2 spu销售库存相关
-        AtomicReference<Map<Integer, List<Param>>> spuSalesStoreInfoMapRef = new AtomicReference<>();
         if(getSpuSales) {
             FaiList<String> useSourceFieldList = new FaiList<>();
             DefaultFuture getSpuSalesTask = mgProductStoreCli.getSpuBizSummaryInfoList(flow, aid, tid, unionPriId, pdIds, useSourceFieldList);
-            getSpuSalesTask.whenCompleteAsync((BiConsumer<RemoteStandResult, Throwable>) (result, ex) -> {
+            getSpuSalesTask.whenComplete((BiConsumer<RemoteStandResult, Throwable>) (result, ex) -> {
                 if (result.isSuccess() || result.getRt() == Errno.NOT_FOUND) {
                     FaiList<Param> spuSalesStoreInfoList = result.getObject(SpuBizSummaryDto.Key.INFO_LIST, FaiList.class);
                     if (Objects.isNull(spuSalesStoreInfoList)) {
                         // NOT_FOUND的时候是返回null的
                         spuSalesStoreInfoList = new FaiList<>();
                     }
-                    spuSalesStoreInfoMapRef.set(spuSalesStoreInfoList.stream().collect(Collectors.groupingBy(info -> info.getInt(SpuBizSummaryEntity.Info.PD_ID))));
+                    pdScSkuSalesStoreInfoMap.putAll(spuSalesStoreInfoList.stream().collect(Collectors.groupingBy(info -> info.getInt(SpuBizSummaryEntity.Info.PD_ID))));
                     Log.logStd("finish getting StoreSales info;flow=%d;aid=%d;pdScSkuInfoList=%s;", flow, aid, spuSalesStoreInfoList);
                 } else {
                     // 报错
@@ -231,10 +232,6 @@ public class ProductSearchService extends MgProductInfService {
         }
 
         // 整合所有的信息
-        Map<Integer, List<Param>> pdScInfoMap = pdScInfoMapRef.get();
-        Map<Integer, List<Param>> pdScSkuInfoMap = pdScSkuInfoMapRef.get();
-        Map<Integer, List<Param>> pdScSkuSalesStoreInfoMap = pdScSkuSalesStoreInfoMapRef.get();
-        Map<Integer, List<Param>> spuSalesStoreInfoMap = spuSalesStoreInfoMapRef.get();
         FaiList<Param> pdList = pdListRef.get();
 
         FaiList<Param> result = new FaiList<>();
@@ -285,9 +282,9 @@ public class ProductSearchService extends MgProductInfService {
     }
 
 
-    // TODO : 同步的方式，先保留
+    // TODO : 同步的方式，先暂时使用这个
     @SuccessRt({Errno.OK, Errno.NOT_FOUND})
-    public int syncSearchProduct(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1,
+    public int searchProduct(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1,
                              String esSearchParamString, String dbSearchParamString, String pageInfoString, Param combined) throws IOException {
         int rt;
         if(!FaiValObj.TermId.isValidTid(tid)) {

@@ -82,7 +82,7 @@ public class ProductSearchService extends MgProductInfService {
         // 先查搜索服务
         Param searchResult = searchPd(flow, aid, unionPriId, tid, esSearchParamString, dbSearchParamString, pageInfoString);
         FaiList<Integer> pdIds = searchResult.getList(MgProductSearchResult.Info.ID_LIST);
-        if(pdIds == null) {
+        if(Utils.isEmptyList(pdIds)) {
             Log.logDbg("not found;aid=%d;uid=%d;esSearchParamString=%s;dbSearchParamString=%s", aid, unionPriId, esSearchParamString, dbSearchParamString);
             return Errno.NOT_FOUND;
         }
@@ -297,7 +297,7 @@ public class ProductSearchService extends MgProductInfService {
         // 先查搜索服务
         Param searchResult = searchPd(flow, aid, unionPriId, tid, esSearchParamString, dbSearchParamString, pageInfoString);
         FaiList<Integer> pdIds = searchResult.getList(MgProductSearchResult.Info.ID_LIST);
-        if(pdIds == null) {
+        if(Utils.isEmptyList(pdIds)) {
             Log.logDbg("not found;aid=%d;uid=%d;esSearchParamString=%s;dbSearchParamString=%s", aid, unionPriId, esSearchParamString, dbSearchParamString);
             return Errno.NOT_FOUND;
         }
@@ -363,6 +363,7 @@ public class ProductSearchService extends MgProductInfService {
         }
 
         FaiList<Param> list = new FaiList<>();
+        Log.logStd("flow=%d;aid=%d;unionPriId=%d;pdList=%s;", flow, aid, unionPriId, pdList);
         for (Param productInfo : pdList) {
             Integer pdId = productInfo.getInt(ProductBasicEntity.ProductInfo.PD_ID);
             Param info = new Param();

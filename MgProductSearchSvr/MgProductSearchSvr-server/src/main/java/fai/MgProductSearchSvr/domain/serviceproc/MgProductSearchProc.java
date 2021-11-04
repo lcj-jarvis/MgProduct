@@ -17,6 +17,7 @@ import fai.comm.rpc.client.FaiClientProxyFactory;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 import fai.middleground.svrutil.exception.MgException;
+import sun.plugin.com.Utils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -27,6 +28,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.BiConsumer;
 
+import static fai.MgProductInfSvr.interfaces.utils.BaseMgProductSearch.BaseSearchInfo.SEARCH_KEYWORD;
 import static fai.MgProductSearchSvr.domain.serviceproc.MgProductSearchProc.DbSearchSorterInfo.*;
 
 /**
@@ -421,7 +423,7 @@ public class MgProductSearchProc {
         }
 
         // 如果关键词已经在es用做了商品名称搜索，就不在db中用作商品名称搜索了
-        boolean useSearchKeywordAsPdNameSearchInEs = esSearchParam.containsKey(BaseMgProductSearch.BaseSearchInfo.SEARCH_KEYWORD) &&
+        boolean useSearchKeywordAsPdNameSearchInEs = esSearchParam.containsKey(SEARCH_KEYWORD) &&
             esSearchParam.getBoolean(BaseMgProductSearch.BaseSearchInfo.ENABLE_SEARCH_PRODUCT_NAME, false);
         if (useSearchKeywordAsPdNameSearchInEs) {
             dbSearchParam.remove(BaseMgProductSearch.BaseSearchInfo.ENABLE_SEARCH_PRODUCT_NAME);
@@ -429,10 +431,10 @@ public class MgProductSearchProc {
 
         // TODO 满足门店
         // 将es的其他条件，整合到db
-        if (!esSearchParam.isEmpty() && !dbSearchParam.isEmpty()) {
+        boolean hasSearchKeywordSearch = !esSearchParam.isEmpty() && !Str.isEmpty(esSearchParam.getString(SEARCH_KEYWORD));
+        if (hasSearchKeywordSearch && !dbSearchParam.isEmpty()) {
             dbSearchParam.setInt(BaseMgProductSearch.BaseSearchInfo.UP_SALES_STATUS, esSearchParam.getInt(BaseMgProductSearch.BaseSearchInfo.UP_SALES_STATUS));
         }
-
 
         // 不移除以下代码的话：自定义排序 > db里设置的第一排序 > db里设置的第二排序 > es里设置的排序
         // 根据看情况要不要移除吧，目前先移除

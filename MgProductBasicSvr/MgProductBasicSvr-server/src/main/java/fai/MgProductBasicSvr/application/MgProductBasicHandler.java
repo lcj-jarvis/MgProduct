@@ -744,8 +744,7 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
         return dataMigrateService.dataMigrate(session, flow, aid, tid, list);
     }
 
-    // private ProductBasicService service = ServiceProxy.create(new ProductBasicService());
-    private ProductBasicService service = new ProductBasicService();
+    private ProductBasicService service = ServiceProxy.create(new ProductBasicService());
     private ProductBindGroupService groupBindService = ServiceProxy.create(new ProductBindGroupService());
     private ProductBindPropService propBindService = ServiceProxy.create(new ProductBindPropService());
     private ProductBindTagService tagBindService = ServiceProxy.create(new ProductBindTagService());

@@ -154,7 +154,7 @@ public class MgProductSearchService {
         if (rt != Errno.OK) {
             throw new MgException(rt, "es search error;flow=%d,aid=%d,unionPriId=%d,fields=%s,filters=%s,sorts=%s", flow, aid, unionPriId, fields, filters, sorts);
         }
-        Log.logStd("finish searching es;flow=%d,aid=%d,unionPriId=%d,fields=%s,filters=%s,sorts=%s,resultList=%s,foundTotalSize=%d", flow, aid, unionPriId, fields, filters, sorts, resultList, foundTotalRef.value);
+        Log.logStd("finish searching es;flow=%d,foundTotalSize=%d,aid=%d,unionPriId=%d,fields=%s,filters=%s,sorts=%s,resultList=%s,", flow, foundTotalRef.value, aid, unionPriId, fields, filters, sorts, resultList);
 
         // TODO 可以根据命中条数，并发多个线程去获取es数据
 

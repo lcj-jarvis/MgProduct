@@ -719,9 +719,15 @@ public class MgProductInfService extends ServicePub {
                 return rt;
             }
             int pdId = pdInfo.getInt(ProductRelEntity.Info.PD_ID);
-            // 1.1 富文本字段
+            int sourceUnionPriId = pdInfo.getInt(ProductBasicEntity.ProductInfo.SOURCE_UNIONPRIID);
+            Param primary = getByUnionPriId(flow, aid, sourceUnionPriId);
+            int sourceTid = primary.getInt(MgPrimaryKeyEntity.Info.TID);
+            int sourceSiteId = primary.getInt(MgPrimaryKeyEntity.Info.SITE_ID);
+            int sourceLgId = primary.getInt(MgPrimaryKeyEntity.Info.LGID);
+            int sourceKeepPriId = primary.getInt(MgPrimaryKeyEntity.Info.KEEP_PRI_ID1);
+            // 1.1 富文本字段, 需要通过sourceUnionPriId去查
             RichTextProc richProc = new RichTextProc(flow);
-            FaiList<Param> richTexts = richProc.getPdRichText(aid, tid, siteId, lgId, keepPriId1, pdId);
+            FaiList<Param> richTexts = richProc.getPdRichText(aid, sourceTid, sourceSiteId, sourceLgId, sourceKeepPriId, pdId);
             for(Param richText : richTexts) {
                 int richType = richText.getInt(MgRichTextEntity.Info.TYPE);
                 String content = richText.getString(MgRichTextEntity.Info.CONTENT);

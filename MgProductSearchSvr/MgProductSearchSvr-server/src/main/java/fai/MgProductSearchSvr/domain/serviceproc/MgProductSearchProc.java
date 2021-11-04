@@ -17,7 +17,6 @@ import fai.comm.rpc.client.FaiClientProxyFactory;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 import fai.middleground.svrutil.exception.MgException;
-import sun.plugin.com.Utils;
 
 import java.util.HashMap;
 import java.util.Map;

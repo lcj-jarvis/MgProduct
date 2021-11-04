@@ -29,6 +29,7 @@ import fai.comm.rpc.client.FaiClientProxyFactory;
 import fai.comm.util.*;
 import fai.middleground.svrutil.annotation.SuccessRt;
 import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.misc.Utils;
 
 import java.io.IOException;
 import java.util.*;
@@ -201,7 +202,7 @@ public class ProductSearchService extends MgProductInfService {
         }
 
         // 2.2.2 spu销售库存相关
-        AtomicReference<Map<Integer, List<Param>>> spuSalesStoreInfoMapRef = new AtomicReference<>();
+        AtomicReference<Map<Integer, Param>> spuSalesStoreInfoMapRef = new AtomicReference<>();
         if(getSpuSales) {
             FaiList<String> useSourceFieldList = new FaiList<>();
             DefaultFuture getSpuSalesTask = mgProductStoreCli.getSpuBizSummaryInfoList(flow, aid, tid, unionPriId, pdIds, useSourceFieldList);
@@ -212,7 +213,7 @@ public class ProductSearchService extends MgProductInfService {
                         // NOT_FOUND的时候是返回null的
                         spuSalesStoreInfoList = new FaiList<>();
                     }
-                    spuSalesStoreInfoMapRef.set(spuSalesStoreInfoList.stream().collect(Collectors.groupingBy(info -> info.getInt(SpuBizSummaryEntity.Info.PD_ID))));
+                    spuSalesStoreInfoMapRef.set(Utils.getMap(spuSalesStoreInfoList, SpuBizSummaryEntity.Info.PD_ID));
                     Log.logStd("finish getting StoreSales info;flow=%d;aid=%d;pdScSkuInfoList=%s;", flow, aid, spuSalesStoreInfoList);
                 } else {
                     // 报错
@@ -234,7 +235,7 @@ public class ProductSearchService extends MgProductInfService {
         Map<Integer, List<Param>> pdScInfoMap = pdScInfoMapRef.get();
         Map<Integer, List<Param>> pdScSkuInfoMap = pdScSkuInfoMapRef.get();
         Map<Integer, List<Param>> pdScSkuSalesStoreInfoMap = pdScSkuSalesStoreInfoMapRef.get();
-        Map<Integer, List<Param>> spuSalesStoreInfoMap = spuSalesStoreInfoMapRef.get();
+        Map<Integer, Param> spuSalesStoreInfoMap = spuSalesStoreInfoMapRef.get();
         FaiList<Param> pdList = pdListRef.get();
 
         FaiList<Param> result = new FaiList<>();
@@ -264,11 +265,7 @@ public class ProductSearchService extends MgProductInfService {
                 info.setList(MgProductEntity.Info.STORE_SALES, storeSalesList);
             }
             if (getSpuSales) {
-                FaiList<Param> spuSalesList = new FaiList<>();
-                if (spuSalesStoreInfoMap.containsKey(pdId)) {
-                    spuSalesList.addAll(spuSalesStoreInfoMap.get(pdId));
-                }
-                info.setList(MgProductEntity.Info.SPU_SALES, spuSalesList);
+                info.setParam(MgProductEntity.Info.SPU_SALES, spuSalesStoreInfoMap.get(pdId));
             }
             result.add(info);
         }
@@ -357,14 +354,14 @@ public class ProductSearchService extends MgProductInfService {
             pdScSkuSalesStoreInfoMap = pdScSkuSalesStoreInfoList.stream().collect(Collectors.groupingBy(info->info.getInt(StoreSalesSkuEntity.Info.PD_ID)));
         }
         // 2.2.2 spu销售库存相关
-        Map<Integer, List<Param>> spuSalesStoreInfoMap = new HashMap<>();
+        Map<Integer, Param> spuSalesStoreInfoMap = new HashMap<>();
         if(getSpuSales) {
             FaiList<Param> spuSalesStoreInfoList = new FaiList<>();
             rt = productStoreProc.getSpuBizSummaryInfoListByPdIdList(aid, tid, unionPriId, pdIds, spuSalesStoreInfoList, null);
             if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                 return rt;
             }
-            spuSalesStoreInfoMap = spuSalesStoreInfoList.stream().collect(Collectors.groupingBy(info->info.getInt(SpuBizSummaryEntity.Info.PD_ID)));
+            spuSalesStoreInfoMap = Utils.getMap(spuSalesStoreInfoList, SpuBizSummaryEntity.Info.PD_ID);
         }
 
         FaiList<Param> list = new FaiList<>();
@@ -394,11 +391,7 @@ public class ProductSearchService extends MgProductInfService {
                 info.setList(MgProductEntity.Info.STORE_SALES, storeSalesList);
             }
             if (getSpuSales) {
-                FaiList<Param> spuSalesList = new FaiList<>();
-                if (spuSalesStoreInfoMap.containsKey(pdId)) {
-                    spuSalesList.addAll(spuSalesStoreInfoMap.get(pdId));
-                }
-                info.setList(MgProductEntity.Info.SPU_SALES, spuSalesList);
+                info.setParam(MgProductEntity.Info.SPU_SALES, spuSalesStoreInfoMap.get(pdId));
             }
             list.add(info);
         }

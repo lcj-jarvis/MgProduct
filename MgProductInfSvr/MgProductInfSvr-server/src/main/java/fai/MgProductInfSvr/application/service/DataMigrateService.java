@@ -16,6 +16,7 @@ import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
 import fai.middleground.svrutil.annotation.SuccessRt;
 import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.misc.Utils;
 
 import java.io.IOException;
 import java.util.Calendar;
@@ -27,9 +28,11 @@ import java.util.Map;
  */
 public class DataMigrateService extends MgProductInfService {
     private static DaoPool daoPool;
+    private static DaoPool ykStoreDaoPool;
     public static void init(MgProductInfSvr.SvrOption svrOption) {
         int dbType = svrOption.getDebug() ? FaiDbUtil.Type.DEV_MASTER : FaiDbUtil.Type.PRO_MASTER;
         daoPool = getDaoPool("MgProductInfSvr", dbType, 10, "ykProduct");
+        ykStoreDaoPool = getDaoPool("MgProductInfSvr", dbType, 10, "ykStore");
     }
 
     private static DaoPool getDaoPool(String svrName, int type, int maxSize, String instance) {
@@ -53,6 +56,11 @@ public class DataMigrateService extends MgProductInfService {
         return "yk_product_" + String.format("%03d", aid%100);
     }
 
+    private static String getYKStoreTableName(int aid) {
+        return "yk_product_" + String.format("%04d", aid%1000);
+    }
+
+
     @SuccessRt(Errno.OK)
     public int migrateYK(FaiSession session, int flow, int aid) throws IOException {
         int rt;
@@ -60,15 +68,39 @@ public class DataMigrateService extends MgProductInfService {
         FaiList<Param> ykPdList = null;
         FaiList<Param> ykPdBindGroupList = null;
         Dao ykDao = null;
+        Dao ykStoreDao = null;
         try {
             ykDao = daoPool.getDao();
             if (ykDao == null) {
                 rt = Errno.DAO_CONN_ERROR;
                 throw new MgException(rt, "conn db err;aid=%d", aid);
             }
+            ykStoreDao = ykStoreDaoPool.getDao();
+            if (ykStoreDao == null) {
+                rt = Errno.DAO_CONN_ERROR;
+                throw new MgException(rt, "ykStoreDao conn db err;aid=%d", aid);
+            }
             Dao.SelectArg sltArg = new Dao.SelectArg();
+            sltArg = new Dao.SelectArg();
+            sltArg.table = getYKStoreTableName(aid);
+            sltArg.searchArg.matcher = new ParamMatcher("aid", ParamMatcher.EQ, aid);
+            sltArg.searchArg.matcher.and("flag2", ParamMatcher.LAND, 0x400, 0x400);
+            FaiList<Param> stores = ykDao.select(sltArg);
+            if(stores == null) {
+                rt = Errno.DAO_ERROR;
+                throw new MgException(rt, "select storeIds err;aid=%s;", aid);
+            }
+            FaiList<Integer> delStoreIds = new FaiList<>();
+            for(Param info : stores) {
+                int storeId = info.getInt("storeId");
+                delStoreIds.add(storeId);
+            }
+
             sltArg.table = getYKPdTableName(aid);
             sltArg.searchArg.matcher = new ParamMatcher("aid", ParamMatcher.EQ, aid);
+            if(!Utils.isEmptyList(delStoreIds)) {
+                sltArg.searchArg.matcher.and("storeId", ParamMatcher.NOT_IN, delStoreIds);
+            }
             sltArg.searchArg.cmpor = new ParamComparator("storeId", false);
             ykPdList = ykDao.select(sltArg);
 
@@ -77,6 +109,9 @@ public class DataMigrateService extends MgProductInfService {
             sltArg.searchArg.matcher = new ParamMatcher("aid", ParamMatcher.EQ, aid);
             ykPdBindGroupList = ykDao.select(sltArg);
         }finally {
+            if(ykStoreDao != null) {
+                ykStoreDao.close();
+            }
             if(ykDao != null) {
                 ykDao.close();
             }
@@ -85,6 +120,7 @@ public class DataMigrateService extends MgProductInfService {
             rt = Errno.DAO_ERROR;
             throw new MgException(rt, "select from yk err;aid=%s;", aid);
         }
+
         if(ykPdList.isEmpty()) {
             Log.logStd("migrate ok;aid=%d;", aid);
             return Errno.OK;
@@ -152,13 +188,15 @@ public class DataMigrateService extends MgProductInfService {
                 remarkList.add(remarkInfo);
             }
 
-            // spu数据
-            Param spuInfo = new Param();
-            spuInfo.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, unionPriId);
-            spuInfo.setInt(SpuBizSummaryEntity.Info.RL_PD_ID, rlPdId);
-            spuInfo.setString(SpuBizSummaryEntity.Info.DISTRIBUTE_LIST, distributeTypes);
-            spuInfo.setInt(SpuBizSummaryEntity.Info.PRICE_TYPE, priceType);
-            spuList.add(spuInfo);
+            // spu数据, 软删数据没有spu数据，目前逻辑先不同步
+            if(ykStatus != -1) {
+                Param spuInfo = new Param();
+                spuInfo.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, unionPriId);
+                spuInfo.setInt(SpuBizSummaryEntity.Info.RL_PD_ID, rlPdId);
+                spuInfo.setString(SpuBizSummaryEntity.Info.DISTRIBUTE_LIST, distributeTypes);
+                spuInfo.setInt(SpuBizSummaryEntity.Info.PRICE_TYPE, priceType);
+                spuList.add(spuInfo);
+            }
 
             // 拆开原本flag，0x1和0x2是各门店独自维护的，其余是共享的
             int rlFlag = 0;

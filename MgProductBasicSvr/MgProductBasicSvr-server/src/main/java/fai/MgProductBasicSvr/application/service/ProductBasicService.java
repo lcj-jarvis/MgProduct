@@ -1164,9 +1164,11 @@ public class ProductBasicService extends BasicParentService {
                 info.assign(basicInfo);
                 // 整合绑定分类表数据
                 List<Param> bindGroupsTemp = bindGroupMap.get(pdId);
-                FaiList<Param> bindGroups = new FaiList<>(bindGroupsTemp);
-                FaiList<Integer> rlGroupIds = Utils.getValList(bindGroups, ProductBindGroupEntity.Info.RL_GROUP_ID);
-                info.setList(ProductRelEntity.Info.RL_GROUP_IDS, rlGroupIds);
+                if(bindGroupsTemp != null) {
+                    FaiList<Param> bindGroups = new FaiList<>(bindGroupsTemp);
+                    FaiList<Integer> rlGroupIds = Utils.getValList(bindGroups, ProductBindGroupEntity.Info.RL_GROUP_ID);
+                    info.setList(ProductRelEntity.Info.RL_GROUP_IDS, rlGroupIds);
+                }
 
                 list.add(info);
             }
@@ -1836,9 +1838,11 @@ public class ProductBasicService extends BasicParentService {
                 FaiList<Param> existList = relProc.searchFromDbWithDel(aid, searchArg, Utils.asFaiList(ProductRelEntity.Info.RL_PD_ID));
                 exist = !existList.isEmpty();
                 if(exist) { // 恢复软删数据
+                    maxSort = relProc.getMaxSort(aid, unionPriId);
                     rlPdId = existList.get(0).getInt(ProductRelEntity.Info.RL_PD_ID);
                     Param updateInfo = new Param();
                     updateInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DEFAULT);
+                    updateInfo.setInt(ProductRelEntity.Info.SORT, ++maxSort);
                     ParamUpdater updater = new ParamUpdater(updateInfo);
                     relProc.setSingle(aid, unionPriId, pdId, updater);
                 }else { // 新增数据
@@ -1889,6 +1893,7 @@ public class ProductBasicService extends BasicParentService {
                     tc.commit();
                     // 更新缓存
                     ProductRelCacheCtrl.InfoCache.addCache(aid, unionPriId, relData);
+                    ProductRelCacheCtrl.SortCache.set(aid, unionPriId, maxSort);
                     ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, 1); //更新数据状态缓存
                 }
                 tc.closeDao();
@@ -1992,10 +1997,20 @@ public class ProductBasicService extends BasicParentService {
                 Map<Integer, Integer> pdId_toRlPdId = Utils.getMap(existList, ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID);
                 FaiList<Integer> existPdIds = new FaiList<>(pdId_toRlPdId.keySet());
 
-                // 修改已存在的数据的status
-                Param updateInfo = new Param();
-                updateInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DEFAULT);
-                relProc.batchSet(aid, Utils.asFaiList(toUnionPriId), existPdIds, new ParamUpdater(updateInfo));
+                int maxSort = relProc.getMaxSort(aid, toUnionPriId);
+
+                // 修改已存在的数据的status 和 sort
+                FaiList<Param> updateList = new FaiList<>(existPdIds.size());
+                for(int i = 0; i < existPdIds.size(); i++) {
+                    int pdId = existPdIds.get(i);
+                    Param updateInfo = new Param();
+                    updateInfo.setInt(ProductRelEntity.Info.UNION_PRI_ID, toUnionPriId);
+                    updateInfo.setInt(ProductRelEntity.Info.PD_ID, pdId);
+                    updateInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DEFAULT);
+                    updateInfo.setInt(ProductRelEntity.Info.SORT, ++maxSort);
+                    updateList.add(updateInfo);
+                }
+                relProc.batchSet(aid, updateList);
 
                 // 新增商品业务关系
                 FaiList<Param> addRelList = new FaiList<>();
@@ -2011,7 +2026,6 @@ public class ProductBasicService extends BasicParentService {
                     addRelList.add(relData);
                 }
                 if(!addRelList.isEmpty()) {
-                    int maxSort = relProc.getMaxSort(aid, toUnionPriId);
 
                     FaiList<Param> bindList = new FaiList<>();
                     for(Param relData : addRelList) {
@@ -2294,15 +2308,16 @@ public class ProductBasicService extends BasicParentService {
                 for(Param relData : relDataList) {
                     int unionPriId = relData.getInt(ProductRelEntity.Info.UNION_PRI_ID);
                     Integer rlPdId = existMap.get(unionPriId);
+                    int maxSort = relProc.getMaxSort(aid, unionPriId);
                     if(rlPdId != null) { // 恢复软删数据
                         Param updateInfo = new Param();
                         updateInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DEFAULT);
+                        updateInfo.setInt(ProductRelEntity.Info.SORT, ++maxSort);
                         ParamUpdater updater = new ParamUpdater(updateInfo);
                         relProc.setSingle(aid, unionPriId, pdId, updater);
                         existIds.add(rlPdId);
                     }else { // 新增数据
                         if(!relData.containsKey(ProductRelEntity.Info.SORT)) {
-                            int maxSort = relProc.getMaxSort(aid, unionPriId);
                             relData.setInt(ProductRelEntity.Info.SORT, ++maxSort);
                         }
 

@@ -1,5 +1,9 @@
 package fai.MgProductInfSvr.interfaces.entity;
 
+import fai.comm.util.Parser;
+
+import java.util.Calendar;
+
 public class ProductBasicValObj {
 
     public static final class ProductValObj {
@@ -17,6 +21,10 @@ public class ProductBasicValObj {
             public static final int UP = 1; // 上架
             public static final int DOWN = 2; // 下架
             public static final int DEL = -1; // 删除
+        }
+
+        public static class Top {
+            public static final Calendar DEFAULT = Parser.parseCalendar("1970-01-01 08:00:00", "yyyy-MM-dd HH:mm:ss");
         }
     }
 

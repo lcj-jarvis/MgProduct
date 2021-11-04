@@ -18,8 +18,8 @@ public class ProductBasicValObj {
         }
 
         public static class Status {
+            public static final int DOWN = 0; // 下架
             public static final int UP = 1; // 上架
-            public static final int DOWN = 2; // 下架
             public static final int DEL = -1; // 删除
         }
 

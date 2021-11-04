@@ -1129,7 +1129,7 @@ public class ProductBasicService extends BasicParentService {
         try {
             // 业务关系表
             ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
-            FaiList<Param> relList = relProc.getProductRelList(aid, unionPriId, pdIds);
+            FaiList<Param> relList = relProc.getProductRelListWithDel(aid, unionPriId, pdIds);
             if(Utils.isEmptyList(relList)) {
                 return Errno.NOT_FOUND;
             }
@@ -1841,7 +1841,7 @@ public class ProductBasicService extends BasicParentService {
                     maxSort = relProc.getMaxSort(aid, unionPriId);
                     rlPdId = existList.get(0).getInt(ProductRelEntity.Info.RL_PD_ID);
                     Param updateInfo = new Param();
-                    updateInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DEFAULT);
+                    updateInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DOWN);
                     updateInfo.setInt(ProductRelEntity.Info.SORT, ++maxSort);
                     ParamUpdater updater = new ParamUpdater(updateInfo);
                     relProc.setSingle(aid, unionPriId, pdId, updater);
@@ -2006,7 +2006,7 @@ public class ProductBasicService extends BasicParentService {
                     Param updateInfo = new Param();
                     updateInfo.setInt(ProductRelEntity.Info.UNION_PRI_ID, toUnionPriId);
                     updateInfo.setInt(ProductRelEntity.Info.PD_ID, pdId);
-                    updateInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DEFAULT);
+                    updateInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DOWN);
                     updateInfo.setInt(ProductRelEntity.Info.SORT, ++maxSort);
                     updateList.add(updateInfo);
                 }
@@ -2310,7 +2310,7 @@ public class ProductBasicService extends BasicParentService {
                     int maxSort = relProc.getMaxSort(aid, unionPriId);
                     if(rlPdId != null) { // 恢复软删数据
                         Param updateInfo = new Param();
-                        updateInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DEFAULT);
+                        updateInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DOWN);
                         updateInfo.setInt(ProductRelEntity.Info.SORT, ++maxSort);
                         ParamUpdater updater = new ParamUpdater(updateInfo);
                         relProc.setSingle(aid, unionPriId, pdId, updater);

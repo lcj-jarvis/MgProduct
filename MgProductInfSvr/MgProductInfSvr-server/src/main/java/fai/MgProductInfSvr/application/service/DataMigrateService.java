@@ -57,7 +57,7 @@ public class DataMigrateService extends MgProductInfService {
     }
 
     private static String getYKStoreTableName(int aid) {
-        return "yk_product_" + String.format("%04d", aid%1000);
+        return "yk_store_" + String.format("%04d", aid%1000);
     }
 
 
@@ -85,7 +85,7 @@ public class DataMigrateService extends MgProductInfService {
             sltArg.table = getYKStoreTableName(aid);
             sltArg.searchArg.matcher = new ParamMatcher("aid", ParamMatcher.EQ, aid);
             sltArg.searchArg.matcher.and("flag2", ParamMatcher.LAND, 0x400, 0x400);
-            FaiList<Param> stores = ykDao.select(sltArg);
+            FaiList<Param> stores = ykStoreDao.select(sltArg);
             if(stores == null) {
                 rt = Errno.DAO_ERROR;
                 throw new MgException(rt, "select storeIds err;aid=%s;", aid);

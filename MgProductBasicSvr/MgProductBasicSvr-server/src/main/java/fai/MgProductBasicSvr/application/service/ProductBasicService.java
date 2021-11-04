@@ -1153,7 +1153,7 @@ public class ProductBasicService extends BasicParentService {
 
             // 数据整合
             Map<Integer, Param> relMap = Utils.getMap(relList, ProductRelEntity.Info.PD_ID);
-            Map<Integer, Param> basicMap = Utils.getMap(relList, ProductEntity.Info.PD_ID);
+            Map<Integer, Param> basicMap = Utils.getMap(basicList, ProductEntity.Info.PD_ID);
             for(Map.Entry<Integer, Param> entry : relMap.entrySet()) {
                 Integer pdId = entry.getKey();
                 Param info = entry.getValue();

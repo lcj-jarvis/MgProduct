@@ -152,7 +152,6 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 // 搜索条件为空。默认搜索MgProductRel的数据.mgProductSearchArg.isEmpty()
                 Log.logStd("mgProductSearchArg == null;flow=%d", m_flow);
             }
-            // 接收结果的类为空，直接结束
             if(searchResultDef == null){
                 searchResultDef = new Ref<Param>();
             }

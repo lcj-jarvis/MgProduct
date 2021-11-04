@@ -152,13 +152,15 @@ public class DataMigrateService extends MgProductInfService {
                 remarkList.add(remarkInfo);
             }
 
-            // spu数据
-            Param spuInfo = new Param();
-            spuInfo.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, unionPriId);
-            spuInfo.setInt(SpuBizSummaryEntity.Info.RL_PD_ID, rlPdId);
-            spuInfo.setString(SpuBizSummaryEntity.Info.DISTRIBUTE_LIST, distributeTypes);
-            spuInfo.setInt(SpuBizSummaryEntity.Info.PRICE_TYPE, priceType);
-            spuList.add(spuInfo);
+            // spu数据, 软删数据没有spu数据，目前逻辑先不同步
+            if(ykStatus != -1) {
+                Param spuInfo = new Param();
+                spuInfo.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, unionPriId);
+                spuInfo.setInt(SpuBizSummaryEntity.Info.RL_PD_ID, rlPdId);
+                spuInfo.setString(SpuBizSummaryEntity.Info.DISTRIBUTE_LIST, distributeTypes);
+                spuInfo.setInt(SpuBizSummaryEntity.Info.PRICE_TYPE, priceType);
+                spuList.add(spuInfo);
+            }
 
             // 拆开原本flag，0x1和0x2是各门店独自维护的，其余是共享的
             int rlFlag = 0;

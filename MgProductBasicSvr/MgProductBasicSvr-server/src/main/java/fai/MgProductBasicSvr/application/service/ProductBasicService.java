@@ -2018,7 +2018,6 @@ public class ProductBasicService extends BasicParentService {
                     int fromRlPdId = (int) relData.remove(ProductRelEntity.Info.RL_PD_ID);
                     int pdId = fromRlPdId_pdId.get(fromRlPdId);
                     relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
-                    //有存在，并且状态是为删除的
                     if(pdId_toRlPdId.containsKey(pdId)) {
                         existRlPdIds.add(pdId_toRlPdId.get(pdId));
                         continue;

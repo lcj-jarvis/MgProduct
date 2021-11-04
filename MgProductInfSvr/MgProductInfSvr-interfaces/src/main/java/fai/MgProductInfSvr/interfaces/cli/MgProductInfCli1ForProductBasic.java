@@ -224,7 +224,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      *       MgProductEntity.Info.SPEC                商品规格信息的FaiList<Param>  详见规格服务（商品规格Entity）
      *       MgProductEntity.Info.SPEC_SKU            商品规格sku信息的FaiList<Param> 详见规格服务（商品规格SKU Entity）
      *       MgProductEntity.Info.STORE_SALES         销售库存相关的FaiList<Param> 详见库存服务（商品规格库存销售 SKU Entity）
-     *       MgProductEntity.Info.SPU_SALES           spu销售库存相关的FaiList<Param> 详见库存服务（spu业务库存销售汇总 Entity）
+     *       MgProductEntity.Info.SPU_SALES           spu销售库存相关的Param 详见库存服务（spu业务库存销售汇总 Entity）
      * @return {@link Errno}
      */
     public int searchProduct(MgProductArg mgProductArg, FaiList<Param> resultList) {

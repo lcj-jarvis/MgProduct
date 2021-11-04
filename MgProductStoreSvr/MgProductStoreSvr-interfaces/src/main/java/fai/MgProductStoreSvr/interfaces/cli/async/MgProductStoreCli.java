@@ -4,6 +4,7 @@ import fai.MgProductStoreSvr.interfaces.cmd.MgProductStoreCmd;
 import fai.MgProductStoreSvr.interfaces.dto.SpuBizSummaryDto;
 import fai.MgProductStoreSvr.interfaces.dto.SpuSummaryDto;
 import fai.MgProductStoreSvr.interfaces.dto.StoreSalesSkuDto;
+import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
 import fai.comm.rpc.client.BaseRpcClient;

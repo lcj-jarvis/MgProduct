@@ -37,6 +37,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 public class ProductSearchService extends MgProductInfService {
@@ -132,13 +133,10 @@ public class ProductSearchService extends MgProductInfService {
             countDownLatch.countDown();
         });
 
-        Map<Integer, List<Param>> pdScInfoMap = new HashMap<>();
-        Map<Integer, List<Param>> pdScSkuInfoMap = new HashMap<>();
-        Map<Integer, List<Param>> pdScSkuSalesStoreInfoMap = new HashMap<>();
-        Map<Integer, List<Param>> spuSalesStoreInfoMap = new HashMap<>();
 
         // 2 ... 异步获取商品参数啥的 ... ↓
         // 2.1 获取规格相关
+        Map<Integer, List<Param>> pdScInfoMap = new HashMap<>();
         MgProductSpecCli mgProductSpecCli = FaiClientProxyFactory.createProxy(MgProductSpecCli.class);
         if (getSpec) {
             DefaultFuture getSpecTask = mgProductSpecCli.getPdScInfoList4Adm(flow, aid, unionPriId, pdIds, false);
@@ -161,6 +159,7 @@ public class ProductSearchService extends MgProductInfService {
         }
 
         // 获取商品规格sku
+        Map<Integer, List<Param>> pdScSkuInfoMap = new HashMap<>();
         if(getSpecSku) {
             DefaultFuture getSpecSkuTask = mgProductSpecCli.getPdSkuInfoList4Adm(flow, aid, pdIds, true);
             getSpecSkuTask.whenComplete((BiConsumer<RemoteStandResult, Throwable>) (result, ex) -> {
@@ -183,6 +182,7 @@ public class ProductSearchService extends MgProductInfService {
 
         // 2.2 获取销售库存相关
         MgProductStoreCli mgProductStoreCli = FaiClientProxyFactory.createProxy(MgProductStoreCli.class);
+        Map<Integer, List<Param>> pdScSkuSalesStoreInfoMap = new HashMap<>();
         if(getStoreSales) {
             DefaultFuture getStoreSalesTask = mgProductStoreCli.batchGetSkuStoreSalesByUidAndPdId(flow, aid, tid, new FaiList<>(Collections.singletonList(unionPriId)), pdIds);
             getStoreSalesTask.whenComplete((BiConsumer<RemoteStandResult, Throwable>) (result, ex) -> {
@@ -192,7 +192,7 @@ public class ProductSearchService extends MgProductInfService {
                         // NOT_FOUND的时候是返回null的
                         pdScSkuSalesStoreInfoList = new FaiList<>();
                     }
-                    spuSalesStoreInfoMap.putAll(pdScSkuSalesStoreInfoList.stream().collect(Collectors.groupingBy(info -> info.getInt(StoreSalesSkuEntity.Info.PD_ID))));
+                    pdScSkuSalesStoreInfoMap.putAll(pdScSkuSalesStoreInfoList.stream().collect(Collectors.groupingBy(info -> info.getInt(StoreSalesSkuEntity.Info.PD_ID))));
                     Log.logStd("finish getting StoreSales info;flow=%d;aid=%d;pdScSkuInfoList=%s;", flow, aid, pdScSkuSalesStoreInfoList);
                 } else {
                     // 报错
@@ -204,6 +204,7 @@ public class ProductSearchService extends MgProductInfService {
         }
 
         // 2.2.2 spu销售库存相关
+        Map<Integer, Param> spuSalesStoreInfoMap = new HashMap<>();
         if(getSpuSales) {
             FaiList<String> useSourceFieldList = new FaiList<>();
             DefaultFuture getSpuSalesTask = mgProductStoreCli.getSpuBizSummaryInfoList(flow, aid, tid, unionPriId, pdIds, useSourceFieldList);
@@ -214,7 +215,7 @@ public class ProductSearchService extends MgProductInfService {
                         // NOT_FOUND的时候是返回null的
                         spuSalesStoreInfoList = new FaiList<>();
                     }
-                    pdScSkuSalesStoreInfoMap.putAll(spuSalesStoreInfoList.stream().collect(Collectors.groupingBy(info -> info.getInt(SpuBizSummaryEntity.Info.PD_ID))));
+                    spuSalesStoreInfoMap.putAll(Utils.getMap(spuSalesStoreInfoList, SpuBizSummaryEntity.Info.PD_ID));
                     Log.logStd("finish getting StoreSales info;flow=%d;aid=%d;pdScSkuInfoList=%s;", flow, aid, spuSalesStoreInfoList);
                 } else {
                     // 报错

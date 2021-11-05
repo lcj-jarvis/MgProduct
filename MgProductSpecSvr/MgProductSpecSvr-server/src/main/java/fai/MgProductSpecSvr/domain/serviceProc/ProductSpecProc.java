@@ -531,6 +531,7 @@ public class ProductSpecProc {
             Log.logErr(rt, "dao.select error;flow=%d;aid=%s;pdIds=%s;", m_flow, aid, pdIds);
             return rt;
         }
+        // 将json形式的规格值inPdScValList 转成 FaiList，并保存
         initDBInfoList(listRef.value);
         Log.logStd(rt,"ok;flow=%s;aid=%s;pdIds=%s;",m_flow, aid, pdIds);
         return rt;

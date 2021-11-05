@@ -235,11 +235,6 @@ public class ProductBasicService extends BasicParentService {
 
         Integer status = (Integer) updateInfo.remove(ProductRelEntity.Info.STATUS);
         FaiList<Integer> rlGroupIds = (FaiList<Integer>) updateInfo.remove(ProductRelEntity.Info.RL_GROUP_IDS);
-        if(status == null && rlGroupIds == null) {
-            rt = Errno.ARGS_ERROR;
-            Log.logErr(rt, "args error, update is empty;flow=%d;aid=%d;ownUid=%d;uids=%s;rlPdIds=%s;updater=%s;", flow, aid, ownUnionPriId, unionPriIds, rlPdIds, updater.toJson());
-            return rt;
-        }
         FaiList<Param> addList = new FaiList<>();
 
         LockUtil.lock(aid);

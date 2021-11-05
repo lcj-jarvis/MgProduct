@@ -1186,6 +1186,11 @@ public class ProductBasicService extends BasicParentService {
 
                 list.add(info);
             }
+
+            // 按照pdIds排序
+            ParamComparator comparator = new ParamComparator();
+            comparator.addKey(ProductRelEntity.Info.PD_ID, pdIds);
+            Collections.sort(list, comparator);
         } finally {
             tc.closeDao();
         }

@@ -197,12 +197,12 @@ public class MgProductSearchService {
                 mgProductDbSearch = new MgProductDbSearch();
                 mgProductDbSearch.initSearchParam(dbSearchParam);
             }
-            Log.logStd("flow=%d;aid=%d;unionPriId=%d;mgProductEsSearch=%s;MgProductDbSearch=%s", flow, aid, unionPriId, mgProductEsSearch, mgProductDbSearch);
 
             // 初始化搜索条件
             MgProductSearchArg mgProductSearchArg = new MgProductSearchArg(mgProductEsSearch, mgProductDbSearch)
                 .setStart(pageInfo.getInt(MgProductSearchArg.PageInfo.START))
                 .setLimit(pageInfo.getInt(MgProductSearchArg.PageInfo.LIMIT));
+            Log.logStd("flow=%d;aid=%d;unionPriId=%d;mgProductEsSearch=%s;MgProductDbSearch=%s;start=%d;limit=%d", flow, aid, unionPriId, mgProductEsSearch, mgProductDbSearch, mgProductSearchArg.getStart(), mgProductSearchArg.getLimit());
 
             // 分页限制，允许最大的分页为200，如果超过的话，直接抛出异常
             boolean overLimit = mgProductSearchArg.getLimit() > MgProductSearchArg.MAX_LIMIT;
@@ -629,7 +629,7 @@ public class MgProductSearchService {
 
             // 根据db的结果进行排序
             if (!resultList.isEmpty() && needCompare) {
-                Log.logStd("have comparator in db;flow=%d;aid=%d;unionPriId=%d;paramComparator=%s", flow, aid, unionPriId, paramComparator);
+                Log.logStd("have comparator in db;flow=%d;aid=%d;unionPriId=%d;paramComparator=%s", flow, aid, unionPriId, paramComparator.toJson());
                 resultList.sort(paramComparator);
             }
 

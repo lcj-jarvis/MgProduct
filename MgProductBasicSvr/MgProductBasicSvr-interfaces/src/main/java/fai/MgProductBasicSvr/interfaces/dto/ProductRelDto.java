@@ -40,6 +40,7 @@ public class ProductRelDto {
         g_reducedInfoDtoDef.add(ProductRelEntity.Info.RL_PD_ID, 1);
         g_reducedInfoDtoDef.add(ProductRelEntity.Info.PD_ID, 2);
         g_reducedInfoDtoDef.add(ProductRelEntity.Info.UNION_PRI_ID, 3);
+        g_reducedInfoDtoDef.add(ProductRelEntity.Info.STATUS, 4);
     }
 
     static {

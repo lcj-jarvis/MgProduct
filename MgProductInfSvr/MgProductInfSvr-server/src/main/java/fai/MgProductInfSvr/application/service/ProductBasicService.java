@@ -245,21 +245,24 @@ public class ProductBasicService extends MgProductInfService {
         FaiList<Param> list = basicProc.getPdBindBiz(aid, unionPriId, sysType, rlPdIds);
         HashSet<Integer> unionPriIds = new HashSet<>();
         for(Param info : list) {
-            unionPriIds.addAll(info.getList(ProductRelEntity.Info.BIND_LIST));
+            FaiList<Param> bindList = info.getList(ProductRelEntity.Info.BIND_LIST);
+            FaiList<Integer> bindUnionPriIds = Utils.getValList(bindList, ProductRelEntity.Info.UNION_PRI_ID);
+            if(bindUnionPriIds != null) {
+                unionPriIds.addAll(bindUnionPriIds);
+            }
         }
 
         FaiList<Param> primaryKeys = getPrimaryKeyListByUnionPriIds(flow, aid, tid, new FaiList<>(unionPriIds));
         Map<Integer, Param> unionPriId_biz = Utils.getMap(primaryKeys, ProductRelEntity.Info.UNION_PRI_ID);
         for(Param info : list) {
-            FaiList<Integer> curUnionPriIds = info.getList(ProductRelEntity.Info.BIND_LIST);
-            FaiList<Param> bizList = new FaiList<>();
-            for(int curUid : curUnionPriIds) {
+            FaiList<Param> bindList = info.getList(ProductRelEntity.Info.BIND_LIST);
+            for(Param bindInfo : bindList) {
+                int curUid = bindInfo.getInt(ProductRelEntity.Info.UNION_PRI_ID);
                 Param bizInfo = unionPriId_biz.get(curUid);
-                bizList.add(bizInfo);
+                bindInfo.assign(bizInfo);
             }
-            info.setList(ProductRelEntity.Info.BIND_BIZ, bizList);
+            info.setList(ProductRelEntity.Info.BIND_BIZ, bindList);
         }
-        System.out.println(list);
 
         FaiBuffer sendBuf = new FaiBuffer(true);
         list.toBuffer(sendBuf, ProductBasicDto.Key.PD_REL_INFO_LIST, ProductBasicDto.getBindBizDto());

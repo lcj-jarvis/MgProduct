@@ -56,13 +56,32 @@ public class ProductBasicService extends BasicParentService {
                 return rt;
             }
 
-            Map<Integer, FaiList<Integer>> map = getBoundUniPriIds(flow, aid, new FaiList<>(pdIdMaps.keySet()));
+            Map<Integer, FaiList<Param>> resMap = new HashMap<>();
+            FaiList<Param> list = relProc.getBoundUniPriIds(aid, new FaiList<>(pdIdMaps.keySet()));
+            for(int i = 0; i < list.size(); i++) {
+                Param info = list.get(i);
+                Integer pdId = info.getInt(ProductRelEntity.Info.PD_ID);
+                Integer curUnionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
+                Integer status = info.getInt(ProductRelEntity.Info.STATUS);
+
+                Param bindInfo = new Param();
+                bindInfo.setInt(ProductRelEntity.Info.STATUS, status);
+                bindInfo.setInt(ProductRelEntity.Info.UNION_PRI_ID, curUnionPriId);
+
+                FaiList<Param> bindList = resMap.get(pdId);
+                if(bindList == null) {
+                    bindList = new FaiList<>();
+                    resMap.put(pdId, bindList);
+                }
+                bindList.add(bindInfo);
+            }
             result = new FaiList<>();
-            for(Integer pdId : map.keySet()) {
-                FaiList<Integer> unionPriIds = map.get(pdId);
+            for(Map.Entry<Integer, FaiList<Param>> entry : resMap.entrySet()) {
+                Integer pdId = entry.getKey();
+                FaiList<Param> bindList = entry.getValue();
                 Param resInfo = new Param();
                 resInfo.setInt(ProductRelEntity.Info.RL_PD_ID, pdIdMaps.get(pdId));
-                resInfo.setList(ProductRelEntity.Info.BIND_LIST, unionPriIds);
+                resInfo.setList(ProductRelEntity.Info.BIND_LIST, bindList);
                 result.add(resInfo);
             }
         }finally {

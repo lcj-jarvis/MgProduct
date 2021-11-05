@@ -532,6 +532,7 @@ public class SummaryService extends StoreService {
                         return rt;
                     }
                 }
+                commit = true;
             }finally {
                 if(commit) {
                     tc.commit();

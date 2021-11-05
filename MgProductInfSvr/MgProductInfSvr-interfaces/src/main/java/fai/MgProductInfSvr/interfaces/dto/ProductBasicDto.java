@@ -173,6 +173,7 @@ public class ProductBasicDto {
         g_pdReduceDef.add(ProductBasicEntity.ProductInfo.LGID, 2, Var.Type.INT);
         g_pdReduceDef.add(ProductBasicEntity.ProductInfo.KEEP_PRI_ID1, 3, Var.Type.INT);
         g_pdReduceDef.add(ProductBasicEntity.ProductInfo.RL_PD_ID, 4, Var.Type.INT);
+        g_pdReduceDef.add(ProductBasicEntity.ProductInfo.STATUS, 5, Var.Type.INT);
     }
     public static ParamDef getPdReduceDto() {
         return g_pdReduceDef;

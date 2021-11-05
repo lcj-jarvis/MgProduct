@@ -1009,8 +1009,8 @@ public class ProductRelProc {
         searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
 
-        //只查aid+pdId+unionPriId+rlPdId
-        FaiList<Param> list = searchFromDb(aid, searchArg, Utils.asFaiList(ProductRelEntity.Info.AID, ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID));
+        //只查aid+pdId+unionPriId+rlPdId+status
+        FaiList<Param> list = searchFromDb(aid, searchArg, Utils.asFaiList(ProductRelEntity.Info.AID, ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID, ProductRelEntity.Info.STATUS));
         if(list == null) {
             list = new FaiList<>();
         }

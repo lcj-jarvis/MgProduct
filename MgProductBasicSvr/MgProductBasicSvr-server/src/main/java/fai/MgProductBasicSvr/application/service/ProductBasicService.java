@@ -235,11 +235,6 @@ public class ProductBasicService extends BasicParentService {
 
         Integer status = (Integer) updateInfo.remove(ProductRelEntity.Info.STATUS);
         FaiList<Integer> rlGroupIds = (FaiList<Integer>) updateInfo.remove(ProductRelEntity.Info.RL_GROUP_IDS);
-        if(status == null && rlGroupIds == null) {
-            rt = Errno.ARGS_ERROR;
-            Log.logErr(rt, "args error, update is empty;flow=%d;aid=%d;ownUid=%d;uids=%s;rlPdIds=%s;updater=%s;", flow, aid, ownUnionPriId, unionPriIds, rlPdIds, updater.toJson());
-            return rt;
-        }
         FaiList<Param> addList = new FaiList<>();
 
         LockUtil.lock(aid);
@@ -2011,17 +2006,21 @@ public class ProductBasicService extends BasicParentService {
                 searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
                 searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, toUnionPriId);
                 searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
-                searchArg.matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.EQ, ProductRelValObj.Status.DEL);
-                FaiList<Param> existList = relProc.searchFromDbWithDel(aid, searchArg, Utils.asFaiList(ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID));
+                //searchArg.matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.EQ, ProductRelValObj.Status.DEL);
+                FaiList<Param> existList = relProc.searchFromDbWithDel(aid, searchArg, Utils.asFaiList(ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID, ProductRelEntity.Info.STATUS));
                 Map<Integer, Integer> pdId_toRlPdId = Utils.getMap(existList, ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID);
-                FaiList<Integer> existPdIds = new FaiList<>(pdId_toRlPdId.keySet());
 
                 int maxSort = relProc.getMaxSort(aid, toUnionPriId);
 
                 // 修改已存在的数据的status 和 sort
-                FaiList<Param> updateList = new FaiList<>(existPdIds.size());
-                for(int i = 0; i < existPdIds.size(); i++) {
-                    int pdId = existPdIds.get(i);
+                FaiList<Param> updateList = new FaiList<>();
+                for(int i = 0; i < existList.size(); i++) {
+                    Param info = existList.get(i);
+                    int status = info.getInt(ProductRelEntity.Info.STATUS);
+                    if(status != ProductRelValObj.Status.DEL) {
+                        continue;
+                    }
+                    int pdId = info.getInt(ProductRelEntity.Info.PD_ID);
                     Param updateInfo = new Param();
                     updateInfo.setInt(ProductRelEntity.Info.UNION_PRI_ID, toUnionPriId);
                     updateInfo.setInt(ProductRelEntity.Info.PD_ID, pdId);

@@ -1649,8 +1649,7 @@ public class MgProductInfService extends ServicePub {
                     FaiList<Param> skuIdInfoList = new FaiList<>();
                     // 导入
                     if(!importSpecList.isEmpty()){
-                        // TODO 规格暂时不支持分布式事务
-                        rt = productSpecProc.importPdScWithSku(aid, ownerTid, ownerUnionPriId, "", importSpecList, importSpecSkuList, skuIdInfoList);
+                        rt = productSpecProc.importPdScWithSku(aid, ownerTid, ownerUnionPriId, xid, importSpecList, importSpecSkuList, skuIdInfoList);
                         if(rt != Errno.OK){
                             return rt;
                         }

@@ -303,7 +303,7 @@ public class ProductSearchService extends MgProductInfService {
         }
         Integer total = searchResult.getInt(MgProductSearchResult.Info.TOTAL);
 
-        // 1 获取商品信息
+        // 1 获取商品信息（目前是商品表、商品业务表、商品与分类关联表的数据）
         ProductBasicProc productBasicProc = new ProductBasicProc(flow);
         FaiList<Param> pdList = new FaiList<>();
         rt = productBasicProc.getPdListByPdIds(aid, unionPriId, pdIds, pdList);

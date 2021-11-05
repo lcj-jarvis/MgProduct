@@ -85,11 +85,12 @@ public class MgProductSearchCache {
 
         public static final String CACHE_CONFIG_KEY = "cacheConfigKey";
 
-        public static String getResultCacheKey(int aid, int unionPriId, String esSearchParamString, String dbSearchParamString){
+        public static String getResultCacheKey(int aid, int unionPriId, String esSearchParamString, String dbSearchParamString, String startAndLimit){
             // 根据搜索词的 md5
             return aid + "-" + unionPriId + "-" + getSearchResultCacheConfigKey() + "-"
                 + MD5Util.MD5Encode(esSearchParamString, "utf-8") + "-"
-                + MD5Util.MD5Encode(dbSearchParamString, "utf-8");
+                + MD5Util.MD5Encode(dbSearchParamString, "utf-8") + "-"
+                + MD5Util.MD5Encode(startAndLimit, "utf-8");
         }
 
         public static Param  getCacheInfo(String resultCacheKey) {

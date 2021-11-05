@@ -1875,7 +1875,7 @@ public class StoreSalesSkuService extends StoreService {
         return rt;
     }
     /**
-     * 批量获取数据
+     * 根据 pdIdList 和 unionPriIdList 获取sku库存销售信息
      * @param uidList 联合主键id
      * @param pdIdList 商品id
      */

@@ -748,6 +748,7 @@ public class ProductSpecService extends SpecParentService {
             ProductSpecDaoCtrl productSpecDaoCtrl = ProductSpecDaoCtrl.getInstance(flow, aid);
             try {
                 ProductSpecProc productSpecProc = new ProductSpecProc(productSpecDaoCtrl, flow);
+                // 根据aid + pdIds搜素商品规格表mgProductSpec，获取规格相关信息
                 rt = productSpecProc.getListFromDao(aid, pdIds, listRef);
                 if(rt != Errno.OK){
                     return rt;
@@ -769,7 +770,7 @@ public class ProductSpecService extends SpecParentService {
                     }
                 });
             }
-
+            // 根据规格字符串Id获取mgSpecStr表的规格名称
             rt = initPdScSpecStr(flow, aid, pdScInfoList);
             if(rt != Errno.OK){
                 Log.logErr(rt,"initPdScSpecStr err;aid=%d;pdIds=%s;", aid, pdIds);
@@ -1290,6 +1291,7 @@ public class ProductSpecService extends SpecParentService {
                     fields = tmp.toArray(fields);
                 }
                 Log.logDbg("whalelog  withSpuInfo=%s;fields=%s", withSpuInfo, fields);
+                // 搜素商品规格sku表，获取商品规格sku信息
                 rt = productSpecSkuProc.getListFromDaoByPdIdList(aid, pdIdList, withSpuInfo, pdScSkuInfoListRef, fields);
                 if(rt != Errno.OK){
                     return rt;
@@ -2050,6 +2052,7 @@ public class ProductSpecService extends SpecParentService {
         }finally {
             specStrDaoCtrl.closeDao();
         }
+        // 从 list 中获取指定的key的值 和 info 组成的map
         Map<Integer, Param> idNameMap = Utils.getMap(listRef.value, SpecStrEntity.Info.SC_STR_ID);
         psScSkuInfoList.forEach(psScSkuInfo->{
             FaiList<Integer> inPdScStrIdList = psScSkuInfo.getList(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST);
@@ -2090,6 +2093,7 @@ public class ProductSpecService extends SpecParentService {
         SpecStrDaoCtrl specStrDaoCtrl = SpecStrDaoCtrl.getInstance(flow, aid);
         try {
             SpecStrProc specStrProc = new SpecStrProc(specStrDaoCtrl, flow);
+            // 根据规格字符串Id的集合，查询mgSpecStr表
             int rt = specStrProc.getList(aid, new FaiList<>(scStrIdSet), listRef);
             if(rt != Errno.OK){
                 return rt;
@@ -2098,7 +2102,9 @@ public class ProductSpecService extends SpecParentService {
             specStrDaoCtrl.closeDao();
         }
 
+        // 从 list 中获取指定的key的值 和 info 组成的map
         Map<Integer, Param> idNameMap = Utils.getMap(listRef.value, SpecStrEntity.Info.SC_STR_ID);
+        // 设置规格名称
         pdScInfoList.forEach(pdSpInfo->{
             Param specStrInfo = idNameMap.get(pdSpInfo.getInt(ProductSpecEntity.Info.SC_STR_ID));
             pdSpInfo.setString(fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity.Info.NAME, specStrInfo.getString(SpecStrEntity.Info.NAME));

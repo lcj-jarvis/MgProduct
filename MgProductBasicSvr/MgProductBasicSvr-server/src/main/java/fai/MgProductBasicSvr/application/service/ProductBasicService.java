@@ -959,6 +959,7 @@ public class ProductBasicService extends BasicParentService {
             ProductBindGroupCache.delCache(aid, unionPriId, pdId);
             ProductBindTagCache.delCache(aid, unionPriId, pdId);
             ProductRelCacheCtrl.SortCache.del(aid, unionPriId); // sort缓存
+            ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, 0);
 
             // 同步数据给es
             ESUtil.logDocId(flow, aid, pdId, unionPriId, DocOplogDef.Operation.UPDATE_ONE);

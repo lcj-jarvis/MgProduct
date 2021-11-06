@@ -1426,6 +1426,8 @@ public class MgProductInfService extends ServicePub {
             boolean commit = false;
             try {
                 HashSet<String> skuCodeSet = new HashSet<>();
+                // TODO 因为门店已经开始将商品基础信息接入，这里暂时将 useMgProductBasicInfo 设置为true，后可以根据情况判断是否废除这个逻辑
+                useMgProductBasicInfo = true;
                 // 检查导入的数据，并分开正确的数据和错误的数据
                 checkImportProductList(productList, skuCodeSet, errProductList, useMgProductBasicInfo);
 

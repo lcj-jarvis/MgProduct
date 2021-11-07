@@ -277,9 +277,10 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                    @ArgFlow final int flow,
                                    @ArgAid final int aid,
                                    @ArgBodyInteger(ProductRelDto.Key.TID) int tid,
+                                   @ArgBodyString(ProductRelDto.Key.INVOKE_METHOD) String invokeMethod,
                                    @ArgList(classDef = ProductRelDto.class, methodDef = "getTmpBindDto",
                                            keyMatch = ProductRelDto.Key.INFO_LIST) FaiList<Param> infoList) throws IOException {
-        return service.batchBindProductsRel(session, flow, aid, tid, infoList);
+        return service.batchBindProductsRel(session, flow, aid, tid, invokeMethod, infoList);
     }
 
     @WrittenCmd

@@ -1372,7 +1372,7 @@ public class MgProductBasicCli extends FaiClient {
      * 批量新增商品业务关联，同时绑定多个产品数据，给悦客接入进销存中心临时使用的
      * 接入完成后，废除，该接口禁止对外开放
      */
-    public int batchBindProductsRel(int aid, int tid, FaiList<Param> infoList) {
+    public int batchBindProductsRel(int aid, int tid, String invokeMethod, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1390,6 +1390,8 @@ public class MgProductBasicCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductRelDto.Key.TID, tid);
+//            sendBody.putString(ProductRelDto.Key.XID, xid);
+            sendBody.putString(ProductRelDto.Key.INVOKE_METHOD, invokeMethod);
             infoList.toBuffer(sendBody, ProductRelDto.Key.INFO_LIST, ProductRelDto.getTmpBindDto());
 
             FaiProtocol sendProtocol = new FaiProtocol();

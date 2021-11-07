@@ -12,6 +12,7 @@ import fai.MgProductInfSvr.domain.comm.ProductSpecCheck;
 import fai.MgProductInfSvr.domain.entity.RichTextConverter;
 import fai.MgProductInfSvr.domain.serviceproc.*;
 import fai.MgProductInfSvr.interfaces.dto.MgProductDto;
+import fai.MgProductInfSvr.interfaces.dto.ProductBasicDto;
 import fai.MgProductInfSvr.interfaces.entity.*;
 import fai.MgProductPropSvr.interfaces.cli.MgProductPropCli;
 import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
@@ -1396,6 +1397,7 @@ public class MgProductInfService extends ServicePub {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         FaiList<Param> errProductList = new FaiList<>();
+        FaiList<Integer> idList = new FaiList<>();
         try {
             if(Utils.isEmptyList(productList)){
                 rt = Errno.ARGS_ERROR;
@@ -1449,6 +1451,10 @@ public class MgProductInfService extends ServicePub {
                 for (Param productInfo : productList) {
                     Param basicInfo = productInfo.getParam(MgProductEntity.Info.BASIC);
                     basicInfo.setInt(ProductRelEntity.Info.SYS_TYPE, sysType);
+                    // 将 rlGroupIds、rlTagIds、rlProps 提取到外层，为了方便绑定商品业务关联信息
+                    productInfo.setList(ProductBasicEntity.ProductInfo.RL_GROUP_IDS, basicInfo.getList(ProductBasicEntity.ProductInfo.RL_GROUP_IDS));
+                    productInfo.setList(ProductBasicEntity.ProductInfo.RL_TAG_IDS, basicInfo.getList(ProductBasicEntity.ProductInfo.RL_TAG_IDS));
+                    productInfo.setList(ProductBasicEntity.ProductInfo.RL_PROPS, basicInfo.getList(ProductBasicEntity.ProductInfo.RL_PROPS));
                     if(!useMgProductBasicInfo){
                         int rlPdId = basicInfo.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID, 0);
                         batchAddBasicInfoList.add(
@@ -1555,6 +1561,9 @@ public class MgProductInfService extends ServicePub {
                         Param productInfo = productList.get(i);
                         productInfo.setInt(MgProductEntity.Info.PD_ID, pdId);
                         productInfo.setInt(MgProductEntity.Info.RL_PD_ID, rlPdId);
+
+                        // 将添加的商品业务id 放入 idList 中返回
+                        idList.add(rlPdId);
                     }
                 }
                 Map<BizPriKey, Integer> bizPriKeyMap = new HashMap<>();
@@ -1568,6 +1577,9 @@ public class MgProductInfService extends ServicePub {
                         }
                         int pdId = productInfo.getInt(MgProductEntity.Info.PD_ID);
                         int ownerRlPdId = productInfo.getInt(MgProductEntity.Info.RL_PD_ID);
+                        FaiList<Integer> rlGroupIds = productInfo.getList(ProductBasicEntity.ProductInfo.RL_GROUP_IDS);
+                        FaiList<Integer> rlTagIds = productInfo.getList(ProductBasicEntity.ProductInfo.RL_TAG_IDS);
+                        FaiList<Param> rlProps = productInfo.getList(ProductBasicEntity.ProductInfo.RL_PROPS);
 
                         Map<Integer, Integer> unionPriIdRlPdIdMap = new HashMap<>();
                         // 先批量绑定关联
@@ -1596,6 +1608,9 @@ public class MgProductInfService extends ServicePub {
                                         new Param()
                                                 .setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId)
                                                 .setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId)
+                                                .setList(ProductBasicEntity.ProductInfo.RL_GROUP_IDS, rlGroupIds)
+                                                .setList(ProductBasicEntity.ProductInfo.RL_TAG_IDS, rlTagIds)
+                                                .setList(ProductBasicEntity.ProductInfo.RL_PROPS, rlProps)
                                                 .setBoolean(ProductRelEntity.Info.INFO_CHECK, false)
                                 );
                             }
@@ -1607,7 +1622,7 @@ public class MgProductInfService extends ServicePub {
                         }
                     }
                     if(!batchBindPdRelList.isEmpty()){
-                        rt = productBasicProc.batchBindProductsRel(aid, ownerTid, batchBindPdRelList);
+                        rt = productBasicProc.batchBindProductsRel(aid, ownerTid, "import", batchBindPdRelList);
                         if(rt != Errno.OK){
                             Log.logErr(rt, "batchBindProductsRel err;aid=%s;ownerTid=%s;batchBindPdRelList=%s", aid, ownerTid, batchBindPdRelList);
                             return rt;
@@ -1678,6 +1693,41 @@ public class MgProductInfService extends ServicePub {
                         skuIdInPdScStrIdMap.put(skuId, skuIdInfo.getList(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST));
                     }
                 }
+                // 添加spu信息
+                {
+                    for (Param productInfo : productList) {
+                        int rlPdId = productInfo.getInt(MgProductEntity.Info.RL_PD_ID);
+                        int pdId = productInfo.getInt(MgProductEntity.Info.PD_ID);
+                        FaiList<Param> spuSalesList = productInfo.getList(MgProductEntity.Info.SPU_SALES);
+                        if (spuSalesList.isEmpty()) {
+                            continue;
+                        }
+
+                        for (Param spuSales : spuSalesList) {
+                            Integer tid = spuSales.getInt(ProductStoreEntity.StoreSalesSkuInfo.TID, ownerTid);
+                            Integer siteId = spuSales.getInt(ProductStoreEntity.StoreSalesSkuInfo.SITE_ID, ownerSiteId);
+                            Integer lgId = spuSales.getInt(ProductStoreEntity.StoreSalesSkuInfo.LGID, ownerLgId);
+                            Integer keepPriId1 = spuSales.getInt(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, ownerKeepPriId1);
+                            Integer unionPriId = bizPriKeyMap.get(new BizPriKey(tid, siteId, lgId, keepPriId1));
+
+                            // 如果获取不到 unionPriId 则证明是当前数据是当前操作的 源unionPriId
+                            if (unionPriId == null) {
+                                unionPriId = ownerUnionPriId;
+                            }
+
+                            spuSales.setInt(SpuBizSummaryEntity.Info.AID, aid);
+                            spuSales.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, unionPriId);
+                            spuSales.setInt(SpuBizSummaryEntity.Info.PD_ID, pdId);
+                            spuSales.setInt(SpuBizSummaryEntity.Info.RL_PD_ID, rlPdId);
+                        }
+                        ProductStoreProc productStoreProc = new ProductStoreProc(flow);
+                        productStoreProc.batchAddSpuBizSummary(aid, xid, spuSalesList);
+                        if (rt != Errno.OK) {
+                            return rt;
+                        }
+                    }
+                }
+
                 // 导入库存销售sku信息并初始化库存
                 {
                     FaiList<Param> storeSaleSkuList = new FaiList<>();
@@ -1761,6 +1811,7 @@ public class MgProductInfService extends ServicePub {
             try {
                 FaiBuffer sendBuf = new FaiBuffer(true);
                 errProductList.toBuffer(sendBuf, MgProductDto.Key.INFO_LIST, MgProductDto.getInfoDto());
+                idList.toBuffer(sendBuf, ProductBasicDto.Key.RL_PD_IDS);
                 session.write(rt, sendBuf);
             }finally {
                 stat.end((rt != Errno.OK), rt);

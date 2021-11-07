@@ -581,7 +581,7 @@ public class SpuBizSummaryProc {
             data.setCalendar(SpuBizSummaryEntity.Info.SYS_UPDATE_TIME, now);
             addList.add(data);
         }
-        rt = m_daoCtrl.batchInsert(addList);
+        rt = m_daoCtrl.batchInsert(addList, null, !isSaga);
         if(rt != Errno.OK){
             Log.logErr(rt, "arg error;flow=%s;aid=%s;addList=%s", m_flow, aid, addList);
             return rt;

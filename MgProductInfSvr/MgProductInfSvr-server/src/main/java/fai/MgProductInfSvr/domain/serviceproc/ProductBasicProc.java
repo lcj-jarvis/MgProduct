@@ -540,14 +540,14 @@ public class ProductBasicProc {
     /**
      * 批量新增商品业务关联，同时绑定多个产品数据
      */
-    public int batchBindProductsRel(int aid, int tid, FaiList<Param> list){
+    public int batchBindProductsRel(int aid, int tid, String invokeMethod, FaiList<Param> list){
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
             return rt;
         }
-        rt = m_cli.batchBindProductsRel(aid, tid, list);
+        rt = m_cli.batchBindProductsRel(aid, tid, invokeMethod, list);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batchBindProductsRel error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
             return rt;

@@ -17,7 +17,6 @@ import fai.comm.middleground.FaiValObj;
 import fai.comm.middleground.MgErrno;
 import fai.comm.util.*;
 import fai.mgproduct.comm.MgProductErrno;
-import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.misc.Utils;
 
 import java.io.IOException;
@@ -1853,7 +1852,8 @@ public class ProductStoreService extends MgProductInfService {
             }
             if (!batchBindPdRelList.isEmpty()){
                 ProductBasicProc productBasicProc = new ProductBasicProc(flow);
-                rt = productBasicProc.batchBindProductsRel(aid, ownerTid, batchBindPdRelList);
+                // TODO 临时修改，batchBindProductsRel 方法根据调用方名称，做不同逻辑处理
+                rt = productBasicProc.batchBindProductsRel(aid, ownerTid, "batchSynchronousSPU2SKU", batchBindPdRelList);
                 if(rt != Errno.OK){
                     Log.logErr(rt, "batchBindProductsRel err;aid=%s;ownerTid=%s;batchBindPdRelList=%s", aid, ownerTid, batchBindPdRelList);
                     return rt;

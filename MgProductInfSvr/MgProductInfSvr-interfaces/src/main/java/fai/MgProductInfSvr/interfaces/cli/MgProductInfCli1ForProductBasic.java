@@ -37,16 +37,16 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
 
     @Deprecated
     public int importProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> productList, Param inStoreRecordInfo){
-        return importProduct(aid, tid, siteId, lgId, keepPriId1, productList, inStoreRecordInfo, null);
+        return importProduct(aid, tid, siteId, lgId, keepPriId1, productList, inStoreRecordInfo, null, null);
     }
 
     @Deprecated
-    public int importProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> productList, Param inStoreRecordInfo, FaiList<Param> errProductList){
+    public int importProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> productList, Param inStoreRecordInfo, FaiList<Param> errProductList, Ref<FaiList<Integer>> rlPdIdsRef){
         MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
                 .setImportProductList(productList)
                 .setInOutStoreRecordInfo(inStoreRecordInfo)
                 .build();
-        return importProduct(mgProductArg, errProductList);
+        return importProduct(mgProductArg, errProductList, rlPdIdsRef);
     }
 
     @Deprecated
@@ -447,7 +447,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      * @param errProductList 返回导入出错的数据，并且每个Param有对应的错误码 {@link MgProductEntity.Info}
      * @return {@link Errno}
      */
-    public int importProduct(MgProductArg mgProductArg, FaiList<Param> errProductList){
+    public int importProduct(MgProductArg mgProductArg, FaiList<Param> errProductList, Ref<FaiList<Integer>> rlPdIdsRef){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -518,6 +518,15 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                     Log.logErr(m_rt, "recv codec err");
                     return m_rt;
                 }
+            }
+            if (rlPdIdsRef != null) {
+                FaiList<Integer> rlPdIds = new FaiList<Integer>();
+                m_rt = rlPdIds.fromBuffer(recvBody, keyRef);
+                if (m_rt != Errno.OK || keyRef.value != ProductBasicDto.Key.RL_PD_IDS) {
+                    Log.logErr(m_rt, "recv rlPdIds codec err");
+                    return m_rt;
+                }
+                rlPdIdsRef.value = rlPdIds;
             }
             // 特殊判断逻辑
             m_rt = realRt;

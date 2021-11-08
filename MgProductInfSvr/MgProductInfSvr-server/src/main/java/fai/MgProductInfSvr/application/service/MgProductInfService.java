@@ -1397,7 +1397,12 @@ public class MgProductInfService extends ServicePub {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         FaiList<Param> errProductList = new FaiList<>();
-        FaiList<Integer> idList = new FaiList<>();
+        Set<Param> needRemoveParamSet = new HashSet<>();
+        FaiList<Integer> idList = new FaiList<>(productList.size());
+        // 先将 idList 填充默认值，不然后面会空指针, 也方便将 rlPdId 录入 idList
+        for (int i = 0; i < productList.size(); i++) {
+            idList.add(0);
+        }
         try {
             if(Utils.isEmptyList(productList)){
                 rt = Errno.ARGS_ERROR;
@@ -1431,7 +1436,7 @@ public class MgProductInfService extends ServicePub {
                 // TODO 因为门店已经开始将商品基础信息接入，这里暂时将 useMgProductBasicInfo 设置为true，后可以根据情况判断是否废除这个逻辑
                 useMgProductBasicInfo = true;
                 // 检查导入的数据，并分开正确的数据和错误的数据
-                checkImportProductList(productList, skuCodeSet, errProductList, useMgProductBasicInfo);
+                checkImportProductList(productList, skuCodeSet, errProductList, idList, needRemoveParamSet, useMgProductBasicInfo);
 
                 ProductSpecProc productSpecProc = new ProductSpecProc(flow);
                 skuCodeSet.removeAll(Collections.singletonList(null)); // 移除所有null值
@@ -1443,8 +1448,14 @@ public class MgProductInfService extends ServicePub {
                     }
                     HashSet<String> existsSkuCodeSet = new HashSet<>(existsSkuCodeListRef.value);
                     // 过滤掉已经存在skuCode的商品数据
-                    filterExistsSkuCode(productList, existsSkuCodeSet, errProductList);
+                    filterExistsSkuCode(productList, existsSkuCodeSet, idList, needRemoveParamSet, errProductList);
                 }
+
+                // 去除 productList 中的错误数据
+                for (Param deleteParam : needRemoveParamSet) {
+                    productList.remove(deleteParam);
+                }
+
                 // 组装批量添加的商品基础信息
                 FaiList<Param> batchAddBasicInfoList = new FaiList<>(productList.size());
                 FaiList<Integer> rlPdIdList = new FaiList<>();
@@ -1554,6 +1565,7 @@ public class MgProductInfService extends ServicePub {
                         productInfo.setInt(MgProductEntity.Info.RL_PD_ID, rlPdId);
                     }
                 }else{
+
                     for (int i = 0; i < productList.size(); i++) {
                         Param idInfo = idInfoList.get(i);
                         Integer rlPdId = idInfo.getInt(ProductRelEntity.Info.RL_PD_ID);
@@ -1562,8 +1574,14 @@ public class MgProductInfService extends ServicePub {
                         productInfo.setInt(MgProductEntity.Info.PD_ID, pdId);
                         productInfo.setInt(MgProductEntity.Info.RL_PD_ID, rlPdId);
 
-                        // 将添加的商品业务id 放入 idList 中返回
-                        idList.add(rlPdId);
+                        // 将添加的商品业务id 放入 idList 中
+                        for (int j = 0; j < idList.size(); j++) {
+                            int id = idList.get(j);
+                            if (id == 0) {
+                                idList.set(j, rlPdId);
+                                break;
+                            }
+                        }
                     }
                 }
                 Map<BizPriKey, Integer> bizPriKeyMap = new HashMap<>();
@@ -1721,7 +1739,7 @@ public class MgProductInfService extends ServicePub {
                             spuSales.setInt(SpuBizSummaryEntity.Info.RL_PD_ID, rlPdId);
                         }
                         ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-                        productStoreProc.batchAddSpuBizSummary(aid, xid, spuSalesList);
+                        rt = productStoreProc.batchAddSpuBizSummary(aid, xid, spuSalesList);
                         if (rt != Errno.OK) {
                             return rt;
                         }
@@ -1811,6 +1829,7 @@ public class MgProductInfService extends ServicePub {
             try {
                 FaiBuffer sendBuf = new FaiBuffer(true);
                 errProductList.toBuffer(sendBuf, MgProductDto.Key.INFO_LIST, MgProductDto.getInfoDto());
+
                 idList.toBuffer(sendBuf, ProductBasicDto.Key.RL_PD_IDS);
                 session.write(rt, sendBuf);
             }finally {
@@ -1819,9 +1838,9 @@ public class MgProductInfService extends ServicePub {
         }
         return rt;
     }
-    private void filterExistsSkuCode(FaiList<Param> productList, HashSet<String> existsSkuCodeSet, FaiList<Param> errProductList){
-        for(Iterator<Param> iterator = productList.iterator(); iterator.hasNext();){
-            Param productInfo = iterator.next();
+    private void filterExistsSkuCode(FaiList<Param> productList, HashSet<String> existsSkuCodeSet, FaiList<Integer> idList, Set<Param> needRemoveParamSet, FaiList<Param> errProductList){
+        for (int i = 0; i < productList.size(); i++) {
+            Param productInfo = productList.get(i);
             FaiList<Param> specSkuList = productInfo.getListNullIsEmpty(MgProductEntity.Info.SPEC_SKU);
             boolean remove = false;
             tag:
@@ -1841,19 +1860,23 @@ public class MgProductInfService extends ServicePub {
                 }
             }
             if(remove){
-                errProductList.add(productInfo);
-                iterator.remove();
+                if (!errProductList.contains(productInfo)) {
+                    errProductList.add(productInfo);
+                }
+                idList.set(i, ERROR);
+                needRemoveParamSet.add(productInfo);
             }
         }
     }
-    private void checkImportProductList(FaiList<Param> productList, HashSet<String> skuCodeSet, FaiList<Param> errProductList, boolean useMgProductBasicInfo) {
-        for(Iterator<Param> iterator = productList.iterator(); iterator.hasNext();){
-            Param productInfo = iterator.next();
+    private void checkImportProductList(FaiList<Param> productList, HashSet<String> skuCodeSet, FaiList<Param> errProductList, FaiList<Integer> idList, Set<Param> needRemoveParamSet, boolean useMgProductBasicInfo) {
+        for (int i = 0; i < productList.size(); i++) {
+            Param productInfo = productList.get(i);
             Param basicInfo = productInfo.getParam(MgProductEntity.Info.BASIC);
             if(Str.isEmpty(basicInfo)){
                 errProductList.add(productInfo);
                 productInfo.setInt(MgProductEntity.Info.ERRNO, MgProductErrno.Import.BASIC_IS_EMPTY);
-                iterator.remove();
+                idList.set(i, ERROR);
+                needRemoveParamSet.add(productInfo);
                 continue;
             }
             if(!useMgProductBasicInfo){
@@ -1861,7 +1884,8 @@ public class MgProductInfService extends ServicePub {
                 if(rlPdId <= 0){
                     productInfo.setInt(MgProductEntity.Info.ERRNO, MgProductErrno.Import.BASIC_IS_EMPTY);
                     errProductList.add(productInfo);
-                    iterator.remove();
+                    idList.set(i, ERROR);
+                    needRemoveParamSet.add(productInfo);
                     continue;
                 }
             }
@@ -1903,7 +1927,8 @@ public class MgProductInfService extends ServicePub {
             }
             if(remove){
                 errProductList.add(productInfo);
-                iterator.remove();
+                idList.set(i, ERROR);
+                needRemoveParamSet.add(productInfo);
                 continue;
             }
 
@@ -1947,7 +1972,8 @@ public class MgProductInfService extends ServicePub {
             }
             if(remove){
                 errProductList.add(productInfo);
-                iterator.remove();
+                idList.set(i, ERROR);
+                needRemoveParamSet.add(productInfo);
                 continue;
             }
         }
@@ -1984,4 +2010,7 @@ public class MgProductInfService extends ServicePub {
 
         return bizPriKeyUnionPriIdMap;
     }
+
+    // 表示错误，当前用于表示 id 列表中的错误数据
+    private static final int ERROR = -1;
 }

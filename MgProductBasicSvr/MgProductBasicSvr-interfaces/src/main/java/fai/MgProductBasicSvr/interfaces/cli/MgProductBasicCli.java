@@ -1024,6 +1024,9 @@ public class MgProductBasicCli extends FaiClient {
      * 批量新增商品数据，并添加与当前unionPriId的关联
      */
     public int batchAddProductAndRel(int aid, int tid, int siteId, int unionPriId, FaiList<Param> list, FaiList<Param> idInfoList) {
+        return batchAddProductAndRel(aid, null, tid, siteId, unionPriId, list, idInfoList);
+    }
+    public int batchAddProductAndRel(int aid, String xid, int tid, int siteId, int unionPriId, FaiList<Param> list, FaiList<Param> idInfoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1041,6 +1044,9 @@ public class MgProductBasicCli extends FaiClient {
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
+            if(!Str.isEmpty(xid)) {
+                sendBody.putString(ProductRelDto.Key.XID, xid);
+            }
             sendBody.putInt(ProductRelDto.Key.TID, tid);
             sendBody.putInt(ProductRelDto.Key.SITE_ID, siteId);
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
@@ -1368,11 +1374,7 @@ public class MgProductBasicCli extends FaiClient {
         }
     }
 
-    /**
-     * 批量新增商品业务关联，同时绑定多个产品数据，给悦客接入进销存中心临时使用的
-     * 接入完成后，废除，该接口禁止对外开放
-     */
-    public int batchBindProductsRel(int aid, int tid, boolean needSyncInfo, FaiList<Param> infoList) {
+    public int batchBindProductsRel(int aid, String xid, int tid, boolean needSyncInfo, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1389,8 +1391,10 @@ public class MgProductBasicCli extends FaiClient {
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
+            if(!Str.isEmpty(xid)) {
+                sendBody.putString(ProductRelDto.Key.XID, xid);
+            }
             sendBody.putInt(ProductRelDto.Key.TID, tid);
-//            sendBody.putString(ProductRelDto.Key.XID, xid);
             sendBody.putBoolean(ProductRelDto.Key.NEED_SYNC_INFO, needSyncInfo);
             infoList.toBuffer(sendBody, ProductRelDto.Key.INFO_LIST, ProductRelDto.getTmpBindDto());
 

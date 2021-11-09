@@ -1457,7 +1457,7 @@ public class ProductBasicService extends BasicParentService {
      * 批量添加商品，并添加与当前unionPriId的关联
      */
     @SuccessRt(value = Errno.OK)
-    public int batchAddProductAndRel(FaiSession session, int flow, int aid, int tid, int siteId, int unionPriId, FaiList<Param> addList) throws IOException {
+    public int batchAddProductAndRel(FaiSession session, int flow, int aid, String xid, int tid, int siteId, int unionPriId, FaiList<Param> addList) throws IOException {
         int rt = Errno.ERROR;
         if(!FaiValObj.TermId.isValidTid(tid)) {
             rt = Errno.ARGS_ERROR;
@@ -1502,13 +1502,13 @@ public class ProductBasicService extends BasicParentService {
             try {
                 tc.setAutoCommit(false);
                 // 新增商品数据
-                ProductProc pdProc = new ProductProc(flow, aid, tc);
+                ProductProc pdProc = new ProductProc(flow, aid, tc, xid, true);
                 pdIdList = pdProc.batchAddProduct(aid, pdDataList);
 
                 GfwUtil.preWriteGfwLog(aid, tid, siteId, pdDataList);
 
                 // 新增业务关系
-                ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+                ProductRelProc relProc = new ProductRelProc(flow, aid, tc, xid, true);
                 maxSort = relProc.getMaxSort(aid, unionPriId);
                 for(int i = 0;i < relDataList.size(); i++) {
                     Param relData = relDataList.get(i);
@@ -1563,19 +1563,19 @@ public class ProductBasicService extends BasicParentService {
 
                 // 新增分类绑定
                 if(!bindRlGroups.isEmpty()) {
-                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, true);
                     bindGroupProc.batchBindGroupList(aid, unionPriId, bindRlGroups);
                 }
 
                 // 新增标签绑定
                 if(!bindRlTags.isEmpty()) {
-                    ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
+                    ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc, xid, true);
                     bindTagProc.batchBindTagList(aid, unionPriId, bindRlTags);
                 }
 
                 // 新增参数绑定
                 if(!bindRlProps.isEmpty()) {
-                    ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
+                    ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc, xid, true);
                     bindPropProc.batchBindPropList(aid, unionPriId, bindRlProps);
                 }
 
@@ -2429,7 +2429,7 @@ public class ProductBasicService extends BasicParentService {
      * 接入完成后，废除，该接口禁止对外开放
      */
     @SuccessRt(value = Errno.OK)
-    public int batchBindProductsRel(FaiSession session, int flow, int aid, int tid, boolean needSyncInfo, FaiList<Param> recvList) throws IOException {
+    public int batchBindProductsRel(FaiSession session, int flow, int aid, String xid, int tid, boolean needSyncInfo, FaiList<Param> recvList) throws IOException {
         int rt = Errno.ERROR;
         if(!FaiValObj.TermId.isValidTid(tid)) {
             rt = Errno.ARGS_ERROR;
@@ -2622,10 +2622,10 @@ public class ProductBasicService extends BasicParentService {
             try {
                 tc.setAutoCommit(false);
 
-                ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
-                ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
-                ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
-                ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
+                ProductRelProc relProc = new ProductRelProc(flow, aid, tc, xid, true);
+                ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, true);
+                ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc, xid, true);
+                ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc, xid, true);
                 // 新增商品业务关系
                 for(Integer unionPriId : unionPriIds) {
                     FaiList<Param> list = listOfUid.get(unionPriId);

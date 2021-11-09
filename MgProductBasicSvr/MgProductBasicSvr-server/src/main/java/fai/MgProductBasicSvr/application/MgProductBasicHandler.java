@@ -194,15 +194,17 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductBasicCmd.BasicCmd.BATCH_ADD_PD_AND_REL)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductBasicCmd.BasicCmd.ADD_PD_AND_REL_ROLLBACK)
     public int batchAddProductAndRel(final FaiSession session,
                                @ArgFlow final int flow,
                                @ArgAid final int aid,
+                               @ArgBodyXid(value = ProductRelDto.Key.XID, useDefault = true) String xid,
                                @ArgBodyInteger(ProductRelDto.Key.TID) int tid,
                                @ArgBodyInteger(value = ProductRelDto.Key.SITE_ID, useDefault = true, defaultValue = -1) int siteId,
                                @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
                                @ArgList(classDef = ProductRelDto.class, methodDef = "getRelAndPdDto",
                                        keyMatch = ProductRelDto.Key.INFO) FaiList<Param> list) throws IOException {
-        return service.batchAddProductAndRel(session, flow, aid, tid, siteId, unionPriId, list);
+        return service.batchAddProductAndRel(session, flow, aid, xid, tid, siteId, unionPriId, list);
     }
 
     @WrittenCmd
@@ -273,14 +275,16 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductBasicCmd.BasicCmd.BATCH_ADD_PDS_REL_BIND)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductBasicCmd.BasicCmd.BATCH_ADD_REL_BIND_ROLLBACK)
     public int batchBindProductsRel(final FaiSession session,
                                    @ArgFlow final int flow,
                                    @ArgAid final int aid,
+                                   @ArgBodyXid(value = ProductRelDto.Key.XID, useDefault = true) String xid,
                                    @ArgBodyInteger(ProductRelDto.Key.TID) int tid,
                                    @ArgBodyBoolean(ProductRelDto.Key.NEED_SYNC_INFO) boolean needSyncInfo,
                                    @ArgList(classDef = ProductRelDto.class, methodDef = "getTmpBindDto",
                                            keyMatch = ProductRelDto.Key.INFO_LIST) FaiList<Param> infoList) throws IOException {
-        return service.batchBindProductsRel(session, flow, aid, tid, needSyncInfo, infoList);
+        return service.batchBindProductsRel(session, flow, aid, xid, tid, needSyncInfo, infoList);
     }
 
     @WrittenCmd

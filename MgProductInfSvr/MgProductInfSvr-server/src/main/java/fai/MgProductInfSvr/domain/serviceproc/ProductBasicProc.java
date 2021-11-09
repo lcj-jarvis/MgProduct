@@ -522,13 +522,16 @@ public class ProductBasicProc {
      * 批量新增商品数据，并添加与当前unionPriId的关联
      */
     public int batchAddProductAndRel(int aid, int tid, int siteId, int unionPriId, FaiList<Param> list, FaiList<Param> idInfoList){
+        return batchAddProductAndRel(aid, null, tid, siteId, unionPriId, list, idInfoList);
+    }
+    public int batchAddProductAndRel(int aid, String xid, int tid, int siteId, int unionPriId, FaiList<Param> list, FaiList<Param> idInfoList){
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.batchAddProductAndRel(aid, tid, siteId, unionPriId, list, idInfoList);
+        rt = m_cli.batchAddProductAndRel(aid, xid, tid, siteId, unionPriId, list, idInfoList);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batchAddProductAndRel error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
@@ -541,14 +544,14 @@ public class ProductBasicProc {
      * 批量新增商品业务关联，同时绑定多个产品数据
      * @Param needSyncInfo 导入方法调用时需要为 true ：用于同步商品关系，和插入分类、标签等的绑定表（场景：门店通业务要求门店的商品数据需要和总店一致，同时门店也要绑定分类等信息）
      */
-    public int batchBindProductsRel(int aid, int tid, boolean needSyncInfo, FaiList<Param> list){
+    public int batchBindProductsRel(int aid, String xid, int tid, boolean needSyncInfo, FaiList<Param> list){
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
             return rt;
         }
-        rt = m_cli.batchBindProductsRel(aid, tid, needSyncInfo, list);
+        rt = m_cli.batchBindProductsRel(aid, xid, tid, needSyncInfo, list);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batchBindProductsRel error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
             return rt;

@@ -276,6 +276,7 @@ public class ProductProc {
             rt = Errno.COUNT_LIMIT;
             throw new MgException(rt, "over limit;flow=%d;aid=%d;count=%d;limit=%d;", m_flow, aid, count, ProductValObj.Limit.COUNT_MAX);
         }
+        FaiList<Param> sagaList = new FaiList<>();
         FaiList<Integer> pdIdList = new FaiList<>();
         int maxId = m_dao.getId(aid);
         for(Param pdData : pdDataList) {
@@ -285,6 +286,20 @@ public class ProductProc {
             }
             pdData.setInt(ProductEntity.Info.PD_ID, pdId);
             pdIdList.add(pdId);
+            // 使用分布式事务时，记录下新增数据的主键
+            if(withSaga) {
+                Param pdSaga = new Param();
+                pdSaga.assign(pdData, ProductEntity.Info.AID);
+                pdSaga.assign(pdData, ProductEntity.Info.PD_ID);
+
+                long branchId = RootContext.getBranchId();
+                pdSaga.setString(SagaEntity.Common.XID, xid);
+                pdSaga.setLong(SagaEntity.Common.BRANCH_ID, branchId);
+                pdSaga.setInt(SagaEntity.Common.SAGA_OP, SagaValObj.SagaOp.ADD);
+                pdSaga.setCalendar(SagaEntity.Common.SAGA_TIME, Calendar.getInstance());
+
+                sagaList.add(pdSaga);
+            }
         }
 
         rt = m_dao.batchInsert(pdDataList, null, false);
@@ -292,6 +307,9 @@ public class ProductProc {
             throw new MgException(rt, "insert product error;flow=%d;aid=%d;", m_flow, aid);
         }
         m_dao.updateId(aid, maxId, false);
+
+        // 使用分布式事务时，记录下新增数据的主键
+        addSagaList(aid, sagaList);
         return pdIdList;
     }
 

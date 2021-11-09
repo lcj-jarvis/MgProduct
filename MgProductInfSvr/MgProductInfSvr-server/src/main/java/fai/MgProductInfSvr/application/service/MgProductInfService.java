@@ -1528,7 +1528,7 @@ public class MgProductInfService extends ServicePub {
 
                 FaiList<Param> idInfoList = new FaiList<>();
                 // 批量添加商品数据
-                rt = productBasicProc.batchAddProductAndRel(aid, ownerTid, ownerSiteId, ownerUnionPriId, batchAddBasicInfoList, idInfoList);
+                rt = productBasicProc.batchAddProductAndRel(aid, xid, ownerTid, ownerSiteId, ownerUnionPriId, batchAddBasicInfoList, idInfoList);
                 if(rt != Errno.OK){
                     for (Param product : productList) {
                         product.setInt(MgProductEntity.Info.ERRNO, rt);
@@ -1639,7 +1639,7 @@ public class MgProductInfService extends ServicePub {
                         }
                     }
                     if(!batchBindPdRelList.isEmpty()){
-                        rt = productBasicProc.batchBindProductsRel(aid, ownerTid, true, batchBindPdRelList);
+                        rt = productBasicProc.batchBindProductsRel(aid, xid, ownerTid, true, batchBindPdRelList);
                         if(rt != Errno.OK){
                             Log.logErr(rt, "batchBindProductsRel err;aid=%s;ownerTid=%s;batchBindPdRelList=%s", aid, ownerTid, batchBindPdRelList);
                             return rt;

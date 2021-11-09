@@ -1852,7 +1852,7 @@ public class ProductStoreService extends MgProductInfService {
             }
             if (!batchBindPdRelList.isEmpty()){
                 ProductBasicProc productBasicProc = new ProductBasicProc(flow);
-                rt = productBasicProc.batchBindProductsRel(aid, ownerTid, false, batchBindPdRelList);
+                rt = productBasicProc.batchBindProductsRel(aid, null, ownerTid, false, batchBindPdRelList);
                 if(rt != Errno.OK){
                     Log.logErr(rt, "batchBindProductsRel err;aid=%s;ownerTid=%s;batchBindPdRelList=%s", aid, ownerTid, batchBindPdRelList);
                     return rt;

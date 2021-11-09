@@ -283,13 +283,13 @@ public class ProductBasicProc {
      * 克隆业务绑定关系数据
      * @return
      */
-    public void cloneBizBind(int aid, int fromUnionPriId, int toUnionPriId) {
+    public void cloneBizBind(int aid, int fromUnionPriId, int toUnionPriId, boolean silentDel) {
         int rt;
         if(m_cli == null) {
             rt = Errno.ERROR;
             throw new MgException(rt, "get ProductBasicCli error;flow=%d;aid=%d;fromUnionPriId=%s;toUnionPriId=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
         }
-        rt = m_cli.cloneBizBind(aid, fromUnionPriId, toUnionPriId);
+        rt = m_cli.cloneBizBind(aid, fromUnionPriId, toUnionPriId, silentDel);
         if(rt != Errno.OK) {
             throw new MgException(rt, "cloneBizBind error;flow=%d;aid=%d;fromUnionPriId=%s;toUnionPriId=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
         }

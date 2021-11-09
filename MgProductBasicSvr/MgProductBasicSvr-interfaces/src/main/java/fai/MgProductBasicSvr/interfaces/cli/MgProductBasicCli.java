@@ -1690,7 +1690,7 @@ public class MgProductBasicCli extends FaiClient {
         }
     }
 
-    public int cloneBizBind(int aid, int fromUnionPriId, int toUnionPriId) {
+    public int cloneBizBind(int aid, int fromUnionPriId, int toUnionPriId, boolean silentDel) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1704,6 +1704,7 @@ public class MgProductBasicCli extends FaiClient {
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductRelDto.Key.FROM_UNION_PRI_ID, fromUnionPriId);
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, toUnionPriId);
+            sendBody.putBoolean(ProductRelDto.Key.SOFT_DEL, silentDel);
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductBasicCmd.BasicCmd.CLONE_BIZ_BIND);

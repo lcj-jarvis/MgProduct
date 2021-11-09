@@ -331,7 +331,7 @@ public class ProductBasicService extends BasicParentService {
     }
 
     @SuccessRt(Errno.OK)
-    public int cloneBizBind(FaiSession session, int flow, int aid, int fromUnionPriId, int toUnionPriId) throws IOException {
+    public int cloneBizBind(FaiSession session, int flow, int aid, int fromUnionPriId, int toUnionPriId, boolean silentDel) throws IOException {
         int rt;
         if(aid <= 0 || fromUnionPriId <= 0 || toUnionPriId <= 0) {
             rt = Errno.ARGS_ERROR;
@@ -346,7 +346,7 @@ public class ProductBasicService extends BasicParentService {
                 tc.setAutoCommit(false);
                 // 克隆业务表数据
                 ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
-                relProc.cloneBizBind(aid, fromUnionPriId, toUnionPriId);
+                relProc.cloneBizBind(aid, fromUnionPriId, toUnionPriId, silentDel);
 
                 // 克隆分类关联数据
                 if(useProductGroup()) {

@@ -448,10 +448,13 @@ public class MgProductInfService extends ServicePub {
         int keepPriId1 = primaryKey.getInt(MgPrimaryKeyEntity.Info.KEEP_PRI_ID1);
         int toUnionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
 
+        // 门店通的逻辑，新增门店，克隆业务关系，商品默认是软删除状态
+        // 不过目前这个接口只有门店能使用
+        boolean silentDel = tid == FaiValObj.TermId.YK;
 
         // 克隆基础服务数据
         ProductBasicProc basicProc = new ProductBasicProc(flow);
-        basicProc.cloneBizBind(aid, fromUnionPriId, toUnionPriId);
+        basicProc.cloneBizBind(aid, fromUnionPriId, toUnionPriId, silentDel);
 
         // 克隆库存服务数据
         ProductStoreProc storeProc = new ProductStoreProc(flow);

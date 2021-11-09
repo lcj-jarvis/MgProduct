@@ -361,8 +361,9 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                  @ArgFlow final int flow,
                                  @ArgAid final int aid,
                                  @ArgBodyInteger(ProductRelDto.Key.FROM_UNION_PRI_ID) int fromUnionPriId,
-                                 @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int toUnionPriId) throws IOException {
-        return service.cloneBizBind(session, flow, aid, fromUnionPriId, toUnionPriId);
+                                 @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int toUnionPriId,
+                                 @ArgBodyBoolean(value = ProductRelDto.Key.SOFT_DEL, useDefault = true) boolean silentDel) throws IOException {
+        return service.cloneBizBind(session, flow, aid, fromUnionPriId, toUnionPriId, silentDel);
     }
 
     @WrittenCmd

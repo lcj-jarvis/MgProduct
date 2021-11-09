@@ -236,7 +236,7 @@ public class ProductRelProc {
         }
     }
 
-    public void cloneBizBind(int aid, int fromUnionPriId, int toUnionPriId) {
+    public void cloneBizBind(int aid, int fromUnionPriId, int toUnionPriId, boolean silentDel) {
         ParamMatcher delMatcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         delMatcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, toUnionPriId);
 
@@ -253,6 +253,9 @@ public class ProductRelProc {
         }
         Calendar now = Calendar.getInstance();
         for(Param info : list) {
+            if(silentDel) {
+                info.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DEL);
+            }
             info.setInt(ProductRelEntity.Info.UNION_PRI_ID, toUnionPriId);
             info.setCalendar(ProductRelEntity.Info.CREATE_TIME, now);
             info.setCalendar(ProductRelEntity.Info.UPDATE_TIME, now);

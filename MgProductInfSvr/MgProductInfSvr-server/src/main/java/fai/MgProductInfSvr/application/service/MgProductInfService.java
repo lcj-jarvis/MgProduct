@@ -1436,8 +1436,6 @@ public class MgProductInfService extends ServicePub {
             boolean commit = false;
             try {
                 HashSet<String> skuCodeSet = new HashSet<>();
-                // TODO 因为门店已经开始将商品基础信息接入，这里暂时将 useMgProductBasicInfo 设置为true，后可以根据情况判断是否废除这个逻辑
-                useMgProductBasicInfo = true;
                 // 检查导入的数据，并分开正确的数据和错误的数据
                 checkImportProductList(productList, skuCodeSet, errProductList, idList, needRemoveParamSet, useMgProductBasicInfo);
 
@@ -1455,9 +1453,7 @@ public class MgProductInfService extends ServicePub {
                 }
 
                 // 去除 productList 中的错误数据
-                for (Param deleteParam : needRemoveParamSet) {
-                    productList.remove(deleteParam);
-                }
+                productList.removeAll(needRemoveParamSet);
 
                 // 组装批量添加的商品基础信息
                 FaiList<Param> batchAddBasicInfoList = new FaiList<>(productList.size());
@@ -1643,7 +1639,7 @@ public class MgProductInfService extends ServicePub {
                         }
                     }
                     if(!batchBindPdRelList.isEmpty()){
-                        rt = productBasicProc.batchBindProductsRel(aid, ownerTid, "import", batchBindPdRelList);
+                        rt = productBasicProc.batchBindProductsRel(aid, ownerTid, true, batchBindPdRelList);
                         if(rt != Errno.OK){
                             Log.logErr(rt, "batchBindProductsRel err;aid=%s;ownerTid=%s;batchBindPdRelList=%s", aid, ownerTid, batchBindPdRelList);
                             return rt;

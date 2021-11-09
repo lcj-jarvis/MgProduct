@@ -91,6 +91,8 @@ public class MgProductArg {
 
     private int preRlPdId;
 
+    private boolean useMgProductBasicInfo;
+
     private MgProductArg(Builder builder) {
         this.usedVar = builder.usedVar;
         this.aid = builder.aid;
@@ -170,6 +172,8 @@ public class MgProductArg {
         this.delRlTagIds = builder.delRlTagIds;
 
         this.preRlPdId = builder.preRlPdId;
+
+        this.useMgProductBasicInfo = builder.useMgProductBasicInfo;
     }
 
     public String getXid() {
@@ -448,6 +452,10 @@ public class MgProductArg {
         return preRlPdId;
     }
 
+    public boolean getUseMgProductBasicInfo() {
+        return useMgProductBasicInfo;
+    }
+
     private static abstract class TopBuilder {
         protected int aid;
         protected int tid;
@@ -474,6 +482,7 @@ public class MgProductArg {
         protected boolean softDel;
         protected SearchArg searchArg;
         protected int sysType;
+        protected boolean useMgProductBasicInfo;
 
         public abstract Builder setXid(String xid);
 
@@ -494,6 +503,7 @@ public class MgProductArg {
         public abstract Builder setSoftDel(boolean softDel);
         public abstract Builder setSearchArg(SearchArg searchArg);
         public abstract Builder setSysType(int sysType);
+        public abstract Builder setUseMgProductBasicInfo(boolean useMgProductBasicInfo);
     }
 
     private static abstract class BasicBuilder extends TopBuilder {
@@ -987,6 +997,13 @@ public class MgProductArg {
         public Builder setSysType(int sysType) {
             this.sysType = sysType;
             record("sysType", this.sysType);
+            return this;
+        }
+
+        @Override
+        public Builder setUseMgProductBasicInfo(boolean useMgProductBasicInfo) {
+            this.useMgProductBasicInfo = useMgProductBasicInfo;
+            record("useMgProductBasicInfo", this.useMgProductBasicInfo);
             return this;
         }
 

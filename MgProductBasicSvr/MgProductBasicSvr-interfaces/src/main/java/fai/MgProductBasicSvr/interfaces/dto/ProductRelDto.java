@@ -141,6 +141,6 @@ public class ProductRelDto {
         public static final int CLONE_UNION_PRI_IDS = 24;
         public static final int EXIST = 25;
         public static final int PRE_RL_PD_ID = 26;
-        public static final int INVOKE_METHOD = 27;
+        public static final int NEED_SYNC_INFO = 27;
     }
 }

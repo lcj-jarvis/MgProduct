@@ -1852,8 +1852,7 @@ public class ProductStoreService extends MgProductInfService {
             }
             if (!batchBindPdRelList.isEmpty()){
                 ProductBasicProc productBasicProc = new ProductBasicProc(flow);
-                // TODO 临时修改，batchBindProductsRel 方法根据调用方名称，做不同逻辑处理
-                rt = productBasicProc.batchBindProductsRel(aid, ownerTid, "batchSynchronousSPU2SKU", batchBindPdRelList);
+                rt = productBasicProc.batchBindProductsRel(aid, ownerTid, false, batchBindPdRelList);
                 if(rt != Errno.OK){
                     Log.logErr(rt, "batchBindProductsRel err;aid=%s;ownerTid=%s;batchBindPdRelList=%s", aid, ownerTid, batchBindPdRelList);
                     return rt;

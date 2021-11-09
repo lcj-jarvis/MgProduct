@@ -2429,7 +2429,7 @@ public class ProductBasicService extends BasicParentService {
      * 接入完成后，废除，该接口禁止对外开放
      */
     @SuccessRt(value = Errno.OK)
-    public int batchBindProductsRel(FaiSession session, int flow, int aid, int tid, String invokeMethod, FaiList<Param> recvList) throws IOException {
+    public int batchBindProductsRel(FaiSession session, int flow, int aid, int tid, boolean needSyncInfo, FaiList<Param> recvList) throws IOException {
         int rt = Errno.ERROR;
         if(!FaiValObj.TermId.isValidTid(tid)) {
             rt = Errno.ARGS_ERROR;
@@ -2477,8 +2477,8 @@ public class ProductBasicService extends BasicParentService {
             }
 
             Param sourceInfo = null;
-            // TODO 临时新增判断，导入方法调用此方法时，查询一遍源数据，然后做绑定数据的覆盖
-            if ("import".equals(invokeMethod)) {
+            // 导入方法调用此方法时，查询一遍源数据，然后做绑定数据的覆盖
+            if (needSyncInfo) {
                 // 先查询 总店 导入的商品业务信息
                 TransactionCtrl tc = new TransactionCtrl();
                 ProductRelProc productRelProc = new ProductRelProc(flow, aid, tc);

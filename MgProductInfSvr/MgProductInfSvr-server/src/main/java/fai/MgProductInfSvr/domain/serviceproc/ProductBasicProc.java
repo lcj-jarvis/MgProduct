@@ -539,15 +539,16 @@ public class ProductBasicProc {
 
     /**
      * 批量新增商品业务关联，同时绑定多个产品数据
+     * @Param needSyncInfo 导入方法调用时需要为 true ：用于同步商品关系，和插入分类、标签等的绑定表（场景：门店通业务要求门店的商品数据需要和总店一致，同时门店也要绑定分类等信息）
      */
-    public int batchBindProductsRel(int aid, int tid, String invokeMethod, FaiList<Param> list){
+    public int batchBindProductsRel(int aid, int tid, boolean needSyncInfo, FaiList<Param> list){
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
             return rt;
         }
-        rt = m_cli.batchBindProductsRel(aid, tid, invokeMethod, list);
+        rt = m_cli.batchBindProductsRel(aid, tid, needSyncInfo, list);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batchBindProductsRel error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
             return rt;

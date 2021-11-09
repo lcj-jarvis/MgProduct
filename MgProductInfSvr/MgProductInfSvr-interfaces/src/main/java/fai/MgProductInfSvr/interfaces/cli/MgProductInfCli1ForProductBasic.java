@@ -452,8 +452,10 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
      *                 .setImportProductList(productList) 商品中台各个服务组合的数据 {@link MgProductEntity.Info}
      *                 .setInOutStoreRecordInfo(inStoreRecordInfo) {@link ProductStoreEntity.InOutStoreRecordInfo}  非必要
+     *                 .setUseMgProductBasicInfo(true) 是否使用商品中台基础信息 不设置默认为 false
      *                 .build();
      * @param errProductList 返回导入出错的数据，并且每个Param有对应的错误码 {@link MgProductEntity.Info}
+     * @param rlPdIdsRef 返回导入的商品id，导入失败的id会是 -1
      * @return {@link Errno}
      */
     public int importProduct(MgProductArg mgProductArg, FaiList<Param> errProductList, Ref<FaiList<Integer>> rlPdIdsRef){
@@ -494,6 +496,8 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 Log.logErr(m_rt, "inStoreRecordInfo.toBuffer error;inStoreRecordInfo=%s;", inStoreRecordInfo);
                 return m_rt;
             }
+            boolean useMgProductBasicInfo = mgProductArg.getUseMgProductBasicInfo();
+            sendBody.putBoolean(MgProductDto.Key.USE_BASIC, useMgProductBasicInfo);
             // send
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductInfCmd.Cmd.IMPORT_PRODUCT);

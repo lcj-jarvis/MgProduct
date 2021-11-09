@@ -758,6 +758,15 @@ public class MgProductInfService extends ServicePub {
             if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                 return rt;
             }
+            FaiList<Param> spuSalesStoreInfoList = new FaiList<>();
+            rt = productStoreProc.getSpuBizSummaryInfoListByPdIdList(aid, tid, unionPriId, Utils.asFaiList(pdId), spuSalesStoreInfoList, null);
+            if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                return rt;
+            }
+            Param spuInfo = new Param();
+            if(!spuSalesStoreInfoList.isEmpty()) {
+                spuInfo = spuSalesStoreInfoList.get(0);
+            }
             if(!pdScSkuSalesStoreInfoList.isEmpty()){
                 FaiList<Integer> unionPriIdList = new FaiList<>();
                 for (Param pdScSkuSalesStoreInfo : pdScSkuSalesStoreInfoList) {
@@ -777,6 +786,7 @@ public class MgProductInfService extends ServicePub {
             productInfo.setList(MgProductEntity.Info.SPEC, pdScInfoList);
             productInfo.setList(MgProductEntity.Info.SPEC_SKU, pdScSkuInfoList);
             productInfo.setList(MgProductEntity.Info.STORE_SALES, pdScSkuSalesStoreInfoList);
+            productInfo.setParam(MgProductEntity.Info.SPU_SALES, spuInfo);
             rt = Errno.OK;
             FaiBuffer sendBuf = new FaiBuffer(true);
             productInfo.toBuffer(sendBuf, MgProductDto.Key.INFO, MgProductDto.getInfoDto());

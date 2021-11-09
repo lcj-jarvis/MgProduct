@@ -41,6 +41,15 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
     }
 
     @Deprecated
+    public int importProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> productList, Param inStoreRecordInfo, FaiList<Param> errProductList){
+        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+                .setImportProductList(productList)
+                .setInOutStoreRecordInfo(inStoreRecordInfo)
+                .build();
+        return importProduct(mgProductArg, errProductList, null);
+    }
+
+    @Deprecated
     public int importProduct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> productList, Param inStoreRecordInfo, FaiList<Param> errProductList, Ref<FaiList<Integer>> rlPdIdsRef){
         MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
                 .setImportProductList(productList)

@@ -29,12 +29,10 @@ public class ProductBasicValObj {
     }
 
     public static final class Flag {
-        // 门店通flag定义
-        public static class YkRlFlag {
+        // 门店通flag定义, 门店的rlFlag和flag是一样的
+        public static class YkFlag {
             public static final int IS_SHOW = 0x1;                    //门店独立修改 是否展示在会员端
             public static final int IF_TOP = 0x2;                 //是否置顶状态;True表示处于置顶状态；false表示没有处于置顶状态；门店独立修改
-        }
-        public static class YkFlag {
             public static final int HEAD_SET_COUNT = 0x4;                    //true 总部设置过库存
             public static final int NOT_ORIGIN_BUY = 0x8;                        //为ture 不能原价购买（普通开单） 只能在积分商城兑换
             public static final int ALL_DISTRIBUTE_TYPES = 0x10;                //为ture时 拥有全部配送方式 false 没有全部

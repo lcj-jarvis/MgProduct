@@ -198,17 +198,6 @@ public class DataMigrateService extends MgProductInfService {
                 spuList.add(spuInfo);
             }
 
-            // 拆开原本flag，0x1和0x2是各门店独自维护的，其余是共享的
-            int rlFlag = 0;
-            if((ykFlag & 0x1) == 0x1) {
-                rlFlag |= 0x1;
-                ykFlag &= ~0x1;
-            }
-            if((ykFlag & 0x2) == 0x2) {
-                rlFlag |= 0x2;
-                ykFlag &= ~0x2;
-            }
-
             // 组装商品基础数据, 只处理总部的数据
             if(keepPriId1 == 0) {
                 Param basicInfo = new Param();
@@ -241,7 +230,7 @@ public class DataMigrateService extends MgProductInfService {
             relInfo.setCalendar(ProductBasicEntity.ProductInfo.ADD_TIME, sysCreateTime);
             relInfo.setCalendar(ProductBasicEntity.ProductInfo.LAST_UPDATE_TIME, sysUpdateTime);
             relInfo.setInt(ProductBasicEntity.ProductInfo.STATUS, ykStatus);
-            relInfo.setInt(ProductBasicEntity.ProductInfo.RL_FLAG, rlFlag);
+            relInfo.setInt(ProductBasicEntity.ProductInfo.RL_FLAG, ykFlag);
             relInfo.setInt(ProductBasicEntity.ProductInfo.LAST_SID, optSid);
             relInfo.setInt(ProductBasicEntity.ProductInfo.SORT, sort);
             relInfo.setCalendar(ProductBasicEntity.ProductInfo.CREATE_TIME, sysCreateTime);

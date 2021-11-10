@@ -1079,6 +1079,7 @@ public class ProductSpecSkuProc {
             FaiList<Integer> inPdScStrIdList = FaiList.parseIntList(inPdScStrIdListJson);
             // 没有inPdScStrIdList的就不用组装inPdScList了
             if(Utils.isEmptyList(inPdScStrIdList)) {
+                data.setString(ProductSpecSkuEntity.Info.IN_PD_SC_LIST, "");
                 continue;
             }
             int pdId = data.getInt(ProductSpecSkuEntity.Info.PD_ID);

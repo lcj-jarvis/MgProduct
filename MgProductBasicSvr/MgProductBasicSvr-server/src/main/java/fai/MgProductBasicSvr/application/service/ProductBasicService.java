@@ -1306,6 +1306,64 @@ public class ProductBasicService extends BasicParentService {
         return rt;
     }
 
+    public int getPdReducedList4Adm(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<String> nameList, FaiList<Integer> status) throws IOException {
+        int rt;
+        if(Utils.isEmptyList(nameList)) {
+            throw new MgException(Errno.ARGS_ERROR, "args error, pdIds is empty;aid=%d;nameList=%s;", aid, nameList);
+        }
+
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductEntity.Info.NAME, ParamMatcher.IN, nameList);
+
+        FaiList<Param> list;
+        Map<Integer, String> pdId_name;
+        //统一控制事务
+        TransactionCtrl tc = new TransactionCtrl();
+        try {
+            // 查基础表
+            ProductProc pdProc = new ProductProc(flow, aid, tc);
+            FaiList<Param> pdList = pdProc.searchFromDbWithDel(aid, searchArg, Utils.asFaiList(ProductEntity.Info.NAME, ProductEntity.Info.PD_ID));
+            if(Utils.isEmptyList(pdList)) {
+                return Errno.NOT_FOUND;
+            }
+            pdId_name = Utils.getMap(pdList, ProductEntity.Info.PD_ID, ProductEntity.Info.NAME);
+            FaiList<Integer> pdIds = new FaiList<>(pdId_name.keySet());
+
+            // 查业务关系表
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+            searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+            searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+            searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+            if(!Utils.isEmptyList(status)) {
+                searchArg.matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.IN, status);
+            }
+            if(sysType != -1) {
+                searchArg.matcher.and(ProductRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
+            }
+
+            list = relProc.searchFromDbWithDel(aid, searchArg, Utils.asFaiList(ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID, ProductRelEntity.Info.SYS_TYPE, ProductRelEntity.Info.STATUS));
+        } finally {
+            tc.closeDao();
+        }
+        if(list == null || list.isEmpty()) {
+            return Errno.NOT_FOUND;
+        }
+
+        for(Param info : list) {
+            int pdId = info.getInt(ProductEntity.Info.PD_ID);
+            info.setString(ProductEntity.Info.NAME, pdId_name.get(pdId));
+        }
+
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        list.toBuffer(sendBuf, ProductRelDto.Key.REDUCED_INFO, ProductRelDto.getReducedInfoDto());
+        session.write(sendBuf);
+        rt = Errno.OK;
+        Log.logDbg("get ok;flow=%d;aid=%d;unionPriId=%d;status=%s;sysType=%s;nameList=%s;", flow, aid, unionPriId, status, sysType, nameList);
+
+        return rt;
+    }
+
     /**
      * 新增商品数据，并添加与当前unionPriId的关联
      * 1. 添加商品数据

@@ -518,6 +518,28 @@ public class ProductBasicProc {
 
         return rt;
     }
+
+    /**
+     * 根据pdIds获取业务关联数据，仅获取有限的字段，aid+unionPriId+pdId+rlPdId
+     */
+    public int getPdReducedList4Adm(int aid, int unionPriId, Integer sysType, FaiList<String> names, FaiList<Integer> status, FaiList<Param> list){
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.getPdReducedList4Adm(aid, unionPriId, sysType, names, status, list);
+        if(rt != Errno.OK) {
+            if(rt != Errno.NOT_FOUND) {
+                Log.logErr(rt, "getPdReducedList4Adm error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            }
+            return rt;
+        }
+
+        return rt;
+    }
+
     /**
      * 批量新增商品数据，并添加与当前unionPriId的关联
      */

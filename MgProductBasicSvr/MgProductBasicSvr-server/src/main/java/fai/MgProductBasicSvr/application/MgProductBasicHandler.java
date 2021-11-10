@@ -167,6 +167,17 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
         return service.getReducedRelsByPdIds(session, flow, aid, unionPriId, pdIds);
     }
 
+    @Cmd(MgProductBasicCmd.BasicCmd.GET_REDUCED_LIST_BY_NAME)
+    public int getPdReducedList4Adm(final FaiSession session,
+                                     @ArgFlow final int flow,
+                                     @ArgAid final int aid,
+                                     @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                                     @ArgBodyInteger(value = ProductRelDto.Key.SYS_TYPE, useDefault = true, defaultValue = -1) int sysType,
+                                     @ArgList(keyMatch = ProductRelDto.Key.NAME) FaiList<String> names,
+                                     @ArgList(keyMatch = ProductRelDto.Key.STATUS, useDefault = true) FaiList<Integer> status) throws IOException {
+        return service.getPdReducedList4Adm(session, flow, aid, unionPriId, sysType, names, status);
+    }
+
     @WrittenCmd
     @Cmd(MgProductBasicCmd.BasicCmd.ADD_PD_AND_REL)
     @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductBasicCmd.BasicCmd.ADD_PD_AND_REL_ROLLBACK)

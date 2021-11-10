@@ -402,6 +402,63 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
     }
 
     /**
+     * 根据rlPdIds获取商品数据（商品表+商品业表）
+     * @param mgProductArg
+     *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *                 .setRlPdIds(rlPdIds) // 必填 商品业务id集合
+     *                 .setSysType(sysType)
+     *                 .build();
+     * sysType: 类型 商品/服务/... {@link ProductBasicValObj.ProductValObj.SysType} 选填，默认为0
+     * @param list 接收结果的集合
+     * @return {@link Errno}
+     */
+    public int getPdReducedList4Adm(MgProductArg mgProductArg, FaiList<Param> list) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            list.clear();
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            Integer sysType = mgProductArg.getSysTypeWithoutDefault();
+            FaiList<String> names = mgProductArg.getNames();
+            if(names == null || names.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr("arg error;names is empty");
+                return m_rt;
+            }
+            FaiList<Integer> status = mgProductArg.getStatus();
+            // packaging send data
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductBasicDto.Key.TID, tid), new Pair(ProductBasicDto.Key.SITE_ID, siteId), new Pair(ProductBasicDto.Key.LGID, lgId), new Pair(ProductBasicDto.Key.KEEP_PRIID1, keepPriId1));
+            if(sysType != null) {
+                sendBody.putInt(ProductBasicDto.Key.SYS_TYPE, sysType);
+            }
+            names.toBuffer(sendBody, ProductBasicDto.Key.NAME);
+            if(status != null) {
+                status.toBuffer(sendBody, ProductBasicDto.Key.STATUS);
+            }
+            int aid = mgProductArg.getAid();
+            // send and recv
+            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.GET_PD_REDUCE_BY_NAME, sendBody, true);
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = list.fromBuffer(recvBody, keyRef, ProductBasicDto.getProductDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductBasicDto.Key.PD_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    /**
      * 根据rlPdIds获取商品在哪些业务下绑定了
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)

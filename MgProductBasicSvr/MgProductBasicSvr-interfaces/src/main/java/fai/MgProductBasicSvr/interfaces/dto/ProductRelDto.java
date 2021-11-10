@@ -41,6 +41,8 @@ public class ProductRelDto {
         g_reducedInfoDtoDef.add(ProductRelEntity.Info.PD_ID, 2);
         g_reducedInfoDtoDef.add(ProductRelEntity.Info.UNION_PRI_ID, 3);
         g_reducedInfoDtoDef.add(ProductRelEntity.Info.STATUS, 4);
+        g_reducedInfoDtoDef.add(ProductRelEntity.Info.SYS_TYPE, 5);
+        g_reducedInfoDtoDef.add(ProductEntity.Info.NAME, 6);
     }
 
     static {
@@ -142,5 +144,6 @@ public class ProductRelDto {
         public static final int EXIST = 25;
         public static final int PRE_RL_PD_ID = 26;
         public static final int NEED_SYNC_INFO = 27;
+        public static final int NAME = 28;
     }
 }

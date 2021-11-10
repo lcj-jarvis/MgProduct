@@ -72,7 +72,7 @@ public class MgProductArg {
     private FaiList<Integer> rlTpScIds;
     private FaiList<Integer> tpScDtIds;
     private boolean onlyGetChecked;
-    private int sysType;
+    private Integer sysType;
     private int groupLevel;
     private FaiList<Param> treeDataList;
 
@@ -90,8 +90,9 @@ public class MgProductArg {
     private FaiList<Integer> delRlTagIds;
 
     private int preRlPdId;
-
     private boolean useMgProductBasicInfo;
+    private FaiList<Integer> status;
+    private FaiList<String> names;
 
     private MgProductArg(Builder builder) {
         this.usedVar = builder.usedVar;
@@ -172,8 +173,9 @@ public class MgProductArg {
         this.delRlTagIds = builder.delRlTagIds;
 
         this.preRlPdId = builder.preRlPdId;
-
         this.useMgProductBasicInfo = builder.useMgProductBasicInfo;
+        this.status = builder.status;
+        this.names = builder.names;
     }
 
     public String getXid() {
@@ -437,6 +439,13 @@ public class MgProductArg {
     }
 
     public int getSysType() {
+        if(sysType == null) {
+            return 0;
+        }
+        return getSysTypeWithoutDefault();
+    }
+
+    public Integer getSysTypeWithoutDefault() {
         return sysType;
     }
 
@@ -454,6 +463,14 @@ public class MgProductArg {
 
     public boolean getUseMgProductBasicInfo() {
         return useMgProductBasicInfo;
+    }
+
+    public FaiList<Integer> getStatus() {
+        return status;
+    }
+
+    public FaiList<String> getNames() {
+        return names;
     }
 
     private static abstract class TopBuilder {
@@ -481,8 +498,10 @@ public class MgProductArg {
         protected ParamUpdater updater;
         protected boolean softDel;
         protected SearchArg searchArg;
-        protected int sysType;
+        protected Integer sysType;
         protected boolean useMgProductBasicInfo;
+        protected FaiList<Integer> status;
+        protected FaiList<String> names;
 
         public abstract Builder setXid(String xid);
 
@@ -504,6 +523,8 @@ public class MgProductArg {
         public abstract Builder setSearchArg(SearchArg searchArg);
         public abstract Builder setSysType(int sysType);
         public abstract Builder setUseMgProductBasicInfo(boolean useMgProductBasicInfo);
+        public abstract Builder setStatus(FaiList<Integer> status);
+        public abstract Builder setNames(FaiList<String> names);
     }
 
     private static abstract class BasicBuilder extends TopBuilder {
@@ -1004,6 +1025,20 @@ public class MgProductArg {
         public Builder setUseMgProductBasicInfo(boolean useMgProductBasicInfo) {
             this.useMgProductBasicInfo = useMgProductBasicInfo;
             record("useMgProductBasicInfo", this.useMgProductBasicInfo);
+            return this;
+        }
+
+        @Override
+        public Builder setStatus(FaiList<Integer> status) {
+            this.status = status;
+            record("status", this.status);
+            return this;
+        }
+
+        @Override
+        public Builder setNames(FaiList<String> names) {
+            this.names = names;
+            record("names", this.names);
             return this;
         }
 

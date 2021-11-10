@@ -517,6 +517,20 @@ public class MgProductInfHandler extends FaiHandler {
         return basicService.getProductList(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, rlPdIds);
     }
 
+    @Cmd(MgProductInfCmd.BasicCmd.GET_PD_REDUCE_BY_NAME)
+    public int getPdReducedList4Adm(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid final int aid,
+                              @ArgBodyInteger(ProductBasicDto.Key.TID) int tid,
+                              @ArgBodyInteger(ProductBasicDto.Key.SITE_ID) int siteId,
+                              @ArgBodyInteger(ProductBasicDto.Key.LGID) int lgId,
+                              @ArgBodyInteger(ProductBasicDto.Key.KEEP_PRIID1) int keepPriId1,
+                              @ArgBodyInteger(value = ProductBasicDto.Key.SYS_TYPE, useDefault = true, defaultValue = -1) int sysType,
+                              @ArgList(keyMatch = ProductBasicDto.Key.NAME) FaiList<String> names,
+                              @ArgList(keyMatch = ProductBasicDto.Key.STATUS, useDefault = true) FaiList<Integer> status) throws IOException {
+        return basicService.getPdReducedList4Adm(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, names, status);
+    }
+
     @Cmd(MgProductInfCmd.BasicCmd.GET_PD_BIND_BIZS)
     public int getPdBindBizs(final FaiSession session,
                               @ArgFlow final int flow,

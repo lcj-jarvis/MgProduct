@@ -223,6 +223,53 @@ public class ProductBasicService extends MgProductInfService {
     }
 
     /**
+     * 获取商品数据 name+status+sysType+pdId+rlPdId
+     */
+    public int getPdReducedList4Adm(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, FaiList<String> names, FaiList<Integer> status) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+            if (Utils.isEmptyList(names)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr(rt, "args error, names is empty;flow=%d;aid=%d;", flow, aid);
+                return rt;
+            }
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if (rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            Integer searchSysType = null;
+            if(sysType != -1) {
+                searchSysType = sysType;
+            }
+
+            FaiList<Param> list = new FaiList<>();
+            ProductBasicProc basicProc = new ProductBasicProc(flow);
+            rt = basicProc.getPdReducedList4Adm(aid, unionPriId, searchSysType, names, status, list);
+            if (rt != Errno.OK) {
+                return rt;
+            }
+
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            list.toBuffer(sendBuf, ProductBasicDto.Key.PD_LIST, ProductBasicDto.getProductDto());
+            session.write(sendBuf);
+            Log.logDbg("get ok;flow=%d;aid=%d;unionPriId=%d;names=%s;", flow, aid, unionPriId, names);
+        } finally {
+            stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+
+    /**
      * 获取商品数据（商品表+业务表）
      */
     @SuccessRt(Errno.OK)

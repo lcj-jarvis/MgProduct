@@ -223,6 +223,8 @@ public class ProductBasicDto {
         public static final int PRIMARY_KEYS = 30;
         public static final int PRE_RL_PD_ID  = 31;
         public static final int FROM_PRIMARY_KEY = 32;
+        public static final int NAME = 33;
+        public static final int STATUS = 34;
     }
 
 

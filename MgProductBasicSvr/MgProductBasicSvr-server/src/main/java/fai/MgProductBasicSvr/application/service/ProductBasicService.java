@@ -1559,6 +1559,13 @@ public class ProductBasicService extends BasicParentService {
             boolean commit = false;
             try {
                 tc.setAutoCommit(false);
+
+                // xid不为空，则开启了分布式事务，saga添加一条记录
+                if(!Str.isEmpty(xid)) {
+                    SagaProc sagaProc = new SagaProc(flow, aid, tc);
+                    sagaProc.addInfo(aid, xid);
+                }
+
                 // 新增商品数据
                 ProductProc pdProc = new ProductProc(flow, aid, tc, xid, true);
                 pdIdList = pdProc.batchAddProduct(aid, pdDataList);

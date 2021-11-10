@@ -142,6 +142,8 @@ public class ProductSpecValObj {
          */
         public static final class Flag{
             public static final int DISABLE = 0x1;  //是否禁用
+            public static final int SYS_SPEC = 0x8; // 系统规格，置起为true，不能删除，可修改
+            public static final int SYS_FIX_SPEC = 0x10; // 系统规格，置起为true，不能删除，不能修改
         }
 
         /**

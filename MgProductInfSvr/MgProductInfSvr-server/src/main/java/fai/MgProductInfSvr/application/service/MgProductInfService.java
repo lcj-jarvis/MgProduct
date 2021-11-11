@@ -1722,6 +1722,7 @@ public class MgProductInfService extends ServicePub {
                 }
                 // 添加spu信息
                 {
+                    FaiList<Param> importSpuSales = new FaiList<>();
                     for (Param productInfo : productList) {
                         int rlPdId = productInfo.getInt(MgProductEntity.Info.RL_PD_ID);
                         int pdId = productInfo.getInt(MgProductEntity.Info.PD_ID);
@@ -1744,14 +1745,17 @@ public class MgProductInfService extends ServicePub {
 
                             spuSales.setInt(SpuBizSummaryEntity.Info.AID, aid);
                             spuSales.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, unionPriId);
+                            spuSales.setInt(SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID, ownerUnionPriId);
                             spuSales.setInt(SpuBizSummaryEntity.Info.PD_ID, pdId);
                             spuSales.setInt(SpuBizSummaryEntity.Info.RL_PD_ID, rlPdId);
+
+                            importSpuSales.add(spuSales);
                         }
-                        ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-                        rt = productStoreProc.batchAddSpuBizSummary(aid, xid, spuSalesList);
-                        if (rt != Errno.OK) {
-                            return rt;
-                        }
+                    }
+                    ProductStoreProc productStoreProc = new ProductStoreProc(flow);
+                    rt = productStoreProc.batchAddSpuBizSummary(aid, xid, importSpuSales);
+                    if (rt != Errno.OK) {
+                        return rt;
                     }
                 }
 

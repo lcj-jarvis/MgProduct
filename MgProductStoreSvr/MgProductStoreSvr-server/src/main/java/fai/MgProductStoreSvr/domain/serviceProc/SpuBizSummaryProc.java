@@ -560,9 +560,10 @@ public class SpuBizSummaryProc {
                 Log.logErr(rt, "arg error, unionPriId err;flow=%s;aid=%s;infoList=%s;", m_flow, aid, infoList);
                 return rt;
             }
+            int sourceUnionPriId = info.getInt(SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID, unionPriId);
             data.setInt(SpuBizSummaryEntity.Info.AID, aid);
             data.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, unionPriId);
-            data.setInt(SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID, unionPriId);
+            data.setInt(SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
             data.assign(info, SpuBizSummaryEntity.Info.PD_ID);
             data.assign(info, SpuBizSummaryEntity.Info.RL_PD_ID);
             data.assign(info, SpuBizSummaryEntity.Info.SYS_TYPE);

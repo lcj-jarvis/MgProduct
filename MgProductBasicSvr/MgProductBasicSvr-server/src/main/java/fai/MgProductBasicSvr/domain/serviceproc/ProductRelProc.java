@@ -487,14 +487,19 @@ public class ProductRelProc {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "clearAcct error, unionPriIds is null;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
         }
+
         ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
 
         // 记录要同步给es的数据
-        FaiList<Param> list = searchFromDb(aid, matcher, Utils.asFaiList(ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.PD_ID));
+        FaiList<Param> list = searchFromDbWithDel(aid, searchArg, Utils.asFaiList(ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.PD_ID));
         ESUtil.batchPreLog(aid, list, DocOplogDef.Operation.DELETE_ONE);
 
-        rt = m_dao.delete(matcher);
+        ParamMatcher delMatcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        delMatcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+        rt = m_dao.delete(delMatcher);
         if(rt != Errno.OK) {
             throw new MgException(rt, "del product rel error;flow=%d;aid=%d;unionPridId=%s;", m_flow, aid, unionPriIds);
         }

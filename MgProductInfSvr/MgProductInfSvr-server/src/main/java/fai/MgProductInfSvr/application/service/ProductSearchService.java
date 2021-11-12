@@ -2,6 +2,7 @@ package fai.MgProductInfSvr.application.service;
 
 import fai.MgProductBasicSvr.interfaces.cli.async.MgProductBasicCli;
 import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
+import fai.MgProductBasicSvr.interfaces.entity.ProductEntity;
 import fai.MgProductInfSvr.domain.serviceproc.ProductBasicProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductSpecProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductStoreProc;
@@ -115,15 +116,15 @@ public class ProductSearchService extends MgProductInfService {
         // 1、异步获取商品信息
         MgProductBasicCli mgProductBasicCli = FaiClientProxyFactory.createProxy(MgProductBasicCli.class);
         DefaultFuture getPdTask = mgProductBasicCli.getPdListByPdIds(flow, aid, unionPriId, pdIds);
-        AtomicReference<FaiList<Param>> pdListRef = new AtomicReference<>();
+        FaiList<Param> pdList = new FaiList<>();
         getPdTask.whenComplete((BiConsumer<RemoteStandResult, Throwable>) (result, ex) -> {
             if (result.isSuccess() || result.getRt() == Errno.NOT_FOUND) {
-                FaiList<Param> pdList = result.getObject(ProductRelDto.Key.INFO_LIST, FaiList.class);
-                if (Objects.isNull(pdList)) {
+                FaiList<Param> tempPdList = result.getObject(ProductRelDto.Key.INFO_LIST, FaiList.class);
+                if (Objects.isNull(tempPdList)) {
                     // NOT_FOUND的时候是返回null的
-                    pdList = new FaiList<>();
+                    tempPdList = new FaiList<>();
                 }
-                pdListRef.set(pdList);
+                pdList.addAll(tempPdList);
                 Log.logStd("finish getting pd info;flow=%d;aid=%d;unionPriId=%d;pdList=%s;", flow, aid, unionPriId, pdList);
             } else {
                 // 报错
@@ -233,9 +234,12 @@ public class ProductSearchService extends MgProductInfService {
             throw new MgException(rt, "waiting get result info time out;flow=%d;aid=%d;unionPriId=%d;pdIds=%s", flow, aid, unionPriId, pdIds);
         }
 
-        // 整合所有的信息
-        FaiList<Param> pdList = pdListRef.get();
+        // 避免搞乱搜素服务的排序，根据搜素服务的结果进行定制排序
+        /*ParamComparator customComparatorOfPdIds = new ParamComparator();
+        customComparatorOfPdIds.addKey(ProductEntity.Info.PD_ID, pdIds);
+        pdList.sort(customComparatorOfPdIds);*/
 
+        // 整合所有的信息
         FaiList<Param> result = new FaiList<>();
         for (Param productInfo : pdList) {
             Integer pdId = productInfo.getInt(ProductBasicEntity.ProductInfo.PD_ID);
@@ -361,6 +365,11 @@ public class ProductSearchService extends MgProductInfService {
             }
             spuSalesStoreInfoMap = Utils.getMap(spuSalesStoreInfoList, SpuBizSummaryEntity.Info.PD_ID);
         }
+
+        // 避免搞乱搜素服务的排序，根据搜素服务的结果进行定制排序
+       /* ParamComparator customComparatorOfPdIds = new ParamComparator();
+        customComparatorOfPdIds.addKey(ProductEntity.Info.PD_ID, pdIds);
+        pdList.sort(customComparatorOfPdIds);*/
 
         FaiList<Param> list = new FaiList<>();
         Log.logStd("flow=%d;aid=%d;unionPriId=%d;pdList=%s;", flow, aid, unionPriId, pdList);

@@ -80,7 +80,7 @@ public class ProductSpecSkuProc {
                 data.assign(info, ProductSpecSkuEntity.Info.SORT);
                 data.assign(info, ProductSpecSkuEntity.Info.SOURCE_TID);
                 data.assign(info, ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID);
-                data.assign(info, ProductSpecSkuEntity.Info.SKU_CODE); // TODO
+                data.assign(info, ProductSpecSkuEntity.Info.SKU_CODE); // TODO 没有这个值，所以在db中也没有设置这个值
                 int flag = info.getInt(ProductSpecSkuEntity.Info.FLAG, 0);
                 String inPdScStrIdListJson = null;
                 if(Misc.checkBit(flag, ProductSpecSkuValObj.FLag.SPU)){

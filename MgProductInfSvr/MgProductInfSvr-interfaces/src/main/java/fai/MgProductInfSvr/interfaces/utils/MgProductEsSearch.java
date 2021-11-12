@@ -137,7 +137,7 @@ public class MgProductEsSearch extends BaseMgProductSearch{
         return this;
     }
 
-    public MgProductEsSearch setUpSalesStatus(int upSalesStatus) {
+    public MgProductEsSearch setUpSalesStatus(Integer upSalesStatus) {
         this.upSalesStatus = upSalesStatus;
         return this;
     }

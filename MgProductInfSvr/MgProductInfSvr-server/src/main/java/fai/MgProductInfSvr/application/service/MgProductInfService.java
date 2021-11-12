@@ -1682,6 +1682,7 @@ public class MgProductInfService extends ServicePub {
                         FaiList<Param> specSkuList = productInfo.getListNullIsEmpty(MgProductEntity.Info.SPEC_SKU);
                         for (Param specSkuInfo : specSkuList) {
                             Param importSpecSkuInfo = new Param();
+                            // 这里没有设置sort字段和flag字段
                             importSpecSkuInfo.assign(specSkuInfo, ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_NAME_LIST, ProductSpecSkuEntity.Info.IN_PD_SC_STR_NAME_LIST);
                             importSpecSkuInfo.assign(specSkuInfo, ProductSpecEntity.SpecSkuInfo.SKU_CODE_LIST, ProductSpecSkuEntity.Info.SKU_CODE_LIST);
                             importSpecSkuInfo.setInt(ProductSpecSkuEntity.Info.PD_ID, pdId);

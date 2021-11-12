@@ -51,9 +51,9 @@ public class MgProductDbSearch extends BaseMgProductSearch {
     private String customComparatorKey;
 
     /**
-     * 自定义排序字段所在的表。如果是PdId或者是RlPdId的自定义排序，可以不填,采用默认的MG_PRODUCT_REL
+     * 自定义排序字段所在的表
      */
-    private String customComparatorTable;   // 第二排序字段的table,默认是MG_PRODUCT_REL
+    private String customComparatorTable;
 
     /**
      * 自定义的排序字段的顺序，且FaiList保存的内容为同一类型
@@ -140,7 +140,7 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         // 排序相关
         this.customComparatorKey = dbSearchParam.getString(DbSearchInfo.CUSTOM_COMPARATOR_KEY); // 自定义的排序
         this.customComparatorList = dbSearchParam.getList(DbSearchInfo.CUSTOM_COMPARATOR_LIST); // 自定义排序的List
-        this.customComparatorTable = dbSearchParam.getString(DbSearchInfo.CUSTOM_COMPARATOR_TABLE); // 自定义排序字段所在的表,默认是MG_PRODUCT_REL
+        this.customComparatorTable = dbSearchParam.getString(DbSearchInfo.CUSTOM_COMPARATOR_TABLE); // 自定义排序字段所在的表
         this.firstComparatorTable = dbSearchParam.getString(DbSearchInfo.FIRST_COMPARATOR_TABLE); // 第一排序字段table
         // db查询条件里的第二排序字段默认是rlPdId
         this.secondComparatorKey = dbSearchParam.getString(BaseSearchInfo.SECOND_COMPARATOR_KEY, ProductBasicEntity.ProductInfo.RL_PD_ID);
@@ -887,7 +887,7 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         return this;
     }
 
-    public MgProductDbSearch setUpSalesStatus(int upSalesStatus) {
+    public MgProductDbSearch setUpSalesStatus(Integer upSalesStatus) {
         this.upSalesStatus = upSalesStatus;
         return this;
     }

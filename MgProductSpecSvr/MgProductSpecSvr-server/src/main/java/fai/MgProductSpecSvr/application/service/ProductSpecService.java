@@ -1677,6 +1677,7 @@ public class ProductSpecService extends SpecParentService {
                             .setInt(ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID, unionPriId)
                             .setInt(ProductSpecSkuEntity.Info.FLAG, ProductSpecSkuValObj.FLag.SPU)
                 );
+                // 组装商品规格sku表数据 mgProductSpecSku_0xxx
                 for (FaiList<Integer> inPdScStrIdList : skuList) {
                     Param addSpecSkuInfo = new Param();
                     addSpecSkuInfo.setList(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList);
@@ -1721,6 +1722,7 @@ public class ProductSpecService extends SpecParentService {
                             return rt;
                         }
                         FaiList<Param> skuCodeInfoList = new FaiList<>();
+                        // 组装 商品规格skuCode表需要的数据
                         for (Map.Entry<Integer, Map<String, Param>> entryMap : pdIdInPdScStrIdListJsonSpecSkuMap.entrySet()) {
                             Integer pdId = entryMap.getKey();
                             /*
@@ -1755,6 +1757,7 @@ public class ProductSpecService extends SpecParentService {
                                 }
                             }
                         }
+                        // 添加商品规格skuCode表数据 mgProductSpecSkuCode_0xxx
                         if(!skuCodeInfoList.isEmpty()){
                             rt = productSpecSkuCodeProc.batchAdd(aid, unionPriId, skuCodeInfoList, isSaga);
                             if(rt != Errno.OK){

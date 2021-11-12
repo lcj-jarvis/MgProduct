@@ -348,6 +348,7 @@ public class StoreService extends StoreParentService {
                 }
                 try {
                     transactionCtrl.setAutoCommit(false);
+                    // 汇总
                     rt = reportSummary(aid, new FaiList<>(pdIdSet), ReportValObj.Flag.REPORT_COUNT|ReportValObj.Flag.REPORT_PRICE,
                             new FaiList<>(skuIdSet), storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc, isSaga);
                     if(rt != Errno.OK){

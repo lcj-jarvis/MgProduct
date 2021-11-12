@@ -1728,7 +1728,7 @@ public class MgProductInfService extends ServicePub {
                         int rlPdId = productInfo.getInt(MgProductEntity.Info.RL_PD_ID);
                         int pdId = productInfo.getInt(MgProductEntity.Info.PD_ID);
                         FaiList<Param> spuSalesList = productInfo.getList(MgProductEntity.Info.SPU_SALES);
-                        if (spuSalesList.isEmpty()) {
+                        if (spuSalesList == null || spuSalesList.isEmpty()) {
                             continue;
                         }
 
@@ -1753,10 +1753,12 @@ public class MgProductInfService extends ServicePub {
                             importSpuSales.add(spuSales);
                         }
                     }
-                    ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-                    rt = productStoreProc.batchAddSpuBizSummary(aid, xid, importSpuSales);
-                    if (rt != Errno.OK) {
-                        return rt;
+                    if (!importSpuSales.isEmpty()) {
+                        ProductStoreProc productStoreProc = new ProductStoreProc(flow);
+                        rt = productStoreProc.batchAddSpuBizSummary(aid, xid, importSpuSales);
+                        if (rt != Errno.OK) {
+                            return rt;
+                        }
                     }
                 }
 
@@ -1839,16 +1841,13 @@ public class MgProductInfService extends ServicePub {
             }
             Log.logStd("end;flow=%s;aid=%s;ownerTid=%s;ownerUnionPriId=%s;",flow, aid, ownerTid, ownerUnionPriId);
             rt = Errno.OK;
-        }finally {
-            try {
-                FaiBuffer sendBuf = new FaiBuffer(true);
-                errProductList.toBuffer(sendBuf, MgProductDto.Key.INFO_LIST, MgProductDto.getInfoDto());
 
-                idList.toBuffer(sendBuf, ProductBasicDto.Key.RL_PD_IDS);
-                session.write(rt, sendBuf);
-            }finally {
-                stat.end((rt != Errno.OK), rt);
-            }
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            errProductList.toBuffer(sendBuf, MgProductDto.Key.INFO_LIST, MgProductDto.getInfoDto());
+            idList.toBuffer(sendBuf, ProductBasicDto.Key.RL_PD_IDS);
+            session.write(rt, sendBuf);
+        }finally {
+            stat.end((rt != Errno.OK), rt);
         }
         return rt;
     }

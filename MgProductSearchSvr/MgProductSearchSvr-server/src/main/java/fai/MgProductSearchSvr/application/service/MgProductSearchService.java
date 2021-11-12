@@ -85,7 +85,8 @@ public class MgProductSearchService {
         // 如果关键词用做商品名称搜索
         if (mgProductEsSearch.isEnableSearchProductName()) {
             // name字段, 并使用了ik分词的字符串
-            fields.add(FaiSearchExDef.SearchField.create(MgProductEsSearch.EsSearchFields.NAME, FaiSearchExDef.SearchField.FieldType.TEXT_IK_CN));
+            fields.add(FaiSearchExDef.SearchField.create(MgProductEsSearch.EsSearchFields.NAME,
+                FaiSearchExDef.SearchField.FieldType.TEXT_IK_CN));
         }
 
         // 过滤列表
@@ -143,7 +144,7 @@ public class MgProductSearchService {
         Ref<Long> foundTotalRef = new Ref<>();
         // 全文检索.
         int rt ;
-        if (mgProductEsSearch.hasSearchKeyWordSearch()) {
+        if (!Str.isEmpty(mgProductEsSearch.getSearchKeyWord()) && !fields.isEmpty()) {
             // 关键词搜索
             rt = sorts.isEmpty()? cli.fullTextQuery(searchWord, fields, filters, resultList, foundTotalRef) : cli.fullTextQuery(searchWord, fields, filters, sorts, resultList, foundTotalRef);
         } else {

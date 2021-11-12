@@ -186,7 +186,11 @@ public class MgProductEsSearch extends BaseMgProductSearch{
      * @return true 表示ES的搜索条件为空
      */
     public boolean isEmpty() {
-        return Str.isEmpty(searchKeyWord) && upSalesStatus == null;
+        return !hasSearchKeyWordSearch() && upSalesStatus == null;
+    }
+
+    public boolean hasSearchKeyWordSearch() {
+        return !Str.isEmpty(searchKeyWord) && enableSearchProductName;
     }
 
     @Override

@@ -143,7 +143,7 @@ public class MgProductSearchService {
         Ref<Long> foundTotalRef = new Ref<>();
         // 全文检索.
         int rt ;
-        if (!Str.isEmpty(mgProductEsSearch.getSearchKeyWord())) {
+        if (mgProductEsSearch.hasSearchKeyWordSearch()) {
             // 关键词搜索
             rt = sorts.isEmpty()? cli.fullTextQuery(searchWord, fields, filters, resultList, foundTotalRef) : cli.fullTextQuery(searchWord, fields, filters, sorts, resultList, foundTotalRef);
         } else {

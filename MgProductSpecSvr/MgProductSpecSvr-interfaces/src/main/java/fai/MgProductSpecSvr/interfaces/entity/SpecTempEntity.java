@@ -15,5 +15,6 @@ public class SpecTempEntity {
         public static final String SORT = SpecTempBizRelEntity.Info.SORT;
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
+        public static final String SYS_TYPE = SpecTempBizRelEntity.Info.SYS_TYPE;                            // int 商品系统类型 (服务/商品)
     }
 }

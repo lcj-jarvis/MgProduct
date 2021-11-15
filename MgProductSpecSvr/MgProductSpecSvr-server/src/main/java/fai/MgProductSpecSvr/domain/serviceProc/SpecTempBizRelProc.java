@@ -62,13 +62,14 @@ public class SpecTempBizRelProc {
         Log.logStd("batchAdd ok;flow=%d;aid=%d;", m_flow, aid);
         return rt;
     }
-    public int batchDel(int aid, int unionPriId, FaiList<Integer> rlTpScIdList) {
+    public int batchDel(int aid, int unionPriId, int sysType, FaiList<Integer> rlTpScIdList) {
         if(aid <= 0 || unionPriId <= 0 || rlTpScIdList == null){
             Log.logErr("batchDel arg error;flow=%d;aid=%s;unionPriId=%s;rlTpScIdList=%s;", m_flow, aid, unionPriId, rlTpScIdList);
             return Errno.ARGS_ERROR;
         }
         ParamMatcher matcher = new ParamMatcher(SpecTempBizRelEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(SpecTempBizRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(SpecTempBizRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
         matcher.and(SpecTempBizRelEntity.Info.RL_TP_SC_ID, ParamMatcher.IN, rlTpScIdList);
         cacheManage.addNeedDelCachedRlTpScIdList(aid, unionPriId, rlTpScIdList);
         int rt = m_daoCtrl.delete(matcher);
@@ -100,7 +101,7 @@ public class SpecTempBizRelProc {
         return rt;
     }
 
-    public int batchSet(int aid, int unionPriId, FaiList<ParamUpdater> specTempBizRelUpdaterList) {
+    public int batchSet(int aid, int unionPriId, int sysType, FaiList<ParamUpdater> specTempBizRelUpdaterList) {
         if(aid <= 0 || unionPriId<= 0 || specTempBizRelUpdaterList == null || specTempBizRelUpdaterList.isEmpty()){
             Log.logErr("batchSet arg error;flow=%d;aid=%s;unionPriId=%s;specTempBizRelUpdaterList=%s;", m_flow, aid, unionPriId, specTempBizRelUpdaterList);
             return Errno.ARGS_ERROR;
@@ -114,7 +115,7 @@ public class SpecTempBizRelProc {
         maxUpdaterKeys.remove(SpecTempBizRelEntity.Info.RL_TP_SC_ID);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
-        rt = getList(aid, unionPriId, rlTpScIdList, listRef);
+        rt = getList(aid, unionPriId, sysType, rlTpScIdList, listRef);
         if(rt != Errno.OK){
             return rt;
         }
@@ -164,7 +165,7 @@ public class SpecTempBizRelProc {
         Log.logStd("batchSet ok;flow=%d;aid=%d;", m_flow, aid);
         return rt;
     }
-    public int getTpScIdByRlTpScId(int aid, int unionPriId, int rlTpScId, Ref<Integer> tpScIdRef) {
+    public int getTpScIdByRlTpScId(int aid, int unionPriId, int sysType, int rlTpScId, Ref<Integer> tpScIdRef) {
         int tpScId = SpecTempBizRelCacheCtrl.getRlTpScId(aid, unionPriId, rlTpScId);
         if(tpScId != -1){
             tpScIdRef.value = tpScId;
@@ -172,6 +173,7 @@ public class SpecTempBizRelProc {
         }
         ParamMatcher matcher = new ParamMatcher(SpecTempBizRelEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(SpecTempBizRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(SpecTempBizRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
         matcher.and(SpecTempBizRelEntity.Info.RL_TP_SC_ID, ParamMatcher.EQ, rlTpScId);
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
@@ -188,12 +190,13 @@ public class SpecTempBizRelProc {
         return rt;
     }
 
-    public int getList(int aid, int unionPriId, Ref<FaiList<Param>> listRef) {
-        return getList(aid, unionPriId, null, listRef);
+    public int getList(int aid, int unionPriId, int sysType, Ref<FaiList<Param>> listRef) {
+        return getList(aid, unionPriId, sysType, null, listRef);
     }
-    public int getList(int aid, int unionPriId, FaiList<Integer> rlTpScIdlIst, Ref<FaiList<Param>> listRef) {
+    public int getList(int aid, int unionPriId, int sysType, FaiList<Integer> rlTpScIdlIst, Ref<FaiList<Param>> listRef) {
         ParamMatcher matcher = new ParamMatcher(SpecTempBizRelEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(SpecTempBizRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(SpecTempBizRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
         if(rlTpScIdlIst != null){
             matcher.and(SpecTempBizRelEntity.Info.RL_TP_SC_ID, ParamMatcher.IN, rlTpScIdlIst);
         }
@@ -207,9 +210,10 @@ public class SpecTempBizRelProc {
         Log.logDbg(rt,"get ok;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
         return rt;
     }
-    public int getCount(int aid, int unionPriId, FaiList<Integer> rlLibIdList, Ref<Integer> countRef) {
+    public int getCount(int aid, int unionPriId, int sysType, FaiList<Integer> rlLibIdList, Ref<Integer> countRef) {
         ParamMatcher matcher = new ParamMatcher(SpecTempBizRelEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(SpecTempBizRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(SpecTempBizRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
         matcher.and(SpecTempBizRelEntity.Info.RL_LIB_ID, ParamMatcher.IN, rlLibIdList);
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;

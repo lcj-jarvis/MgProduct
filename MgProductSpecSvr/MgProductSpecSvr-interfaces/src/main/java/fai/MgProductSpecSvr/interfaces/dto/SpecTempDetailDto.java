@@ -68,5 +68,6 @@ public class SpecTempDetailDto {
         public static final int UPDATER_LIST = 6;
         public static final int ID = 7;
         public static final int ID_LIST = 8;
+        public static final int SYS_TYPE = 9;
     }
 }

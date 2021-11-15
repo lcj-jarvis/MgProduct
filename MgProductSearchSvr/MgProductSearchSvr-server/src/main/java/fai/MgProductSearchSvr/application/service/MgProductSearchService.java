@@ -480,6 +480,7 @@ public class MgProductSearchService {
                 (mgProductEsSearch != null && !Str.isEmpty(mgProductEsSearch.getSearchKeyWord()));
             // 保存最终的结果
             FaiList<Param> resultList = new FaiList<>();
+            begin = System.currentTimeMillis();
             if (!table_searchInfo.isEmpty()) {
                 Log.logStd("Not only have searchKeyword search;have other search conditions;begin to take the intersection and integrate sort fields;flow=%d;aid=%d;unionPriId=%d;comparatorTableMappingPdIdParam=%s", flow, aid, unionPriId, comparatorTableMappingPdIdParam);
                 // 关键字搜索的结果取并集，目前关键字搜索主要用于商品名称，商品条形码，es搜索
@@ -609,9 +610,9 @@ public class MgProductSearchService {
                     resultList.add(info);
                 }
             }
-
+            long end = System.currentTimeMillis();
             // 执行到这里说明取完交集和将排序字段的值整合到Param中
-            Log.logStd("finish taking the intersection and integrating sort fields;flow=%d;aid=%d;unionPriId=%d;resultSize=%d;finalResult=%s", flow, aid, unionPriId, resultList.size(), resultList);
+            Log.logStd("finish taking the intersection and integrating sort fields;flow=%d;aid=%d;unionPriId=%d;resultSize=%d;consume=%d,finalResult=%s", flow, aid, unionPriId, resultList.size(), end - begin, resultList);
 
             // 排序优先级：自定义排序 > 第一排序 > 第二排序 > es排序
 
@@ -641,7 +642,7 @@ public class MgProductSearchService {
             resultVisitorCacheTime = Math.max(resultVisitorCacheTime, visitorDataMaxChangeTime.value);
             resultVisitorCacheTime = Math.max(resultVisitorCacheTime, resultManageCacheTime);
 
-            Log.logStd("begin paging;aid=%d,unionPriId=%d,resultSize=%d,result=%s", aid, unionPriId, resultList.size(), resultList);
+            Log.logStd("begin paging;aid=%d,unionPriId=%d,resultSize=%d", aid, unionPriId, resultList.size());
 
             // 分页
             FaiList<Integer> idList = resultList.stream()

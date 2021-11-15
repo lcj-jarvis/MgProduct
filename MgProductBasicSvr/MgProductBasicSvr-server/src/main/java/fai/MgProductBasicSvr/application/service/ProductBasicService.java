@@ -2789,7 +2789,7 @@ public class ProductBasicService extends BasicParentService {
     }
 
     /**
-     * 从db搜索aid下的商品数据
+     * 从db搜索aid下的商品数据（不包括删除状态的）
      * 只获取部分字段：ProductEntity.MANAGE_FIELDS
      * 目前提供给搜索服务使用
      */

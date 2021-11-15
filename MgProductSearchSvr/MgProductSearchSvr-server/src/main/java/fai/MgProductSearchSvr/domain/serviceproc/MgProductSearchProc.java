@@ -621,9 +621,11 @@ public class MgProductSearchProc {
             comparatorTable_searchInfo, comparatorTableMappingPdIdParam, countDownLatch);
 
         //  阻塞获取搜索结果完成
+        long begin = System.currentTimeMillis();
         try {
             countDownLatch.await();
-            Log.logStd("finish  each table search data;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+            long end = System.currentTimeMillis();
+            Log.logStd("finish  each table search data;flow=%d;aid=%d;unionPriId=%d;consume=%d", flow, aid, unionPriId, end - begin);
         } catch (InterruptedException e) {
             throw new MgException(Errno.ERROR, "waiting for each table search data time out;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
         }

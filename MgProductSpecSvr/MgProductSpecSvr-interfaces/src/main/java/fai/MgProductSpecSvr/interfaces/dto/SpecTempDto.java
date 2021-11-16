@@ -18,6 +18,7 @@ public class SpecTempDto {
         g_dtoDef.add(SpecTempEntity.Info.SYS_UPDATE_TIME, 7);
         g_dtoDef.add(SpecTempEntity.Info.SOURCE_TID, 8, Var.Type.INT);
         g_dtoDef.add(SpecTempEntity.Info.SOURCE_UNION_PRI_ID, 9, Var.Type.INT);
+        g_dtoDef.add(SpecTempEntity.Info.SYS_TYPE, 10, Var.Type.INT);
     }
 
     public static ParamDef getInfoDto() {
@@ -32,5 +33,6 @@ public class SpecTempDto {
         public static final int UPDATER_LIST = 5;
         public static final int ID = 6;
         public static final int ID_LIST = 7;
+        public static final int SYS_TYPE = 8;
     }
 }

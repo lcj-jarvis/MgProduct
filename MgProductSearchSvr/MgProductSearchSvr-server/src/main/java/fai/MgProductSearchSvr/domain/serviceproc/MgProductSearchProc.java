@@ -503,7 +503,7 @@ public class MgProductSearchProc {
 
         // 目前提供的接口查询结果，只有这三个字段，Info.SKU_CODE, Info.PD_ID, Info.SKU_ID
         if (MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU_CODE.getSearchTableName().equals(tableName)) {
-            Log.logStd("begin to send async request to get " + tableName + " table data;flow=%d,aid=%d,unionPriId=%d;getAllData=%d;", flow, aid, unionPriId, addDataToLocalCache);
+            Log.logStd("begin to send async request to get " + tableName + " table data;flow=%d,aid=%d,unionPriId=%d;getAllData=%s;", flow, aid, unionPriId, addDataToLocalCache);
             DefaultFuture skuCodeDataFuture = addDataToLocalCache ? asyncMgProductSpecCli.getSkuCodeAllData(flow, aid, unionPriId) : asyncMgProductSpecCli.searchSkuCodeFromDb(flow, aid, unionPriId, searchArg);
             tableNameMappingRemoteGetDataFuture.put(tableName, skuCodeDataFuture);
         }
@@ -716,6 +716,7 @@ public class MgProductSearchProc {
         tableNameMappingRemoteGetDataFuture.forEach((tableName, remoteGetDataFuture) -> {
             remoteGetDataFuture.whenComplete((BiConsumer<RemoteStandResult, Throwable>)(remoteStandResult, ex) -> {
                 if (remoteStandResult.isSuccess()) {
+                    long begin = System.currentTimeMillis();
                     // TODO 注意Errno.NOT_FOUND的情况是否会返回null，目前涉及到的服务的接口搜索不到，不会返回null
                     FaiList<Param> searchResultList = remoteStandResult.getObject(ParseData.TABLE_NAME_MAPPING_PARSE_DATA_KEY.get(tableName), FaiList.class);
                     Param searchInfo = tableMappingSearchInfo.get(tableName);
@@ -754,7 +755,8 @@ public class MgProductSearchProc {
                     // 保存搜索结果到searchInfo
                     searchInfo.setList(SEARCH_RESULT_LIST, searchResultList);
                     searchInfo.setInt(SEARCH_RESULT_SIZE, searchResultList.size());
-                    Log.logStd("finish remote get " + tableName + " table data;flow=%d,aid=%d,unionPriId=%d;searchResultList=%s", flow, aid, unionPriId, searchResultList);
+                    long end = System.currentTimeMillis();
+                    Log.logStd("finish remote get " + tableName + " table data;flow=%d,aid=%d,unionPriId=%d;consume=%d,searchResultList=%s", flow, aid, unionPriId, end - begin, searchResultList);
                     countDownLatch.countDown();
                 } else {
                     int rt = remoteStandResult.getRt();

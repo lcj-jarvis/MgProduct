@@ -299,7 +299,7 @@ public class MgProductSearchService {
         if (Objects.isNull(pdIdFromEsSearch)) {
             pdIdFromEsSearch = new FaiList<>();
         }
-        Log.logStd("need to unite db search;begin invoke uniteDbSearch method;flow=%d,aid=%d,unionPriId=%d,mgProductDbSearch=%s,esSearchResult=%s", flow, aid, unionPriId, mgProductDbSearch, pdIdFromEsSearch);
+        Log.logStd("need to search in db;begin invoke dbSearch method;flow=%d,aid=%d,unionPriId=%d,esSearchResult=%s", flow, aid, unionPriId, pdIdFromEsSearch);
 
         // 初始化需要用到的 异步client
         MgProductBasicCli asyncMgProductBasicCli = FaiClientProxyFactory.createProxy(MgProductBasicCli.class);

@@ -553,6 +553,7 @@ public class ProductBasicService extends MgProductInfService {
             bindRlPdInfo.clear();
             bindRlPdInfo.setInt(ProductBasicEntity.ProductInfo.UNION_PRI_ID, bindUnionPriId);
             bindRlPdInfo.setInt(ProductBasicEntity.ProductInfo.RL_PD_ID, bindRlPdId);
+            bindRlPdInfo.setInt(ProductBasicEntity.ProductInfo.SYS_TYPE, sysType);
 
             ProductBasicProc basicService = new ProductBasicProc(flow);
             Ref<FaiList<Integer>> rlPdIdsRef = new Ref<>();

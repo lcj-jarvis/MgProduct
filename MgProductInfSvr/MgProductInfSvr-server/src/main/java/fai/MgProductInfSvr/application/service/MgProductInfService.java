@@ -1841,13 +1841,18 @@ public class MgProductInfService extends ServicePub {
             }
             Log.logStd("end;flow=%s;aid=%s;ownerTid=%s;ownerUnionPriId=%s;",flow, aid, ownerTid, ownerUnionPriId);
             rt = Errno.OK;
-
-            FaiBuffer sendBuf = new FaiBuffer(true);
-            errProductList.toBuffer(sendBuf, MgProductDto.Key.INFO_LIST, MgProductDto.getInfoDto());
-            idList.toBuffer(sendBuf, ProductBasicDto.Key.RL_PD_IDS);
-            session.write(rt, sendBuf);
-        }finally {
-            stat.end((rt != Errno.OK), rt);
+        } catch (Exception e) {
+          rt = Errno.ERROR;
+        } finally {
+            // 这里需要写回数据，原因是就算是异常情况也需要返回 errProductList
+            try {
+                FaiBuffer sendBuf = new FaiBuffer(true);
+                errProductList.toBuffer(sendBuf, MgProductDto.Key.INFO_LIST, MgProductDto.getInfoDto());
+                idList.toBuffer(sendBuf, ProductBasicDto.Key.RL_PD_IDS);
+                session.write(rt, sendBuf);
+            } finally {
+                stat.end((rt != Errno.OK), rt);
+            }
         }
         return rt;
     }

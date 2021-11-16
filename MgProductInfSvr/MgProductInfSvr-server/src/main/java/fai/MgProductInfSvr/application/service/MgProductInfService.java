@@ -1472,9 +1472,9 @@ public class MgProductInfService extends ServicePub {
                     Param basicInfo = productInfo.getParam(MgProductEntity.Info.BASIC);
                     basicInfo.setInt(ProductRelEntity.Info.SYS_TYPE, sysType);
                     // 将 rlGroupIds、rlTagIds、rlProps 提取到外层，为了方便绑定商品业务关联信息
-                    productInfo.setList(ProductBasicEntity.ProductInfo.RL_GROUP_IDS, basicInfo.getList(ProductBasicEntity.ProductInfo.RL_GROUP_IDS));
-                    productInfo.setList(ProductBasicEntity.ProductInfo.RL_TAG_IDS, basicInfo.getList(ProductBasicEntity.ProductInfo.RL_TAG_IDS));
-                    productInfo.setList(ProductBasicEntity.ProductInfo.RL_PROPS, basicInfo.getList(ProductBasicEntity.ProductInfo.RL_PROPS));
+                    productInfo.setList(ProductBasicEntity.ProductInfo.RL_GROUP_IDS, basicInfo.getListNullIsEmpty(ProductBasicEntity.ProductInfo.RL_GROUP_IDS));
+                    productInfo.setList(ProductBasicEntity.ProductInfo.RL_TAG_IDS, basicInfo.getListNullIsEmpty(ProductBasicEntity.ProductInfo.RL_TAG_IDS));
+                    productInfo.setList(ProductBasicEntity.ProductInfo.RL_PROPS, basicInfo.getListNullIsEmpty(ProductBasicEntity.ProductInfo.RL_PROPS));
                     if(!useMgProductBasicInfo){
                         int rlPdId = basicInfo.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID, 0);
                         batchAddBasicInfoList.add(
@@ -1604,9 +1604,9 @@ public class MgProductInfService extends ServicePub {
                         }
                         int pdId = productInfo.getInt(MgProductEntity.Info.PD_ID);
                         int ownerRlPdId = productInfo.getInt(MgProductEntity.Info.RL_PD_ID);
-                        FaiList<Integer> rlGroupIds = productInfo.getList(ProductBasicEntity.ProductInfo.RL_GROUP_IDS);
-                        FaiList<Integer> rlTagIds = productInfo.getList(ProductBasicEntity.ProductInfo.RL_TAG_IDS);
-                        FaiList<Param> rlProps = productInfo.getList(ProductBasicEntity.ProductInfo.RL_PROPS);
+                        FaiList<Integer> rlGroupIds = productInfo.getListNullIsEmpty(ProductBasicEntity.ProductInfo.RL_GROUP_IDS);
+                        FaiList<Integer> rlTagIds = productInfo.getListNullIsEmpty(ProductBasicEntity.ProductInfo.RL_TAG_IDS);
+                        FaiList<Param> rlProps = productInfo.getListNullIsEmpty(ProductBasicEntity.ProductInfo.RL_PROPS);
 
                         Map<Integer, Integer> unionPriIdRlPdIdMap = new HashMap<>();
                         // 先批量绑定关联

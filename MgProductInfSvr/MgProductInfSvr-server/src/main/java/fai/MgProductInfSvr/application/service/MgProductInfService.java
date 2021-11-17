@@ -1843,9 +1843,10 @@ public class MgProductInfService extends ServicePub {
             Log.logStd("end;flow=%s;aid=%s;ownerTid=%s;ownerUnionPriId=%s;",flow, aid, ownerTid, ownerUnionPriId);
             rt = Errno.OK;
         } catch (Exception e) {
-            // 如果不是中台定义的异常，则将 rt 设置为 -1
-            if (!MgException.class.getName().equals(e.getClass().getName())) {
+            // 保证抛出异常时，finally中不会写回Errno.OK
+            if (rt == Errno.OK) {
                 rt = Errno.ERROR;
+                throw new MgException(rt, "method error;flow=%d;aid=%d", flow, aid);
             }
         } finally {
             // 这里需要写回数据，原因是就算是异常情况也需要返回 errProductList

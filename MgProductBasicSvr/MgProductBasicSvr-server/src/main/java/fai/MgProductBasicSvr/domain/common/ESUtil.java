@@ -54,7 +54,7 @@ public class ESUtil {
         Param logInfo = new Param();
         logInfo.setInt(DocOplogDef.Info.OPERATION, op);
         logInfo.setString(DocOplogDef.Info.DOCID_KEYS, docid.getDocidKeys());
-        logInfo.setString(DocOplogDef.Info.DOCID_KEYS, docid.getDocidVals());
+        logInfo.setString(DocOplogDef.Info.DOCID_VALS, docid.getDocidVals());
         preList.add(logInfo);
     }
 
@@ -76,7 +76,7 @@ public class ESUtil {
             Param logInfo = new Param();
             logInfo.setInt(DocOplogDef.Info.OPERATION, op);
             logInfo.setString(DocOplogDef.Info.DOCID_KEYS, docid.getDocidKeys());
-            logInfo.setString(DocOplogDef.Info.DOCID_KEYS, docid.getDocidVals());
+            logInfo.setString(DocOplogDef.Info.DOCID_VALS, docid.getDocidVals());
             preList.add(logInfo);
         }
     }
@@ -97,7 +97,7 @@ public class ESUtil {
             Param logInfo = new Param();
             logInfo.setInt(DocOplogDef.Info.OPERATION, op);
             logInfo.setString(DocOplogDef.Info.DOCID_KEYS, docid.getDocidKeys());
-            logInfo.setString(DocOplogDef.Info.DOCID_KEYS, docid.getDocidVals());
+            logInfo.setString(DocOplogDef.Info.DOCID_VALS, docid.getDocidVals());
             preList.add(logInfo);
         }
     }
@@ -172,7 +172,7 @@ public class ESUtil {
             Param logInfo = new Param();
             logInfo.setInt(DocOplogDef.Info.OPERATION, op);
             logInfo.setString(DocOplogDef.Info.DOCID_KEYS, docid.getDocidKeys());
-            logInfo.setString(DocOplogDef.Info.DOCID_KEYS, docid.getDocidVals());
+            logInfo.setString(DocOplogDef.Info.DOCID_VALS, docid.getDocidVals());
             logList.add(logInfo);
             if(logList.size() >= BATCH_SIZE) {
                 rt = opCli.batchAddDocOplog(aid, FaiSearchExDef.App.MG_PRODUCT, logList);
@@ -208,7 +208,7 @@ public class ESUtil {
             Param logInfo = new Param();
             logInfo.setInt(DocOplogDef.Info.OPERATION, op);
             logInfo.setString(DocOplogDef.Info.DOCID_KEYS, docid.getDocidKeys());
-            logInfo.setString(DocOplogDef.Info.DOCID_KEYS, docid.getDocidVals());
+            logInfo.setString(DocOplogDef.Info.DOCID_VALS, docid.getDocidVals());
             logList.add(logInfo);
             if(logList.size() >= BATCH_SIZE) {
                 rt = opCli.batchAddDocOplog(aid, FaiSearchExDef.App.MG_PRODUCT, logList);

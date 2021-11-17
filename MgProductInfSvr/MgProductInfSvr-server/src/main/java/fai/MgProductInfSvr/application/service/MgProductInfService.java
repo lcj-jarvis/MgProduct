@@ -1846,7 +1846,7 @@ public class MgProductInfService extends ServicePub {
             // 保证抛出异常时，finally中不会写回Errno.OK
             if (rt == Errno.OK) {
                 rt = Errno.ERROR;
-                throw new MgException(rt, "method error;flow=%d;aid=%d", flow, aid);
+                throw e;
             }
         } finally {
             // 这里需要写回数据，原因是就算是异常情况也需要返回 errProductList

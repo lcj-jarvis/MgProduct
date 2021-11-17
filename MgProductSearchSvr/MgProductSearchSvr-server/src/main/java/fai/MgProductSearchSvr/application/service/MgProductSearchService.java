@@ -155,7 +155,6 @@ public class MgProductSearchService {
         if (rt != Errno.OK) {
             throw new MgException(rt, "es search error;flow=%d,aid=%d,unionPriId=%d,fields=%s,filters=%s,sorts=%s", flow, aid, unionPriId, fields, filters, sorts);
         }
-        Log.logStd("finish searching es;flow=%d,foundTotalSize=%d,aid=%d,unionPriId=%d,fields=%s,filters=%s,sorts=%s,resultList=%s,", flow, foundTotalRef.value, aid, unionPriId, fields, filters, sorts, resultList);
 
         // TODO 可以根据命中条数，并发多个线程去获取es数据
 
@@ -172,7 +171,7 @@ public class MgProductSearchService {
         esResultInfo.setList(ES_SEARCH_RESULT, esSearchResultInfoList);
         esResultInfo.setLong(ES_SEARCH_RESULT_TOTAL, foundTotalRef.value);
 
-        Log.logStd(" finish getting pdIdList from es search result;flow=%d,aid=%d,unionPriId=%d,idList=%s", flow, aid, unionPriId, esSearchResult);
+        Log.logStd("finish searching es;flow=%d,aid=%d,unionPriId=%d,foundTotalSize=%d,fields=%s,filters=%s,sorts=%s,idList=%s,", flow, aid, unionPriId, foundTotalRef.value, fields, filters, sorts, esSearchResult);
         return esResultInfo;
     }
 
@@ -299,7 +298,7 @@ public class MgProductSearchService {
         if (Objects.isNull(pdIdFromEsSearch)) {
             pdIdFromEsSearch = new FaiList<>();
         }
-        Log.logStd("need to search in db;begin invoke dbSearch method;flow=%d,aid=%d,unionPriId=%d,esSearchResult=%s", flow, aid, unionPriId, pdIdFromEsSearch);
+        Log.logStd("need to search in db;begin invoke dbSearch method;flow=%d,aid=%d,unionPriId=%d", flow, aid, unionPriId);
 
         // 初始化需要用到的 异步client
         MgProductBasicCli asyncMgProductBasicCli = FaiClientProxyFactory.createProxy(MgProductBasicCli.class);
@@ -487,7 +486,6 @@ public class MgProductSearchService {
                 Set<Integer> searchKeywordPdIdSearchResult = new HashSet<>();
                 searchKeywordTableMappingPdIdParam.values().forEach(pdId_info -> searchKeywordPdIdSearchResult.addAll(pdId_info.keySet()));
                 searchKeywordPdIdSearchResult.addAll(pdIdFromEsSearch);
-                Log.logStd("flow=%d;searchKeyword searchResultOfPdIds=%s", flow, searchKeywordPdIdSearchResult);
 
                 // 除searchKeyword外的搜索条件的搜索结果，先根据搜索结果条数的大小排序
                 ParamComparator sizeComparator = new ParamComparator(SEARCH_RESULT_SIZE, false);
@@ -620,7 +618,7 @@ public class MgProductSearchService {
             boolean hasComparatorInEs = (Objects.nonNull(mgProductEsSearch) && mgProductEsSearch.hasFirstComparator()) ||
                 (Objects.nonNull(mgProductEsSearch) && mgProductEsSearch.isNeedSecondComparatorSorting());
             if (!resultList.isEmpty() && hasComparatorInEs) {
-                Log.logStd("have comparator in es;Sorted by es pdIds;flow=%d;aid=%d;unionPriId=%d;esPdIds=%s", flow, aid, unionPriId, pdIdFromEsSearch);
+                Log.logStd("have comparator in es;Sorted by es pdIds;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
                 // 根据es的结果进行定制排序
                 ParamComparator customComparatorOfEsSearchResult = new ParamComparator();
                 customComparatorOfEsSearchResult.addKey(ProductEntity.Info.PD_ID, pdIdFromEsSearch);

@@ -76,9 +76,12 @@ public class MgProductSearchProc {
             });
         });
 
+        long begin = System.currentTimeMillis();
         try {
             // 同步阻塞等待回调执行完成
             countDownLatch.await();
+            long end = System.currentTimeMillis();
+            Log.logStd("finish getting es data source table dataStatus;flow=%d,aid=%d;unionPriId=%d;consume=%d", flow, aid, unionPriId, end - begin);
         } catch (Exception e) {
             throw new MgException(Errno.ERROR, "waiting get es dataStatus time out;flow=%d,aid=%d,unionPriId=%d;", flow, aid, unionPriId);
         }
@@ -466,44 +469,44 @@ public class MgProductSearchProc {
                                        MgProductSpecCli asyncMgProductSpecCli) {
 
         if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT.getSearchTableName().equals(tableName)){
-            Log.logStd("begin to send async request to get " + tableName + " table data;flow=%d,aid=%d,unionPriId=%d;getAllData=%s;", flow, aid, unionPriId, addDataToLocalCache);
+            Log.logStd("begin to send async request to get " + tableName + " table data;flow=%d,aid=%d,unionPriId=%d;getAllData=%s;searchArg=%s", flow, aid, unionPriId, addDataToLocalCache, searchArg.matcher);
             DefaultFuture pdDataFuture = addDataToLocalCache ? asyncMgProductBasicCli.getAllPdData(flow, aid) : asyncMgProductBasicCli.searchPdFromDb(flow, aid, searchArg);
             tableNameMappingRemoteGetDataFuture.put(tableName, pdDataFuture);
         }
 
         if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_REL.getSearchTableName().equals(tableName)){
-            Log.logStd("begin to send async request to get " + tableName + " table data;flow=%d,aid=%d,unionPriId=%d;getAllData=%s;", flow, aid, unionPriId, addDataToLocalCache);
+            Log.logStd("begin to send async request to get " + tableName + " table data;flow=%d,aid=%d,unionPriId=%d;getAllData=%s;searchArg=%s", flow, aid, unionPriId, addDataToLocalCache, searchArg.matcher);
             DefaultFuture pdRelDataFuture = addDataToLocalCache ? asyncMgProductBasicCli.getAllPdRelData(flow, aid, unionPriId) : asyncMgProductBasicCli.searchPdRelFromDb(flow, aid, unionPriId, searchArg);
             tableNameMappingRemoteGetDataFuture.put(tableName, pdRelDataFuture);
         }
 
         if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_PROP.getSearchTableName().equals(tableName)){
-            Log.logStd("begin to send async request to get " + tableName + " table data;flow=%d,aid=%d,unionPriId=%d;getAllData=%s;", flow, aid, unionPriId, addDataToLocalCache);
+            Log.logStd("begin to send async request to get " + tableName + " table data;flow=%d,aid=%d,unionPriId=%d;getAllData=%s;searchArg=%s", flow, aid, unionPriId, addDataToLocalCache, searchArg.matcher);
             DefaultFuture pdBindPropDataFuture = addDataToLocalCache ? asyncMgProductBasicCli.getAllBindPropData(flow, aid, unionPriId) : asyncMgProductBasicCli.searchBindPropFromDb(flow, aid, unionPriId, searchArg);
             tableNameMappingRemoteGetDataFuture.put(tableName, pdBindPropDataFuture);
         }
 
         if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_GROUP.getSearchTableName().equals(tableName)){
-            Log.logStd("begin to send async request to get " + tableName + " table data;flow=%d,aid=%d,unionPriId=%d;getAllData=%s;", flow, aid, unionPriId, addDataToLocalCache);
+            Log.logStd("begin to send async request to get " + tableName + " table data;flow=%d,aid=%d,unionPriId=%d;getAllData=%s;searchArg=%s", flow, aid, unionPriId, addDataToLocalCache, searchArg.matcher);
             DefaultFuture pdBindGroupDataFuture = addDataToLocalCache ? asyncMgProductBasicCli.getAllBindGroupData(flow, aid, unionPriId) : asyncMgProductBasicCli.searchBindGroupFromDb(flow, aid, unionPriId, searchArg);
             tableNameMappingRemoteGetDataFuture.put(tableName, pdBindGroupDataFuture);
         }
 
         if(MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_BIND_TAG.getSearchTableName().equals(tableName)){
-            Log.logStd("begin to send async request to get " + tableName + " table data;flow=%d,aid=%d,unionPriId=%d;getAllData=%s;", flow, aid, unionPriId, addDataToLocalCache);
+            Log.logStd("begin to send async request to get " + tableName + " table data;flow=%d,aid=%d,unionPriId=%d;getAllData=%s;searchArg=%s", flow, aid, unionPriId, addDataToLocalCache, searchArg.matcher);
             DefaultFuture pdBindTagDataFuture = addDataToLocalCache ? asyncMgProductBasicCli.getAllPdBindTagData(flow, aid, unionPriId) : asyncMgProductBasicCli.searchBindTagFromDb(flow, aid, unionPriId, searchArg);
             tableNameMappingRemoteGetDataFuture.put(tableName, pdBindTagDataFuture);
         }
 
         if(MgProductDbSearch.SearchTableNameEnum.MG_SPU_BIZ_SUMMARY.getSearchTableName().equals(tableName)){
-            Log.logStd("begin to send async request to get " + tableName + " table data;flow=%d,aid=%d,unionPriId=%d;getAllData=%s;", flow, aid, unionPriId, addDataToLocalCache);
+            Log.logStd("begin to send async request to get " + tableName + " table data;flow=%d,aid=%d,unionPriId=%d;getAllData=%s;searchArg=%s", flow, aid, unionPriId, addDataToLocalCache, searchArg.matcher);
             DefaultFuture spuBizSummaryDataFuture = addDataToLocalCache ? asyncMgProductStoreCli.getSpuBizSummaryAllData(flow, aid, tid, unionPriId) : asyncMgProductStoreCli.searchSpuBizSummaryFromDb(flow, aid, tid, unionPriId, searchArg);
             tableNameMappingRemoteGetDataFuture.put(tableName, spuBizSummaryDataFuture);
         }
 
         // 目前提供的接口查询结果，只有这三个字段，Info.SKU_CODE, Info.PD_ID, Info.SKU_ID
         if (MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_SPEC_SKU_CODE.getSearchTableName().equals(tableName)) {
-            Log.logStd("begin to send async request to get " + tableName + " table data;flow=%d,aid=%d,unionPriId=%d;getAllData=%s;", flow, aid, unionPriId, addDataToLocalCache);
+            Log.logStd("begin to send async request to get " + tableName + " table data;flow=%d,aid=%d,unionPriId=%d;getAllData=%s;searchArg=%s", flow, aid, unionPriId, addDataToLocalCache, searchArg.matcher);
             DefaultFuture skuCodeDataFuture = addDataToLocalCache ? asyncMgProductSpecCli.getSkuCodeAllData(flow, aid, unionPriId) : asyncMgProductSpecCli.searchSkuCodeFromDb(flow, aid, unionPriId, searchArg);
             tableNameMappingRemoteGetDataFuture.put(tableName, skuCodeDataFuture);
         }
@@ -674,7 +677,7 @@ public class MgProductSearchProc {
                 return;
             } else {
                 // 可能缓存被回收，重新获取数据
-                Log.logStd("cache1==null; flow=%s;aid=%d;unionPriId=%d;searchSorterInfo=%s;", flow, aid, unionPriId, searchInfo);
+                Log.logStd("cache1==null; flow=%s;aid=%d;unionPriId=%d;searchInfo=%s;", flow, aid, unionPriId, searchInfo);
             }
         }
 
@@ -707,7 +710,7 @@ public class MgProductSearchProc {
                 searchInfo.setList(SEARCH_RESULT_LIST, searchResultList);
                 // 搜索结果的条数
                 searchInfo.setInt(SEARCH_RESULT_SIZE, searchResultList.size());
-                Log.logStd("finish from localCache Data get searchResult;flow=%d,aid=%d;unionPriId=%d;tableName=%s;searchResultList=%s", flow, aid, unionPriId, tableName, searchResultList);
+                Log.logStd("finish from localCache Data get searchResult;flow=%d,aid=%d;unionPriId=%d;tableName=%s;", flow, aid, unionPriId, tableName);
                 countDownLatch.countDown();
             });
         });
@@ -744,6 +747,7 @@ public class MgProductSearchProc {
                         // 此时的searchResultList还没有使用搜索条件过滤，使用搜索条件过滤
                         ParamMatcher searchMatcher = (ParamMatcher) searchInfo.getObject(SEARCH_MATCHER);
                         // 使用搜索条件过滤后的最终结果
+                        Log.logStd("add Data to localCache and use ParamMatcher filter table data;flow=%d;aid=%d,unionPriId=%d;tableName=%d,ParamMatcher=%s", flow, aid, unionPriId, tableName, searchMatcher);
                         searchResultList = getSearchResult(tableName, searchMatcher, searchResultList, tableNameMappingPdIdParam);
                     }  else {
                         // 说明不是全量搜索
@@ -756,7 +760,7 @@ public class MgProductSearchProc {
                     searchInfo.setList(SEARCH_RESULT_LIST, searchResultList);
                     searchInfo.setInt(SEARCH_RESULT_SIZE, searchResultList.size());
                     long end = System.currentTimeMillis();
-                    Log.logStd("finish remote get " + tableName + " table data;flow=%d,aid=%d,unionPriId=%d;consume=%d,searchResultList=%s", flow, aid, unionPriId, end - begin, searchResultList);
+                    Log.logStd("finish remote get " + tableName + " table data;flow=%d,aid=%d,unionPriId=%d;consume=%d", flow, aid, unionPriId, end - begin);
                     countDownLatch.countDown();
                 } else {
                     int rt = remoteStandResult.getRt();
@@ -778,18 +782,6 @@ public class MgProductSearchProc {
 
         return conf.getParam(MgProductSearchSvr.SvrConfigGlobalConf.loadFromDbThresholdKey)
             .getInt(tableName, defaultThreshold);
-    }
-
-    /**
-     * 使用es中获取到PdId使用In Sql的阈值。
-     */
-    public int getInSqlThreshold() {
-        Param conf = ConfPool.getConf(MgProductSearchSvr.SvrConfigGlobalConf.svrConfigGlobalConfKey);
-        int defaultThreshold = 1000;
-        if(Str.isEmpty(conf) || Objects.isNull(conf.getInt(MgProductSearchSvr.SvrConfigGlobalConf.useIdFromEsAsInSqlThresholdKey))){
-            return defaultThreshold;
-        }
-        return conf.getInt(MgProductSearchSvr.SvrConfigGlobalConf.useIdFromEsAsInSqlThresholdKey, defaultThreshold);
     }
 
     public static final class DbSearchSorterInfo {

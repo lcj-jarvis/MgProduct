@@ -1593,6 +1593,10 @@ public class MgProductInfService extends ServicePub {
                         }
                     }
                 }
+                if (ownerUnionPriId == 211) {
+                    rt = -112;
+                    throw new MgException("aaaaa");
+                }
                 Map<BizPriKey, Integer> bizPriKeyMap = new HashMap<>();
                 // 绑定业务关联
                 {
@@ -1842,7 +1846,10 @@ public class MgProductInfService extends ServicePub {
             Log.logStd("end;flow=%s;aid=%s;ownerTid=%s;ownerUnionPriId=%s;",flow, aid, ownerTid, ownerUnionPriId);
             rt = Errno.OK;
         } catch (Exception e) {
-          rt = Errno.ERROR;
+            // 如果不是中台定义的异常，则将 rt 设置为 -1
+            if (!MgException.class.getName().equals(e.getClass().getName())) {
+                rt = Errno.ERROR;
+            }
         } finally {
             // 这里需要写回数据，原因是就算是异常情况也需要返回 errProductList
             try {

@@ -1593,10 +1593,7 @@ public class MgProductInfService extends ServicePub {
                         }
                     }
                 }
-                if (ownerUnionPriId == 211) {
-                    rt = -112;
-                    throw new MgException("aaaaa");
-                }
+
                 Map<BizPriKey, Integer> bizPriKeyMap = new HashMap<>();
                 // 绑定业务关联
                 {

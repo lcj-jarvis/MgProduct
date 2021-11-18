@@ -144,6 +144,7 @@ public class MgProductSearchService {
         Ref<Long> foundTotalRef = new Ref<>();
         // 全文检索.
         int rt ;
+        long begin = System.currentTimeMillis();
         if (!Str.isEmpty(mgProductEsSearch.getSearchKeyWord()) && !fields.isEmpty()) {
             // 关键词搜索
             rt = sorts.isEmpty()? cli.fullTextQuery(searchWord, fields, filters, resultList, foundTotalRef) : cli.fullTextQuery(searchWord, fields, filters, sorts, resultList, foundTotalRef);
@@ -170,8 +171,8 @@ public class MgProductSearchService {
         esResultInfo.setList(PDIDLIST_FROME_ES_SEARCH_RESULT, esSearchResult);
         esResultInfo.setList(ES_SEARCH_RESULT, esSearchResultInfoList);
         esResultInfo.setLong(ES_SEARCH_RESULT_TOTAL, foundTotalRef.value);
-
-        Log.logStd("finish searching es;flow=%d,aid=%d,unionPriId=%d,foundTotalSize=%d,fields=%s,filters=%s,sorts=%s,idList=%s,", flow, aid, unionPriId, foundTotalRef.value, fields, filters, sorts, esSearchResult);
+        long end = System.currentTimeMillis();
+        Log.logStd("finish searching es;flow=%d,aid=%d,unionPriId=%d,consume=%d,foundTotalSize=%d,fields=%s,filters=%s,sorts=%s,idList=%s,", flow, aid, unionPriId, end - begin, foundTotalRef.value, fields, filters, sorts, esSearchResult);
         return esResultInfo;
     }
 

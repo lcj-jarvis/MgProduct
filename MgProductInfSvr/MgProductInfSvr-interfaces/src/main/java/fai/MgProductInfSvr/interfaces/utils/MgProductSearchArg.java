@@ -24,19 +24,19 @@ public class MgProductSearchArg {
     /**
      * 分页的开始位置
      */
-    private int start = 0;
+    private Integer start = 0;
 
     /**
      * 分页限制条数，默认最大是 200
      */
-    private int limit = MAX_LIMIT;
+    private Integer limit = MAX_LIMIT;
 
     public static final Integer MAX_LIMIT = 200;
 
     /**
      * 接收搜索结果的总条数
      */
-    private int total;
+    private Integer total;
 
     public MgProductSearchArg() {
     }
@@ -84,29 +84,30 @@ public class MgProductSearchArg {
         return this;
     }
 
-    public int getStart() {
+    public Integer getStart() {
         return start;
     }
 
-    public MgProductSearchArg setStart(int start) {
+    public Integer getLimit() {
+        return limit;
+    }
+
+    public Integer getTotal() {
+        return total;
+    }
+
+    public MgProductSearchArg setStart(Integer start) {
         this.start = start >= 0 ? start : this.start;
         return this;
     }
 
-    public int getLimit() {
-        return limit;
-    }
 
-    public MgProductSearchArg setLimit(int limit) {
+    public MgProductSearchArg setLimit(Integer limit) {
         this.limit = limit >= 0 ? limit : this.limit;
         return this;
     }
 
-    public int getTotal() {
-        return total;
-    }
-
-    public MgProductSearchArg setTotal(int total) {
+    public MgProductSearchArg setTotal(Integer total) {
         this.total = total;
         return this;
     }

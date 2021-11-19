@@ -192,6 +192,8 @@ public class DataMigrateService {
                     }
                 }
 
+                pdProc.dataMigrate(aid);
+
                 commit = true;
             } finally {
                 if(commit) {

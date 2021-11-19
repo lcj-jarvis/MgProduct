@@ -707,6 +707,10 @@ public class ProductProc {
         return list;
     }
 
+    public void dataMigrate(int aid) {
+        m_dao.updateYkPdId(aid);
+    }
+
     // saga补偿
     public void rollback4Saga(int aid, long branchId, ProductRelProc relProc) {
         FaiList<Param> list = getSagaList(aid, xid, branchId);

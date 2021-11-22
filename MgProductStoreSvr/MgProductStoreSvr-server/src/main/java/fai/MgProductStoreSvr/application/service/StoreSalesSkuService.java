@@ -1992,9 +1992,6 @@ public class StoreSalesSkuService extends StoreService {
             TransactionCtrl tc = new TransactionCtrl();
 
             StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, tc);
-            SpuSummaryProc spuSummaryProc = new SpuSummaryProc(flow, aid, tc);
-            SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
-            SkuSummaryProc skuSummaryProc = new SkuSummaryProc(flow, aid, tc);
 
             LockUtil.lock(aid);
             try {
@@ -2015,30 +2012,6 @@ public class StoreSalesSkuService extends StoreService {
                 }
             }finally {
                 LockUtil.unlock(aid);
-            }
-            try {
-                HashSet<Integer> pdIdSet = new HashSet<>();
-                HashSet<Long> skuIdSet = new HashSet<>();
-                for (Param storeSku : storeSkuList) {
-                    pdIdSet.add(storeSku.getInt(StoreSalesSkuEntity.Info.PD_ID));
-                    skuIdSet.add(storeSku.getLong(StoreSalesSkuEntity.Info.SKU_ID));
-                }
-                tc.setAutoCommit(false);
-                rt = reportSummary(aid, new FaiList<>(pdIdSet), ReportValObj.Flag.REPORT_PRICE,
-                        new FaiList<>(skuIdSet), storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
-                if(rt != Errno.OK){
-                    return rt;
-                }
-            }finally {
-                if(rt != Errno.OK){
-                    tc.rollback();
-                    return rt;
-                }
-                spuBizSummaryProc.setDirtyCacheEx(aid);
-                spuSummaryProc.setDirtyCacheEx(aid);
-                tc.commit();
-                spuBizSummaryProc.deleteDirtyCache(aid);
-                spuSummaryProc.deleteDirtyCache(aid);
                 tc.closeDao();
             }
             FaiBuffer sendBuf = new FaiBuffer(true);

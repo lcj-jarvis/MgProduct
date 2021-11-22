@@ -31,7 +31,7 @@ public class ProductSpecDto {
         g_dtoDef.add(ProductSpecEntity.Info.SYS_CREATE_TIME, 9);
         g_dtoDef.add(ProductSpecEntity.Info.SYS_UPDATE_TIME, 10);
         g_dtoDef.add(ProductSpecEntity.Info.SOURCE_UNION_PRI_ID, 11, Var.Type.INT);
-        g_dtoDef.add(ProductSpecEntity.Info.STATUS, 10, Var.Type.INT);
+        g_dtoDef.add(ProductSpecEntity.Info.STATUS, 12, Var.Type.INT);
     }
 
     public static ParamDef getInfoDto() {

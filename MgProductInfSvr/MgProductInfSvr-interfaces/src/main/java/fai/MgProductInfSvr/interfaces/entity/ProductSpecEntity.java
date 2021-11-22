@@ -26,6 +26,7 @@ public class ProductSpecEntity {
         public static final String IN_PD_SC_VAL_LIST = "inPdScValList";             // 规格值(FaiList<Param>([{psScStrId1 , checked},{psScStrId2 , checked}])), 支持最大50个值
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
+        public static final String STATUS = "status";                               // int 数据状态
     }
     /**
      * 产品规格SKU

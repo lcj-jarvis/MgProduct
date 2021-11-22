@@ -1,6 +1,7 @@
-package fai.MgProductStoreSvr.domain.repository;
+package fai.MgProductStoreSvr.domain.repository.cache;
 
 import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
+import fai.MgProductStoreSvr.domain.repository.cache.CacheCtrl;
 import fai.MgProductStoreSvr.interfaces.dto.StoreSalesSkuDto;
 import fai.comm.cache.redis.client.RedisClient;
 import fai.comm.util.Errno;
@@ -11,7 +12,7 @@ import fai.comm.util.Parser;
 import java.util.Arrays;
 import java.util.Set;
 
-public class StoreSalesSkuCacheCtrl extends CacheCtrl{
+public class StoreSalesSkuCacheCtrl extends CacheCtrl {
 
     public static FaiList<Param> getCacheList(int aid, int unionPriId, int pdId) {
         String cacheKey = getCacheKey(aid, unionPriId, pdId);

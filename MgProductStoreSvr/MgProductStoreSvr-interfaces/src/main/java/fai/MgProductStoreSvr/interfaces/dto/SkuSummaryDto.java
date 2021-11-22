@@ -25,6 +25,7 @@ public class SkuSummaryDto {
         g_dtoDef.add(StoreSalesSkuEntity.Info.MW_COST, 14, Var.Type.LONG); // 门店维度获取数据需要返回成本单价
         g_dtoDef.add(StoreSalesSkuEntity.Info.RL_PD_ID, 15, Var.Type.INT); // 门店维度获取数据需要返回商品业务id
         g_dtoDef.add(StoreSalesSkuEntity.Info.SYS_TYPE, 16, Var.Type.INT); // 门店维度获取数据需要返回商品系统类型
+        g_dtoDef.add(StoreSalesSkuEntity.Info.STATUS, 17, Var.Type.INT);
     }
 
     public static ParamDef getInfoDto() {

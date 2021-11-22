@@ -1,6 +1,8 @@
-package fai.MgProductStoreSvr.domain.repository;
+package fai.MgProductStoreSvr.domain.repository.cache;
 
 import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryEntity;
+import fai.MgProductStoreSvr.domain.repository.DataType;
+import fai.MgProductStoreSvr.domain.repository.cache.CacheCtrl;
 import fai.MgProductStoreSvr.interfaces.dto.SpuBizSummaryDto;
 import fai.comm.util.*;
 
@@ -9,7 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class SpuBizSummaryCacheCtrl extends CacheCtrl{
+public class SpuBizSummaryCacheCtrl extends CacheCtrl {
 
     public static FaiList<Param> getCacheList(int aid, int unionPriId, FaiList<Integer> pdIdList) {
         String cacheKey = getCacheKey(aid, unionPriId);

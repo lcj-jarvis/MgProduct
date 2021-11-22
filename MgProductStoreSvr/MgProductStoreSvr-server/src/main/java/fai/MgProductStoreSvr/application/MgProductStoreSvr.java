@@ -2,7 +2,7 @@ package fai.MgProductStoreSvr.application;
 
 import fai.MgProductStoreSvr.application.task.HoldingStoreMakeUpTask;
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
-import fai.MgProductStoreSvr.domain.repository.CacheCtrl;
+import fai.MgProductStoreSvr.domain.repository.cache.CacheCtrl;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.cache.redis.config.RedisClientConfig;
 import fai.comm.cache.redis.pool.JedisPool;

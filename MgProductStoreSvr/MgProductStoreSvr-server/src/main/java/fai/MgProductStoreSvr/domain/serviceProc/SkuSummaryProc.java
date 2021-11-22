@@ -1,8 +1,8 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
 import fai.MgProductStoreSvr.domain.entity.*;
-import fai.MgProductStoreSvr.domain.repository.SkuSummaryDaoCtrl;
-import fai.MgProductStoreSvr.domain.repository.SkuSummarySagaDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.dao.SkuSummaryDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.dao.saga.SkuSummarySagaDaoCtrl;
 import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.util.*;
 import fai.mgproduct.comm.Util;
@@ -248,20 +248,43 @@ public class SkuSummaryProc {
         Log.logStd("ok;flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
-    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean isSaga) {
+    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean softDel, boolean isSaga) {
         int rt;
         ParamMatcher matcher = new ParamMatcher(SkuSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(SkuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
-        if (isSaga) {
-            rt = addDelOp4Saga(aid, matcher);
-            if (rt != Errno.OK) {
+        if(softDel) {
+            if (isSaga) {
+                Ref<FaiList<Param>> listRef = new Ref<>();
+                SearchArg searchArg = new SearchArg();
+                searchArg.matcher = matcher.clone();
+                rt = searchListFromDao(aid, searchArg, listRef);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+                    return rt;
+                }
+
+                preAddUpdateSaga(aid, listRef.value);
+            }
+
+            ParamUpdater updater = new ParamUpdater();
+            updater.getData().setInt(SkuSummaryEntity.Info.STATUS, SpuBizSummaryValObj.Status.DEL);
+            rt = m_daoCtrl.update(updater, matcher);
+            if(rt != Errno.OK){
+                Log.logStd(rt, "update err;flow=%s;aid=%s;matcher=%s;", m_flow, aid, matcher.toJson());
                 return rt;
             }
-        }
-        rt = m_daoCtrl.delete(matcher);
-        if(rt != Errno.OK){
-            Log.logStd(rt, "delete err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
-            return rt;
+        }else {
+            if (isSaga) {
+                rt = addDelOp4Saga(aid, matcher);
+                if (rt != Errno.OK) {
+                    return rt;
+                }
+            }
+
+            rt = m_daoCtrl.delete(matcher);
+            if(rt != Errno.OK){
+                Log.logStd(rt, "delete err;flow=%s;aid=%s;matcher=%s;;", m_flow, aid, matcher.toJson());
+                return rt;
+            }
         }
 
         Log.logStd("ok;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);

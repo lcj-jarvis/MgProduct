@@ -3,7 +3,7 @@ package fai.MgProductStoreSvr.domain.serviceProc;
 import fai.MgProductStoreSvr.domain.comm.RecordKey;
 import fai.MgProductStoreSvr.domain.comm.Utils;
 import fai.MgProductStoreSvr.domain.entity.HoldingRecordEntity;
-import fai.MgProductStoreSvr.domain.repository.HoldingRecordDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.dao.HoldingRecordDaoCtrl;
 import fai.comm.util.*;
 import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.repository.TransactionCtrl;

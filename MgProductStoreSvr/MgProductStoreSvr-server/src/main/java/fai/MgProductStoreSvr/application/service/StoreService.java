@@ -5,7 +5,7 @@ import fai.MgProductStoreSvr.domain.comm.LockUtil;
 import fai.MgProductStoreSvr.domain.comm.SagaRollback;
 import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
 import fai.MgProductStoreSvr.domain.entity.*;
-import fai.MgProductStoreSvr.domain.repository.CacheCtrl;
+import fai.MgProductStoreSvr.domain.repository.cache.CacheCtrl;
 import fai.MgProductStoreSvr.domain.serviceProc.*;
 import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.fseata.client.core.rpc.def.CommDef;
@@ -132,7 +132,7 @@ public class StoreService extends StoreParentService {
     /**
      * 删除商品所有库存销售相关信息
      */
-    public int batchDelPdAllStoreSales(FaiSession session, int flow, int aid, int tid, FaiList<Integer> pdIdList, String xid) throws IOException{
+    public int batchDelPdAllStoreSales(FaiSession session, int flow, int aid, int tid, FaiList<Integer> pdIdList, boolean softDel, String xid) throws IOException{
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -162,15 +162,15 @@ public class StoreService extends StoreParentService {
                     LockUtil.lock(aid);
                     try {
                         transactionCtrl.setAutoCommit(false);
-                        rt = skuSummaryProc.batchDel(aid, pdIdList, isSaga);
+                        rt = skuSummaryProc.batchDel(aid, pdIdList, softDel, isSaga);
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = spuBizSummaryProc.batchDel(aid, pdIdList, isSaga);
+                        rt = spuBizSummaryProc.batchDel(aid, pdIdList, softDel, isSaga);
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = spuSummaryProc.batchDel(aid, pdIdList, isSaga);
+                        rt = spuSummaryProc.batchDel(aid, pdIdList, softDel, isSaga);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -179,13 +179,29 @@ public class StoreService extends StoreParentService {
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = storeSalesSkuProc.batchDel(aid, pdIdList, isSaga);
+                        rt = storeSalesSkuProc.batchDel(aid, pdIdList, softDel, isSaga);
                         if(rt != Errno.OK){
                             return rt;
                         }
 
                         if (isSaga) {
                             // 将预记录的修改数据持久化到 db
+                            rt = skuSummaryProc.addUpdateSaga2Db(aid);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                            rt = spuBizSummaryProc.addUpdateSaga2Db(aid);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                            rt = spuSummaryProc.addUpdateSaga2Db(aid);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                            rt = storeSalesSkuProc.addUpdateSaga2Db(aid);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
                             rt = inOutStoreRecordProc.addUpdateSaga2Db(aid);
                             if (rt != Errno.OK) {
                                 return rt;

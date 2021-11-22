@@ -563,11 +563,9 @@ public class ProductSpecService extends SpecParentService {
                     LockUtil.lock(aid);
                     try {
                         transactionCtrl.setAutoCommit(false);
-                        if(!softDel){
-                            rt = productSpecProc.batchDel(aid, pdIdList, isSaga);
-                            if(rt != Errno.OK){
-                                return rt;
-                            }
+                        rt = productSpecProc.batchDel(aid, pdIdList, softDel, isSaga);
+                        if(rt != Errno.OK){
+                            return rt;
                         }
                         rt = productSpecSkuProc.batchDel(aid, pdIdList, softDel, isSaga);
                         if(rt != Errno.OK){
@@ -579,6 +577,10 @@ public class ProductSpecService extends SpecParentService {
                         }
                         if (isSaga) {
                             // 记录 Saga 状态 & 将修改记录持久化到 db
+                            rt = productSpecProc.addUpdateSaga2Db(aid);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
                             rt = productSpecSkuProc.addUpdateSaga2Db(aid);
                             if (rt != Errno.OK) {
                                 return rt;

@@ -1,4 +1,4 @@
-package fai.MgProductStoreSvr.domain.repository;
+package fai.MgProductStoreSvr.domain.repository.cache;
 
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.cache.redis.client.RedisClient;
@@ -72,6 +72,10 @@ public class CacheCtrl {
 		Object res = m_cache.getRedisClient().eval(LUA_GET_OR_SET_EXPIRE, 1, cacheVersionKey, version, String.valueOf(m_cache.getExpireSecond()));
 		version = res.toString();
 		return version;
+	}
+
+	public static RedisCacheManager getCache() {
+		return m_cache;
 	}
 
 

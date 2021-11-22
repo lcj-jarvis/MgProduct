@@ -238,7 +238,7 @@ public class ProductSpecProc {
         Log.logStd("ok!flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
-    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean isSaga) {
+    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean softDel, boolean isSaga) {
         if(aid <= 0 || pdIdList == null || pdIdList.isEmpty()){
             Log.logErr("batchDel arg error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
             return Errno.ARGS_ERROR;
@@ -248,15 +248,36 @@ public class ProductSpecProc {
         matcher.and(ProductSpecEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
         cacheManage.addNeedDelCachedPdIdList(aid, pdIdList);
         if (isSaga) {
-            rt = addDelOp4Saga(aid, matcher);
-            if (rt != Errno.OK) {
-                return rt;
+            // 根据 是否软删除 记录不同的 Saga 操作
+            if(softDel) {
+                SearchArg searchArg = new SearchArg();
+                searchArg.matcher = matcher.clone();
+                Ref<FaiList<Param>> listRef = new Ref<>();
+                rt = m_daoCtrl.select(searchArg, listRef);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                    Log.logErr(rt, "dao.select error;flow=%d;aid=%s;matcher=%s;", m_flow, aid, matcher.toJson());
+                    return rt;
+                }
+                // 预记录修改操作数据
+                preAddUpdateSaga(aid, listRef.value);
+            }else {
+                // 记录删除操作数据
+                rt = addDelOp4Saga(aid, matcher);
+                if (rt != Errno.OK) {
+                    return rt;
+                }
             }
         }
-        rt = m_daoCtrl.delete(matcher);
-        if (rt != Errno.OK) {
-            Log.logErr(rt, "batchDel error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
-            return rt;
+        if(softDel) {
+            ParamUpdater updater = new ParamUpdater();
+            updater.getData().setInt(ProductSpecEntity.Info.STATUS, ProductSpecValObj.Status.DEL);
+            rt = m_daoCtrl.update(updater, matcher);
+        }else {
+            rt = m_daoCtrl.delete(matcher);
+            if (rt != Errno.OK) {
+                Log.logErr(rt, "batchDel error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                return rt;
+            }
         }
 
         Log.logStd("batchDel ok;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);

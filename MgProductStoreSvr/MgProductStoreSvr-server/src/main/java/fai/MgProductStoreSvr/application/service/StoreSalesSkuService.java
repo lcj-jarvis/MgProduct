@@ -4,7 +4,7 @@ import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
 import fai.MgProductStoreSvr.domain.comm.*;
 import fai.MgProductStoreSvr.domain.entity.*;
-import fai.MgProductStoreSvr.domain.repository.*;
+import fai.MgProductStoreSvr.domain.repository.dao.*;
 import fai.MgProductStoreSvr.domain.serviceProc.*;
 import fai.MgProductStoreSvr.interfaces.conf.MqConfig;
 import fai.MgProductStoreSvr.interfaces.dto.HoldingRecordDto;
@@ -310,11 +310,11 @@ public class StoreSalesSkuService extends StoreService {
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = spuBizSummaryProc.batchDel(aid, pdIds, isSaga);
+                        rt = spuBizSummaryProc.batchDel(aid, pdIds, false, isSaga);
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = spuSummaryProc.batchDel(aid, pdIds, isSaga);
+                        rt = spuSummaryProc.batchDel(aid, pdIds, false, isSaga);
                         if(rt != Errno.OK){
                             return rt;
                         }

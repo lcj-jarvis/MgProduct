@@ -6,9 +6,9 @@ import fai.MgProductStoreSvr.domain.comm.LockUtil;
 import fai.MgProductStoreSvr.domain.comm.PdKey;
 import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
 import fai.MgProductStoreSvr.domain.entity.*;
-import fai.MgProductStoreSvr.domain.repository.StoreSalesSkuCacheCtrl;
-import fai.MgProductStoreSvr.domain.repository.StoreSalesSkuDaoCtrl;
-import fai.MgProductStoreSvr.domain.repository.StoreSalesSkuSagaDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.cache.StoreSalesSkuCacheCtrl;
+import fai.MgProductStoreSvr.domain.repository.dao.StoreSalesSkuDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.dao.saga.StoreSalesSkuSagaDaoCtrl;
 import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.util.*;
 import fai.mgproduct.comm.MgProductErrno;
@@ -290,21 +290,48 @@ public class StoreSalesSkuProc {
         Log.logStd("ok;flow=%d;aid=%d;pdId=%s;delSkuIdList=%s;", m_flow, aid, pdId, delSkuIdList);
         return rt;
     }
-    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean isSaga) {
+    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean softDel, boolean isSaga) {
         int rt;
         ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
-        if (isSaga) {
-            rt = addDelOp4Saga(aid, matcher);
+
+        if(softDel) {
+            if (isSaga) {
+                SearchArg searchArg = new SearchArg();
+                searchArg.matcher = matcher.clone();
+
+                Ref<FaiList<Param>> listRef = new Ref<>();
+                rt = m_daoCtrl.select(searchArg, listRef);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                    Log.logErr("select err;matcher=%s;", searchArg.matcher.toJson());
+                    return rt;
+                }
+
+                preAddUpdateSaga(aid, listRef.value);
+            }
+
+            ParamUpdater updater = new ParamUpdater();
+            updater.getData().setInt(StoreSalesSkuEntity.Info.STATUS, StoreSalesSkuValObj.Status.DEL);
+            rt = m_daoCtrl.update(updater, matcher);
             if(rt != Errno.OK){
+                Log.logStd(rt, "soft del err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                return rt;
+            }
+        }else {
+            if (isSaga) {
+                rt = addDelOp4Saga(aid, matcher);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+            }
+
+            rt = m_daoCtrl.delete(matcher);
+            if(rt != Errno.OK){
+                Log.logStd(rt, "dao.delete err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
                 return rt;
             }
         }
-        rt = m_daoCtrl.delete(matcher);
-        if(rt != Errno.OK){
-            Log.logStd(rt, "dao.delete err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
-            return rt;
-        }
+
         Log.logStd("ok;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
         return rt;
     }

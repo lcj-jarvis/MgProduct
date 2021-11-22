@@ -2,7 +2,7 @@ package fai.MgProductStoreSvr.application.service;
 
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
 import fai.MgProductStoreSvr.domain.comm.SagaRollback;
-import fai.MgProductStoreSvr.domain.repository.CacheCtrl;
+import fai.MgProductStoreSvr.domain.repository.cache.CacheCtrl;
 import fai.MgProductStoreSvr.domain.serviceProc.StoreSagaProc;
 import fai.comm.fseata.client.core.model.BranchStatus;
 import fai.comm.util.Errno;

@@ -201,7 +201,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             searchResultDef.value = searchResult;
 
             // 设置搜索结果总数
-            mgProductSearchArg.setTotal(searchResult.getInt(MgProductSearchResult.Info.TOTAL));
+            mgProductSearchArg.setTotal(searchResult.getInt(MgProductSearchResult.Info.TOTAL, 0));
 
             return m_rt;
         } finally {

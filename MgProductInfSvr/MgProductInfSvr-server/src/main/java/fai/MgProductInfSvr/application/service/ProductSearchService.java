@@ -54,8 +54,10 @@ public class ProductSearchService extends MgProductInfService {
 
         // 获取unionPriId
         int unionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
-
+        long begin = System.currentTimeMillis();
         Param searchResult = searchPd(flow, aid, unionPriId, tid, esSearchParamString, dbSearchParamString, pageInfoString);
+        long end = System.currentTimeMillis();
+        Log.logStd("rece mgsearchSvr;consume=%d", end - begin);
 
         FaiBuffer sendBuf = new FaiBuffer(true);
         searchResult.toBuffer(sendBuf, MgProductSearchDto.Key.RESULT_INFO, MgProductSearchDto.getProductSearchDto());

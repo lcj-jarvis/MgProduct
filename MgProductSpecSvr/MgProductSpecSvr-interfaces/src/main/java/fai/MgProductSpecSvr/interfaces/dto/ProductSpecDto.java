@@ -53,6 +53,7 @@ public class ProductSpecDto {
         public static final int SKU_INFO_LIST = 13;
         public static final int ONLY_CHECKED = 14;
         public static final int XID = 15;
+        public static final int RETURN_LIST = 16;
     }
 
     /**

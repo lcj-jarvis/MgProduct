@@ -433,4 +433,24 @@ public class MgProductInfCli extends MgProductInfCli7ForProductTag {
             stat.end(m_rt != Errno.OK, m_rt);
         }
     }
+
+    public int migrate4YKService(int aid) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            // packaging send data
+            FaiBuffer sendBody = getDefaultFaiBuffer();
+            // send and recv
+            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.Cmd.MIGRATE_SERVICE, sendBody, false, false);
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
 }

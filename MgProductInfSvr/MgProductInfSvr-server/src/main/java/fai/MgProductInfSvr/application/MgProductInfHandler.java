@@ -1681,6 +1681,14 @@ public class MgProductInfHandler extends FaiHandler {
         return dataMigrateService.migrateYK(session, flow, aid);
     }
 
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.Cmd.MIGRATE_SERVICE)
+    public int migrateYKService(final FaiSession session,
+                           @ArgFlow final int flow,
+                           @ArgAid final int aid) throws IOException {
+        return dataMigrateService.migrateYKService(session, flow, aid);
+    }
+
     //MgProductInfService mgProductInfService = new MgProductInfService();
     //ProductBasicService basicService = new ProductBasicService();
     MgProductInfService mgProductInfService = ServiceProxy.create(new MgProductInfService());

@@ -416,6 +416,15 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
         return m_productSpecService.clearAcct(session, flow, aid, unionPriIds);
     }
 
+    @Cmd(MgProductSpecCmd.CommCmd.MIGRATE_YK_SERVICE)
+    @WrittenCmd
+    private int migrateYKService(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid final int aid,
+                                 @ArgList(classDef = ProductSpecDto.class, keyMatch = ProductSpecDto.Key.INFO_LIST, methodDef = "getInfoDto") FaiList<Param> list) throws IOException {
+        return m_productSpecService.migrateYKService(session, flow, aid, list);
+    }
+
     private SpecTempService m_specTempService = new SpecTempService();
 
     private ProductSpecService m_productSpecService = ServiceProxy.create(new ProductSpecService());

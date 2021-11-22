@@ -1270,6 +1270,18 @@ public class StoreSalesSkuProc {
         return rt;
     }
 
+    public int migrateYKService(int aid, FaiList<Param> storeSkuList) {
+        int rt;
+        Log.logDbg("joke:storeSkuList=%s", storeSkuList);
+        rt = m_daoCtrl.batchInsert(storeSkuList, null, false);
+        if (rt != Errno.OK) {
+            Log.logErr("dao.insert storeSku error;flow=%d;aid=%d;storeSkuList=%s", m_flow, aid, storeSkuList);
+            return rt;
+        }
+        Log.logStd("migrate StoreSku ok;flow=%d;aid=%d", m_flow, aid);
+        return rt;
+    }
+
     private void initReportInfoList(FaiList<Param> list){
         for (Param info : list) {
             initReportInfo(info);
@@ -1294,6 +1306,15 @@ public class StoreSalesSkuProc {
             + ", bit_or(" + StoreSalesSkuEntity.Info.FLAG + ") as " + StoreSalesSkuEntity.ReportInfo.BIT_OR_FLAG
             ;
     //========================== 用于汇总 ↑↑↑ ===================================//
+
+    public void migrateYKDel(int aid, FaiList<Integer> pdIds) {
+        ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        int rt = m_daoCtrl.delete(matcher);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "dao.migrateYKDel error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher);
+        }
+    }
 
     public boolean deleteDirtyCache(int aid) {
         return cacheManage.deleteDirtyCache(aid);

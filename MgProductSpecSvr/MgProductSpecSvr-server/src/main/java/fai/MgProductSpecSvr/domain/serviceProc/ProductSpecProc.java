@@ -839,6 +839,53 @@ public class ProductSpecProc {
         return rt;
     }
 
+    // 门店迁移服务接口，后续不要用
+    public void migrateYkService(int aid, FaiList<Param> specList) {
+        int rt;
+        if (aid <= 0) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "arg error;flow=%d;aid=%d", m_flow ,aid);
+        }
+        if (specList == null || specList.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "arg error;flow=%d;aid=%d", m_flow ,aid);
+        }
+        Integer pdScId = m_daoCtrl.getId();
+        if(pdScId == null){
+            rt = Errno.ERROR;
+            throw new MgException(rt, "pdScId error;flow=%d;aid=%s;tpScId=%s;", m_flow, aid, pdScId);
+        }
+        FaiList<Integer> pdIdList = new FaiList<>();
+        FaiList<Param> dataList = new FaiList<>(specList.size());
+        for (Param info : specList) {
+            Param data = new Param();
+            int pdId = info.getInt(ProductSpecEntity.Info.PD_ID);
+            data.setInt(ProductSpecEntity.Info.AID, aid);
+            pdScId++;
+            data.setInt(ProductSpecEntity.Info.PD_SC_ID, pdScId);
+            data.setInt(ProductSpecEntity.Info.PD_ID, pdId);
+            data.assign(info, ProductSpecEntity.Info.SC_STR_ID);
+            data.assign(info, ProductSpecEntity.Info.SOURCE_TID);
+            data.assign(info, ProductSpecEntity.Info.SOURCE_UNION_PRI_ID);
+            data.assign(info, ProductSpecEntity.Info.FLAG);
+            data.assign(info, ProductSpecEntity.Info.SYS_CREATE_TIME);
+            data.assign(info, ProductSpecEntity.Info.SYS_UPDATE_TIME);
+            pdIdList.add(pdId);
+            dataList.add(data);
+        }
+        cacheManage.addNeedDelCachedPdIdList(aid, pdIdList);
+        if (m_daoCtrl.updateId(pdScId) == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "dao.updateId error;flow=%d;aid=%s;pdScId=%s;", m_flow, aid, pdScId);
+        }
+        Log.logDbg("joke:add specList=%s", specList);
+        rt = m_daoCtrl.batchInsert(dataList);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "dao.batchInsert error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
+        }
+        Log.logStd("ok;flow=%d;aid=%d;", m_flow, aid);
+    }
+
     public void restoreMaxId(int aid, boolean needLock) {
         m_daoCtrl.restoreMaxId(needLock);
         m_daoCtrl.clearIdBuilderCache(aid);

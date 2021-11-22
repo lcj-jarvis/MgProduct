@@ -64,6 +64,9 @@ public class MgProductStoreCmd {
 		public static final int NUM34 = 1034;
 		public static final int NUM35 = 1035;
 		public static final int NUM36 = 1036;
+		public static final int NUM37 = 1037;
+		public static final int NUM38 = 1038;
+		public static final int NUM39 = 1039;
 	}
 
 	////////////////// cmd对外定义，实际做cmd读写分离 ////////////////////
@@ -178,5 +181,8 @@ public class MgProductStoreCmd {
 
 	public static class Cmd {
 		public static final int MIGRATE = WriteCmdNum.NUM29;
+		public static final int MIGRATE_YK_SERVICE = WriteCmdNum.NUM37;
+		public static final int MIGRATE_YK_STORE_SKU = WriteCmdNum.NUM38;
+		public static final int MIGRATE_YK_DEL = WriteCmdNum.NUM39;
 	}
 }

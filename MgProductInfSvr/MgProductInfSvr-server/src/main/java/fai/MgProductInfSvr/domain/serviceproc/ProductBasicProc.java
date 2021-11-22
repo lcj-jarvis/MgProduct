@@ -743,16 +743,34 @@ public class ProductBasicProc {
     }
 
     public FaiList<Param> dataMigrate(int aid, int tid, FaiList<Param> addList) {
+        return dataMigrate(aid, tid, addList, 0);
+    }
+
+    public FaiList<Param> dataMigrate(int aid, int tid, FaiList<Param> addList, int sysType) {
         int rt;
         if(m_cli == null) {
             rt = Errno.ERROR;
             throw new MgException(rt, "get ProductBasicCli error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
         }
         FaiList<Param> returnList = new FaiList<>();
-        rt = m_cli.dataMigrate(aid, tid, addList, returnList);
+        rt = m_cli.dataMigrate(aid, tid, addList, sysType, returnList);
         if(rt != Errno.OK) {
             throw new MgException(rt, "setPdBindTag error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
         }
         return returnList;
+    }
+
+    public FaiList<Integer> getMigratePdIds(int aid, int sysType) {
+        int rt;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get ProductBasicCli error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        FaiList<Integer> pdIds = new FaiList<>();
+        rt = m_cli.getMigratePdIds(aid, sysType, pdIds);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "setPdBindTag error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        return pdIds;
     }
 }

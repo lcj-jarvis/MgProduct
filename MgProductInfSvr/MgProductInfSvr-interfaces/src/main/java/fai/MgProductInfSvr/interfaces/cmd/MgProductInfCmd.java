@@ -149,6 +149,7 @@ public class MgProductInfCmd {
         public static final int NUM66 = 1066; /**@see BasicCmd#SET_PD_SORT */
         public static final int NUM67 = 1067; /**@see BasicCmd#BATCH_SET_BIZ */
         public static final int NUM68 = 1068; /**@see BasicCmd#BATCH_BIND_PDS_REL */
+        public static final int NUM69 = 1069; /**@see Cmd#MIGRATE_SERVICE */
     }
 
 
@@ -389,5 +390,6 @@ public class MgProductInfCmd {
         public static final int DEL_BACKUP = WriteCmdNum.NUM60;
         public static final int CLONE_BIZ_BIND = WriteCmdNum.NUM63;
         public static final int MIGRATE = WriteCmdNum.NUM65;
+        public static final int MIGRATE_SERVICE = WriteCmdNum.NUM69;
     }
 }

@@ -5,6 +5,7 @@ import fai.MgProductSpecSvr.domain.comm.*;
 import fai.MgProductSpecSvr.domain.entity.*;
 import fai.MgProductSpecSvr.domain.repository.*;
 import fai.MgProductSpecSvr.domain.serviceProc.*;
+import fai.MgProductSpecSvr.interfaces.dto.MigrateDto;
 import fai.MgProductSpecSvr.interfaces.dto.ProductSpecDto;
 import fai.MgProductSpecSvr.interfaces.dto.ProductSpecSkuCodeDao;
 import fai.MgProductSpecSvr.interfaces.dto.ProductSpecSkuDto;
@@ -16,6 +17,7 @@ import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.annotation.SuccessRt;
+import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
@@ -2000,6 +2002,85 @@ public class ProductSpecService extends SpecParentService {
         }finally {
             stat.end(rt != Errno.OK, rt);
         }
+        return rt;
+    }
+
+    @SuccessRt(Errno.OK)
+    public int migrateYKService(FaiSession session, int flow, int aid, FaiList<Param> specList) throws IOException {
+        int rt;
+
+        if (specList == null || specList.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "specList is empty");
+        }
+
+        int tid = specList.get(0).getInt(ProductSpecEntity.Info.SOURCE_TID);
+        int unionPriId = specList.get(0).getInt(ProductSpecEntity.Info.SOURCE_UNION_PRI_ID);
+
+        rt = checkAndReplaceAddPdScInfoList(flow, aid, tid, unionPriId, null, specList, new Param(), false);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "check and replace pdScInfo error;flow=%d;aid=%d;", flow, aid);
+        }
+        Log.logStd("specList=%s", specList);
+
+        // 构建 skuList
+        FaiList<Param> skuList = new FaiList<>();
+        for (Param spec : specList) {
+            Param sku = new Param();
+            sku.setInt(ProductSpecSkuEntity.Info.AID, aid);
+            sku.setString(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, "");
+            sku.setString(ProductSpecSkuEntity.Info.IN_PD_SC_LIST, "");
+            sku.setInt(ProductSpecSkuEntity.Info.FLAG, ProductSpecSkuValObj.FLag.ALLOW_EMPTY);
+            sku.assign(spec, ProductSpecSkuEntity.Info.STATUS);
+
+            sku.assign(spec, ProductSpecSkuEntity.Info.SYS_CREATE_TIME);
+            sku.assign(spec, ProductSpecSkuEntity.Info.SYS_UPDATE_TIME);
+            sku.assign(spec, ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID);
+            sku.assign(spec, ProductSpecSkuEntity.Info.SOURCE_TID);
+            sku.assign(spec, ProductSpecSkuEntity.Info.PD_ID);
+            skuList.add(sku);
+        }
+
+        boolean commit = false;
+        FaiList<Param> returnList = new FaiList<>();
+        TransactionCtrl tc = new TransactionCtrl();
+        try {
+            ProductSpecProc productSpecProc = new ProductSpecProc(flow, aid, tc);
+            ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(flow, aid, tc);
+            try {
+                LockUtil.lock(aid);
+                try {
+                    productSpecProc.clearIdBuilderCache(aid);
+                    productSpecSkuProc.clearIdBuilderCache(aid);
+                    tc.setAutoCommit(false);
+                    // 添加 商品规格表数据 mgProductSpec_0xxx
+                    productSpecProc.migrateYkService(aid, specList);
+                    // 添加 商品规格sku表数据
+                    returnList = productSpecSkuProc.migrateYkService(aid, skuList);
+
+                    commit = true;
+                } finally {
+                    if(!commit){
+                        productSpecProc.clearIdBuilderCache(aid);
+                        productSpecSkuProc.clearIdBuilderCache(aid);
+                        tc.rollback();
+                    }
+                    tc.commit();
+                    productSpecProc.deleteDirtyCache(aid);
+                    productSpecSkuProc.deleteDirtyCache(aid);
+                }
+            } finally {
+                LockUtil.unlock(aid);
+            }
+        } finally {
+            tc.closeDao();
+        }
+        rt = Errno.OK;
+        Log.logStd("migrate ok;flow=%d;aid=%d;", flow, aid);
+
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        returnList.toBuffer(sendBuf, ProductSpecDto.Key.RETURN_LIST, MigrateDto.getReturnListDtoDef());
+        session.write(sendBuf);
         return rt;
     }
 

@@ -3,7 +3,9 @@ package fai.MgProductBasicSvr.domain.serviceproc;
 import fai.MgBackupSvr.interfaces.entity.MgBackupEntity;
 import fai.MgProductBasicSvr.domain.common.ESUtil;
 import fai.MgProductBasicSvr.domain.common.MgProductCheck;
-import fai.MgProductBasicSvr.domain.entity.*;
+import fai.MgProductBasicSvr.domain.entity.ProductEntity;
+import fai.MgProductBasicSvr.domain.entity.ProductRelEntity;
+import fai.MgProductBasicSvr.domain.entity.ProductRelValObj;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductRelCacheCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductRelDaoCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.bak.ProductRelBakDaoCtrl;
@@ -13,11 +15,10 @@ import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
-import fai.mgproduct.comm.Util;
 import fai.mgproduct.comm.entity.SagaEntity;
 import fai.mgproduct.comm.entity.SagaValObj;
-import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.*;
@@ -803,6 +804,24 @@ public class ProductRelProc {
         }
     }
     private Map<PrimaryKey, Param> sagaMap;
+
+    public FaiList<Integer> getMigratePdIds(int aid, int sysType) {
+        int rt;
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
+
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        rt = m_dao.select(searchArg, listRef);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "dao.getMigratePdIds error;flow=%d;aid=%d;matcher=%s", m_flow, aid, searchArg.matcher);
+        }
+        if (listRef.value == null) {
+            listRef.value = new FaiList<>();
+        }
+        return Utils.getValList(listRef.value, ProductRelEntity.Info.PD_ID);
+    }
+
     private class PrimaryKey {
         int aid;
         int unionPirId;

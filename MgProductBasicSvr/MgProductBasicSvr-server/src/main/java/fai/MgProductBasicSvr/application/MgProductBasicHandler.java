@@ -757,8 +757,17 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                 @ArgAid final int aid,
                                 @ArgBodyInteger(ProductDto.Key.TID) int tid,
                                 @ArgList(keyMatch = ProductDto.Key.INFO_LIST, methodDef = "getInfoDto",
-                                classDef = MigrateDef.Dto.class) FaiList<Param> list) throws IOException {
-        return dataMigrateService.dataMigrate(session, flow, aid, tid, list);
+                                classDef = MigrateDef.Dto.class) FaiList<Param> list,
+                                @ArgBodyInteger(value = ProductDto.Key.SYS_TYPE, useDefault = true) int sysType) throws IOException {
+        return dataMigrateService.dataMigrate(session, flow, aid, tid, list, sysType);
+    }
+
+    @Cmd(MgProductBasicCmd.Cmd.MIGRATE_GET)
+    public int getMigratePdIds(final FaiSession session,
+                           @ArgFlow final int flow,
+                           @ArgAid final int aid,
+                           @ArgBodyInteger(value = ProductDto.Key.SYS_TYPE, useDefault = true) int sysType) throws IOException {
+        return dataMigrateService.getMigratePdIds(session, flow, aid, sysType);
     }
 
     private ProductBasicService service = ServiceProxy.create(new ProductBasicService());

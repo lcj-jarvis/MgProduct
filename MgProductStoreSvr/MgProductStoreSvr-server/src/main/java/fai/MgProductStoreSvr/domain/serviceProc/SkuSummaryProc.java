@@ -565,6 +565,15 @@ public class SkuSummaryProc {
 
     private HashMap<PrimaryKey, Param> sagaMap;
 
+    public void migrateYKDel(int aid, FaiList<Integer> pdIds) {
+        ParamMatcher matcher = new ParamMatcher(SkuSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SkuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        int rt = m_daoCtrl.delete(matcher);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "dao.migrateYKDel error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher);
+        }
+    }
+
     private static class PrimaryKey {
         int aid;
         long skuId;

@@ -1979,6 +1979,77 @@ public class StoreSalesSkuService extends StoreService {
         return rt;
     }
 
+    public int migrateYKStoreSku(FaiSession session, int flow, int aid, FaiList<Param> storeSkuList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || Utils.isEmptyList(storeSkuList)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;aid=%s;storeSkuList=%s;",aid, storeSkuList);
+                return rt;
+            }
+
+            TransactionCtrl tc = new TransactionCtrl();
+
+            StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, tc);
+            SpuSummaryProc spuSummaryProc = new SpuSummaryProc(flow, aid, tc);
+            SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
+            SkuSummaryProc skuSummaryProc = new SkuSummaryProc(flow, aid, tc);
+
+            LockUtil.lock(aid);
+            try {
+                try {
+                    tc.setAutoCommit(false);
+
+                    rt = storeSalesSkuProc.migrateYKService(aid, storeSkuList);
+                    if(rt != Errno.OK) {
+                        return rt;
+                    }
+
+                }finally {
+                    if(rt != Errno.OK){
+                        tc.rollback();
+                        return rt;
+                    }
+                    tc.commit();
+                }
+            }finally {
+                LockUtil.unlock(aid);
+            }
+            try {
+                HashSet<Integer> pdIdSet = new HashSet<>();
+                HashSet<Long> skuIdSet = new HashSet<>();
+                for (Param storeSku : storeSkuList) {
+                    pdIdSet.add(storeSku.getInt(StoreSalesSkuEntity.Info.PD_ID));
+                    skuIdSet.add(storeSku.getLong(StoreSalesSkuEntity.Info.SKU_ID));
+                }
+                tc.setAutoCommit(false);
+                rt = reportSummary(aid, new FaiList<>(pdIdSet), ReportValObj.Flag.REPORT_PRICE,
+                        new FaiList<>(skuIdSet), storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+            }finally {
+                if(rt != Errno.OK){
+                    tc.rollback();
+                    return rt;
+                }
+                spuBizSummaryProc.setDirtyCacheEx(aid);
+                spuSummaryProc.setDirtyCacheEx(aid);
+                tc.commit();
+                spuBizSummaryProc.deleteDirtyCache(aid);
+                spuSummaryProc.deleteDirtyCache(aid);
+                tc.closeDao();
+            }
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("migrate ok;aid=%s;", aid);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
     /**
      * MQ 异步上报
      */

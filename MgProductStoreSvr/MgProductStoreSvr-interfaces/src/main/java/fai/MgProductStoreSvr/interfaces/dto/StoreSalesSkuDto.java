@@ -91,6 +91,7 @@ public class StoreSalesSkuDto {
         public static final int RL_REFUND_ID = 21;
         public static final int XID = 22;
         public static final int SYS_TYPE = 23;
+        public static final int PD_IDS = 24;
     }
 
     public static class CacheDto{

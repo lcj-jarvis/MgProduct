@@ -6,11 +6,11 @@ import fai.MgProductBasicSvr.domain.entity.ProductBindGroupEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductEntity;
 import fai.MgProductBasicSvr.domain.entity.ProductRelEntity;
 import fai.MgProductBasicSvr.domain.repository.cache.CacheCtrl;
-import fai.MgProductBasicSvr.domain.repository.cache.ProductCacheCtrl;
-import fai.MgProductBasicSvr.domain.repository.cache.ProductRelCacheCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductDaoCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductRelDaoCtrl;
-import fai.MgProductBasicSvr.domain.serviceproc.*;
+import fai.MgProductBasicSvr.domain.serviceproc.ProductBindGroupProc;
+import fai.MgProductBasicSvr.domain.serviceproc.ProductProc;
+import fai.MgProductBasicSvr.domain.serviceproc.ProductRelProc;
 import fai.MgProductBasicSvr.interfaces.dto.MigrateDef;
 import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
 import fai.app.DocOplogDef;
@@ -22,12 +22,13 @@ import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 public class DataMigrateService {
 
     @SuccessRt(value = Errno.OK)
-    public int dataMigrate(FaiSession session, int flow, int aid, int tid, FaiList<Param> list) throws IOException {
+    public int dataMigrate(FaiSession session, int flow, int aid, int tid, FaiList<Param> list, int sysType) throws IOException {
         int rt;
         if(Utils.isEmptyList(list)) {
             rt = Errno.ARGS_ERROR;
@@ -53,6 +54,7 @@ public class DataMigrateService {
                 tc.setAutoCommit(false);
                 ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
                 ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+                matcher.and(ProductRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
                 SearchArg searchArg = new SearchArg();
                 searchArg.matcher = matcher;
                 FaiList<Param> dbList = relProc.searchFromDbWithDel(aid, searchArg, null);
@@ -161,7 +163,7 @@ public class DataMigrateService {
                             bindGroup.setInt(ProductBindGroupEntity.Info.PD_ID, pdId);
                             bindGroup.setInt(ProductBindGroupEntity.Info.RL_PD_ID, rlPdId);
                             bindGroup.setInt(ProductBindGroupEntity.Info.RL_GROUP_ID, rlGroupId);
-                            bindGroup.setInt(ProductBindGroupEntity.Info.SYS_TYPE, 0);
+                            bindGroup.setInt(ProductBindGroupEntity.Info.SYS_TYPE, sysType);
                             bindGroups.add(bindGroup);
                         }
                     }
@@ -185,8 +187,8 @@ public class DataMigrateService {
                 for(int unionPriId : addPdBindGroupMap.keySet()) {
                     FaiList<Param> bindGroups = addPdBindGroupMap.get(unionPriId);
                     ParamMatcher delMatcher = new ParamMatcher(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, aid);
-                    delMatcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-                    bindGroupProc.delPdBindGroup(aid, unionPriId, delMatcher);
+                    // delMatcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+                    // bindGroupProc.delPdBindGroup(aid, unionPriId, delMatcher);
                     if(!Utils.isEmptyList(bindGroups)) {
                         bindGroupProc.batchBindGroupList(aid, unionPriId, bindGroups);
                     }
@@ -228,6 +230,51 @@ public class DataMigrateService {
         }
         FaiBuffer sendBuf = new FaiBuffer(true);
         returnList.toBuffer(sendBuf, ProductRelDto.Key.REDUCED_INFO, ProductRelDto.getReducedInfoDto());
+        session.write(sendBuf);
+        return rt;
+    }
+
+    @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
+    public int getMigratePdIds(FaiSession session, int flow, int aid, int sysType) throws IOException {
+        int rt = Errno.ERROR;
+        FaiList<Integer> pdIds;
+        TransactionCtrl tc = new TransactionCtrl();
+        LockUtil.lock(aid);
+        try {
+            tc.setAutoCommit(false);
+            ProductRelProc productRelProc = new ProductRelProc(flow, aid, tc);
+            ProductProc productProc = new ProductProc(flow, aid, tc);
+            ProductBindGroupProc productBindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+            boolean commit = false;
+            try {
+                pdIds = productRelProc.getMigratePdIds(aid, sysType);
+                if (!pdIds.isEmpty()) {
+                    pdIds = new FaiList<>(new HashSet<>(pdIds));
+                    ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+                    matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+                    productRelProc.delProductRel(aid, matcher);
+
+                    productProc.delProduct(aid, matcher);
+
+                    productBindGroupProc.delPdBindGroupList(aid, pdIds);
+                }
+
+                commit = true;
+                rt = Errno.OK;
+            } finally {
+                if (!commit) {
+                    tc.rollback();
+                    return rt;
+                }
+                tc.commit();
+            }
+        } finally {
+            LockUtil.unlock(aid);
+            tc.closeDao();
+        }
+
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        pdIds.toBuffer(sendBuf, ProductRelDto.Key.PD_IDS);
         session.write(sendBuf);
         return rt;
     }

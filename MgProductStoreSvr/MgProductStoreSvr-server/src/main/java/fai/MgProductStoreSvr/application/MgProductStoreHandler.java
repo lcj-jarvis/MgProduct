@@ -658,6 +658,35 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
         return migrateService.migrate(session, flow, aid, spuList);
     }
 
+    @Cmd(MgProductStoreCmd.Cmd.MIGRATE_YK_SERVICE)
+    @WrittenCmd
+    private int migrateYKService(final FaiSession session,
+                        @ArgFlow final int flow,
+                        @ArgAid final int aid,
+                        @ArgList(keyMatch = SpuBizSummaryDto.Key.INFO_LIST, methodDef = "getInfoDto",
+                                classDef = SpuBizSummaryDto.class) FaiList<Param> spuList) throws IOException {
+        return migrateService.migrateYKService(session, flow, aid, spuList);
+    }
+
+    @Cmd(MgProductStoreCmd.Cmd.MIGRATE_YK_STORE_SKU)
+    @WrittenCmd
+    private int migrateYKStoreSku(final FaiSession session,
+                                  @ArgFlow final int flow,
+                                  @ArgAid final int aid,
+                                  @ArgList(keyMatch = StoreSalesSkuDto.Key.INFO_LIST, methodDef = "getInfoDto",
+                                          classDef = StoreSalesSkuDto.class) FaiList<Param> storeSkuList) throws IOException {
+        return m_storeSalesSkuService.migrateYKStoreSku(session, flow, aid, storeSkuList);
+    }
+
+    @Cmd(MgProductStoreCmd.Cmd.MIGRATE_YK_DEL)
+    @WrittenCmd
+    private int migrateYKServiceDel(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid final int aid,
+                                 @ArgList(keyMatch = StoreSalesSkuDto.Key.PD_IDS) FaiList<Integer> pdIds) throws IOException {
+        return migrateService.migrateYKServiceDel(session, flow, aid, pdIds);
+    }
+
     private static final String CLI_NAME = "MgProductStoreCli";
     private StoreService m_storeService = ServiceProxy.create(new StoreService());
     private StoreSalesSkuService m_storeSalesSkuService = ServiceProxy.create(new StoreSalesSkuService());

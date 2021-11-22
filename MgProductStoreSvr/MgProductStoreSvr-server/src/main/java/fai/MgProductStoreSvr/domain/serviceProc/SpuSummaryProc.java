@@ -359,6 +359,15 @@ public class SpuSummaryProc {
         return rt;
     }
 
+    public void migrateYKDel(int aid, FaiList<Integer> pdIds) {
+        ParamMatcher matcher = new ParamMatcher(SpuSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SpuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        int rt = m_daoCtrl.delete(matcher);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "dao.migrateYKDel error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher);
+        }
+    }
+
     /**
      * 设置缓存过期
      */

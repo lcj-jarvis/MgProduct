@@ -109,6 +109,22 @@ public class SpuBizSummaryProc {
         cacheManage.addDirtyCacheKey(aid, unionPriId_pdIds);
         return rt;
     }
+
+    public int migrateYKService(int aid, FaiList<Param> list) {
+        if(Utils.isEmptyList(list)) {
+            Log.logErr("arg error;flow=%d;aid=%s;", m_flow, aid);
+            return Errno.ARGS_ERROR;
+        }
+        int rt = m_daoCtrl.batchInsert(list, null, false);
+        Log.logDbg("joke:add spuList=%s", list);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "spuBizSummary batchAdd error;flow=%d;aid=%d;list=%s", m_flow, aid, list);
+            return rt;
+        }
+        Log.logStd("migrate spu ok;flow=%d;aid=%d", m_flow, aid);
+        return rt;
+    }
+
     public int setSingle(int aid, int unionPriId, int pdId, ParamUpdater updater, boolean isSaga) {
         if(updater == null || updater.isEmpty()) {
             Log.logErr("arg error;flow=%d;aid=%s;pdId=%s;uid=%s;", m_flow, aid, pdId, unionPriId);
@@ -855,6 +871,35 @@ public class SpuBizSummaryProc {
         }
         Log.logStd("ok;flow=%d;aid=%s;unionPriId=%s;", m_flow, aid, unionPriId);
         return rt;
+    }
+
+    public void migrateYKDel(int aid, FaiList<Integer> pdIds) {
+        ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SpuBizSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        int rt = m_daoCtrl.delete(matcher);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "dao.migrateYKDel error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher);
+        }
+    }
+
+    public FaiList<Integer> getPdIds(int aid, ParamMatcher matcher) {
+        int rt;
+        if (matcher == null || matcher.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "matcher is empty;flow=%d;aid=%d", m_flow, aid);
+        }
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher;
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        rt = m_daoCtrl.select(searchArg, listRef, SpuBizSummaryEntity.Info.PD_ID);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "dao.getPdIds error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher);
+        }
+        FaiList<Integer> pdIds = Utils.getValList(listRef.value, SpuBizSummaryEntity.Info.PD_ID);
+        if (pdIds == null) {
+            pdIds = new FaiList<>();
+        }
+        return pdIds;
     }
 
     /**

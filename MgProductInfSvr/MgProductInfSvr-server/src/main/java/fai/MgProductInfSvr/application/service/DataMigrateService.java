@@ -5,10 +5,16 @@ import fai.MgProductBasicSvr.interfaces.dto.MigrateDef;
 import fai.MgProductInfSvr.application.MgProductInfSvr;
 import fai.MgProductInfSvr.domain.entity.RichTextValObj;
 import fai.MgProductInfSvr.domain.serviceproc.ProductBasicProc;
+import fai.MgProductInfSvr.domain.serviceproc.ProductSpecProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductStoreProc;
 import fai.MgProductInfSvr.domain.serviceproc.RichTextProc;
 import fai.MgProductInfSvr.interfaces.entity.ProductBasicEntity;
+import fai.MgProductInfSvr.interfaces.entity.ProductSpecValObj;
+import fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity;
+import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
 import fai.MgProductStoreSvr.interfaces.entity.SpuBizSummaryEntity;
+import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity;
+import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuValObj;
 import fai.MgRichTextInfSvr.interfaces.entity.MgRichTextEntity;
 import fai.MgRichTextInfSvr.interfaces.entity.MgRichTextValObj;
 import fai.comm.jnetkit.server.fai.FaiSession;
@@ -29,10 +35,12 @@ import java.util.Map;
 public class DataMigrateService extends MgProductInfService {
     private static DaoPool daoPool;
     private static DaoPool ykStoreDaoPool;
+    private static DaoPool ykServiceDaoPool;
     public static void init(MgProductInfSvr.SvrOption svrOption) {
         int dbType = svrOption.getDebug() ? FaiDbUtil.Type.DEV_MASTER : FaiDbUtil.Type.PRO_MASTER;
         daoPool = getDaoPool("MgProductInfSvr", dbType, 10, "ykProduct");
         ykStoreDaoPool = getDaoPool("MgProductInfSvr", dbType, 10, "ykStore");
+        ykServiceDaoPool = getDaoPool("MgProductInfSvr", dbType, 10, "ykService");
     }
 
     private static DaoPool getDaoPool(String svrName, int type, int maxSize, String instance) {
@@ -60,6 +68,13 @@ public class DataMigrateService extends MgProductInfService {
         return "yk_store_" + String.format("%04d", aid%1000);
     }
 
+    private String getYKServiceTable(int aid) {
+        return "ykService_" + String.format("%04d", aid % 1000);
+    }
+
+    private String getYKServiceSubTable(int aid) {
+        return "ykServiceSub_" + String.format("%04d", aid % 1000);
+    }
 
     @SuccessRt(Errno.OK)
     public int migrateYK(FaiSession session, int flow, int aid) throws IOException {
@@ -316,6 +331,406 @@ public class DataMigrateService extends MgProductInfService {
         session.write(sendBuf);
         Log.logDbg("migrate ok;flow=%d;aid=%d;", flow, aid);
 
+        rt = Errno.OK;
+        return rt;
+    }
+
+    @SuccessRt(Errno.OK)
+    public int migrateYKService(FaiSession session, int flow, int aid) throws IOException {
+        int rt;
+
+        FaiList<Param> ykServiceList;
+        FaiList<Param> ykPdBindGroupList;
+        FaiList<Param> ykServiceSubList;
+
+        Dao ykDao = null;
+        Dao ykStoreDao = null;
+        try {
+            ykDao = ykServiceDaoPool.getDao();
+            if (ykDao == null) {
+                rt = Errno.DAO_CONN_ERROR;
+                throw new MgException(rt, "conn db err;aid=%d", aid);
+            }
+            ykStoreDao = ykStoreDaoPool.getDao();
+            if (ykStoreDao == null) {
+                rt = Errno.DAO_CONN_ERROR;
+                throw new MgException(rt, "ykStoreDao conn db err;aid=%d", aid);
+            }
+
+            // 查询 已被删除的门店
+            Dao.SelectArg sltArg = new Dao.SelectArg();
+            sltArg = new Dao.SelectArg();
+            sltArg.table = getYKStoreTableName(aid);
+            sltArg.searchArg.matcher = new ParamMatcher("aid", ParamMatcher.EQ, aid);
+            sltArg.searchArg.matcher.and("flag2", ParamMatcher.LAND, 0x400, 0x400);
+            FaiList<Param> stores = ykStoreDao.select(sltArg);
+            if(stores == null) {
+                rt = Errno.DAO_ERROR;
+                throw new MgException(rt, "select storeIds err;aid=%s;", aid);
+            }
+            FaiList<Integer> delStoreIds = new FaiList<>();
+            for(Param info : stores) {
+                int storeId = info.getInt("storeId");
+                delStoreIds.add(storeId);
+            }
+
+            // 查询 YK 服务信息
+            Dao.SelectArg selectArg = new Dao.SelectArg();
+            selectArg.table = getYKServiceTable(aid);
+            selectArg.searchArg.matcher = new ParamMatcher("aid", ParamMatcher.EQ, aid);
+            if (!Utils.isEmptyList(delStoreIds)) {
+                selectArg.searchArg.matcher.and("storeId", ParamMatcher.NOT_IN, delStoreIds);
+            }
+            // 总店的数据放在前面
+            selectArg.searchArg.cmpor = new ParamComparator("storeId", false);
+            ykServiceList = ykDao.select(selectArg);
+
+            // 查询 YK 服务分类绑定信息
+            selectArg = new Dao.SelectArg();
+            selectArg.table = "yk_service_category";
+            selectArg.searchArg.matcher = new ParamMatcher("aid", ParamMatcher.EQ, aid);
+            ykPdBindGroupList = ykDao.select(selectArg);
+
+            // 查询 ykServiceSub 信息 (总店)
+            selectArg = new Dao.SelectArg();
+            selectArg.table = getYKServiceSubTable(aid);
+            selectArg.searchArg.matcher = new ParamMatcher("aid", ParamMatcher.EQ, aid);
+            selectArg.searchArg.matcher.and("storeId", ParamMatcher.EQ, 0);
+            ykServiceSubList = ykDao.select(selectArg);
+        } finally {
+            if (ykDao != null) {
+                ykDao.close();
+            }
+            if (ykStoreDao != null) {
+                ykStoreDao.close();
+            }
+        }
+
+        if(ykServiceList == null || ykPdBindGroupList == null) {
+            rt = Errno.DAO_ERROR;
+            throw new MgException(rt, "select from yk err;aid=%s;", aid);
+        }
+
+        if(ykServiceList.isEmpty()) {
+            Log.logStd("migrate ok;aid=%d;", aid);
+            return Errno.OK;
+        }
+
+        Map<String, FaiList<Integer>> bindGroupMap = new HashMap<>();
+        for (Param bindGroup : ykPdBindGroupList) {
+            int yid = bindGroup.getInt("yid");
+            int rlPdId = bindGroup.getInt("serviceId");
+            FaiList<Integer> bindGroupIds = bindGroupMap.get(yid + "-" + rlPdId);
+            if (bindGroupIds == null) {
+                bindGroupIds = new FaiList<>();
+                bindGroupMap.put(yid + "-" + rlPdId, bindGroupIds);
+            }
+            int rlGroupId = bindGroup.getInt("categoryId");
+            bindGroupIds.add(rlGroupId);
+        }
+
+        Map<String, Param> ykServiceSubMap = new HashMap<>();
+        for (Param ykServiceSub : ykServiceSubList) {
+            int storeId = ykServiceSub.getInt("storeId");
+            int yid = ykServiceSub.getInt("yid");
+            int serviceId = ykServiceSub.getInt("serviceId");
+            ykServiceSubMap.put(yid + "-" + serviceId + "-" + storeId, ykServiceSub);
+        }
+
+        int tid = FaiValObj.TermId.YK;
+        int lgId = 0;
+        int sysType = 1;
+
+        Map<String, Param>  unionPriIdRlPdId_info = new HashMap<>();
+        FaiList<Param> spuList = new FaiList<>();
+        FaiList<Param> storeSkuList = new FaiList<>();
+        Map<Integer, FaiList<Param>> remarkMap = new HashMap<>();
+        FaiList<Param> specList = new FaiList<>();
+
+        for (Param ykService : ykServiceList) {
+            int siteId = ykService.getInt("yid");
+            int keepPriId1 = ykService.getInt("storeId");
+            int rlPdId = ykService.getInt("serviceId");
+            String name = ykService.getString("name");
+            long price = ykService.getInt("price");
+            String imgList = ykService.getString("post");
+            int ykFlag = ykService.getInt("flag");
+            int ykStatus = ykService.getInt("status");
+            long createTime = ykService.getLong("createTime");
+            long updateTime = ykService.getLong("updateTime");
+            Calendar sysCreateTime = Calendar.getInstance();
+            sysCreateTime.setTimeInMillis(createTime);
+            Calendar sysUpdateTime = Calendar.getInstance();
+            sysUpdateTime.setTimeInMillis(updateTime);
+            double duration = ykService.getDouble("duration");
+            int priceType = ykService.getInt("priceType");
+            int modeType = ykService.getInt("modeType");
+            int sort = ykService.getInt("sort");
+
+            int unionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
+            int ownUnionPriId = unionPriId;
+            if (keepPriId1 != 0) {
+                ownUnionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, 0);
+            }
+
+            // 富文本数据，只处理总部的数据
+            if (keepPriId1 == 0) {
+                Param ykServiceSub = ykServiceSubMap.get(siteId + "-" + rlPdId + "-" + keepPriId1);
+                if (Str.isEmpty(ykService)) {
+                    rt = Errno.ERROR;
+                    throw new MgException(rt, "data error,ykServiceSub is empty;aid=%d;yid=%d;serviceId=%d;storeId=%d", siteId, rlPdId, keepPriId1);
+                }
+                String remark = ykServiceSub.getString("context");
+                String remark1 = ykServiceSub.getString("detail");
+
+                FaiList<Param> remarkList = remarkMap.get(unionPriId);
+                if(remarkList == null) {
+                    remarkList = new FaiList<>();
+                    remarkMap.put(unionPriId, remarkList);
+                }
+                Param remarkInfo = new Param();
+                // 先用rlPdId占位，后面商品数据添加完后，要换成pdId
+                remarkInfo.setInt(MgRichTextEntity.Info.RLID, rlPdId); //业务功能Id（必填）
+                remarkInfo.setInt(MgRichTextEntity.Info.BIZ, MgRichTextValObj.Biz.PRODUCT);
+                remarkInfo.setInt(MgRichTextEntity.Info.TYPE, RichTextValObj.Type.REMARK); //内容类型（必填）
+                remarkInfo.setString(MgRichTextEntity.Info.CONTENT, remark); // 富文本内容（选填）
+                Param remark1Info = new Param();
+                remark1Info.setInt(MgRichTextEntity.Info.RLID, rlPdId); //业务功能Id（必填）
+                remark1Info.setInt(MgRichTextEntity.Info.BIZ, MgRichTextValObj.Biz.PRODUCT);
+                remark1Info.setInt(MgRichTextEntity.Info.TYPE, RichTextValObj.Type.REMARK1); //内容类型（必填）
+                remark1Info.setString(MgRichTextEntity.Info.CONTENT, remark1); // 富文本内容（选填）
+                remarkList.add(remarkInfo);
+                remarkList.add(remark1Info);
+            }
+
+            // 将门店软删除状态 转换成 中台的软删除状态
+            if (ykStatus == 2) {
+                ykStatus = -1;
+            }
+
+            // 规格数据，只处理总店的数据 (实际服务没有规格，由中台默认生成一个规格)
+            if (keepPriId1 == 0) {
+                Param spec = new Param();
+                // 先填入 rlPdId 后面需要替换成 pdId
+                spec.setInt("rlPdId", rlPdId);
+                spec.setString(ProductSpecEntity.Info.NAME, "全部");
+                spec.setInt(ProductSpecEntity.Info.SOURCE_UNION_PRI_ID, unionPriId);
+                spec.setInt(ProductSpecEntity.Info.SOURCE_TID, tid);
+                spec.setCalendar(ProductSpecEntity.Info.SYS_CREATE_TIME, sysCreateTime);
+                spec.setCalendar(ProductSpecEntity.Info.SYS_UPDATE_TIME, sysUpdateTime);
+                spec.setInt(ProductSpecSkuEntity.Info.STATUS, ykStatus);
+                // 允许规格值为空
+                spec.setInt(ProductSpecEntity.Info.FLAG, ProductSpecValObj.Spec.FLag.ALLOW_IN_PD_SC_VAL_LIST_IS_EMPTY);
+                specList.add(spec);
+            }
+
+            // spu 数据，门店通那边服务状态 2 代表软删除, spu 没有软删数据暂不同步
+            Param spuInfo = new Param();
+            spuInfo.setInt(SpuBizSummaryEntity.Info.AID, aid);
+            spuInfo.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, unionPriId);
+            spuInfo.setInt(SpuBizSummaryEntity.Info.RL_PD_ID, rlPdId);
+            spuInfo.setInt(SpuBizSummaryEntity.Info.PRICE_TYPE, priceType);
+            spuInfo.setInt(SpuBizSummaryEntity.Info.MODE_TYPE, modeType);
+            spuInfo.setInt(SpuBizSummaryEntity.Info.SYS_TYPE, sysType);
+            spuInfo.setInt(SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID, ownUnionPriId);
+            spuInfo.setCalendar(SpuBizSummaryEntity.Info.SYS_CREATE_TIME, sysCreateTime);
+            spuInfo.setCalendar(SpuBizSummaryEntity.Info.SYS_UPDATE_TIME, sysUpdateTime);
+            spuInfo.setInt("status", ykStatus);
+            spuList.add(spuInfo);
+
+            // 销售 sku 数据
+            Param storeSku = new Param();
+            storeSku.setInt(StoreSalesSkuEntity.Info.AID, aid);
+            storeSku.setInt(StoreSalesSkuEntity.Info.RL_PD_ID, rlPdId);
+            storeSku.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId);
+            storeSku.setInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, ownUnionPriId);
+            storeSku.setLong(StoreSalesSkuEntity.Info.PRICE, price);
+            storeSku.setDouble(StoreSalesSkuEntity.Info.DURATION, duration);
+            storeSku.setInt(StoreSalesSkuEntity.Info.FLAG, StoreSalesSkuValObj.FLag.SETED_PRICE);
+            storeSku.setInt(StoreSalesSkuEntity.Info.SYS_TYPE, sysType);
+            storeSku.setInt("status", ykStatus);
+            storeSku.setCalendar(StoreSalesSkuEntity.Info.SYS_CREATE_TIME, sysCreateTime);
+            storeSku.setCalendar(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, sysUpdateTime);
+            storeSkuList.add(storeSku);
+
+            // 商品基础数据
+            if (keepPriId1 == 0) {
+                Param basicInfo = new Param();
+                basicInfo.setInt(ProductBasicEntity.ProductInfo.AID, aid);
+                basicInfo.setInt(ProductBasicEntity.ProductInfo.SOURCE_TID, tid);
+                basicInfo.setInt(ProductBasicEntity.ProductInfo.RL_PD_ID, rlPdId);
+                basicInfo.setString(ProductBasicEntity.ProductInfo.NAME, name);
+                basicInfo.setInt(ProductBasicEntity.ProductInfo.SOURCE_UNIONPRIID, unionPriId);
+                basicInfo.setString(ProductBasicEntity.ProductInfo.IMG_LIST, imgList);
+                basicInfo.setInt(ProductBasicEntity.ProductInfo.STATUS, ykStatus);
+                basicInfo.setInt(ProductBasicEntity.ProductInfo.FLAG, ykFlag);
+                basicInfo.setCalendar(ProductBasicEntity.ProductInfo.CREATE_TIME, sysCreateTime);
+                basicInfo.setCalendar(ProductBasicEntity.ProductInfo.UPDATE_TIME, sysUpdateTime);
+
+                FaiList<Integer> bindGroupIds = bindGroupMap.get(siteId + "-" + rlPdId);
+                Param info = new Param();
+                info.setParam(MigrateDef.Info.ADD_PD, basicInfo);
+                if(bindGroupIds != null) {
+                    info.setList(MigrateDef.Info.BIND_RL_GROUP, bindGroupIds);
+                }
+                unionPriIdRlPdId_info.put(ownUnionPriId + "-" + rlPdId, info);
+            }
+
+            Param relInfo = new Param();
+            relInfo.setInt(ProductBasicEntity.ProductInfo.AID, aid);
+            relInfo.setInt(ProductBasicEntity.ProductInfo.RL_PD_ID, rlPdId);
+            relInfo.setInt(ProductBasicEntity.ProductInfo.UNION_PRI_ID, unionPriId);
+            relInfo.setInt(ProductBasicEntity.ProductInfo.SOURCE_TID, tid);
+            relInfo.setCalendar(ProductBasicEntity.ProductInfo.ADD_TIME, sysCreateTime);
+            relInfo.setCalendar(ProductBasicEntity.ProductInfo.LAST_UPDATE_TIME, sysUpdateTime);
+            relInfo.setInt(ProductBasicEntity.ProductInfo.STATUS, ykStatus);
+            relInfo.setInt(ProductBasicEntity.ProductInfo.RL_FLAG, ykFlag);
+            relInfo.setInt(ProductBasicEntity.ProductInfo.SORT, sort);
+            relInfo.setCalendar(ProductBasicEntity.ProductInfo.CREATE_TIME, sysCreateTime);
+            relInfo.setCalendar(ProductBasicEntity.ProductInfo.UPDATE_TIME, sysUpdateTime);
+            relInfo.setInt(ProductBasicEntity.ProductInfo.SYS_TYPE, 1);
+
+            Param info = unionPriIdRlPdId_info.get(ownUnionPriId + "-" + rlPdId);
+            FaiList<Param> bindList = info.getList(MigrateDef.Info.BIND_PD_REL);
+            if(bindList == null) {
+                bindList = new FaiList<>();
+                info.setList(MigrateDef.Info.BIND_PD_REL, bindList);
+            }
+            bindList.add(relInfo);
+        }
+
+        FaiList<Param> serviceList = new FaiList<>();
+        for (String key : unionPriIdRlPdId_info.keySet()) {
+            Param info = unionPriIdRlPdId_info.get(key);
+            serviceList.add(info);
+        }
+
+        ProductBasicProc basicProc = new ProductBasicProc(flow);
+        // 先找出是否是重复迁移数据的 pdId, 如果存在则清除基础信息中的数据
+        FaiList<Integer> migratePdIds = basicProc.getMigratePdIds(aid, sysType);
+
+        // 同步基础信息
+        FaiList<Param> returnList = basicProc.dataMigrate(aid, tid, serviceList, sysType);
+        Map<String, Integer> unionPriIdRlPdId_pdId = new HashMap<>();
+
+        FaiList<Integer> pdIdList = new FaiList<>();
+        for(Param returnInfo : returnList) {
+            int unionPriId = returnInfo.getInt(ProductBasicEntity.ProductInfo.UNION_PRI_ID);
+            int rlPdId = returnInfo.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID);
+            int pdId = returnInfo.getInt(ProductBasicEntity.ProductInfo.PD_ID);
+            pdIdList.add(pdId);
+            unionPriIdRlPdId_pdId.put(unionPriId + "-" + rlPdId, pdId);
+        }
+
+        // 同步富文本数据
+        if(!remarkMap.isEmpty()) {
+            // 替换rlPdId -> pdId
+            for(int unionPriId : remarkMap.keySet()) {
+                FaiList<Param> remarkList = remarkMap.get(unionPriId);
+                for(Param remark : remarkList) {
+                    int rlPdId = remark.getInt(MgRichTextEntity.Info.RLID);
+                    Integer pdId = unionPriIdRlPdId_pdId.get(unionPriId+ "-" + rlPdId);
+                    if(pdId == null) {
+                        rt = Errno.ERROR;
+                        Log.logErr(rt, "remark get pdId err;aid=%d;uid=%d;rlPdId=%d;", aid, unionPriId, rlPdId);
+                        return rt;
+                    }
+                    remark.setInt(MgRichTextEntity.Info.RLID, pdId);
+                }
+            }
+
+            RichTextProc richProc = new RichTextProc(flow);
+            for(int unionPriId : remarkMap.keySet()) {
+                Param primary = getByUnionPriId(flow, aid, unionPriId);
+                int siteId = primary.getInt(MgPrimaryKeyEntity.Info.SITE_ID);
+                int keepPriId1 = primary.getInt(MgPrimaryKeyEntity.Info.KEEP_PRI_ID1);
+                if (!migratePdIds.isEmpty()) {
+                    richProc.batchDel("", aid, tid, siteId, lgId, keepPriId1, migratePdIds);
+                }
+                richProc.batchAdd("", aid, tid, siteId, lgId, keepPriId1, remarkMap.get(unionPriId));
+            }
+        }
+
+        // 同步spu数据
+        if (!spuList.isEmpty()) {
+            for(Param info : spuList) {
+                int unionPriId = info.getInt(SpuBizSummaryEntity.Info.UNION_PRI_ID);
+                int rlPdId = info.getInt(SpuBizSummaryEntity.Info.RL_PD_ID);
+                Integer pdId = unionPriIdRlPdId_pdId.get(unionPriId + "-" + rlPdId);
+                if(pdId == null) {
+                    rt = Errno.ERROR;
+                    Log.logErr(rt, "spu get pdId err;aid=%d;uid=%d;rlPdId=%d;", aid, unionPriId, rlPdId);
+                    return rt;
+                }
+                info.setInt(SpuBizSummaryEntity.Info.PD_ID, pdId);
+            }
+
+            ProductStoreProc storeProc = new ProductStoreProc(flow);
+            // 支持重复迁移
+            if (!migratePdIds.isEmpty()) {
+                storeProc.migrateYKServiceDel(aid, migratePdIds);
+            }
+            storeProc.migrateYKService(aid, spuList);
+        }
+
+        // 同步 spec 数据
+        for (Param specInfo : specList) {
+            int rlPdId = specInfo.getInt("rlPdId");
+            Integer unionPriId = specInfo.getInt(ProductSpecEntity.Info.SOURCE_UNION_PRI_ID);
+            Integer pdId = unionPriIdRlPdId_pdId.get(unionPriId + "-" + rlPdId);
+            if (pdId == null) {
+                rt = Errno.ERROR;
+                Log.logErr(rt, "spec get pdId err;aid=%d;uid=%d;rlPdId=%d;", aid, unionPriId, rlPdId);
+                return rt;
+            }
+            specInfo.setInt(ProductSpecEntity.Info.PD_ID, pdId);
+        }
+        if (!specList.isEmpty()) {
+            ProductSpecProc specProc = new ProductSpecProc(flow);
+            // 支持重复迁移
+            if (!migratePdIds.isEmpty()) {
+                specProc.batchDelPdAllSc(aid, tid, migratePdIds, "", false);
+            }
+            returnList = specProc.migrateYKService(aid, specList);
+        }
+
+        // pdId 与 skuId 的映射
+        Map<Integer, Long> pdId_skuIdMap = new HashMap<>();
+        for (Param info : returnList) {
+            int pdId = info.getInt(ProductSpecSkuEntity.Info.PD_ID);
+            long skuId = info.getLong(ProductSpecSkuEntity.Info.SKU_ID);
+            pdId_skuIdMap.put(pdId, skuId);
+        }
+
+        // 同步库存销售
+        for (Param storeSku : storeSkuList) {
+            Integer rlPdId = storeSku.getInt(StoreSalesSkuEntity.Info.RL_PD_ID);
+            Integer unionPriId = storeSku.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+            Integer pdId = unionPriIdRlPdId_pdId.get(unionPriId + "-" + rlPdId);
+            if (pdId == null) {
+                rt = Errno.ERROR;
+                Log.logErr("storeSku get pdId err;aid=%d;uid=%d;rlPdId=%d;", aid, unionPriId, rlPdId);
+                return rt;
+            }
+            storeSku.setInt(StoreSalesSkuEntity.Info.PD_ID, pdId);
+            Long skuId = pdId_skuIdMap.get(pdId);
+            if (skuId == null) {
+                rt = Errno.ERROR;
+                Log.logErr("storeSku get skuId err;aid=%d;uid=%d;pdId=%d;", aid, unionPriId, pdId);
+                return rt;
+            }
+            storeSku.setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId);
+        }
+        if (!storeSkuList.isEmpty()) {
+            ProductStoreProc storeProc = new ProductStoreProc(flow);
+            storeProc.migrateYKStoreSku(aid, storeSkuList);
+        }
+
+        Log.logStd("migrate yk service ok;pdIdList=%s;", pdIdList);
+
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logDbg("migrateYKService ok;flow=%d;aid=%d;", flow, aid);
         rt = Errno.OK;
         return rt;
     }

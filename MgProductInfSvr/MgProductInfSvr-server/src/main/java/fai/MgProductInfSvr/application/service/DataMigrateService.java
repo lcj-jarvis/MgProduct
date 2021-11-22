@@ -327,12 +327,14 @@ public class DataMigrateService extends MgProductInfService {
                         newRelInfo.setInt(ProductBasicEntity.ProductInfo.UNION_PRI_ID, curUnionPriId);
                         bindList.add(newRelInfo);
                         // spu数据
-                        Param spuInfo = new Param();
-                        spuInfo.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, curUnionPriId);
-                        spuInfo.setInt(SpuBizSummaryEntity.Info.RL_PD_ID, rlPdId);
-                        spuInfo.setString(SpuBizSummaryEntity.Info.DISTRIBUTE_LIST, distributeTypes);
-                        spuInfo.setInt(SpuBizSummaryEntity.Info.PRICE_TYPE, priceType);
-                        spuList.add(spuInfo);
+                        if(ykStatus != -1) {
+                            Param spuInfo = new Param();
+                            spuInfo.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, curUnionPriId);
+                            spuInfo.setInt(SpuBizSummaryEntity.Info.RL_PD_ID, rlPdId);
+                            spuInfo.setString(SpuBizSummaryEntity.Info.DISTRIBUTE_LIST, distributeTypes);
+                            spuInfo.setInt(SpuBizSummaryEntity.Info.PRICE_TYPE, priceType);
+                            spuList.add(spuInfo);
+                        }
                     }
                 }
             }

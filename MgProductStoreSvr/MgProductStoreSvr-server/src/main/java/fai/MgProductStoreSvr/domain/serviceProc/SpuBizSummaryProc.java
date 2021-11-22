@@ -3,9 +3,9 @@ package fai.MgProductStoreSvr.domain.serviceProc;
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
 import fai.MgProductStoreSvr.domain.entity.*;
 import fai.MgProductStoreSvr.domain.repository.DataType;
-import fai.MgProductStoreSvr.domain.repository.SpuBizSummaryCacheCtrl;
-import fai.MgProductStoreSvr.domain.repository.SpuBizSummaryDaoCtrl;
-import fai.MgProductStoreSvr.domain.repository.SpuBizSummarySagaDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.cache.SpuBizSummaryCacheCtrl;
+import fai.MgProductStoreSvr.domain.repository.dao.SpuBizSummaryDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.dao.saga.SpuBizSummarySagaDaoCtrl;
 import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.util.*;
 import fai.mgproduct.comm.Util;
@@ -640,12 +640,12 @@ public class SpuBizSummaryProc {
         return rt;
     }
 
-    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean isSaga) {
+    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean softDel, boolean isSaga) {
         int rt;
         ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(SpuBizSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
         SearchArg searchArg = new SearchArg();
-        searchArg.matcher = matcher;
+        searchArg.matcher = matcher.clone();
         Ref<FaiList<Param>> listRef = new Ref<>();
         // 如果不是分布式事务只需要查询，单个字段
         if (isSaga) {
@@ -667,15 +667,30 @@ public class SpuBizSummaryProc {
         cacheManage.addDataTypeDirtyCacheKey(DataType.Manage, unionPirIdPdIdListMap.keySet());
         cacheManage.addDirtyCacheKey(aid, unionPirIdPdIdListMap);
         if (isSaga) {
-            rt = addDelOp4Saga(aid, listRef.value);
-            if(rt != Errno.OK){
-                return rt;
+            if(softDel) {
+                preAddUpdateSaga(aid, listRef.value);
+            }else {
+                rt = addDelOp4Saga(aid, listRef.value);
+                if(rt != Errno.OK){
+                    return rt;
+                }
             }
         }
-        rt = m_daoCtrl.delete(matcher);
-        if(rt != Errno.OK){
-            Log.logStd(rt, "delete err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
-            return rt;
+
+        if(softDel) {
+            ParamUpdater updater = new ParamUpdater();
+            updater.getData().setInt(SpuBizSummaryEntity.Info.STATUS, SpuBizSummaryValObj.Status.DEL);
+            rt = m_daoCtrl.update(updater, matcher);
+            if(rt != Errno.OK){
+                Log.logStd(rt, "softdel err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                return rt;
+            }
+        }else {
+            rt = m_daoCtrl.delete(matcher);
+            if(rt != Errno.OK){
+                Log.logStd(rt, "delete err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                return rt;
+            }
         }
 
         Log.logStd("ok;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);

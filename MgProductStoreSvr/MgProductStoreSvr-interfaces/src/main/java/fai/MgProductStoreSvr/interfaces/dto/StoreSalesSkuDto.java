@@ -43,6 +43,7 @@ public class StoreSalesSkuDto {
         g_dtoDef.add(StoreSalesSkuEntity.Info.COST_PRICE, 25, Var.Type.LONG);
         g_dtoDef.add(StoreSalesSkuEntity.Info.MW_COST, 26, Var.Type.LONG);
         g_dtoDef.add(StoreSalesSkuEntity.Info.SYS_TYPE, 27, Var.Type.INT);
+        g_dtoDef.add(StoreSalesSkuEntity.Info.STATUS, 28, Var.Type.INT);
     }
 
     public static ParamDef getInfoDto() {
@@ -118,6 +119,7 @@ public class StoreSalesSkuDto {
             g_manageInfoDef.add(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, 22, Var.Type.INT);
             g_manageInfoDef.add(StoreSalesSkuEntity.Info.MW_COST, 23, Var.Type.LONG);
             g_manageInfoDef.add(StoreSalesSkuEntity.Info.SYS_TYPE, 24, Var.Type.INT);
+            g_manageInfoDef.add(StoreSalesSkuEntity.Info.STATUS, 25, Var.Type.INT);
         }
 
         public static ParamDef getManageInfoDto() {

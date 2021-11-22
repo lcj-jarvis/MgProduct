@@ -565,11 +565,9 @@ public class ProductSpecService extends SpecParentService {
                     LockUtil.lock(aid);
                     try {
                         transactionCtrl.setAutoCommit(false);
-                        if(!softDel){
-                            rt = productSpecProc.batchDel(aid, pdIdList, isSaga);
-                            if(rt != Errno.OK){
-                                return rt;
-                            }
+                        rt = productSpecProc.batchDel(aid, pdIdList, softDel, isSaga);
+                        if(rt != Errno.OK){
+                            return rt;
                         }
                         rt = productSpecSkuProc.batchDel(aid, pdIdList, softDel, isSaga);
                         if(rt != Errno.OK){
@@ -581,6 +579,10 @@ public class ProductSpecService extends SpecParentService {
                         }
                         if (isSaga) {
                             // 记录 Saga 状态 & 将修改记录持久化到 db
+                            rt = productSpecProc.addUpdateSaga2Db(aid);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
                             rt = productSpecSkuProc.addUpdateSaga2Db(aid);
                             if (rt != Errno.OK) {
                                 return rt;
@@ -1517,6 +1519,7 @@ public class ProductSpecService extends SpecParentService {
     public int getSkuCodeDataStatus(FaiSession session, int flow, int aid, int unionPriId)throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
+        long begin = System.currentTimeMillis();
         try {
             Ref<Param> dataStatusRef = new Ref<>();
             ProductSpecSkuCodeDaoCtrl productSpecSkuCodeDaoCtrl = ProductSpecSkuCodeDaoCtrl.getInstance(flow, aid);
@@ -1535,7 +1538,8 @@ public class ProductSpecService extends SpecParentService {
             FaiBuffer sendBody = new FaiBuffer();
             dataStatusRef.value.toBuffer(sendBody, ProductSpecSkuCodeDao.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
             session.write(sendBody);
-            Log.logDbg("ok;aid=%d;unionPriId=%s;", aid, unionPriId);
+            long end = System.currentTimeMillis();
+            Log.logDbg("ok;aid=%d;unionPriId=%s;consume=%d", aid, unionPriId, end - begin);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }
@@ -1548,6 +1552,7 @@ public class ProductSpecService extends SpecParentService {
     public int getSkuCodeAllData(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
+        long begin = System.currentTimeMillis();
         try {
             Ref<FaiList<Param>> listRef = new Ref<>();
             ProductSpecSkuCodeDaoCtrl productSpecSkuCodeDaoCtrl = ProductSpecSkuCodeDaoCtrl.getInstance(flow, aid);
@@ -1562,7 +1567,8 @@ public class ProductSpecService extends SpecParentService {
             }
             rt = Errno.OK;
             sendSkuCode(session, listRef.value, null);
-            Log.logDbg("ok;aid=%d;unionPriId=%s;", aid, unionPriId);
+            long end = System.currentTimeMillis();
+            Log.logDbg("ok;aid=%d;unionPriId=%s;consume", aid, unionPriId, end - begin);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }
@@ -1574,6 +1580,7 @@ public class ProductSpecService extends SpecParentService {
     public int searchSkuCodeFromDb(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
+        long begin = System.currentTimeMillis();
         try {
 
             Ref<FaiList<Param>> listRef = new Ref<>();
@@ -1589,7 +1596,8 @@ public class ProductSpecService extends SpecParentService {
             }
             rt = Errno.OK;
             sendSkuCode(session, listRef.value, searchArg);
-            Log.logDbg("ok;aid=%d;unionPriId=%s;", aid, unionPriId);
+            long end = System.currentTimeMillis();
+            Log.logDbg("ok;aid=%d;unionPriId=%s;consume=%d", aid, unionPriId, end - begin);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }

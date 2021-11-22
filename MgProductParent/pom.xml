@@ -34,7 +34,7 @@
         <!--升级支持异步功能-->
         <fai-comm-util-arch-ver>1.1.3</fai-comm-util-arch-ver>
         <fai-comm-rpc-client-ver>1.1.0</fai-comm-rpc-client-ver>
-        <fai-comm-netkit-ver>beta-1.1.5</fai-comm-netkit-ver>
+        <fai-comm-netkit-ver>1.1.6</fai-comm-netkit-ver>
         <fai-comm-jnetkit-ver>1.1.2</fai-comm-jnetkit-ver>
 
         <fai-comm-config-ver>1.0.0</fai-comm-config-ver>

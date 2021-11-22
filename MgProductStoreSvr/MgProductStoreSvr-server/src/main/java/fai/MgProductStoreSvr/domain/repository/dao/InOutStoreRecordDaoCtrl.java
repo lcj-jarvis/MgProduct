@@ -1,6 +1,8 @@
-package fai.MgProductStoreSvr.domain.repository;
+package fai.MgProductStoreSvr.domain.repository.dao;
 
 import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordEntity;
+import fai.MgProductStoreSvr.domain.repository.cache.CacheCtrl;
+import fai.MgProductStoreSvr.domain.repository.TableDBMapping;
 import fai.comm.distributedkit.idBuilder.domain.IdBuilderConfig;
 import fai.comm.distributedkit.idBuilder.wrapper.IdBuilderWrapper;
 import fai.comm.util.DaoPool;
@@ -71,7 +73,7 @@ public class InOutStoreRecordDaoCtrl extends DaoWithIdBuilderCtrl {
 									.buildAssistTableSuffix("idBuilder")
 									.buildAutoIncField(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID)
 									.build(),
-							CacheCtrl.m_cache);
+							CacheCtrl.getCache());
 				}
 			}
 		}

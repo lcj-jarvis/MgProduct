@@ -1,6 +1,7 @@
-package fai.MgProductStoreSvr.domain.repository;
+package fai.MgProductStoreSvr.domain.repository.cache;
 
 import fai.MgProductStoreSvr.domain.entity.SpuSummaryEntity;
+import fai.MgProductStoreSvr.domain.repository.cache.CacheCtrl;
 import fai.MgProductStoreSvr.interfaces.dto.SpuSummaryDto;
 import fai.comm.util.FaiList;
 import fai.comm.util.Log;
@@ -11,7 +12,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class SpuSummaryCacheCtrl  extends CacheCtrl{
+public class SpuSummaryCacheCtrl  extends CacheCtrl {
 
     public static FaiList<Param> getCacheList(int aid, Set<Integer> pdIdSet) {
         if(pdIdSet.isEmpty()){

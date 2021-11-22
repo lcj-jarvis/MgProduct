@@ -2789,13 +2789,14 @@ public class ProductBasicService extends BasicParentService {
     }
 
     /**
-     * 从db搜索aid下的商品数据
+     * 从db搜索aid下的商品数据（不包括删除状态的）
      * 只获取部分字段：ProductEntity.MANAGE_FIELDS
      * 目前提供给搜索服务使用
      */
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int searchProductFromDb(FaiSession session, int flow, int aid, SearchArg searchArg) throws IOException {
         int rt;
+        long begin = System.currentTimeMillis();
         if(aid <= 0) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
@@ -2817,7 +2818,8 @@ public class ProductBasicService extends BasicParentService {
         }
         session.write(sendBuf);
         rt = Errno.OK;
-        Log.logDbg("search from db ok;flow=%d;aid=%d;size=%d;", flow, aid, list.size());
+        long end = System.currentTimeMillis();
+        Log.logDbg("search from db ok;flow=%d;aid=%d;size=%d;consume=%d", flow, aid, list.size(), end - begin);
 
         return rt;
     }
@@ -2830,6 +2832,7 @@ public class ProductBasicService extends BasicParentService {
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getAllProduct(FaiSession session, int flow, int aid) throws IOException {
         int rt;
+        long begin = System.currentTimeMillis();
         if(aid <= 0) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
@@ -2849,7 +2852,8 @@ public class ProductBasicService extends BasicParentService {
         list.toBuffer(sendBuf, ProductDto.Key.INFO_LIST, ProductDto.getInfoDto());
         session.write(sendBuf);
         rt = Errno.OK;
-        Log.logDbg("get all from db ok;flow=%d;aid=%d;size=%d;", flow, aid, list.size());
+        long end = System.currentTimeMillis();
+        Log.logDbg("get all from db ok;flow=%d;aid=%d;size=%d;consume=%d", flow, aid, list.size(), end - begin);
 
         return rt;
     }
@@ -2886,6 +2890,7 @@ public class ProductBasicService extends BasicParentService {
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getAllProductRel(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
         int rt;
+        long begin = System.currentTimeMillis();
         if(aid <= 0) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
@@ -2907,7 +2912,8 @@ public class ProductBasicService extends BasicParentService {
         list.toBuffer(sendBuf, ProductRelDto.Key.INFO_LIST, ProductRelDto.getInfoDto());
         session.write(sendBuf);
         rt = Errno.OK;
-        Log.logDbg("get list ok;flow=%d;aid=%d;unionPriId=%d;size=%d;", flow, aid, unionPriId, list.size());
+        long end = System.currentTimeMillis();
+        Log.logDbg("get list ok;flow=%d;aid=%d;unionPriId=%d;size=%d;consume=%d", flow, aid, unionPriId, list.size(), end - begin);
 
         return rt;
     }
@@ -2915,6 +2921,7 @@ public class ProductBasicService extends BasicParentService {
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int searchProductRelFromDb(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg) throws IOException {
         int rt;
+        long begin = System.currentTimeMillis();
         if(aid <= 0) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
@@ -2936,7 +2943,8 @@ public class ProductBasicService extends BasicParentService {
         }
         session.write(sendBuf);
         rt = Errno.OK;
-        Log.logDbg("search from db ok;flow=%d;aid=%d;unionPriId=%d;size=%d;", flow, aid, unionPriId, list.size());
+        long end = System.currentTimeMillis();
+        Log.logDbg("search from db ok;flow=%d;aid=%d;unionPriId=%d;size=%d;consume=%d", flow, aid, unionPriId, list.size(), end - begin);
 
         return rt;
     }

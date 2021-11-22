@@ -268,9 +268,10 @@ public class MgProductInfHandler extends FaiHandler {
                                @ArgBodyInteger(ProductSpecDto.Key.SITE_ID) int siteId,
                                @ArgBodyInteger(ProductSpecDto.Key.LGID) int lgId,
                                @ArgBodyInteger(ProductSpecDto.Key.KEEP_PRIID1) int keepPriId1,
+                               @ArgBodyInteger(value = ProductSpecDto.Key.SYS_TYPE, useDefault = true) int sysType,
                                @ArgList(classDef = ProductSpecDto.SpecTemp.class, methodDef = "getInfoDto",
                                        keyMatch = ProductSpecDto.Key.INFO_LIST) FaiList<Param> list) throws IOException {
-        return specService.addTpScInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, list);
+        return specService.addTpScInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, list);
     }
 
     @WrittenCmd
@@ -282,8 +283,9 @@ public class MgProductInfHandler extends FaiHandler {
                                @ArgBodyInteger(ProductSpecDto.Key.SITE_ID) int siteId,
                                @ArgBodyInteger(ProductSpecDto.Key.LGID) int lgId,
                                @ArgBodyInteger(ProductSpecDto.Key.KEEP_PRIID1) int keepPriId1,
+                               @ArgBodyInteger(value = ProductSpecDto.Key.SYS_TYPE, useDefault = true) int sysType,
                                @ArgList(keyMatch = ProductSpecDto.Key.ID_LIST) FaiList<Integer> rlTpScIdList) throws IOException {
-        return specService.delTpScInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlTpScIdList);
+        return specService.delTpScInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, rlTpScIdList);
     }
 
     @WrittenCmd
@@ -295,9 +297,10 @@ public class MgProductInfHandler extends FaiHandler {
                                @ArgBodyInteger(ProductSpecDto.Key.SITE_ID) int siteId,
                                @ArgBodyInteger(ProductSpecDto.Key.LGID) int lgId,
                                @ArgBodyInteger(ProductSpecDto.Key.KEEP_PRIID1) int keepPriId1,
+                               @ArgBodyInteger(value = ProductSpecDto.Key.SYS_TYPE, useDefault = true) int sysType,
                                @ArgList(classDef = ProductSpecDto.SpecTemp.class, methodDef = "getInfoDto",
                                        keyMatch = ProductSpecDto.Key.UPDATER_LIST)  FaiList<ParamUpdater> updaterList) throws IOException {
-        return specService.setTpScInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, updaterList);
+        return specService.setTpScInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, updaterList);
     }
 
     @Cmd(MgProductInfCmd.SpecTempCmd.GET_LIST)
@@ -307,8 +310,9 @@ public class MgProductInfHandler extends FaiHandler {
                                @ArgBodyInteger(ProductSpecDto.Key.TID) int tid,
                                @ArgBodyInteger(ProductSpecDto.Key.SITE_ID) int siteId,
                                @ArgBodyInteger(ProductSpecDto.Key.LGID) int lgId,
-                               @ArgBodyInteger(ProductSpecDto.Key.KEEP_PRIID1) int keepPriId1) throws IOException {
-        return specService.getTpScInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1);
+                               @ArgBodyInteger(ProductSpecDto.Key.KEEP_PRIID1) int keepPriId1,
+                               @ArgBodyInteger(value = ProductSpecDto.Key.SYS_TYPE, useDefault = true) int sysType) throws IOException {
+        return specService.getTpScInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType);
     }
 
     @WrittenCmd
@@ -320,10 +324,11 @@ public class MgProductInfHandler extends FaiHandler {
                                      @ArgBodyInteger(ProductSpecDto.Key.SITE_ID) int siteId,
                                      @ArgBodyInteger(ProductSpecDto.Key.LGID) int lgId,
                                      @ArgBodyInteger(ProductSpecDto.Key.KEEP_PRIID1) int keepPriId1,
+                                     @ArgBodyInteger(value = ProductSpecDto.Key.SYS_TYPE, useDefault = true) int sysType,
                                      @ArgBodyInteger(ProductSpecDto.Key.RL_TP_SC_ID) int rlTpScId,
                                      @ArgList(classDef = ProductSpecDto.SpecTempDetail.class, methodDef = "getInfoDto",
                                              keyMatch = ProductSpecDto.Key.INFO_LIST) FaiList<Param> list) throws IOException {
-        return specService.addTpScDetailInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlTpScId, list);
+        return specService.addTpScDetailInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, rlTpScId, list);
     }
 
     @WrittenCmd
@@ -335,9 +340,10 @@ public class MgProductInfHandler extends FaiHandler {
                                      @ArgBodyInteger(ProductSpecDto.Key.SITE_ID) int siteId,
                                      @ArgBodyInteger(ProductSpecDto.Key.LGID) int lgId,
                                      @ArgBodyInteger(ProductSpecDto.Key.KEEP_PRIID1) int keepPriId1,
+                                     @ArgBodyInteger(value = ProductSpecDto.Key.SYS_TYPE, useDefault = true) int sysType,
                                      @ArgBodyInteger(ProductSpecDto.Key.RL_TP_SC_ID) int rlTpScId,
                                      @ArgList(keyMatch = ProductSpecDto.Key.ID_LIST) FaiList<Integer> tpScDtIdList) throws IOException {
-        return specService.delTpScDetailInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlTpScId, tpScDtIdList);
+        return specService.delTpScDetailInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, rlTpScId, tpScDtIdList);
     }
 
     @WrittenCmd
@@ -349,10 +355,11 @@ public class MgProductInfHandler extends FaiHandler {
                                      @ArgBodyInteger(ProductSpecDto.Key.SITE_ID) int siteId,
                                      @ArgBodyInteger(ProductSpecDto.Key.LGID) int lgId,
                                      @ArgBodyInteger(ProductSpecDto.Key.KEEP_PRIID1) int keepPriId1,
+                                     @ArgBodyInteger(value = ProductSpecDto.Key.SYS_TYPE, useDefault = true) int sysType,
                                      @ArgBodyInteger(ProductSpecDto.Key.RL_TP_SC_ID) int rlTpScId,
                                      @ArgList(classDef = ProductSpecDto.SpecTempDetail.class, methodDef = "getInfoDto",
                                              keyMatch = ProductSpecDto.Key.UPDATER_LIST) FaiList<ParamUpdater> updaterList) throws IOException {
-        return specService.setTpScDetailInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlTpScId, updaterList);
+        return specService.setTpScDetailInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, rlTpScId, updaterList);
     }
 
     @Cmd(MgProductInfCmd.SpecTempDetailCmd.GET_LIST)
@@ -363,8 +370,9 @@ public class MgProductInfHandler extends FaiHandler {
                                      @ArgBodyInteger(ProductSpecDto.Key.SITE_ID) int siteId,
                                      @ArgBodyInteger(ProductSpecDto.Key.LGID) int lgId,
                                      @ArgBodyInteger(ProductSpecDto.Key.KEEP_PRIID1) int keepPriId1,
+                                     @ArgBodyInteger(value = ProductSpecDto.Key.SYS_TYPE, useDefault = true) int sysType,
                                      @ArgBodyInteger(ProductSpecDto.Key.RL_TP_SC_ID) int rlTpScId) throws IOException {
-        return specService.getTpScDetailInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, rlTpScId);
+        return specService.getTpScDetailInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, rlTpScId);
     }
 
     @WrittenCmd

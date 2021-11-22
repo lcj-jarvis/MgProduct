@@ -28,6 +28,7 @@ public class SpuBizSummaryEntity {
         public static final String DISTRIBUTE_LIST = "distributeList";              // varchar(255) 配送方式（支持多个）
         public static final String KEEP_PROP1 = "keepProp1";                        // varchar(255) 字符串 保留字段1 TODO
         public static final String KEEP_INT_PROP1 = "keepIntProp1";                 // int 整型 保留字段1 TODO
+        public static final String STATUS = "status";                               // int 数据状态
     }
 
     private static final String[] MAX_UPDATE_AND_PRI_KEYS = new String[]{
@@ -49,7 +50,8 @@ public class SpuBizSummaryEntity {
             Info.REMAIN_COUNT,
             Info.HOLDING_COUNT,
             Info.SOURCE_UNION_PRI_ID,
-            Info.SYS_UPDATE_TIME
+            Info.SYS_UPDATE_TIME,
+            Info.STATUS
     };
 
     /**
@@ -68,6 +70,7 @@ public class SpuBizSummaryEntity {
             , Info.VIRTUAL_SALES
             , Info.SALES
             , Info.DISTRIBUTE_LIST
+            , Info.STATUS
     };
     /**
      * 支持批量更新的字段

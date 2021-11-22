@@ -232,6 +232,7 @@ public class ProductBindTagService extends ServicePub {
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getAllPdBindTag(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
         int rt;
+        long begin = System.currentTimeMillis();
         if(aid <= 0) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
@@ -253,7 +254,8 @@ public class ProductBindTagService extends ServicePub {
         list.toBuffer(sendBuf, ProductBindTagDto.Key.INFO_LIST, ProductBindTagDto.getInfoDto());
         session.write(sendBuf);
         rt = Errno.OK;
-        Log.logDbg("get list ok;flow=%d;aid=%d;unionPriId=%d;size=%d;", flow, aid, unionPriId, list.size());
+        long end = System.currentTimeMillis();
+        Log.logDbg("get list ok;flow=%d;aid=%d;unionPriId=%d;size=%d;consume=%d", flow, aid, unionPriId, list.size(), end - begin);
 
         return rt;
     }
@@ -265,6 +267,7 @@ public class ProductBindTagService extends ServicePub {
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getBindTagFromDb(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg) throws IOException {
         int rt;
+        long begin = System.currentTimeMillis();
         if(aid <= 0) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
@@ -289,7 +292,8 @@ public class ProductBindTagService extends ServicePub {
         }
         session.write(sendBuf);
         rt = Errno.OK;
-        Log.logDbg("search from db ok;flow=%d;aid=%d;unionPriId=%d;size=%d;", flow, aid, unionPriId, list.size());
+        long end = System.currentTimeMillis();
+        Log.logDbg("search from db ok;flow=%d;aid=%d;unionPriId=%d;size=%d;consume=%d", flow, aid, unionPriId, list.size(), end - begin);
 
         return rt;
     }

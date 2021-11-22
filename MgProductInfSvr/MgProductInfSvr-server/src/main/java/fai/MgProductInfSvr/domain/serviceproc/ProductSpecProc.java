@@ -17,14 +17,14 @@ public class ProductSpecProc extends AbstractProductProc {
     /**
      * 批量添加规格模板
      */
-    public int addTpScInfoList(int aid, int tid, int unionPriId, FaiList<Param> list) {
+    public int addTpScInfoList(int aid, int tid, int unionPriId, int sysType, FaiList<Param> list) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.addTpScInfoList(aid, tid, unionPriId, list);
+        rt = m_cli.addTpScInfoList(aid, tid, unionPriId, sysType, list);
         if(rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
@@ -34,14 +34,14 @@ public class ProductSpecProc extends AbstractProductProc {
     /**
      * 批量删除规格模板
      */
-    public int delTpScInfoList(int aid, int tid, int unionPriId, FaiList<Integer> rlTpScIdList){
+    public int delTpScInfoList(int aid, int tid, int unionPriId, int sysType, FaiList<Integer> rlTpScIdList){
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.delTpScInfoList(aid, tid, unionPriId, rlTpScIdList);
+        rt = m_cli.delTpScInfoList(aid, tid, unionPriId, sysType, rlTpScIdList);
         if(rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
@@ -51,14 +51,14 @@ public class ProductSpecProc extends AbstractProductProc {
     /**
      * 批量修改规格模板
      */
-    public int setTpScInfoList(int aid, int tid, int unionPriId, FaiList<ParamUpdater> updaterList) {
+    public int setTpScInfoList(int aid, int tid, int unionPriId, int sysType, FaiList<ParamUpdater> updaterList) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.setTpScInfoList(aid, tid, unionPriId, updaterList);
+        rt = m_cli.setTpScInfoList(aid, tid, unionPriId, sysType, updaterList);
         if(rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
@@ -68,14 +68,14 @@ public class ProductSpecProc extends AbstractProductProc {
     /**
      * 获取规格模板列表
      */
-    public int getTpScInfoList(int aid, int tid, int unionPriId, FaiList<Param> infoList) {
+    public int getTpScInfoList(int aid, int tid, int unionPriId, int sysType, FaiList<Param> infoList) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.getTpScInfoList(aid, tid, unionPriId, infoList);
+        rt = m_cli.getTpScInfoList(aid, tid, unionPriId, sysType, infoList);
         if(rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
@@ -86,14 +86,14 @@ public class ProductSpecProc extends AbstractProductProc {
     /**
      * 批量添加规格模板详情
      */
-    public int addTpScDetailInfoList(int aid, int tid, int unionPriId, int rlTpScId, FaiList<Param> list){
+    public int addTpScDetailInfoList(int aid, int tid, int unionPriId, int sysType, int rlTpScId, FaiList<Param> list){
     int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.addTpScDetailInfoList(aid, tid, unionPriId, rlTpScId, list);
+        rt = m_cli.addTpScDetailInfoList(aid, tid, unionPriId, sysType, rlTpScId, list);
         if(rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
@@ -103,14 +103,14 @@ public class ProductSpecProc extends AbstractProductProc {
     /**
      * 批量删除规格模板详情
      */
-    public int delTpScDetailInfoList(int aid, int tid, int unionPriId, int rlTpScId, FaiList<Integer> tpScDtIdList) {
+    public int delTpScDetailInfoList(int aid, int tid, int unionPriId, int sysType, int rlTpScId, FaiList<Integer> tpScDtIdList) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.delTpScDetailInfoList(aid, tid, unionPriId, rlTpScId, tpScDtIdList);
+        rt = m_cli.delTpScDetailInfoList(aid, tid, unionPriId, sysType, rlTpScId, tpScDtIdList);
         if(rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
@@ -120,14 +120,14 @@ public class ProductSpecProc extends AbstractProductProc {
     /**
      * 批量修改规格模板详情
      */
-    public int setTpScDetailInfoList(int aid, int tid, int unionPriId, int rlTpScId, FaiList<ParamUpdater> updaterList) {
+    public int setTpScDetailInfoList(int aid, int tid, int unionPriId, int sysType, int rlTpScId, FaiList<ParamUpdater> updaterList) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.setTpScDetailInfoList(aid, tid, unionPriId, rlTpScId, updaterList);
+        rt = m_cli.setTpScDetailInfoList(aid, tid, unionPriId, sysType, rlTpScId, updaterList);
         if(rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
@@ -137,14 +137,14 @@ public class ProductSpecProc extends AbstractProductProc {
     /**
      * 获取规格模板列表详情
      */
-    public int getTpScDetailInfoList(int aid, int tid, int unionPriId, int rlTpScId, FaiList<Param> infoList) {
+    public int getTpScDetailInfoList(int aid, int tid, int unionPriId, int sysType, int rlTpScId, FaiList<Param> infoList) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.getTpScDetailInfoList(aid, tid, unionPriId, rlTpScId, infoList);
+        rt = m_cli.getTpScDetailInfoList(aid, tid, unionPriId, sysType, rlTpScId, infoList);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
@@ -154,14 +154,14 @@ public class ProductSpecProc extends AbstractProductProc {
     /**
      * 导入规格模板
      */
-    public int importPdScInfo(int aid, int tid, int unionPriId, int pdId, int rlTpScId, FaiList<Integer> tpScDtIdList) {
+    public int importPdScInfo(int aid, int tid, int unionPriId, int sysType, int pdId, int rlTpScId, FaiList<Integer> tpScDtIdList) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductSpecCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.importPdScInfo(aid, tid, unionPriId, pdId, rlTpScId, tpScDtIdList);
+        rt = m_cli.importPdScInfo(aid, tid, unionPriId, sysType, pdId, rlTpScId, tpScDtIdList);
         if(rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;

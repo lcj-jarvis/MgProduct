@@ -31,6 +31,7 @@ public class StoreSalesSkuEntity {
         public static final String FLAG = "flag";                                   // int flag
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
+        public static final String STATUS = "status";                               // int 数据状态
 
         public static final String COST_PRICE = "costPrice";                        // long 商品成本单价，商品导入用，不入库存销售信息库
     }
@@ -51,7 +52,8 @@ public class StoreSalesSkuEntity {
             Info.DURATION,
             Info.VIRTUAL_COUNT,
             Info.FLAG,
-            Info.SYS_UPDATE_TIME
+            Info.SYS_UPDATE_TIME,
+            Info.STATUS
     };
 
     /**
@@ -74,7 +76,8 @@ public class StoreSalesSkuEntity {
             Info.MAX_AMOUNT,
             Info.DURATION,
             Info.VIRTUAL_COUNT,
-            Info.FLAG
+            Info.FLAG,
+            Info.STATUS
     };
     /**
      * 支持批量更新的字段

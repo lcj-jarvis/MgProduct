@@ -47,6 +47,7 @@ public class MgProductInfCli4ForProductTpSc extends MgProductInfCli3ForProductGr
             int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductSpecDto.Key.TID, tid), new Pair(ProductSpecDto.Key.SITE_ID, siteId), new Pair(ProductSpecDto.Key.LGID, lgId), new Pair(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductSpecDto.Key.SYS_TYPE, mgProductArg.getSysType());
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.SpecTempCmd.GET_LIST, sendBody, true);
             if (m_rt != Errno.OK) {
@@ -103,6 +104,7 @@ public class MgProductInfCli4ForProductTpSc extends MgProductInfCli3ForProductGr
             int keepPriId1 = mgProductArg.getKeepPriId1();
             // packaging send data
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(ProductSpecDto.Key.TID, tid), new Pair(ProductSpecDto.Key.SITE_ID, siteId), new Pair(ProductSpecDto.Key.LGID, lgId), new Pair(ProductSpecDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(ProductSpecDto.Key.SYS_TYPE, mgProductArg.getSysType());
             sendBody.putInt(ProductSpecDto.Key.RL_TP_SC_ID, mgProductArg.getRlTpScId());
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.SpecTempDetailCmd.GET_LIST, sendBody, true);
@@ -210,6 +212,7 @@ public class MgProductInfCli4ForProductTpSc extends MgProductInfCli3ForProductGr
             }
             // packaging send data
             FaiBuffer sendBody = getPrimaryKeyBuffer(mgProductArg);
+            sendBody.putInt(ProductSpecDto.Key.SYS_TYPE, mgProductArg.getSysType());
             m_rt = list.toBuffer(sendBody, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecTemp.getInfoDto());
             if (m_rt != Errno.OK) {
                 m_rt = Errno.ARGS_ERROR;
@@ -264,6 +267,7 @@ public class MgProductInfCli4ForProductTpSc extends MgProductInfCli3ForProductGr
             }
             // packaging send data
             FaiBuffer sendBody = getPrimaryKeyBuffer(mgProductArg);
+            sendBody.putInt(ProductSpecDto.Key.SYS_TYPE, mgProductArg.getSysType());
             sendBody.putInt(ProductSpecDto.Key.RL_TP_SC_ID, mgProductArg.getRlTpScId());
             m_rt = list.toBuffer(sendBody, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecTempDetail.getInfoDto());
             if (m_rt != Errno.OK) {
@@ -315,6 +319,7 @@ public class MgProductInfCli4ForProductTpSc extends MgProductInfCli3ForProductGr
             }
             // packaging send data
             FaiBuffer sendBody = getPrimaryKeyBuffer(mgProductArg);
+            sendBody.putInt(ProductSpecDto.Key.SYS_TYPE, mgProductArg.getSysType());
             m_rt = updaterList.toBuffer(sendBody, ProductSpecDto.Key.UPDATER_LIST, ProductSpecDto.SpecTemp.getInfoDto());
             if (m_rt != Errno.OK) {
                 m_rt = Errno.ARGS_ERROR;
@@ -369,6 +374,7 @@ public class MgProductInfCli4ForProductTpSc extends MgProductInfCli3ForProductGr
             }
             // packaging send data
             FaiBuffer sendBody = getPrimaryKeyBuffer(mgProductArg);
+            sendBody.putInt(ProductSpecDto.Key.SYS_TYPE, mgProductArg.getSysType());
             sendBody.putInt(ProductSpecDto.Key.RL_TP_SC_ID, mgProductArg.getRlTpScId());
             m_rt = updaterList.toBuffer(sendBody, ProductSpecDto.Key.UPDATER_LIST, ProductSpecDto.SpecTempDetail.getInfoDto());
             if (m_rt != Errno.OK) {
@@ -421,6 +427,7 @@ public class MgProductInfCli4ForProductTpSc extends MgProductInfCli3ForProductGr
             }
             // packaging send data
             FaiBuffer sendBody = getPrimaryKeyBuffer(mgProductArg);
+            sendBody.putInt(ProductSpecDto.Key.SYS_TYPE, mgProductArg.getSysType());
             rlTpScIdList.toBuffer(sendBody, ProductSpecDto.Key.ID_LIST);
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.SpecTempCmd.DEL_LIST, sendBody, false, false);
@@ -469,6 +476,7 @@ public class MgProductInfCli4ForProductTpSc extends MgProductInfCli3ForProductGr
             }
             // packaging send data
             FaiBuffer sendBody = getPrimaryKeyBuffer(mgProductArg);
+            sendBody.putInt(ProductSpecDto.Key.SYS_TYPE, mgProductArg.getSysType());
             sendBody.putInt(ProductSpecDto.Key.RL_TP_SC_ID, mgProductArg.getRlTpScId());
             tpScDtIdList.toBuffer(sendBody, ProductSpecDto.Key.ID_LIST);
             // send and recv

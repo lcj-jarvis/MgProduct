@@ -479,8 +479,9 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                         @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
                                         @ArgList(keyMatch = StoreSalesSkuDto.Key.ID_LIST)
                                                 FaiList<Integer> pdIdList,
-                                        @ArgBodyXid(value = StoreSalesSkuDto.Key.XID, useDefault = true) String xid) throws IOException {
-        return m_storeService.batchDelPdAllStoreSales(session, flow, aid, tid, pdIdList, xid);
+                                        @ArgBodyXid(value = StoreSalesSkuDto.Key.XID, useDefault = true) String xid,
+                                        @ArgBodyBoolean(value = StoreSalesSkuDto.Key.SOFT_DEL, useDefault = true) boolean softDel) throws IOException {
+        return m_storeService.batchDelPdAllStoreSales(session, flow, aid, tid, pdIdList, softDel, xid);
     }
 
     @WrittenCmd

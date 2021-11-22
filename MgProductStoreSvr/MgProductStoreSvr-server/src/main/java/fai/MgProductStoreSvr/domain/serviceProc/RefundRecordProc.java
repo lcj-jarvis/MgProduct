@@ -1,7 +1,7 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
 import fai.MgProductStoreSvr.domain.entity.RefundRecordEntity;
-import fai.MgProductStoreSvr.domain.repository.RefundRecordDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.dao.RefundRecordDaoCtrl;
 import fai.comm.util.*;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 

@@ -100,6 +100,7 @@ public class ProductSpecDto {
             g_dtoDef.add(ProductSpecEntity.SpecTempInfo.SORT, 6, Var.Type.INT);
             g_dtoDef.add(ProductSpecEntity.SpecTempInfo.SYS_CREATE_TIME, 7);
             g_dtoDef.add(ProductSpecEntity.SpecTempInfo.SYS_UPDATE_TIME, 8);
+            g_dtoDef.add(ProductSpecEntity.SpecTempInfo.SYS_TYPE, 9);
         }
 
         public static ParamDef getInfoDto() {

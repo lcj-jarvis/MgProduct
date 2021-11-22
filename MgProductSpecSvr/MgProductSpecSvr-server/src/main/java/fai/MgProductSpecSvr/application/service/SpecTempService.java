@@ -25,7 +25,7 @@ public class SpecTempService extends SpecParentService {
     /**
      * 批量添加规格模板
      */
-    public int addTpScInfoList(FaiSession session, int flow, int aid, int unionPriId, int tid, FaiList<Param> infoList) throws IOException {
+    public int addTpScInfoList(FaiSession session, int flow, int aid, int unionPriId, int sysType, int tid, FaiList<Param> infoList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -81,7 +81,7 @@ public class SpecTempService extends SpecParentService {
                     LockUtil.lock(aid);
                     // 判断规格模板是否已经存在
                     Ref<Integer> countRef = new Ref<>();
-                    rt = specTempBizRelProc.getCount(aid, unionPriId, rlLibIdList, countRef);
+                    rt = specTempBizRelProc.getCount(aid, unionPriId, sysType, rlLibIdList, countRef);
                     if(rt != Errno.OK){
                         Log.logErr(rt, "getCount err");
                         return rt;
@@ -137,7 +137,7 @@ public class SpecTempService extends SpecParentService {
     /**
      * 批量修改规格模板
      */
-    public int setTpScInfoList(FaiSession session, int flow, int aid, int unionPriId, int tid, FaiList<ParamUpdater> updaterList) throws IOException {
+    public int setTpScInfoList(FaiSession session, int flow, int aid, int unionPriId, int sysType, int tid, FaiList<ParamUpdater> updaterList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -209,7 +209,7 @@ public class SpecTempService extends SpecParentService {
                 try {
                     LockUtil.lock(aid);
                     Ref<FaiList<Param>> listRef = new Ref<>();
-                    rt = specTempBizRelProc.getList(aid, unionPriId, rlTpScIdList, listRef);
+                    rt = specTempBizRelProc.getList(aid, unionPriId, sysType, rlTpScIdList, listRef);
                     if(rt != Errno.OK){
                         Log.logErr(rt,"specTempBizRelProc getList err;flow=%d;aid=%d;unionPriId=%s;rlTpScIdList=%s;", flow, aid, unionPriId, rlTpScIdList);
                         return rt;
@@ -225,7 +225,7 @@ public class SpecTempService extends SpecParentService {
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = specTempBizRelProc.batchSet(aid, unionPriId, specTempBizRelUpdaterList);
+                        rt = specTempBizRelProc.batchSet(aid, unionPriId, sysType, specTempBizRelUpdaterList);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -259,7 +259,7 @@ public class SpecTempService extends SpecParentService {
     /**
      * 批量删除规格模板
      */
-    public int delTpScInfoList(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> rlTpScIdList) throws IOException {
+    public int delTpScInfoList(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlTpScIdList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -286,7 +286,7 @@ public class SpecTempService extends SpecParentService {
                     LockUtil.lock(aid);
                     // TODO 目前无复杂关联，暂不做处理
                     Ref<FaiList<Param>> listRef = new Ref<>();
-                    rt = specTempBizRelProc.getList(aid, unionPriId, rlTpScIdList, listRef);
+                    rt = specTempBizRelProc.getList(aid, unionPriId, sysType, rlTpScIdList, listRef);
                     if(rt != Errno.OK){
                         Log.logErr(rt,"specTempBizRelProc getList err;flow=%d;aid=%d;unionPriId=%s;rlTpScIdList=%s;", flow, aid, unionPriId, rlTpScIdList);
                         return rt;
@@ -298,7 +298,7 @@ public class SpecTempService extends SpecParentService {
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = specTempBizRelProc.batchDel(aid, unionPriId, rlTpScIdList);
+                        rt = specTempBizRelProc.batchDel(aid, unionPriId, sysType, rlTpScIdList);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -331,7 +331,7 @@ public class SpecTempService extends SpecParentService {
     /**
      * 获取规格模板列表
      */
-    public int getTpScInfoList(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
+    public int getTpScInfoList(FaiSession session, int flow, int aid, int unionPriId, int sysType) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -346,7 +346,7 @@ public class SpecTempService extends SpecParentService {
             SpecTempBizRelDaoCtrl specTempBizRelDaoCtrl = SpecTempBizRelDaoCtrl.getInstance(flow, aid);
             try {
                 SpecTempBizRelProc specTempBizRelProc = new SpecTempBizRelProc(specTempBizRelDaoCtrl, flow);
-                rt = specTempBizRelProc.getList(aid, unionPriId, specTempBizRelListRef);
+                rt = specTempBizRelProc.getList(aid, unionPriId, sysType, specTempBizRelListRef);
                 if(rt != Errno.OK){
                     return rt;
                 }
@@ -400,7 +400,7 @@ public class SpecTempService extends SpecParentService {
     /**
      * 批量添加规格模板详情列表
      */
-    public int addTpScDetailInfoList(FaiSession session, int flow, int aid, int unionPriId, int rlTpScId, FaiList<Param> infoList) throws IOException {
+    public int addTpScDetailInfoList(FaiSession session, int flow, int aid, int unionPriId, int sysType, int rlTpScId, FaiList<Param> infoList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -409,7 +409,7 @@ public class SpecTempService extends SpecParentService {
                 Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;rlTpScId=%s;infoList=%s", flow, aid, unionPriId, rlTpScId, infoList);
                 return rt;
             }
-            Integer tpScId = getTpScId(flow, aid, unionPriId, rlTpScId);
+            Integer tpScId = getTpScId(flow, aid, unionPriId, sysType, rlTpScId);
             if(tpScId == null){
                 Log.logErr("tpScId not found;flow=%d;aid=%d;unionPriId=%s;rlTpScId=%s;", flow, aid, unionPriId, rlTpScId);
                 return rt = Errno.NOT_FOUND;
@@ -535,7 +535,7 @@ public class SpecTempService extends SpecParentService {
     /**
      * 批量修改规格模板详情列表
      */
-    public int setTpScDetailInfoList(FaiSession session, int flow, int aid, int unionPriId, int rlTpScId, FaiList<ParamUpdater> updaterList) throws IOException {
+    public int setTpScDetailInfoList(FaiSession session, int flow, int aid, int unionPriId, int sysType, int rlTpScId, FaiList<ParamUpdater> updaterList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -545,7 +545,7 @@ public class SpecTempService extends SpecParentService {
                 return rt;
             }
 
-            Integer tpScId = getTpScId(flow, aid, unionPriId, rlTpScId);
+            Integer tpScId = getTpScId(flow, aid, unionPriId, sysType, rlTpScId);
             if(tpScId == null){
                 Log.logErr("tpScId not found;flow=%d;aid=%d;unionPriId=%s;rlTpScId=%s;", flow, aid, unionPriId, rlTpScId);
                 return rt = Errno.NOT_FOUND;
@@ -647,7 +647,7 @@ public class SpecTempService extends SpecParentService {
     /**
      * 批量删除规格模板详情列表
      */
-    public int delTpScDetailInfoList(FaiSession session, int flow, int aid, int unionPriId, int rlTpScId, FaiList<Integer> tpScDtIdList) throws IOException {
+    public int delTpScDetailInfoList(FaiSession session, int flow, int aid, int unionPriId, int sysType, int rlTpScId, FaiList<Integer> tpScDtIdList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -656,7 +656,7 @@ public class SpecTempService extends SpecParentService {
                 Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;rlTpScId=%s;tpScDtIdList=%s;", flow, aid, unionPriId, rlTpScId, tpScDtIdList);
                 return rt;
             }
-            Integer tpScId = getTpScId(flow, aid, unionPriId, rlTpScId);
+            Integer tpScId = getTpScId(flow, aid, unionPriId, sysType, rlTpScId);
             if(tpScId == null){
                 Log.logErr("tpScId not found;flow=%d;aid=%d;unionPriId=%s;rlTpScId=%s;", flow, aid, unionPriId, rlTpScId);
                 return rt = Errno.NOT_FOUND;
@@ -699,7 +699,7 @@ public class SpecTempService extends SpecParentService {
     /**
      * 获取规格模板详情列表
      */
-    public int getTpScDetailInfoList(FaiSession session, int flow, int aid, int unionPriId, int rlTpScId) throws IOException {
+    public int getTpScDetailInfoList(FaiSession session, int flow, int aid, int unionPriId, int sysType, int rlTpScId) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -707,7 +707,7 @@ public class SpecTempService extends SpecParentService {
                 Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;rlTpScId=%s;", flow, aid, unionPriId, rlTpScId);
                 return  rt = Errno.ARGS_ERROR;
             }
-            Integer tpScId = getTpScId(flow, aid, unionPriId, rlTpScId);
+            Integer tpScId = getTpScId(flow, aid, unionPriId, sysType, rlTpScId);
             if(tpScId == null){
                 Log.logErr("tpScId not found;flow=%d;aid=%d;unionPriId=%s;rlTpScId=%s;", flow, aid, unionPriId, rlTpScId);
                 return rt = Errno.NOT_FOUND;
@@ -795,7 +795,7 @@ public class SpecTempService extends SpecParentService {
      *      "detailList":[{@link fai.MgProductSpecSvr.domain.entity.SpecTempDetailEntity}...]
      *  }
      */
-    public Param getTpScWithDetail(int flow, int aid, int unionPriId, int rlTpScId, FaiList<Integer> tpScDtIdList){
+    public Param getTpScWithDetail(int flow, int aid, int unionPriId, int sysType, int rlTpScId, FaiList<Integer> tpScDtIdList){
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -803,7 +803,7 @@ public class SpecTempService extends SpecParentService {
                 Log.logErr("arg err;flow=%d;aid=%d;unionPriId=%s;rlTpScId=%s;", flow, aid, unionPriId, rlTpScId);
                 return null;
             }
-            Integer tpScId = getTpScId(flow, aid, unionPriId, rlTpScId);
+            Integer tpScId = getTpScId(flow, aid, unionPriId, sysType, rlTpScId);
             if(tpScId == null){
                 Log.logErr("tpScId not found;flow=%d;aid=%d;unionPriId=%s;rlTpScId=%s;", flow, aid, unionPriId, rlTpScId);
                 return null;
@@ -843,12 +843,12 @@ public class SpecTempService extends SpecParentService {
         }
     }
 
-    private Integer getTpScId(int flow, int aid, int unionPriId, int rlTpScId) {
+    private Integer getTpScId(int flow, int aid, int unionPriId, int sysType, int rlTpScId) {
         SpecTempBizRelDaoCtrl specTempBizRelDaoCtrl = SpecTempBizRelDaoCtrl.getInstance(flow, aid);
         try {
             SpecTempBizRelProc specTempBizRelProc = new SpecTempBizRelProc(specTempBizRelDaoCtrl, flow);
             Ref<Integer> tpScIdRef = new Ref<>();
-            specTempBizRelProc.getTpScIdByRlTpScId(aid, unionPriId, rlTpScId, tpScIdRef);
+            specTempBizRelProc.getTpScIdByRlTpScId(aid, unionPriId, sysType, rlTpScId, tpScIdRef);
             return tpScIdRef.value;
         }finally {
             specTempBizRelDaoCtrl.closeDao();

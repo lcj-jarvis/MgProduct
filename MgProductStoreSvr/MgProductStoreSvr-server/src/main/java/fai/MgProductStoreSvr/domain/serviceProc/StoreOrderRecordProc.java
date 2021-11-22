@@ -1,7 +1,7 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
 import fai.MgProductStoreSvr.domain.entity.StoreOrderRecordEntity;
-import fai.MgProductStoreSvr.domain.repository.StoreOrderRecordDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.dao.StoreOrderRecordDaoCtrl;
 import fai.comm.util.*;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 

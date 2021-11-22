@@ -16,13 +16,15 @@ public class ProductSpecEntity {
         public static final String IN_PD_SC_VAL_LIST = "inPdScValList";             // varchar(4000) 规格值FaiList<Param>, 支持最大50个值
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
+        public static final String STATUS = "status";                               // int 数据状态
     }
     private static final String[] VALID_KEYS = new String[]{
             Info.SC_STR_ID,
             Info.PD_SC_ID,
             Info.SORT,
             Info.FLAG,
-            Info.IN_PD_SC_VAL_LIST
+            Info.IN_PD_SC_VAL_LIST,
+            Info.STATUS
     };
     /**
      * 支持批量更新的字段
@@ -42,7 +44,8 @@ public class ProductSpecEntity {
             Info.SORT,
             Info.FLAG,
             Info.IN_PD_SC_VAL_LIST,
-            Info.SYS_UPDATE_TIME
+            Info.SYS_UPDATE_TIME,
+            Info.STATUS
     };
 
     public static String[] getPriAndUpdateKey() {

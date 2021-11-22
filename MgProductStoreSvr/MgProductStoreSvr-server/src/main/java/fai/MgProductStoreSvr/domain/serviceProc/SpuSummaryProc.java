@@ -1,9 +1,10 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
+import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryValObj;
 import fai.MgProductStoreSvr.domain.entity.SpuSummaryEntity;
-import fai.MgProductStoreSvr.domain.repository.SpuSummaryCacheCtrl;
-import fai.MgProductStoreSvr.domain.repository.SpuSummaryDaoCtrl;
-import fai.MgProductStoreSvr.domain.repository.SpuSummarySagaDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.cache.SpuSummaryCacheCtrl;
+import fai.MgProductStoreSvr.domain.repository.dao.SpuSummaryDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.dao.saga.SpuSummarySagaDaoCtrl;
 import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.util.*;
 import fai.mgproduct.comm.Util;
@@ -247,22 +248,44 @@ public class SpuSummaryProc {
         Log.logStd("ok!;flow=%s;aid=%s;pdId=%s;", m_flow, aid, pdId);
         return rt;
     }
-    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean isSaga) {
+    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean softDel, boolean isSaga) {
         int rt;
         ParamMatcher matcher = new ParamMatcher(SpuSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(SpuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
         cacheManage.addDirtyCacheKey(pdIdList);
-        if (isSaga) {
-            // 分布式事务，需要记录老的数据 录入 Saga 操作记录表中
-            rt = addDelOp4Saga(aid, matcher);
+
+        if(softDel) {
+            if (isSaga) {
+                // 分布式事务，需要记录修改前的数据 录入 Saga 操作记录表中
+                Ref<FaiList<Param>> listRef = new Ref<>();
+                rt = getListFromDao(aid, pdIdList, listRef);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                    return rt;
+                }
+                preAddUpdateSaga(aid, listRef.value);
+            }
+
+            ParamUpdater updater = new ParamUpdater();
+            updater.getData().setInt(SpuSummaryEntity.Info.STATUS, SpuBizSummaryValObj.Status.DEL);
+            rt = m_daoCtrl.update(updater, matcher);
             if(rt != Errno.OK){
+                Log.logStd(rt, "soft del err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
                 return rt;
             }
-        }
-        rt = m_daoCtrl.delete(matcher);
-        if(rt != Errno.OK){
-            Log.logStd(rt, "delete err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
-            return rt;
+        }else {
+            if (isSaga) {
+                // 分布式事务，需要记录老的数据 录入 Saga 操作记录表中
+                rt = addDelOp4Saga(aid, matcher);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+            }
+
+            rt = m_daoCtrl.delete(matcher);
+            if(rt != Errno.OK){
+                Log.logStd(rt, "delete err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                return rt;
+            }
         }
 
         Log.logStd("ok;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);

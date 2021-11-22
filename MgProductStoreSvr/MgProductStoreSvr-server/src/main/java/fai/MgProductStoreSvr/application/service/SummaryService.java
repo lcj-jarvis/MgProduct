@@ -7,6 +7,10 @@ import fai.MgProductStoreSvr.domain.entity.SkuSummaryEntity;
 import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryEntity;
 import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuEntity;
 import fai.MgProductStoreSvr.domain.repository.*;
+import fai.MgProductStoreSvr.domain.repository.dao.SkuSummaryDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.dao.SpuBizSummaryDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.dao.SpuSummaryDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.dao.StoreSalesSkuDaoCtrl;
 import fai.MgProductStoreSvr.domain.serviceProc.*;
 import fai.MgProductStoreSvr.interfaces.dto.SkuSummaryDto;
 import fai.MgProductStoreSvr.interfaces.dto.SpuBizSummaryDto;
@@ -328,6 +332,7 @@ public class SummaryService extends StoreService {
     public int getSpuBizSummaryAllData(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
+        long begin = System.currentTimeMillis();
         try {
             Ref<FaiList<Param>> listRef = new Ref<>();
             SpuBizSummaryDaoCtrl spuBizSummaryDaoCtrl = SpuBizSummaryDaoCtrl.getInstance(flow, aid);
@@ -342,7 +347,8 @@ public class SummaryService extends StoreService {
             }
             rt = Errno.OK;
             sendSpuBizSummary(session, listRef.value);
-            Log.logDbg("ok;aid=%d;unionPriId=%s;", aid, unionPriId);
+            long end = System.currentTimeMillis();
+            Log.logDbg("ok;aid=%d;unionPriId=%s;consume=%d", aid, unionPriId, end - begin);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }
@@ -354,6 +360,7 @@ public class SummaryService extends StoreService {
     public int searchSpuBizSummaryFromDb(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
+        long begin = System.currentTimeMillis();
         try {
 
             Ref<FaiList<Param>> listRef = new Ref<>();
@@ -369,7 +376,8 @@ public class SummaryService extends StoreService {
             }
             rt = Errno.OK;
             sendSpuBizSummary(session, listRef.value, searchArg);
-            Log.logDbg("ok;aid=%d;unionPriId=%s;", aid, unionPriId);
+            long end = System.currentTimeMillis();
+            Log.logDbg("ok;aid=%d;unionPriId=%s;", aid, unionPriId, end - begin);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }

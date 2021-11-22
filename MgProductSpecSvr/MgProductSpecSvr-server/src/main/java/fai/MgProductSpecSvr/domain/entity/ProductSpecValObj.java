@@ -50,4 +50,12 @@ public class ProductSpecValObj {
             public static final String FILE_ID = "fi"; // 关联文件id
         }
     }
+
+    /**
+     * 数据状态
+     */
+    public static final class Status{
+        public static final int DEL = -1;       // 删除, 删除状态统一用 -1
+        public static final int DEFAULT = 0;    // 默认
+    }
 }

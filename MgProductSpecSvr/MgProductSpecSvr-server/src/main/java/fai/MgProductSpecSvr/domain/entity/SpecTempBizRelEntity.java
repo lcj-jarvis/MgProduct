@@ -14,6 +14,7 @@ public class SpecTempBizRelEntity {
         public static final String FLAG = "flag";                                   // int flag
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
+        public static final String SYS_TYPE = "sysType";                            // int 商品系统类型 (服务/商品)
     }
     private static final String[] VALID_KEYS = new String[]{
             Info.RL_TP_SC_ID,

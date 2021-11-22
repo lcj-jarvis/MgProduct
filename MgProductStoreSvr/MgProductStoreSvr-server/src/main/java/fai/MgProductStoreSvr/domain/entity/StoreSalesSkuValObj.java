@@ -29,4 +29,12 @@ public class StoreSalesSkuValObj {
         public static final int OPEN_MAX_AMOUNT = 0x4;                          // 开启限购量
         public static final int OPEN_VIRTUAL_COUNT = 0x8;                       // 开启虚拟库存
     }
+
+    /**
+     * 数据状态
+     */
+    public static final class Status{
+        public static final int DEL = -1;       // 删除, 删除状态统一用 -1
+        public static final int DEFAULT = 0;    // 默认
+    }
 }

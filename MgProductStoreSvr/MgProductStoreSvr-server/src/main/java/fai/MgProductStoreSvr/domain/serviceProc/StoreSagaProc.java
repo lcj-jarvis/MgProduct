@@ -1,6 +1,6 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
-import fai.MgProductStoreSvr.domain.repository.StoreSagaDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.dao.saga.StoreSagaDaoCtrl;
 import fai.comm.util.*;
 import fai.mgproduct.comm.entity.SagaEntity;
 import fai.mgproduct.comm.entity.SagaValObj;

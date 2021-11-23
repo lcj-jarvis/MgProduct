@@ -193,16 +193,17 @@ public class DataMigrateService extends MgProductInfService {
                 continue;
             }
             int yid = storeInfo.getInt("yid");
-            FaiList<Integer> headRlPdId = yid_rlPdIds.get(yid).clone();
+            FaiList<Integer> headRlPdId = yid_rlPdIds.get(yid);
             if(headRlPdId == null || headRlPdId.isEmpty()) {
                 continue;
             }
+            FaiList<Integer> needSyncRlPdId = headRlPdId.clone();
             FaiList<Integer> storeRlPdId = yidStoreId_rlPdIds.get(yid+ "-" + storeId);
             if(storeRlPdId != null) {
-                // 总部商品id数据 去掉门店已存在商品id 数据，剩下的就是缺失数据
-                headRlPdId.removeAll(storeRlPdId);
+                // 总部商品id数据 去掉门店已存在商品id 数据，剩下的就是缺失数据，需要同步
+                needSyncRlPdId.removeAll(storeRlPdId);
             }
-            for(int rlPdId : headRlPdId) {
+            for(int rlPdId : needSyncRlPdId) {
                 FaiList<Integer> storeIds = notExistPd.get(yid + "-" + rlPdId);
                 if(storeIds == null) {
                     storeIds = new FaiList<>();
@@ -341,12 +342,14 @@ public class DataMigrateService extends MgProductInfService {
                         newRelInfo.setInt(ProductBasicEntity.ProductInfo.UNION_PRI_ID, curUnionPriId);
                         bindList.add(newRelInfo);
                         // spu数据
-                        Param spuInfo = new Param();
-                        spuInfo.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, curUnionPriId);
-                        spuInfo.setInt(SpuBizSummaryEntity.Info.RL_PD_ID, rlPdId);
-                        spuInfo.setString(SpuBizSummaryEntity.Info.DISTRIBUTE_LIST, distributeTypes);
-                        spuInfo.setInt(SpuBizSummaryEntity.Info.PRICE_TYPE, priceType);
-                        spuList.add(spuInfo);
+                        if(ykStatus != -1) {
+                            Param spuInfo = new Param();
+                            spuInfo.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, curUnionPriId);
+                            spuInfo.setInt(SpuBizSummaryEntity.Info.RL_PD_ID, rlPdId);
+                            spuInfo.setString(SpuBizSummaryEntity.Info.DISTRIBUTE_LIST, distributeTypes);
+                            spuInfo.setInt(SpuBizSummaryEntity.Info.PRICE_TYPE, priceType);
+                            spuList.add(spuInfo);
+                        }
                     }
                 }
             }

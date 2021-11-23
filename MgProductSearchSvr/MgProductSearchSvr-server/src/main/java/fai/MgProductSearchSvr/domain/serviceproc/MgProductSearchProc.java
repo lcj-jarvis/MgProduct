@@ -526,6 +526,7 @@ public class MgProductSearchProc {
                             FaiList<Param> dataList,
                             FaiList<Param> recvSearchResult,
                             Map<String, Map<Integer, Param>> tableNameMappingPdIdParam) {
+        long begin = System.currentTimeMillis();
         // 目前pdId 和 排序字段都是一对一的场景
         Map<Integer, Param> pdIdMappingParam = new HashMap<>(dataList.size());
 
@@ -547,6 +548,8 @@ public class MgProductSearchProc {
 
         // 主要用于排序和取交集
         tableNameMappingPdIdParam.put(tableName, pdIdMappingParam);
+        long end = System.currentTimeMillis();
+        Log.logStd(tableName + " table all data filter by ParamMatcher;ParamMatcher=%s;consume=%d", searchMatcher, end - begin);
     }
 
 

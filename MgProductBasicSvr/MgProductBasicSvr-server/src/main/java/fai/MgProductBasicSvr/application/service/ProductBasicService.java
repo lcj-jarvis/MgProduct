@@ -283,6 +283,8 @@ public class ProductBasicService extends BasicParentService {
                     relProc.batchSet(aid, unionPriIds, pdIds, updater);
                 }
 
+                relProc.transactionEnd(aid);
+
                 // 提交前设置下临时过期时间
                 CacheCtrl.setExpire(aid);
                 commit = true;
@@ -1644,6 +1646,7 @@ public class ProductBasicService extends BasicParentService {
                     bindPropProc.batchBindPropList(aid, unionPriId, bindRlProps);
                 }
 
+                relProc.transactionEnd(aid);
                 commit = true;
             } finally {
                 if(!commit) {
@@ -2687,6 +2690,12 @@ public class ProductBasicService extends BasicParentService {
             try {
                 tc.setAutoCommit(false);
 
+                // xid不为空，则开启了分布式事务，saga添加一条记录
+                if(!Str.isEmpty(xid)) {
+                    SagaProc sagaProc = new SagaProc(flow, aid, tc);
+                    sagaProc.addInfo(aid, xid);
+                }
+
                 ProductRelProc relProc = new ProductRelProc(flow, aid, tc, xid, true);
                 ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, true);
                 ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc, xid, true);
@@ -2733,6 +2742,7 @@ public class ProductBasicService extends BasicParentService {
                     ESUtil.batchPreLog(aid, list, DocOplogDef.Operation.UPDATE_ONE);
                 }
 
+                relProc.transactionEnd(aid);
                 commit = true;
             } finally {
                 if(!commit) {

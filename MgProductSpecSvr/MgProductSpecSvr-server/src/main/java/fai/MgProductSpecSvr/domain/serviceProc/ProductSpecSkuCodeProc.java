@@ -506,7 +506,8 @@ public class ProductSpecSkuCodeProc {
                 if(needInitTotalSize){
                     SearchArg searchArg = new SearchArg();
                     searchArg.matcher = new ParamMatcher(ProductSpecSkuCodeEntity.Info.AID, ParamMatcher.EQ, aid);
-                    searchArg.matcher.and(ProductSpecSkuCodeEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+                    // 门店的条形码是在总店的，分店是没有的，所以搜索数据状态的时候不要设置unionPriId，但是缓存数据状态的时候要加上unionPriId区分是在不同分店下的数据状态
+                    // searchArg.matcher.and(ProductSpecSkuCodeEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
                     Ref<Integer> countRef = new Ref<>();
                     rt = m_daoCtrl.selectCount(searchArg, countRef);
                     if(rt != Errno.OK){
@@ -532,7 +533,7 @@ public class ProductSpecSkuCodeProc {
 
     public int getAllDataFromDao(int aid, int unionPriId, Ref<FaiList<Param>> listRef, String ... fields){
         ParamMatcher matcher = new ParamMatcher(ProductSpecSkuCodeEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(ProductSpecSkuCodeEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        // 门店的条形码是在总店的，分店是没有的，所以搜索的条形码的时候不要设置unionPriId
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
         int rt = m_daoCtrl.select(searchArg, listRef, fields);
@@ -546,7 +547,7 @@ public class ProductSpecSkuCodeProc {
 
     public int searchAllDataFromDao(int aid, int unionPriId, SearchArg searchArg, Ref<FaiList<Param>> listRef, String ... fields){
         ParamMatcher matcher = new ParamMatcher(ProductSpecSkuCodeEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(ProductSpecSkuCodeEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        // 门店的条形码是在总店的，分店是没有的，所以搜索的条形码的时候不要设置unionPriId
         matcher.and(searchArg.matcher);
         searchArg.matcher = matcher;
         int rt = m_daoCtrl.select(searchArg, listRef, fields);

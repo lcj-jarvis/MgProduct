@@ -1223,7 +1223,7 @@ public class MgProductInfService extends ServicePub {
                     }
                 }
 
-                rt = storeProc.batchSetSkuStoreSales(aid, xid, tid, ownUnionPriId, unionPriIds, pdId, rlPdId, storeUpdaters);
+                rt = storeProc.batchSetSkuStoreSales(aid, xid, tid, ownUnionPriId, unionPriIds, pdId, rlPdId, sysType, storeUpdaters);
                 if(rt != Errno.OK) {
                     return rt;
                 }

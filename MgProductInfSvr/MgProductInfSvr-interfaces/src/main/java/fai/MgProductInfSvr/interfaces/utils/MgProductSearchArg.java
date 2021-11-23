@@ -31,7 +31,7 @@ public class MgProductSearchArg {
      */
     private int limit = MAX_LIMIT;
 
-    public static final Integer MAX_LIMIT = 200;
+    public static final int MAX_LIMIT = 200;
 
     /**
      * 接收搜索结果的总条数
@@ -88,22 +88,23 @@ public class MgProductSearchArg {
         return start;
     }
 
+    public int getLimit() {
+        return limit;
+    }
+
+    public int getTotal() {
+        return total;
+    }
+
     public MgProductSearchArg setStart(int start) {
         this.start = start >= 0 ? start : this.start;
         return this;
     }
 
-    public int getLimit() {
-        return limit;
-    }
 
     public MgProductSearchArg setLimit(int limit) {
         this.limit = limit >= 0 ? limit : this.limit;
         return this;
-    }
-
-    public int getTotal() {
-        return total;
     }
 
     public MgProductSearchArg setTotal(int total) {

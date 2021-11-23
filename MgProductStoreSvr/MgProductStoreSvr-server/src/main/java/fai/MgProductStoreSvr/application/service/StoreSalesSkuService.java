@@ -669,10 +669,10 @@ public class StoreSalesSkuService extends StoreService {
                     LockUtil.lock(aid);
                     try {
                         transactionCtrl.setAutoCommit(false);
+                        boolean isSaga = !Str.isEmpty(xid);
 
                         // 兼容门店通逻辑，门店通添加商品的时候，只会添加总部的库存销售信息(为了设置价格)，各个门店最开始是不会有销售信息的
                         // 所以这里设置价格的时候，先查出没有销售信息的unionPriId，并新增销售信息数据
-                        // 这个逻辑不需要分布式事务，之前调用的接口 ownerUnionPriId 传的是 null 不会进入下面逻辑，也就不需要补偿
                         if(tid == FaiValObj.TermId.YK && ownerUnionPriId != null) {
                             Map<SkuBizKey, PdKey> needCheckSkuStoreKeyPdKeyMap = new HashMap<>();
                             for(Integer unionPriId : unionPriIdList) {
@@ -684,13 +684,13 @@ public class StoreSalesSkuService extends StoreService {
                                 }
                             }
                             if(!needCheckSkuStoreKeyPdKeyMap.isEmpty()) {
-                                rt = storeSalesSkuProc.checkAndAdd(aid, ownerUnionPriId, needCheckSkuStoreKeyPdKeyMap);
+                                rt = storeSalesSkuProc.checkAndAdd(aid, ownerUnionPriId, needCheckSkuStoreKeyPdKeyMap, isSaga);
                                 if(rt != Errno.OK){
                                     return rt;
                                 }
                             }
                         }
-                        boolean isSaga = !Str.isEmpty(xid);
+
                         // 修改商品规格销售 SKU 表
                         rt = storeSalesSkuProc.batchSet(aid, unionPriIdList, pdId, updaterList, isSaga);
                         if(rt != Errno.OK){

@@ -752,9 +752,10 @@ public class StoreSalesSkuProc {
      * @param aid
      * @param ownerUnionPriId
      * @param needCheckSkuStoreKeyPdKeyMap
+     * @param isSaga
      * @return
      */
-    public int checkAndAdd(int aid, int ownerUnionPriId, Map<SkuBizKey, PdKey> needCheckSkuStoreKeyPdKeyMap) {
+    public int checkAndAdd(int aid, int ownerUnionPriId, Map<SkuBizKey, PdKey> needCheckSkuStoreKeyPdKeyMap, boolean isSaga) {
         if(needCheckSkuStoreKeyPdKeyMap == null || needCheckSkuStoreKeyPdKeyMap.isEmpty()){
             Log.logErr("arg error;flow=%s;aid=%s;ownerUnionPriId=%s;needCheckSkuStoreKeyPdKeyMap=%s;", m_flow, aid, ownerUnionPriId, needCheckSkuStoreKeyPdKeyMap);
             return Errno.ARGS_ERROR;
@@ -827,7 +828,7 @@ public class StoreSalesSkuProc {
                 );
             }
         }
-        rt = batchAdd(aid, null, addInfoList);
+        rt = batchAdd(aid, null, addInfoList, isSaga);
         if(rt != Errno.OK){
             return rt;
         }

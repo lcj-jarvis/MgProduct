@@ -4,6 +4,12 @@ package fai.MgProductInfSvr.interfaces.entity;
  * 商品规格库存销售sku
  */
 public class ProductStoreValObj {
+
+    public static class SysType {
+        public static final int PRODUCT = 0;
+        public static final int SERVICE = 1;
+    }
+
     public static final class StoreSalesSku{
         /**
          * 扣减库存模式

@@ -340,6 +340,7 @@ public class DataMigrateService extends MgProductInfService {
                         Param newRelInfo = relInfo.clone();
                         int curUnionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, storeId);
                         newRelInfo.setInt(ProductBasicEntity.ProductInfo.UNION_PRI_ID, curUnionPriId);
+                        newRelInfo.setInt(ProductBasicEntity.ProductInfo.STATUS, -1);
                         bindList.add(newRelInfo);
                         // spu数据
                         if(ykStatus != -1) {

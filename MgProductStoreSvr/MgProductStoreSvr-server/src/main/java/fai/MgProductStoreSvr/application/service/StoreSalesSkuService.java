@@ -795,9 +795,6 @@ public class StoreSalesSkuService extends StoreService {
             Set<SkuBizKey> skuBizKeySet = new HashSet<>();
             Map<Integer, FaiList<Long>> unionPriId_SkuIds = new HashMap<>();
             for (Param storeSaleSku : storeSaleSkuList) {
-                int count = storeSaleSku.getInt(StoreSalesSkuEntity.Info.COUNT, 0);
-                storeSaleSku.setInt(StoreSalesSkuEntity.Info.COUNT, count);
-                storeSaleSku.setInt(StoreSalesSkuEntity.Info.REMAIN_COUNT, count);
                 long skuId = storeSaleSku.getLong(StoreSalesSkuEntity.Info.SKU_ID);
                 int pdId = storeSaleSku.getInt(StoreSalesSkuEntity.Info.PD_ID);
                 int unionPriId = storeSaleSku.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);

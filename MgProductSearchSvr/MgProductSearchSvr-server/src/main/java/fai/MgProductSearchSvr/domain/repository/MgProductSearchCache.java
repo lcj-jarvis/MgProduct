@@ -80,9 +80,6 @@ public class MgProductSearchCache {
 
     public static class ResultCache {
 
-        // 无效的缓存时间 30s
-        public static final Long INVALID_CACHE_TIME = 30000L;
-
         public static final String CACHE_CONFIG_KEY = "cacheConfigKey";
 
         public static String getResultCacheKey(int aid, int unionPriId, String esSearchParamString, String dbSearchParamString, String startAndLimit){

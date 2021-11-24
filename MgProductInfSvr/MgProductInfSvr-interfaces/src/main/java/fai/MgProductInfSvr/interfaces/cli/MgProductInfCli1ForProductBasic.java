@@ -1,10 +1,7 @@
 package fai.MgProductInfSvr.interfaces.cli;
 
 import fai.MgProductInfSvr.interfaces.cmd.MgProductInfCmd;
-import fai.MgProductInfSvr.interfaces.dto.MgProductDto;
-import fai.MgProductInfSvr.interfaces.dto.MgProductSearchDto;
-import fai.MgProductInfSvr.interfaces.dto.ProductBasicDto;
-import fai.MgProductInfSvr.interfaces.dto.ProductStoreDto;
+import fai.MgProductInfSvr.interfaces.dto.*;
 import fai.MgProductInfSvr.interfaces.entity.MgProductEntity;
 import fai.MgProductInfSvr.interfaces.entity.ProductBasicValObj;
 import fai.MgProductInfSvr.interfaces.entity.ProductStoreEntity;
@@ -1032,6 +1029,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
      *                 .setCombinedUpdater(combinedUpdater)   // 必填
      *                 .setRlPdId(rlPdId)             // 必填
+     *                 .setXid(xid)                   // 选填
      *                 .build();
      * updater说明： updater详见 {@link MgProductDto#getInfoDto}
      *          只需要其中的 MgProductEntity.Info.BASIC、MgProductEntity.Info.SPEC_SKU、MgProductEntity.Info.STORE_SALES
@@ -1054,6 +1052,20 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 Log.logErr("arg error;updater is empty");
                 return m_rt;
             }
+
+            FaiList<Param> addSpecList = mgProductArg.getAddList();
+            if (addSpecList == null) {
+                addSpecList = new FaiList<Param>();
+            }
+            FaiList<Integer> delList = mgProductArg.getDelIdList();
+            if (delList == null) {
+                delList = new FaiList<Integer>();
+            }
+            FaiList<ParamUpdater> updaterSpecList = mgProductArg.getUpdaterList();
+            if (updaterSpecList == null) {
+                updaterSpecList = new FaiList<ParamUpdater>();
+            }
+
             int tid = mgProductArg.getTid();
             int siteId = mgProductArg.getSiteId();
             int lgId = mgProductArg.getLgId();
@@ -1069,6 +1081,9 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             }
             sendBody.putInt(ProductBasicDto.Key.RL_PD_ID, rlPdId);
             combinedUpdater.toBuffer(sendBody, ProductBasicDto.Key.UPDATER, MgProductDto.getInfoDto());
+            addSpecList.toBuffer(sendBody, ProductBasicDto.Key.ADD_SPEC, ProductSpecDto.Spec.getInfoDto());
+            delList.toBuffer(sendBody, ProductBasicDto.Key.PD_SC_ID);
+            updaterSpecList.toBuffer(sendBody, ProductBasicDto.Key.UPDATER_SPEC, ProductSpecDto.Spec.getInfoDto());
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.SET_PD_INFO, sendBody, false, false);
             return m_rt;

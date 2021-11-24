@@ -244,7 +244,7 @@ public class RecordService extends StoreService {
                         transactionCtrl.setAutoCommit(false);
                         if (!needCheckSkuStoreKeyPdKeyMap.isEmpty()) {
                             // 检查是否存在sku, 没有则生成
-                            rt = storeSalesSkuProc.checkAndAdd(aid, ownerUnionPriId, needCheckSkuStoreKeyPdKeyMap);
+                            rt = storeSalesSkuProc.checkAndAdd(aid, ownerUnionPriId, needCheckSkuStoreKeyPdKeyMap, false);
                             if (rt != Errno.OK) {
                                 return rt;
                             }

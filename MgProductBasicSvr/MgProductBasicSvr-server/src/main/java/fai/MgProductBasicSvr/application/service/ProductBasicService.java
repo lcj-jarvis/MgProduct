@@ -2776,6 +2776,7 @@ public class ProductBasicService extends BasicParentService {
     @SuccessRt(value = Errno.OK)
     public int getProductDataStatus(FaiSession session, int flow, int aid) throws IOException {
         int rt;
+        long begin = System.currentTimeMillis();
         if(aid <= 0) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
@@ -2794,7 +2795,8 @@ public class ProductBasicService extends BasicParentService {
         info.toBuffer(sendBuf, ProductDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
         session.write(sendBuf);
         rt = Errno.OK;
-        Log.logDbg("getProductDataStatus ok;flow=%d;aid=%d;", flow, aid);
+        long end = System.currentTimeMillis();
+        Log.logStd("getProductDataStatus ok;flow=%d;aid=%d;consume=%d", flow, aid, end - begin);
         return rt;
     }
 
@@ -2829,7 +2831,7 @@ public class ProductBasicService extends BasicParentService {
         session.write(sendBuf);
         rt = Errno.OK;
         long end = System.currentTimeMillis();
-        Log.logDbg("search from db ok;flow=%d;aid=%d;size=%d;consume=%d", flow, aid, list.size(), end - begin);
+        Log.logStd("search from db ok;flow=%d;aid=%d;size=%d;consume=%d", flow, aid, list.size(), end - begin);
 
         return rt;
     }
@@ -2863,7 +2865,7 @@ public class ProductBasicService extends BasicParentService {
         session.write(sendBuf);
         rt = Errno.OK;
         long end = System.currentTimeMillis();
-        Log.logDbg("get all from db ok;flow=%d;aid=%d;size=%d;consume=%d", flow, aid, list.size(), end - begin);
+        Log.logStd("get all from db ok;flow=%d;aid=%d;size=%d;consume=%d", flow, aid, list.size(), end - begin);
 
         return rt;
     }
@@ -2879,7 +2881,7 @@ public class ProductBasicService extends BasicParentService {
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
             return rt;
         }
-
+        long begin = System.currentTimeMillis();
         Param info;
         TransactionCtrl tc = new TransactionCtrl();
         try {
@@ -2892,8 +2894,8 @@ public class ProductBasicService extends BasicParentService {
         info.toBuffer(sendBuf, ProductRelDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
         session.write(sendBuf);
         rt = Errno.OK;
-
-        Log.logDbg("getProductRelDataStatus ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+        long end = System.currentTimeMillis();
+        Log.logStd("getProductRelDataStatus ok;flow=%d;aid=%d;unionPriId=%d;consume=%d", flow, aid, unionPriId, end - begin);
         return rt;
     }
 
@@ -2923,7 +2925,7 @@ public class ProductBasicService extends BasicParentService {
         session.write(sendBuf);
         rt = Errno.OK;
         long end = System.currentTimeMillis();
-        Log.logDbg("get list ok;flow=%d;aid=%d;unionPriId=%d;size=%d;consume=%d", flow, aid, unionPriId, list.size(), end - begin);
+        Log.logStd("get list ok;flow=%d;aid=%d;unionPriId=%d;size=%d;consume=%d", flow, aid, unionPriId, list.size(), end - begin);
 
         return rt;
     }
@@ -2954,7 +2956,7 @@ public class ProductBasicService extends BasicParentService {
         session.write(sendBuf);
         rt = Errno.OK;
         long end = System.currentTimeMillis();
-        Log.logDbg("search from db ok;flow=%d;aid=%d;unionPriId=%d;size=%d;consume=%d", flow, aid, unionPriId, list.size(), end - begin);
+        Log.logStd("search from db ok;flow=%d;aid=%d;unionPriId=%d;size=%d;consume=%d", flow, aid, unionPriId, list.size(), end - begin);
 
         return rt;
     }

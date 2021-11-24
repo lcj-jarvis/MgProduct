@@ -1515,8 +1515,8 @@ public class ProductSpecService extends SpecParentService {
     public int getSkuCodeDataStatus(FaiSession session, int flow, int aid, int unionPriId)throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
-        long begin = System.currentTimeMillis();
         try {
+            long begin = System.currentTimeMillis();
             Ref<Param> dataStatusRef = new Ref<>();
             ProductSpecSkuCodeDaoCtrl productSpecSkuCodeDaoCtrl = ProductSpecSkuCodeDaoCtrl.getInstance(flow, aid);
             try {
@@ -1535,7 +1535,7 @@ public class ProductSpecService extends SpecParentService {
             dataStatusRef.value.toBuffer(sendBody, ProductSpecSkuCodeDao.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
             session.write(sendBody);
             long end = System.currentTimeMillis();
-            Log.logDbg("ok;aid=%d;unionPriId=%s;consume=%d", aid, unionPriId, end - begin);
+            Log.logStd("getSkuCodeDataStatus ok;aid=%d;unionPriId=%s;consume=%d", aid, unionPriId, end - begin);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }
@@ -1564,7 +1564,7 @@ public class ProductSpecService extends SpecParentService {
             rt = Errno.OK;
             sendSkuCode(session, listRef.value, null);
             long end = System.currentTimeMillis();
-            Log.logDbg("ok;aid=%d;unionPriId=%s;consume", aid, unionPriId, end - begin);
+            Log.logStd("getSkuCodeAllData ok;aid=%d;unionPriId=%d;consume=%d", aid, unionPriId, end - begin);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }
@@ -1593,7 +1593,7 @@ public class ProductSpecService extends SpecParentService {
             rt = Errno.OK;
             sendSkuCode(session, listRef.value, searchArg);
             long end = System.currentTimeMillis();
-            Log.logDbg("ok;aid=%d;unionPriId=%s;consume=%d", aid, unionPriId, end - begin);
+            Log.logStd("searchSkuCodeFromDb ok;aid=%d;unionPriId=%d;consume=%d", aid, unionPriId, end - begin);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }

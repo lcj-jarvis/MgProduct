@@ -718,16 +718,11 @@ public class MgProductInfHandler extends FaiHandler {
                               @ArgBodyString(value = ProductBasicDto.Key.XID, useDefault = true) String xid,
                               @ArgBodyInteger( ProductBasicDto.Key.RL_PD_ID) Integer rlPdId,
                               @ArgParam(classDef = MgProductDto.class, methodDef = "getInfoDto",
-                                      keyMatch = ProductBasicDto.Key.UPDATER) Param combinedUpdater,
-                              @ArgList(classDef = ProductSpecDto.Spec.class, methodDef = "getInfoDto",
-                                      keyMatch = ProductBasicDto.Key.ADD_SPEC, useDefault = true) FaiList<Param> addSpecList,
-                              @ArgList(keyMatch = ProductBasicDto.Key.PD_SC_ID, useDefault = true) FaiList<Integer> delPdScIds,
-                              @ArgList(classDef = ProductSpecDto.Spec.class, methodDef = "getInfoDto",
-                                      keyMatch = ProductBasicDto.Key.UPDATER_SPEC, useDefault = true) FaiList<ParamUpdater> updaterSpecList)throws IOException, TransactionException {
+                                      keyMatch = ProductBasicDto.Key.UPDATER) Param combinedUpdater) throws IOException, TransactionException {
         if (!Str.isEmpty(xid)) {
             RootContext.bind(xid, flow);
         }
-        return basicService.setProductInfo(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, xid, rlPdId, combinedUpdater, addSpecList, delPdScIds, updaterSpecList);
+        return basicService.setProductInfo(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, xid, rlPdId, combinedUpdater);
     }
 
     @WrittenCmd

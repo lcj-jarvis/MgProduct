@@ -225,9 +225,6 @@ public class ProductBasicDto {
         public static final int FROM_PRIMARY_KEY = 32;
         public static final int NAME = 33;
         public static final int STATUS = 34;
-        public static final int ADD_SPEC = 35;
-        public static final int PD_SC_ID = 36;
-        public static final int UPDATER_SPEC = 37;
     }
 
 

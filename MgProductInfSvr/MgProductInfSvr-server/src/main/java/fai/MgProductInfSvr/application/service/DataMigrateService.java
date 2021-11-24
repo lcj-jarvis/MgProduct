@@ -124,6 +124,9 @@ public class DataMigrateService extends MgProductInfService {
             return Errno.OK;
         }
 
+        // 存在上架门店的商品
+        HashSet<String> onSalePd = new HashSet<>();
+
         // 总部已存在的商品id
         Map<Integer, FaiList<Integer>> yid_rlPdIds = new HashMap<>();
         // 各门店已存在的商品id
@@ -159,6 +162,10 @@ public class DataMigrateService extends MgProductInfService {
                     yidStoreId_rlPdIds.put(yid + "-" + storeId, rlPdIds);
                 }
                 rlPdIds.add(rlPdId);
+                int status = ykPd.getInt("status");
+                if(status == 1) {
+                    onSalePd.add(yid + "-" + rlPdId);
+                }
             }
 
         }
@@ -320,6 +327,11 @@ public class DataMigrateService extends MgProductInfService {
             bindList.add(relInfo);
 
             if(keepPriId1 == 0) {
+                if(onSalePd.contains(siteId + "-" + rlPdId)) {
+                    relInfo.setInt(ProductBasicEntity.ProductInfo.STATUS, 1);
+                }else if(ykStatus != -1) {
+                    relInfo.setInt(ProductBasicEntity.ProductInfo.STATUS, 0);
+                }
                 FaiList<Integer> storeIds = notExistPd.get(siteId + "-" + rlPdId);
                 if(storeIds != null) {
                     for(int storeId : storeIds) {

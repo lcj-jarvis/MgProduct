@@ -625,21 +625,16 @@ public class ProductBindGroupProc {
         if(Utils.isEmptyList(pdIds)) {
             throw new MgException(Errno.ARGS_ERROR, "args error, rlPdIds is empty;aid=%d;unionPriId=%d;rlPdIds=%s;", aid, unionPriId, pdIds);
         }
+        Ref<FaiList<Integer>> noCacheIdsRef = new Ref<>();
         // 缓存中获取
-        FaiList<Param> list = ProductBindGroupCache.getCacheList(aid, unionPriId, new FaiList<>(pdIds));
+        FaiList<Param> list = ProductBindGroupCache.getCacheList(aid, unionPriId, new FaiList<>(pdIds), noCacheIdsRef);
         if(list == null) {
-            list = new FaiList<Param>();
+            list = new FaiList<>();
         }
 
         // 拿到未缓存的pdId list
-        FaiList<Integer> noCacheIds = new FaiList<>();
-        noCacheIds.addAll(pdIds);
-        for(Param info : list) {
-            Integer pdId = info.getInt(ProductBindGroupEntity.Info.PD_ID);
-            noCacheIds.remove(pdId);
-        }
-
-        if(noCacheIds.isEmpty()) {
+        FaiList<Integer> noCacheIds = noCacheIdsRef.value;
+        if(Utils.isEmptyList(noCacheIds)) {
             return list;
         }
 
@@ -655,8 +650,12 @@ public class ProductBindGroupProc {
             for(Integer pdId : groupByPdId.keySet()) {
                 // 添加到缓存
                 ProductBindGroupCache.addCacheList(aid, unionPriId, pdId, new FaiList<>(groupByPdId.get(pdId) ));
+                boolean remove = noCacheIds.remove(pdId);
             }
         }
+
+        // 添加空缓存
+        ProductBindGroupCache.EmptyCache.addCacheList(aid, unionPriId, noCacheIds);
 
         return list;
     }

@@ -227,7 +227,7 @@ public class ProductBindPropService extends ServicePub {
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
             return rt;
         }
-
+        long begin = System.currentTimeMillis();
         Param info;
         TransactionCtrl tc = new TransactionCtrl();
         try {
@@ -240,7 +240,8 @@ public class ProductBindPropService extends ServicePub {
         info.toBuffer(sendBuf, ProductBindPropDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
         session.write(sendBuf);
         rt = Errno.OK;
-        Log.logDbg("getBindPropDataStatus ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+        long end = System.currentTimeMillis();
+        Log.logStd("getBindPropDataStatus ok;flow=%d;aid=%d;unionPriId=%d;consume=%d", flow, aid, unionPriId, end - begin);
         return rt;
     }
 
@@ -270,7 +271,7 @@ public class ProductBindPropService extends ServicePub {
         session.write(sendBuf);
         rt = Errno.OK;
         long end = System.currentTimeMillis();
-        Log.logDbg("get list ok;flow=%d;aid=%d;unionPriId=%d;size=%d;consume=%d", flow, aid, unionPriId, list.size(), end - begin);
+        Log.logStd("get list ok;flow=%d;aid=%d;unionPriId=%d;size=%d;consume=%d", flow, aid, unionPriId, list.size(), end - begin);
 
         return rt;
     }
@@ -302,7 +303,7 @@ public class ProductBindPropService extends ServicePub {
         session.write(sendBuf);
         rt = Errno.OK;
         long end = System.currentTimeMillis();
-        Log.logDbg("search from db ok;flow=%d;aid=%d;unionPriId=%d;size=%d;consume=%d", flow, aid, unionPriId, list.size(), end - begin);
+        Log.logStd("search from db ok;flow=%d;aid=%d;unionPriId=%d;size=%d;consume=%d", flow, aid, unionPriId, list.size(), end - begin);
 
         return rt;
     }

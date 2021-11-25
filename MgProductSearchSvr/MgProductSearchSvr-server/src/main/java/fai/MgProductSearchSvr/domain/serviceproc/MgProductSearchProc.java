@@ -20,7 +20,6 @@ import fai.middleground.svrutil.exception.MgException;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -518,7 +517,10 @@ public class MgProductSearchProc {
 
         // 用搜索条件过滤后的结果
         FaiList<Param> searchResult = new FaiList<>();
+        long begin = System.currentTimeMillis();
         prepareData(tableName, searchMatcher, localCacheDataList, searchResult, tableNameMappingPdIdParam);
+        long end = System.currentTimeMillis();
+        Log.logStd("finish " + tableName + " table all data filter by ParamMatcher;ParamMatcher=%s;consume=%d", searchMatcher, end - begin);
         return searchResult;
     }
 
@@ -526,7 +528,6 @@ public class MgProductSearchProc {
                             FaiList<Param> dataList,
                             FaiList<Param> recvSearchResult,
                             Map<String, Map<Integer, Param>> tableNameMappingPdIdParam) {
-        long begin = System.currentTimeMillis();
         // 目前pdId 和 排序字段都是一对一的场景
         Map<Integer, Param> pdIdMappingParam = new HashMap<>(dataList.size());
 
@@ -548,93 +549,6 @@ public class MgProductSearchProc {
 
         // 主要用于排序和取交集
         tableNameMappingPdIdParam.put(tableName, pdIdMappingParam);
-        long end = System.currentTimeMillis();
-        Log.logStd(tableName + " table all data filter by ParamMatcher;ParamMatcher=%s;consume=%d", searchMatcher, end - begin);
-    }
-
-
-    public void asyncGetData(int flow, int aid, int tid, int unionPriId,
-                             final Map<String, Param> searchKeyWordTable_searchInfo,
-                             Map<String, Map<Integer, Param>> searchKeywordTableMappingPdIdParam,
-                             final Map<String, Param> table_searchInfo,
-                             Map<String, Map<Integer, Param>> tableMappingPdIdParam,
-                             final Map<String, Param> comparatorTable_searchInfo,
-                             Map<String, Map<Integer, Param>> comparatorTableMappingPdIdParam,
-                             MgProductBasicCli asyncMgProductBasicCli,
-                             MgProductStoreCli asyncMgProductStoreCli,
-                             MgProductSpecCli asyncMgProductSpecCli) {
-
-        // key：searchKeyword（关键词）表名  value:“从远程获取数据的异步任务”
-        Map<String, CompletableFuture> searchKeywordTableMappingRemoteGetDataFuture = new HashMap<>(16);
-        // key:searchKeyword(关键词)表名   value:“从本地缓存获取数据异步任务”
-        Map<String, CompletableFuture> searchKeywordTableMappingLocalGetDataFuture = new HashMap<>(16);
-        // 异步获取searchKeyWord所在的表的数据
-        searchKeyWordTable_searchInfo.forEach((searchTable, searchInfo) -> {
-            asyncGetDataFromLocalOrRemote(flow, aid, tid, unionPriId, searchTable, searchInfo,
-                searchKeywordTableMappingRemoteGetDataFuture,
-                searchKeywordTableMappingLocalGetDataFuture,
-                searchKeywordTableMappingPdIdParam,
-                asyncMgProductBasicCli,
-                asyncMgProductStoreCli,
-                asyncMgProductSpecCli);
-        });
-
-        // 除searchKeyWord之外的查询条件(包含排序)所在的表 映射“从本地缓存获取数据异步任务”
-        Map<String, CompletableFuture> tableMappingRemoteGetDataFuture = new HashMap<>(16);
-        // 除searchKeyWord之外的查询条件(包含排序)所在的表 映射“从远程获取数据的异步任务”
-        Map<String, CompletableFuture> tableMappingLocalGetDataFuture = new HashMap<>(16);
-        // 异步获取除了searchKeyWord之外的查询条件所在的表的数据
-        table_searchInfo.forEach((searchTable, searchInfo) -> {
-            asyncGetDataFromLocalOrRemote(flow, aid, tid, unionPriId, searchTable, searchInfo,
-                tableMappingRemoteGetDataFuture,
-                tableMappingLocalGetDataFuture,
-                tableMappingPdIdParam,
-                asyncMgProductBasicCli,
-                asyncMgProductStoreCli,
-                asyncMgProductSpecCli);
-        });
-
-        // 排序字段所在的表 映射“从本地缓存获取数据异步任务”
-        Map<String, CompletableFuture> comparatorTableMappingRemoteGetDataFuture = new HashMap<>(16);
-        // 排序字段所在的表 映射“从远程获取数据的异步任务”
-        Map<String, CompletableFuture> comparatorTableMappingLocalGetDataFuture = new HashMap<>(16);
-        // 异步获取排序字段所在的表的数据
-        comparatorTable_searchInfo.forEach((searchTable, searchInfo) -> {
-            asyncGetDataFromLocalOrRemote(flow, aid, tid, unionPriId, searchTable, searchInfo,
-                comparatorTableMappingRemoteGetDataFuture,
-                comparatorTableMappingLocalGetDataFuture,
-                comparatorTableMappingPdIdParam,
-                asyncMgProductBasicCli,
-                asyncMgProductStoreCli,
-                asyncMgProductSpecCli);
-        });
-
-        int callbackTaskTotal = searchKeywordTableMappingRemoteGetDataFuture.size() + searchKeywordTableMappingLocalGetDataFuture.size()
-            + tableMappingRemoteGetDataFuture.size() + tableMappingLocalGetDataFuture.size()
-            + comparatorTableMappingRemoteGetDataFuture.size() + comparatorTableMappingLocalGetDataFuture.size();
-        CountDownLatch countDownLatch = new CountDownLatch(callbackTaskTotal);
-        // 回调获取结果
-        // 关键词搜索回调获取结果
-        callbackGetResultList(flow, aid, unionPriId, searchKeywordTableMappingLocalGetDataFuture, searchKeywordTableMappingRemoteGetDataFuture,
-            searchKeyWordTable_searchInfo, searchKeywordTableMappingPdIdParam, countDownLatch);
-
-        // 其他搜索条件回调获取结果
-        callbackGetResultList(flow, aid, unionPriId, tableMappingLocalGetDataFuture, tableMappingRemoteGetDataFuture,
-            table_searchInfo, tableMappingPdIdParam, countDownLatch);
-
-        // 搜索排序表回调获取的结果
-        callbackGetResultList(flow, aid, unionPriId, comparatorTableMappingLocalGetDataFuture, comparatorTableMappingRemoteGetDataFuture,
-            comparatorTable_searchInfo, comparatorTableMappingPdIdParam, countDownLatch);
-
-        //  阻塞获取搜索结果完成
-        long begin = System.currentTimeMillis();
-        try {
-            countDownLatch.await();
-            long end = System.currentTimeMillis();
-            Log.logStd("finish  each table search data;flow=%d;aid=%d;unionPriId=%d;consume=%d", flow, aid, unionPriId, end - begin);
-        } catch (InterruptedException e) {
-            throw new MgException(Errno.ERROR, "waiting for each table search data time out;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
-        }
     }
 
     /**
@@ -680,7 +594,7 @@ public class MgProductSearchProc {
                 return;
             } else {
                 // 可能缓存被回收，重新获取数据
-                Log.logStd("cache1==null; flow=%s;aid=%d;unionPriId=%d;searchInfo=%s;", flow, aid, unionPriId, searchInfo);
+                Log.logStd("cache1==null;flow=%d;aid=%d;unionPriId=%d;searchInfo=%s;", flow, aid, unionPriId, searchInfo);
             }
         }
 
@@ -689,7 +603,6 @@ public class MgProductSearchProc {
         // 从远端异步获取数据
         asyncGetDataFromRemote(flow, aid, tid, unionPriId, tableName, searchArg, addDataToLocalCache, tableNameMappingRemoteGetDataFuture, asyncMgProductBasicCli, asyncMgProductStoreCli, asyncMgProductSpecCli);
     }
-
 
 
     /**
@@ -708,12 +621,14 @@ public class MgProductSearchProc {
         // “从本地缓存获取数据的异步任务”回调获取结果
         tableNameMappingLocalGetDataFuture.forEach((tableName, localGetDataFuture) -> {
             localGetDataFuture.whenComplete((BiConsumer<FaiList<Param>, Throwable>) (searchResultList, throwable) -> {
+                long begin = System.currentTimeMillis();
                 Param searchInfo = tableMappingSearchInfo.get(tableName);
                 // 搜索结果
                 searchInfo.setList(SEARCH_RESULT_LIST, searchResultList);
                 // 搜索结果的条数
                 searchInfo.setInt(SEARCH_RESULT_SIZE, searchResultList.size());
-                Log.logStd("finish from localCache Data get searchResult;flow=%d,aid=%d;unionPriId=%d;tableName=%s;", flow, aid, unionPriId, tableName);
+                long end = System.currentTimeMillis();
+                Log.logStd("finish getting searchResult from localCache Data;flow=%d,aid=%d;unionPriId=%d;tableName=%s;consume=%d", flow, aid, unionPriId, tableName, end - begin);
                 countDownLatch.countDown();
             });
         });
@@ -750,7 +665,7 @@ public class MgProductSearchProc {
                         // 此时的searchResultList还没有使用搜索条件过滤，使用搜索条件过滤
                         ParamMatcher searchMatcher = (ParamMatcher) searchInfo.getObject(SEARCH_MATCHER);
                         // 使用搜索条件过滤后的最终结果
-                        Log.logStd("add Data to localCache and use ParamMatcher filter table data;flow=%d;aid=%d,unionPriId=%d;tableName=%d,ParamMatcher=%s", flow, aid, unionPriId, tableName, searchMatcher);
+                        Log.logStd("add Data to localCache and use ParamMatcher filter table data;flow=%d;aid=%d,unionPriId=%d;tableName=%s,ParamMatcher=%s", flow, aid, unionPriId, tableName, searchMatcher);
                         searchResultList = getSearchResult(tableName, searchMatcher, searchResultList, tableNameMappingPdIdParam);
                     }  else {
                         // 说明不是全量搜索
@@ -771,6 +686,33 @@ public class MgProductSearchProc {
                 }
             });
         });
+    }
+
+    /**
+     * 整合排序字段的值到取完交集后的结果中
+     * @param hasComparator 是否有排序
+     * @param tableOfIntersection “取完交集后的结果”所在的表
+     * @param intersection 取完交集后的结果
+     * @param comparatorKey 排序字段
+     * @param comparatorTable  排序字段所在的表
+     * @param tableMappingPdIdParam 除searchKeyWord之外的查询条件(包含排序)所在的表 -> pdId -> Param 主要用于排序，目前排序的场景都是 pdId 与排序字段是一对一
+     * @param comparatorTableMappingPdIdParam 排序字段所在的表 -> pdId -> Param 主要用于排序，目前排序的场景都是 pdId 与排序字段是一对一
+     */
+    public void addSortedField2Intersection(boolean hasComparator, String tableOfIntersection, Param intersection,
+                                             String comparatorKey, String comparatorTable,
+                                             Map<String, Map<Integer, Param>> tableMappingPdIdParam,
+                                             Map<String, Map<Integer, Param>> comparatorTableMappingPdIdParam) {
+        if (hasComparator && !tableOfIntersection.equals(comparatorTable)) {
+            // 通过排序表的名称和pdId来获取排序字段的值
+            Map<Integer, Param> pdId_info = tableMappingPdIdParam.get(comparatorTable);
+            if (pdId_info == null) {
+                pdId_info = comparatorTableMappingPdIdParam.get(comparatorTable);
+            }
+            Integer pdId = intersection.getInt(ProductEntity.Info.PD_ID);
+            Param containCustomComparatorKeyInfo = pdId_info.get(pdId);
+            // 整合排序字段到“取完交集后的结果”
+            intersection.assign(containCustomComparatorKeyInfo, comparatorKey);
+        }
     }
 
     /**

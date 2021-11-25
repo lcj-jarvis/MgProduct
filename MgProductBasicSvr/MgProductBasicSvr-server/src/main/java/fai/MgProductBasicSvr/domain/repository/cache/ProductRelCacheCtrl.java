@@ -14,24 +14,30 @@ public class ProductRelCacheCtrl extends CacheCtrl {
 
     /*** 商品业务表数据缓存 ***/
     public static class InfoCache {
-        public static boolean exist(int aid, int unionPriId) {
-            String cacheKey = getCacheKey(aid, unionPriId);
-            return m_cache.exists(cacheKey);
-        }
 
-        public static Param getCacheInfo(int aid, int unionPriId, int pdId) {
+        public static FaiList<Param> getCacheList(int aid, int unionPriId, FaiList<Integer> pdIds, Ref<FaiList<Integer>> nocacheIdsRef) {
             String cacheKey = getCacheKey(aid, unionPriId);
-            return m_cache.hgetParam(cacheKey, pdId, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto());
-        }
-
-        public static FaiList<Param> getCacheList(int aid, int unionPriId, List<String> pdIds) {
-            String cacheKey = getCacheKey(aid, unionPriId);
-            FaiList<Param> list = null;
+            FaiList<Param> list = new FaiList<>();
             try {
-                list = m_cache.hmget(cacheKey, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto(), pdIds);
+                List<String> pdIdStrs = pdIds.stream().map(String::valueOf).collect(Collectors.toList());
+                list = m_cache.hmget(cacheKey, ProductRelDto.Key.INFO, ProductRelDto.getInfoDto(), pdIdStrs);
+                if(list == null) {
+                    list = new FaiList<>();
+                }
+                list.remove(null);
             } catch (Exception e) {
                 Log.logErr(e,"getCacheList error;aid=%d;pdIds=%s;", aid, pdIds);
             }
+
+            // 返回没有缓存的id
+            FaiList<Integer> noCacheIds = new FaiList<>();
+            noCacheIds.addAll(pdIds);
+            for(Param info : list) {
+                Integer pdId = info.getInt(ProductRelEntity.Info.PD_ID);
+                noCacheIds.remove(pdId);
+            }
+            nocacheIdsRef.value = noCacheIds;
+
             return list;
         }
 
@@ -85,6 +91,37 @@ public class ProductRelCacheCtrl extends CacheCtrl {
         private static final String CACHE_KEY = "MG_productRel"; // 商品业务表数据缓存，aid+unionPriId 做 cache key，pdId做hash key
     }
 
+    /** 空数据缓存 **/
+    public static class EmptyCache {
+        public static FaiList<Integer> getNoCacheIds(int aid, int unionPriId, FaiList<Integer> ids) {
+            if(Utils.isEmptyList(ids)) {
+                return null;
+            }
+            String cacheKey = getEmptyCacheKey(aid, unionPriId);
+            List<Integer> noCacheIds = EmptyCacheManager.getNotExisted(cacheKey, ids);
+            return new FaiList<>(noCacheIds);
+        }
+
+        public static void addCacheList(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
+            String cacheKey = getEmptyCacheKey(aid, unionPriId);
+            EmptyCacheManager.addCacheList(cacheKey, rlPdIds);
+        }
+
+        public static void delCache(int aid, int unionPriId, int rlPdId) {
+            EmptyCacheManager.delCache(getEmptyCacheKey(aid, unionPriId), rlPdId);
+        }
+
+        public static void delCache(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
+            EmptyCacheManager.delCache(getEmptyCacheKey(aid, unionPriId), rlPdIds);
+        }
+
+        public static String getEmptyCacheKey(int aid, int unionPriId) {
+            return wrapCacheVersion(EMPTY_CACHE_KEY + "-" + aid + "-" + unionPriId, aid);
+        }
+
+        private static final String EMPTY_CACHE_KEY = "MG_pdRelEmpty";
+    }
+
     /** cache: aid+unionPriId+rlPdId+sysType -> pdId **/
     public static class PdIdCache {
 
@@ -96,18 +133,32 @@ public class ProductRelCacheCtrl extends CacheCtrl {
             m_cache.hmsetFaiList(cacheKey, ProductRelEntity.Info.RL_PD_ID, Var.Type.INT, list, ProductRelDto.Key.REDUCED_INFO, ProductRelDto.getReducedInfoDto());
         }
 
-        public static FaiList<Param> getCacheList(int aid, int unionPriId, int sysType, HashSet<Integer> rlPdIds) {
+        public static FaiList<Param> getCacheList(int aid, int unionPriId, int sysType, HashSet<Integer> rlPdIds, Ref<FaiList<Integer>> nocacheIdsRef) {
+            FaiList<Param> list = new FaiList<>();
             if(Utils.isEmptyList(rlPdIds)) {
-                return null;
+                return list;
             }
             List<String> rlPdIdStrs = rlPdIds.stream().map(String::valueOf).collect(Collectors.toList());
             String cacheKey = getCacheKey(aid, unionPriId, sysType);
-            FaiList<Param> list = null;
             try {
                 list = m_cache.hmget(cacheKey, ProductRelDto.Key.REDUCED_INFO, ProductRelDto.getReducedInfoDto(), rlPdIdStrs);
+                if(list == null) {
+                    list = new FaiList<>();
+                }
+                list.removeAll(null);
             } catch (Exception e) {
                 Log.logErr(e,"pdId cache get list error;aid=%d;rlPdIdStrs=%s;", aid, rlPdIdStrs);
             }
+
+            // 返回没有缓存的id
+            FaiList<Integer> noCacheIds = new FaiList<>();
+            noCacheIds.addAll(rlPdIds);
+            for(Param info : list) {
+                Integer rlPdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
+                noCacheIds.remove(rlPdId);
+            }
+            nocacheIdsRef.value = EmptyCache.getNoCacheIds(aid, unionPriId, noCacheIds);
+
             return list;
         }
 

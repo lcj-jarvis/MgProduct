@@ -1,15 +1,21 @@
 package fai.MgProductBasicSvr.domain.repository.cache;
 
+import fai.MgProductBasicSvr.domain.entity.ProductBindGroupEntity;
+import fai.MgProductBasicSvr.interfaces.dto.ProductBindGroupDto;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.cache.redis.client.RedisClientExecutor;
 import fai.comm.cache.redis.pool.JedisPool;
 import fai.comm.util.*;
 import fai.middleground.infutil.MgConfPool;
+import fai.middleground.svrutil.misc.Utils;
 import redis.clients.jedis.Jedis;
 
 import java.nio.ByteBuffer;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 方便统一初始化各个CacheCtrl的RedisCacheManager
@@ -96,6 +102,89 @@ public class CacheCtrl {
 			list.addAll(curList);
 		}
 		return list;
+	}
+
+	public static class EmptyCacheManager {
+		public static List<Integer> getNotExisted(String key, FaiList<Integer> ids) {
+			try {
+				List<String> idStrs = ids.stream().map(String::valueOf).collect(Collectors.toList());
+
+				FaiList<String> existedList = hmget(key, idStrs);
+				if(Utils.isEmptyList(existedList)) {
+					return ids;
+				}
+				idStrs.removeAll(existedList);
+				return idStrs.stream().map(Integer::valueOf).collect(Collectors.toList());
+			}catch (Exception e) {
+				Log.logErr(e, "check empty cache err;key=%s;ids=%s;", key, ids);
+				return ids;
+			}
+		}
+
+		public static void delCache(String key, int id) {
+			m_cache.hdel(key, String.valueOf(id));
+		}
+
+		public static void delCache(String key, FaiList<Integer> ids) {
+			if(Utils.isEmptyList(ids)) {
+				return;
+			}
+			String[] idStrs = new String[ids.size()];
+			for(int i = 0; i < ids.size(); i++) {
+				idStrs[i] = String.valueOf(ids.get(i));
+			}
+			m_cache.hdel(key, idStrs);
+		}
+
+		public static void addCacheList(String key, FaiList<Integer> ids) {
+			if(Utils.isEmptyList(ids)) {
+				return;
+			}
+			Map<String, String> map = new HashMap<>();
+			for(int id : ids) {
+				String idStr = String.valueOf(id);
+				map.put(idStr, idStr);
+			}
+			m_cache.hmset(key, map);
+		}
+
+		private static FaiList<String> hmget(String key, List<String> idList) {
+			List<byte[]> list = null;
+			int len = idList.size();
+			byte[][] byteArr = new byte[len][];
+			for(int i =0 ;i < len; i++){
+				String id = idList.get(i);
+				if( id == null){
+					Log.logErr("arg idList exists null");
+					throw new IllegalArgumentException("arg exists null");
+				}
+				byte[] b = id.getBytes();
+				byteArr[i] = b;
+			}
+			list = new RedisClientExecutor<List<byte[]>>(m_jedisPool) {
+				@Override
+				public List<byte[]>  execute(Jedis jedis) {
+					return jedis.hmget(key.getBytes(), byteArr);
+				}
+			}.run(key.getBytes());
+
+			if(list == null || list.size() == 0){
+				return null;
+			}
+			FaiList<String> resList = new FaiList<>();
+			for(byte[] b : list){
+				if(b == null){
+					continue;
+				}
+				try {
+					String str = new String(b);
+					resList.add(str);
+				}catch (Exception e) {
+					continue;
+				}
+			}
+			return resList;
+		}
 	}
 
 	private static final String GET_KEYS_SCRIPT = "local result = {};for i = 1,#(KEYS) do result[i]= redis.call('get',KEYS[i]) end; return result";

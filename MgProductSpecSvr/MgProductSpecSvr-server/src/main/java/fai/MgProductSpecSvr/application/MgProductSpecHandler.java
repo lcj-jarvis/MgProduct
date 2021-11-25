@@ -95,9 +95,9 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
     private int setTpScDetailInfoList(final FaiSession session,
                                       @ArgFlow final int flow,
                                       @ArgAid final int aid,
-                                      @ArgBodyInteger(SpecTempDto.Key.UNION_PRI_ID) final int unionPriId,
-                                      @ArgBodyInteger(value = SpecTempDto.Key.SYS_TYPE, useDefault = true) final int sysType,
-                                      @ArgBodyInteger(SpecTempDto.Key.TID) final int tid,
+                                      @ArgBodyInteger(SpecTempDetailDto.Key.UNION_PRI_ID) final int unionPriId,
+                                      @ArgBodyInteger(value = SpecTempDetailDto.Key.SYS_TYPE, useDefault = true) final int sysType,
+                                      @ArgBodyInteger(SpecTempDetailDto.Key.TID) final int tid,
                                       @ArgBodyInteger(SpecTempDetailDto.Key.RL_TP_SC_ID) final int rlTpScId,
                                       @ArgList(classDef = SpecTempDetailDto.class, methodDef = "getInfoDto",
                                               keyMatch = SpecTempDetailDto.Key.UPDATER_LIST) FaiList<ParamUpdater> recvInfoList) throws IOException {

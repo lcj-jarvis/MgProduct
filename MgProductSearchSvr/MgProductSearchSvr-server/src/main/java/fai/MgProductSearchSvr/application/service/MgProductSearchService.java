@@ -169,7 +169,7 @@ public class MgProductSearchService {
         esResultInfo.setList(ES_SEARCH_RESULT, esSearchResultInfoList);
         esResultInfo.setLong(ES_SEARCH_RESULT_TOTAL, foundTotalRef.value);
         long end = System.currentTimeMillis();
-        Log.logStd("finish searching es;flow=%d,aid=%d,unionPriId=%d,consume=%d,foundTotalSize=%d,fields=%s,filters=%s,sorts=%s,idList=%s,", flow, aid, unionPriId, end - begin, foundTotalRef.value, fields, filters, sorts, esSearchResult);
+        Log.logStd("finish es search data;flow=%d,aid=%d,unionPriId=%d,consume=%d,foundTotalSize=%d,fields=%s,filters=%s,sorts=%s,esSearchResultSize=%d", flow, aid, unionPriId, end - begin, foundTotalRef.value, fields, filters, sorts, esSearchResult.size());
         return esResultInfo;
     }
 
@@ -596,7 +596,7 @@ public class MgProductSearchService {
             resultVisitorCacheTime = Math.max(resultVisitorCacheTime, visitorDataMaxChangeTime.value);
             resultVisitorCacheTime = Math.max(resultVisitorCacheTime, resultManageCacheTime);
 
-            Log.logStd("begin paging;aid=%d,unionPriId=%d,resultSize=%d", aid, unionPriId, resultList.size());
+            Log.logStd("begin paging;flow=%d,aid=%d,unionPriId=%d,resultSize=%d", flow, aid, unionPriId, resultList.size());
 
             // 分页
             FaiList<Integer> idList = resultList.stream()
@@ -630,6 +630,7 @@ public class MgProductSearchService {
                              MgProductStoreCli asyncMgProductStoreCli,
                              MgProductSpecCli asyncMgProductSpecCli) {
 
+        long begin = System.currentTimeMillis();
         // 加上es的搜索
         CompletableFuture<Param> esSearchTask = CompletableFuture.supplyAsync(() -> esSearch(flow, aid, unionPriId, mgProductSearchArg));
 
@@ -696,7 +697,6 @@ public class MgProductSearchService {
             comparatorTable_searchInfo, comparatorTableMappingPdIdParam, countDownLatch);
 
         //  阻塞获取搜索结果完成(db)
-        long begin = System.currentTimeMillis();
         try {
             countDownLatch.await();
             long end = System.currentTimeMillis();
@@ -708,10 +708,11 @@ public class MgProductSearchService {
         // 获取es搜索结果
         try {
             esResultInfo = esSearchTask.get();
-            Log.logStd("finish  es search data;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
         } catch (Exception e) {
-            e.printStackTrace();
             throw new MgException(Errno.ERROR, "waiting for es search data time out;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
         }
+
+        long end = System.currentTimeMillis();
+        Log.logStd("finish es and db search data;flow=%d;aid=%d;unionPriId=%d;consume=%d", flow, aid, unionPriId, end - begin);
     }
 }

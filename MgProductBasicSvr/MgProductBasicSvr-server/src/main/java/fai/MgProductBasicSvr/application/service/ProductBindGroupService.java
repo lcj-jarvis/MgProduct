@@ -97,6 +97,7 @@ public class ProductBindGroupService extends ServicePub {
                 // 删除缓存
                 ProductBindGroupCache.delCache(aid, unionPriId, pdId);
                 ProductBindGroupCache.DataStatusCache.update(aid, unionPriId, addCount);
+                ProductBindGroupCache.EmptyCache.delCache(aid, unionPriId, pdId); // 删除绑定分类数据空缓存
             }finally {
                 if(!commit) {
                     tc.rollback();

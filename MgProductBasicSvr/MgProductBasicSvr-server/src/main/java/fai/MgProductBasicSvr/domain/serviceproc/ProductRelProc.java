@@ -975,10 +975,6 @@ public class ProductRelProc {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "args err;flow=%d;aid=%d;uid=%d;pdId=%s", m_flow, aid, unionPriId, pdId);
         }
-        Param info = ProductRelCacheCtrl.InfoCache.getCacheInfo(aid, unionPriId, pdId);
-        if (!Str.isEmpty(info)) {
-            return info;
-        }
         HashSet<Integer> pdIds = new HashSet<>();
         pdIds.add(pdId);
         FaiList<Param> relList = getListByPdId(aid, unionPriId, pdIds);
@@ -1217,22 +1213,13 @@ public class ProductRelProc {
     }
 
     public FaiList<Param> getPdIdRels(int aid, int unionPriId, int sysType, HashSet<Integer> rlPdIds) {
-        FaiList<Param> list = ProductRelCacheCtrl.PdIdCache.getCacheList(aid, unionPriId, sysType, rlPdIds);
-        if(list == null) {
-            list = new FaiList<>();
-        }
-        list.remove(null);
-        // 查到的数据量和pdIds的数据量一致，则说明都有缓存
-        if(list.size() == rlPdIds.size()) {
-            return list;
-        }
+        Ref<FaiList<Integer>> noCacheIdRef = new Ref<>();
+        FaiList<Param> list = ProductRelCacheCtrl.PdIdCache.getCacheList(aid, unionPriId, sysType, rlPdIds, noCacheIdRef);
 
         // 拿到未缓存的rlPdId list
-        FaiList<Integer> noCacheIds = new FaiList<Integer>();
-        noCacheIds.addAll(rlPdIds);
-        for(Param info : list) {
-            Integer rlPdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
-            noCacheIds.remove(rlPdId);
+        FaiList<Integer> noCacheIds = noCacheIdRef.value;
+        if(Utils.isEmptyList(noCacheIds)) {
+            return list;
         }
 
         // db中获取
@@ -1248,7 +1235,10 @@ public class ProductRelProc {
             list.addAll(tmpList);
             // 添加到缓存
             ProductRelCacheCtrl.PdIdCache.addCacheList(aid, unionPriId, sysType, tmpList);
+            FaiList<Integer> existedIds = Utils.getValList(tmpList, ProductRelEntity.Info.RL_PD_ID);
+            noCacheIds.removeAll(existedIds);
         }
+        ProductRelCacheCtrl.EmptyCache.addCacheList(aid, unionPriId, noCacheIds);
 
         if (list.isEmpty()) {
             Log.logDbg(Errno.NOT_FOUND, "not found;flow=%d;aid=%d;", m_flow, aid);
@@ -1272,24 +1262,14 @@ public class ProductRelProc {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "args err, pdIds is empty;aid=%d;uid=%s;", aid, unionPriId);
         }
-        List<String> pdIdsStrs = pdIds.stream().map(String::valueOf).collect(Collectors.toList());
+        Ref<FaiList<Integer>> noCacheIdsRef = new Ref<>();
         // 从缓存获取数据
-        FaiList<Param> list = ProductRelCacheCtrl.InfoCache.getCacheList(aid, unionPriId, pdIdsStrs);
-        if(list == null) {
-            list = new FaiList<Param>();
-        }
-        list.remove(null);
-        // 查到的数据量和pdIds的数据量一致，则说明都有缓存
-        if(list.size() == pdIds.size()) {
-            return list;
-        }
+        FaiList<Param> list = ProductRelCacheCtrl.InfoCache.getCacheList(aid, unionPriId, new FaiList<>(pdIds), noCacheIdsRef);
 
         // 拿到未缓存的pdId list
-        FaiList<Integer> noCacheIds = new FaiList<>();
-        noCacheIds.addAll(pdIds);
-        for(Param info : list) {
-            Integer pdId = info.getInt(ProductRelEntity.Info.PD_ID);
-            noCacheIds.remove(pdId);
+        FaiList<Integer> noCacheIds = noCacheIdsRef.value;
+        if(Utils.isEmptyList(noCacheIds)) {
+            return list;
         }
 
         // db中获取

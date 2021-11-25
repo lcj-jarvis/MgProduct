@@ -538,6 +538,7 @@ public class ProductSpecSkuProc {
             // 因为 preAddUpdateSaga 被多个地方调用，而有些传入的 list 中的 inPdScStrIdList 是 String 类型
             for (Param info : listRef.value) {
                 info.setString(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, info.getList(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST).toJson());
+                info.setString(ProductSpecSkuEntity.Info.IN_PD_SC_LIST, info.getList(ProductSpecSkuEntity.Info.IN_PD_SC_LIST).toJson());
             }
             preAddUpdateSaga(aid, listRef.value);
         }

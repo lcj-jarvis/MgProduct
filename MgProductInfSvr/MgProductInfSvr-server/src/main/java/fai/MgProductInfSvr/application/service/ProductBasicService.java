@@ -39,7 +39,7 @@ public class ProductBasicService extends MgProductInfService {
             }
 
             // 获取unionPriId
-            Ref<Integer> idRef = new Ref<Integer>();
+            Ref<Integer> idRef = new Ref<>();
             rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
             if (rt != Errno.OK) {
                 return rt;
@@ -47,12 +47,12 @@ public class ProductBasicService extends MgProductInfService {
             int unionPriId = idRef.value;
 
             ProductBasicProc basicProc = new ProductBasicProc(flow);
-            FaiList<Param> bindPropList = new FaiList<Param>();
+            FaiList<Param> bindPropList = new FaiList<>();
             rt = basicProc.getPdBindPropInfo(aid, tid, unionPriId, sysType, rlPdId, bindPropList);
             if (rt != Errno.OK) {
                 return rt;
             }
-            FaiList<Integer> rlPropIds = new FaiList<Integer>();
+            FaiList<Integer> rlPropIds = new FaiList<>();
             for (Param tmpInfo : bindPropList) {
                 int rlPropId = tmpInfo.getInt(ProductBasicEntity.BindPropInfo.RL_PROP_ID);
                 if (!rlPropIds.contains(rlPropId)) {
@@ -64,7 +64,7 @@ public class ProductBasicService extends MgProductInfService {
                 return rt;
             }
             ProductPropProc productPropProc = new ProductPropProc(flow);
-            FaiList<Param> propValList = new FaiList<Param>();
+            FaiList<Param> propValList = new FaiList<>();
             // 根据参数id集合，获取参数值id集合
             rt = productPropProc.getPropValList(aid, tid, unionPriId, rlLibId, rlPropIds, propValList);
             if (rt != Errno.OK) {
@@ -1177,7 +1177,9 @@ public class ProductBasicService extends MgProductInfService {
 
     /**
      * 取消 rlPdIds 的商品业务关联
-     *
+     * 这个接口只是改商品基础信息 各关联表的
+     * 主要是软删场景，这个只是修改商品业务关联表的状态，不操作其他任何数据
+     * 这个逻辑已经有业务依赖，不要改动
      * @return
      */
     public int batchDelPdRelBind(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, FaiList<Integer> rlPdIds, boolean softDel) throws IOException {

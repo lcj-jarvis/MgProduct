@@ -96,6 +96,28 @@ public class ProductBasicService extends BasicParentService {
         return rt;
     }
 
+    private Param assignPdInfo(Param relInfo, Param pdInfo) {
+        Param result = new Param();
+        if(Str.isEmpty(relInfo) || Str.isEmpty(pdInfo)) {
+            return result;
+        }
+
+        // 先assign pdInfo
+        result.assign(pdInfo);
+
+        // 再assign relInfo
+        result.assign(relInfo);
+
+        Calendar relUpdateTime = relInfo.getCalendar(ProductRelEntity.Info.UPDATE_TIME);
+        Calendar pdUpdateTime = pdInfo.getCalendar(ProductEntity.Info.UPDATE_TIME);
+        // 如果商品表的修改时间更晚，则用商品表的修改时间
+        if(relUpdateTime.before(pdUpdateTime)) {
+            result.setCalendar(ProductRelEntity.Info.UPDATE_TIME, pdUpdateTime);
+        }
+
+        return result;
+    }
+
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getProductInfo(FaiSession session, int flow, int aid, int unionPriId, int sysType, int rlPdId) throws IOException {
         int rt;
@@ -120,8 +142,7 @@ public class ProductBasicService extends BasicParentService {
             ProductProc pdProc = new ProductProc(flow, aid, tc);
             Param pdInfo = pdProc.getProductInfo(aid, pdId);
 
-            result.assign(pdInfo);
-            result.assign(relInfo);
+            result = assignPdInfo(relInfo, pdInfo);
 
             // 获取绑定分类
             if(useProductGroup()) {
@@ -189,6 +210,7 @@ public class ProductBasicService extends BasicParentService {
             int pdId = info.getInt(ProductEntity.Info.PD_ID);
             pdMap.put(pdId, info);
         }
+        FaiList<Param> resList = new FaiList<>(relList.size());
         // 数据整合
         for (int i = 0; i < relList.size(); i++) {
             Param relInfo = relList.get(i);
@@ -202,10 +224,12 @@ public class ProductBasicService extends BasicParentService {
             }
             pdInfo.remove(ProductEntity.Info.STATUS);
             relInfo.assign(pdInfo);
+            Param resInfo = assignPdInfo(relInfo, pdInfo);
+            resList.add(resInfo);
         }
 
         FaiBuffer sendBuf = new FaiBuffer(true);
-        relList.toBuffer(sendBuf, ProductRelDto.Key.INFO_LIST, ProductRelDto.getRelAndPdDto());
+        resList.toBuffer(sendBuf, ProductRelDto.Key.INFO_LIST, ProductRelDto.getRelAndPdDto());
         session.write(sendBuf);
         Log.logDbg("get list ok;flow=%d;aid=%d;uid=%d;rlPdIds=%s;", flow, aid, unionPriId, rlPdIds);
         return Errno.OK;
@@ -959,6 +983,7 @@ public class ProductBasicService extends BasicParentService {
             }
             ProductBindPropCache.delCache(aid, unionPriId, sysType, rlPdId);
             ProductBindGroupCache.delCache(aid, unionPriId, pdId);
+            ProductBindGroupCache.EmptyCache.delCache(aid, unionPriId, pdId); // 删除绑定分类数据空缓存
             ProductBindTagCache.delCache(aid, unionPriId, pdId);
             ProductRelCacheCtrl.SortCache.del(aid, unionPriId); // sort缓存
             ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, 0);
@@ -1111,13 +1136,13 @@ public class ProductBasicService extends BasicParentService {
             if(Str.isEmpty(pdInfo)) {
                 return Errno.NOT_FOUND;
             }
-            info.assign(pdInfo);
             ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
             Param relInfo = relProc.getProductRel(aid, unionPriId, pdId);
             if(Str.isEmpty(relInfo)) {
                 return Errno.NOT_FOUND;
             }
-            info.assign(relInfo);
+
+            info = assignPdInfo(relInfo, pdInfo);
 
         } finally {
             tc.closeDao();
@@ -1481,6 +1506,8 @@ public class ProductBasicService extends BasicParentService {
             ProductCacheCtrl.DataStatusCache.update(aid, 1); // 更新数据状态缓存
             ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, 1); // 更新数据状态缓存
             ProductRelCacheCtrl.SortCache.set(aid, unionPriId, maxSort); // sort缓存
+            ProductRelCacheCtrl.EmptyCache.delCache(aid, unionPriId, rlPdId); // 删除空缓存
+            ProductBindGroupCache.EmptyCache.delCache(aid, unionPriId, pdId); // 删除绑定分类数据空缓存
 
             // 同步数据给es
             ESUtil.logDocId(flow, aid, pdId, unionPriId, DocOplogDef.Operation.UPDATE_ONE);
@@ -1556,6 +1583,7 @@ public class ProductBasicService extends BasicParentService {
         LockUtil.lock(aid);
         try {
             FaiList<Integer> pdIdList;
+            FaiList<Integer> rlPdIds;
             //统一控制事务
             TransactionCtrl tc = new TransactionCtrl();
             boolean commit = false;
@@ -1585,7 +1613,7 @@ public class ProductBasicService extends BasicParentService {
                         relData.setInt(ProductRelEntity.Info.SORT, ++maxSort);
                     }
                 }
-                relProc.batchAddProductRel(aid, tid, unionPriId, relDataList);
+                rlPdIds = relProc.batchAddProductRel(aid, tid, unionPriId, relDataList);
 
                 // 新增绑定关系
                 for(int i = 0;i < relDataList.size(); i++) {
@@ -1668,12 +1696,14 @@ public class ProductBasicService extends BasicParentService {
                 ProductRelCacheCtrl.InfoCache.addCacheList(aid, unionPriId, relDataList);
                 ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, relDataList.size()); // 更新数据状态缓存
                 ProductRelCacheCtrl.SortCache.set(aid, unionPriId, maxSort); // 更新sort缓存
+                ProductRelCacheCtrl.EmptyCache.delCache(aid, unionPriId, rlPdIds); // 删除空缓存
             }
             if(!bindRlProps.isEmpty()) {
                 ProductBindPropCache.DataStatusCache.update(aid, unionPriId, bindRlProps.size());
             }
             if(!bindRlGroups.isEmpty()) {
                 ProductBindGroupCache.DataStatusCache.update(aid, unionPriId, bindRlGroups.size());
+                ProductBindGroupCache.EmptyCache.delCache(aid, unionPriId, pdIdList); // 删除绑定分类数据空缓存
             }
             if(!bindRlTags.isEmpty()) {
                 ProductBindTagCache.DataStatusCache.update(aid, unionPriId, bindRlTags.size());
@@ -1986,6 +2016,8 @@ public class ProductBasicService extends BasicParentService {
                 }
                 tc.closeDao();
             }
+            ProductRelCacheCtrl.EmptyCache.delCache(aid, unionPriId, rlPdId); // 删除空缓存
+            ProductBindGroupCache.EmptyCache.delCache(aid, unionPriId, pdId); // 删除绑定分类数据空缓存
             // 同步数据给es
             ESUtil.logDocId(flow, aid, pdId, unionPriId, DocOplogDef.Operation.UPDATE_ONE);
         } finally {

@@ -68,6 +68,9 @@ public class DataMigrateService extends MgProductInfService {
         Dao ykDao = null;
         Dao ykStoreDao = null;
 
+        Calendar defaultCal = Calendar.getInstance();
+        defaultCal.setTimeInMillis(0L);
+
         Map<String, Param> storeInfoMap = new HashMap<>();
         try {
             ykDao = daoPool.getDao();
@@ -317,6 +320,10 @@ public class DataMigrateService extends MgProductInfService {
             relInfo.setCalendar(ProductBasicEntity.ProductInfo.CREATE_TIME, sysCreateTime);
             relInfo.setCalendar(ProductBasicEntity.ProductInfo.UPDATE_TIME, sysUpdateTime);
             relInfo.setInt(ProductBasicEntity.ProductInfo.SYS_TYPE, 0);
+            relInfo.setCalendar(ProductBasicEntity.ProductInfo.TOP, defaultCal);
+            if(Misc.checkBit(ykFlag, 0x2)) {
+                relInfo.setCalendar(ProductBasicEntity.ProductInfo.TOP, Calendar.getInstance());
+            }
 
             Param info = unionPriIdRlPdId_info.get(ownUnionPriId+"-"+rlPdId);
             FaiList<Param> bindList = info.getList(MigrateDef.Info.BIND_PD_REL);

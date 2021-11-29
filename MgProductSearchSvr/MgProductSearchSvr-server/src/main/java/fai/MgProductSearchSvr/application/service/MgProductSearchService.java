@@ -1,5 +1,6 @@
 package fai.MgProductSearchSvr.application.service;
 
+import com.alibaba.fastjson.JSON;
 import fai.MgProductBasicSvr.interfaces.cli.async.MgProductBasicCli;
 import fai.MgProductBasicSvr.interfaces.entity.ProductEntity;
 import fai.MgProductBasicSvr.interfaces.entity.ProductRelEntity;
@@ -169,7 +170,7 @@ public class MgProductSearchService {
         esResultInfo.setList(ES_SEARCH_RESULT, esSearchResultInfoList);
         esResultInfo.setLong(ES_SEARCH_RESULT_TOTAL, foundTotalRef.value);
         long end = System.currentTimeMillis();
-        Log.logStd("finish es search data;flow=%d,aid=%d,unionPriId=%d,consume=%d,foundTotalSize=%d,fields=%s,filters=%s,sorts=%s,esSearchResultSize=%d", flow, aid, unionPriId, end - begin, foundTotalRef.value, fields, filters, sorts, esSearchResult.size());
+        Log.logStd("finish es search data;flow=%d,aid=%d,unionPriId=%d,consume=%d,foundTotalSize=%d,fields=%s,filters=%s,sorts=%s,esSearchResultSize=%d,esSearchResult=%s", flow, aid, unionPriId, end - begin, foundTotalRef.value, fields, filters, sorts, esSearchResult.size(), esSearchResult);
         return esResultInfo;
     }
 
@@ -707,7 +708,7 @@ public class MgProductSearchService {
 
         // 获取es搜索结果
         try {
-            esResultInfo = esSearchTask.get();
+            esResultInfo.assign(esSearchTask.get());
         } catch (Exception e) {
             throw new MgException(Errno.ERROR, "waiting for es search data time out;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
         }

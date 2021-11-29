@@ -701,6 +701,7 @@ public class DataMigrateService extends MgProductInfService {
                 spec.setInt(ProductSpecSkuEntity.Info.STATUS, ykStatus);
                 // 允许规格值为空
                 spec.setInt(ProductSpecEntity.Info.FLAG, ProductSpecValObj.Spec.FLag.ALLOW_IN_PD_SC_VAL_LIST_IS_EMPTY);
+                spec.setList(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST, new FaiList<>());
                 specList.add(spec);
             }
 

@@ -889,6 +889,8 @@ public class ProductSpecProc {
             data.assign(info, ProductSpecEntity.Info.SOURCE_TID);
             data.assign(info, ProductSpecEntity.Info.SOURCE_UNION_PRI_ID);
             data.assign(info, ProductSpecEntity.Info.FLAG);
+            data.assign(info, ProductSpecEntity.Info.STATUS);
+            data.setString(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST, new FaiList<>().toJson());
             data.assign(info, ProductSpecEntity.Info.SYS_CREATE_TIME);
             data.assign(info, ProductSpecEntity.Info.SYS_UPDATE_TIME);
             pdIdList.add(pdId);

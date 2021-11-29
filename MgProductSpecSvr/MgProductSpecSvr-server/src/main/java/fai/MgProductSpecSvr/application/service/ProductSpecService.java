@@ -2036,7 +2036,7 @@ public class ProductSpecService extends SpecParentService {
         for (Param spec : specList) {
             Param sku = new Param();
             sku.setInt(ProductSpecSkuEntity.Info.AID, aid);
-            sku.setString(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, "");
+            sku.setString(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, new FaiList<>().toJson());
             sku.setString(ProductSpecSkuEntity.Info.IN_PD_SC_LIST, "");
             sku.setInt(ProductSpecSkuEntity.Info.FLAG, ProductSpecSkuValObj.FLag.ALLOW_EMPTY);
             sku.assign(spec, ProductSpecSkuEntity.Info.STATUS);

@@ -85,17 +85,6 @@ public class ProductBindGroupCache extends CacheCtrl {
             return new FaiList<>(noCacheIds);
         }
 
-        /*public static FaiList<Param> getCacheList(int aid, int unionPriId, List<String> pdIds) {
-            String cacheKey = getEmptyCacheKey(aid, unionPriId);
-            FaiList<Param> list = null;
-            try {
-                list = m_cache.hmget(cacheKey, ProductBindGroupDto.Key.INFO, ProductBindGroupDto.getInfoDto(), pdIds);
-            } catch (Exception e) {
-                Log.logErr(e,"getCacheList error;aid=%d;pdIds=%s;", aid, pdIds);
-            }
-            return list;
-        }*/
-
         public static void addCacheList(int aid, int unionPriId, FaiList<Integer> pdIds) {
             String cacheKey = getEmptyCacheKey(aid, unionPriId);
             EmptyCacheManager.addCacheList(cacheKey, pdIds);

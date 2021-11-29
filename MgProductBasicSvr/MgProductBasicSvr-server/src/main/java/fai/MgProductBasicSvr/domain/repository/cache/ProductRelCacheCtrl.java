@@ -145,7 +145,7 @@ public class ProductRelCacheCtrl extends CacheCtrl {
                 if(list == null) {
                     list = new FaiList<>();
                 }
-                list.removeAll(null);
+                list.remove(null);
             } catch (Exception e) {
                 Log.logErr(e,"pdId cache get list error;aid=%d;rlPdIdStrs=%s;", aid, rlPdIdStrs);
             }

@@ -21,6 +21,7 @@ public class MgProductGroupCmd {
         public static final int NUM7 = 1007; /** @see GroupCmd#RESTORE */
         public static final int NUM8 = 1008; /** @see GroupCmd#DEL_BACKUP */
         public static final int NUM9 = 1009; /** @see GroupCmd#SET_ALL_GROUP_LIST */
+        public static final int NUM10 = 1010; /** @see GroupCmd#CLEAR_ACCT */
     }
 
     public static class GroupCmd {
@@ -39,5 +40,6 @@ public class MgProductGroupCmd {
         public static final int GET_REL_DATA_STATUS = ReadCmdNum.NUM1;
         public static final int SEARCH_REL = ReadCmdNum.NUM2;
         public static final int GET_ALL_REL = ReadCmdNum.NUM3;
+        public static final int CLEAR_ACCT = WriteCmdNum.NUM10;
     }
 }

@@ -188,6 +188,15 @@ public class MgProductGroupHandler extends MiddleGroundHandler {
 						  @ArgAid int aid) throws IOException {
 		return groupService.clearCache(session, flow, aid);
 	}
+
+	@WrittenCmd
+	@Cmd(MgProductGroupCmd.GroupCmd.CLEAR_ACCT)
+	public int clearAcct(final FaiSession session,
+						 @ArgFlow final int flow,
+						 @ArgAid int aid,
+						 @ArgList(keyMatch = ProductGroupRelDto.Key.UNION_PRI_IDS) FaiList<Integer> unionPriIds) throws IOException  {
+		return groupService.clearAcct(session, flow, aid, unionPriIds);
+	}
 	
 	ProductGroupService groupService = ServiceProxy.create(new ProductGroupService());
 }

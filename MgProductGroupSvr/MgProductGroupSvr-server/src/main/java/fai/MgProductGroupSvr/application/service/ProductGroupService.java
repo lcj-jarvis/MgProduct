@@ -1036,6 +1036,49 @@ public class ProductGroupService extends ServicePub {
     }
 
     /**
+     * 清除数据
+     */
+    @SuccessRt(value = Errno.OK)
+    public int clearAcct(FaiSession session, int flow, int aid, FaiList<Integer> unionPriIds) throws IOException {
+        int rt;
+        if(aid <= 0 || Utils.isEmptyList(unionPriIds)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, aid error;flow=%d;aid=%d;unionPriIds=%s", flow, aid, unionPriIds);
+            return rt;
+        }
+        LockUtil.lock(aid);
+        try {
+            TransactionCtrl tc = new TransactionCtrl();
+            boolean commit = false;
+            try {
+                ProductGroupRelProc relProc = new ProductGroupRelProc(flow, aid, tc);
+                ProductGroupProc groupProc = new ProductGroupProc(flow, aid, tc);
+
+                relProc.clearAcct(aid, unionPriIds);
+
+                groupProc.clearAcct(aid, unionPriIds);
+
+                commit = true;
+            } finally {
+                if (!commit) {
+                    tc.rollback();
+                } else {
+                    tc.commit();
+                }
+                tc.closeDao();
+            }
+        } finally {
+            LockUtil.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("clear acct ok;flow=%d;aid=%d;unionPriIds=%s;", flow, aid, unionPriIds);
+        return rt;
+    }
+
+    /**
      * 校验层级
      *
      * @param dataList 数据集合

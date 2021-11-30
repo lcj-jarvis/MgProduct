@@ -152,6 +152,20 @@ public class ProductGroupProc {
         }
     }
 
+    /**
+     * 清除数据
+     * @param aid aid
+     * @param unionPriIds unionPriIds
+     * @return rt
+     */
+    public int clearAcct(int aid, FaiList<Integer> unionPriIds) {
+        int rt = m_cli.clearAcct(aid, unionPriIds);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "group clearAcct error;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
+        }
+        return rt;
+    }
+
     private int m_flow;
     private MgProductGroupCli m_cli;
 }

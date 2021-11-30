@@ -1061,7 +1061,7 @@ public class ProductStoreService extends MgProductInfService {
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK && rt < MgErrno.MIN_VALUE, rt);
+            stat.end(rt != Errno.OK && rt < MgProductErrno.MIN_VALUE, rt);
         }
         return rt;
     }

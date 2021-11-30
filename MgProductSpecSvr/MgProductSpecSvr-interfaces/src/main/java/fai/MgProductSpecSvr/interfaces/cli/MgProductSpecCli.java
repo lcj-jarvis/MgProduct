@@ -363,7 +363,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             return m_rt;
         } finally {
             close();
-            stat.end(m_rt != Errno.OK, m_rt);
+            stat.end(m_rt != Errno.OK && m_rt != Errno.ALREADY_EXISTED, m_rt);
         }
     }
 
@@ -478,7 +478,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             return m_rt;
         } finally {
             close();
-            stat.end(m_rt != Errno.OK, m_rt);
+            stat.end(m_rt != Errno.OK && m_rt != Errno.ALREADY_EXISTED, m_rt);
         }
     }
 

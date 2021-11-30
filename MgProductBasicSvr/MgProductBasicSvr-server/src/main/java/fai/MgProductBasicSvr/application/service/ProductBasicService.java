@@ -137,6 +137,11 @@ public class ProductBasicService extends BasicParentService {
             }
             // 获取商品业务关系表数据
             Param relInfo = relProc.getProductRel(aid, unionPriId, pdId);
+            // TODO 不支持获取软删除数据，查不到业务表信息直接返回，避免空指针
+            if (Str.isEmpty(relInfo)) {
+                rt = Errno.NOT_FOUND;
+                return rt;
+            }
 
             // 获取商品表数据
             ProductProc pdProc = new ProductProc(flow, aid, tc);

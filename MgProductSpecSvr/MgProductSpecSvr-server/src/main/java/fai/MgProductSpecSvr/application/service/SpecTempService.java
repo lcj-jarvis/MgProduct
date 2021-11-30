@@ -486,7 +486,7 @@ public class SpecTempService extends SpecParentService {
             session.write(sendBuf);
             Log.logStd("ok;flow=%d;aid=%d;unionPriId=%d;rlTpScId=%s;", flow, aid, unionPriId, rlTpScId);
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end(rt != Errno.OK && rt != Errno.ALREADY_EXISTED, rt);
         }
         return rt;
     }
@@ -640,7 +640,7 @@ public class SpecTempService extends SpecParentService {
             session.write(sendBuf);
             Log.logStd("ok;flow=%d;aid=%d;unionPriId=%d;rlTpScId=%s;", flow, aid, unionPriId, rlTpScId);
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end(rt != Errno.OK && rt != Errno.ALREADY_EXISTED, rt);
         }
         return rt;
     }

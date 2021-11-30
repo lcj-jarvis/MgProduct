@@ -133,6 +133,24 @@ public class RichTextProc {
         return rt;
     }
 
+    public int clearAcct(int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> primaryKeys) {
+        int rt;
+        if (aid <= 0 || Utils.isEmptyList(primaryKeys)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "arg error;flow=%d;aid=%d;primaryKeys=%s", m_flow, aid, primaryKeys);
+            return rt;
+        }
+        MgRichTextArg mgRichTextArg = new MgRichTextArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+                .setPrimaryKeys(primaryKeys)
+                .build();
+        rt = m_cli.clearAcct(mgRichTextArg);
+        if (rt != Errno.OK) {
+            Log.logErr(rt, "clearAcct error;flow=%d;aid=%d;primaryKeys=%s", m_flow, aid, primaryKeys);
+            return rt;
+        }
+        return rt;
+    }
+
     private MgRichTextInfCli createCli() {
         MgRichTextInfCli cli = new MgRichTextInfCli(m_flow);
         if(!cli.init()) {

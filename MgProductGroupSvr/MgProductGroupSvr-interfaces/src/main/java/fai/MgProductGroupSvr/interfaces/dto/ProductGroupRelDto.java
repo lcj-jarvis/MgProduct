@@ -97,5 +97,6 @@ public class ProductGroupRelDto {
         public static final int SYS_TYPE = 17;
         public static final int GROUP_LEVEL = 18;
         public static final int RESTORE_ID = 19;
+        public static final int UNION_PRI_IDS = 20;
     }
 }

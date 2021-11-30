@@ -1362,9 +1362,19 @@ public class MgProductInfService extends ServicePub {
                 return rt;
             }
 
-            //TODO 删除商品分类数据(商品分类还没上线)
+            // 删除分类相关数据
+            ProductGroupProc groupProc = new ProductGroupProc(flow);
+            rt = groupProc.clearAcct(aid, unionPriIds);
+            if (rt != Errno.OK) {
+                return rt;
+            }
 
-            //TODO 删除富文本中台数据
+            // 删除富文本数据
+            RichTextProc richTextProc = new RichTextProc(flow);
+            rt = richTextProc.clearAcct(aid, tid, siteId, lgId, keepPriId1, primaryKeys);
+            if (rt != Errno.OK) {
+                return rt;
+            }
 
             // 删除规格数据
             ProductSpecProc specProc = new ProductSpecProc(flow);

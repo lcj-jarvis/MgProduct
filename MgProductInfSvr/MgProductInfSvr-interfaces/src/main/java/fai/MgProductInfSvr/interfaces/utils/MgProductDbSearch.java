@@ -281,7 +281,8 @@ public class MgProductDbSearch extends BaseMgProductSearch {
     // TODO: 在 "在商品 富文本 字段"  搜索,目前还没有支持
     public ParamMatcher getProductRemarkSkwSearchMatcher(ParamMatcher paramMatcher){
         ParamMatcher paramMatcherOr = new ParamMatcher();
-        if(!Str.isEmpty(searchKeyWord) && enableSearchProductName && searchProductRemarkKeyList != null && !searchProductRemarkKeyList.isEmpty()){
+        // 兼容门店，不用加上 && !searchProductRemarkKeyList.isEmpty()
+        if(!Str.isEmpty(searchKeyWord) && enableSearchProductName && searchProductRemarkKeyList != null){
             //  商品名称, 名称 like 查询
             for(String remarkKey : searchProductRemarkKeyList){
                 paramMatcherOr.or(remarkKey, ParamMatcher.LK, searchKeyWord);
@@ -300,7 +301,8 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         if(paramMatcher == null){
             paramMatcher = new ParamMatcher();
         }
-        if(!Str.isEmpty(searchKeyWord) && enableSearchProductProp && keyWordSearchInPropIdList != null && !keyWordSearchInPropIdList.isEmpty()){
+        //兼容门店，不要加上 !keyWordSearchInPropIdList.isEmpty()
+        if(!Str.isEmpty(searchKeyWord) && enableSearchProductProp && keyWordSearchInPropIdList != null){
             if(keyWordSearchInPropIdList.size() == 1){
                 paramMatcher.and(ProductPropEntity.PropValInfo.PROP_ID, ParamMatcher.EQ, keyWordSearchInPropIdList.get(0));
             }else{
@@ -369,8 +371,8 @@ public class MgProductDbSearch extends BaseMgProductSearch {
             }
         }
 
-        // 从 mgProduct_xxxx 冗余字段查询，商品类型
-        if(typeList != null && !typeList.isEmpty()){
+        // 从 mgProduct_xxxx 冗余字段查询，商品类型。兼容门店逻辑，不要加上!typeList.isEmpty()
+        if(typeList != null){
             if(typeList.size() == 1){
                 paramMatcher.and(ProductBasicEntity.ProductInfo.PD_TYPE, ParamMatcher.EQ, typeList.get(0));
             }else{
@@ -378,8 +380,8 @@ public class MgProductDbSearch extends BaseMgProductSearch {
             }
         }
 
-        // 业务商品idList
-        if(rlPdIdList != null && !rlPdIdList.isEmpty()){
+        // 业务商品idList.兼容门店，不要加上!rlPdIdList.isEmpty()
+        if(rlPdIdList != null){
             if(rlPdIdList.size() == 1){
                 paramMatcher.and(ProductBasicEntity.ProductInfo.RL_PD_ID, ParamMatcher.EQ, rlPdIdList.get(0));
             }else{
@@ -387,8 +389,8 @@ public class MgProductDbSearch extends BaseMgProductSearch {
             }
         }
 
-        //  商品库
-        if(rlLibIdList != null && !rlLibIdList.isEmpty()){
+        //  商品库  兼容门店，不要加上!rlLibIdList.isEmpty()
+        if(rlLibIdList != null){
             if(rlLibIdList.size() == 1){
                 paramMatcher.and(ProductBasicEntity.ProductInfo.RL_LIB_ID, ParamMatcher.EQ, rlLibIdList.get(0));
             }else{
@@ -434,7 +436,8 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         if(paramMatcher == null){
             paramMatcher = new ParamMatcher();
         }
-        if(rlPropValIdList != null && !rlPropValIdList.isEmpty()){
+        // 兼容门店，不要加上!rlPropValIdList.isEmpty()
+        if(rlPropValIdList != null){
             if(rlPropValIdList.size() == 1){
                 paramMatcher.and(ProductBasicEntity.BindPropInfo.PROP_VAL_ID, ParamMatcher.EQ, rlPropValIdList.get(0));
             }else{
@@ -449,8 +452,8 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         if(paramMatcher == null){
             paramMatcher = new ParamMatcher();
         }
-        // 业务商品分类
-        if(rlGroupIdList != null && !rlGroupIdList.isEmpty()){
+        // 业务商品分类。兼容门店，不要加上!rlGroupIdList.isEmpty()
+        if(rlGroupIdList != null){
             if(rlGroupIdList.size() == 1){
                 paramMatcher.and(ProductBasicEntity.BindGroupInfo.RL_GROUP_ID, ParamMatcher.EQ, rlGroupIdList.get(0));
             }else{
@@ -465,8 +468,8 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         if(paramMatcher == null){
             paramMatcher = new ParamMatcher();
         }
-        // 业务商品标签
-        if(rlTagIdList != null && !rlTagIdList.isEmpty()){
+        // 业务商品标签。兼容门店，不要加上!rlTagIdList.isEmpty()
+        if(rlTagIdList != null){
             if(rlTagIdList.size() == 1){
                 paramMatcher.and(ProductBasicEntity.BindTagInfo.RL_TAG_ID, ParamMatcher.EQ, rlTagIdList.get(0));
             }else{

@@ -209,7 +209,7 @@ public class ProductBindTagService extends ServicePub {
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
             return rt;
         }
-
+        long begin = System.currentTimeMillis();
         Param info;
         TransactionCtrl tc = new TransactionCtrl();
         try {
@@ -222,7 +222,8 @@ public class ProductBindTagService extends ServicePub {
         info.toBuffer(sendBuf, ProductBindTagDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
         session.write(sendBuf);
         rt = Errno.OK;
-        Log.logDbg("getBindTagDataStatus ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+        long end = System.currentTimeMillis();
+        Log.logStd("getBindTagDataStatus ok;flow=%d;aid=%d;unionPriId=%d;consume=%d", flow, aid, unionPriId, end - begin);
         return rt;
     }
 
@@ -232,12 +233,12 @@ public class ProductBindTagService extends ServicePub {
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getAllPdBindTag(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
         int rt;
-        long begin = System.currentTimeMillis();
         if(aid <= 0) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
             return rt;
         }
+        long begin = System.currentTimeMillis();
         FaiList<Param> list;
         TransactionCtrl tc = new TransactionCtrl();
         try {
@@ -255,7 +256,7 @@ public class ProductBindTagService extends ServicePub {
         session.write(sendBuf);
         rt = Errno.OK;
         long end = System.currentTimeMillis();
-        Log.logDbg("get list ok;flow=%d;aid=%d;unionPriId=%d;size=%d;consume=%d", flow, aid, unionPriId, list.size(), end - begin);
+        Log.logStd("get list ok;flow=%d;aid=%d;unionPriId=%d;size=%d;consume=%d", flow, aid, unionPriId, list.size(), end - begin);
 
         return rt;
     }
@@ -267,12 +268,12 @@ public class ProductBindTagService extends ServicePub {
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getBindTagFromDb(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg) throws IOException {
         int rt;
-        long begin = System.currentTimeMillis();
         if(aid <= 0) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
             return rt;
         }
+        long begin = System.currentTimeMillis();
         FaiList<Param> list;
         TransactionCtrl tc = new TransactionCtrl();
         try {
@@ -293,7 +294,7 @@ public class ProductBindTagService extends ServicePub {
         session.write(sendBuf);
         rt = Errno.OK;
         long end = System.currentTimeMillis();
-        Log.logDbg("search from db ok;flow=%d;aid=%d;unionPriId=%d;size=%d;consume=%d", flow, aid, unionPriId, list.size(), end - begin);
+        Log.logStd("search from db ok;flow=%d;aid=%d;unionPriId=%d;size=%d;consume=%d", flow, aid, unionPriId, list.size(), end - begin);
 
         return rt;
     }

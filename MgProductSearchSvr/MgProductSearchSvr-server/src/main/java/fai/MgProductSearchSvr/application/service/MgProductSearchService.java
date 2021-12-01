@@ -22,10 +22,7 @@ import fai.middleground.svrutil.misc.Utils;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 import static fai.MgProductInfSvr.interfaces.utils.MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_REL;
@@ -223,57 +220,43 @@ public class MgProductSearchService {
             // 【注意】如果初始化时候在mgProductDbSearch中设置了排序，mgProductDbSearch也不为null。
             boolean onlySearchInEs = Objects.nonNull(mgProductEsSearch) && !mgProductEsSearch.isEmpty() && Objects.isNull(mgProductDbSearch)
                 || Objects.nonNull(mgProductEsSearch) && !mgProductEsSearch.isEmpty() && Objects.nonNull(mgProductDbSearch) && mgProductDbSearch.isEmpty() && mgProductDbSearch.getParamComparator().isEmpty();
-            if (onlySearchInEs && MgProductSearchCache.ResultCache.existsCache(cacheKey)) {
-                Param resultCacheInfo = MgProductSearchCache.ResultCache.getCacheInfo(cacheKey);
+            if (onlySearchInEs) {
                 // 如果es搜索条件不为空，db条件为空，就去查询es数据来源的表，获取管理态和访客态最新的修改时间,判断缓存是否有效
                 searchProc.asyncGetEsDataStatus(flow, aid, unionPriId, manageDataMaxChangeTime, visitorDataMaxChangeTime);
-                Long cachedManageDataMaxChangeTime = resultCacheInfo.getLong(MgProductSearchResult.Info.MANAGE_DATA_CACHE_TIME);
-                Long cachedVisitorDataMaxChangeTime = resultCacheInfo.getLong(MgProductSearchResult.Info.VISTOR_DATA_CACHE_TIME);
-                // 缓存数据是否失效
-                boolean expired = cachedManageDataMaxChangeTime < manageDataMaxChangeTime.value ||
-                    cachedVisitorDataMaxChangeTime < visitorDataMaxChangeTime.value ||
-                    cachedVisitorDataMaxChangeTime < manageDataMaxChangeTime.value;
-                if (expired) {
-                    // 缓存过期，重新搜索es，加载新的内容到缓存
-                    Log.logStd("mgProductDbSearch is null or mgProductDbSearch search conditions is empty and not have comparator;result cache is invalid;need get result from es once again;flow=%d,aid=%d,unionPriId=%d;mgProductDbSearch=%s", flow, aid, unionPriId, mgProductDbSearch);
-                    Param esResultInfo = esSearch(flow, aid, unionPriId, mgProductSearchArg);
-                    FaiList<Integer> esSearchResult = esResultInfo.getList(PDIDLIST_FROME_ES_SEARCH_RESULT);
-                    Long total = esResultInfo.getLong(ES_SEARCH_RESULT_TOTAL);
-                    // 添加缓存
-                    resultCacheInfo = searchProc.integrateAndAddCache(esSearchResult, total, manageDataMaxChangeTime.value, visitorDataMaxChangeTime.value, cacheKey);
+                boolean hasCache = MgProductSearchCache.ResultCache.existsCache(cacheKey);
+                boolean expired = true;
+                if (hasCache) {
+                    Param resultCacheInfo = MgProductSearchCache.ResultCache.getCacheInfo(cacheKey);
+                    Long cachedManageDataMaxChangeTime = resultCacheInfo.getLong(MgProductSearchResult.Info.MANAGE_DATA_CACHE_TIME);
+                    Long cachedVisitorDataMaxChangeTime = resultCacheInfo.getLong(MgProductSearchResult.Info.VISTOR_DATA_CACHE_TIME);
+                    // 缓存数据是否失效
+                    expired = cachedManageDataMaxChangeTime < manageDataMaxChangeTime.value ||
+                        cachedVisitorDataMaxChangeTime < visitorDataMaxChangeTime.value ||
+                        cachedVisitorDataMaxChangeTime < manageDataMaxChangeTime.value;
+                    if (!expired) {
+                        Log.logStd("onlySearchInEs;get result from cache;flow=%d,aid=%d,unionPriId=%d;mgProductDbSearch=%s", flow, aid, unionPriId, mgProductDbSearch);
+                        resultCacheInfo.toBuffer(sendBuf, MgProductSearchDto.Key.RESULT_INFO, MgProductSearchDto.getProductSearchDto());
+                        session.write(sendBuf);
+                        rt = Errno.OK;
+                        return rt;
+                    }
                 }
-                Log.logStd("mgProductDbSearch is null or mgProductDbSearch search conditions is empty and not have comparator;Don't need to unite db search;finish es search;return es searchResult;flow=%d,aid=%d,unionPriId=%d;resultInfo=%s;mgProductDbSearch=%s", flow, aid, unionPriId, resultCacheInfo, mgProductDbSearch);
-                resultCacheInfo.toBuffer(sendBuf, MgProductSearchDto.Key.RESULT_INFO, MgProductSearchDto.getProductSearchDto());
-                session.write(sendBuf);
-                rt = Errno.OK;
-                return rt;
-            }
-
-            /*
-               执行到这里说明是以下三种情况的一种
-               (1) “es有搜索条件，mgProductDbSearch为null”的这种情况是无缓存
-               (2) es可能有搜索条件可能也没有，db的搜索条件不为空
-               (3) mgProductEsSearch和mgProductDbSearch都为null,搜索默认的商品业务表
-             */
-            // 在es中获取到的idList
-            Param esResultInfo = esSearch(flow, aid, unionPriId, mgProductSearchArg);
-            FaiList<Integer> esSearchResult = esResultInfo.getList(PDIDLIST_FROME_ES_SEARCH_RESULT);
-
-            if (onlySearchInEs) {
-                // es 有搜索条件，mgProductDbSearch为null的情况不存在缓存，添加缓存，返回es的搜索结果
-                searchProc.asyncGetEsDataStatus(flow, aid, unionPriId, manageDataMaxChangeTime, visitorDataMaxChangeTime);
+                // 缓存过期，或者没有缓存。重新搜索es，加载新的内容到缓存
+                Log.logStd("onlySearchInEs;hasCache=%s;cache is invalid=%s;flow=%d,aid=%d,unionPriId=%d;mgProductDbSearch=%s", hasCache, expired, flow, aid, unionPriId, mgProductDbSearch);
+                Param esResultInfo = esSearch(flow, aid, unionPriId, mgProductSearchArg);
+                FaiList<Integer> esSearchResult = esResultInfo.getList(PDIDLIST_FROME_ES_SEARCH_RESULT);
                 Long total = esResultInfo.getLong(ES_SEARCH_RESULT_TOTAL);
+                // 添加缓存
                 Param resultCacheInfo = searchProc.integrateAndAddCache(esSearchResult, total, manageDataMaxChangeTime.value, visitorDataMaxChangeTime.value, cacheKey);
                 resultCacheInfo.toBuffer(sendBuf, MgProductSearchDto.Key.RESULT_INFO, MgProductSearchDto.getProductSearchDto());
                 session.write(sendBuf);
-                Log.logStd("mgProductDbSearch is null or mgProductDbSearch search conditions is empty and not have comparator;Don't need to unite db search;only search in ES;finish es search;return es searchResult;flow=%d,aid=%d,unionPriId=%d;mgProductEsSearch=%s;mgProductDbSearch=%s;resultInfo=%s", flow, aid, unionPriId, mgProductEsSearch, mgProductDbSearch, resultCacheInfo);
                 rt = Errno.OK;
                 return rt;
             }
 
             // 执行到这里说明mgProductEsSearch和mgProductDbSearch都为null，需要走默认的搜索表
             // 或者es的搜索条件可能为空也可能不为空，db的搜索条件不为空，需要联合db查询
-            Param resultCacheInfo = dbSearch(flow, aid, unionPriId, tid, mgProductSearchArg, esResultInfo);
+            Param resultCacheInfo = doSearch(flow, aid, unionPriId, tid, mgProductSearchArg);
             resultCacheInfo.toBuffer(sendBuf, MgProductSearchDto.Key.RESULT_INFO, MgProductSearchDto.getProductSearchDto());
             session.write(sendBuf);
             rt = Errno.OK;
@@ -287,19 +270,11 @@ public class MgProductSearchService {
     /**
      * es搜索完后整合db的进行搜索
      * @param mgProductSearchArg 搜索条件
-     * @param esResultInfo es的搜索结果
      * @return 返回包含idList的Param
      */
-    public Param dbSearch(int flow, int aid, int unionPriId, int tid,
-                          MgProductSearchArg mgProductSearchArg, Param esResultInfo) {
-
-
+    public Param doSearch(int flow, int aid, int unionPriId, int tid, MgProductSearchArg mgProductSearchArg) {
         MgProductDbSearch mgProductDbSearch = mgProductSearchArg.getMgProductDbSearch();
-        FaiList<Integer> pdIdFromEsSearch = esResultInfo.getList(PDIDLIST_FROME_ES_SEARCH_RESULT);
-        if (Objects.isNull(pdIdFromEsSearch)) {
-            pdIdFromEsSearch = new FaiList<>();
-        }
-        Log.logStd("need to search in db;begin invoke dbSearch method;flow=%d,aid=%d,unionPriId=%d", flow, aid, unionPriId);
+        Log.logStd("begin invoke doSearch method;flow=%d,aid=%d,unionPriId=%d", flow, aid, unionPriId);
 
         // 初始化需要用到的 异步client
         MgProductBasicCli asyncMgProductBasicCli = FaiClientProxyFactory.createProxy(MgProductBasicCli.class);
@@ -470,16 +445,25 @@ public class MgProductSearchService {
             // 排序字段所在的表 -> pdId -> Param 主要用于排序，目前排序的场景都是 pdId 与排序字段是一对一
             Map<String, Map<Integer, Param>> comparatorTableMappingPdIdParam = new ConcurrentHashMap<>(16);
 
+            Param esResultInfo = new Param();
             // 获取数据
-            searchProc.asyncGetData(flow, aid, tid, unionPriId, searchKeyWordTable_searchInfo, searchKeywordTableMappingPdIdParam,
+            asyncGetData(flow, aid, tid, unionPriId, mgProductSearchArg, esResultInfo, searchKeyWordTable_searchInfo, searchKeywordTableMappingPdIdParam,
                 table_searchInfo, tableMappingPdIdParam, comparatorTable_searchInfo, comparatorTableMappingPdIdParam,
                 asyncMgProductBasicCli, asyncMgProductStoreCli, asyncMgProductSpecCli);
+            // 保存es搜索到的pdId
+            FaiList<Integer> pdIdFromEsSearch = esResultInfo.getList(PDIDLIST_FROME_ES_SEARCH_RESULT);
+            if (Objects.isNull(pdIdFromEsSearch)) {
+                pdIdFromEsSearch = new FaiList<>();
+            }
 
-            // 关键词的搜索是否为空
-            boolean hasSearchKeywordSearch = !searchKeyWordTable_searchInfo.isEmpty() ||
-                (mgProductEsSearch != null && !Str.isEmpty(mgProductEsSearch.getSearchKeyWord()));
             // 保存最终的结果
             FaiList<Param> resultList = new FaiList<>();
+            /*
+              取交集的思想：
+              注意到多个交集的集合必定是任一个集合的子集，所以只需遍历一个集合。
+              查看这个集合里的数在剩余的集合存不存在，如果剩余的任一集合不包含这个数，
+              那肯定不属于交集，这样就可以减少判断的次数。
+            */
             begin = System.currentTimeMillis();
             if (!table_searchInfo.isEmpty()) {
                 Log.logStd("Not only have searchKeyword search;have other search conditions;begin to take the intersection and integrate sort fields;flow=%d;aid=%d;unionPriId=%d;comparatorTableMappingPdIdParam=%s", flow, aid, unionPriId, comparatorTableMappingPdIdParam);
@@ -492,7 +476,7 @@ public class MgProductSearchService {
                 ParamComparator sizeComparator = new ParamComparator(SEARCH_RESULT_SIZE, false);
                 FaiList<Param> searchInfoList = table_searchInfo.values().stream().sorted(sizeComparator).collect(Collectors.toCollection(FaiList::new));
 
-                // 搜索结果条数最少的searchInfo
+                // 搜索结果条数最少的searchInfo,提高取交集效率
                 Param searchInfoOfMinSearchResult = searchInfoList.get(0);
                 // 搜索结果条数最少的List
                 FaiList<Param> minSearchResultList = searchInfoOfMinSearchResult.getList(SEARCH_RESULT_LIST);
@@ -510,62 +494,33 @@ public class MgProductSearchService {
                     pdIds.add(pdId);
 
                     // 是否属于交集
-                    boolean find = true;
+                    boolean belongToIntersection = true;
                     for (Map<Integer, Param> pdIdMappingInfo : listOfPdIdMappingInfo) {
                         if (!pdIdMappingInfo.containsKey(pdId)) {
-                            find = false;
+                            belongToIntersection = false;
                             break;
                         }
                     }
 
-                    if (find && hasSearchKeywordSearch) {
+                    if (belongToIntersection && !searchKeywordPdIdSearchResult.isEmpty()) {
                         // 是否属于searchKeyword的搜索结果
-                        find = searchKeywordPdIdSearchResult.contains(pdId);
+                        belongToIntersection = searchKeywordPdIdSearchResult.contains(pdId);
                     }
 
-                    if (find) {
+                    if (belongToIntersection) {
                         // 取完交集后的结果
 
                         // 如果未包含自定义排序字段，则整合自定义排序字段到info中
-                        if (hasCustomComparator && !table.equals(customComparatorTable)) {
-                            // 通过排序表的名称和pdId来获取排序字段的值
-                            Map<Integer, Param> pdId_info = tableMappingPdIdParam.get(customComparatorTable);
-                            if (pdId_info == null) {
-                                pdId_info = comparatorTableMappingPdIdParam.get(customComparatorTable);
-                            }
-
-                            Param containCustomComparatorKeyInfo = pdId_info.get(pdId);
-                            info.assign(containCustomComparatorKeyInfo, customComparatorKey);
-                        }
-
+                        searchProc.addSortedField2Intersection(hasCustomComparator, table, info, customComparatorKey, customComparatorTable, tableMappingPdIdParam, comparatorTableMappingPdIdParam);
                         // 如果未包含第一排序字段，则整合第一排序字段到info中
-                        if (hasFirstComparator && !table.equals(firstComparatorTable)) {
-                            // 通过排序表的名称和pdId来获取排序字段的值
-                            Map<Integer, Param> pdId_info = tableMappingPdIdParam.get(firstComparatorTable);
-                            if (pdId_info == null) {
-                                pdId_info = comparatorTableMappingPdIdParam.get(firstComparatorTable);
-                            }
-
-                            Param containFirstComparatorKeyInfo = pdId_info.get(pdId);
-                            info.assign(containFirstComparatorKeyInfo, firstComparatorKey);
-                        }
-
+                        searchProc.addSortedField2Intersection(hasFirstComparator, table, info, firstComparatorKey, firstComparatorTable, tableMappingPdIdParam, comparatorTableMappingPdIdParam);
                         // 如果未包含第二排序字段，则整合第二排序字段到info中
-                        if (needSecondComparatorSorting && !table.equals(secondComparatorTable)) {
-                            // 通过排序表的名称和pdId来获取排序字段的值
-                            Map<Integer, Param> pdId_info = tableMappingPdIdParam.get(secondComparatorTable);
-                            if (pdId_info == null) {
-                                pdId_info = comparatorTableMappingPdIdParam.get(secondComparatorTable);
-                            }
-
-                            Param containSecondComparatorKeyInfo = pdId_info.get(pdId);
-                            info.assign(containSecondComparatorKeyInfo, secondComparatorKey);
-                        }
+                        searchProc.addSortedField2Intersection(needSecondComparatorSorting, table, info, secondComparatorKey, secondComparatorTable, tableMappingPdIdParam, comparatorTableMappingPdIdParam);
                         // 添加交集后的结果到resultList
                         resultList.add(info);
                     }
                 }
-            } else if (hasSearchKeywordSearch) {
+            } else {
                 Log.logStd("only have searchKeyword search conditions;flow=%d;aid=%d;unionPriId=%d;comparatorTableMappingPdIdParam=%s", flow, aid, unionPriId, comparatorTableMappingPdIdParam);
                 // 执行到这里说明只有关键词的搜索
                 FaiList<Param> tempList = new FaiList<>();
@@ -650,14 +605,113 @@ public class MgProductSearchService {
                 .map(info -> info.getInt(ProductEntity.Info.PD_ID))
                 .collect(Collectors.toCollection(FaiList::new));
 
-            Log.logStd("finish uniting db search;flow=%d,aid=%d,unionPriId=%d,totalSize=%d,idList(after paging)=%s;", flow, aid, unionPriId, resultList.size(), idList);
+            Log.logStd("finish doing search;flow=%d,aid=%d,unionPriId=%d,totalSize=%d,idList(after paging)=%s;", flow, aid, unionPriId, resultList.size(), idList);
             // 添加缓存
             return searchProc.integrateAndAddCache(idList, resultList.size(), resultManageCacheTime, resultVisitorCacheTime, resultCacheKey);
 
         } else {
-            Log.logStd("finish uniting db search;Don't need to reLoad;get result from cache;flow=%d,aid=%d,unionPriId=%d,resultCacheKey=%s,resultCacheInfo=%s", flow, aid, unionPriId, resultCacheKey, resultCacheInfo);
+            Log.logStd("finish doing search;Don't need to reLoad;get result from cache;flow=%d,aid=%d,unionPriId=%d,resultCacheKey=%s,resultCacheInfo=%s", flow, aid, unionPriId, resultCacheKey, resultCacheInfo);
             // 从缓存中获取数据
             return resultCacheInfo;
+        }
+    }
+
+
+    public void asyncGetData(int flow, int aid, int tid, int unionPriId,
+                             MgProductSearchArg mgProductSearchArg,
+                             Param esResultInfo,
+                             final Map<String, Param> searchKeyWordTable_searchInfo,
+                             Map<String, Map<Integer, Param>> searchKeywordTableMappingPdIdParam,
+                             final Map<String, Param> table_searchInfo,
+                             Map<String, Map<Integer, Param>> tableMappingPdIdParam,
+                             final Map<String, Param> comparatorTable_searchInfo,
+                             Map<String, Map<Integer, Param>> comparatorTableMappingPdIdParam,
+                             MgProductBasicCli asyncMgProductBasicCli,
+                             MgProductStoreCli asyncMgProductStoreCli,
+                             MgProductSpecCli asyncMgProductSpecCli) {
+
+        // 加上es的搜索
+        CompletableFuture<Param> esSearchTask = CompletableFuture.supplyAsync(() -> esSearch(flow, aid, unionPriId, mgProductSearchArg));
+
+        // key：searchKeyword（关键词）表名  value:“从远程获取数据的异步任务”
+        Map<String, CompletableFuture> searchKeywordTableMappingRemoteGetDataFuture = new HashMap<>(16);
+        // key:searchKeyword(关键词)表名   value:“从本地缓存获取数据异步任务”
+        Map<String, CompletableFuture> searchKeywordTableMappingLocalGetDataFuture = new HashMap<>(16);
+        // 异步获取searchKeyWord所在的表的数据
+        searchKeyWordTable_searchInfo.forEach((searchTable, searchInfo) -> {
+            searchProc.asyncGetDataFromLocalOrRemote(flow, aid, tid, unionPriId, searchTable, searchInfo,
+                searchKeywordTableMappingRemoteGetDataFuture,
+                searchKeywordTableMappingLocalGetDataFuture,
+                searchKeywordTableMappingPdIdParam,
+                asyncMgProductBasicCli,
+                asyncMgProductStoreCli,
+                asyncMgProductSpecCli);
+        });
+
+        // 除searchKeyWord之外的查询条件(包含排序)所在的表 映射“从本地缓存获取数据异步任务”
+        Map<String, CompletableFuture> tableMappingRemoteGetDataFuture = new HashMap<>(16);
+        // 除searchKeyWord之外的查询条件(包含排序)所在的表 映射“从远程获取数据的异步任务”
+        Map<String, CompletableFuture> tableMappingLocalGetDataFuture = new HashMap<>(16);
+        // 异步获取除了searchKeyWord之外的查询条件所在的表的数据
+        table_searchInfo.forEach((searchTable, searchInfo) -> {
+            searchProc.asyncGetDataFromLocalOrRemote(flow, aid, tid, unionPriId, searchTable, searchInfo,
+                tableMappingRemoteGetDataFuture,
+                tableMappingLocalGetDataFuture,
+                tableMappingPdIdParam,
+                asyncMgProductBasicCli,
+                asyncMgProductStoreCli,
+                asyncMgProductSpecCli);
+        });
+
+        // 排序字段所在的表 映射“从本地缓存获取数据异步任务”
+        Map<String, CompletableFuture> comparatorTableMappingRemoteGetDataFuture = new HashMap<>(16);
+        // 排序字段所在的表 映射“从远程获取数据的异步任务”
+        Map<String, CompletableFuture> comparatorTableMappingLocalGetDataFuture = new HashMap<>(16);
+        // 异步获取排序字段所在的表的数据
+        comparatorTable_searchInfo.forEach((searchTable, searchInfo) -> {
+            searchProc.asyncGetDataFromLocalOrRemote(flow, aid, tid, unionPriId, searchTable, searchInfo,
+                comparatorTableMappingRemoteGetDataFuture,
+                comparatorTableMappingLocalGetDataFuture,
+                comparatorTableMappingPdIdParam,
+                asyncMgProductBasicCli,
+                asyncMgProductStoreCli,
+                asyncMgProductSpecCli);
+        });
+
+        int callbackTaskTotal = searchKeywordTableMappingRemoteGetDataFuture.size() + searchKeywordTableMappingLocalGetDataFuture.size()
+            + tableMappingRemoteGetDataFuture.size() + tableMappingLocalGetDataFuture.size()
+            + comparatorTableMappingRemoteGetDataFuture.size() + comparatorTableMappingLocalGetDataFuture.size();
+        CountDownLatch countDownLatch = new CountDownLatch(callbackTaskTotal);
+        // 回调获取结果
+        // 关键词搜索回调获取结果
+        searchProc.callbackGetResultList(flow, aid, unionPriId, searchKeywordTableMappingLocalGetDataFuture, searchKeywordTableMappingRemoteGetDataFuture,
+            searchKeyWordTable_searchInfo, searchKeywordTableMappingPdIdParam, countDownLatch);
+
+        // 其他搜索条件回调获取结果
+        searchProc.callbackGetResultList(flow, aid, unionPriId, tableMappingLocalGetDataFuture, tableMappingRemoteGetDataFuture,
+            table_searchInfo, tableMappingPdIdParam, countDownLatch);
+
+        // 搜索排序表回调获取的结果
+        searchProc.callbackGetResultList(flow, aid, unionPriId, comparatorTableMappingLocalGetDataFuture, comparatorTableMappingRemoteGetDataFuture,
+            comparatorTable_searchInfo, comparatorTableMappingPdIdParam, countDownLatch);
+
+        //  阻塞获取搜索结果完成(db)
+        long begin = System.currentTimeMillis();
+        try {
+            countDownLatch.await();
+            long end = System.currentTimeMillis();
+            Log.logStd("finish  each table search data;flow=%d;aid=%d;unionPriId=%d;consume=%d", flow, aid, unionPriId, end - begin);
+        } catch (InterruptedException e) {
+            throw new MgException(Errno.ERROR, "waiting for each table search data time out;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+        }
+
+        // 获取es搜索结果
+        try {
+            esResultInfo = esSearchTask.get();
+            Log.logStd("finish  es search data;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new MgException(Errno.ERROR, "waiting for es search data time out;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
         }
     }
 }

@@ -294,6 +294,7 @@ public class SummaryService extends StoreService {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
+            long begin = System.currentTimeMillis();
             Ref<Integer> totalRef = new Ref<>();
             Long visitorDataLastUpdateTime;
             Long manageDataLastUpdateTime;
@@ -319,7 +320,8 @@ public class SummaryService extends StoreService {
             FaiBuffer sendBody = new FaiBuffer();
             dataStatus.toBuffer(sendBody, SpuBizSummaryDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
             session.write(sendBody);
-            Log.logDbg("ok;aid=%d;unionPriId=%s;", aid, unionPriId);
+            long end = System.currentTimeMillis();
+            Log.logStd("getSpuBizSummaryDataStatus ok;aid=%d;unionPriId=%s;consume=%d", aid, unionPriId, end - begin);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }
@@ -348,7 +350,7 @@ public class SummaryService extends StoreService {
             rt = Errno.OK;
             sendSpuBizSummary(session, listRef.value);
             long end = System.currentTimeMillis();
-            Log.logDbg("ok;aid=%d;unionPriId=%s;consume=%d", aid, unionPriId, end - begin);
+            Log.logStd("getSpuBizSummaryAllData ok;aid=%d;unionPriId=%d;consume=%d", aid, unionPriId, end - begin);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }
@@ -377,7 +379,7 @@ public class SummaryService extends StoreService {
             rt = Errno.OK;
             sendSpuBizSummary(session, listRef.value, searchArg);
             long end = System.currentTimeMillis();
-            Log.logDbg("ok;aid=%d;unionPriId=%s;", aid, unionPriId, end - begin);
+            Log.logStd("searchSpuBizSummaryFromDb ok;aid=%d;unionPriId=%d;consume=%d", aid, unionPriId, end - begin);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }

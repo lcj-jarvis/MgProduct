@@ -41,6 +41,7 @@ public class ProductRelEntity {
         MANAGE_FIELDS = new FaiList<>();
         MANAGE_FIELDS.add(Info.RL_PD_ID);
         MANAGE_FIELDS.add(Info.PD_ID);
+        MANAGE_FIELDS.add(Info.SYS_TYPE);
         MANAGE_FIELDS.add(Info.RL_LIB_ID);
         MANAGE_FIELDS.add(Info.PD_TYPE);
         MANAGE_FIELDS.add(Info.ADD_TIME);

@@ -1,6 +1,5 @@
 package fai.MgProductSearchSvr.application.service;
 
-import com.alibaba.fastjson.JSON;
 import fai.MgProductBasicSvr.interfaces.cli.async.MgProductBasicCli;
 import fai.MgProductBasicSvr.interfaces.entity.ProductEntity;
 import fai.MgProductBasicSvr.interfaces.entity.ProductRelEntity;
@@ -23,7 +22,10 @@ import fai.middleground.svrutil.misc.Utils;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
 
 import static fai.MgProductInfSvr.interfaces.utils.MgProductDbSearch.SearchTableNameEnum.MG_PRODUCT_REL;
@@ -61,19 +63,13 @@ public class MgProductSearchService {
             throw new MgException(Errno.ERROR, "flow=%s;aid=%d;unionPriId=%d;tid=%d; es cli init err", flow, aid, unionPriId);
         }
 
-        MgProductDbSearch mgProductDbSearch = mgProductSearchArg.getMgProductDbSearch();
-        if (Objects.isNull(mgProductDbSearch)) {
-           // db 搜索条件为空，这里就设置为es里的分页。默认返回前200条数据。如果在初始化查询条件时设置分页，就不采用默认的。
-           cli.setSearchLimit(mgProductSearchArg.getStart(), mgProductSearchArg.getLimit());
-        } else {
-           // db有搜索条件，最后搜索完再做分页。这里先获取前5000条的es搜索结果。
-           // 因为运维那边封装的es，如果没有设置分页，start默认是0，limit默认是100。见FaiSearchExCli就知道。
-           // 所以没有做分页的时候，也要设置from和limit。不然只返回前100条数据。
-           // TODO: 实际上是要获取全部的数据才合理的。因为运维那边的es设置了分片为5000，如果es的命中条数超过5000，就要分多次去获取数据。(可以开多个线程去分次拿，但是效率也不高)
-           //  目前先设置为前5000条，已经可以满足门店那边的搜索
-           // from：0 limit = 5000;
-           cli.setSearchLimit(0, MgProductEsSearch.ONCE_REQUEST_LIMIT);
-        }
+        // 因为运维那边封装的es，如果没有设置分页，start默认是0，limit默认是100。见FaiSearchExCli就知道。
+        // 所以没有做分页的时候，也要设置from和limit。不然只返回前100条数据。
+        // TODO:实际上是要获取全部的数据才合理的。因为运维那边的es设置了分片为5000，
+        //  如果es的命中条数超过5000，就要分多次去获取数据。(可以开多个线程去分次拿，但是效率也不高)
+        //  目前先设置为前5000条，已经可以满足门店那边的搜索
+        // from：0 limit = 5000;
+        cli.setSearchLimit(0, MgProductEsSearch.ONCE_REQUEST_LIMIT);
 
         // 设置搜索的内容
         FaiSearchExDef.SearchWord searchWord = FaiSearchExDef.SearchWord.create(name);
@@ -245,7 +241,10 @@ public class MgProductSearchService {
                 // 缓存过期，或者没有缓存。重新搜索es，加载新的内容到缓存
                 Log.logStd("onlySearchInEs;hasCache=%s;cache is invalid=%s;flow=%d,aid=%d,unionPriId=%d;mgProductDbSearch=%s", hasCache, expired, flow, aid, unionPriId, mgProductDbSearch);
                 Param esResultInfo = esSearch(flow, aid, unionPriId, mgProductSearchArg);
+                // 获取所有搜索到的结果
                 FaiList<Integer> esSearchResult = esResultInfo.getList(PDIDLIST_FROME_ES_SEARCH_RESULT);
+                // 对单独搜es得到的结果进行分页
+                esSearchResult = esSearchResult.stream().skip(mgProductSearchArg.getStart()).limit(mgProductSearchArg.getLimit()).collect(Collectors.toCollection(FaiList::new));
                 Long total = esResultInfo.getLong(ES_SEARCH_RESULT_TOTAL);
                 // 添加缓存
                 Param resultCacheInfo = searchProc.integrateAndAddCache(esSearchResult, total, manageDataMaxChangeTime.value, visitorDataMaxChangeTime.value, cacheKey);

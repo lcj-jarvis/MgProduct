@@ -108,6 +108,7 @@ public class SpuBizSummaryEntity {
             Info.PD_ID
             , Info.RL_PD_ID
             , Info.SYS_TYPE
+            , Info.MODE_TYPE
             , Info.SALES
             , Info.COUNT
             , Info.REMAIN_COUNT

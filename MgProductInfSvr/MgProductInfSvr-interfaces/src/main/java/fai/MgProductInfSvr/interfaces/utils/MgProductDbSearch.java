@@ -41,6 +41,8 @@ public class MgProductDbSearch extends BaseMgProductSearch {
     private Integer remainCountBegin;  //  最小的库存
     private Integer remainCountEnd;    //  最大的库存，如果最小库存和库存一样, 则是等于比较
 
+    private Integer modeType; // 服务模型
+
     private String firstComparatorTable;  // 第一排序字段的table
     private String secondComparatorTable = SearchTableNameEnum.MG_PRODUCT_REL.searchTableName;   // 第二排序字段的table,默认是MG_PRODUCT_REL
 
@@ -93,6 +95,7 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         param.setInt(DbSearchInfo.SALES_END, salesEnd);          // 搜索商品 结束 销量
         param.setInt(DbSearchInfo.REMAIN_COUNT_BEGIN, remainCountBegin);      // 搜索商品 开始 库存
         param.setInt(DbSearchInfo.REMAIN_COUNT_END, remainCountEnd);          // 搜索商品 结束 库存
+        param.setInt(DbSearchInfo.MODE_TYPE, modeType);
 
         // 排序相关
         param.setString(DbSearchInfo.CUSTOM_COMPARATOR_KEY, customComparatorKey); //自定义排序的key
@@ -136,6 +139,7 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         this.salesEnd = dbSearchParam.getInt(DbSearchInfo.SALES_END);               // 搜索商品 结束 销量
         this.remainCountBegin = dbSearchParam.getInt(DbSearchInfo.REMAIN_COUNT_BEGIN);  // 搜索商品 开始 库存
         this.remainCountEnd = dbSearchParam.getInt(DbSearchInfo.REMAIN_COUNT_END);      // 搜索商品 结束 库存
+        this.modeType = dbSearchParam.getInt(DbSearchInfo.MODE_TYPE); // 服务模型
 
         // 排序相关
         this.customComparatorKey = dbSearchParam.getString(DbSearchInfo.CUSTOM_COMPARATOR_KEY); // 自定义的排序
@@ -172,6 +176,7 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         public static final String SALES_END = "salesEnd"; // 搜索商品 结束 销量
         public static final String REMAIN_COUNT_BEGIN = "remainCountBegin";// 搜索商品 开始 库存
         public static final String REMAIN_COUNT_END = "remainCountEnd"; // 搜索商品 结束 库存
+        public static final String MODE_TYPE = "modeType"; // 服务模型
 
         public static final String CUSTOM_COMPARATOR_KEY = "customComparatorKey";// 自定义的排序，如果设置了该排序，其他的排序无效（包括es里的排序）
         public static final String CUSTOM_COMPARATOR_TABLE = "customComparatorTable"; // 自定义排序字段所在的表
@@ -485,6 +490,10 @@ public class MgProductDbSearch extends BaseMgProductSearch {
             paramMatcher = new ParamMatcher();
         }
 
+        if (modeType != null) {
+            paramMatcher.and(ProductStoreEntity.SpuBizSummaryInfo.MODE_TYPE, ParamMatcher.EQ, modeType);
+        }
+
         // 商品销量
         if(salesBegin != null || salesEnd != null){
             if(salesBegin != null && salesEnd != null && salesBegin.intValue() == salesEnd.intValue()){
@@ -739,6 +748,15 @@ public class MgProductDbSearch extends BaseMgProductSearch {
 
     public Integer getRemainCountEnd() {
         return remainCountEnd;
+    }
+
+    public Integer getModeType() {
+        return modeType;
+    }
+
+    public MgProductDbSearch setModeType(Integer modeType) {
+        this.modeType = modeType;
+        return this;
     }
 
     public boolean getFirstComparatorKeyOrderByDesc(){

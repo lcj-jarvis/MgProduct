@@ -195,7 +195,7 @@ public class ProductSpecService extends MgProductInfService {
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK && rt < MgErrno.MIN_VALUE, rt);
+            stat.end(rt != Errno.OK && rt != Errno.ALREADY_EXISTED && rt < MgErrno.MIN_VALUE, rt);
         }
         return rt;
     }
@@ -263,7 +263,7 @@ public class ProductSpecService extends MgProductInfService {
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end(rt != Errno.OK && rt != Errno.ALREADY_EXISTED, rt);
         }
         return rt;
     }

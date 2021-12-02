@@ -27,6 +27,7 @@ public class SpecTempDetailDto {
         g_dtoDef.add(SpecTempDetailEntity.Info.IN_SC_VAL_LIST, 6, getInScValListDtoDef(), Var.Type.FAI_LIST);
         g_dtoDef.add(SpecTempDetailEntity.Info.SYS_CREATE_TIME, 7);
         g_dtoDef.add(SpecTempDetailEntity.Info.SYS_UPDATE_TIME, 8);
+        g_dtoDef.add(SpecTempDetailEntity.Info.FLAG, 9);
     }
 
     public static ParamDef getInfoDto() {

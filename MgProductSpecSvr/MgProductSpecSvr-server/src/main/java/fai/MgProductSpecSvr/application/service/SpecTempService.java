@@ -57,6 +57,7 @@ public class SpecTempService extends SpecParentService {
                     rlLibId = SpecTempBizRelValObj.Default.RL_LIB_ID;
                 }
                 rlLibIdList.add(rlLibId);
+                specTempBizRelInfo.setInt(SpecTempBizRelEntity.Info.SYS_TYPE, sysType);
                 specTempBizRelInfo.setInt(SpecTempBizRelEntity.Info.RL_LIB_ID, rlLibId);
                 specTempBizRelInfo.assign(info, SpecTempBizRelEntity.Info.RL_TP_SC_ID);
                 specTempBizRelInfo.assign(info, SpecTempBizRelEntity.Info.SORT);

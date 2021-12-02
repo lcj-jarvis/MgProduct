@@ -48,6 +48,7 @@ public class SpecTempBizRelProc {
             data.assign( info, SpecTempBizRelEntity.Info.TP_SC_ID);
             data.assign( info, SpecTempBizRelEntity.Info.SORT);
             data.assign( info, SpecTempBizRelEntity.Info.FLAG);
+            data.assign( info, SpecTempBizRelEntity.Info.SYS_TYPE);
             data.setCalendar(SpecTempBizRelEntity.Info.SYS_CREATE_TIME, now);
             data.setCalendar(SpecTempBizRelEntity.Info.SYS_UPDATE_TIME, now);
             dataList.add(data);

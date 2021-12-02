@@ -769,7 +769,7 @@ public class ProductBasicProc {
         FaiList<Integer> pdIds = new FaiList<>();
         rt = m_cli.getMigratePdIds(aid, sysType, pdIds);
         if(rt != Errno.OK) {
-            throw new MgException(rt, "setPdBindTag error;flow=%d;aid=%d;", m_flow, aid);
+            throw new MgException(rt, "getMigratePdIds error;flow=%d;aid=%d;", m_flow, aid);
         }
         return pdIds;
     }

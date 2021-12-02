@@ -449,6 +449,7 @@ public class SpecTempService extends SpecParentService {
                 specTempDetailInfo.setString(TMP_NAME_KEY, name); // 用于匹配规格字符串id
                 specTempDetailInfo.setInt(SpecTempDetailEntity.Info.SORT, sort);
                 specTempDetailInfo.setList(SpecTempDetailEntity.Info.IN_SC_VAL_LIST, inScValList);
+                specTempDetailInfo.assign(info, SpecTempDetailEntity.Info.FLAG);
                 specTempDetailList.add(specTempDetailInfo);
             }
             // 将规格名称都替换成规格字符串id

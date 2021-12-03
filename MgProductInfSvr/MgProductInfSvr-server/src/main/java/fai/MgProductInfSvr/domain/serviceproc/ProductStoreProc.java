@@ -363,7 +363,7 @@ public class ProductStoreProc extends AbstractProductProc{
     /**
      * 根据 pdIdList 和 unionPriIdList 获取sku库存销售信息
      */
-    public int getStoreSalesByPdIdsAndUIdList(int aid, int tid, FaiList<Integer> pdIds, FaiList<Integer> unionPriIdList, FaiList infoList) {
+    public int getStoreSalesByPdIdsAndUIdList(int aid, int tid, FaiList<Integer> pdIds, FaiList<Integer> unionPriIdList, FaiList<Param> infoList) {
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;

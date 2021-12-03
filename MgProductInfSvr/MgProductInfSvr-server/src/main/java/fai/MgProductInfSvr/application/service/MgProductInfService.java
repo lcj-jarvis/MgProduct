@@ -162,6 +162,10 @@ public class MgProductInfService extends ServicePub {
      * @param unionPriIds
      */
     protected FaiList<Param> getPrimaryKeyListByUnionPriIds(int flow, int aid, int tid, FaiList<Integer> unionPriIds) {
+        FaiList<Param> list = new FaiList<>();
+        if(Utils.isEmptyList(unionPriIds)) {
+            return list;
+        }
         int rt = Errno.ERROR;
         MgPrimaryKeyCli cli = new MgPrimaryKeyCli(flow);
         if(!cli.init()) {
@@ -169,7 +173,6 @@ public class MgProductInfService extends ServicePub {
             throw new MgException(rt, "init MgPrimaryKeyCli error");
         }
 
-        FaiList<Param> list = new FaiList<>();
         rt = cli.getListByUnionPriIds(unionPriIds, list);
         if(rt != Errno.OK) {
             throw new MgException(rt, "getListByUnionPriIds error;flow=%d;aid=%d;tid=%d;unionPriIds=%s;", flow, aid, tid, unionPriIds);

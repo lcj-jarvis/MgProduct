@@ -598,6 +598,7 @@ public class SpecTempService extends SpecParentService {
                 data.setInt(SpecTempDetailEntity.Info.TP_SC_DT_ID, tpScDtId);
                 data.setList(SpecTempDetailEntity.Info.IN_SC_VAL_LIST, inScValList);
                 data.assign(info, SpecTempDetailEntity.Info.SORT);
+                data.assign(info, SpecTempDetailEntity.Info.FLAG);
                 ParamUpdater specTempDetailUpdater = new ParamUpdater(data);
                 FaiList<ParamUpdater.DataOp> flagOpList = updater.getOpList(SpecTempDetailEntity.Info.FLAG);
                 if(!flagOpList.isEmpty()){

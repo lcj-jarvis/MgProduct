@@ -272,7 +272,7 @@ public class ProductBasicService extends MgProductInfService {
     /**
      * 获取商品数据（商品表+业务表）
      */
-    @SuccessRt(Errno.OK)
+    @SuccessRt({Errno.OK, Errno.NOT_FOUND})
     public int getPdBindBiz(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, FaiList<Integer> rlPdIds) throws IOException {
         int rt;
         if (!FaiValObj.TermId.isValidTid(tid)) {
@@ -290,6 +290,10 @@ public class ProductBasicService extends MgProductInfService {
 
         ProductBasicProc basicProc = new ProductBasicProc(flow);
         FaiList<Param> list = basicProc.getPdBindBiz(aid, unionPriId, sysType, rlPdIds);
+        if(Utils.isEmptyList(list)) {
+            rt = Errno.NOT_FOUND;
+            return rt;
+        }
         HashSet<Integer> unionPriIds = new HashSet<>();
         for(Param info : list) {
             FaiList<Param> bindList = info.getList(ProductRelEntity.Info.BIND_LIST);

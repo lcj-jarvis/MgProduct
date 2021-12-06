@@ -13,7 +13,7 @@
     <parent>
         <artifactId>MgProductParent</artifactId>
         <groupId>MgProduct</groupId>
-        <version>1.0.0</version>
+        <version>1.0.1</version>
     </parent>
 
     <artifactId>MgProductTagSvr</artifactId>

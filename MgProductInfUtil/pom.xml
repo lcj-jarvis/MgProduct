@@ -18,6 +18,12 @@
             <groupId>fai-middleground-infutil</groupId>
             <artifactId>fai-middleground-infutil</artifactId>
             <version>${fai-middleground-infutil-ver}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>asm</groupId>
+                    <artifactId>asm</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 

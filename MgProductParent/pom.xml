@@ -78,4 +78,31 @@
             <url>${repository_url}</url>
         </repository>
     </distributionManagement>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>fai-comm-util-opt</groupId>
+                <artifactId>fai-comm-util-opt</artifactId>
+                <version>${fai-comm-util-opt-ver}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>asm</groupId>
+                        <artifactId>asm</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>fai-comm-rpc-client</groupId>
+                <artifactId>fai-comm-rpc-client</artifactId>
+                <version>${fai-comm-rpc-client-ver}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>asm</groupId>
+                        <artifactId>asm</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>

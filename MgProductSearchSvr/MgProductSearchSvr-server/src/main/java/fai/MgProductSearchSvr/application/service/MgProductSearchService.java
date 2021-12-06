@@ -472,52 +472,49 @@ public class MgProductSearchService {
                 searchKeywordTableMappingPdIdParam.values().forEach(pdId_info -> searchKeywordPdIdSearchResult.addAll(pdId_info.keySet()));
                 searchKeywordPdIdSearchResult.addAll(pdIdFromEsSearch);
 
-                // 除searchKeyword外的搜索条件的搜索结果，先根据搜索结果条数的大小排序
-                ParamComparator sizeComparator = new ParamComparator(SEARCH_RESULT_SIZE, false);
-                FaiList<Param> searchInfoList = table_searchInfo.values().stream().sorted(sizeComparator).collect(Collectors.toCollection(FaiList::new));
+                if (!searchKeywordPdIdSearchResult.isEmpty()) {
+                    // 除searchKeyword外的搜索条件的搜索结果，先根据搜索结果条数的大小排序
+                    ParamComparator sizeComparator = new ParamComparator(SEARCH_RESULT_SIZE, false);
+                    FaiList<Param> searchInfoList = table_searchInfo.values().stream().sorted(sizeComparator).collect(Collectors.toCollection(FaiList::new));
 
-                // 搜索结果条数最少的searchInfo,提高取交集效率
-                Param searchInfoOfMinSearchResult = searchInfoList.get(0);
-                // 搜索结果条数最少的List
-                FaiList<Param> minSearchResultList = searchInfoOfMinSearchResult.getList(SEARCH_RESULT_LIST);
-                String table = searchInfoOfMinSearchResult.getString(SEARCH_TABLE);
-                // 每张表的搜索结果，pdId -> 保存搜索结果的info
-                Collection<Map<Integer, Param>> listOfPdIdMappingInfo = tableMappingPdIdParam.values();
+                    // 搜索结果条数最少的searchInfo,提高取交集效率
+                    Param searchInfoOfMinSearchResult = searchInfoList.get(0);
+                    // 搜索结果条数最少的List
+                    FaiList<Param> minSearchResultList = searchInfoOfMinSearchResult.getList(SEARCH_RESULT_LIST);
+                    String table = searchInfoOfMinSearchResult.getString(SEARCH_TABLE);
+                    // 每张表的搜索结果，pdId -> 保存搜索结果的info
+                    Collection<Map<Integer, Param>> listOfPdIdMappingInfo = tableMappingPdIdParam.values();
 
-                Set<Integer> pdIds = new HashSet<>(minSearchResultList.size());
-                for (Param info : minSearchResultList) {
-                    Integer pdId = info.getInt(ProductEntity.Info.PD_ID);
-                    // 重复的pdId说明已经判断过是否属于交集了
-                    if (pdIds.contains(pdId)) {
-                        continue;
-                    }
-                    pdIds.add(pdId);
-
-                    // 是否属于交集
-                    boolean belongToIntersection = true;
-                    for (Map<Integer, Param> pdIdMappingInfo : listOfPdIdMappingInfo) {
-                        if (!pdIdMappingInfo.containsKey(pdId)) {
-                            belongToIntersection = false;
-                            break;
+                    Set<Integer> pdIds = new HashSet<>(minSearchResultList.size());
+                    for (Param info : minSearchResultList) {
+                        Integer pdId = info.getInt(ProductEntity.Info.PD_ID);
+                        // 重复的pdId说明已经判断过是否属于交集了
+                        if (pdIds.contains(pdId)) {
+                            continue;
                         }
-                    }
+                        pdIds.add(pdId);
 
-                    if (belongToIntersection && !searchKeywordPdIdSearchResult.isEmpty()) {
-                        // 是否属于searchKeyword的搜索结果
-                        belongToIntersection = searchKeywordPdIdSearchResult.contains(pdId);
-                    }
+                        // 是否属于交集
+                        boolean belongToIntersection = true;
+                        for (Map<Integer, Param> pdIdMappingInfo : listOfPdIdMappingInfo) {
+                            if (!pdIdMappingInfo.containsKey(pdId) && !searchKeywordPdIdSearchResult.contains(pdId)) {
+                                belongToIntersection = false;
+                                break;
+                            }
+                        }
 
-                    if (belongToIntersection) {
-                        // 取完交集后的结果
+                        if (belongToIntersection) {
+                            // 取完交集后的结果
 
-                        // 如果未包含自定义排序字段，则整合自定义排序字段到info中
-                        searchProc.addSortedField2Intersection(hasCustomComparator, table, info, customComparatorKey, customComparatorTable, tableMappingPdIdParam, comparatorTableMappingPdIdParam);
-                        // 如果未包含第一排序字段，则整合第一排序字段到info中
-                        searchProc.addSortedField2Intersection(hasFirstComparator, table, info, firstComparatorKey, firstComparatorTable, tableMappingPdIdParam, comparatorTableMappingPdIdParam);
-                        // 如果未包含第二排序字段，则整合第二排序字段到info中
-                        searchProc.addSortedField2Intersection(needSecondComparatorSorting, table, info, secondComparatorKey, secondComparatorTable, tableMappingPdIdParam, comparatorTableMappingPdIdParam);
-                        // 添加交集后的结果到resultList
-                        resultList.add(info);
+                            // 如果未包含自定义排序字段，则整合自定义排序字段到info中
+                            searchProc.addSortedField2Intersection(hasCustomComparator, table, info, customComparatorKey, customComparatorTable, tableMappingPdIdParam, comparatorTableMappingPdIdParam);
+                            // 如果未包含第一排序字段，则整合第一排序字段到info中
+                            searchProc.addSortedField2Intersection(hasFirstComparator, table, info, firstComparatorKey, firstComparatorTable, tableMappingPdIdParam, comparatorTableMappingPdIdParam);
+                            // 如果未包含第二排序字段，则整合第二排序字段到info中
+                            searchProc.addSortedField2Intersection(needSecondComparatorSorting, table, info, secondComparatorKey, secondComparatorTable, tableMappingPdIdParam, comparatorTableMappingPdIdParam);
+                            // 添加交集后的结果到resultList
+                            resultList.add(info);
+                        }
                     }
                 }
             } else {

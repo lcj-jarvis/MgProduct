@@ -472,6 +472,9 @@ public class MgProductSearchService {
                 searchKeywordTableMappingPdIdParam.values().forEach(pdId_info -> searchKeywordPdIdSearchResult.addAll(pdId_info.keySet()));
                 searchKeywordPdIdSearchResult.addAll(pdIdFromEsSearch);
 
+                boolean hasSearchKeywordSearch = Objects.nonNull(mgProductEsSearch) && mgProductEsSearch.hasEsSearchKeyWordSearch() ||
+                    (!searchKeywordTableMappingPdIdParam.isEmpty());
+
                 // 除searchKeyword外的搜索条件的搜索结果，先根据搜索结果条数的大小排序
                 ParamComparator sizeComparator = new ParamComparator(SEARCH_RESULT_SIZE, false);
                 FaiList<Param> searchInfoList = table_searchInfo.values().stream().sorted(sizeComparator).collect(Collectors.toCollection(FaiList::new));
@@ -502,7 +505,7 @@ public class MgProductSearchService {
                         }
                     }
 
-                    if (belongToIntersection && !searchKeywordPdIdSearchResult.isEmpty()) {
+                    if (belongToIntersection && hasSearchKeywordSearch) {
                         // 是否属于searchKeyword的搜索结果
                         belongToIntersection = searchKeywordPdIdSearchResult.contains(pdId);
                     }

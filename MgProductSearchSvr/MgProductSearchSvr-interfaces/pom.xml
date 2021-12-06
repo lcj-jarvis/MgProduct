@@ -31,7 +31,6 @@
         <dependency>
             <groupId>fai-comm-rpc-client</groupId>
             <artifactId>fai-comm-rpc-client</artifactId>
-            <version>${fai-comm-rpc-client-ver}</version>
         </dependency>
 
         <dependency>
@@ -43,7 +42,6 @@
         <dependency>
             <groupId>fai-comm-util-opt</groupId>
             <artifactId>fai-comm-util-opt</artifactId>
-            <version>${fai-comm-util-opt-ver}</version>
         </dependency>
 
          <dependency>

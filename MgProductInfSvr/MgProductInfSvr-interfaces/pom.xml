@@ -3,7 +3,7 @@
     <parent>
         <groupId>MgProduct</groupId>
         <artifactId>MgProductInfSvr</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.2</version>
     </parent>
     <artifactId>MgProductInfSvr-interfaces</artifactId>
     <packaging>jar</packaging>
@@ -36,7 +36,6 @@
         <dependency>
             <groupId>fai-comm-util-opt</groupId>
             <artifactId>fai-comm-util-opt</artifactId>
-            <version>${fai-comm-util-opt-ver}</version>
         </dependency>
 
          <dependency>

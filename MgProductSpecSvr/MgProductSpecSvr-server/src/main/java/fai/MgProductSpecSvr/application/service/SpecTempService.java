@@ -448,6 +448,7 @@ public class SpecTempService extends SpecParentService {
                 specTempDetailInfo.setString(TMP_NAME_KEY, name); // 用于匹配规格字符串id
                 specTempDetailInfo.setInt(SpecTempDetailEntity.Info.SORT, sort);
                 specTempDetailInfo.setList(SpecTempDetailEntity.Info.IN_SC_VAL_LIST, inScValList);
+                specTempDetailInfo.assign(info, SpecTempDetailEntity.Info.FLAG);
                 specTempDetailList.add(specTempDetailInfo);
             }
             // 将规格名称都替换成规格字符串id
@@ -596,6 +597,7 @@ public class SpecTempService extends SpecParentService {
                 data.setInt(SpecTempDetailEntity.Info.TP_SC_DT_ID, tpScDtId);
                 data.setList(SpecTempDetailEntity.Info.IN_SC_VAL_LIST, inScValList);
                 data.assign(info, SpecTempDetailEntity.Info.SORT);
+                data.assign(info, SpecTempDetailEntity.Info.FLAG);
                 ParamUpdater specTempDetailUpdater = new ParamUpdater(data);
                 FaiList<ParamUpdater.DataOp> flagOpList = updater.getOpList(SpecTempDetailEntity.Info.FLAG);
                 if(!flagOpList.isEmpty()){

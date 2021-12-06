@@ -2,7 +2,6 @@ package fai.MgProductInfSvr.application.service;
 
 import fai.MgProductBasicSvr.interfaces.cli.async.MgProductBasicCli;
 import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
-import fai.MgProductBasicSvr.interfaces.entity.ProductEntity;
 import fai.MgProductInfSvr.domain.serviceproc.ProductBasicProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductSpecProc;
 import fai.MgProductInfSvr.domain.serviceproc.ProductStoreProc;
@@ -35,10 +34,8 @@ import fai.middleground.svrutil.misc.Utils;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 
 public class ProductSearchService extends MgProductInfService {

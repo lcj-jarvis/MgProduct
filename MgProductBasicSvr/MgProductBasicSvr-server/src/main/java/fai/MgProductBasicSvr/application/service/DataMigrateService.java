@@ -187,8 +187,9 @@ public class DataMigrateService {
                 for(int unionPriId : addPdBindGroupMap.keySet()) {
                     FaiList<Param> bindGroups = addPdBindGroupMap.get(unionPriId);
                     ParamMatcher delMatcher = new ParamMatcher(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, aid);
-                    // delMatcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-                    // bindGroupProc.delPdBindGroup(aid, unionPriId, delMatcher);
+                    delMatcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+                    delMatcher.and(ProductBindGroupEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
+                    bindGroupProc.delPdBindGroup(aid, unionPriId, delMatcher);
                     if(!Utils.isEmptyList(bindGroups)) {
                         bindGroupProc.batchBindGroupList(aid, unionPriId, bindGroups);
                     }

@@ -3,7 +3,7 @@
     <parent>
         <groupId>MgProduct</groupId>
         <artifactId>MgProductBasicSvr</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.1</version>
     </parent>
     <artifactId>MgProductBasicSvr-server</artifactId>
     <packaging>jar</packaging>

@@ -1315,11 +1315,13 @@ public class ProductBasicService extends MgProductInfService {
                 }
 
                 // 删除富文本
-                RichTextProc richTextProc = new RichTextProc(flow);
-                rt = richTextProc.batchDel(xid, aid, tid, siteId, lgId, keepPriId1, pdIdList);
-                if(rt != Errno.OK) {
-                    Log.logErr(rt, "batchDel richText err;aid=%s;tid=%s;pdIdList=%s;", aid, tid, pdIdList);
-                    return rt;
+                if(!softDel) {
+                    RichTextProc richTextProc = new RichTextProc(flow);
+                    rt = richTextProc.batchDel(xid, aid, tid, siteId, lgId, keepPriId1, pdIdList);
+                    if(rt != Errno.OK) {
+                        Log.logErr(rt, "batchDel richText err;aid=%s;tid=%s;pdIdList=%s;", aid, tid, pdIdList);
+                        return rt;
+                    }
                 }
 
                 commit = true;

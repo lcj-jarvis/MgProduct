@@ -68,7 +68,7 @@ public class CacheCtrl {
 	 */
 	protected static String getCacheVersion(int aid){
 		String cacheVersionKey = getCacheVersionKey(aid);
-		String version = LocalTime.now().format(DateTimeFormatter.ofPattern("HHmmss"));
+		String version = LocalTime.now().format(DateTimeFormatter.ofPattern("HHmmssSSS"));
 		Object res = m_cache.getRedisClient().eval(LUA_GET_OR_SET_EXPIRE, 1, cacheVersionKey, version, String.valueOf(m_cache.getExpireSecond()));
 		version = res.toString();
 		return version;

@@ -524,7 +524,7 @@ public class SpuSummaryProc {
         if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
             throw new MgException(rt, "get sagaOpList err;flow=%d;aid=%;xid=%s;branchId=%s", m_flow, aid, xid, branchId);
         }
-        if (listRef.value.isEmpty()) {
+        if (listRef.value == null || listRef.value.isEmpty()) {
             Log.logStd("SpuSummaryProc sagaOpList is empty");
             return;
         }

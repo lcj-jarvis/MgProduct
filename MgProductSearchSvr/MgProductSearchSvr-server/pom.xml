@@ -4,7 +4,7 @@
     <parent>
         <groupId>MgProduct</groupId>
         <artifactId>MgProductSearchSvr</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.1</version>
     </parent>
     <artifactId>MgProductSearchSvr-server</artifactId>
     <packaging>jar</packaging>

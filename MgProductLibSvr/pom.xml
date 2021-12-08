@@ -17,6 +17,7 @@
 
     <artifactId>MgProductLibSvr</artifactId>
     <packaging>pom</packaging>
+    <version>1.0.1</version>
 
     <build>
         <plugins>

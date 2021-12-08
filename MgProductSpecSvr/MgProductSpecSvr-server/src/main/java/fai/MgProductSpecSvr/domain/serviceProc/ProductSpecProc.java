@@ -250,10 +250,8 @@ public class ProductSpecProc {
         if (isSaga) {
             // 根据 是否软删除 记录不同的 Saga 操作
             if(softDel) {
-                SearchArg searchArg = new SearchArg();
-                searchArg.matcher = matcher.clone();
                 Ref<FaiList<Param>> listRef = new Ref<>();
-                rt = m_daoCtrl.select(searchArg, listRef);
+                rt = getListFromDao(aid, pdIdList, listRef);
                 if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
                     Log.logErr(rt, "dao.select error;flow=%d;aid=%s;matcher=%s;", m_flow, aid, matcher.toJson());
                     return rt;

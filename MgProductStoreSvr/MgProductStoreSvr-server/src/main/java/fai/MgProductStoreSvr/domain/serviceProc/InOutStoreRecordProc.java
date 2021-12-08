@@ -1213,25 +1213,25 @@ public class InOutStoreRecordProc {
         if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
             throw new MgException(rt, "get sagaOpList err;flow=%d;aid=%;xid=%s;branchId=%s", m_flow, aid, xid, branchId);
         }
-        if (recListRef.value.isEmpty() && sumListRef.value.isEmpty()) {
-            Log.logStd("InOutStoreRecordProc sagaOpList is empty");
-            return;
+
+        if (recListRef.value != null && !recListRef.value.isEmpty()) {
+            // 按操作分类
+            Map<Integer, List<Param>> groupBySagaOp = recListRef.value.stream().collect(Collectors.groupingBy(x -> x.getInt(SagaEntity.Common.SAGA_OP)));
+
+            // 回滚删除 暂时还没有删除操作
+            // rollback4Del(aid, groupBySagaOp.get(SagaValObj.SagaOp.DEL));
+
+            // 针对 Record 回滚新增
+            rollbackRec4Add(aid, groupBySagaOp.get(SagaValObj.SagaOp.ADD));
+
+            // 回滚修改
+            rollback4Update(aid, groupBySagaOp.get(SagaValObj.SagaOp.UPDATE));
         }
 
-        // 按操作分类
-        Map<Integer, List<Param>> groupBySagaOp = recListRef.value.stream().collect(Collectors.groupingBy(x -> x.getInt(SagaEntity.Common.SAGA_OP)));
-
-        // 回滚删除 暂时还没有删除操作
-        // rollback4Del(aid, groupBySagaOp.get(SagaValObj.SagaOp.DEL));
-
-        // 针对 Record 回滚新增
-        rollbackRec4Add(aid, groupBySagaOp.get(SagaValObj.SagaOp.ADD));
-
-        // 针对 Sum 回滚新增 对汇总 Saga 操作不进行区分，因为当前汇总表是涉及分布式事务只有新增操作
-        rollbackSum4Add(aid, sumListRef.value);
-
-        // 回滚修改
-        rollback4Update(aid, groupBySagaOp.get(SagaValObj.SagaOp.UPDATE));
+        if (sumListRef.value != null && !sumListRef.value.isEmpty()) {
+            // 针对 Sum 回滚新增 对汇总 Saga 操作不进行区分，因为当前汇总表是涉及分布式事务只有新增操作
+            rollbackSum4Add(aid, sumListRef.value);
+        }
     }
 
     // 回滚新增

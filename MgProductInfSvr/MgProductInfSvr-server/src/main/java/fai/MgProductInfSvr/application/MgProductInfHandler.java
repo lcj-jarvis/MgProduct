@@ -1702,6 +1702,18 @@ public class MgProductInfHandler extends FaiHandler {
         return dataMigrateService.migrateYKService(session, flow, aid);
     }
 
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.Cmd.RESTORE_DATA)
+    public int restoreData(final FaiSession session,
+                           @ArgFlow final int flow,
+                           @ArgAid final int aid,
+                           @ArgParam(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
+                                   keyMatch = MgProductDto.Key.PRIMARY_KEY) Param primaryKey,
+                           @ArgList(keyMatch = MgProductDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
+                           @ArgBodyInteger(value = MgProductDto.Key.SYS_TYPE) int sysType) throws IOException, TransactionException {
+        return mgProductInfService.restoreData(session, flow, aid, primaryKey, rlPdIds, sysType);
+    }
+
     //MgProductInfService mgProductInfService = new MgProductInfService();
     //ProductBasicService basicService = new ProductBasicService();
     MgProductInfService mgProductInfService = ServiceProxy.create(new MgProductInfService());

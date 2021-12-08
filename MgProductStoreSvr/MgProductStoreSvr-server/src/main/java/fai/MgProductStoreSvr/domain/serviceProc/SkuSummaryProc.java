@@ -597,6 +597,33 @@ public class SkuSummaryProc {
         }
     }
 
+    public void skuSummaryProc(int aid, FaiList<Integer> pdIds, boolean isSaga) {
+        int rt;
+        if (Utils.isEmptyList(pdIds)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "arg error;pdIds is empty;flow=%d;aid=%d;", m_flow, aid);
+        }
+        if (isSaga) {
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = new ParamMatcher(SkuSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+            searchArg.matcher.and(SkuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            rt = m_daoCtrl.select(searchArg, listRef);
+            if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                throw new MgException(rt, "dao.get restore data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+            }
+            preAddUpdateSaga(aid, listRef.value);
+        }
+
+        ParamUpdater updater = new ParamUpdater(new Param().setInt(SkuSummaryEntity.Info.STATUS, SkuSummaryValObj.Status.DEFAULT));
+        ParamMatcher matcher = new ParamMatcher(SkuSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SkuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        rt = m_daoCtrl.update(updater, matcher);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "dao.restore data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+        }
+    }
+
     private static class PrimaryKey {
         int aid;
         long skuId;

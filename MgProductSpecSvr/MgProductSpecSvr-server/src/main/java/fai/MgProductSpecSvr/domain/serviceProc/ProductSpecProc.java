@@ -907,6 +907,32 @@ public class ProductSpecProc {
         Log.logStd("ok;flow=%d;aid=%d;", m_flow, aid);
     }
 
+    public void restoreData(int aid, FaiList<Integer> pdIds, boolean isSaga) {
+        int rt;
+        if (pdIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "arg error;pdIds is empty;flow=%d;aid=%d;", m_flow, aid);
+        }
+        // 开启分布式事务
+        if (isSaga) {
+            // 先获取一遍旧数据
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            rt = getListFromDao(aid, pdIds, listRef);
+            if (rt != Errno.OK) {
+                throw new MgException(Errno.ERROR, "dao.get softDel data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+            }
+            preAddUpdateSaga(aid, listRef.value);
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductSpecEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductSpecEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        ParamUpdater updater = new ParamUpdater();
+        updater.getData().setInt(ProductSpecEntity.Info.STATUS, ProductSpecValObj.Status.DEFAULT);
+        rt = m_daoCtrl.update(updater, matcher);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "dao.restoreData error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+        }
+    }
+
     public void restoreMaxId(int aid, boolean needLock) {
         m_daoCtrl.restoreMaxId(needLock);
         m_daoCtrl.clearIdBuilderCache(aid);

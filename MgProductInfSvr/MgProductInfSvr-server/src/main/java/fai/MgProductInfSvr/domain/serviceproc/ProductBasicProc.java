@@ -773,4 +773,16 @@ public class ProductBasicProc {
         }
         return pdIds;
     }
+
+    public void restoreData(int aid, int unionPriId, String xid, FaiList<Integer> rlPdIds, int sysType, FaiList<Integer> pdIds) {
+        int rt;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get ProductBasicCli error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        rt = m_cli.restoreData(aid, unionPriId, xid, rlPdIds, sysType, pdIds);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "restoreData error;flow=%d;aid=%;rlPdIds=%s", m_flow, aid, rlPdIds);
+        }
+    }
 }

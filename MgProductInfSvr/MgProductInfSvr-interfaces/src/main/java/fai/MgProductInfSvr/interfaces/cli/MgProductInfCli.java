@@ -453,4 +453,55 @@ public class MgProductInfCli extends MgProductInfCli7ForProductTag {
             stat.end(m_rt != Errno.OK, m_rt);
         }
     }
+
+    /**
+     * 恢复软删除接口：（当前使用场景的业务：门店通）
+     * 参数：主键维度 + sysType + rlPdIds
+     * MgProductArg arg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId)
+     *      .setSysType(0) // 选填，默认0
+     *      .setRlPdIds(rlPdIds) // 必填，商品id集合
+     *      .build();
+     * @return {@link Errno}
+     */
+    public int restoreData(MgProductArg mgProductArg) {
+        int rt;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            int aid = mgProductArg.getAid();
+            if (aid <= 0) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr(rt, "arg err;flow=%d;", m_flow);
+                return rt;
+            }
+            FaiList<Integer> rlPdIds = mgProductArg.getRlPdIds();
+            if (rlPdIds == null || rlPdIds.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr(rt, "rlPdIds is empty;flow=%d;aid=%d;", m_flow, aid);
+                return rt;
+            }
+
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            int sysType = mgProductArg.getSysType();
+
+            Param primaryKey = new Param();
+            primaryKey.setInt(MgProductEntity.Info.TID, tid);
+            primaryKey.setInt(MgProductEntity.Info.SITE_ID, siteId);
+            primaryKey.setInt(MgProductEntity.Info.LGID, lgId);
+            primaryKey.setInt(MgProductEntity.Info.KEEP_PRI_ID1, keepPriId1);
+
+            FaiBuffer sendBody = getDefaultFaiBuffer();
+            primaryKey.toBuffer(sendBody, MgProductDto.Key.PRIMARY_KEY, MgProductDto.getPrimaryKeyDto());
+            rlPdIds.toBuffer(sendBody, MgProductDto.Key.RL_PD_IDS);
+            sendBody.putInt(MgProductDto.Key.SYS_TYPE, sysType);
+
+            sendAndRecv(aid, MgProductInfCmd.Cmd.RESTORE_DATA, sendBody, false, false);
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
 }

@@ -822,6 +822,34 @@ public class ProductRelProc {
         return Utils.getValList(listRef.value, ProductRelEntity.Info.PD_ID);
     }
 
+    public void restoreData(int aid, FaiList<Integer> pdIds) {
+        int rt;
+        if (pdIds == null || pdIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "arg error;pdIds is empty;flow=%d", m_flow);
+        }
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        rt = m_dao.select(searchArg, listRef, ProductRelEntity.Info.UNION_PRI_ID);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "dao.get restore data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+        }
+        FaiList<Integer> unionPriIds = Utils.getValList(listRef.value, ProductRelEntity.Info.UNION_PRI_ID);
+
+        // es同步数据 预处理
+        for(int unionPriId : unionPriIds) {
+            ESUtil.batchPreLog(aid, unionPriId, pdIds, DocOplogDef.Operation.UPDATE_ONE);
+        }
+
+        ParamUpdater updater = new ParamUpdater(new Param().setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DOWN));
+        rt = m_dao.update(updater, searchArg.matcher);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "dao.restore data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+        }
+    }
+
     private class PrimaryKey {
         int aid;
         int unionPirId;

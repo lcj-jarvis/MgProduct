@@ -1874,6 +1874,75 @@ public class MgProductInfService extends ServicePub {
         }
         return rt;
     }
+
+    /**
+     * 恢复软删数据
+     * @param session session
+     * @param flow flow
+     * @param aid aid
+     * @param primaryKey 主键维度
+     * @param rlPdIds 商品业务id集合
+     * @param sysType sysType
+     * @return {@link Errno}
+     */
+    public int restoreData(FaiSession session, int flow, int aid, Param primaryKey, FaiList<Integer> rlPdIds, int sysType) throws IOException, TransactionException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+
+            int tid = primaryKey.getInt(MgProductEntity.Info.TID);
+            // todo 暂时只提供给门店通使用，后续需要在扩展
+            if (tid != FaiValObj.TermId.YK) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr(rt, "Not supported by current business;flow=%d;aid=%d;tid=%d", flow, aid, tid);
+                return rt;
+            }
+            int siteId = primaryKey.getInt(MgProductEntity.Info.SITE_ID);
+            int lgId = primaryKey.getInt(MgProductEntity.Info.LGID);
+            int keepPriId1 = primaryKey.getInt(MgProductEntity.Info.KEEP_PRI_ID1);
+
+            int unionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
+
+            // 开启全局事务
+            GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
+            tx.begin(aid, 60000, "mgProduct-importProduct", flow);
+            String xid = tx.getXid();
+            boolean commit = false;
+            try {
+                // 恢复基础信息
+                ProductBasicProc basicProc = new ProductBasicProc(flow);
+                FaiList<Integer> pdIds = new FaiList<>();
+                basicProc.restoreData(aid, unionPriId, xid, rlPdIds, sysType, pdIds);
+
+                if (pdIds.isEmpty()) {
+                    throw new MgException(rt, "not found pdIds;flow=%d;aid=%d;", flow, aid);
+                }
+
+                // 恢复商品规格相关信息
+                ProductSpecProc specProc = new ProductSpecProc(flow);
+                specProc.restoreData(aid, xid, pdIds);
+
+                // 恢复商品库存信息
+                ProductStoreProc storeProc = new ProductStoreProc(flow);
+                storeProc.restoreData(aid, xid, pdIds);
+
+                commit = true;
+                tx.commit();
+            } finally {
+                if (!commit) {
+                    tx.rollback();
+                }
+            }
+            Log.logStd("restore data ok;aid=%d;unionPriId=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            return rt;
+        } finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+    }
+
     private void filterExistsSkuCode(FaiList<Param> productList, HashSet<String> existsSkuCodeSet, FaiList<Integer> idList, Set<Param> needRemoveParamSet, FaiList<Param> errProductList){
         for (int i = 0; i < productList.size(); i++) {
             Param productInfo = productList.get(i);

@@ -1334,6 +1334,35 @@ public class ProductSpecSkuProc {
         return returnList;
     }
 
+    public void restoreData(int aid, FaiList<Integer> pdIds, boolean isSaga) {
+        int rt;
+        if (pdIds == null || pdIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "arg error;pdIds is empty");
+        }
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        rt = m_daoCtrl.select(searchArg, listRef);
+
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "dao.get softDel data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+        }
+
+        if (isSaga) {
+            preAddUpdateSaga(aid, listRef.value);
+        }
+
+        ParamUpdater updater = new ParamUpdater();
+        updater.getData().setInt(ProductSpecSkuEntity.Info.STATUS, ProductSpecSkuValObj.Status.DEFAULT);
+        rt = m_daoCtrl.update(updater, searchArg.matcher);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "dao.restore data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+        }
+    }
+
     // 回滚修改
     private void rollback4Update(int aid, List<Param> list) {
         if (fai.middleground.svrutil.misc.Utils.isEmptyList(list)) {

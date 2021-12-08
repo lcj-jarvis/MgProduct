@@ -688,6 +688,27 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
         return migrateService.migrateYKServiceDel(session, flow, aid, pdIds);
     }
 
+    @Cmd(MgProductStoreCmd.Cmd.RESTORE_DATA)
+    @WrittenCmd
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductStoreCmd.Cmd.RESTORE_DATA_ROLLBACK)
+    private int restoreData(final FaiSession session,
+                                    @ArgFlow final int flow,
+                                    @ArgAid final int aid,
+                                    @ArgBodyXid(StoreSalesSkuDto.Key.XID) String xid,
+                                    @ArgList(keyMatch = StoreSalesSkuDto.Key.PD_IDS) FaiList<Integer> pdIds) throws IOException {
+        return m_storeService.restoreData(session, flow, aid, xid, pdIds);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.REFRESH_ROLLBACK)
+    private int restoreDataRollback(final FaiSession session,
+                                             @ArgFlow final int flow,
+                                             @ArgAid final int aid,
+                                             @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                             @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return m_storeService.restoreDataRollback(session, flow, aid, xid, branchId);
+    }
+
     private static final String CLI_NAME = "MgProductStoreCli";
     private StoreService m_storeService = ServiceProxy.create(new StoreService());
     private StoreSalesSkuService m_storeSalesSkuService = ServiceProxy.create(new StoreSalesSkuService());

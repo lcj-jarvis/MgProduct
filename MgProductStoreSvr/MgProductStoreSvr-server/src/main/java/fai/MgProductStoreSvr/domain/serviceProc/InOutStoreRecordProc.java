@@ -1,10 +1,7 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
 import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
-import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordEntity;
-import fai.MgProductStoreSvr.domain.entity.InOutStoreRecordValObj;
-import fai.MgProductStoreSvr.domain.entity.InOutStoreSumEntity;
-import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuEntity;
+import fai.MgProductStoreSvr.domain.entity.*;
 import fai.MgProductStoreSvr.domain.repository.dao.InOutStoreRecordDaoCtrl;
 import fai.MgProductStoreSvr.domain.repository.dao.saga.InOutStoreRecordSagaDaoCtrl;
 import fai.MgProductStoreSvr.domain.repository.dao.InOutStoreSumDaoCtrl;
@@ -967,6 +964,33 @@ public class InOutStoreRecordProc {
         }
         Log.logStd(rt, "ok;flow=%d;aid=%s;unionPriId=%s;matcher=%s;", m_flow, aid, unionPriId, searchArg.matcher.toJson());
         return rt;
+    }
+
+    public void restoreData(int aid, FaiList<Integer> pdIds, boolean isSaga) {
+        int rt;
+        if (Utils.isEmptyList(pdIds)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "arg error;pdIds is empty;flow=%d;aid=%d;", m_flow, aid);
+        }
+        if (isSaga) {
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
+            searchArg.matcher.and(InOutStoreRecordEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            rt = m_daoCtrl.select(searchArg, listRef);
+            if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                throw new MgException(rt, "dao.get restore data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+            }
+            preAddUpdateSaga(aid, listRef.value);
+        }
+
+        ParamUpdater updater = new ParamUpdater(new Param().setInt(InOutStoreRecordEntity.Info.STATUS, InOutStoreRecordValObj.Status.DEFAULT));
+        ParamMatcher matcher = new ParamMatcher(InOutStoreRecordEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(InOutStoreRecordEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        rt = m_daoCtrl.update(updater, matcher);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "dao.restore data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+        }
     }
 
     public int clearIdBuilderCache(int aid){

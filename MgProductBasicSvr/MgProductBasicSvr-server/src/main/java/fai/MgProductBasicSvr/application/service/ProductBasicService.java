@@ -3585,6 +3585,83 @@ public class ProductBasicService extends BasicParentService {
         Log.logStd("do clone ok;toAid=%s;fromAid=%s;inc=%s;cloneUids=%s;", toAid, fromAid, incrementalClone, cloneUnionPriIds);
     }
 
+    @SuccessRt(Errno.OK)
+    public int restoreData(FaiSession session, int flow, int aid, int unionPriId, String xid, FaiList<Integer> rlPdIds, int sysType) throws IOException {
+        int rt;
+        if (aid <=0 || rlPdIds == null || rlPdIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args error;flow=%d;aid=%d;rlPdIds=%s;", flow, aid, rlPdIds);
+        }
+        FaiList<Integer> pdIds = new FaiList<>();
+        LockUtil.lock(aid);
+        try {
+            TransactionCtrl tc = new TransactionCtrl(false);
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+                // xid 不会空，则开启分布式事务，saga添加一条记录
+                if (!Str.isEmpty(xid)) {
+                    SagaProc sagaProc = new SagaProc(flow, aid, tc);
+                    sagaProc.addInfo(aid, xid);
+                }
+                ProductRelProc relProc = new ProductRelProc(flow, aid, tc, xid, true);
+                // 获取 pdIds
+                pdIds = relProc.getPdIds(aid, unionPriId, sysType, new HashSet<>(rlPdIds));
+                // 恢复业务表数据
+                ParamUpdater updater = new ParamUpdater(new Param().setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DOWN));
+                relProc.restoreData(aid, pdIds);
+
+                // 恢复基础表数据
+                ProductProc productProc = new ProductProc(flow, aid, tc, xid, true);
+                productProc.setProducts(aid, pdIds, updater);
+
+                relProc.transactionEnd(aid);
+                commit = true;
+                // 提交前设置下临时过期时间
+                CacheCtrl.setExpire(aid);
+                tc.commit();
+            } finally {
+                if (!commit) {
+                    tc.rollback();
+                }
+                tc.closeDao();
+            }
+            // 删除缓存
+            CacheCtrl.clearCacheVersion(aid);
+
+            // 同步修改给es
+            ESUtil.commitPre(flow, aid);
+        } finally {
+            LockUtil.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuff = new FaiBuffer(true);
+        pdIds.toBuffer(sendBuff, ProductRelDto.Key.PD_IDS);
+        session.write(sendBuff);
+        Log.logStd("restore data ok;flow=%d;aid=%d;unionPriId=%d;rlPdIds=%s;", flow, aid, unionPriId, rlPdIds);
+        return rt;
+    }
+
+    @SuccessRt(Errno.OK)
+    public int restoreDataRollback(FaiSession session, int flow, int aid, String xid, long branchId) throws IOException {
+        SagaRollback sagaRollback = (tc) -> {
+            // 回滚商品业务关系表数据
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc, xid, false);
+            relProc.rollback4Saga(aid, branchId);
+
+            ProductProc productProc = new ProductProc(flow, aid, tc, xid, false);
+            productProc.rollback4Saga(aid, branchId, relProc);
+        };
+
+        int branchStatus = doRollback(flow, aid, xid, branchId, sagaRollback);
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, branchStatus);
+        session.write(sendBuf);
+        return Errno.OK;
+    }
+
+
     private SagaRollback getAddRollback(int flow, int aid, String xid, long branchId, boolean isBindRel) {
         SagaRollback sagaRollback = (tc) -> {
             // 回滚商品业务关系表数据

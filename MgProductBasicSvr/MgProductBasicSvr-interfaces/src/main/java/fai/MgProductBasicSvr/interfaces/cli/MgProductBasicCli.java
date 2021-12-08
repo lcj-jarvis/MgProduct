@@ -3491,4 +3491,44 @@ public class MgProductBasicCli extends FaiClient {
             stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
         }
     }
+
+    /**
+     * 恢复软删除数据
+     */
+    public int restoreData(int aid, int unionPriId, String xid, FaiList<Integer> rlPdIds, int sysType, FaiList<Integer> pdIds) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0 || rlPdIds == null || rlPdIds.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;aid=%d;unionPriId=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
+                return m_rt;
+            }
+
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putString(ProductRelDto.Key.XID, xid);
+            rlPdIds.toBuffer(sendBody, ProductRelDto.Key.RL_PD_IDS);
+            sendBody.putInt(ProductRelDto.Key.SYS_TYPE, sysType);
+
+            Param result = sendAndReceive(aid, MgProductBasicCmd.Cmd.RESTORE_DATA, sendBody, true);
+            Boolean success = result.getBoolean("success");
+            if (!success) {
+                return m_rt;
+            }
+
+            // recv info
+            FaiBuffer recvBody = (FaiBuffer) result.getObject("recvBody");
+            Ref<Integer> keyRef = new Ref<>();
+            m_rt = pdIds.fromBuffer(recvBody, keyRef);
+            if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.PD_IDS) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
 }

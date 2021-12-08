@@ -80,6 +80,8 @@ public class MgProductBasicCmd {
         public static final int NUM38 = 1038; /** @see BasicCmd#SET_SORT */
         public static final int NUM39 = 1039; /** @see BasicCmd#BATCH_BIND_PDS_REL */
         public static final int NUM40 = 1040; /** @see BasicCmd#GET_REDUCED_LIST_BY_NAME */
+        public static final int NUM41 = 1041; /** @see Cmd#RESTORE_DATA */
+        public static final int NUM42 = 1042; /** @see Cmd#RESTORE_DATA_ROLLBACK */
     }
 
     /**
@@ -167,5 +169,7 @@ public class MgProductBasicCmd {
         public static final int CLONE = WriteCmdNum.NUM35;
         public static final int INCR_CLONE = WriteCmdNum.NUM36;
         public static final int MIGRATE_GET = ReadCmdNum.NUM29;
+        public static final int RESTORE_DATA = WriteCmdNum.NUM41;
+        public static final int RESTORE_DATA_ROLLBACK = WriteCmdNum.NUM42;
     }
 }

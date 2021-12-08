@@ -2,6 +2,7 @@ package fai.MgProductStoreSvr.domain.serviceProc;
 
 import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryValObj;
 import fai.MgProductStoreSvr.domain.entity.SpuSummaryEntity;
+import fai.MgProductStoreSvr.domain.entity.SpuSummaryValObj;
 import fai.MgProductStoreSvr.domain.repository.cache.SpuSummaryCacheCtrl;
 import fai.MgProductStoreSvr.domain.repository.dao.SpuSummaryDaoCtrl;
 import fai.MgProductStoreSvr.domain.repository.dao.saga.SpuSummarySagaDaoCtrl;
@@ -388,6 +389,33 @@ public class SpuSummaryProc {
         int rt = m_daoCtrl.delete(matcher);
         if (rt != Errno.OK) {
             throw new MgException(rt, "dao.migrateYKDel error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher);
+        }
+    }
+
+    public void restoreData(int aid, FaiList<Integer> pdIds, boolean isSaga) {
+        int rt;
+        if (Utils.isEmptyList(pdIds)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "arg error;pdIds is empty;flow=%d;aid=%d;", m_flow, aid);
+        }
+        if (isSaga) {
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = new ParamMatcher(SpuSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+            searchArg.matcher.and(SpuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            rt = m_daoCtrl.select(searchArg, listRef);
+            if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                throw new MgException(rt, "dao.get restore data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+            }
+            preAddUpdateSaga(aid, listRef.value);
+        }
+
+        ParamUpdater updater = new ParamUpdater(new Param().setInt(SpuSummaryEntity.Info.STATUS, SpuSummaryValObj.Status.DEFAULT));
+        ParamMatcher matcher = new ParamMatcher(SpuSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SpuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        rt = m_daoCtrl.update(updater, matcher);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "dao.restore data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
         }
     }
 

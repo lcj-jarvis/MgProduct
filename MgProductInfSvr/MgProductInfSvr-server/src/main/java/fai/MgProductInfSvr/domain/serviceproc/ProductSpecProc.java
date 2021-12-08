@@ -469,6 +469,18 @@ public class ProductSpecProc extends AbstractProductProc {
         return returnList;
     }
 
+    public void restoreData(int aid, String xid, FaiList<Integer> pdIds) {
+        int rt;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get MgProductSpecCli error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        rt = m_cli.restoreData(aid, xid, pdIds);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "restoreData error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+        }
+    }
+
     private int m_flow;
     private MgProductSpecCli m_cli;
 }

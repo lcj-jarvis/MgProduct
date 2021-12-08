@@ -4,7 +4,6 @@ package fai.MgProductSpecSvr.domain.repository;
 import fai.MgProductSpecSvr.domain.entity.ProductSpecEntity;
 import fai.MgProductSpecSvr.interfaces.dto.ProductSpecDto;
 import fai.comm.util.FaiList;
-import fai.comm.util.Log;
 import fai.comm.util.Param;
 import fai.comm.util.Var;
 
@@ -58,14 +57,19 @@ public class ProductSpecCacheCtrl extends CacheCtrl {
 		m_cache.expire(cacheKey, DIRTY_EXPIRE_SECOND);
 	}
 
-
+	public static void setCacheDirty(int aid, FaiList<Integer> pdIds) {
+		if (pdIds == null || pdIds.isEmpty()) {
+			return;
+		}
+		for (Integer pdId : pdIds) {
+			String cacheKey = getCacheKey(aid, pdId);
+			m_cache.expire(cacheKey, 1);
+		}
+	}
 
 	private static String getCacheKey(int aid, int pdId){
 		return wrapCacheVersion(CACHE_KEY_PREFIX+":"+aid+"-"+pdId, aid);
 	}
 
 	private static final String CACHE_KEY_PREFIX = "MG_productSpec";
-
-
-
 }

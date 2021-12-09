@@ -53,9 +53,9 @@
         <fai-comm-job-ver>1.0.0</fai-comm-job-ver>
         <!--中台-->
         <fai-comm-middleground-ver>1.0.5</fai-comm-middleground-ver>
-        <fai-middleground-infutil-ver>1.0.0</fai-middleground-infutil-ver>
+        <fai-middleground-infutil-ver>1.0.1</fai-middleground-infutil-ver>
         <fai-middleground-svrutil-ver>1.2.3</fai-middleground-svrutil-ver>
-        <MgCommon-MgPrimaryKeySvr-interfaces-ver>1.0.0</MgCommon-MgPrimaryKeySvr-interfaces-ver>
+        <MgCommon-MgPrimaryKeySvr-interfaces-ver>1.0.2</MgCommon-MgPrimaryKeySvr-interfaces-ver>
         <MgCommon-MgBackupSvr-interfaces-ver>1.0.0</MgCommon-MgBackupSvr-interfaces-ver>
         <MgProduct-MgProductInfSvr-interfaces-ver>[1.0.0, 2.0.0)</MgProduct-MgProductInfSvr-interfaces-ver>
         <MgProduct-MgProductPropSvr-interfaces-ver>1.0.0</MgProduct-MgProductPropSvr-interfaces-ver>
@@ -68,7 +68,7 @@
         <MgProduct-MgProductTagSvr-interfaces-ver>1.0.0</MgProduct-MgProductTagSvr-interfaces-ver>
         <MgProduct-MgProductComm-ver>1.0.0</MgProduct-MgProductComm-ver>
         <MgProduct-MgProductInfUtil-ver>1.0.0</MgProduct-MgProductInfUtil-ver>
-        <MgRichText-MgRichTextInfSvr-ver>[1.0.0, 2.0.0)</MgRichText-MgRichTextInfSvr-ver>
+        <MgRichText-MgRichTextInfSvr-ver>1.0.0</MgRichText-MgRichTextInfSvr-ver>
     </properties>
 
     <distributionManagement>

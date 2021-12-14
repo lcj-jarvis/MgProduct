@@ -65,6 +65,7 @@ public class ProductSpecDto {
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.STATUS, 11, Var.Type.INT);
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SKU_CODE_LIST, 12, Var.Type.FAI_LIST);
             g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.SPU, 13, Var.Type.BOOLEAN);
+            g_dtoDef.add(ProductSpecEntity.SpecSkuInfo.IN_PD_SC_LIST, 14, Var.Type.FAI_LIST);
         }
         public static ParamDef getInfoDto() {
             return g_dtoDef;

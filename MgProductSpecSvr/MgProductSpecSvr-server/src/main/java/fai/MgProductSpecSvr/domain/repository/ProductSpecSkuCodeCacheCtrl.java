@@ -162,7 +162,7 @@ public class ProductSpecSkuCodeCacheCtrl extends CacheCtrl {
         }
 
         public static String getCacheKey(int aid, int unionPriId) {
-            return wrapCacheVersion(CACHE_KEY_PREFIX + "-ds:" + aid + "-" + unionPriId, aid);
+            return wrapCacheVersion(CACHE_KEY_PREFIX + "-ds:" + aid, aid);
         }
     }
 

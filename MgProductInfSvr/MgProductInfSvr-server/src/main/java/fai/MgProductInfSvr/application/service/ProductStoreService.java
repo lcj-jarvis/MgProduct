@@ -1715,7 +1715,7 @@ public class ProductStoreService extends MgProductInfService {
             }
             // 如果是总部查汇总数据，因为汇总数据没有rlPdId，所以需要转换设置下
             if(infoList.size() > 0 && !isBiz){
-                if(pdIdRlPdIdMap == null){
+                {
                     Set<Integer> pdIdSet = new HashSet<>();
                     for (Param info : infoList) {
                         Integer pdId = info.getInt(SkuSummaryEntity.Info.PD_ID); //转化为PdId

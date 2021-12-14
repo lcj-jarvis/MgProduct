@@ -30,6 +30,9 @@ public class MgProductEntity {
 
         public static final String PD_ID = "pdId";                          // int 商品id 商品中台内部使用
         public static final String RL_PD_ID = "rlPdId";                     // int 商品业务id 商品中台内部使用
+        public static final String ADD_SPEC = "addSpec";                    // FaiList<Param>
+        public static final String DEL_SPEC = "delSpec";                    // FaiList<Integer>
+        public static final String UP_SPEC = "upSpec";                      // FaiList<ParamUpdater>
     }
 
     /**

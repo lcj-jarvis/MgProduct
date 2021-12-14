@@ -14,6 +14,9 @@ public class MgProductDto {
         g_infoDtoDef.add(MgProductEntity.Info.STORE_SALES, 3, ProductStoreDto.StoreSalesSku.getInfoDto());
         g_infoDtoDef.add(MgProductEntity.Info.ERRNO, 4, Var.Type.INT);
         g_infoDtoDef.add(MgProductEntity.Info.SPU_SALES, 5, ProductStoreDto.SpuBizSummary.getInfoDto());
+        g_infoDtoDef.add(MgProductEntity.Info.ADD_SPEC, 6, ProductSpecDto.Spec.getInfoDto());
+        g_infoDtoDef.add(MgProductEntity.Info.DEL_SPEC, 7, ProductSpecDto.Spec.getInfoDto());
+        g_infoDtoDef.add(MgProductEntity.Info.UP_SPEC, 8, ProductSpecDto.Spec.getInfoDto());
     }
     public static ParamDef getInfoDto() {
         return g_infoDtoDef;

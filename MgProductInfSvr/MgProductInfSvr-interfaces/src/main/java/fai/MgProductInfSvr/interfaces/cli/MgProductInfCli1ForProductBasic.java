@@ -1053,19 +1053,6 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 return m_rt;
             }
 
-            FaiList<Param> addSpecList = mgProductArg.getAddList();
-            if (addSpecList == null) {
-                addSpecList = new FaiList<Param>();
-            }
-            FaiList<Integer> delList = mgProductArg.getDelIdList();
-            if (delList == null) {
-                delList = new FaiList<Integer>();
-            }
-            FaiList<ParamUpdater> updaterSpecList = mgProductArg.getUpdaterList();
-            if (updaterSpecList == null) {
-                updaterSpecList = new FaiList<ParamUpdater>();
-            }
-
             int tid = mgProductArg.getTid();
             int siteId = mgProductArg.getSiteId();
             int lgId = mgProductArg.getLgId();
@@ -1081,9 +1068,6 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             }
             sendBody.putInt(ProductBasicDto.Key.RL_PD_ID, rlPdId);
             combinedUpdater.toBuffer(sendBody, ProductBasicDto.Key.UPDATER, MgProductDto.getInfoDto());
-            addSpecList.toBuffer(sendBody, ProductBasicDto.Key.ADD_SPEC, ProductSpecDto.Spec.getInfoDto());
-            delList.toBuffer(sendBody, ProductBasicDto.Key.PD_SC_ID);
-            updaterSpecList.toBuffer(sendBody, ProductBasicDto.Key.UPDATER_SPEC, ProductSpecDto.Spec.getInfoDto());
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.BasicCmd.SET_PD_INFO, sendBody, false, false);
             return m_rt;

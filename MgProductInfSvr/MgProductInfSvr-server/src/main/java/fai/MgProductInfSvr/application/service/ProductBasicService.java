@@ -997,7 +997,7 @@ public class ProductBasicService extends MgProductInfService {
     /**
      *  修改商品数据 包括 规格、库存、分类、标签
      */
-    public int setProductInfo(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, String xid, Integer rlPdId, Param combinedUpdater, FaiList<Param> addSpecList, FaiList<Integer> delPdScIds, FaiList<ParamUpdater> updaterSpecList) throws IOException, TransactionException {
+    public int setProductInfo(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, String xid, Integer rlPdId, Param combinedUpdater) throws IOException, TransactionException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -1042,8 +1042,13 @@ public class ProductBasicService extends MgProductInfService {
                 FaiList<ParamUpdater> specSkuUpdaterList = combinedUpdater.getList(MgProductEntity.Info.SPEC_SKU);
                 FaiList<ParamUpdater> storeUpdaters = combinedUpdater.getList(MgProductEntity.Info.STORE_SALES);
                 ParamUpdater spuUpdater = (ParamUpdater) combinedUpdater.getObject(MgProductEntity.Info.SPU_SALES);
+                FaiList<Param> addSpecList = combinedUpdater.getListNullIsEmpty(MgProductEntity.Info.ADD_SPEC);
+                FaiList<Integer> delPdScIds = combinedUpdater.getListNullIsEmpty(MgProductEntity.Info.DEL_SPEC);
+                FaiList<ParamUpdater> updaterSpecList = combinedUpdater.getListNullIsEmpty(MgProductEntity.Info.UP_SPEC);
                 int pdId = 0;
-                if(!Utils.isEmptyList(specSkuUpdaterList) || !Utils.isEmptyList(storeUpdaters) || !Utils.isEmptyList(remarkList) || (spuUpdater != null && !spuUpdater.isEmpty())) {
+                if(!Utils.isEmptyList(specSkuUpdaterList) || !Utils.isEmptyList(storeUpdaters)
+                        || !Utils.isEmptyList(remarkList) || (spuUpdater != null && !spuUpdater.isEmpty())
+                        || !Utils.isEmptyList(addSpecList) || !Utils.isEmptyList(delPdScIds) || !Utils.isEmptyList(updaterSpecList)) {
                     // 获取 pdId
                     idRef.value = null;
                     rt = getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
@@ -1053,7 +1058,7 @@ public class ProductBasicService extends MgProductInfService {
                     pdId = idRef.value;
                 }
 
-                /** 规格、规格sku修改, 同时刷新销售sku start */
+                /** 规格修改, 同时刷新销售sku start */
                 if (!addSpecList.isEmpty() || !delPdScIds.isEmpty() || !updaterSpecList.isEmpty()) {
                     ProductSpecProc productSpecProc = new ProductSpecProc(flow);
                     FaiList<Param> pdScSkuInfoList = new FaiList<>();
@@ -1087,6 +1092,16 @@ public class ProductBasicService extends MgProductInfService {
                     }
                 }
                 /** 规格、规格sku修改，同时刷新销售sku end */
+
+                /** 规格SKU 修改 start */
+                if (!Utils.isEmptyList(specSkuUpdaterList)) {
+                    ProductSpecProc productSpecProc = new ProductSpecProc(flow);
+                    rt = productSpecProc.setPdSkuScInfoList(aid, tid, unionPriId, xid, pdId, specSkuUpdaterList);
+                    if(rt != Errno.OK) {
+                        return rt;
+                    }
+                }
+                /** 规格SKU 修改 end */
 
                 /** 库存信息修改 start */
                 if (!Utils.isEmptyList(storeUpdaters)) {

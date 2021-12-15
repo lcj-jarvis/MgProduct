@@ -1,0 +1,20 @@
+stages:
+  - dev
+  - dep
+dev:
+  stage: dev      # stage
+  only:
+    - master          # branch support regex
+  script:
+    - ssh -p 50805 faier@dev0.faidev.cc << ssh
+    - /usr/bin/python /home/faier/script/cicd/cicd_mg.py -g mgproduct -t svr -b master
+    - ssh
+
+dep:
+  stage: dep      # stage
+  only:
+    - pre-production          # branch support regex
+  script:
+    - ssh -p 50805 faier@dep0.faisvr.cc << ssh
+    - /usr/bin/python /home/faier/script/cicd/cicd_mg.py -g mgproduct -t svr -b pre-production
+    - ssh

@@ -10,7 +10,6 @@ target
 *.releaseBackup
 *.tag
 
-yml
 .idea
 *.jar
 *.war

@@ -256,7 +256,7 @@ public class ProductBasicService extends BasicParentService {
             return rt;
         }
         Param updateInfo = updater.getData();
-        if(Str.isEmpty(updateInfo)) {
+        if(updater.isEmpty()) {
             rt = Errno.ARGS_ERROR;
             Log.logErr(rt, "args error, update is empty;flow=%d;aid=%d;ownUid=%d;uids=%s;rlPdIds=%s;updater=%s;", flow, aid, ownUnionPriId, unionPriIds, rlPdIds, updater.toJson());
             return rt;

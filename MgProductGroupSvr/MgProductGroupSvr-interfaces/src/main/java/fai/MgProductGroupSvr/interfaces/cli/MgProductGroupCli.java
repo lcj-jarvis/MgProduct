@@ -25,22 +25,10 @@ public class MgProductGroupCli extends FaiClient {
         return init("MgProductGroupCli", true);
     }
 
-    public static boolean useProductGroup() {
-        Param mgSwitch = MgConfPool.getEnvConf("mgSwitch");
-        if (Str.isEmpty(mgSwitch)) {
-            return false;
-        }
-        boolean useProductGroup = mgSwitch.getBoolean("useProductGroup", false);
-        return useProductGroup;
-    }
-
     /**
      * 新增商品数据，并添加与当前unionPriId的关联
      */
     public int addProductGroup(int aid, int tid, int unionPriId, Param info, int sysType, Ref<Integer> groupIdRef, Ref<Integer> rlGroupIdRef) {
-        if (!useProductGroup()) {
-            return Errno.OK;
-        }
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -114,9 +102,6 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int getGroupList(int aid, int unionPriId, SearchArg searchArg, FaiList<Param> list) {
-        if (!useProductGroup()) {
-            return Errno.OK;
-        }
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -183,9 +168,6 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int setGroupList(int aid, int tid, int unionPriId, int sysType, FaiList<ParamUpdater> updaterList) {
-        if (!useProductGroup()) {
-            return Errno.OK;
-        }
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -237,9 +219,6 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int delGroupList(int aid, int unionPriId, FaiList<Integer> idList, int sysType, boolean softDel) {
-        if (!useProductGroup()) {
-            return Errno.OK;
-        }
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -291,9 +270,6 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int getGroupRelDataStatus(int aid, int unionPriId, Param statusInfo) {
-        if (!useProductGroup()) {
-            return Errno.OK;
-        }
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -349,9 +325,6 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int searchGroupRelFromDb(int aid, int unionPriId, SearchArg searchArg, FaiList<Param> list) {
-        if (!useProductGroup()) {
-            return Errno.OK;
-        }
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -418,9 +391,6 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int getAllGroupRel(int aid, int unionPriId, FaiList<Param> list) {
-        if (!useProductGroup()) {
-            return Errno.OK;
-        }
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -477,9 +447,6 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int unionSetGroupList(int aid, int tid, int unionPriId, FaiList<Param> addList, FaiList<ParamUpdater> updaterList, FaiList<Integer> delList, int sysType, boolean softDel, Ref<FaiList<Integer>> rlGroupIdsRef) {
-        if (!useProductGroup()) {
-            return Errno.OK;
-        }
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -559,9 +526,6 @@ public class MgProductGroupCli extends FaiClient {
      * 修改分类 （包含 增删改）
      */
     public int setAllGroupList(int aid, int tid, int unionPriId, FaiList<Param> treeDataList, int sysType, int groupLevel, boolean softDel, Ref<FaiList<Integer>> delRlGroupIdsRef) {
-        if (!useProductGroup()) {
-            return Errno.OK;
-        }
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -630,9 +594,6 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int cloneData(int aid, int fromAid, FaiList<Param> cloneUnionPriIds) {
-        if (!useProductGroup()) {
-            return Errno.OK;
-        }
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -677,9 +638,6 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int incrementalClone(int aid, int unionPriId, int fromAid, int fromUnionPriId) {
-        if (!useProductGroup()) {
-            return Errno.OK;
-        }
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -725,9 +683,6 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int backupData(int aid, FaiList<Integer> unionPriIds, Param backupInfo) {
-        if (!useProductGroup()) {
-            return Errno.OK;
-        }
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -772,9 +727,6 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int restoreBackupData(int aid, FaiList<Integer> unionPriIds, int restoreId, Param backupInfo) {
-        if (!useProductGroup()) {
-            return Errno.OK;
-        }
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -820,9 +772,6 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int delBackupData(int aid, Param backupInfo) {
-        if (!useProductGroup()) {
-            return Errno.OK;
-        }
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -866,9 +815,6 @@ public class MgProductGroupCli extends FaiClient {
     }
 
     public int clearAcct(int aid, FaiList<Integer> unionPriIds) {
-        if (!useProductGroup()) {
-            return Errno.OK;
-        }
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {

@@ -150,12 +150,10 @@ public class ProductBasicService extends BasicParentService {
             result = assignPdInfo(relInfo, pdInfo);
 
             // 获取绑定分类
-            if(useProductGroup()) {
-                ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
-                FaiList<Param> bindGroups = bindGroupProc.getPdBindGroupList(aid, unionPriId, new FaiList<>(Arrays.asList(pdId)));
-                FaiList<Integer> bindGroupIds = Utils.getValList(bindGroups, ProductBindGroupEntity.Info.RL_GROUP_ID);
-                result.setList(ProductRelEntity.Info.RL_GROUP_IDS, bindGroupIds);
-            }
+            ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+            FaiList<Param> bindGroups = bindGroupProc.getPdBindGroupList(aid, unionPriId, new FaiList<>(Arrays.asList(pdId)));
+            FaiList<Integer> bindGroupIds = Utils.getValList(bindGroups, ProductBindGroupEntity.Info.RL_GROUP_ID);
+            result.setList(ProductRelEntity.Info.RL_GROUP_IDS, bindGroupIds);
 
             // 获取绑定标签
             if(useProductTag()) {
@@ -380,15 +378,13 @@ public class ProductBasicService extends BasicParentService {
                 relProc.cloneBizBind(aid, fromUnionPriId, toUnionPriId, silentDel);
 
                 // 克隆分类关联数据
-                if(useProductGroup()) {
-                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
-                    bindGroupProc.cloneBizBind(aid, fromUnionPriId, toUnionPriId);
-                }
+                ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                bindGroupProc.cloneBizBind(aid, fromUnionPriId, toUnionPriId);
 
                 // 克隆标签关联数据
                 if(useProductTag()) {
-                    ProductBindTagProc bindGroupProc = new ProductBindTagProc(flow, aid, tc);
-                    bindGroupProc.cloneBizBind(aid, fromUnionPriId, toUnionPriId);
+                    ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
+                    bindTagProc.cloneBizBind(aid, fromUnionPriId, toUnionPriId);
                 }
 
                 // 克隆参数关联数据
@@ -453,15 +449,13 @@ public class ProductBasicService extends BasicParentService {
                 delCount = relProc.delProductRel(aid, unionPriId, delPdIds, softDel);
                 // 删除参数、分类、标签关联数据
                 if(!softDel) {
-                    if(useProductGroup()) {
-                        ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
-                        delGroupCount = bindGroupProc.delPdBindGroupList(aid, unionPriId, delPdIds);
-                    }
+                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                    delGroupCount = bindGroupProc.delPdBindGroupList(aid, unionPriId, delPdIds);
 
                     if(useProductTag()) {
-                        ProductBindTagProc bindGroupProc = new ProductBindTagProc(flow, aid, tc);
+                        ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
                         ProductBindTagCache.setExpire(aid, unionPriId, delPdIds);
-                        delGroupCount = bindGroupProc.delPdBindTagList(aid, unionPriId, delPdIds);
+                        delGroupCount = bindTagProc.delPdBindTagList(aid, unionPriId, delPdIds);
                     }
 
                     ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
@@ -562,11 +556,9 @@ public class ProductBasicService extends BasicParentService {
                     ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc, xid, true);
                     bindPropProc.delPdBindProp(aid, pdIdList);
 
-                    if(useProductGroup()) {
-                        // 删除分类关联
-                        ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, true);
-                        bindGroupProc.delPdBindGroupList(aid, pdIdList);
-                    }
+                    // 删除分类关联
+                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, true);
+                    bindGroupProc.delPdBindGroupList(aid, pdIdList);
 
                     if(useProductTag()) {
                         // 删除标签关联
@@ -621,10 +613,8 @@ public class ProductBasicService extends BasicParentService {
             bindPropProc.rollback4Saga(aid, branchId);
 
             // 回滚绑定分类
-            if(useProductGroup()) {
-                ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, false);
-                bindGroupProc.rollback4Saga(aid, branchId);
-            }
+            ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, false);
+            bindGroupProc.rollback4Saga(aid, branchId);
 
             // 回滚绑定标签
             if(useProductTag()) {
@@ -666,12 +656,10 @@ public class ProductBasicService extends BasicParentService {
                     delMatcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
                     bindPropProc.delPdBindProp(aid, delMatcher);
 
-                    if(useProductGroup()) {
-                        // 删除分类关联
-                        ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
-                        // 删除当前unionPriId的数据
-                        bindGroupProc.delPdBindGroup(aid, unionPriId, null);
-                    }
+                    // 删除分类关联
+                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                    // 删除当前unionPriId的数据
+                    bindGroupProc.delPdBindGroup(aid, unionPriId, null);
 
                     if(useProductTag()) {
                         // 删除标签关联
@@ -738,10 +726,8 @@ public class ProductBasicService extends BasicParentService {
                 bindPropProc.clearAcct(aid, unionPriIds);
 
                 // 删除分类关联
-                if(useProductGroup()) {
-                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
-                    bindGroupProc.clearAcct(aid, unionPriIds);
-                }
+                ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                bindGroupProc.clearAcct(aid, unionPriIds);
 
                 //删除标签关联
                 if(useProductTag()) {
@@ -1026,10 +1012,8 @@ public class ProductBasicService extends BasicParentService {
             bindPropProc.rollback4Saga(aid, branchId);
 
             // 回滚绑定分类
-            if(useProductGroup()) {
-                ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, false);
-                bindGroupProc.rollback4Saga(aid, branchId);
-            }
+            ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, false);
+            bindGroupProc.rollback4Saga(aid, branchId);
 
             // 回滚绑定标签
             if(useProductTag()) {
@@ -1190,12 +1174,10 @@ public class ProductBasicService extends BasicParentService {
 
             // 绑定分类
             Map<Integer, List<Param>> bindGroupMap = new HashMap<>();
-            if(useProductGroup()) {
-                ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
-                FaiList<Param> bindGroups = bindGroupProc.getPdBindGroupList(aid, unionPriId, pdIds);
-                if(!Utils.isEmptyList(bindGroups)) {
-                    bindGroupMap = bindGroups.stream().collect(Collectors.groupingBy(x -> x.getInt(ProductBindGroupEntity.Info.PD_ID)));
-                }
+            ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+            FaiList<Param> bindGroups = bindGroupProc.getPdBindGroupList(aid, unionPriId, pdIds);
+            if(!Utils.isEmptyList(bindGroups)) {
+                bindGroupMap = bindGroups.stream().collect(Collectors.groupingBy(x -> x.getInt(ProductBindGroupEntity.Info.PD_ID)));
             }
 
             // 数据整合
@@ -1212,8 +1194,8 @@ public class ProductBasicService extends BasicParentService {
                 // 整合绑定分类表数据
                 List<Param> bindGroupsTemp = bindGroupMap.get(pdId);
                 if(bindGroupsTemp != null) {
-                    FaiList<Param> bindGroups = new FaiList<>(bindGroupsTemp);
-                    FaiList<Integer> rlGroupIds = Utils.getValList(bindGroups, ProductBindGroupEntity.Info.RL_GROUP_ID);
+                    FaiList<Param> curBindGroups = new FaiList<>(bindGroupsTemp);
+                    FaiList<Integer> rlGroupIds = Utils.getValList(curBindGroups, ProductBindGroupEntity.Info.RL_GROUP_ID);
                     info.setList(ProductRelEntity.Info.RL_GROUP_IDS, rlGroupIds);
                 }
 
@@ -1480,7 +1462,7 @@ public class ProductBasicService extends BasicParentService {
                 }
 
                 // 新增商品分类绑定关系
-                if(useProductGroup() && !Utils.isEmptyList(rlGroupIds)) {
+                if(!Utils.isEmptyList(rlGroupIds)) {
                     ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, true);
                     bindGroupProc.addPdBindGroupList(aid, unionPriId, sysType, rlPdId, pdId, rlGroupIds);
                     Log.logStd("add bind groupIds ok;flow=%d;aid=%d;uid=%d;rlPdId=%d;pdId=%d;rlGroupIds=%s;", flow, aid, unionPriId, rlPdId, pdId, rlGroupIds);
@@ -1990,7 +1972,7 @@ public class ProductBasicService extends BasicParentService {
 
                     // 新增商品分类绑定关系
                     FaiList<Integer> rlGroupIds = info.getList(ProductRelEntity.Info.RL_GROUP_IDS);
-                    if(useProductGroup() && !Utils.isEmptyList(rlGroupIds)) {
+                    if(!Utils.isEmptyList(rlGroupIds)) {
                         ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, true);
                         bindGroupProc.addPdBindGroupList(aid, unionPriId, sysType, rlPdId, pdId, rlGroupIds);
                         Log.logStd("add bind groupIds ok;flow=%d;aid=%d;uid=%d;rlPdId=%d;pdId=%d;rlGroupIds=%s;", flow, aid, unionPriId, rlPdId, pdId, rlGroupIds);
@@ -2465,7 +2447,7 @@ public class ProductBasicService extends BasicParentService {
                         }
 
                         // 新增商品分类绑定关系
-                        if(useProductGroup() && !Utils.isEmptyList(rlGroupIds)) {
+                        if(!Utils.isEmptyList(rlGroupIds)) {
                             bindGroupProc.addPdBindGroupList(aid, unionPriId, sysType, rlPdId, pdId, rlGroupIds);
                             Log.logStd("add bind groupIds ok;flow=%d;aid=%d;uid=%d;rlPdId=%d;pdId=%d;rlGroupIds=%s;", flow, aid, unionPriId, rlPdId, pdId, rlGroupIds);
                         }
@@ -2763,7 +2745,7 @@ public class ProductBasicService extends BasicParentService {
                         }
 
                         // 新增商品分类绑定关系
-                        if(useProductGroup() && !Utils.isEmptyList(rlGroupIds)) {
+                        if(!Utils.isEmptyList(rlGroupIds)) {
                             bindGroupProc.addPdBindGroupList(aid, unionPriId, sysType, rlPdId, pdId, rlGroupIds);
                             Log.logStd("add bind groupIds ok;flow=%d;aid=%d;uid=%d;rlPdId=%d;pdId=%d;rlGroupIds=%s;", flow, aid, unionPriId, rlPdId, pdId, rlGroupIds);
                         }
@@ -3679,10 +3661,8 @@ public class ProductBasicService extends BasicParentService {
             bindPropProc.rollback4Saga(aid, branchId);
 
             // 回滚绑定分类
-            if(useProductGroup()) {
-                ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, false);
-                bindGroupProc.rollback4Saga(aid, branchId);
-            }
+            ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, false);
+            bindGroupProc.rollback4Saga(aid, branchId);
 
             // 回滚绑定标签
             if(useProductTag()) {
@@ -3692,15 +3672,6 @@ public class ProductBasicService extends BasicParentService {
         };
 
         return sagaRollback;
-    }
-
-    public static boolean useProductGroup() {
-        Param mgSwitch = MgConfPool.getEnvConf("mgSwitch");
-        if(Str.isEmpty(mgSwitch)) {
-            return false;
-        }
-        boolean useProductGroup = mgSwitch.getBoolean("useProductBindGroup", false);
-        return useProductGroup;
     }
 
     public static boolean useProductTag() {

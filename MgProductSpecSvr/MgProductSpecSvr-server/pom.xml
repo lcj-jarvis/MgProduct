@@ -3,7 +3,7 @@
     <parent>
         <groupId>MgProduct</groupId>
         <artifactId>MgProductSpecSvr</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.1</version>
     </parent>
 
     <artifactId>MgProductSpecSvr-server</artifactId>
@@ -58,7 +58,6 @@
         <dependency>
             <groupId>fai-comm-util-opt</groupId>
             <artifactId>fai-comm-util-opt</artifactId>
-            <version>${fai-comm-util-opt-ver}</version>
         </dependency>
 
         <dependency>

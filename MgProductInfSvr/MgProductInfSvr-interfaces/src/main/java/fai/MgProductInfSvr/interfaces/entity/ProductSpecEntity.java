@@ -84,6 +84,7 @@ public class ProductSpecEntity {
         public static final String SORT = SpecTempBizRelInfo.SORT;
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
+        public static final String SYS_TYPE = "sysType"; // int 系统分类(商品/服务)
     }
     /**
      * 规格模板详情

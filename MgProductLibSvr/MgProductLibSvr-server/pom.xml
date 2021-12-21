@@ -6,7 +6,7 @@
     <parent>
         <artifactId>MgProductLibSvr</artifactId>
         <groupId>MgProduct</groupId>
-        <version>1.0.0</version>
+        <version>1.0.1</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -23,7 +23,7 @@
         <dependency>
             <groupId>fai-middleground-svrutil</groupId>
             <artifactId>fai-middleground-svrutil</artifactId>
-            <version>1.1.0</version>
+            <version>${fai-middleground-svrutil-ver}</version>
         </dependency>
 
         <dependency>
@@ -71,7 +71,6 @@
         <dependency>
             <groupId>fai-comm-util-opt</groupId>
             <artifactId>fai-comm-util-opt</artifactId>
-            <version>${fai-comm-util-opt-ver}</version>
         </dependency>
 
         <dependency>

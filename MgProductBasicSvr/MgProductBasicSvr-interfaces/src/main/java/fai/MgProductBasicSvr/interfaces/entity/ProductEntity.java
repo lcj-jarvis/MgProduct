@@ -12,7 +12,7 @@ public class ProductEntity {
         public static final String PD_TYPE = "productType"; // int 商品类型
         public static final String IMG_LIST = "imgList"; // varchar(255) 商品图片
         public static final String VIDEO_LIST = "videoList"; // varchar(255) 商品视频
-        public static final String UNIT = "unit"; // tinyInt(4) 单位
+        public static final String UNIT = "unit"; // varchar(50) 单位
         public static final String FLAG = "flag"; // int
         public static final String FLAG1 = "flag1"; // int
         public static final String KEEP_PROP1 = "keepProp1"; // varchar(255) 保留字段1

@@ -65,26 +65,6 @@ public class ProductGroupService extends ServicePub {
             transactionCtrl.setAutoCommit(false);
             ProductGroupProc groupProc = new ProductGroupProc(flow, aid, transactionCtrl);
             try {
-                // 判断是否需要校验名称
-                // 根据 tid 获取业务名称
-                String businessName = BusinessMapping.getName(tid);
-                // 通过读取配置文件，判断是否进行分类名称的校验
-                boolean isCheck = isCheckGroupName(businessName);
-
-                if (isCheck) {
-                    // 搜索旧数据中是否存在当前名称
-                    String name = info.getString(ProductGroupEntity.Info.GROUP_NAME);
-                    ParamMatcher matcher = new ParamMatcher(ProductGroupEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.EQ, unionPriId);
-                    matcher.and(ProductGroupEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
-                    matcher.and(ProductGroupEntity.Info.GROUP_NAME, ParamMatcher.EQ, name);
-
-                    FaiList<Param> groupList = getGroupList(aid, matcher, groupProc);
-                    if (!Utils.isEmptyList(groupList)) {
-                        rt = Errno.ALREADY_EXISTED;
-                        throw new MgException(rt, "name is existed;flow=%d;aid=%d;name=%s", flow, aid, name);
-                    }
-                }
-
                 groupId = groupProc.addGroup(aid, groupInfo);
                 relInfo.setInt(ProductGroupRelEntity.Info.GROUP_ID, groupId);
 
@@ -284,18 +264,13 @@ public class ProductGroupService extends ServicePub {
                 relProc.setGroupRelList(aid, unionPriId, oldRelList, updaterList, groupUpdaterList);
                 // 修改分类表
                 if(!groupUpdaterList.isEmpty()) {
-                    // 判断是否需要校验名称, 根据 tid 获取业务名称
-                    String businessName = BusinessMapping.getName(tid);
-                    // 通过读取配置文件，判断是否进行分类名称的校验
-                    boolean isCheck = isCheckGroupName(businessName);
-
                     // 找出旧数据当中的 groupId 集合，用于查询基础表的旧数据信息
                     List<Integer> oldGroupIds = oldRelList.stream().map(o -> o.getInt(ProductGroupEntity.Info.GROUP_ID)).collect(Collectors.toList());
                     ParamMatcher matcher = new ParamMatcher(ProductGroupEntity.Info.GROUP_ID, ParamMatcher.IN, oldGroupIds);
                     ProductGroupProc groupProc = new ProductGroupProc(flow, aid, transactionCtrl);
                     // 获取基础表旧数据
                     FaiList<Param> oldList = getGroupList(aid, matcher, groupProc);
-                    groupProc.setGroupList(aid, oldList, groupUpdaterList, isCheck);
+                    groupProc.setGroupList(aid, oldList, groupUpdaterList);
                 }
                 commit = true;
                 // commit之前设置10s过期时间，避免脏数据
@@ -338,11 +313,7 @@ public class ProductGroupService extends ServicePub {
         // 校验层级
         checkLevel(flow, aid, treeDataList, groupLevel);
 
-        // 判断是否需要校验名称, 根据 tid 获取业务名称
-        String businessName = BusinessMapping.getName(tid);
-        // 通过读取配置文件，判断是否进行分类名称的校验
-        boolean isCheck = isCheckGroupName(businessName);
-
+        FaiList<Integer> delRlGroupIds = new FaiList<>();
         LockUtil.lock(aid);
         try {
             TransactionCtrl tc = new TransactionCtrl();
@@ -351,7 +322,6 @@ public class ProductGroupService extends ServicePub {
             FaiList<Param> groupInfoList = new FaiList<>();
             FaiList<Param> relInfoList = new FaiList<>();
             FaiList<ParamUpdater> groupUpdaterList = new FaiList<>();
-            FaiList<Integer> delRlGroupIds = new FaiList<>();
             ProductGroupRelProc relProc = new ProductGroupRelProc(flow, aid, tc);
             ProductGroupProc groupProc = new ProductGroupProc(flow, aid, tc);
             try {
@@ -402,12 +372,12 @@ public class ProductGroupService extends ServicePub {
                     relProc.setGroupRelList(aid, unionPriId, oldRelList, modifyList, groupUpdaterList);
                     // 修改分类表
                     if(!groupUpdaterList.isEmpty()) {
-                        groupProc.setGroupList(aid, oldList, groupUpdaterList, isCheck);
+                        groupProc.setGroupList(aid, oldList, groupUpdaterList);
                     }
                 }
 
                 if (!addList.isEmpty()) {
-                    addGroupList(flow, aid, unionPriId, tid, sysType, oldList, addList, groupProc, relProc, groupInfoList, relInfoList, null, isCheck);
+                    addGroupList(flow, aid, unionPriId, tid, sysType, addList, groupProc, relProc, groupInfoList, relInfoList, null);
                 }
 
                 commit = true;
@@ -434,6 +404,7 @@ public class ProductGroupService extends ServicePub {
         }
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
+        delRlGroupIds.toBuffer(sendBuf, ProductGroupRelDto.Key.RL_GROUP_IDS);
         session.write(sendBuf);
         Log.logStd("setAllGroupList ok;flow=%d;aid=%d;unionPriId=%d;tid=%d;", flow, aid, unionPriId, tid);
         return rt;
@@ -496,10 +467,6 @@ public class ProductGroupService extends ServicePub {
         int rt;
         FaiList<Integer> rlGroupIds = new FaiList<>();
         int maxSort = 0;
-        // 判断是否需要校验名称, 根据 tid 获取业务名称
-        String businessName = BusinessMapping.getName(tid);
-        // 通过读取配置文件，判断是否进行分类名称的校验
-        boolean isCheck = isCheckGroupName(businessName);
         LockUtil.lock(aid);
         try {
             TransactionCtrl tc = new TransactionCtrl();
@@ -540,12 +507,12 @@ public class ProductGroupService extends ServicePub {
                     relProc.setGroupRelList(aid, unionPriId, oldRelList, updaterList, groupUpdaterList);
                     // 修改分类表
                     if(!groupUpdaterList.isEmpty()) {
-                        groupProc.setGroupList(aid, oldList, groupUpdaterList, isCheck);
+                        groupProc.setGroupList(aid, oldList, groupUpdaterList);
                     }
                 }
                 // 添加
                 if (!Util.isEmptyList(addList)) {
-                    maxSort = addGroupList(flow, aid, unionPriId, tid, sysType, oldList, addList, groupProc, relProc, groupInfoList, relInfoList, rlGroupIds, isCheck);
+                    maxSort = addGroupList(flow, aid, unionPriId, tid, sysType, addList, groupProc, relProc, groupInfoList, relInfoList, rlGroupIds);
                 }
 
                 commit = true;
@@ -600,8 +567,8 @@ public class ProductGroupService extends ServicePub {
         return rt;
     }
 
-    private int addGroupList(int flow, int aid, int unionPriId, int tid, int sysType, FaiList<Param> oldList, FaiList<Param> addList, ProductGroupProc groupProc, ProductGroupRelProc groupRelProc,
-                             FaiList<Param> groupList, FaiList<Param> relList, FaiList<Integer> rlGroupIdList, boolean check) {
+    private int addGroupList(int flow, int aid, int unionPriId, int tid, int sysType, FaiList<Param> addList, ProductGroupProc groupProc, ProductGroupRelProc groupRelProc,
+                             FaiList<Param> groupList, FaiList<Param> relList, FaiList<Integer> rlGroupIdList) {
         int rt;
         int maxSort = groupRelProc.getMaxSort(aid, unionPriId);
 
@@ -624,7 +591,7 @@ public class ProductGroupService extends ServicePub {
             relList.add(relInfo);
         }
         // 批量新增基础信息表数据
-        FaiList<Integer> groupIds = groupProc.batchAddGroup(aid, oldList, groupList, check);
+        FaiList<Integer> groupIds = groupProc.batchAddGroup(aid, groupList);
         for (int i = 0; i < relList.size(); i++) {
             Param param = relList.get(i);
             Integer groupId = groupIds.get(i);
@@ -671,7 +638,7 @@ public class ProductGroupService extends ServicePub {
 
     private void doClone(int flow, int toAid, int fromAid, FaiList<Param> cloneUnionPriIds, boolean incrementalClone) {
         int rt;
-        if(Util.isEmptyList(cloneUnionPriIds)) {
+        if(Utils.isEmptyList(cloneUnionPriIds)) {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "args error, cloneUnionPriIds is empty;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
         }
@@ -808,6 +775,8 @@ public class ProductGroupService extends ServicePub {
                 }
                 tc.closeDao();
             }
+            // 清缓存
+            CacheCtrl.clearCacheVersion(toAid);
         }finally {
             LockUtil.unlock(toAid);
         }
@@ -893,11 +862,11 @@ public class ProductGroupService extends ServicePub {
     }
 
     @SuccessRt(Errno.OK)
-    public int restoreBackupData(FaiSession session, int flow, int aid, FaiList<Integer> unionPirIds, Param backupInfo) throws IOException {
+    public int restoreBackupData(FaiSession session, int flow, int aid, FaiList<Integer> unionPirIds, int restoreId, Param backupInfo) throws IOException {
         int rt;
         if(aid <= 0 || Str.isEmpty(backupInfo)) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr("args error;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+            Log.logErr("args error;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
             return rt;
         }
 
@@ -905,30 +874,30 @@ public class ProductGroupService extends ServicePub {
         int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
         if(backupId == 0 || backupFlag == 0) {
             rt = Errno.ARGS_ERROR;
-            Log.logErr("args error, backupInfo error;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+            Log.logErr("args error, backupInfo error;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
             return rt;
         }
 
         LockUtil.BackupLock.lock(aid);
         try {
-            String backupStatus = backupStatusCtrl.getStatus(BackupStatusCtrl.Action.RESTORE, aid, backupId);
+            String backupStatus = backupStatusCtrl.getStatus(BackupStatusCtrl.Action.RESTORE, aid, restoreId);
             if(backupStatus != null) {
                 if(backupStatusCtrl.isDoing(backupStatus)) {
                     rt = Errno.ALREADY_EXISTED;
-                    throw new MgException(rt, "restore is doing;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+                    throw new MgException(rt, "restore is doing;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
                 }else if(backupStatusCtrl.isFinish(backupStatus)) {
                     rt = Errno.OK;
-                    Log.logStd(rt, "restore is already ok;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+                    Log.logStd(rt, "restore is already ok;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
                     FaiBuffer sendBuf = new FaiBuffer(true);
                     session.write(sendBuf);
                     return Errno.OK;
                 }else if(backupStatusCtrl.isFail(backupStatus)) {
                     rt = Errno.ALREADY_EXISTED;
-                    Log.logStd(rt, "restore is fail, going retry;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+                    Log.logStd(rt, "restore is fail, going retry;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
                 }
             }
             // 设置备份执行中
-            backupStatusCtrl.setStatusIsDoing(BackupStatusCtrl.Action.RESTORE, aid, backupId);
+            backupStatusCtrl.setStatusIsDoing(BackupStatusCtrl.Action.RESTORE, aid, restoreId);
 
             TransactionCtrl tc = new TransactionCtrl();
             ProductGroupRelProc relProc = new ProductGroupRelProc(flow, aid, tc);
@@ -947,13 +916,15 @@ public class ProductGroupService extends ServicePub {
             }finally {
                 if(commit) {
                     tc.commit();
-                    backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.RESTORE, aid, backupId);
+                    backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.RESTORE, aid, restoreId);
                 }else {
                     tc.rollback();
-                    backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.RESTORE, aid, backupId);
+                    backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.RESTORE, aid, restoreId);
                 }
                 tc.closeDao();
             }
+            // 清缓存
+            CacheCtrl.clearCacheVersion(aid);
         }finally {
             LockUtil.BackupLock.unlock(aid);
         }
@@ -961,7 +932,7 @@ public class ProductGroupService extends ServicePub {
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
         session.write(sendBuf);
-        Log.logStd("restore backupData ok;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+        Log.logStd("restore backupData ok;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
         return rt;
     }
 

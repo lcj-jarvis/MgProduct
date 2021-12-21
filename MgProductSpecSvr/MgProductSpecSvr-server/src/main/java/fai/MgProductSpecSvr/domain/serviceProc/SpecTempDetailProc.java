@@ -56,6 +56,7 @@ public class SpecTempDetailProc {
             }
             data.setInt(SpecTempDetailEntity.Info.TP_SC_DT_ID, tpScDtId);
             data.assign( info, SpecTempDetailEntity.Info.SORT);
+            data.assign( info, SpecTempDetailEntity.Info.FLAG);
             FaiList<Param> inScValList = info.getList(SpecTempDetailEntity.Info.IN_SC_VAL_LIST);
             String inScValListStr = inScValList.toJson();
             data.setString(SpecTempDetailEntity.Info.IN_SC_VAL_LIST, inScValListStr);

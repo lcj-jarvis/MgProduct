@@ -11,6 +11,7 @@ import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.Calendar;
@@ -104,7 +105,7 @@ public class ProductGroupRelProc {
     }
 
     public void insert4Clone(int aid, FaiList<Integer> unionPriIds, FaiList<Param> list) {
-        if(Util.isEmptyList(list)) {
+        if(Utils.isEmptyList(list)) {
             Log.logStd("incrementalClone list is empty;aid=%d;uid=%s;", aid, unionPriIds);
             return;
         }
@@ -301,7 +302,7 @@ public class ProductGroupRelProc {
             rt = Errno.ERROR;
             throw new MgException(rt, "bakDao is auto commit;aid=%d;uids=%s;backupId=%d;backupFlag=%d;", aid, unionPriIds, backupId, backupFlag);
         }
-        if(Util.isEmptyList(unionPriIds)) {
+        if(Utils.isEmptyList(unionPriIds)) {
             rt = Errno.ARGS_ERROR;
             throw new MgException(rt, "uids is empty;aid=%d;uids=%s;backupId=%d;backupFlag=%d;", aid, unionPriIds, backupId, backupFlag);
         }
@@ -437,6 +438,7 @@ public class ProductGroupRelProc {
         // 查出备份数据
         SearchArg bakSearchArg = new SearchArg();
         bakSearchArg.matcher = new ParamMatcher(MgBackupEntity.Comm.BACKUP_ID_FLAG, ParamMatcher.LAND, backupFlag, backupFlag);
+        bakSearchArg.matcher.and(ProductGroupRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
         FaiList<Param> fromList = searchBakList(aid, bakSearchArg);
         for(Param fromInfo : fromList) {
             fromInfo.remove(MgBackupEntity.Comm.BACKUP_ID);

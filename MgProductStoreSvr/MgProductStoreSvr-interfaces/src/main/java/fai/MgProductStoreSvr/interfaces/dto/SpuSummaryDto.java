@@ -24,6 +24,11 @@ public class SpuSummaryDto {
         return g_dtoDef;
     }
 
-    public static class Key extends CommDtoKey{
+    public static class Key{
+        public static final int INFO = 0;
+        public static final int UNION_PRI_ID = 1;
+        public static final int TID = 2;
+        public static final int INFO_LIST = 6;
+        public static final int ID_LIST = 8;
     }
 }

@@ -66,6 +66,9 @@ public class MgProductInfCmd {
 
         public static final int NUM41 = 5041; /**@see BasicCmd#GET_PD_BIND_TAGS */
         public static final int NUM42 = 5042; /**@see Cmd#GET_INFO_4ES */
+        public static final int NUM43 = 5043; /**@see MgProductSearchCmd#SEARCH_PD */
+        public static final int NUM44 = 5044; /**@see BasicCmd#GET_PD_BIND_BIZS */
+        public static final int NUM45 = 5045; /**@see BasicCmd#GET_PD_REDUCE_BY_NAME */
     }
 
     // 1000 到 5000 的范围
@@ -139,12 +142,19 @@ public class MgProductInfCmd {
         public static final int NUM59 = 1059; /**@see Cmd#RESTORE */
         public static final int NUM60 = 1060; /**@see Cmd#DEL_BACKUP */
         public static final int NUM61 = 1061; /**@see GroupCmd#SET_ALL_GROUP_LIST */
-
+        public static final int NUM62 = 1062; /**@see BasicCmd#DEL_PD_TAG_LIST */
+        public static final int NUM63 = 1063; /**@see Cmd#CLONE_BIZ_BIND */
+        public static final int NUM64 = 1064; /**@see BasicCmd#BATCH_SET_4YK */
+        public static final int NUM65 = 1065; /**@see Cmd#MIGRATE */
+        public static final int NUM66 = 1066; /**@see BasicCmd#SET_PD_SORT */
+        public static final int NUM67 = 1067; /**@see BasicCmd#BATCH_SET_BIZ */
+        public static final int NUM68 = 1068; /**@see BasicCmd#BATCH_BIND_PDS_REL */
     }
 
 
     public static class MgProductSearchCmd{
         public static final int SEARCH_LIST = ReadCmdNum.NUM32;
+        public static final int SEARCH_PD = ReadCmdNum.NUM43;
     }
 
 
@@ -173,6 +183,8 @@ public class MgProductInfCmd {
         public static final int GET_PD_LIST = ReadCmdNum.NUM26;
         public static final int GET_PD_BIND_GROUPS = ReadCmdNum.NUM28;
         public static final int GET_PD_BIND_TAGS = ReadCmdNum.NUM41;
+        public static final int GET_PD_BIND_BIZS = ReadCmdNum.NUM44;
+        public static final int GET_PD_REDUCE_BY_NAME = ReadCmdNum.NUM45;
 
         //写命令
         public static final int SET_PROP_LIST = WriteCmdNum.NUM7;
@@ -187,6 +199,11 @@ public class MgProductInfCmd {
         public static final int ADD_PD_INFO = WriteCmdNum.NUM42;
         public static final int SET_PD_INFO = WriteCmdNum.NUM43;
         public static final int SET_PD_BIND_TAG = WriteCmdNum.NUM55;
+        public static final int DEL_PD_TAG_LIST = WriteCmdNum.NUM62;
+        public static final int BATCH_SET_4YK = WriteCmdNum.NUM64;
+        public static final int SET_PD_SORT = WriteCmdNum.NUM66;
+        public static final int BATCH_SET_BIZ = WriteCmdNum.NUM67;
+        public static final int BATCH_BIND_PDS_REL = WriteCmdNum.NUM68;
     }
 
     public static class GroupCmd {
@@ -370,5 +387,7 @@ public class MgProductInfCmd {
         public static final int BACKUP = WriteCmdNum.NUM58;
         public static final int RESTORE = WriteCmdNum.NUM59;
         public static final int DEL_BACKUP = WriteCmdNum.NUM60;
+        public static final int CLONE_BIZ_BIND = WriteCmdNum.NUM63;
+        public static final int MIGRATE = WriteCmdNum.NUM65;
     }
 }

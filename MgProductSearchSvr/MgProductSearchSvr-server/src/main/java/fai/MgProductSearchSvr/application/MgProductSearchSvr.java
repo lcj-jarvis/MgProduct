@@ -1,5 +1,6 @@
 package fai.MgProductSearchSvr.application;
 
+import fai.MgProductSearchSvr.domain.repository.MgProductSearchCache;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.cache.redis.config.RedisClientConfig;
 import fai.comm.cache.redis.pool.JedisPool;
@@ -37,21 +38,23 @@ public class MgProductSearchSvr {
         JedisPool jedisPool = JedisPoolFactory.createJedisPool(redisConfig);
         RedisCacheManager m_cache = new RedisCacheManager(jedisPool, redisConfig.getExpire(), redisConfig.getExpireRandom());
 
-
-        // 数据缓存组件
+        // 数据缓存组件,如果要测试的话，可以修改缓存时间
         ParamCacheRecycle cacheRecycle = new ParamCacheRecycle(config.getName(),
                 svrOption.getCacheHours() * 3600, svrOption.getCacheRecycleIntervalHours() * 3600);
 
         // 公共配置文件, 在svr main 的方法做一次初始化
         ConfPool.setFaiConfigGlobalConf(MgProductSearchSvr.SvrConfigGlobalConf.svrConfigGlobalConfKey, FaiConfig.EtcType.ENV);
 
-        server.setHandler(new MgProductSearchHandler(server, m_cache, cacheRecycle));
+        init(m_cache, cacheRecycle);
+
+        server.setHandler(new MgProductSearchHandler(server));
         server.start();
     }
 
     public static class SvrConfigGlobalConf{
         public static String svrConfigGlobalConfKey = "mgProductSearchSvr";
         public static String loadFromDbThresholdKey = "loadFromDbThreshold";
+        public static String searchResultCacheConfigKey = "searchResultCacheConfigKey";
     }
 
     @ParamKeyMapping(path = ".svr")
@@ -63,6 +66,7 @@ public class MgProductSearchSvr {
         public boolean getDebug() {
             return debug;
         }
+
         public void setDebug(boolean debug) {
             this.debug = debug;
         }
@@ -82,5 +86,9 @@ public class MgProductSearchSvr {
         public void setCacheRecycleIntervalHours(int cacheRecycleIntervalHours) {
             this.cacheRecycleIntervalHours = cacheRecycleIntervalHours;
         }
+    }
+
+    public static void init(RedisCacheManager cache, ParamCacheRecycle cacheRecycle) {
+        MgProductSearchCache.init(cache, cacheRecycle);
     }
 }

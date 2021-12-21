@@ -1,8 +1,10 @@
 package fai.MgProductInfSvr.domain.serviceproc;
 
+import fai.MgProductInfSvr.interfaces.entity.ProductStoreValObj;
 import fai.MgProductStoreSvr.interfaces.cli.MgProductStoreCli;
 import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuValObj;
 import fai.comm.util.*;
+import fai.middleground.svrutil.exception.MgException;
 
 import java.util.Calendar;
 
@@ -12,6 +14,38 @@ public class ProductStoreProc extends AbstractProductProc{
         m_cli = new MgProductStoreCli(flow);
         if (!m_cli.init()) {
             m_cli = null;
+        }
+    }
+
+    /**
+     * 克隆业务绑定数据
+     * for 门店通
+     */
+    public void cloneBizBind(int aid, int fromUnionPriId, int toUnionPriId) {
+        int rt;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get MgProductStoreCli error;flow=%d;aid=%d;fromUid=%d;toUid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+        }
+        rt = m_cli.cloneBizBind(aid, fromUnionPriId, toUnionPriId);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "error;flow=%d;aid=%d;fromUid=%d;toUid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+        }
+    }
+
+    /**
+     * 克隆业务绑定数据
+     * for 门店通
+     */
+    public void copyBizBind(int aid, String xid, int fromUnionPriId, FaiList<Param> list) {
+        int rt;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get MgProductStoreCli error;flow=%d;aid=%d;fromUid=%d;list=%s;", m_flow, aid, fromUnionPriId, list);
+        }
+        rt = m_cli.copyBizBind(aid, xid, fromUnionPriId, list);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "error;flow=%d;aid=%d;fromUid=%d;list=%s;", m_flow, aid, fromUnionPriId, list);
         }
     }
 
@@ -87,19 +121,68 @@ public class ProductStoreProc extends AbstractProductProc{
         return rt;
     }
 
+    public int batchSetSkuStoreSales(int aid, String xid, int tid, int ownerUnionPriId, FaiList<Integer> unionPriIds, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) {
+        return batchSetSkuStoreSales(aid, xid, tid, ownerUnionPriId, unionPriIds, pdId, rlPdId, ProductStoreValObj.SysType.PRODUCT, updaterList);
+    }
+
     /**
      * 修改sku库存销售信息
      */
-    public int batchSetSkuStoreSales(int aid, int tid, int ownerUnionPriId, FaiList<Integer> unionPriIds, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) {
+    public int batchSetSkuStoreSales(int aid, String xid, int tid, int ownerUnionPriId, FaiList<Integer> unionPriIds, int pdId, int rlPdId, int sysType, FaiList<ParamUpdater> updaterList) {
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
             return rt;
         }
-        rt = m_cli.batchSetSkuStoreSales(aid, tid, ownerUnionPriId, unionPriIds, pdId, rlPdId, updaterList);
+        rt = m_cli.batchSetSkuStoreSales(aid, xid, tid, ownerUnionPriId, unionPriIds, pdId, rlPdId, sysType, updaterList);
         if (rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriIds=%s;rlPdId=%s;", m_flow, aid, unionPriIds, rlPdId);
+            return rt;
+        }
+        return rt;
+    }
+
+    public int setSpuBizSummary(int aid, String xid, int unionPriId, int pdId, ParamUpdater updater) {
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;uid=%s;pdId=%s;update=%s;", m_flow, aid, unionPriId, pdId, updater.toJson());
+            return rt;
+        }
+        rt = m_cli.setSpuBizSummary(aid, xid, unionPriId, pdId, updater);
+        if (rt != Errno.OK) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;uid=%s;pdId=%s;update=%s;", m_flow, aid, unionPriId, pdId, updater.toJson());
+            return rt;
+        }
+        return rt;
+    }
+
+    public int batchSetSpuBizSummary(int aid, String xid, FaiList<Integer> unionPriIds, FaiList<Integer> pdIds, ParamUpdater updater) {
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;uid=%s;pdIds=%s;update=%s;", m_flow, aid, unionPriIds, pdIds, updater.toJson());
+            return rt;
+        }
+        rt = m_cli.batchSetSpuBizSummary(aid, xid, unionPriIds, pdIds, updater);
+        if (rt != Errno.OK) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;uid=%s;pdIds=%s;update=%s;", m_flow, aid, unionPriIds, pdIds, updater.toJson());
+            return rt;
+        }
+        return rt;
+    }
+
+    public int batchAddSpuBizSummary(int aid, String xid, FaiList<Param> list) {
+        int rt = Errno.ERROR;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;list=%s;", m_flow, aid, list);
+            return rt;
+        }
+        rt = m_cli.batchAddSpuBizSummary(aid, xid, list);
+        if (rt != Errno.OK) {
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;list=%s;", m_flow, aid, list);
             return rt;
         }
         return rt;
@@ -278,9 +361,9 @@ public class ProductStoreProc extends AbstractProductProc{
     }
 
     /**
-     * 根据 prIdList 和 unionPriIdList 获取sku库存销售信息
+     * 根据 pdIdList 和 unionPriIdList 获取sku库存销售信息
      */
-    public int getStoreSalesByPdIdsAndUIdList(int aid, int tid, FaiList<Integer> pdIds, FaiList<Integer> unionPriIdList, FaiList infoList) {
+    public int getStoreSalesByPdIdsAndUIdList(int aid, int tid, FaiList<Integer> pdIds, FaiList<Integer> unionPriIdList, FaiList<Param> infoList) {
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
@@ -572,6 +655,22 @@ public class ProductStoreProc extends AbstractProductProc{
         rt = m_cli.batchAddStoreSales(aid, tid, unionPriId, storeSaleSkuList);
         if (rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%s;storeSaleSkuList=%s;", m_flow, aid, unionPriId, storeSaleSkuList);
+            return rt;
+        }
+        return rt;
+    }
+
+    public int migrate(int aid, FaiList<Param> spuList) {
+        int rt;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
+            return rt;
+        }
+
+        rt = m_cli.migrate(aid, spuList);
+        if (rt != Errno.OK) {
+            logErrWithPrintInvoked(rt, "migrate error;flow=%d;aid=%d;", m_flow, aid);
             return rt;
         }
         return rt;

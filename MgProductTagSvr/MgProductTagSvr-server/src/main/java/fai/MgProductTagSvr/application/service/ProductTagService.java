@@ -7,6 +7,7 @@ import fai.MgProductTagSvr.application.domain.entity.ProductTagEntity;
 import fai.MgProductTagSvr.application.domain.entity.ProductTagRelEntity;
 import fai.MgProductTagSvr.application.domain.entity.ProductTagRelValObj;
 import fai.MgProductTagSvr.application.domain.entity.ProductTagValObj;
+import fai.MgProductTagSvr.application.domain.repository.cache.CacheCtrl;
 import fai.MgProductTagSvr.application.domain.repository.cache.ProductTagCache;
 import fai.MgProductTagSvr.application.domain.repository.cache.ProductTagRelCache;
 import fai.MgProductTagSvr.application.domain.serviceproc.ProductTagProc;
@@ -731,6 +732,8 @@ public class ProductTagService {
                 }
                 tc.closeDao();
             }
+            // 清缓存
+            CacheCtrl.clearCacheVersion(toAid);
         }finally {
             lock.unlock();
         }
@@ -785,13 +788,13 @@ public class ProductTagService {
         int rt;
         LockUtil.BackupLock.lock(aid);
         try {
-            if (checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.BACKUP, aid, backupInfo)) {
+            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID);
+            if (checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.BACKUP, aid, backupId)) {
                 FaiBuffer sendBuf = new FaiBuffer(true);
                 session.write(sendBuf);
                 return Errno.OK;
             }
 
-            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
             int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
             TransactionCtrl tc = new TransactionCtrl();
             ProductTagRelProc relProc = new ProductTagRelProc(flow, aid, tc);
@@ -838,20 +841,24 @@ public class ProductTagService {
     }
 
     @SuccessRt(value = Errno.OK)
-    public int restoreBackupData(FaiSession session, int flow, int aid, FaiList<Integer> unionPriIds, Param backupInfo) throws IOException {
+    public int restoreBackupData(FaiSession session, int flow, int aid, FaiList<Integer> unionPriIds, int restoreId, Param backupInfo) throws IOException {
         if (verifyBackupArgs(flow, aid, unionPriIds, backupInfo, true)) {
+            return Errno.ARGS_ERROR;
+        }
+        if(restoreId <= 0) {
+            Log.logErr("args error; restoreId err;flow=%d;aid=%d;unionPriIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPriIds, restoreId, backupInfo);
             return Errno.ARGS_ERROR;
         }
         int rt;
         LockUtil.BackupLock.lock(aid);
         try {
-            if (checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.RESTORE, aid, backupInfo)) {
+            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID);
+            if (checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.RESTORE, aid, restoreId)) {
                 FaiBuffer sendBuf = new FaiBuffer(true);
                 session.write(sendBuf);
                 return Errno.OK;
             }
 
-            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
             int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
             TransactionCtrl tc = new TransactionCtrl();
             ProductTagRelProc relProc = new ProductTagRelProc(flow, aid, tc);
@@ -870,13 +877,15 @@ public class ProductTagService {
             }finally {
                 if(commit) {
                     tc.commit();
-                    backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.RESTORE, aid, backupId);
+                    backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.RESTORE, aid, restoreId);
                 }else {
                     tc.rollback();
-                    backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.RESTORE, aid, backupId);
+                    backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.RESTORE, aid, restoreId);
                 }
                 tc.closeDao();
             }
+            // 清缓存
+            CacheCtrl.clearCacheVersion(aid);
         }finally {
             LockUtil.BackupLock.unlock(aid);
         }
@@ -897,13 +906,13 @@ public class ProductTagService {
         int rt;
         LockUtil.BackupLock.lock(aid);
         try {
-            if (checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.DELETE, aid, backupInfo)) {
+            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID);
+            if (checkAndSetBackupStatus(flow, BackupStatusCtrl.Action.DELETE, aid, backupId)) {
                 FaiBuffer sendBuf = new FaiBuffer(true);
                 session.write(sendBuf);
                 return Errno.OK;
             }
 
-            int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
             int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
             TransactionCtrl tc = new TransactionCtrl();
             ProductTagRelProc relProc = new ProductTagRelProc(flow, aid, tc);
@@ -958,24 +967,23 @@ public class ProductTagService {
         return false;
     }
 
-    private boolean checkAndSetBackupStatus(int flow, BackupStatusCtrl.Action action, int aid, Param backupInfo) {
-        int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
-        String backupStatus = backupStatusCtrl.getStatus(action, aid, backupId);
+    private boolean checkAndSetBackupStatus(int flow, BackupStatusCtrl.Action action, int aid, int actionId) {
+        String backupStatus = backupStatusCtrl.getStatus(action, aid, actionId);
         if (backupStatus != null) {
             int rt = Errno.ALREADY_EXISTED;
             if (backupStatusCtrl.isDoing(backupStatus)) {
-                throw new MgException(rt, action + " is doing;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+                throw new MgException(rt, action + " is doing;flow=%d;aid=%d;id=%s;", flow, aid, actionId);
             } else if (backupStatusCtrl.isFinish(backupStatus)) {
                 rt = Errno.OK;
-                Log.logStd(rt, action + " is already ok;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+                Log.logStd(rt, action + " is already ok;flow=%d;aid=%d;id=%s;", flow, aid, actionId);
                 return true;
             } else if (backupStatusCtrl.isFail(backupStatus)) {
-                Log.logStd(rt, action + " is fail, going retry;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+                Log.logStd(rt, action + " is fail, going retry;flow=%d;aid=%d;id=%s;", flow, aid, actionId);
                 return false;
             }
         }
         // 设置备份执行中
-        backupStatusCtrl.setStatusIsDoing(action, aid, backupId);
+        backupStatusCtrl.setStatusIsDoing(action, aid, actionId);
         return false;
     }
 

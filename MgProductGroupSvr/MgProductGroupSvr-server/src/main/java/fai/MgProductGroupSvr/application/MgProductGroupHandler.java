@@ -166,9 +166,10 @@ public class MgProductGroupHandler extends MiddleGroundHandler {
 						  @ArgFlow final int flow,
 						  @ArgAid int aid,
 						  @ArgList(keyMatch = ProductGroupRelDto.Key.UNION_PRI_ID) FaiList<Integer> unionPriIds,
+						  @ArgBodyInteger(ProductGroupRelDto.Key.RESTORE_ID) int restoreId,
 						  @ArgParam(classDef = MgBackupDto.class, methodDef = "getInfoDto",
 								  keyMatch = ProductGroupRelDto.Key.BACKUP_INFO) Param backupInfo) throws IOException {
-		return groupService.restoreBackupData(session, flow, aid, unionPriIds, backupInfo);
+		return groupService.restoreBackupData(session, flow, aid, unionPriIds, restoreId, backupInfo);
 	}
 
 	@WrittenCmd

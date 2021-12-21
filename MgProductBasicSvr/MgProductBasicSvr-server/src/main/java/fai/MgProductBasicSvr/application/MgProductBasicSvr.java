@@ -1,8 +1,10 @@
 package fai.MgProductBasicSvr.application;
 
 import fai.MgProductBasicSvr.domain.common.LockUtil;
+import fai.MgProductBasicSvr.domain.common.MgProductCheck;
 import fai.MgProductBasicSvr.domain.repository.cache.CacheCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.*;
+import fai.MgProductBasicSvr.domain.repository.dao.bak.*;
 import fai.MgProductBasicSvr.domain.repository.dao.saga.*;
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.cache.redis.config.RedisClientConfig;
@@ -59,7 +61,7 @@ public class MgProductBasicSvr {
 
         init(daoPool, m_cache, lockOption, svrOption, jedisPool);
 
-        server.setHandler(new MgProductBasicHandler(server));
+        server.setHandler(new MgProductBasicHandler(server, m_cache));
         server.start();
     }
 
@@ -80,7 +82,7 @@ public class MgProductBasicSvr {
         return daoPool;
     }
 
-    public static void init(DaoPool daoPool, RedisCacheManager cache, LockOption lockOption, SvrOption svrOption, JedisPool jedisPool) {
+    private static void init(DaoPool daoPool, RedisCacheManager cache, LockOption lockOption, SvrOption svrOption, JedisPool jedisPool) {
         // 初始化daopool
         ProductDaoCtrl.init(daoPool, cache);
         ProductSagaDaoCtrl.init(daoPool);
@@ -88,6 +90,11 @@ public class MgProductBasicSvr {
         ProductBindGroupSagaDaoCtrl.init(daoPool);
         ProductBindTagSagaDaoCtrl.init(daoPool);
         ProductBindPropSagaDaoCtrl.init(daoPool);
+        ProductBakDaoCtrl.init(daoPool);
+        ProductRelBakDaoCtrl.init(daoPool);
+        ProductBindGroupBakDaoCtrl.init(daoPool);
+        ProductBindPropBakDaoCtrl.init(daoPool);
+        ProductBindTagBakDaoCtrl.init(daoPool);
 
         ProductRelDaoCtrl.init(daoPool, cache);
         ProductBindPropDaoCtrl.init(daoPool);
@@ -99,6 +106,9 @@ public class MgProductBasicSvr {
         CacheCtrl.init(cache, jedisPool, svrOption.getCacheSuffix());
 
         LockUtil.init(cache, lockOption);
+
+        // 设置isDev
+        MgProductCheck.setIsDev(svrOption.getDebug());
     }
 
     @ParamKeyMapping(path = ".svr")

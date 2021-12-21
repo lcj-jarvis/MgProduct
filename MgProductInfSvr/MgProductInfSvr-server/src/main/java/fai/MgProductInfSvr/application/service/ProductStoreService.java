@@ -17,7 +17,6 @@ import fai.comm.middleground.FaiValObj;
 import fai.comm.middleground.MgErrno;
 import fai.comm.util.*;
 import fai.mgproduct.comm.MgProductErrno;
-import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.misc.Utils;
 
 import java.io.IOException;
@@ -56,7 +55,7 @@ public class ProductStoreService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
+            rt = getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -144,7 +143,7 @@ public class ProductStoreService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
+            rt = getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -187,7 +186,7 @@ public class ProductStoreService extends MgProductInfService {
             }
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-            rt = productStoreProc.batchSetSkuStoreSales(aid, tid, unionPriId, new FaiList<>(unionPriIdBizPriKeyMap.keySet()), pdId, rlPdId, updaterList);
+            rt = productStoreProc.batchSetSkuStoreSales(aid, "", tid, unionPriId, new FaiList<>(unionPriIdBizPriKeyMap.keySet()), pdId, rlPdId, updaterList);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -630,7 +629,7 @@ public class ProductStoreService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
+            rt = getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -1062,7 +1061,7 @@ public class ProductStoreService extends MgProductInfService {
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK && rt < MgErrno.MIN_VALUE, rt);
+            stat.end(rt != Errno.OK && rt < MgProductErrno.MIN_VALUE, rt);
         }
         return rt;
     }
@@ -1399,7 +1398,7 @@ public class ProductStoreService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
+            rt = getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -1853,7 +1852,7 @@ public class ProductStoreService extends MgProductInfService {
             }
             if (!batchBindPdRelList.isEmpty()){
                 ProductBasicProc productBasicProc = new ProductBasicProc(flow);
-                rt = productBasicProc.batchBindProductsRel(aid, ownerTid, batchBindPdRelList);
+                rt = productBasicProc.batchBindProductsRel(aid, null, ownerTid, false, batchBindPdRelList);
                 if(rt != Errno.OK){
                     Log.logErr(rt, "batchBindProductsRel err;aid=%s;ownerTid=%s;batchBindPdRelList=%s", aid, ownerTid, batchBindPdRelList);
                     return rt;

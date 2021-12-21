@@ -1,22 +1,22 @@
 package fai.MgProductStoreSvr.application.service;
 
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
-import fai.MgProductStoreSvr.domain.comm.Utils;
+import fai.MgProductStoreSvr.domain.comm.SagaRollback;
 import fai.MgProductStoreSvr.domain.entity.ReportValObj;
 import fai.MgProductStoreSvr.domain.entity.SkuSummaryEntity;
 import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryEntity;
 import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuEntity;
 import fai.MgProductStoreSvr.domain.repository.*;
-import fai.MgProductStoreSvr.domain.serviceProc.SkuSummaryProc;
-import fai.MgProductStoreSvr.domain.serviceProc.SpuBizSummaryProc;
-import fai.MgProductStoreSvr.domain.serviceProc.SpuSummaryProc;
-import fai.MgProductStoreSvr.domain.serviceProc.StoreSalesSkuProc;
+import fai.MgProductStoreSvr.domain.serviceProc.*;
 import fai.MgProductStoreSvr.interfaces.dto.SkuSummaryDto;
 import fai.MgProductStoreSvr.interfaces.dto.SpuBizSummaryDto;
 import fai.MgProductStoreSvr.interfaces.dto.SpuSummaryDto;
+import fai.comm.fseata.client.core.context.RootContext;
+import fai.comm.fseata.client.core.rpc.def.CommDef;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
+import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
@@ -290,6 +290,7 @@ public class SummaryService extends StoreService {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
+            long begin = System.currentTimeMillis();
             Ref<Integer> totalRef = new Ref<>();
             Long visitorDataLastUpdateTime;
             Long manageDataLastUpdateTime;
@@ -303,7 +304,9 @@ public class SummaryService extends StoreService {
                     return rt;
                 }
             }finally {
-                spuBizSummaryDaoCtrl.closeDao();
+                if (spuBizSummaryDaoCtrl != null) {
+                    spuBizSummaryDaoCtrl.closeDao();
+                }
             }
             Param dataStatus = new Param()
                     .setInt(DataStatus.Info.TOTAL_SIZE, totalRef.value)
@@ -311,9 +314,10 @@ public class SummaryService extends StoreService {
                     .setLong(DataStatus.Info.MANAGE_LAST_UPDATE_TIME, manageDataLastUpdateTime)
                     ;
             FaiBuffer sendBody = new FaiBuffer();
-            dataStatus.toBuffer(sendBody, SpuBizSummaryDto.Key.INFO, DataStatus.Dto.getDataStatusDto());
+            dataStatus.toBuffer(sendBody, SpuBizSummaryDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
             session.write(sendBody);
-            Log.logDbg("ok;aid=%d;unionPriId=%s;", aid, unionPriId);
+            long end = System.currentTimeMillis();
+            Log.logStd("getSpuBizSummaryDataStatus ok;aid=%d;unionPriId=%s;consume=%d", aid, unionPriId, end - begin);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }
@@ -326,6 +330,7 @@ public class SummaryService extends StoreService {
     public int getSpuBizSummaryAllData(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
+        long begin = System.currentTimeMillis();
         try {
             Ref<FaiList<Param>> listRef = new Ref<>();
             SpuBizSummaryDaoCtrl spuBizSummaryDaoCtrl = SpuBizSummaryDaoCtrl.getInstance(flow, aid);
@@ -340,7 +345,8 @@ public class SummaryService extends StoreService {
             }
             rt = Errno.OK;
             sendSpuBizSummary(session, listRef.value);
-            Log.logDbg("ok;aid=%d;unionPriId=%s;", aid, unionPriId);
+            long end = System.currentTimeMillis();
+            Log.logStd("getSpuBizSummaryAllData ok;aid=%d;unionPriId=%d;consume=%d", aid, unionPriId, end - begin);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }
@@ -352,6 +358,7 @@ public class SummaryService extends StoreService {
     public int searchSpuBizSummaryFromDb(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
+        long begin = System.currentTimeMillis();
         try {
 
             Ref<FaiList<Param>> listRef = new Ref<>();
@@ -367,7 +374,8 @@ public class SummaryService extends StoreService {
             }
             rt = Errno.OK;
             sendSpuBizSummary(session, listRef.value, searchArg);
-            Log.logDbg("ok;aid=%d;unionPriId=%s;", aid, unionPriId);
+            long end = System.currentTimeMillis();
+            Log.logStd("searchSpuBizSummaryFromDb ok;aid=%d;unionPriId=%d;consume=%d", aid, unionPriId, end - begin);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
         }
@@ -489,6 +497,219 @@ public class SummaryService extends StoreService {
             Log.logDbg("ok;aid=%d;searchArg.matcher.toJson=%s", aid, searchArg.matcher.toJson());
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+
+    public int setSpuBizSummary(FaiSession session, int flow, int aid, String xid, int unionPriId, int pdId, ParamUpdater updater) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || pdId <= 0 || updater == null) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;pdId=%s;updater=%s;", flow, aid, pdId, updater.toJson());
+                return rt;
+            }
+            boolean isSaga = !Str.isEmpty(xid);
+
+            boolean commit = false;
+            TransactionCtrl tc = new TransactionCtrl();
+            tc.setAutoCommit(false);
+            try {
+                if(isSaga) {
+                    // 向 mgStoreSaga 表插入记录
+                    StoreSagaProc storeSagaProc = new StoreSagaProc(flow, aid, tc);
+                    rt = storeSagaProc.add(aid, xid, RootContext.getBranchId());
+                    if (rt != Errno.OK) {
+                        return rt;
+                    }
+                }
+                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
+                rt = spuBizSummaryProc.setSingle(aid, unionPriId, pdId, updater, isSaga);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+
+                if(isSaga) {
+                    // 将预记录的修改数据持久化到 db
+                    rt = spuBizSummaryProc.addUpdateSaga2Db(aid);
+                    if (rt != Errno.OK) {
+                        Log.logErr(rt, "setSpuBizSummary err;xid=%s;aid=%d;uid=%s;pdId=%s;updater=%s;", xid, aid, unionPriId, pdId, updater.toJson());
+                        return rt;
+                    }
+                }
+                commit = true;
+            }finally {
+                if(commit) {
+                    tc.commit();
+                }else {
+                    tc.rollback();
+                }
+                tc.closeDao();
+            }
+
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("setSpuBizSummary ok;aid=%d;updater=%s", aid, updater.toJson());
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+
+        return rt;
+    }
+
+    public int setSpuBizSummaryRollback(FaiSession session, int flow, int aid, String xid, Long branchId) throws IOException {
+        return dpSetSpuBizSummaryRollback(session, flow, aid, xid, branchId);
+    }
+
+    public int batchSetSpuBizSummary(FaiSession session, int flow, int aid, String xid, FaiList<Integer> unionPriIds, FaiList<Integer> pdIds, ParamUpdater updater) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || Utils.isEmptyList(pdIds) || updater == null || updater.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;pdIds=%s;unionPriIds=%s;updater=%s;", flow, aid, pdIds, unionPriIds, updater.toJson());
+                return rt;
+            }
+            boolean isSaga = !Str.isEmpty(xid);
+
+            boolean commit = false;
+            TransactionCtrl tc = new TransactionCtrl();
+            tc.setAutoCommit(false);
+            try {
+                if(isSaga) {
+                    // 向 mgStoreSaga 表插入记录
+                    StoreSagaProc storeSagaProc = new StoreSagaProc(flow, aid, tc);
+                    rt = storeSagaProc.add(aid, xid, RootContext.getBranchId());
+                    if (rt != Errno.OK) {
+                        return rt;
+                    }
+                }
+                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
+                rt = spuBizSummaryProc.batchSet(aid, unionPriIds, pdIds, updater, isSaga);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+
+                if(isSaga) {
+                    // 将预记录的修改数据持久化到 db
+                    rt = spuBizSummaryProc.addUpdateSaga2Db(aid);
+                    if (rt != Errno.OK) {
+                        Log.logErr(rt, "setSpuBizSummary err;xid=%s;aid=%d;uid=%s;pdIds=%s;updater=%s;", xid, aid, unionPriIds, pdIds, updater.toJson());
+                        return rt;
+                    }
+                }
+
+                commit = true;
+            }finally {
+                if(commit) {
+                    tc.commit();
+                }else {
+                    tc.rollback();
+                }
+                tc.closeDao();
+            }
+
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("batchSetSpuBizSummary ok;aid=%d;pdIds=%s;uids=%s;updater=%s", aid, pdIds, unionPriIds, updater.toJson());
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+
+        return rt;
+    }
+
+    public int batchSetSpuBizSummaryRollback(FaiSession session, int flow, int aid, String xid, Long branchId) throws IOException {
+        return dpSetSpuBizSummaryRollback(session, flow, aid, xid, branchId);
+    }
+
+    private int dpSetSpuBizSummaryRollback(FaiSession session, int flow, int aid, String xid, Long branchId) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            SagaRollback sagaRollback = tc -> {
+                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
+                spuBizSummaryProc.rollback4Saga(aid, xid, branchId);
+            };
+            int branchStatus = doRollback(flow, aid, xid, branchId, sagaRollback);
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, branchStatus);
+            session.write(sendBuf);
+            rt = Errno.OK;
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    public int batchAddSpuBizSummary(FaiSession session, int flow, int aid, String xid, FaiList<Param> infoList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || infoList == null) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;infoList=%s;", flow, aid, infoList);
+                return rt;
+            }
+            boolean isSaga = !Str.isEmpty(xid);
+
+            boolean commit = false;
+            TransactionCtrl tc = new TransactionCtrl();
+            tc.setAutoCommit(false);
+            try {
+                if(isSaga) {
+                    // 向 mgStoreSaga 表插入记录
+                    StoreSagaProc storeSagaProc = new StoreSagaProc(flow, aid, tc);
+                    rt = storeSagaProc.add(aid, xid, RootContext.getBranchId());
+                    if (rt != Errno.OK) {
+                        return rt;
+                    }
+                }
+                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
+                rt = spuBizSummaryProc.batchAdd(aid, infoList, isSaga);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+
+                commit = true;
+            }finally {
+                if(commit) {
+                    tc.commit();
+                }else {
+                    tc.rollback();
+                }
+                tc.closeDao();
+            }
+
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("setSpuBizSummary ok;aid=%d;", aid);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+
+        return rt;
+    }
+
+    public int batchAddSpuBizSummaryRollback(FaiSession session, int flow, int aid, String xid, Long branchId) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            SagaRollback sagaRollback = tc -> {
+                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
+                spuBizSummaryProc.rollback4Saga(aid, xid, branchId);
+            };
+            int branchStatus = doRollback(flow, aid, xid, branchId, sagaRollback);
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, branchStatus);
+            session.write(sendBuf);
+            rt = Errno.OK;
+        }finally {
+            stat.end(rt != Errno.OK, rt);
         }
         return rt;
     }

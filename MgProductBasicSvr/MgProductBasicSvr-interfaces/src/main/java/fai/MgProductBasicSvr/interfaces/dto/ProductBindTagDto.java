@@ -15,7 +15,7 @@ public class ProductBindTagDto {
         g_infoDtoDef.add(ProductBindTagEntity.Info.UNION_PRI_ID, 3, Var.Type.INT);
         g_infoDtoDef.add(ProductBindTagEntity.Info.PD_ID, 4, Var.Type.INT);
         g_infoDtoDef.add(ProductBindTagEntity.Info.CREATE_TIME, 5, Var.Type.CALENDAR);
-        g_infoDtoDef.add(ProductBindTagEntity.Info.SYS_TYPE, 5, Var.Type.INT);
+        g_infoDtoDef.add(ProductBindTagEntity.Info.SYS_TYPE, 6, Var.Type.INT);
     }
 
     public static ParamDef getInfoDto() {

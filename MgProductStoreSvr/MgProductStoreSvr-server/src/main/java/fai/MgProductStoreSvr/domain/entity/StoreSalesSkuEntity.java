@@ -35,6 +35,32 @@ public class StoreSalesSkuEntity {
         public static final String COST_PRICE = "costPrice";                        // long 商品成本单价，商品导入用，不入库存销售信息库
     }
 
+    private static final String[] MAX_UPDATE_AND_PRI_KEYS = new String[]{
+            Info.AID,
+            Info.UNION_PRI_ID,
+            Info.SKU_ID,
+            Info.SKU_TYPE,
+            Info.SORT,
+            Info.PRICE,
+            Info.ORIGIN_PRICE,
+            Info.COUNT,
+            Info.REMAIN_COUNT,
+            Info.HOLDING_COUNT,
+            Info.MIN_AMOUNT,
+            Info.MAX_AMOUNT,
+            Info.DURATION,
+            Info.VIRTUAL_COUNT,
+            Info.FLAG,
+            Info.SYS_UPDATE_TIME
+    };
+
+    /**
+     * 获取能修改的字段，以及主键
+     */
+    public static String[] getMaxUpdateAndPriKeys(){
+        return MAX_UPDATE_AND_PRI_KEYS;
+    }
+
     private static final String[] VALID_KEYS = new String[]{
             Info.SKU_ID,
             Info.SKU_TYPE,

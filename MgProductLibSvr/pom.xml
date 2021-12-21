@@ -12,11 +12,12 @@
     <parent>
         <groupId>MgProduct</groupId>
         <artifactId>MgProductParent</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.1</version>
     </parent>
 
     <artifactId>MgProductLibSvr</artifactId>
     <packaging>pom</packaging>
+    <version>1.0.1</version>
 
     <build>
         <plugins>

@@ -3,7 +3,7 @@
     <parent>
         <groupId>MgProduct</groupId>
         <artifactId>MgProductSpecSvr</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.1</version>
     </parent>
 
     <artifactId>MgProductSpecSvr-interfaces</artifactId>
@@ -23,10 +23,21 @@
             <version>${fai-comm-netkit-ver}</version>
         </dependency>
 
+        <!--核心包 fai-comm-rpc-client-->
+        <dependency>
+            <groupId>fai-comm-rpc-client</groupId>
+            <artifactId>fai-comm-rpc-client</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>fai-comm-jnetkit</groupId>
+            <artifactId>fai-comm-jnetkit</artifactId>
+            <version>${fai-comm-jnetkit-ver}</version>
+        </dependency>
+
         <dependency>
             <groupId>fai-comm-util-opt</groupId>
             <artifactId>fai-comm-util-opt</artifactId>
-            <version>${fai-comm-util-opt-ver}</version>
         </dependency>
 
         <dependency>
@@ -88,8 +99,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.6</source>
-                    <target>1.6</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                     <!--<includes>
                         <include>**/interfaces/**</include>
                     </includes>-->

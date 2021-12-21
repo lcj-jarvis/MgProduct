@@ -9,14 +9,24 @@ import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.DaoCtrl;
 
 public class ProductDaoCtrl extends DaoCtrl {
+    private String tableName;
 
     public ProductDaoCtrl(int flow, int aid) {
         super(flow, aid);
+        setTableName(aid);
     }
 
     @Override
     public String getTableName() {
-        return TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
+        return tableName;
+    }
+
+    public void setTableName(int aid) {
+        this.tableName = TABLE_PREFIX + "_" + String.format("%04d", aid % 1000);
+    }
+
+    public void restoreTableName() {
+        setTableName(this.aid);
     }
 
     @Override
@@ -84,6 +94,39 @@ public class ProductDaoCtrl extends DaoCtrl {
         return id;
     }
 
+    private String getRelTableName(int aid) {
+        return  "mgProductRel_" + String.format("%04d", aid%1000);
+    }
+
+    public void updateYkPdId(int aid) {
+        String sql = "select aid,max(rlPdId) from " + getRelTableName(aid) + " where aid = " + aid;
+        FaiList<Param> list = m_dao.executeQuery(sql);
+        if(list == null) {
+            throw new MgException(Errno.ERROR, "select maxId error;sql: %s;", sql);
+        }
+        if(list.isEmpty()) {
+            return;
+        }
+
+        Param relInfo = list.get(0);
+        int maxRlPdId = relInfo.getInt("max(rlPdId)");
+        sql = "select id from mgProduct_idBuilder where aid = " + aid;
+        FaiList<Param> tmpList = m_dao.executeQuery(sql);
+        if(tmpList == null || tmpList.isEmpty()) {
+            throw new MgException(Errno.ERROR, "select idBuilder error;sql: %s;", sql);
+        }
+        int pdId = tmpList.get(0).getInt("id");
+        if(maxRlPdId > pdId) {
+            sql = "update mgProduct_idBuilder set id = " + maxRlPdId + " where aid = " + aid;
+            System.out.println("update sql: " + sql);
+            int rt = m_dao.executeUpdate(sql);
+            if(rt != Errno.OK) {
+                throw new MgException(Errno.ERROR, "update maxId error;sql: %s;", sql);
+            }
+            clearIdBuilderCache(aid);
+        }
+    }
+
     public Integer getId(int aid) {
         int rt = openDao();
         if(rt != Errno.OK) {
@@ -121,7 +164,7 @@ public class ProductDaoCtrl extends DaoCtrl {
     private static final String TABLE_PREFIX = "mgProduct";
     private static IdBuilderWrapper m_idBuilder;
     private static final int ID_BUILDER_INIT = 1;
-    private static IdBuilderConfig idBuilderConfig = new IdBuilderConfig.HeavyweightBuilder()	// 渠道统计的stat
+    private static IdBuilderConfig idBuilderConfig = new IdBuilderConfig.HeavyweightBuilder()
             .buildTableName("mgProduct")
             .buildAssistTableSuffix("idBuilder")
             .buildPrimaryMatchField("aid")

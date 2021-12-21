@@ -1,9 +1,7 @@
 package fai.MgProductBasicSvr.application.service;
 
-import fai.MgProductBasicSvr.domain.common.ESUtil;
-import fai.MgProductBasicSvr.domain.common.LockUtil;
-import fai.MgProductBasicSvr.domain.common.MgProductCheck;
-import fai.MgProductBasicSvr.domain.common.SagaRollback;
+import fai.MgBackupSvr.interfaces.entity.MgBackupEntity;
+import fai.MgProductBasicSvr.domain.common.*;
 import fai.MgProductBasicSvr.domain.entity.*;
 import fai.MgProductBasicSvr.domain.repository.cache.*;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductDaoCtrl;
@@ -12,8 +10,10 @@ import fai.MgProductBasicSvr.domain.serviceproc.*;
 import fai.MgProductBasicSvr.interfaces.dto.ProductDto;
 import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
 import fai.app.DocOplogDef;
+import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.fseata.client.core.rpc.def.CommDef;
 import fai.comm.jnetkit.server.fai.FaiSession;
+import fai.comm.middleground.app.CloneDef;
 import fai.comm.util.*;
 import fai.comm.middleground.FaiValObj;
 import fai.mgproduct.comm.DataStatus;
@@ -21,15 +21,102 @@ import fai.middleground.infutil.MgConfPool;
 import fai.middleground.svrutil.annotation.SuccessRt;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.misc.Utils;
+import fai.middleground.svrutil.repository.BackupStatusCtrl;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 操作商品基础数据
  */
 public class ProductBasicService extends BasicParentService {
+
+    @SuccessRt(Errno.OK)
+    public int getPdBindBizInfo(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds) throws IOException {
+        int rt;
+        if(aid <= 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args error;flow=%d;aid=%d;uid=%d;sysType=%d;rlPdIds=%s;", flow, aid, unionPriId, sysType, rlPdIds);
+            return rt;
+        }
+        if(!MgProductCheck.RequestLimit.checkReadSize(aid, rlPdIds)) {
+            return Errno.SIZE_LIMIT;
+        }
+
+        FaiList<Param> result;
+        TransactionCtrl tc = new TransactionCtrl();
+        try {
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+            Map<Integer, Integer> pdIdMaps = relProc.getPdIdRelMap(aid, unionPriId, sysType, new HashSet<>(rlPdIds));
+            if(pdIdMaps == null || pdIdMaps.isEmpty()) {
+                rt = Errno.NOT_FOUND;
+                Log.logErr(rt, "not found;aid=%d;uid=%s;sysType=%s;rlPdIds=%s;", aid, flow, unionPriId, sysType, rlPdIds);
+                return rt;
+            }
+
+            Map<Integer, FaiList<Param>> resMap = new HashMap<>();
+            FaiList<Param> list = relProc.getBoundUniPriIds(aid, new FaiList<>(pdIdMaps.keySet()));
+            for(int i = 0; i < list.size(); i++) {
+                Param info = list.get(i);
+                Integer pdId = info.getInt(ProductRelEntity.Info.PD_ID);
+                Integer curUnionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
+                Integer status = info.getInt(ProductRelEntity.Info.STATUS);
+
+                Param bindInfo = new Param();
+                bindInfo.setInt(ProductRelEntity.Info.STATUS, status);
+                bindInfo.setInt(ProductRelEntity.Info.UNION_PRI_ID, curUnionPriId);
+
+                FaiList<Param> bindList = resMap.get(pdId);
+                if(bindList == null) {
+                    bindList = new FaiList<>();
+                    resMap.put(pdId, bindList);
+                }
+                bindList.add(bindInfo);
+            }
+            result = new FaiList<>();
+            for(Map.Entry<Integer, FaiList<Param>> entry : resMap.entrySet()) {
+                Integer pdId = entry.getKey();
+                FaiList<Param> bindList = entry.getValue();
+                Param resInfo = new Param();
+                resInfo.setInt(ProductRelEntity.Info.RL_PD_ID, pdIdMaps.get(pdId));
+                resInfo.setList(ProductRelEntity.Info.BIND_LIST, bindList);
+                result.add(resInfo);
+            }
+        }finally {
+            tc.closeDao();
+        }
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        result.toBuffer(sendBuf, ProductRelDto.Key.INFO_LIST, ProductRelDto.getPdBindBizDto());
+        session.write(sendBuf);
+        rt = Errno.OK;
+        Log.logDbg("getPdBindBizInfo ok;flow=%d;aid=%d;unionPriId=%d;sysType=%s;rlPdIds=%s;size=%d;", flow, aid, unionPriId, sysType, rlPdIds, result.size());
+
+        return rt;
+    }
+
+    private Param assignPdInfo(Param relInfo, Param pdInfo) {
+        Param result = new Param();
+        if(Str.isEmpty(relInfo) || Str.isEmpty(pdInfo)) {
+            return result;
+        }
+
+        // 先assign pdInfo
+        result.assign(pdInfo);
+
+        // 再assign relInfo
+        result.assign(relInfo);
+
+        Calendar relUpdateTime = relInfo.getCalendar(ProductRelEntity.Info.UPDATE_TIME);
+        Calendar pdUpdateTime = pdInfo.getCalendar(ProductEntity.Info.UPDATE_TIME);
+        // 如果商品表的修改时间更晚，则用商品表的修改时间
+        if(relUpdateTime.before(pdUpdateTime)) {
+            result.setCalendar(ProductRelEntity.Info.UPDATE_TIME, pdUpdateTime);
+        }
+
+        return result;
+    }
 
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getProductInfo(FaiSession session, int flow, int aid, int unionPriId, int sysType, int rlPdId) throws IOException {
@@ -50,13 +137,17 @@ public class ProductBasicService extends BasicParentService {
             }
             // 获取商品业务关系表数据
             Param relInfo = relProc.getProductRel(aid, unionPriId, pdId);
+            // TODO 不支持获取软删除数据，查不到业务表信息直接返回，避免空指针
+            if (Str.isEmpty(relInfo)) {
+                rt = Errno.NOT_FOUND;
+                return rt;
+            }
 
             // 获取商品表数据
             ProductProc pdProc = new ProductProc(flow, aid, tc);
             Param pdInfo = pdProc.getProductInfo(aid, pdId);
 
-            result.assign(pdInfo);
-            result.assign(relInfo);
+            result = assignPdInfo(relInfo, pdInfo);
 
             // 获取绑定分类
             if(useProductGroup()) {
@@ -92,10 +183,8 @@ public class ProductBasicService extends BasicParentService {
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getProductList(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds) throws IOException {
         int rt;
-        if(rlPdIds == null || rlPdIds.isEmpty()) {
-            rt = Errno.ARGS_ERROR;
-            Log.logErr("args error rlPdIds is empty;flow=%d;aid=%d;rlPdIds=%s;", flow, aid, rlPdIds);
-            return rt;
+        if(!MgProductCheck.RequestLimit.checkReadSize(aid, rlPdIds)) {
+            return Errno.SIZE_LIMIT;
         }
 
         FaiList<Param> relList;
@@ -126,6 +215,7 @@ public class ProductBasicService extends BasicParentService {
             int pdId = info.getInt(ProductEntity.Info.PD_ID);
             pdMap.put(pdId, info);
         }
+        FaiList<Param> resList = new FaiList<>(relList.size());
         // 数据整合
         for (int i = 0; i < relList.size(); i++) {
             Param relInfo = relList.get(i);
@@ -139,13 +229,196 @@ public class ProductBasicService extends BasicParentService {
             }
             pdInfo.remove(ProductEntity.Info.STATUS);
             relInfo.assign(pdInfo);
+            Param resInfo = assignPdInfo(relInfo, pdInfo);
+            resList.add(resInfo);
         }
 
         FaiBuffer sendBuf = new FaiBuffer(true);
-        relList.toBuffer(sendBuf, ProductRelDto.Key.INFO_LIST, ProductRelDto.getRelAndPdDto());
+        resList.toBuffer(sendBuf, ProductRelDto.Key.INFO_LIST, ProductRelDto.getRelAndPdDto());
         session.write(sendBuf);
         Log.logDbg("get list ok;flow=%d;aid=%d;uid=%d;rlPdIds=%s;", flow, aid, unionPriId, rlPdIds);
         return Errno.OK;
+    }
+
+    /**
+     * 给悦客提供的批量修改接口
+     * 可同时修改多个unionPriId * 多个rlPdId的数据
+     * 目前仅支持修改status 和 绑定分类
+     *
+     * 修改status时，若对应unionPriId下没有数据，则克隆一份总店数据到对应unionPriId下
+     */
+    @SuccessRt(Errno.OK)
+    public int batchSet4YK(FaiSession session, int flow, int aid, String xid, int ownUnionPriId, int sysType, FaiList<Integer> unionPriIds, FaiList<Integer> rlPdIds, ParamUpdater updater) throws IOException {
+        int rt;
+        if(aid <= 0 || ownUnionPriId <= 0 || Utils.isEmptyList(unionPriIds) || Utils.isEmptyList(rlPdIds)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args error;flow=%d;aid=%d;ownUid=%d;uids=%s;rlPdIds=%s;updater=%s;", flow, aid, ownUnionPriId, unionPriIds, rlPdIds, updater.toJson());
+            return rt;
+        }
+        Param updateInfo = updater.getData();
+        if(updater.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args error, update is empty;flow=%d;aid=%d;ownUid=%d;uids=%s;rlPdIds=%s;updater=%s;", flow, aid, ownUnionPriId, unionPriIds, rlPdIds, updater.toJson());
+            return rt;
+        }
+
+        Integer status = (Integer) updateInfo.remove(ProductRelEntity.Info.STATUS);
+        FaiList<Integer> rlGroupIds = (FaiList<Integer>) updateInfo.remove(ProductRelEntity.Info.RL_GROUP_IDS);
+        FaiList<Param> addList = new FaiList<>();
+
+        LockUtil.lock(aid);
+        try {
+            TransactionCtrl tc = new TransactionCtrl();
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+                // xid不为空，则开启了分布式事务，saga添加一条记录
+                if(!Str.isEmpty(xid)) {
+                    SagaProc sagaProc = new SagaProc(flow, aid, tc);
+                    sagaProc.addInfo(aid, xid);
+                }
+
+                ProductRelProc relProc = new ProductRelProc(flow, aid, tc, xid, true);
+                FaiList<Integer> pdIds = relProc.getPdIds(aid, ownUnionPriId, sysType, new HashSet<>(rlPdIds));
+                if(status != null) {
+                    addList = relProc.setPdStatus(aid, ownUnionPriId, unionPriIds, pdIds, status);
+                }
+
+                // 更新分类绑定
+                if(rlGroupIds != null) {
+                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, true);
+                    for(int unionPirId : unionPriIds) {
+                        FaiList<Param> relList = relProc.getProductRelListWithDel(aid, unionPirId, pdIds);
+                        Map<Integer, Integer> pdId_rlPdId = Utils.getMap(relList, ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID);
+                        // 组装新设置的分类绑定关系
+                        FaiList<Param> newBindGroupList = new FaiList<>();
+                        for(int pdId : pdIds) {
+                            int rlPdId = pdId_rlPdId.get(pdId);
+                            for(int rlGroupId : rlGroupIds) {
+                                Param newBind = new Param();
+                                newBind.setInt(ProductBindGroupEntity.Info.SYS_TYPE, sysType);
+                                newBind.setInt(ProductBindGroupEntity.Info.RL_GROUP_ID, rlGroupId);
+                                newBind.setInt(ProductBindGroupEntity.Info.RL_PD_ID, rlPdId);
+                                newBind.setInt(ProductBindGroupEntity.Info.PD_ID, pdId);
+                                newBindGroupList.add(newBind);
+                            }
+                        }
+                        bindGroupProc.updateBindGroupList(aid, unionPirId, pdIds, newBindGroupList);
+                    }
+                }
+
+                // 还有其他修改最后执行
+                if(!updater.isEmpty()) {
+                    relProc.batchSet(aid, unionPriIds, pdIds, updater);
+                }
+
+                relProc.transactionEnd(aid);
+
+                // 提交前设置下临时过期时间
+                CacheCtrl.setExpire(aid);
+                commit = true;
+            }finally {
+                if(!commit) {
+                    tc.rollback();
+                }else {
+                    tc.commit();
+                }
+                tc.closeDao();
+            }
+
+            // 删除缓存
+            CacheCtrl.clearCacheVersion(aid);
+
+            // 同步修改给es
+            ESUtil.commitPre(flow, aid);
+        }finally {
+            LockUtil.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        addList.toBuffer(sendBuf, ProductRelDto.Key.REDUCED_INFO, ProductRelDto.getReducedInfoDto());
+        session.write(sendBuf);
+        Log.logStd("setPdStatus ok;flow=%d;aid=%d;ownUid=%d;uids=%s;rlPdIds=%s;updater=%s;", flow, aid, ownUnionPriId, unionPriIds, rlPdIds, updater.toJson());
+        return rt;
+    }
+
+    @SuccessRt(Errno.OK)
+    public int batchSet4YKRollback(FaiSession session, int flow, int aid, String xid, long branchId) throws IOException {
+        SagaRollback sagaRollback = (tc) -> {
+            // 回滚商品业务关系表数据
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc, xid, false);
+            relProc.rollback4Saga(aid, branchId);
+
+            ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, false);
+            bindGroupProc.rollback4Saga(aid, branchId);
+        };
+
+        int branchStatus = doRollback(flow, aid, xid, branchId, sagaRollback);
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, branchStatus);
+        session.write(sendBuf);
+        return Errno.OK;
+    }
+
+    @SuccessRt(Errno.OK)
+    public int cloneBizBind(FaiSession session, int flow, int aid, int fromUnionPriId, int toUnionPriId, boolean silentDel) throws IOException {
+        int rt;
+        if(aid <= 0 || fromUnionPriId <= 0 || toUnionPriId <= 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr(rt, "args error;flow=%d;aid=%d;fromUid=%d;toUid=%s;", flow, aid, fromUnionPriId, toUnionPriId);
+            return rt;
+        }
+        LockUtil.lock(aid);
+        try {
+            TransactionCtrl tc = new TransactionCtrl();
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+                // 克隆业务表数据
+                ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+                relProc.cloneBizBind(aid, fromUnionPriId, toUnionPriId, silentDel);
+
+                // 克隆分类关联数据
+                if(useProductGroup()) {
+                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                    bindGroupProc.cloneBizBind(aid, fromUnionPriId, toUnionPriId);
+                }
+
+                // 克隆标签关联数据
+                if(useProductTag()) {
+                    ProductBindTagProc bindGroupProc = new ProductBindTagProc(flow, aid, tc);
+                    bindGroupProc.cloneBizBind(aid, fromUnionPriId, toUnionPriId);
+                }
+
+                // 克隆参数关联数据
+                ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
+                bindPropProc.cloneBizBind(aid, fromUnionPriId, toUnionPriId);
+
+                commit = true;
+            }finally {
+                if(!commit) {
+                    tc.rollback();
+                }else {
+                    tc.commit();
+                }
+                tc.closeDao();
+            }
+
+            // 删除缓存
+            CacheCtrl.clearCacheVersion(aid);
+            // 同步修改给es
+            ESUtil.commitPre(flow, aid);
+
+        }finally {
+            LockUtil.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("cloneBizBind ok;flow=%d;aid=%d;fromUid=%s;toUid=%s;", flow, aid, fromUnionPriId, toUnionPriId);
+        return rt;
     }
 
     /**
@@ -155,10 +428,8 @@ public class ProductBasicService extends BasicParentService {
     @SuccessRt(value = Errno.OK)
     public int batchDelPdRelBind(FaiSession session, int flow ,int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, boolean softDel) throws IOException {
         int rt;
-        if(rlPdIds == null || rlPdIds.isEmpty()) {
-            rt = Errno.ARGS_ERROR;
-            Log.logErr("args error rlPdIds is empty;flow=%d;aid=%d;rlPdIds=%s;", flow, aid, rlPdIds);
-            return rt;
+        if(!MgProductCheck.RequestLimit.checkWriteSize(aid, rlPdIds)) {
+            return Errno.SIZE_LIMIT;
         }
         LockUtil.lock(aid);
         try {
@@ -253,10 +524,8 @@ public class ProductBasicService extends BasicParentService {
             return rt;
         }
 
-        if(rlPdIds == null || rlPdIds.isEmpty()) {
-            rt = Errno.ARGS_ERROR;
-            Log.logErr("args error, rlPdIds is empty;flow=%d;aid=%d;rlPdIds=%s;", flow, aid, rlPdIds);
-            return rt;
+        if(!MgProductCheck.RequestLimit.checkWriteSize(aid, rlPdIds)) {
+            return Errno.SIZE_LIMIT;
         }
         LockUtil.lock(aid);
         try {
@@ -306,6 +575,8 @@ public class ProductBasicService extends BasicParentService {
                     }
                 }
 
+                relProc.transactionEnd(aid);
+
                 commit = true;
                 tc.commit();
             }finally {
@@ -343,7 +614,7 @@ public class ProductBasicService extends BasicParentService {
 
             // 回滚商品表数据
             ProductProc proc = new ProductProc(flow, aid, tc, xid, false);
-            proc.rollback4Saga(aid, branchId);
+            proc.rollback4Saga(aid, branchId, relProc);
 
             // 回滚绑定参数
             ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc, xid, false);
@@ -507,7 +778,109 @@ public class ProductBasicService extends BasicParentService {
     }
 
     @SuccessRt(value = Errno.OK)
-    public int setSingle(FaiSession session, int flow, int aid, String xid, int unionPriId, int sysType, int rlPdId, ParamUpdater recvUpdater) throws IOException {
+    public int setPdSort(FaiSession session, int flow, int aid, int tid, int unionPriId, int sysType, int rlPdId, int preRlPdId) throws IOException {
+        int rt;
+        if(rlPdId <= 0 || preRlPdId < 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, rlPdId is not valid;aid=%d;uid=%d;rlPdId=%d;preRlPdId=%s;", aid, unionPriId, rlPdId, preRlPdId);
+            return rt;
+        }
+
+        LockUtil.lock(aid);
+        try {
+            FaiList<Integer> updatePdIds = new FaiList<>();
+            //统一控制事务
+            TransactionCtrl tc = new TransactionCtrl();
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+                HashSet<Integer> rlPdIds = new HashSet<>();
+                rlPdIds.add(rlPdId);
+                if(preRlPdId != 0) {
+                    rlPdIds.add(preRlPdId);
+                }
+
+                ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+                int oldSort = 0, preSort = 0;
+
+                FaiList<Integer> pdIds = relProc.getPdIds(aid, unionPriId, sysType, rlPdIds);
+                FaiList<Param> list = relProc.getProductRelList(aid, unionPriId, pdIds);
+                for(Param info : list) {
+                    int curRlPdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
+                    int curSort = info.getInt(ProductRelEntity.Info.SORT);
+                    if(curRlPdId == rlPdId) {
+                        oldSort = curSort;
+                    }else {
+                        preSort = curSort;
+                    }
+                }
+                boolean moveDown = oldSort < preSort;
+
+                ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+                matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+                if(moveDown) {
+                    matcher.and(ProductRelEntity.Info.SORT, ParamMatcher.LE, preSort);
+                    matcher.and(ProductRelEntity.Info.SORT, ParamMatcher.GE, oldSort);
+                }else {
+                    matcher.and(ProductRelEntity.Info.SORT, ParamMatcher.LE, oldSort);
+                    matcher.and(ProductRelEntity.Info.SORT, ParamMatcher.GE, preSort);
+                }
+
+                SearchArg searchArg = new SearchArg();
+                searchArg.matcher = matcher;
+                // 如果是moveDown，则按照sort升序排序
+                // 如果不是moveDown，则按照sort降序排序
+                // 这样，oldSort查出来一定是在队尾，只需将排好序的sortList 中的元素，从队头移至队尾，再重新和 needUpdateList 按顺序进行映射 就行了
+                searchArg.cmpor = new ParamComparator(ProductRelEntity.Info.SORT, moveDown);
+                FaiList<Param> needUpdateList = relProc.searchFromDbWithDel(aid, searchArg, Utils.asFaiList(ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.SORT));
+                FaiList<Integer> sortList = Utils.getValList(needUpdateList, ProductRelEntity.Info.SORT);
+
+                // 将firstSort从队头移到队尾
+                Integer firstSort = sortList.remove(0);
+                sortList.add(firstSort);
+
+                // 重新映射sort
+                for(int i = 0; i < needUpdateList.size(); i++) {
+                    Param info = needUpdateList.get(i);
+                    int pdId = info.getInt(ProductRelEntity.Info.PD_ID);
+                    int newSort = sortList.get(i);
+                    info.setInt(ProductRelEntity.Info.SORT, newSort);
+                    info.setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId);
+
+                    updatePdIds.add(pdId);
+                }
+                relProc.batchSet(aid, needUpdateList);
+
+                relProc.transactionEnd(aid);
+                commit = true;
+                tc.commit();
+            } finally {
+                if(!commit){
+                    tc.rollback();
+                }
+                tc.closeDao();
+            }
+            // 处理缓存
+            ProductRelCacheCtrl.InfoCache.delCacheList(aid, unionPriId, updatePdIds);
+            ProductRelCacheCtrl.DataStatusCache.del(aid, unionPriId);
+            ProductRelCacheCtrl.SortCache.del(aid, unionPriId); // sort缓存
+
+            // 同步数据给es
+            ESUtil.commitPre(flow, aid);
+        }finally {
+            LockUtil.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("set pd sort ok;flow=%d;aid=%d;uid=%d;rlPdId=%d;preRlPdId=%s;", flow, aid, unionPriId, rlPdId, preRlPdId);
+
+        return rt;
+    }
+
+    @SuccessRt(value = Errno.OK)
+    public int setSingle(FaiSession session, int flow, int aid, String xid, int tid, int siteId, int unionPriId, int sysType, int rlPdId, ParamUpdater recvUpdater) throws IOException {
         int rt;
         if(rlPdId <= 0) {
             rt = Errno.ARGS_ERROR;
@@ -557,6 +930,14 @@ public class ProductBasicService extends BasicParentService {
                 }
 
                 if(relUpdate != null) {
+                    // 如果修改置顶时间，则将sort置为最大
+                    Param updateInfo = relUpdate.getData();
+                    Calendar top = updateInfo.getCalendar(ProductRelEntity.Info.TOP);
+                    Integer sort = updateInfo.getInt(ProductRelEntity.Info.SORT);
+                    if(top != null && sort == null) {
+                        int maxSort = relProc.getMaxSort(aid, unionPriId);
+                        updateInfo.setInt(ProductRelEntity.Info.SORT, ++maxSort);
+                    }
                     ProductRelCacheCtrl.InfoCache.setExpire(aid, unionPriId); // 设置过期时间，最大努力的避免脏数据
                     relProc.setSingle(aid, unionPriId, pdId, relUpdate);
                 }
@@ -567,6 +948,9 @@ public class ProductBasicService extends BasicParentService {
 
                     ProductProc pdProc = new ProductProc(flow, aid, tc, xid, true);
                     pdProc.setSingle(aid, pdId, pdUpdate);
+
+                    // gfw
+                    GfwUtil.preWriteGfwLog(aid, tid, siteId, pdId, pdUpdate.getData());
                 }
 
                 // 修改绑定的商品分类
@@ -586,6 +970,7 @@ public class ProductBasicService extends BasicParentService {
                     ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc, xid, true);
                     bindPropProc.updatePdBindProp(aid, unionPriId, sysType, rlPdId, pdId, rlProps);
                 }
+                relProc.transactionEnd(aid);
                 commit = true;
                 tc.commit();
             } finally {
@@ -603,10 +988,16 @@ public class ProductBasicService extends BasicParentService {
             }
             ProductBindPropCache.delCache(aid, unionPriId, sysType, rlPdId);
             ProductBindGroupCache.delCache(aid, unionPriId, pdId);
+            ProductBindGroupCache.EmptyCache.delCache(aid, unionPriId, pdId); // 删除绑定分类数据空缓存
             ProductBindTagCache.delCache(aid, unionPriId, pdId);
+            ProductRelCacheCtrl.SortCache.del(aid, unionPriId); // sort缓存
+            ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, 0);
 
             // 同步数据给es
             ESUtil.logDocId(flow, aid, pdId, unionPriId, DocOplogDef.Operation.UPDATE_ONE);
+
+            // gfw
+            GfwUtil.commitPre(tid);
         }finally {
             LockUtil.unlock(aid);
         }
@@ -628,7 +1019,7 @@ public class ProductBasicService extends BasicParentService {
 
             // 回滚商品表数据
             ProductProc proc = new ProductProc(flow, aid, tc, xid, false);
-            proc.rollback4Saga(aid, branchId);
+            proc.rollback4Saga(aid, branchId, relProc);
 
             // 回滚绑定参数
             ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc, xid, false);
@@ -655,7 +1046,7 @@ public class ProductBasicService extends BasicParentService {
     }
 
     @SuccessRt(value = Errno.OK)
-    public int setProducts(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, ParamUpdater recvUpdater) throws IOException {
+    public int setProducts(FaiSession session, int flow, int aid, int tid, int siteId, int unionPriId, int sysType, FaiList<Integer> rlPdIds, ParamUpdater recvUpdater) throws IOException {
         int rt;
         if(!MgProductCheck.RequestLimit.checkWriteSize(aid, rlPdIds)) {
             rt = Errno.SIZE_LIMIT;
@@ -694,6 +1085,9 @@ public class ProductBasicService extends BasicParentService {
                 if(pdUpdate != null) {
                     ProductProc pdProc = new ProductProc(flow, aid, tc);
                     pdProc.setProducts(aid, pdIdList, pdUpdate);
+
+                    // gfw
+                    GfwUtil.preWriteGfwLog(aid, tid, siteId, pdIdList, pdUpdate.getData());
                 }
                 commit = true;
                 tc.commit();
@@ -713,6 +1107,8 @@ public class ProductBasicService extends BasicParentService {
 
             // 同步数据给es
             ESUtil.batchLogDocId(flow, aid, unionPriId, pdIdList, DocOplogDef.Operation.UPDATE_ONE);
+            // gfw
+            GfwUtil.commitPre(tid);
         }finally {
             LockUtil.unlock(aid);
         }
@@ -745,13 +1141,13 @@ public class ProductBasicService extends BasicParentService {
             if(Str.isEmpty(pdInfo)) {
                 return Errno.NOT_FOUND;
             }
-            info.assign(pdInfo);
             ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
             Param relInfo = relProc.getProductRel(aid, unionPriId, pdId);
             if(Str.isEmpty(relInfo)) {
                 return Errno.NOT_FOUND;
             }
-            info.assign(relInfo);
+
+            info = assignPdInfo(relInfo, pdInfo);
 
         } finally {
             tc.closeDao();
@@ -761,6 +1157,81 @@ public class ProductBasicService extends BasicParentService {
         session.write(sendBuf);
         rt = Errno.OK;
         Log.logDbg("get ok;flow=%d;aid=%d;unionPriId=%d;pdId=%d;", flow, aid, unionPriId, pdId);
+
+        return rt;
+    }
+
+    /**
+     * 根据商品id集合，获取商品数据
+     */
+    @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
+    public int getPdListByPdIds(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> pdIds) throws IOException {
+        int rt;
+        if(!MgProductCheck.RequestLimit.checkReadSize(aid, pdIds)) {
+            return Errno.SIZE_LIMIT;
+        }
+        FaiList<Param> list = new FaiList<>();
+        //统一控制事务
+        TransactionCtrl tc = new TransactionCtrl();
+        try {
+            // 业务关系表
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+            FaiList<Param> relList = relProc.getProductRelListWithDel(aid, unionPriId, pdIds);
+            if(Utils.isEmptyList(relList)) {
+                return Errno.NOT_FOUND;
+            }
+
+            // 基础表
+            ProductProc pdProc = new ProductProc(flow, aid, tc);
+            FaiList<Param> basicList = pdProc.getProductList(aid, pdIds);
+            if(Utils.isEmptyList(basicList)) {
+                return Errno.NOT_FOUND;
+            }
+
+            // 绑定分类
+            Map<Integer, List<Param>> bindGroupMap = new HashMap<>();
+            if(useProductGroup()) {
+                ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                FaiList<Param> bindGroups = bindGroupProc.getPdBindGroupList(aid, unionPriId, pdIds);
+                if(!Utils.isEmptyList(bindGroups)) {
+                    bindGroupMap = bindGroups.stream().collect(Collectors.groupingBy(x -> x.getInt(ProductBindGroupEntity.Info.PD_ID)));
+                }
+            }
+
+            // 数据整合
+            Map<Integer, Param> relMap = Utils.getMap(relList, ProductRelEntity.Info.PD_ID);
+            Map<Integer, Param> basicMap = Utils.getMap(basicList, ProductEntity.Info.PD_ID);
+            for(Map.Entry<Integer, Param> entry : relMap.entrySet()) {
+                Integer pdId = entry.getKey();
+                Param info = entry.getValue();
+                Param basicInfo = basicMap.get(pdId);
+                // 业务表和基础表都有status字段，业务方感知的应该是relInfo中的status
+                basicInfo.remove(ProductEntity.Info.STATUS);
+                // 整合基础表数据
+                info.assign(basicInfo);
+                // 整合绑定分类表数据
+                List<Param> bindGroupsTemp = bindGroupMap.get(pdId);
+                if(bindGroupsTemp != null) {
+                    FaiList<Param> bindGroups = new FaiList<>(bindGroupsTemp);
+                    FaiList<Integer> rlGroupIds = Utils.getValList(bindGroups, ProductBindGroupEntity.Info.RL_GROUP_ID);
+                    info.setList(ProductRelEntity.Info.RL_GROUP_IDS, rlGroupIds);
+                }
+
+                list.add(info);
+            }
+
+            // 按照pdIds排序
+            ParamComparator comparator = new ParamComparator();
+            comparator.addKey(ProductRelEntity.Info.PD_ID, pdIds);
+            Collections.sort(list, comparator);
+        } finally {
+            tc.closeDao();
+        }
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        list.toBuffer(sendBuf, ProductRelDto.Key.INFO_LIST, ProductRelDto.getRelAndPdDto());
+        session.write(sendBuf);
+        rt = Errno.OK;
+        Log.logDbg("get list ok;flow=%d;aid=%d;unionPriId=%d;pdIds=%s;", flow, aid, unionPriId, pdIds);
 
         return rt;
     }
@@ -805,12 +1276,10 @@ public class ProductBasicService extends BasicParentService {
      * 根据业务商品id集合，获取商品业务关系数据集合
      */
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
-    public int getRelListByRlIds(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds) throws IOException {
+    public int getRelListByRlIds(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, boolean withSoftDel) throws IOException {
         int rt;
-        if(rlPdIds == null || rlPdIds.isEmpty()) {
-            rt = Errno.ARGS_ERROR;
-            Log.logErr("args error, pdIds is empty;aid=%d;uid=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
-            return rt;
+        if(!MgProductCheck.RequestLimit.checkReadSize(aid, rlPdIds)) {
+            return Errno.SIZE_LIMIT;
         }
 
         FaiList<Param> list;
@@ -822,7 +1291,7 @@ public class ProductBasicService extends BasicParentService {
             if(Utils.isEmptyList(pdIds)) {
                 return Errno.NOT_FOUND;
             }
-            list = relProc.getProductRelList(aid, unionPriId, pdIds);
+            list = withSoftDel ? relProc.getProductRelListWithDel(aid, unionPriId, pdIds) : relProc.getProductRelList(aid, unionPriId, pdIds);
         } finally {
             tc.closeDao();
         }
@@ -844,10 +1313,8 @@ public class ProductBasicService extends BasicParentService {
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getReducedRelsByPdIds(FaiSession session, int flow, int aid, int unionPriId, FaiList<Integer> pdIds) throws IOException {
         int rt;
-        if(pdIds == null || pdIds.isEmpty()) {
-            rt = Errno.ARGS_ERROR;
-            Log.logErr("args error, pdIds is empty;aid=%d;uid=%d;pdIds=%s;", aid, unionPriId, pdIds);
-            return rt;
+        if(Utils.isEmptyList(pdIds)) {
+            throw new MgException(Errno.ARGS_ERROR, "args error, pdIds is empty;aid=%d;pdIds=%s;", aid, pdIds);
         }
 
         FaiList<Param> list;
@@ -855,7 +1322,7 @@ public class ProductBasicService extends BasicParentService {
         TransactionCtrl tc = new TransactionCtrl();
         try {
             ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
-            list = relProc.getProductRelList(aid, unionPriId, pdIds);
+            list = relProc.getProductRelListWithDel(aid, unionPriId, pdIds);
         } finally {
             tc.closeDao();
         }
@@ -871,6 +1338,64 @@ public class ProductBasicService extends BasicParentService {
         return rt;
     }
 
+    public int getPdReducedList4Adm(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<String> nameList, FaiList<Integer> status) throws IOException {
+        int rt;
+        if(Utils.isEmptyList(nameList)) {
+            throw new MgException(Errno.ARGS_ERROR, "args error, pdIds is empty;aid=%d;nameList=%s;", aid, nameList);
+        }
+
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductEntity.Info.NAME, ParamMatcher.IN, nameList);
+
+        FaiList<Param> list;
+        Map<Integer, String> pdId_name;
+        //统一控制事务
+        TransactionCtrl tc = new TransactionCtrl();
+        try {
+            // 查基础表
+            ProductProc pdProc = new ProductProc(flow, aid, tc);
+            FaiList<Param> pdList = pdProc.searchFromDbWithDel(aid, searchArg, Utils.asFaiList(ProductEntity.Info.NAME, ProductEntity.Info.PD_ID));
+            if(Utils.isEmptyList(pdList)) {
+                return Errno.NOT_FOUND;
+            }
+            pdId_name = Utils.getMap(pdList, ProductEntity.Info.PD_ID, ProductEntity.Info.NAME);
+            FaiList<Integer> pdIds = new FaiList<>(pdId_name.keySet());
+
+            // 查业务关系表
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+            searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+            searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+            searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+            if(!Utils.isEmptyList(status)) {
+                searchArg.matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.IN, status);
+            }
+            if(sysType != -1) {
+                searchArg.matcher.and(ProductRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
+            }
+
+            list = relProc.searchFromDbWithDel(aid, searchArg, Utils.asFaiList(ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID, ProductRelEntity.Info.SYS_TYPE, ProductRelEntity.Info.STATUS));
+        } finally {
+            tc.closeDao();
+        }
+        if(list == null || list.isEmpty()) {
+            return Errno.NOT_FOUND;
+        }
+
+        for(Param info : list) {
+            int pdId = info.getInt(ProductEntity.Info.PD_ID);
+            info.setString(ProductEntity.Info.NAME, pdId_name.get(pdId));
+        }
+
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        list.toBuffer(sendBuf, ProductRelDto.Key.REDUCED_INFO, ProductRelDto.getReducedInfoDto());
+        session.write(sendBuf);
+        rt = Errno.OK;
+        Log.logDbg("get ok;flow=%d;aid=%d;unionPriId=%d;status=%s;sysType=%s;nameList=%s;", flow, aid, unionPriId, status, sysType, nameList);
+
+        return rt;
+    }
+
     /**
      * 新增商品数据，并添加与当前unionPriId的关联
      * 1. 添加商品数据
@@ -880,7 +1405,7 @@ public class ProductBasicService extends BasicParentService {
      * 5. 添加商品标签绑定关系
      */
     @SuccessRt(value = Errno.OK)
-    public int addProductAndRel(FaiSession session, int flow, int aid, String xid, int tid, int unionPriId, Param info) throws IOException {
+    public int addProductAndRel(FaiSession session, int flow, int aid, String xid, int tid, int siteId, int unionPriId, Param info) throws IOException {
         int rt;
         if(!FaiValObj.TermId.isValidTid(tid)) {
             rt = Errno.ARGS_ERROR;
@@ -933,7 +1458,7 @@ public class ProductBasicService extends BasicParentService {
 
                 // 新增商品数据
                 ProductProc pdProc = new ProductProc(flow, aid, tc, xid, true);
-                pdId = pdProc.addProduct(aid, pdData);
+                pdId = pdProc.addProduct(aid, tid, siteId, pdData);
 
                 relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
                 // 新增业务关系
@@ -944,7 +1469,7 @@ public class ProductBasicService extends BasicParentService {
                     relData.setInt(ProductRelEntity.Info.SORT, ++maxSort);
                 }
 
-                rlPdId = relProc.addProductRel(aid, unionPriId, relData);
+                rlPdId = relProc.addProductRel(aid, tid, unionPriId, relData);
 
                 int sysType = relData.getInt(ProductRelEntity.Info.SYS_TYPE);
 
@@ -967,6 +1492,7 @@ public class ProductBasicService extends BasicParentService {
                     bindTagProc.addPdBindTagList(aid, unionPriId, sysType, rlPdId, pdId, rlTagIds);
                     Log.logStd("add bind rlTagIds ok;flow=%d;aid=%d;uid=%d;rlPdId=%d;pdId=%d;rlTagIds=%s;", flow, aid, unionPriId, rlPdId, pdId, rlTagIds);
                 }
+                relProc.transactionEnd(aid);
 
                 commit = true;
             } finally {
@@ -985,9 +1511,14 @@ public class ProductBasicService extends BasicParentService {
             ProductCacheCtrl.DataStatusCache.update(aid, 1); // 更新数据状态缓存
             ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, 1); // 更新数据状态缓存
             ProductRelCacheCtrl.SortCache.set(aid, unionPriId, maxSort); // sort缓存
+            ProductRelCacheCtrl.EmptyCache.delCache(aid, unionPriId, rlPdId); // 删除空缓存
+            ProductBindGroupCache.EmptyCache.delCache(aid, unionPriId, pdId); // 删除绑定分类数据空缓存
 
             // 同步数据给es
             ESUtil.logDocId(flow, aid, pdId, unionPriId, DocOplogDef.Operation.UPDATE_ONE);
+
+            // gfw
+            GfwUtil.commitPre(tid);
         } finally {
             LockUtil.unlock(aid);
         }
@@ -1018,7 +1549,7 @@ public class ProductBasicService extends BasicParentService {
      * 批量添加商品，并添加与当前unionPriId的关联
      */
     @SuccessRt(value = Errno.OK)
-    public int batchAddProductAndRel(FaiSession session, int flow, int aid, int tid, int unionPriId, FaiList<Param> addList) throws IOException {
+    public int batchAddProductAndRel(FaiSession session, int flow, int aid, String xid, int tid, int siteId, int unionPriId, FaiList<Param> addList) throws IOException {
         int rt = Errno.ERROR;
         if(!FaiValObj.TermId.isValidTid(tid)) {
             rt = Errno.ARGS_ERROR;
@@ -1057,17 +1588,27 @@ public class ProductBasicService extends BasicParentService {
         LockUtil.lock(aid);
         try {
             FaiList<Integer> pdIdList;
+            FaiList<Integer> rlPdIds;
             //统一控制事务
             TransactionCtrl tc = new TransactionCtrl();
             boolean commit = false;
             try {
                 tc.setAutoCommit(false);
+
+                // xid不为空，则开启了分布式事务，saga添加一条记录
+                if(!Str.isEmpty(xid)) {
+                    SagaProc sagaProc = new SagaProc(flow, aid, tc);
+                    sagaProc.addInfo(aid, xid);
+                }
+
                 // 新增商品数据
-                ProductProc pdProc = new ProductProc(flow, aid, tc);
+                ProductProc pdProc = new ProductProc(flow, aid, tc, xid, true);
                 pdIdList = pdProc.batchAddProduct(aid, pdDataList);
 
+                GfwUtil.preWriteGfwLog(aid, tid, siteId, pdDataList);
+
                 // 新增业务关系
-                ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+                ProductRelProc relProc = new ProductRelProc(flow, aid, tc, xid, true);
                 maxSort = relProc.getMaxSort(aid, unionPriId);
                 for(int i = 0;i < relDataList.size(); i++) {
                     Param relData = relDataList.get(i);
@@ -1077,7 +1618,7 @@ public class ProductBasicService extends BasicParentService {
                         relData.setInt(ProductRelEntity.Info.SORT, ++maxSort);
                     }
                 }
-                relProc.batchAddProductRel(aid, unionPriId, relDataList);
+                rlPdIds = relProc.batchAddProductRel(aid, tid, unionPriId, relDataList);
 
                 // 新增绑定关系
                 for(int i = 0;i < relDataList.size(); i++) {
@@ -1097,7 +1638,7 @@ public class ProductBasicService extends BasicParentService {
                         }
                     }
 
-                    FaiList<Integer> curTagIds = rlGroupIds.get(i);
+                    FaiList<Integer> curTagIds = rlTagIds.get(i);
                     if(!curTagIds.isEmpty()) {
                         for(Integer rlTagId : curTagIds) {
                             Param bindTag = new Param();
@@ -1122,22 +1663,23 @@ public class ProductBasicService extends BasicParentService {
 
                 // 新增分类绑定
                 if(!bindRlGroups.isEmpty()) {
-                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, true);
                     bindGroupProc.batchBindGroupList(aid, unionPriId, bindRlGroups);
                 }
 
                 // 新增标签绑定
                 if(!bindRlTags.isEmpty()) {
-                    ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
-                    bindTagProc.batchBindTagList(aid, unionPriId, bindRlGroups);
+                    ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc, xid, true);
+                    bindTagProc.batchBindTagList(aid, unionPriId, bindRlTags);
                 }
 
                 // 新增参数绑定
                 if(!bindRlProps.isEmpty()) {
-                    ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
+                    ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc, xid, true);
                     bindPropProc.batchBindPropList(aid, unionPriId, bindRlProps);
                 }
 
+                relProc.transactionEnd(aid);
                 commit = true;
             } finally {
                 if(!commit) {
@@ -1159,12 +1701,14 @@ public class ProductBasicService extends BasicParentService {
                 ProductRelCacheCtrl.InfoCache.addCacheList(aid, unionPriId, relDataList);
                 ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, relDataList.size()); // 更新数据状态缓存
                 ProductRelCacheCtrl.SortCache.set(aid, unionPriId, maxSort); // 更新sort缓存
+                ProductRelCacheCtrl.EmptyCache.delCache(aid, unionPriId, rlPdIds); // 删除空缓存
             }
             if(!bindRlProps.isEmpty()) {
                 ProductBindPropCache.DataStatusCache.update(aid, unionPriId, bindRlProps.size());
             }
             if(!bindRlGroups.isEmpty()) {
                 ProductBindGroupCache.DataStatusCache.update(aid, unionPriId, bindRlGroups.size());
+                ProductBindGroupCache.EmptyCache.delCache(aid, unionPriId, pdIdList); // 删除绑定分类数据空缓存
             }
             if(!bindRlTags.isEmpty()) {
                 ProductBindTagCache.DataStatusCache.update(aid, unionPriId, bindRlTags.size());
@@ -1173,6 +1717,9 @@ public class ProductBasicService extends BasicParentService {
 
             // 同步数据给es
             ESUtil.batchLogDocId(flow, aid, unionPriId, pdIdList, DocOplogDef.Operation.UPDATE_ONE);
+
+            // gfw
+            GfwUtil.commitPre(tid);
         } finally {
             LockUtil.unlock(aid);
         }
@@ -1216,7 +1763,7 @@ public class ProductBasicService extends BasicParentService {
         if(name == null && !infoCheck) {
             name = "";
         }
-        if(infoCheck && !MgProductCheck.checkProductName(name)) {
+        if(infoCheck && !Str.isEmpty(pdData) && !MgProductCheck.checkProductName(name)) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error, name is unvalid;flow=%d;aid=%d;uid=%d;name=%s;", flow, aid, unionPriId, name);
             return rt;
@@ -1262,6 +1809,7 @@ public class ProductBasicService extends BasicParentService {
         relData.assign(info, ProductRelEntity.Info.FLAG);
         relData.assign(info, ProductRelEntity.Info.SORT);
         relData.assign(info, ProductRelEntity.Info.PD_TYPE);
+        relData.assign(info, ProductRelEntity.Info.TOP);
 
         pdData.setInt(ProductEntity.Info.AID, aid);
         pdData.setInt(ProductEntity.Info.SOURCE_TID, sourceTid);
@@ -1376,9 +1924,11 @@ public class ProductBasicService extends BasicParentService {
         relData.assign(info, ProductRelEntity.Info.UP_SALE_TIME);
         relData.assign(info, ProductRelEntity.Info.FLAG);
         relData.assign(info, ProductRelEntity.Info.SORT);
+        relData.assign(info, ProductRelEntity.Info.TOP);
 
         Integer rlPdId;
         Integer pdId;
+        boolean exist = false;
         int maxSort = 0;
 
         LockUtil.lock(aid);
@@ -1402,40 +1952,60 @@ public class ProductBasicService extends BasicParentService {
                     return rt;
                 }
 
-                if(!relData.containsKey(ProductRelEntity.Info.SORT)) {
+                ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+                matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+                matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
+                matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.EQ, ProductRelValObj.Status.DEL);
+                SearchArg searchArg = new SearchArg();
+                searchArg.matcher = matcher;
+                FaiList<Param> existList = relProc.searchFromDbWithDel(aid, searchArg, Utils.asFaiList(ProductRelEntity.Info.RL_PD_ID));
+                exist = !existList.isEmpty();
+                if(exist) { // 恢复软删数据
                     maxSort = relProc.getMaxSort(aid, unionPriId);
-                    relData.setInt(ProductRelEntity.Info.SORT, maxSort);
+                    rlPdId = existList.get(0).getInt(ProductRelEntity.Info.RL_PD_ID);
+                    Param updateInfo = new Param();
+                    updateInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DOWN);
+                    updateInfo.setInt(ProductRelEntity.Info.SORT, ++maxSort);
+                    ParamUpdater updater = new ParamUpdater(updateInfo);
+                    relProc.setSingle(aid, unionPriId, pdId, updater);
+                }else { // 新增数据
+                    if(!relData.containsKey(ProductRelEntity.Info.SORT)) {
+                        maxSort = relProc.getMaxSort(aid, unionPriId);
+                        relData.setInt(ProductRelEntity.Info.SORT, ++maxSort);
+                    }
+
+                    Param bindInfo = relProc.getProductRel(aid, bindUniPriId, pdId);
+                    relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
+                    relData.assign(bindInfo, ProductRelEntity.Info.PD_TYPE);
+
+                    // 新增商品业务关系
+                    rlPdId = relProc.addProductRel(aid, tid, unionPriId, relData);
+
+                    // 新增商品参数绑定关系
+                    FaiList<Param> bindProps = info.getList(ProductRelEntity.Info.RL_PROPS);
+                    if(!Utils.isEmptyList(bindProps)) {
+                        ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc, xid, true);
+                        bindPropProc.addPdBindPropList(aid, unionPriId, sysType, rlPdId, pdId, bindProps);
+                    }
+
+                    // 新增商品分类绑定关系
+                    FaiList<Integer> rlGroupIds = info.getList(ProductRelEntity.Info.RL_GROUP_IDS);
+                    if(useProductGroup() && !Utils.isEmptyList(rlGroupIds)) {
+                        ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, true);
+                        bindGroupProc.addPdBindGroupList(aid, unionPriId, sysType, rlPdId, pdId, rlGroupIds);
+                        Log.logStd("add bind groupIds ok;flow=%d;aid=%d;uid=%d;rlPdId=%d;pdId=%d;rlGroupIds=%s;", flow, aid, unionPriId, rlPdId, pdId, rlGroupIds);
+                    }
+
+                    // 新增商品标签绑定关系
+                    FaiList<Integer> rlTagIds = info.getList(ProductRelEntity.Info.RL_TAG_IDS);
+                    if(useProductTag() && !Utils.isEmptyList(rlTagIds)) {
+                        ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc, xid, true);
+                        bindTagProc.addPdBindTagList(aid, unionPriId, sysType, rlPdId, pdId, rlTagIds);
+                        Log.logStd("add bind rlTagIds ok;flow=%d;aid=%d;uid=%d;rlPdId=%d;pdId=%d;rlTagIds=%s;", flow, aid, unionPriId, rlPdId, pdId, rlTagIds);
+                    }
                 }
 
-                Param bindInfo = relProc.getProductRel(aid, bindUniPriId, pdId);
-                relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
-                relData.assign(bindInfo, ProductRelEntity.Info.PD_TYPE);
-
-                // 新增商品业务关系
-                rlPdId = relProc.addProductRel(aid, unionPriId, relData);
-
-                // 新增商品参数绑定关系
-                FaiList<Param> bindProps = info.getList(ProductRelEntity.Info.RL_PROPS);
-                if(!Utils.isEmptyList(bindProps)) {
-                    ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc, xid, true);
-                    bindPropProc.addPdBindPropList(aid, unionPriId, sysType, rlPdId, pdId, bindProps);
-                }
-
-                // 新增商品分类绑定关系
-                FaiList<Integer> rlGroupIds = info.getList(ProductRelEntity.Info.RL_GROUP_IDS);
-                if(useProductGroup() && !Utils.isEmptyList(rlGroupIds)) {
-                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, true);
-                    bindGroupProc.addPdBindGroupList(aid, unionPriId, sysType, rlPdId, pdId, rlGroupIds);
-                    Log.logStd("add bind groupIds ok;flow=%d;aid=%d;uid=%d;rlPdId=%d;pdId=%d;rlGroupIds=%s;", flow, aid, unionPriId, rlPdId, pdId, rlGroupIds);
-                }
-
-                // 新增商品标签绑定关系
-                FaiList<Integer> rlTagIds = info.getList(ProductRelEntity.Info.RL_TAG_IDS);
-                if(useProductTag() && !Utils.isEmptyList(rlTagIds)) {
-                    ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc, xid, true);
-                    bindTagProc.addPdBindTagList(aid, unionPriId, sysType, rlPdId, pdId, rlTagIds);
-                    Log.logStd("add bind rlTagIds ok;flow=%d;aid=%d;uid=%d;rlPdId=%d;pdId=%d;rlTagIds=%s;", flow, aid, unionPriId, rlPdId, pdId, rlTagIds);
-                }
+                relProc.transactionEnd(aid);
 
                 commit = true;
             } finally {
@@ -1446,10 +2016,13 @@ public class ProductBasicService extends BasicParentService {
                     tc.commit();
                     // 更新缓存
                     ProductRelCacheCtrl.InfoCache.addCache(aid, unionPriId, relData);
+                    ProductRelCacheCtrl.SortCache.set(aid, unionPriId, maxSort);
                     ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, 1); //更新数据状态缓存
                 }
                 tc.closeDao();
             }
+            ProductRelCacheCtrl.EmptyCache.delCache(aid, unionPriId, rlPdId); // 删除空缓存
+            ProductBindGroupCache.EmptyCache.delCache(aid, unionPriId, pdId); // 删除绑定分类数据空缓存
             // 同步数据给es
             ESUtil.logDocId(flow, aid, pdId, unionPriId, DocOplogDef.Operation.UPDATE_ONE);
         } finally {
@@ -1460,6 +2033,7 @@ public class ProductBasicService extends BasicParentService {
         FaiBuffer sendBuf = new FaiBuffer(true);
         sendBuf.putInt(ProductRelDto.Key.RL_PD_ID, rlPdId);
         sendBuf.putInt(ProductRelDto.Key.PD_ID, pdId);
+        sendBuf.putBoolean(ProductRelDto.Key.EXIST, exist);
         session.write(sendBuf);
         return rt;
     }
@@ -1482,7 +2056,242 @@ public class ProductBasicService extends BasicParentService {
      * 批量新增商品业务关联
      */
     @SuccessRt(value = Errno.OK)
-    public int batchBindProductRel(FaiSession session, int flow, int aid, int tid, Param bindRlPdInfo, FaiList<Param> infoList) throws IOException {
+    public int batchBindProductRel(FaiSession session, int flow, String xid, int aid, int tid, int toUnionPriId, int fromUnionPriId, int sysType, FaiList<Param> infoList) throws IOException {
+        int rt = Errno.ERROR;
+        if(!FaiValObj.TermId.isValidTid(tid)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+            return rt;
+        }
+        if(infoList == null || infoList.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, infoList is empty;flow=%d;aid=%d;tid=%d;infoList=%s", flow, aid, tid, infoList);
+            return rt;
+        }
+
+        FaiList<Integer> fromRlPdIds = new FaiList<>();
+
+        FaiList<Param> relDataList = new FaiList<>();
+        for(Param info : infoList) {
+            Param relData = new Param();
+            Param pdData = new Param();
+            rt = assemblyInfo(flow, aid, tid, toUnionPriId, info, relData, pdData);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int fromRlPdId = relData.getInt(ProductRelEntity.Info.RL_PD_ID);
+            fromRlPdIds.add(fromRlPdId);
+            relDataList.add(relData);
+        }
+
+        FaiList<Integer> returnRlPdIds = new FaiList<>();
+        FaiList<Integer> returnPdIds = new FaiList<>();
+        FaiList<Integer> existRlPdIds = new FaiList<>();
+
+        LockUtil.lock(aid);
+        try {
+            //统一控制事务
+            TransactionCtrl tc = new TransactionCtrl();
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+
+                // xid不为空，则开启了分布式事务，saga添加一条记录
+                if(!Str.isEmpty(xid)) {
+                    SagaProc sagaProc = new SagaProc(flow, aid, tc);
+                    sagaProc.addInfo(aid, xid);
+                }
+
+                // 先校验商品数据是否存在
+                ProductRelProc relProc = new ProductRelProc(flow, aid, tc, xid, true);
+                Map<Integer, Integer> fromRlPdId_pdId = relProc.getRlPdIdRelMap(aid, fromUnionPriId, sysType, new HashSet<>(fromRlPdIds));
+                if(fromRlPdId_pdId == null || fromRlPdId_pdId.isEmpty()) {
+                    Log.logErr(rt, "get bind pd rel list fail;flow=%d;aid=%d;tid=%d;fUid=%s;fRlPdIds=%s;", flow, aid, tid, fromUnionPriId, fromRlPdIds);
+                    rt = Errno.ERROR;
+                    return rt;
+                }
+
+                FaiList<Integer> pdIds = new FaiList<>(fromRlPdId_pdId.values());
+
+                SearchArg searchArg = new SearchArg();
+                searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+                searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, toUnionPriId);
+                searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+                //searchArg.matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.EQ, ProductRelValObj.Status.DEL);
+                FaiList<Param> existList = relProc.searchFromDbWithDel(aid, searchArg, Utils.asFaiList(ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID, ProductRelEntity.Info.STATUS));
+                Map<Integer, Integer> pdId_toRlPdId = Utils.getMap(existList, ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID);
+
+                int maxSort = relProc.getMaxSort(aid, toUnionPriId);
+
+                // 修改已存在的数据的status 和 sort
+                FaiList<Param> updateList = new FaiList<>();
+                for(int i = 0; i < existList.size(); i++) {
+                    Param info = existList.get(i);
+                    int status = info.getInt(ProductRelEntity.Info.STATUS);
+                    if(status != ProductRelValObj.Status.DEL) {
+                        continue;
+                    }
+                    int pdId = info.getInt(ProductRelEntity.Info.PD_ID);
+                    Param updateInfo = new Param();
+                    updateInfo.setInt(ProductRelEntity.Info.UNION_PRI_ID, toUnionPriId);
+                    updateInfo.setInt(ProductRelEntity.Info.PD_ID, pdId);
+                    updateInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DOWN);
+                    updateInfo.setInt(ProductRelEntity.Info.SORT, ++maxSort);
+                    updateList.add(updateInfo);
+                }
+                relProc.batchSet(aid, updateList);
+
+                // 新增商品业务关系
+                FaiList<Param> addRelList = new FaiList<>();
+                for(Param relData : relDataList) {
+                    int fromRlPdId = (int) relData.remove(ProductRelEntity.Info.RL_PD_ID);
+                    int pdId = fromRlPdId_pdId.get(fromRlPdId);
+                    relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
+                    if(pdId_toRlPdId.containsKey(pdId)) {
+                        existRlPdIds.add(pdId_toRlPdId.get(pdId));
+                        continue;
+                    }
+                    addRelList.add(relData);
+                }
+                if(!addRelList.isEmpty()) {
+
+                    FaiList<Param> bindList = new FaiList<>();
+                    for(Param relData : addRelList) {
+                        if(!relData.containsKey(ProductRelEntity.Info.SORT)) {
+                            relData.setInt(ProductRelEntity.Info.SORT, ++maxSort);
+                        }
+
+                        Param bindInfo = new Param();
+                        FaiList<Param> bindProps = (FaiList<Param>) relData.remove(ProductRelEntity.Info.RL_PROPS);
+                        FaiList<Integer> rlGroupIds = (FaiList<Integer>) relData.remove(ProductRelEntity.Info.RL_GROUP_IDS);
+                        FaiList<Integer> rlTagIds = (FaiList<Integer>) relData.remove(ProductRelEntity.Info.RL_TAG_IDS);
+                        bindInfo.setList(ProductRelEntity.Info.RL_PROPS, bindProps);
+                        bindInfo.setList(ProductRelEntity.Info.RL_GROUP_IDS, rlGroupIds);
+                        bindInfo.setList(ProductRelEntity.Info.RL_TAG_IDS, rlTagIds);
+                        bindInfo.assign(relData, ProductRelEntity.Info.PD_ID);
+                        bindList.add(bindInfo);
+                    }
+                    FaiList<Integer> toRlPdIds = relProc.batchAddProductRel(aid, tid, toUnionPriId, addRelList);
+                    if(bindList.size() != toRlPdIds.size()) {
+                        rt = Errno.ERROR;
+                        throw new MgException(rt, "batchAddProductRel error, size no match;aid=%d;fUid=%s;fRlPdIds=%s;toRlPdIds=%s;", aid, fromUnionPriId, fromRlPdIds, toRlPdIds);
+                    }
+
+                    FaiList<Param> addBindProps = new FaiList<>();
+                    FaiList<Param> addBindGroups = new FaiList<>();
+                    FaiList<Param> addBindTags = new FaiList<>();
+                    for(int i = 0; i < bindList.size(); i++) {
+                        Param bindInfo = bindList.get(i);
+                        int toRlPdId = toRlPdIds.get(i);
+                        int pdId = bindInfo.getInt(ProductRelEntity.Info.PD_ID);
+                        pdId_toRlPdId.put(pdId, toRlPdId);
+
+                        FaiList<Param> bindProps = bindInfo.getList(ProductRelEntity.Info.RL_PROPS);
+                        FaiList<Integer> rlGroupIds = bindInfo.getList(ProductRelEntity.Info.RL_GROUP_IDS);
+                        FaiList<Integer> rlTagIds = bindInfo.getList(ProductRelEntity.Info.RL_TAG_IDS);
+
+                        // 新增商品参数绑定关系
+                        if(!Utils.isEmptyList(bindProps)) {
+                            for(Param prop : bindProps) {
+                                prop.setInt(ProductBindTagEntity.Info.PD_ID, pdId);
+                                prop.setInt(ProductBindTagEntity.Info.RL_PD_ID, toRlPdId);
+                                prop.setInt(ProductBindTagEntity.Info.SYS_TYPE, sysType);
+                                addBindProps.add(prop);
+                            }
+                        }
+
+                        // 新增商品分类绑定关系
+                        if(!Utils.isEmptyList(rlGroupIds)) {
+                            for(Integer rlGroupId : rlGroupIds) {
+                                Param bindGroup = new Param();
+                                bindGroup.setInt(ProductBindGroupEntity.Info.RL_GROUP_ID, rlGroupId);
+                                bindGroup.setInt(ProductBindGroupEntity.Info.PD_ID, pdId);
+                                bindGroup.setInt(ProductBindGroupEntity.Info.RL_PD_ID, toRlPdId);
+                                bindGroup.setInt(ProductBindGroupEntity.Info.SYS_TYPE, sysType);
+                                addBindGroups.add(bindGroup);
+                            }
+                        }
+
+                        // 新增商品标签绑定关系
+                        if(!Utils.isEmptyList(rlTagIds)) {
+                            for(Integer rlTagId : rlTagIds) {
+                                Param bindTag = new Param();
+                                bindTag.setInt(ProductBindTagEntity.Info.RL_TAG_ID, rlTagId);
+                                bindTag.setInt(ProductBindTagEntity.Info.PD_ID, pdId);
+                                bindTag.setInt(ProductBindTagEntity.Info.RL_PD_ID, toRlPdId);
+                                bindTag.setInt(ProductBindTagEntity.Info.SYS_TYPE, sysType);
+                                addBindTags.add(bindTag);
+                            }
+                        }
+                    }
+
+                    // 新增分类绑定
+                    if(!addBindGroups.isEmpty()) {
+                        ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                        bindGroupProc.batchBindGroupList(aid, toUnionPriId, addBindGroups);
+                    }
+
+                    // 新增标签绑定
+                    if(!addBindTags.isEmpty()) {
+                        ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
+                        bindTagProc.batchBindTagList(aid, toUnionPriId, addBindTags);
+                    }
+
+                    // 新增参数绑定
+                    if(!addBindProps.isEmpty()) {
+                        ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
+                        bindPropProc.batchBindPropList(aid, toUnionPriId, addBindProps);
+                    }
+                }
+
+                // 按照顺序组装返回rlPdIds
+                for(Param relData : relDataList) {
+                    int pdId = relData.getInt(ProductRelEntity.Info.PD_ID);
+                    int toRlPdId = pdId_toRlPdId.get(pdId);
+                    returnRlPdIds.add(toRlPdId);
+                    returnPdIds.add(pdId);
+                }
+
+                // 记录要同步给es的数据
+                ESUtil.batchPreLog(aid, toUnionPriId, pdIds, DocOplogDef.Operation.UPDATE_ONE);
+
+                relProc.transactionEnd(aid);
+
+                commit = true;
+            } finally {
+                if(!commit) {
+                    tc.rollback();
+                    ProductRelDaoCtrl.clearIdBuilderCache(aid, toUnionPriId);
+                }else {
+                    tc.commit();
+                }
+                tc.closeDao();
+            }
+
+            // 清缓存
+            CacheCtrl.clearCacheVersion(aid);
+
+            // 同步数据给es
+            ESUtil.commitPre(flow, aid);
+        } finally {
+            LockUtil.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        returnRlPdIds.toBuffer(sendBuf, ProductRelDto.Key.RL_PD_IDS);
+        returnPdIds.toBuffer(sendBuf, ProductRelDto.Key.PD_IDS);
+        existRlPdIds.toBuffer(sendBuf, ProductRelDto.Key.EXIST);
+        session.write(sendBuf);
+        Log.logStd("batchBindProductRels ok;flow=%d;aid=%d;toUid=%d;fromUid=%d;fromRlPdIds=%s;toRlPdIds=%s;", flow, aid, toUnionPriId, fromUnionPriId, fromRlPdIds, returnRlPdIds);
+        return rt;
+    }
+
+    /**
+     * 批量新增商品业务关联
+     */
+    @SuccessRt(value = Errno.OK)
+    public int batchBindProductRel(FaiSession session, int flow, String xid, int aid, int tid, Param bindRlPdInfo, FaiList<Param> infoList) throws IOException {
         int rt = Errno.ERROR;
         if(!FaiValObj.TermId.isValidTid(tid)) {
             rt = Errno.ARGS_ERROR;
@@ -1515,7 +2324,8 @@ public class ProductBasicService extends BasicParentService {
         // 系统类型，默认为0
         int sysType = bindRlPdInfo.getInt(ProductRelEntity.Info.SYS_TYPE, ProductRelValObj.SysType.DEFAULT);
 
-        HashMap<Integer, FaiList<Param>> listOfUid = new HashMap<>();
+        FaiList<Param> relDataList = new FaiList<>();
+        Set<Integer> unionPriIds = new HashSet<>();
         for(Param info : infoList) {
             // 是否需要校验数据，初步接入中台，一些非必要数据可能存在需要添加空数据场景
             boolean infoCheck = info.getBoolean(ProductRelEntity.Info.INFO_CHECK, true);
@@ -1526,6 +2336,7 @@ public class ProductBasicService extends BasicParentService {
                 Log.logErr("args error, unionPriId is null;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
                 return rt;
             }
+            unionPriIds.add(unionPriId);
             Integer addedSid = info.getInt(ProductRelEntity.Info.ADD_SID);
             if(addedSid == null && !infoCheck) {
                 addedSid = 0;
@@ -1546,7 +2357,7 @@ public class ProductBasicService extends BasicParentService {
             int sourceTid = info.getInt(ProductRelEntity.Info.SOURCE_TID, tid);
             if(!FaiValObj.TermId.isValidTid(sourceTid)) {
                 rt = Errno.ARGS_ERROR;
-                Log.logErr("args error, sourceTid is unvalid;flow=%d;aid=%d;uid=%d;sourceTid=%d;", flow, aid, unionPriId, sourceTid);
+                Log.logErr("args error, sourceTid is unValid;flow=%d;aid=%d;uid=%d;sourceTid=%d;", flow, aid, unionPriId, sourceTid);
                 return rt;
             }
             Calendar now = Calendar.getInstance();
@@ -1573,18 +2384,18 @@ public class ProductBasicService extends BasicParentService {
             relData.assign(info, ProductRelEntity.Info.UP_SALE_TIME);
             relData.assign(info, ProductRelEntity.Info.FLAG);
             relData.assign(info, ProductRelEntity.Info.SORT);
+            relData.assign(info, ProductRelEntity.Info.TOP);
 
-            FaiList<Param> curUidList = listOfUid.get(unionPriId);
-            if(curUidList == null) {
-                curUidList = new FaiList<>();
-                listOfUid.put(unionPriId, curUidList);
-            }
-            curUidList.add(relData);
+            relData.assign(info, ProductRelEntity.Info.RL_GROUP_IDS);
+            relData.assign(info, ProductRelEntity.Info.RL_PROPS);
+            relData.assign(info, ProductRelEntity.Info.RL_TAG_IDS);
+
+            relDataList.add(relData);
         }
 
-        Set<Integer> unionPriIds = listOfUid.keySet();
-
-        FaiList<Integer> rlPdIds = new FaiList<Integer>();
+        FaiList<Integer> rlPdIds = new FaiList<>();
+        FaiList<Integer> existIds = new FaiList<>();
+        Integer pdId;
 
         LockUtil.lock(aid);
         try {
@@ -1594,37 +2405,84 @@ public class ProductBasicService extends BasicParentService {
             try {
                 tc.setAutoCommit(false);
 
+                // xid不为空，则开启了分布式事务，saga添加一条记录
+                if(!Str.isEmpty(xid)) {
+                    SagaProc sagaProc = new SagaProc(flow, aid, tc);
+                    sagaProc.addInfo(aid, xid);
+                }
+
                 // 先校验商品数据是否存在
-                ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
-                Integer pdId = relProc.getPdId(aid, bindUniPriId, sysType, bindRlPdId);
+                ProductRelProc relProc = new ProductRelProc(flow, aid, tc, xid, true);
+                pdId = relProc.getPdId(aid, bindUniPriId, sysType, bindRlPdId);
                 if(pdId == null) {
                     Log.logErr(rt, "get bind pd rel info fail;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
                     rt = Errno.ERROR;
                     return rt;
                 }
+
+                SearchArg searchArg = new SearchArg();
+                searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+                searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, new FaiList<>(unionPriIds));
+                searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
+                searchArg.matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.EQ, ProductRelValObj.Status.DEL);
+                FaiList<Param> existList = relProc.searchFromDbWithDel(aid, searchArg, Utils.asFaiList(ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.RL_PD_ID));
+                Map<Integer, Integer> existMap = Utils.getMap(existList, ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.RL_PD_ID);
                 Param bindRel = relProc.getProductRel(aid, bindUniPriId, pdId);
 
+                ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, true);
+                ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc, xid, true);
+                ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc, xid, true);
                 // 新增商品业务关系
-                for(Integer unionPriId : unionPriIds) {
-                    FaiList<Param> curList = listOfUid.get(unionPriId);
-                    if(Utils.isEmptyList(curList)) {
-                        continue;
-                    }
+                for(Param relData : relDataList) {
+                    int unionPriId = relData.getInt(ProductRelEntity.Info.UNION_PRI_ID);
+                    Integer rlPdId = existMap.get(unionPriId);
                     int maxSort = relProc.getMaxSort(aid, unionPriId);
-                    for(Param info : curList) {
-                        info.assign(bindRel, ProductRelEntity.Info.PD_ID);
-                        info.assign(bindRel, ProductRelEntity.Info.PD_TYPE);
-                        Integer sort = info.getInt(ProductRelEntity.Info.SORT);
-                        if(sort == null) {
-                            info.setInt(ProductRelEntity.Info.SORT, ++maxSort);
+                    if(rlPdId != null) { // 恢复软删数据
+                        Param updateInfo = new Param();
+                        updateInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DOWN);
+                        updateInfo.setInt(ProductRelEntity.Info.SORT, ++maxSort);
+                        ParamUpdater updater = new ParamUpdater(updateInfo);
+                        relProc.setSingle(aid, unionPriId, pdId, updater);
+                        existIds.add(rlPdId);
+                    }else { // 新增数据
+                        if(!relData.containsKey(ProductRelEntity.Info.SORT)) {
+                            relData.setInt(ProductRelEntity.Info.SORT, ++maxSort);
+                        }
+
+                        relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
+                        relData.assign(bindRel, ProductRelEntity.Info.PD_TYPE);
+
+                        FaiList<Param> bindProps = (FaiList<Param>) relData.remove(ProductRelEntity.Info.RL_PROPS);
+                        FaiList<Integer> rlGroupIds = (FaiList<Integer>) relData.remove(ProductRelEntity.Info.RL_GROUP_IDS);
+                        FaiList<Integer> rlTagIds = (FaiList<Integer>) relData.remove(ProductRelEntity.Info.RL_TAG_IDS);
+
+                        // 新增商品业务关系
+                        rlPdId = relProc.addProductRel(aid, tid, unionPriId, relData);
+
+                        // 新增商品参数绑定关系
+                        if(!Utils.isEmptyList(bindProps)) {
+                            bindPropProc.addPdBindPropList(aid, unionPriId, sysType, rlPdId, pdId, bindProps);
+                        }
+
+                        // 新增商品分类绑定关系
+                        if(useProductGroup() && !Utils.isEmptyList(rlGroupIds)) {
+                            bindGroupProc.addPdBindGroupList(aid, unionPriId, sysType, rlPdId, pdId, rlGroupIds);
+                            Log.logStd("add bind groupIds ok;flow=%d;aid=%d;uid=%d;rlPdId=%d;pdId=%d;rlGroupIds=%s;", flow, aid, unionPriId, rlPdId, pdId, rlGroupIds);
+                        }
+
+                        // 新增商品标签绑定关系
+                        if(useProductTag() && !Utils.isEmptyList(rlTagIds)) {
+                            bindTagProc.addPdBindTagList(aid, unionPriId, sysType, rlPdId, pdId, rlTagIds);
+                            Log.logStd("add bind rlTagIds ok;flow=%d;aid=%d;uid=%d;rlPdId=%d;pdId=%d;rlTagIds=%s;", flow, aid, unionPriId, rlPdId, pdId, rlTagIds);
                         }
                     }
-                    FaiList<Integer> tmpRlIds = relProc.batchAddProductRel(aid, unionPriId, curList);
-                    rlPdIds.addAll(tmpRlIds);
+                    rlPdIds.add(rlPdId);
 
                     // 记录要同步给es的数据
                     ESUtil.preLog(aid, pdId, unionPriId, DocOplogDef.Operation.UPDATE_ONE);
                 }
+
+                relProc.transactionEnd(aid);
 
                 commit = true;
             } finally {
@@ -1647,12 +2505,28 @@ public class ProductBasicService extends BasicParentService {
         } finally {
             LockUtil.unlock(aid);
         }
+
         rt = Errno.OK;
         FaiBuffer sendBuf = new FaiBuffer(true);
         rlPdIds.toBuffer(sendBuf, ProductRelDto.Key.RL_PD_IDS);
+        sendBuf.putInt(ProductRelDto.Key.PD_ID, pdId);
+        existIds.toBuffer(sendBuf, ProductRelDto.Key.EXIST);
         session.write(sendBuf);
         Log.logStd("batchBindProductRel ok;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
         return rt;
+    }
+    /**
+     * 批量新增商品业务关联-补偿
+     */
+    @SuccessRt(value = Errno.OK)
+    public int batchBindProductRelRollback(FaiSession session, int flow, int aid, String xid, long branchId) throws IOException {
+        SagaRollback sagaRollback = getAddRollback(flow, aid, xid, branchId, true);
+
+        int branchStatus = doRollback(flow, aid, xid, branchId, sagaRollback);
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, branchStatus);
+        session.write(sendBuf);
+        return Errno.OK;
     }
 
     /**
@@ -1660,7 +2534,7 @@ public class ProductBasicService extends BasicParentService {
      * 接入完成后，废除，该接口禁止对外开放
      */
     @SuccessRt(value = Errno.OK)
-    public int batchBindProductsRel(FaiSession session, int flow, int aid, int tid, FaiList<Param> recvList) throws IOException {
+    public int batchBindProductsRel(FaiSession session, int flow, int aid, String xid, int tid, boolean needSyncInfo, FaiList<Param> recvList) throws IOException {
         int rt = Errno.ERROR;
         if(!FaiValObj.TermId.isValidTid(tid)) {
             rt = Errno.ARGS_ERROR;
@@ -1706,77 +2580,135 @@ public class ProductBasicService extends BasicParentService {
                 Log.logErr(rt, "bind list is null;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
                 return rt;
             }
+
+            Param sourceInfo = null;
+            // 导入方法调用此方法时，查询一遍源数据，然后做绑定数据的覆盖
+            if (needSyncInfo) {
+                // 先查询 总店 导入的商品业务信息
+                TransactionCtrl tc = new TransactionCtrl();
+                ProductRelProc productRelProc = new ProductRelProc(flow, aid, tc);
+                sourceInfo = productRelProc.getProductRel(aid, boundUniPriIds.get(0), pdId);
+            }
+
             for(Param info : infoList) {
-                Integer unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
-                if(unionPriId == null) {
-                    rt = Errno.ARGS_ERROR;
-                    Log.logErr("args error, unionPriId is null;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
-                    return rt;
-                }
-                // 该unionPriId已经绑定该pdId，则跳过
-                if(boundUniPriIds.contains(unionPriId)) {
-                    continue;
-                }
-                // 是否需要校验数据，初步接入中台，一些非必要数据可能存在需要添加空数据场景
-                boolean infoCheck = info.getBoolean(ProductRelEntity.Info.INFO_CHECK, true);
-                Integer addedSid = info.getInt(ProductRelEntity.Info.ADD_SID);
-                if(addedSid == null && !infoCheck) {
-                    addedSid = 0;
-                }
-                if(infoCheck && addedSid == null) {
-                    rt = Errno.ARGS_ERROR;
-                    Log.logErr("args error, addedSid is null;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
-                    return rt;
-                }
+                if (sourceInfo == null) {
+                    Integer unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
+                    if(unionPriId == null) {
+                        rt = Errno.ARGS_ERROR;
+                        Log.logErr("args error, unionPriId is null;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                        return rt;
+                    }
+                    // 该unionPriId已经绑定该pdId，则跳过
+                    if(boundUniPriIds.contains(unionPriId)) {
+                        continue;
+                    }
+                    // 是否需要校验数据，初步接入中台，一些非必要数据可能存在需要添加空数据场景
+                    boolean infoCheck = info.getBoolean(ProductRelEntity.Info.INFO_CHECK, true);
+                    Integer addedSid = info.getInt(ProductRelEntity.Info.ADD_SID);
+                    if(addedSid == null && !infoCheck) {
+                        addedSid = 0;
+                    }
+                    if(infoCheck && addedSid == null) {
+                        rt = Errno.ARGS_ERROR;
+                        Log.logErr("args error, addedSid is null;flow=%d;aid=%d;uid=%d;", flow, aid, unionPriId);
+                        return rt;
+                    }
 
-                int rlLibId = info.getInt(ProductRelEntity.Info.RL_LIB_ID, 1);
-                if(rlLibId <= 0) {
-                    rt = Errno.ARGS_ERROR;
-                    Log.logErr("args error, rlLibId is empty;flow=%d;aid=%d;uid=%d;rlLibId=%s", flow, aid, unionPriId, rlLibId);
-                    return rt;
+                    int rlLibId = info.getInt(ProductRelEntity.Info.RL_LIB_ID, 1);
+                    if(rlLibId <= 0) {
+                        rt = Errno.ARGS_ERROR;
+                        Log.logErr("args error, rlLibId is empty;flow=%d;aid=%d;uid=%d;rlLibId=%s", flow, aid, unionPriId, rlLibId);
+                        return rt;
+                    }
+
+                    int sourceTid = info.getInt(ProductRelEntity.Info.SOURCE_TID, tid);
+                    if(!FaiValObj.TermId.isValidTid(sourceTid)) {
+                        rt = Errno.ARGS_ERROR;
+                        Log.logErr("args error, sourceTid is unvalid;flow=%d;aid=%d;uid=%d;sourceTid=%d;", flow, aid, unionPriId, sourceTid);
+                        return rt;
+                    }
+                    int sysType = info.getInt(ProductRelEntity.Info.SYS_TYPE, ProductRelValObj.SysType.DEFAULT);
+
+                    Calendar now = Calendar.getInstance();
+                    Calendar addedTime = info.getCalendar(ProductRelEntity.Info.ADD_TIME, now);
+                    Calendar lastUpdateTime = info.getCalendar(ProductRelEntity.Info.LAST_UPDATE_TIME, now);
+                    Calendar sysCreateTime = info.getCalendar(ProductRelEntity.Info.CREATE_TIME, now);
+                    Calendar sysUpdateTime = info.getCalendar(ProductRelEntity.Info.UPDATE_TIME, now);
+
+                    Param relData = new Param();
+                    relData.setInt(ProductRelEntity.Info.AID, aid);
+                    relData.setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId);
+                    relData.setInt(ProductRelEntity.Info.SYS_TYPE, sysType);
+                    relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
+                    relData.setInt(ProductRelEntity.Info.RL_LIB_ID, rlLibId);
+                    relData.setInt(ProductRelEntity.Info.SOURCE_TID, sourceTid);
+                    relData.setCalendar(ProductRelEntity.Info.ADD_TIME, addedTime);
+                    relData.setInt(ProductRelEntity.Info.ADD_SID, addedSid);
+                    relData.setCalendar(ProductRelEntity.Info.LAST_UPDATE_TIME, lastUpdateTime);
+                    relData.setCalendar(ProductRelEntity.Info.CREATE_TIME, sysCreateTime);
+                    relData.setCalendar(ProductRelEntity.Info.UPDATE_TIME, sysUpdateTime);
+
+                    relData.assign(info, ProductRelEntity.Info.RL_PD_ID);
+                    relData.assign(info, ProductRelEntity.Info.LAST_SID);
+                    relData.assign(info, ProductRelEntity.Info.STATUS);
+                    relData.assign(info, ProductRelEntity.Info.UP_SALE_TIME);
+                    relData.assign(info, ProductRelEntity.Info.FLAG);
+                    relData.assign(info, ProductRelEntity.Info.SORT);
+                    relData.assign(info, ProductRelEntity.Info.PD_TYPE);
+                    relData.assign(info, ProductRelEntity.Info.TOP);
+
+                    FaiList<Param> curUidList = listOfUid.get(unionPriId);
+                    if(curUidList == null) {
+                        curUidList = new FaiList<>();
+                        listOfUid.put(unionPriId, curUidList);
+                    }
+                    curUidList.add(relData);
+                } else  {
+                    Integer unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
+                    if(unionPriId == null) {
+                        rt = Errno.ARGS_ERROR;
+                        Log.logErr("args error, unionPriId is null;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                        return rt;
+                    }
+                    // 该unionPriId已经绑定该pdId，则跳过
+                    if(boundUniPriIds.contains(unionPriId)) {
+                        continue;
+                    }
+
+                    Param relData = new Param();
+                    relData.setInt(ProductRelEntity.Info.AID, aid);
+                    relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
+                    relData.setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId);
+
+                    relData.assign(sourceInfo, ProductRelEntity.Info.SYS_TYPE);
+                    relData.assign(sourceInfo, ProductRelEntity.Info.RL_LIB_ID);
+                    relData.assign(sourceInfo, ProductRelEntity.Info.SOURCE_TID);
+                    relData.assign(sourceInfo, ProductRelEntity.Info.ADD_TIME);
+                    relData.assign(sourceInfo, ProductRelEntity.Info.ADD_SID);
+                    relData.assign(sourceInfo, ProductRelEntity.Info.LAST_UPDATE_TIME);
+                    relData.assign(sourceInfo, ProductRelEntity.Info.CREATE_TIME);
+                    relData.assign(sourceInfo, ProductRelEntity.Info.UPDATE_TIME);
+                    relData.assign(sourceInfo, ProductRelEntity.Info.RL_PD_ID);
+                    relData.assign(sourceInfo, ProductRelEntity.Info.LAST_SID);
+                    relData.assign(sourceInfo, ProductRelEntity.Info.STATUS);
+                    relData.assign(sourceInfo, ProductRelEntity.Info.UP_SALE_TIME);
+                    relData.assign(sourceInfo, ProductRelEntity.Info.FLAG);
+                    // 不确定是否 sort 也要一致
+                    // relData.assign(info, ProductRelEntity.Info.SORT);
+                    relData.assign(sourceInfo, ProductRelEntity.Info.PD_TYPE);
+                    relData.assign(sourceInfo, ProductRelEntity.Info.TOP);
+
+                    relData.assign(info, ProductRelEntity.Info.RL_GROUP_IDS);
+                    relData.assign(info, ProductRelEntity.Info.RL_PROPS);
+                    relData.assign(info, ProductRelEntity.Info.RL_TAG_IDS);
+
+                    FaiList<Param> curUidList = listOfUid.get(unionPriId);
+                    if(curUidList == null) {
+                        curUidList = new FaiList<>();
+                        listOfUid.put(unionPriId, curUidList);
+                    }
+                    curUidList.add(relData);
                 }
-
-                int sourceTid = info.getInt(ProductRelEntity.Info.SOURCE_TID, tid);
-                if(!FaiValObj.TermId.isValidTid(sourceTid)) {
-                    rt = Errno.ARGS_ERROR;
-                    Log.logErr("args error, sourceTid is unvalid;flow=%d;aid=%d;uid=%d;sourceTid=%d;", flow, aid, unionPriId, sourceTid);
-                    return rt;
-                }
-                int sysType = info.getInt(ProductRelEntity.Info.SYS_TYPE, ProductRelValObj.SysType.DEFAULT);
-
-                Calendar now = Calendar.getInstance();
-                Calendar addedTime = info.getCalendar(ProductRelEntity.Info.ADD_TIME, now);
-                Calendar lastUpdateTime = info.getCalendar(ProductRelEntity.Info.LAST_UPDATE_TIME, now);
-                Calendar sysCreateTime = info.getCalendar(ProductRelEntity.Info.CREATE_TIME, now);
-                Calendar sysUpdateTime = info.getCalendar(ProductRelEntity.Info.UPDATE_TIME, now);
-
-                Param relData = new Param();
-                relData.setInt(ProductRelEntity.Info.AID, aid);
-                relData.setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId);
-                relData.setInt(ProductRelEntity.Info.SYS_TYPE, sysType);
-                relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
-                relData.setInt(ProductRelEntity.Info.RL_LIB_ID, rlLibId);
-                relData.setInt(ProductRelEntity.Info.SOURCE_TID, sourceTid);
-                relData.setCalendar(ProductRelEntity.Info.ADD_TIME, addedTime);
-                relData.setInt(ProductRelEntity.Info.ADD_SID, addedSid);
-                relData.setCalendar(ProductRelEntity.Info.LAST_UPDATE_TIME, lastUpdateTime);
-                relData.setCalendar(ProductRelEntity.Info.CREATE_TIME, sysCreateTime);
-                relData.setCalendar(ProductRelEntity.Info.UPDATE_TIME, sysUpdateTime);
-
-                relData.assign(info, ProductRelEntity.Info.RL_PD_ID);
-                relData.assign(info, ProductRelEntity.Info.LAST_SID);
-                relData.assign(info, ProductRelEntity.Info.STATUS);
-                relData.assign(info, ProductRelEntity.Info.UP_SALE_TIME);
-                relData.assign(info, ProductRelEntity.Info.FLAG);
-                relData.assign(info, ProductRelEntity.Info.SORT);
-                relData.assign(info, ProductRelEntity.Info.PD_TYPE);
-
-                FaiList<Param> curUidList = listOfUid.get(unionPriId);
-                if(curUidList == null) {
-                    curUidList = new FaiList<>();
-                    listOfUid.put(unionPriId, curUidList);
-                }
-                curUidList.add(relData);
             }
         }
         if(listOfUid.isEmpty()) {
@@ -1795,7 +2727,16 @@ public class ProductBasicService extends BasicParentService {
             try {
                 tc.setAutoCommit(false);
 
-                ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+                // xid不为空，则开启了分布式事务，saga添加一条记录
+                if(!Str.isEmpty(xid)) {
+                    SagaProc sagaProc = new SagaProc(flow, aid, tc);
+                    sagaProc.addInfo(aid, xid);
+                }
+
+                ProductRelProc relProc = new ProductRelProc(flow, aid, tc, xid, true);
+                ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, true);
+                ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc, xid, true);
+                ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc, xid, true);
                 // 新增商品业务关系
                 for(Integer unionPriId : unionPriIds) {
                     FaiList<Param> list = listOfUid.get(unionPriId);
@@ -1806,15 +2747,39 @@ public class ProductBasicService extends BasicParentService {
                     int maxSort = relProc.getMaxSort(aid, unionPriId);
                     for(Param info : list) {
                         Integer sort = info.getInt(ProductRelEntity.Info.SORT);
+                        Integer sysType = info.getInt(ProductRelEntity.Info.SYS_TYPE);
+                        Integer rlPdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
+                        Integer pdId = info.getInt(ProductRelEntity.Info.PD_ID);
                         if(sort == null) {
                             info.setInt(ProductRelEntity.Info.SORT, ++maxSort);
                         }
+                        FaiList<Param> bindProps = (FaiList<Param>) info.remove(ProductRelEntity.Info.RL_PROPS);
+                        FaiList<Integer> rlGroupIds = (FaiList<Integer>) info.remove(ProductRelEntity.Info.RL_GROUP_IDS);
+                        FaiList<Integer> rlTagIds = (FaiList<Integer>) info.remove(ProductRelEntity.Info.RL_TAG_IDS);
+
+                        // 新增商品参数绑定关系
+                        if(!Utils.isEmptyList(bindProps)) {
+                            bindPropProc.addPdBindPropList(aid, unionPriId, sysType, rlPdId, pdId, bindProps);
+                        }
+
+                        // 新增商品分类绑定关系
+                        if(useProductGroup() && !Utils.isEmptyList(rlGroupIds)) {
+                            bindGroupProc.addPdBindGroupList(aid, unionPriId, sysType, rlPdId, pdId, rlGroupIds);
+                            Log.logStd("add bind groupIds ok;flow=%d;aid=%d;uid=%d;rlPdId=%d;pdId=%d;rlGroupIds=%s;", flow, aid, unionPriId, rlPdId, pdId, rlGroupIds);
+                        }
+
+                        // 新增商品标签绑定关系
+                        if(useProductTag() && !Utils.isEmptyList(rlTagIds)) {
+                            bindTagProc.addPdBindTagList(aid, unionPriId, sysType, rlPdId, pdId, rlTagIds);
+                            Log.logStd("add bind rlTagIds ok;flow=%d;aid=%d;uid=%d;rlPdId=%d;pdId=%d;rlTagIds=%s;", flow, aid, unionPriId, rlPdId, pdId, rlTagIds);
+                        }
                     }
-                    relProc.batchAddProductRel(aid, unionPriId, list);
+                    relProc.batchAddProductRel(aid, tid, unionPriId, list);
                     // 记录要同步给es 的数据
                     ESUtil.batchPreLog(aid, list, DocOplogDef.Operation.UPDATE_ONE);
                 }
 
+                relProc.transactionEnd(aid);
                 commit = true;
             } finally {
                 if(!commit) {
@@ -1848,6 +2813,7 @@ public class ProductBasicService extends BasicParentService {
     @SuccessRt(value = Errno.OK)
     public int getProductDataStatus(FaiSession session, int flow, int aid) throws IOException {
         int rt;
+        long begin = System.currentTimeMillis();
         if(aid <= 0) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
@@ -1866,18 +2832,20 @@ public class ProductBasicService extends BasicParentService {
         info.toBuffer(sendBuf, ProductDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
         session.write(sendBuf);
         rt = Errno.OK;
-        Log.logDbg("getProductDataStatus ok;flow=%d;aid=%d;", flow, aid);
+        long end = System.currentTimeMillis();
+        Log.logStd("getProductDataStatus ok;flow=%d;aid=%d;consume=%d", flow, aid, end - begin);
         return rt;
     }
 
     /**
-     * 从db搜索aid下的商品数据
+     * 从db搜索aid下的商品数据（不包括删除状态的）
      * 只获取部分字段：ProductEntity.MANAGE_FIELDS
      * 目前提供给搜索服务使用
      */
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int searchProductFromDb(FaiSession session, int flow, int aid, SearchArg searchArg) throws IOException {
         int rt;
+        long begin = System.currentTimeMillis();
         if(aid <= 0) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
@@ -1899,7 +2867,8 @@ public class ProductBasicService extends BasicParentService {
         }
         session.write(sendBuf);
         rt = Errno.OK;
-        Log.logDbg("search from db ok;flow=%d;aid=%d;size=%d;", flow, aid, list.size());
+        long end = System.currentTimeMillis();
+        Log.logStd("search from db ok;flow=%d;aid=%d;size=%d;consume=%d", flow, aid, list.size(), end - begin);
 
         return rt;
     }
@@ -1912,6 +2881,7 @@ public class ProductBasicService extends BasicParentService {
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getAllProduct(FaiSession session, int flow, int aid) throws IOException {
         int rt;
+        long begin = System.currentTimeMillis();
         if(aid <= 0) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
@@ -1931,7 +2901,8 @@ public class ProductBasicService extends BasicParentService {
         list.toBuffer(sendBuf, ProductDto.Key.INFO_LIST, ProductDto.getInfoDto());
         session.write(sendBuf);
         rt = Errno.OK;
-        Log.logDbg("get all from db ok;flow=%d;aid=%d;size=%d;", flow, aid, list.size());
+        long end = System.currentTimeMillis();
+        Log.logStd("get all from db ok;flow=%d;aid=%d;size=%d;consume=%d", flow, aid, list.size(), end - begin);
 
         return rt;
     }
@@ -1947,7 +2918,7 @@ public class ProductBasicService extends BasicParentService {
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
             return rt;
         }
-
+        long begin = System.currentTimeMillis();
         Param info;
         TransactionCtrl tc = new TransactionCtrl();
         try {
@@ -1960,13 +2931,15 @@ public class ProductBasicService extends BasicParentService {
         info.toBuffer(sendBuf, ProductRelDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
         session.write(sendBuf);
         rt = Errno.OK;
-        Log.logDbg("getProductRelDataStatus ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+        long end = System.currentTimeMillis();
+        Log.logStd("getProductRelDataStatus ok;flow=%d;aid=%d;unionPriId=%d;consume=%d", flow, aid, unionPriId, end - begin);
         return rt;
     }
 
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getAllProductRel(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
         int rt;
+        long begin = System.currentTimeMillis();
         if(aid <= 0) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
@@ -1980,7 +2953,7 @@ public class ProductBasicService extends BasicParentService {
             SearchArg searchArg = new SearchArg();
             searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
             searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-            list = relProc.searchFromDb(aid, searchArg, ProductRelEntity.MANAGE_FIELDS);
+            list = relProc.searchFromDbWithDel(aid, searchArg, ProductRelEntity.MANAGE_FIELDS);
         }finally {
             tc.closeDao();
         }
@@ -1988,7 +2961,8 @@ public class ProductBasicService extends BasicParentService {
         list.toBuffer(sendBuf, ProductRelDto.Key.INFO_LIST, ProductRelDto.getInfoDto());
         session.write(sendBuf);
         rt = Errno.OK;
-        Log.logDbg("get list ok;flow=%d;aid=%d;unionPriId=%d;size=%d;", flow, aid, unionPriId, list.size());
+        long end = System.currentTimeMillis();
+        Log.logStd("get list ok;flow=%d;aid=%d;unionPriId=%d;size=%d;consume=%d", flow, aid, unionPriId, list.size(), end - begin);
 
         return rt;
     }
@@ -1996,6 +2970,7 @@ public class ProductBasicService extends BasicParentService {
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int searchProductRelFromDb(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg) throws IOException {
         int rt;
+        long begin = System.currentTimeMillis();
         if(aid <= 0) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
@@ -2006,7 +2981,7 @@ public class ProductBasicService extends BasicParentService {
         try {
             ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
             searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
-            list = relProc.searchFromDb(aid, searchArg, ProductRelEntity.MANAGE_FIELDS);
+            list = relProc.searchFromDbWithDel(aid, searchArg, ProductRelEntity.MANAGE_FIELDS);
         }finally {
             tc.closeDao();
         }
@@ -2017,7 +2992,8 @@ public class ProductBasicService extends BasicParentService {
         }
         session.write(sendBuf);
         rt = Errno.OK;
-        Log.logDbg("search from db ok;flow=%d;aid=%d;unionPriId=%d;size=%d;", flow, aid, unionPriId, list.size());
+        long end = System.currentTimeMillis();
+        Log.logStd("search from db ok;flow=%d;aid=%d;unionPriId=%d;size=%d;consume=%d", flow, aid, unionPriId, list.size(), end - begin);
 
         return rt;
     }
@@ -2046,6 +3022,569 @@ public class ProductBasicService extends BasicParentService {
         return rt;
     }
 
+    @SuccessRt(value = Errno.OK)
+    public int backupData(FaiSession session, int flow, int aid, FaiList<Integer> unionPirIds, Param backupInfo) throws IOException {
+        int rt;
+        if(aid <= 0 || Str.isEmpty(backupInfo)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+            return rt;
+        }
+
+        int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+        int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
+        if(backupId == 0 || backupFlag == 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, backupInfo error;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+            return rt;
+        }
+
+        LockUtil.BackupLock.lock(aid);
+        try {
+            String backupStatus = backupStatusCtrl.getStatus(BackupStatusCtrl.Action.BACKUP, aid, backupId);
+            if(backupStatus != null) {
+                if(backupStatusCtrl.isDoing(backupStatus)) {
+                    rt = Errno.ALREADY_EXISTED;
+                    throw new MgException(rt, "backup is doing;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+                }else if(backupStatusCtrl.isFinish(backupStatus)) {
+                    rt = Errno.OK;
+                    Log.logStd(rt, "backup is already ok;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+                    FaiBuffer sendBuf = new FaiBuffer(true);
+                    session.write(sendBuf);
+                    return Errno.OK;
+                }else if(backupStatusCtrl.isFail(backupStatus)) {
+                    rt = Errno.ALREADY_EXISTED;
+                    Log.logStd(rt, "backup is fail, going retry;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+                }
+            }
+            // 设置备份执行中
+            backupStatusCtrl.setStatusIsDoing(BackupStatusCtrl.Action.BACKUP, aid, backupId);
+
+            TransactionCtrl tc = new TransactionCtrl();
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc, true);
+            ProductProc proc = new ProductProc(flow, aid, tc, true);
+            ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, true);
+            ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc, true);
+            ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc, true);
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+
+                // 可能之前备份没有成功，先操作删除之前的备份
+                deleteBackupData(relProc, proc, bindGroupProc, bindTagProc, bindPropProc, aid, backupId, backupFlag);
+
+                // 备份业务关系表数据
+                relProc.backupData(aid, unionPirIds, backupId, backupFlag);
+
+                // 备份分类表数据
+                proc.backupData(aid, unionPirIds, backupId, backupFlag);
+
+                // 备份绑定分类数据
+                bindGroupProc.backupData(aid, unionPirIds, backupId, backupFlag);
+
+                // 备份绑定标签数据
+                bindTagProc.backupData(aid, unionPirIds, backupId, backupFlag);
+
+                // 备份绑定参数数据
+                bindPropProc.backupData(aid, unionPirIds, backupId, backupFlag);
+                commit = true;
+            }finally {
+                if(commit) {
+                    tc.commit();
+                    backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.BACKUP, aid, backupId);
+                }else {
+                    tc.rollback();
+                    backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.BACKUP, aid, backupId);
+                }
+                tc.closeDao();
+            }
+        }finally {
+            LockUtil.BackupLock.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("backupData ok;flow=%d;aid=%d;unionPirIds=%s;backupInfo=%s;", flow, aid, unionPirIds, backupInfo);
+        return rt;
+    }
+
+    @SuccessRt(Errno.OK)
+    public int restoreBackupData(FaiSession session, int flow, int aid, FaiList<Integer> unionPirIds, int restoreId, Param backupInfo) throws IOException {
+        int rt;
+        if(aid <= 0 || Str.isEmpty(backupInfo)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
+            return rt;
+        }
+
+        int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+        int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
+        if(backupId == 0 || backupFlag == 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, backupInfo error;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
+            return rt;
+        }
+
+        LockUtil.BackupLock.lock(aid);
+        try {
+            String backupStatus = backupStatusCtrl.getStatus(BackupStatusCtrl.Action.RESTORE, aid, restoreId);
+            if(backupStatus != null) {
+                if(backupStatusCtrl.isDoing(backupStatus)) {
+                    rt = Errno.ALREADY_EXISTED;
+                    throw new MgException(rt, "restore is doing;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
+                }else if(backupStatusCtrl.isFinish(backupStatus)) {
+                    rt = Errno.OK;
+                    Log.logStd(rt, "restore is already ok;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
+                    FaiBuffer sendBuf = new FaiBuffer(true);
+                    session.write(sendBuf);
+                    return Errno.OK;
+                }else if(backupStatusCtrl.isFail(backupStatus)) {
+                    rt = Errno.ALREADY_EXISTED;
+                    Log.logStd(rt, "restore is fail, going retry;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
+                }
+            }
+            // 设置备份执行中
+            backupStatusCtrl.setStatusIsDoing(BackupStatusCtrl.Action.RESTORE, aid, restoreId);
+
+            TransactionCtrl tc = new TransactionCtrl();
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc, true);
+            ProductProc proc = new ProductProc(flow, aid, tc, true);
+            ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, true);
+            ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc, true);
+            ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc, true);
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+
+                // 还原关系表数据
+                relProc.restoreBackupData(aid, unionPirIds, backupId, backupFlag);
+
+                // 还原商品表数据
+                proc.restoreBackupData(aid, unionPirIds, backupId, backupFlag);
+
+                // 还原绑定分类数据
+                bindGroupProc.restoreBackupData(aid, unionPirIds, backupId, backupFlag);
+
+                // 还原绑定标签数据
+                bindTagProc.restoreBackupData(aid, unionPirIds, backupId, backupFlag);
+
+                // 还原绑定参数数据
+                bindPropProc.restoreBackupData(aid, unionPirIds, backupId, backupFlag);
+
+                commit = true;
+            }finally {
+                if(commit) {
+                    tc.commit();
+                    backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.RESTORE, aid, restoreId);
+                }else {
+                    tc.rollback();
+                    backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.RESTORE, aid, restoreId);
+                }
+                tc.closeDao();
+            }
+            // 清缓存
+            CacheCtrl.clearCacheVersion(aid);
+        }finally {
+            LockUtil.BackupLock.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("restore backupData ok;flow=%d;aid=%d;unionPirIds=%s;restoreId=%s;backupInfo=%s;", flow, aid, unionPirIds, restoreId, backupInfo);
+        return rt;
+    }
+
+    @SuccessRt(Errno.OK)
+    public int delBackupData(FaiSession session, int flow, int aid, Param backupInfo) throws IOException {
+        int rt;
+        if(aid <= 0 || Str.isEmpty(backupInfo)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+            return rt;
+        }
+
+        int backupId = backupInfo.getInt(MgBackupEntity.Info.ID, 0);
+        int backupFlag = backupInfo.getInt(MgBackupEntity.Info.BACKUP_FLAG, 0);
+        if(backupId == 0 || backupFlag == 0) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("args error, backupInfo error;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+            return rt;
+        }
+
+        LockUtil.BackupLock.lock(aid);
+        try {
+            String backupStatus = backupStatusCtrl.getStatus(BackupStatusCtrl.Action.DELETE, aid, backupId);
+            if(backupStatus != null) {
+                if(backupStatusCtrl.isDoing(backupStatus)) {
+                    rt = Errno.ALREADY_EXISTED;
+                    throw new MgException(rt, "del backup is doing;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+                }else if(backupStatusCtrl.isFinish(backupStatus)) {
+                    rt = Errno.OK;
+                    Log.logStd(rt, "del backup is already ok;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+                    FaiBuffer sendBuf = new FaiBuffer(true);
+                    session.write(sendBuf);
+                    return Errno.OK;
+                }else if(backupStatusCtrl.isFail(backupStatus)) {
+                    rt = Errno.ALREADY_EXISTED;
+                    Log.logStd(rt, "del backup is fail, going retry;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+                }
+            }
+            // 设置备份执行中
+            backupStatusCtrl.setStatusIsDoing(BackupStatusCtrl.Action.DELETE, aid, backupId);
+
+            TransactionCtrl tc = new TransactionCtrl();
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc, true);
+            ProductProc proc = new ProductProc(flow, aid, tc, true);
+            ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, true);
+            ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc, true);
+            ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc, true);
+            boolean commit = false;
+            try {
+                tc.setAutoCommit(false);
+
+                // 删除备份
+                deleteBackupData(relProc, proc, bindGroupProc, bindTagProc, bindPropProc, aid, backupId, backupFlag);
+
+                commit = true;
+            }finally {
+                if(commit) {
+                    tc.commit();
+                    backupStatusCtrl.setStatusIsFinish(BackupStatusCtrl.Action.DELETE, aid, backupId);
+                }else {
+                    tc.rollback();
+                    backupStatusCtrl.setStatusIsFail(BackupStatusCtrl.Action.DELETE, aid, backupId);
+                }
+                tc.closeDao();
+            }
+        }finally {
+            LockUtil.BackupLock.unlock(aid);
+        }
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("del backupData ok;flow=%d;aid=%d;backupInfo=%s;", flow, aid, backupInfo);
+        return rt;
+    }
+
+    @SuccessRt(value = Errno.OK)
+    public int cloneData(FaiSession session, int flow, int aid, int tid, int siteId, int fromAid, FaiList<Param> cloneUnionPriIds) throws IOException {
+        int rt;
+
+        doClone(flow, aid, fromAid, tid, siteId, cloneUnionPriIds, false);
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("cloneData ok;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, aid, fromAid, cloneUnionPriIds);
+        return rt;
+    }
+
+    @SuccessRt(value = Errno.OK)
+    public int incrementalClone(FaiSession session, int flow, int toAid, int toTid, int toSiteId, int toUnionPriId, int fromAid, int fromUnionPriId) throws IOException {
+        int rt;
+
+        Param clonePrimary = new Param();
+        clonePrimary.setInt(CloneDef.Info.FROM_PRIMARY_KEY, fromUnionPriId);
+        clonePrimary.setInt(CloneDef.Info.TO_PRIMARY_KEY, toUnionPriId);
+        FaiList<Param> cloneUnionPriIds = new FaiList<>();
+        cloneUnionPriIds.add(clonePrimary);
+
+        doClone(flow, toAid, fromAid, toTid, toSiteId, cloneUnionPriIds, true);
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("incrementalClone ok;flow=%d;toAid=%d;toUid=%d;fromAid=%d;fromUid=%d;", flow, toAid, toUnionPriId, fromAid, fromUnionPriId);
+        return rt;
+    }
+
+    private void deleteBackupData(ProductRelProc relProc, ProductProc proc, ProductBindGroupProc bindGroupProc, ProductBindTagProc bindTagProc, ProductBindPropProc bindPropProc, int aid, int backupId, int backupFlag) {
+
+        relProc.delBackupData(aid, backupId, backupFlag);
+
+        proc.delBackupData(aid, backupId, backupFlag);
+
+        bindGroupProc.delBackupData(aid, backupId, backupFlag);
+
+        bindTagProc.delBackupData(aid, backupId, backupFlag);
+
+        bindPropProc.delBackupData(aid, backupId, backupFlag);
+    }
+
+    private void doClone(int flow, int toAid, int fromAid, int toTid, int toSiteId, FaiList<Param> cloneUnionPriIds, boolean incrementalClone) {
+        int rt;
+        if(Utils.isEmptyList(cloneUnionPriIds)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args error, cloneUnionPriIds is empty;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
+        }
+
+        // toUnionPriId -> primary
+        Map<Integer, Param> toUid_primary = Utils.getMap(cloneUnionPriIds, CloneDef.Info.TO_PRIMARY_KEY);
+
+        // 组装 fromUnionPriId -> toUnionPriId 映射关系
+        Map<Integer, Integer> cloneUidMap = new HashMap<>();
+        for(Param cloneUidInfo : cloneUnionPriIds) {
+            Integer toUnionPriId = cloneUidInfo.getInt(CloneDef.Info.TO_PRIMARY_KEY);
+            Integer fromUnionPriId = cloneUidInfo.getInt(CloneDef.Info.FROM_PRIMARY_KEY);
+            if(toUnionPriId == null || fromUnionPriId == null) {
+                rt = Errno.ARGS_ERROR;
+                throw new MgException(rt, "args error, cloneUnionPriIds is error;flow=%d;aid=%d;fromAid=%d;uids=%s;", flow, toAid, fromAid, cloneUnionPriIds);
+            }
+            cloneUidMap.put(fromUnionPriId, toUnionPriId);
+        }
+
+        LockUtil.lock(toAid);
+        try {
+            boolean commit = false;
+            TransactionCtrl tc = new TransactionCtrl();
+            tc.setAutoCommit(false);
+            try {
+                ProductRelProc relProc = new ProductRelProc(flow, toAid, tc);
+                ProductProc pdProc = new ProductProc(flow, toAid, tc);
+                ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, toAid, tc);
+                ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, toAid, tc);
+                ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, toAid, tc);
+                // 如果不是增量克隆，先删除原有的数据
+                if(!incrementalClone) {
+                    FaiList<Integer> toUnionPriIds = new FaiList<>(cloneUidMap.values());
+
+                    // 删除原有的业务关系表数据
+                    ParamMatcher delMatcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, toAid);
+                    delMatcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, toUnionPriIds);
+                    relProc.delProductRel(toAid, delMatcher);
+
+                    // 删除原有的商品基础信息数据
+                    delMatcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, toAid);
+                    delMatcher.and(ProductEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.IN, toUnionPriIds);
+                    pdProc.delProduct(toAid, delMatcher);
+
+                    // 删除原有的分类绑定
+                    delMatcher = new ParamMatcher(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, toAid);
+                    delMatcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.IN, toUnionPriIds);
+                    bindGroupProc.delPdBindGroup(toAid, delMatcher);
+
+                    // 删除原有的参数绑定
+                    delMatcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, toAid);
+                    delMatcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.IN, toUnionPriIds);
+                    bindPropProc.delPdBindProp(toAid, delMatcher);
+
+                    // 删除原有的标签绑定
+                    delMatcher = new ParamMatcher(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, toAid);
+                    delMatcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.IN, toUnionPriIds);
+                    bindTagProc.delPdBindTag(toAid, delMatcher);
+                }
+
+                // pdId -> addRelList
+                Map<Integer, FaiList<Param>> pdId_RelList = new HashMap<>();
+                // pdId -> sourceUnionPriId
+                Map<Integer, Integer> pdId_SourceUid = new HashMap<>();
+
+                FaiList<Param> addBindGroups = new FaiList<>();
+                FaiList<Param> addBindProps = new FaiList<>();
+                FaiList<Param> addBindTags = new FaiList<>();
+
+
+                for(Map.Entry<Integer, Integer> entry: cloneUidMap.entrySet()) {
+                    int fromUnionPriId = entry.getKey();
+                    int toUnionPriId = entry.getValue();
+                    ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, fromAid);
+                    matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, fromUnionPriId);
+                    FaiList<Param> fromRelList = relProc.searchFromDb(fromAid, matcher, null);
+
+                    if(fromRelList.isEmpty()) {
+                        continue;
+                    }
+
+                    // 查出绑定分类
+                    SearchArg searchArg = new SearchArg();
+                    searchArg.matcher = new ParamMatcher(ProductBindGroupEntity.Info.AID, ParamMatcher.EQ, fromAid);
+                    searchArg.matcher.and(ProductBindGroupEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, fromUnionPriId);
+                    FaiList<Param> bindGroupList = bindGroupProc.searchFromDb(fromAid, searchArg, null);
+                    Map<Integer, List<Param>> bindGroupMap = bindGroupList.stream().collect(Collectors.groupingBy(x -> x.getInt(ProductBindGroupEntity.Info.RL_PD_ID)));
+
+                    // 查出绑定参数
+                    searchArg.matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, fromAid);
+                    searchArg.matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, fromUnionPriId);
+                    FaiList<Param> bindPropList = bindPropProc.searchFromDb(fromAid, searchArg, null);
+                    Map<Integer, List<Param>> bindPropMap = bindPropList.stream().collect(Collectors.groupingBy(x -> x.getInt(ProductBindPropEntity.Info.RL_PD_ID)));
+
+                    // 查出绑定标签
+                    searchArg.matcher = new ParamMatcher(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, fromAid);
+                    searchArg.matcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, fromUnionPriId);
+                    FaiList<Param> bindTagList = bindTagProc.getListByConditions(fromAid, searchArg, null);
+                    Map<Integer, List<Param>> bindTagMap = bindTagList.stream().collect(Collectors.groupingBy(x -> x.getInt(ProductBindTagEntity.Info.RL_PD_ID)));
+
+                    // 查出已存在的数据 for 增量克隆
+                    FaiList<Param> existedList = null;
+                    if(incrementalClone) {
+                        matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, toAid);
+                        matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, toUnionPriId);
+                        existedList = relProc.searchFromDb(toAid, matcher, null);
+                    }
+
+                    for(Param fromInfo : fromRelList) {
+                        int rlPdId = fromInfo.getInt(ProductRelEntity.Info.RL_PD_ID);
+                        // 如果是增量克隆，但是rlPdId已存在，则跳过
+                        if(incrementalClone && Misc.getFirst(existedList, ProductRelEntity.Info.RL_PD_ID, rlPdId) != null) {
+                            continue;
+                        }
+                        Param data = fromInfo.clone();
+                        data.setInt(ProductRelEntity.Info.AID, toAid);
+                        data.setInt(ProductRelEntity.Info.UNION_PRI_ID, toUnionPriId);
+                        int pdId = data.getInt(ProductRelEntity.Info.PD_ID);
+                        FaiList<Param> addList = pdId_RelList.get(pdId);
+                        if(addList == null) {
+                            addList = new FaiList<>();
+                            pdId_RelList.put(pdId, addList);
+                            pdId_SourceUid.put(pdId, toUnionPriId);
+                        }
+                        addList.add(data);
+
+                        List<Param> curBindGroups = bindGroupMap.get(rlPdId);
+                        if(curBindGroups != null) {
+                            addBindGroups.addAll(curBindGroups);
+                        }
+                        List<Param> curBindProps = bindPropMap.get(rlPdId);
+                        if(curBindProps != null) {
+                            addBindProps.addAll(curBindProps);
+                        }
+                        List<Param> curBindTags = bindTagMap.get(rlPdId);
+                        if(curBindTags != null) {
+                            addBindTags.addAll(curBindTags);
+                        }
+                    }
+                }
+
+                // 没有要克隆的数据
+                if(pdId_RelList.isEmpty()) {
+                    return;
+                }
+
+                // 根据 fromAid 和 pdId 查出对应的商品表数据
+                FaiList<FaiList<Integer>> pdIdGroups = Utils.splitList(new FaiList<>(pdId_RelList.keySet()), 1000);
+                FaiList<Param> fromPdList = new FaiList<>();
+                SearchArg pdSearch = new SearchArg();
+                for(FaiList<Integer> pdIds : pdIdGroups) {
+                    pdSearch.matcher = new ParamMatcher(ProductEntity.Info.AID, ParamMatcher.EQ, fromAid);
+                    pdSearch.matcher.and(ProductEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+                    FaiList<Param> curDbList = pdProc.searchFromDb(fromAid, pdSearch, null);
+                    // 这里必定是会查到数据才对
+                    if(curDbList.isEmpty()) {
+                        rt = Errno.ERROR;
+                        throw new MgException(rt, "get from pd list err;flow=%d;aid=%d;fromAid=%d;uids=%s;matcher=%s;", flow, toAid, fromAid, cloneUnionPriIds, pdSearch.matcher.toJson());
+                    }
+
+                    fromPdList.addAll(curDbList);
+                }
+
+
+                // 这里 保持 fromPdIds 和 addPdList的顺序一致，是为了后面能得到fromPdId 和 toPdId的映射关系
+                FaiList<Integer> fromPdIds = new FaiList<>();
+                FaiList<Param> addPdList = new FaiList<>();
+                for(Param fromInfo : fromPdList) {
+                    Param data = fromInfo.clone();
+                    data.setInt(ProductEntity.Info.AID, toAid);
+                    int fromPdId = (Integer) data.remove(ProductEntity.Info.PD_ID);
+                    int sourceUnionPriId = pdId_SourceUid.get(fromPdId);
+                    data.setInt(ProductEntity.Info.SOURCE_UNIONPRIID, sourceUnionPriId);
+                    fromPdIds.add(fromPdId);
+                    addPdList.add(data);
+                }
+
+                // gfw预记录
+                GfwUtil.preWriteGfwLog(toAid, toTid, toSiteId, addPdList);
+
+                // 插入商品表数据
+                Map<Integer, Integer> fromPdId_toPdId = new HashMap<>();
+                FaiList<Integer> pdIds = pdProc.batchAddProduct(toAid, addPdList);
+                // 组装fromPdId 和 toPdId的映射关系
+                for(int i = 0; i < pdIds.size(); i++) {
+                    fromPdId_toPdId.put(fromPdIds.get(i), pdIds.get(i));
+                }
+
+                // 组装业务关系表增量克隆数据，设置toPdId
+                FaiList<Param> addRelList = new FaiList<>();
+                for(Integer fromPdId : pdId_RelList.keySet()) {
+                    FaiList<Param> tmpAddList = pdId_RelList.get(fromPdId);
+                    for(Param relInfo : tmpAddList) {
+                        int pdId = fromPdId_toPdId.get(fromPdId);
+                        relInfo.setInt(ProductRelEntity.Info.PD_ID, pdId);
+                        addRelList.add(relInfo);
+                    }
+                }
+
+                // 插入业务关系表克隆数据
+                relProc.insert4Clone(toAid, new FaiList<>(cloneUidMap.values()), addRelList);
+
+                // es预记录
+                ESUtil.batchPreLog(flow, addRelList, DocOplogDef.Operation.UPDATE_ONE);
+
+                // 克隆绑定分类
+                if(!addBindGroups.isEmpty()) {
+                    for(Param info : addBindGroups) {
+                        int fromUnionPriId = info.getInt(ProductBindGroupEntity.Info.UNION_PRI_ID);
+                        int fromPdId = info.getInt(ProductBindGroupEntity.Info.PD_ID);
+
+                        info.setInt(ProductBindGroupEntity.Info.AID, toAid);
+                        info.setInt(ProductBindGroupEntity.Info.UNION_PRI_ID, cloneUidMap.get(fromUnionPriId));
+                        info.setInt(ProductBindGroupEntity.Info.PD_ID, fromPdId_toPdId.get(fromPdId));
+                    }
+                    bindGroupProc.insert4Clone(toAid, addBindGroups);
+                }
+
+                // 克隆绑定参数
+                if(!addBindProps.isEmpty()) {
+                    for(Param info : addBindProps) {
+                        int fromUnionPriId = info.getInt(ProductBindPropEntity.Info.UNION_PRI_ID);
+                        int fromPdId = info.getInt(ProductBindPropEntity.Info.PD_ID);
+
+                        info.setInt(ProductBindPropEntity.Info.AID, toAid);
+                        info.setInt(ProductBindPropEntity.Info.UNION_PRI_ID, cloneUidMap.get(fromUnionPriId));
+                        info.setInt(ProductBindPropEntity.Info.PD_ID, fromPdId_toPdId.get(fromPdId));
+                    }
+                    bindPropProc.insert4Clone(toAid, addBindProps);
+                }
+
+                // 克隆绑定标签
+                if(!addBindTags.isEmpty()) {
+                    for(Param info : addBindTags) {
+                        int fromUnionPriId = info.getInt(ProductBindTagEntity.Info.UNION_PRI_ID);
+                        int fromPdId = info.getInt(ProductBindTagEntity.Info.PD_ID);
+
+                        info.setInt(ProductBindTagEntity.Info.AID, toAid);
+                        info.setInt(ProductBindTagEntity.Info.UNION_PRI_ID, cloneUidMap.get(fromUnionPriId));
+                        info.setInt(ProductBindTagEntity.Info.PD_ID, fromPdId_toPdId.get(fromPdId));
+                    }
+                    bindTagProc.insert4Clone(toAid, addBindTags);
+                }
+
+                commit = true;
+
+            }finally {
+                if(commit) {
+                    tc.commit();
+                }else {
+                    tc.rollback();
+                }
+                tc.closeDao();
+            }
+            // 清缓存
+            CacheCtrl.clearCacheVersion(toAid);
+            // gfw
+            GfwUtil.commitPre(toTid);
+
+            // es
+            ESUtil.commitPre(flow, toAid);
+
+        }finally {
+            LockUtil.unlock(toAid);
+        }
+        Log.logStd("do clone ok;toAid=%s;fromAid=%s;inc=%s;cloneUids=%s;", toAid, fromAid, incrementalClone, cloneUnionPriIds);
+    }
+
     private SagaRollback getAddRollback(int flow, int aid, String xid, long branchId, boolean isBindRel) {
         SagaRollback sagaRollback = (tc) -> {
             // 回滚商品业务关系表数据
@@ -2055,7 +3594,7 @@ public class ProductBasicService extends BasicParentService {
             // 回滚商品表数据
             if(!isBindRel) {
                 ProductProc proc = new ProductProc(flow, aid, tc, xid, false);
-                proc.rollback4Saga(aid, branchId);
+                proc.rollback4Saga(aid, branchId, relProc);
             }
 
             // 回滚绑定参数
@@ -2118,4 +3657,11 @@ public class ProductBasicService extends BasicParentService {
         }
         return pdRels;
     }
+
+    public void initBackupStatus(RedisCacheManager cache) {
+        backupStatusCtrl = new BackupStatusCtrl(BAK_TYPE, cache);
+    }
+
+    private static final String BAK_TYPE = "mgPdBasic";
+    private BackupStatusCtrl backupStatusCtrl;
 }

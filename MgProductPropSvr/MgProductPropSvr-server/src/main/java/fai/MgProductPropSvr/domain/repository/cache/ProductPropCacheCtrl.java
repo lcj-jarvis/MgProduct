@@ -1,6 +1,7 @@
-package fai.MgProductPropSvr.domain.repository;
+package fai.MgProductPropSvr.domain.repository.cache;
 
 import fai.MgProductPropSvr.domain.entity.ProductPropEntity;
+import fai.MgProductPropSvr.domain.repository.cache.CacheCtrl;
 import fai.MgProductPropSvr.interfaces.dto.ProductPropDto;
 import fai.comm.util.*;
 

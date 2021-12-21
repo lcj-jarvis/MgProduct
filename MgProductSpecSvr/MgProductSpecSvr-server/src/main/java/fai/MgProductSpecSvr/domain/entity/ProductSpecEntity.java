@@ -30,4 +30,22 @@ public class ProductSpecEntity {
     public static String[] getValidKeys(){
         return VALID_KEYS;
     }
+
+    /**
+     * Saga 修改需要记录的所有字段
+     */
+    private static final String[] UPDATE_KEYS = new String[]{
+            Info.AID,
+            Info.PD_ID,
+            Info.SC_STR_ID,
+            Info.PD_SC_ID,
+            Info.SORT,
+            Info.FLAG,
+            Info.IN_PD_SC_VAL_LIST,
+            Info.SYS_UPDATE_TIME
+    };
+
+    public static String[] getPriAndUpdateKey() {
+        return UPDATE_KEYS;
+    }
 }

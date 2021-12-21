@@ -97,6 +97,7 @@ public class ProductBindGroupService extends ServicePub {
                 // 删除缓存
                 ProductBindGroupCache.delCache(aid, unionPriId, pdId);
                 ProductBindGroupCache.DataStatusCache.update(aid, unionPriId, addCount);
+                ProductBindGroupCache.EmptyCache.delCache(aid, unionPriId, pdId); // 删除绑定分类数据空缓存
             }finally {
                 if(!commit) {
                     tc.rollback();
@@ -181,7 +182,7 @@ public class ProductBindGroupService extends ServicePub {
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
             return rt;
         }
-
+        long begin = System.currentTimeMillis();
         Param info;
         TransactionCtrl tc = new TransactionCtrl();
         try {
@@ -194,13 +195,15 @@ public class ProductBindGroupService extends ServicePub {
         info.toBuffer(sendBuf, ProductBindGroupDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
         session.write(sendBuf);
         rt = Errno.OK;
-        Log.logDbg("getBindGroupDataStatus ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+        long end = System.currentTimeMillis();
+        Log.logStd("getBindGroupDataStatus ok;flow=%d;aid=%d;unionPriId=%d;consume=%d", flow, aid, unionPriId, end - begin);
         return rt;
     }
 
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getAllBindGroup(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
         int rt;
+        long begin = System.currentTimeMillis();
         if(aid <= 0) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
@@ -222,7 +225,8 @@ public class ProductBindGroupService extends ServicePub {
         list.toBuffer(sendBuf, ProductBindGroupDto.Key.INFO_LIST, ProductBindGroupDto.getInfoDto());
         session.write(sendBuf);
         rt = Errno.OK;
-        Log.logDbg("get list ok;flow=%d;aid=%d;unionPriId=%d;size=%d;", flow, aid, unionPriId, list.size());
+        long end = System.currentTimeMillis();
+        Log.logStd("get list ok;flow=%d;aid=%d;unionPriId=%d;size=%d;consume=%d", flow, aid, unionPriId, list.size(), end - begin);
 
         return rt;
     }
@@ -235,6 +239,7 @@ public class ProductBindGroupService extends ServicePub {
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
             return rt;
         }
+        long begin = System.currentTimeMillis();
         FaiList<Param> list;
         TransactionCtrl tc = new TransactionCtrl();
         try {
@@ -253,7 +258,8 @@ public class ProductBindGroupService extends ServicePub {
         }
         session.write(sendBuf);
         rt = Errno.OK;
-        Log.logDbg("search from db ok;flow=%d;aid=%d;unionPriId=%d;size=%d;", flow, aid, unionPriId, list.size());
+        long end = System.currentTimeMillis();
+        Log.logStd("search from db ok;flow=%d;aid=%d;unionPriId=%d;size=%d;consume=%d", flow, aid, unionPriId, list.size(), end - begin);
 
         return rt;
     }

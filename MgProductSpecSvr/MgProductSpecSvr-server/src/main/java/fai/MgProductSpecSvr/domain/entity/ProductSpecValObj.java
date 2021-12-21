@@ -36,6 +36,8 @@ public class ProductSpecValObj {
         public static final int ALL = 0x1; // 是否是全部规格 - 用于兼容商品从无规格过渡到有规格
         public static final int IN_PD_SC_VAL_LIST_CHECKED = 0x2; // InPdScValList是否有勾选 for 查询
         public static final int ALLOW_IN_PD_SC_VAL_LIST_IS_EMPTY= 0x4;  //允许 inPdScValList 是否为空
+        public static final int SYS_SPEC = 0x8; // 系统规格，置起为true，不能删除，可修改
+        public static final int SYS_FIX_SPEC = 0x10; // 系统规格，置起为true，不能删除，不能修改
     }
     /**
      * 规格值定义

@@ -5,7 +5,7 @@
     <parent>
         <groupId>MgProduct</groupId>
         <artifactId>MgProductParent</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.1</version>
     </parent>
 
     <artifactId>MgProductJob</artifactId>
@@ -23,6 +23,52 @@
             <groupId>fai-comm-util-arch</groupId>
             <artifactId>fai-comm-util-arch</artifactId>
             <version>${fai-comm-util-arch-ver}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>guava</artifactId>
+                    <groupId>com.google.guava</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>okhttp</artifactId>
+                    <groupId>com.squareup.okhttp</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>okio</artifactId>
+                    <groupId>com.squareup.okio</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>commons-logging</artifactId>
+                    <groupId>commons-logging</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>fai-app-arch</artifactId>
+                    <groupId>fai-app-arch</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>tika-core</artifactId>
+                    <groupId>org.apache.tika</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>bcprov-jdk15on</artifactId>
+                    <groupId>org.bouncycastle</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>bcprov-jdk14</artifactId>
+                    <groupId>bouncycastle</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>bcprov-jdk15</artifactId>
+                    <groupId>org.bouncycastle</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>bcmail-jdk15</artifactId>
+                    <groupId>org.bouncycastle</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>bcprov-jdk15on-156</artifactId>
+                    <groupId>bcprov-jdk15on-156</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>

@@ -136,6 +136,7 @@ public class ProductStoreEntity {
         public static final String FLAG = "flag";                                   // int flag
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
+        public static final String DISTRIBUTE_LIST = "distributeList";              // varchar(255) 配送方式（支持多个）
 
 
         public static final FaiList<String> MANAGE_FIELDS; // 管理态字段

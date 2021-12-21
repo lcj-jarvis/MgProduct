@@ -1,12 +1,15 @@
 package fai.MgProductPropSvr.interfaces.cli;
 
+import fai.MgBackupSvr.interfaces.dto.MgBackupDto;
 import fai.MgProductPropSvr.interfaces.cmd.MgProductPropCmd;
 import fai.MgProductPropSvr.interfaces.dto.ProductPropDto;
 import fai.MgProductPropSvr.interfaces.dto.ProductPropValDto;
+import fai.comm.middleground.app.CloneDef;
 import fai.comm.netkit.FaiClient;
 import fai.comm.netkit.FaiProtocol;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
+import fai.mgproduct.comm.Util;
 
 public class MgProductPropCli extends FaiClient {
 
@@ -781,6 +784,227 @@ public class MgProductPropCli extends FaiClient {
         } finally {
             close();
             stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
+    public int backupData(int aid, FaiList<Integer> unionPriIds, Param backupInfo) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0 || Util.isEmptyList(unionPriIds) || Str.isEmpty(backupInfo)) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;aid=%d;uids=%s;backupInfo=%s;", aid, unionPriIds, backupInfo);
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            unionPriIds.toBuffer(sendBody, ProductPropDto.Key.UNION_PRI_ID);
+            backupInfo.toBuffer(sendBody, ProductPropDto.Key.BACKUP_INFO, MgBackupDto.getInfoDto());
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setAid(aid);
+            sendProtocol.setCmd(MgProductPropCmd.Cmd.BACKUP);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    public int restoreBackupData(int aid, FaiList<Integer> unionPriIds, int restoreId, Param backupInfo) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0 || unionPriIds == null || Str.isEmpty(backupInfo)) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;aid=%d;uids=%s;backupInfo=%s;", aid, unionPriIds, backupInfo);
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            unionPriIds.toBuffer(sendBody, ProductPropDto.Key.UNION_PRI_ID);
+            sendBody.putInt(ProductPropDto.Key.RESTORE_ID, restoreId);
+            backupInfo.toBuffer(sendBody, ProductPropDto.Key.BACKUP_INFO, MgBackupDto.getInfoDto());
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setAid(aid);
+            sendProtocol.setCmd(MgProductPropCmd.Cmd.RESTORE);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    public int delBackupData(int aid, Param backupInfo) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0 || Str.isEmpty(backupInfo)) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;aid=%d;backupInfo=%s;", aid, backupInfo);
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            backupInfo.toBuffer(sendBody, ProductPropDto.Key.BACKUP_INFO, MgBackupDto.getInfoDto());
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setAid(aid);
+            sendProtocol.setCmd(MgProductPropCmd.Cmd.DEL_BACKUP);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    public int cloneData(int aid, int fromAid, FaiList<Param> cloneUnionPriIds) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0 || cloneUnionPriIds== null || cloneUnionPriIds.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;aid=%d;fromAid=%d;cloneUids=%s;", aid, fromAid, cloneUnionPriIds);
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductPropDto.Key.FROM_AID, fromAid);
+            cloneUnionPriIds.toBuffer(sendBody, ProductPropDto.Key.CLONE_UNION_PRI_IDS, CloneDef.Dto.getInternalDto());
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setAid(aid);
+            sendProtocol.setCmd(MgProductPropCmd.Cmd.CLONE);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    public int incrementalClone(int aid, int unionPriId, int fromAid, int fromUnionPriId) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;aid=%d;uid=%d;fromAid=%d;fromUid=%d;", aid, unionPriId, fromAid, fromUnionPriId);
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductPropDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductPropDto.Key.FROM_AID, fromAid);
+            sendBody.putInt(ProductPropDto.Key.FROM_UNION_PRI_ID, fromUnionPriId);
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setAid(aid);
+            sendProtocol.setCmd(MgProductPropCmd.Cmd.INCR_CLONE);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
         }
     }
 }

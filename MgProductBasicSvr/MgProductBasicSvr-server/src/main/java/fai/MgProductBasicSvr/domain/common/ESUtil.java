@@ -54,7 +54,7 @@ public class ESUtil {
         Param logInfo = new Param();
         logInfo.setInt(DocOplogDef.Info.OPERATION, op);
         logInfo.setString(DocOplogDef.Info.DOCID_KEYS, docid.getDocidKeys());
-        logInfo.setString(DocOplogDef.Info.DOCID_KEYS, docid.getDocidVals());
+        logInfo.setString(DocOplogDef.Info.DOCID_VALS, docid.getDocidVals());
         preList.add(logInfo);
     }
 
@@ -76,7 +76,7 @@ public class ESUtil {
             Param logInfo = new Param();
             logInfo.setInt(DocOplogDef.Info.OPERATION, op);
             logInfo.setString(DocOplogDef.Info.DOCID_KEYS, docid.getDocidKeys());
-            logInfo.setString(DocOplogDef.Info.DOCID_KEYS, docid.getDocidVals());
+            logInfo.setString(DocOplogDef.Info.DOCID_VALS, docid.getDocidVals());
             preList.add(logInfo);
         }
     }
@@ -97,7 +97,7 @@ public class ESUtil {
             Param logInfo = new Param();
             logInfo.setInt(DocOplogDef.Info.OPERATION, op);
             logInfo.setString(DocOplogDef.Info.DOCID_KEYS, docid.getDocidKeys());
-            logInfo.setString(DocOplogDef.Info.DOCID_KEYS, docid.getDocidVals());
+            logInfo.setString(DocOplogDef.Info.DOCID_VALS, docid.getDocidVals());
             preList.add(logInfo);
         }
     }
@@ -110,16 +110,16 @@ public class ESUtil {
             return;
         }
         int rt;
-        //DocOplogCli cli = createDocOplogCli(flow);
+        DocOplogCli cli = createDocOplogCli(flow);
 
         FaiList<FaiList<Param>> list = Utils.splitList(new FaiList<>(preLogList.get()), BATCH_SIZE);
         for(FaiList<Param> batchList : list) {
-            /*rt = cli.batchAddDocOplog(aid, FaiSearchExDef.App.MG_PRODUCT, batchList);
+            rt = cli.batchAddDocOplog(aid, FaiSearchExDef.App.MG_PRODUCT, batchList);
             if(rt != Errno.OK) {
                 Log.logErr(rt, "addDocid err;aid=%s;logList=%s;", aid, batchList);
             }else {
                 Log.logStd("batch addDocid ok;aid=%s;logList=%s;", aid, batchList);
-            }*/
+            }
         }
 
         preLogList.remove();
@@ -137,12 +137,12 @@ public class ESUtil {
         docid.add(ProductRelEntity.Info.AID, aid);
         docid.add(ProductRelEntity.Info.PD_ID, pdId);
         docid.add(ProductRelEntity.Info.UNION_PRI_ID, unionPriId);
-        /*DocOplogCli opCli = createDocOplogCli(flow);
+        DocOplogCli opCli = createDocOplogCli(flow);
         int rt = opCli.addDocOplog(aid, FaiSearchExDef.App.MG_PRODUCT, op, docid);
         if (rt != Errno.OK) {
             Log.logErr("addDocid err;aid=%s;pdId=%s;unionPriId=%s;op=%s;flow=%s;", aid, pdId, unionPriId, op, flow);
             return;
-        }*/
+        }
         Log.logStd("addDocOplog successs;aid=%s;pdId=%s;unionPriId=%s;op=%s;flow=%s;", aid, pdId, unionPriId, op, flow);
     }
 
@@ -160,7 +160,7 @@ public class ESUtil {
             return;
         }
         int rt;
-        //DocOplogCli opCli = createDocOplogCli(flow);
+        DocOplogCli opCli = createDocOplogCli(flow);
         FaiList<Param> logList = new FaiList<>();
         for(Param info : list) {
             int pdId = info.getInt(ProductRelEntity.Info.PD_ID);
@@ -172,25 +172,25 @@ public class ESUtil {
             Param logInfo = new Param();
             logInfo.setInt(DocOplogDef.Info.OPERATION, op);
             logInfo.setString(DocOplogDef.Info.DOCID_KEYS, docid.getDocidKeys());
-            logInfo.setString(DocOplogDef.Info.DOCID_KEYS, docid.getDocidVals());
+            logInfo.setString(DocOplogDef.Info.DOCID_VALS, docid.getDocidVals());
             logList.add(logInfo);
             if(logList.size() >= BATCH_SIZE) {
-                /*rt = opCli.batchAddDocOplog(aid, FaiSearchExDef.App.MG_PRODUCT, logList);
+                rt = opCli.batchAddDocOplog(aid, FaiSearchExDef.App.MG_PRODUCT, logList);
                 if(rt != Errno.OK) {
                     Log.logErr(rt, "addDocid err;aid=%s;op=%s;logList=%s;", aid, op, logList);
                 }else {
                     Log.logStd("batch addDocid ok;aid=%s;op=%s;logList=%s;", aid, op, logList);
-                }*/
+                }
                 logList.clear();
             }
         }
         if(!logList.isEmpty()) {
-            /*rt = opCli.batchAddDocOplog(aid, FaiSearchExDef.App.MG_PRODUCT, logList);
+            rt = opCli.batchAddDocOplog(aid, FaiSearchExDef.App.MG_PRODUCT, logList);
             if(rt != Errno.OK) {
                 Log.logErr("addDocid err;aid=%s;op=%s;logList=%s;", aid, op, logList);
             }else {
                 Log.logStd("batch addDocid ok;aid=%s;op=%s;logList=%s;", aid, op, logList);
-            }*/
+            }
         }
     }
     public static void batchLogDocId(int flow, int aid, int unionPriId, FaiList<Integer> pdIds, int op) {
@@ -198,7 +198,7 @@ public class ESUtil {
             return;
         }
         int rt;
-        //DocOplogCli opCli = createDocOplogCli(flow);
+        DocOplogCli opCli = createDocOplogCli(flow);
         FaiList<Param> logList = new FaiList<>();
         for(Integer pdId : pdIds) {
             DocOplogDef.Docid docid = DocOplogDef.Docid.create(3);
@@ -208,25 +208,25 @@ public class ESUtil {
             Param logInfo = new Param();
             logInfo.setInt(DocOplogDef.Info.OPERATION, op);
             logInfo.setString(DocOplogDef.Info.DOCID_KEYS, docid.getDocidKeys());
-            logInfo.setString(DocOplogDef.Info.DOCID_KEYS, docid.getDocidVals());
+            logInfo.setString(DocOplogDef.Info.DOCID_VALS, docid.getDocidVals());
             logList.add(logInfo);
             if(logList.size() >= BATCH_SIZE) {
-                /*rt = opCli.batchAddDocOplog(aid, FaiSearchExDef.App.MG_PRODUCT, logList);
+                rt = opCli.batchAddDocOplog(aid, FaiSearchExDef.App.MG_PRODUCT, logList);
                 if(rt != Errno.OK) {
                     Log.logErr(rt, "addDocid err;aid=%s;op=%s;logList=%s;", aid, op, logList);
                 }else {
                     Log.logStd("batch addDocid ok;aid=%s;op=%s;logList=%s;", aid, op, logList);
-                }*/
+                }
                 logList.clear();
             }
         }
         if(!logList.isEmpty()) {
-            /*rt = opCli.batchAddDocOplog(aid, FaiSearchExDef.App.MG_PRODUCT, logList);
+            rt = opCli.batchAddDocOplog(aid, FaiSearchExDef.App.MG_PRODUCT, logList);
             if(rt != Errno.OK) {
                 Log.logErr(rt, "addDocid err;aid=%s;op=%s;logList=%s;", aid, op, logList);
             }else {
                 Log.logStd("batch addDocid ok;aid=%s;op=%s;logList=%s;", aid, op, logList);
-            }*/
+            }
         }
     }
 

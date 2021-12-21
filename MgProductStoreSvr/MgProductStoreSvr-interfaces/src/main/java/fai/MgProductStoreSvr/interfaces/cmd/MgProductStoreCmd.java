@@ -54,6 +54,16 @@ public class MgProductStoreCmd {
 		public static final int NUM24 = 1024;
 		public static final int NUM25 = 1025;
 		public static final int NUM26 = 1026;
+		public static final int NUM27 = 1027;
+		public static final int NUM28 = 1028;
+		public static final int NUM29 = 1029;
+		public static final int NUM30 = 1030;
+		public static final int NUM31 = 1031;
+		public static final int NUM32 = 1032;
+		public static final int NUM33 = 1033;
+		public static final int NUM34 = 1034;
+		public static final int NUM35 = 1035;
+		public static final int NUM36 = 1036;
 	}
 
 	////////////////// cmd对外定义，实际做cmd读写分离 ////////////////////
@@ -97,6 +107,9 @@ public class MgProductStoreCmd {
 		public static final int BATCH_DEL_PD_ALL_STORE_SALES_ROLLBACK = WriteCmdNum.NUM24;
 		public static final int SET_SKU_STORE_SALES_ROLLBACK = WriteCmdNum.NUM25;
 		public static final int REFRESH_ROLLBACK = WriteCmdNum.NUM26;
+		public static final int CLONE_BIZ_BIND = WriteCmdNum.NUM27;
+		public static final int COPY_BIZ_BIND = WriteCmdNum.NUM28;
+		public static final int COPY_BIZ_BIND_ROLLBACK = WriteCmdNum.NUM36;
     }
 
 	/**
@@ -131,6 +144,14 @@ public class MgProductStoreCmd {
 		 * 直接从db搜索，返回部分字段
 		 */
 		public static final int SEARCH_PART_FIELD = ReadCmdNum.NUM11;
+
+
+		public static final int SET = WriteCmdNum.NUM30;
+		public static final int SET_ROLLBACK = WriteCmdNum.NUM31;
+		public static final int BATCH_ADD = WriteCmdNum.NUM32;
+		public static final int BATCH_ADD_ROLLBACK = WriteCmdNum.NUM33;
+		public static final int BATCH_SET = WriteCmdNum.NUM34;
+		public static final int BATCH_SET_ROLLBACK = WriteCmdNum.NUM35;
 	}
 
 	/**
@@ -153,5 +174,9 @@ public class MgProductStoreCmd {
 	 */
 	public static class HoldingRecordCmd{
 		public static final int GET_LIST = ReadCmdNum.NUM12;
+	}
+
+	public static class Cmd {
+		public static final int MIGRATE = WriteCmdNum.NUM29;
 	}
 }

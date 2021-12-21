@@ -4,7 +4,7 @@
     <parent>
         <groupId>MgProduct</groupId>
         <artifactId>MgProductSearchSvr</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.1</version>
     </parent>
     <artifactId>MgProductSearchSvr-server</artifactId>
     <packaging>jar</packaging>
@@ -67,7 +67,6 @@
         <dependency>
             <groupId>fai-comm-util-opt</groupId>
             <artifactId>fai-comm-util-opt</artifactId>
-            <version>${fai-comm-util-opt-ver}</version>
         </dependency>
 
         <dependency>
@@ -109,6 +108,23 @@
             <groupId>MgProduct</groupId>
             <artifactId>MgProductGroupSvr-interfaces</artifactId>
             <version>${MgProduct-MgProductGroupSvr-interfaces-ver}</version>
+        </dependency>
+        <dependency>
+            <groupId>MgProduct</groupId>
+            <artifactId>MgProductSpecSvr-interfaces</artifactId>
+            <version>${MgProduct-MgProductSpecSvr-interfaces-ver}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>fai-app-arch</groupId>
+            <artifactId>fai-app-arch</artifactId>
+            <version>${fai-app-arch-ver}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>fai-cli-arch</groupId>
+            <artifactId>fai-cli-arch</artifactId>
+            <version>${fai-cli-arch-ver}</version>
         </dependency>
 
         <!-- 第三方的包 -->

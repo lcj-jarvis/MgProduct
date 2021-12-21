@@ -13,6 +13,8 @@ import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuValObj;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecValObj;
 import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity;
 import fai.comm.fseata.client.core.exception.TransactionException;
+import fai.comm.fseata.client.tm.GlobalTransactionContext;
+import fai.comm.fseata.client.tm.api.GlobalTransaction;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.middleground.MgErrno;
@@ -28,7 +30,7 @@ public class ProductSpecService extends MgProductInfService {
     /**
      * 批量添加规格模板
      */
-    public int addTpScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> list) throws IOException {
+    public int addTpScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, FaiList<Param> list) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -46,7 +48,7 @@ public class ProductSpecService extends MgProductInfService {
             }
             int unionPriId = idRef.value;
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
-            rt = productSpecProc.addTpScInfoList(aid, tid, unionPriId, list);
+            rt = productSpecProc.addTpScInfoList(aid, tid, unionPriId, sysType, list);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -62,7 +64,7 @@ public class ProductSpecService extends MgProductInfService {
     /**
      * 批量删除规格模板
      */
-    public int delTpScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlTpScIdList) throws IOException {
+    public int delTpScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, FaiList<Integer> rlTpScIdList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -80,7 +82,7 @@ public class ProductSpecService extends MgProductInfService {
             }
             int unionPriId = idRef.value;
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
-            rt = productSpecProc.delTpScInfoList(aid, tid, unionPriId, rlTpScIdList);
+            rt = productSpecProc.delTpScInfoList(aid, tid, unionPriId, sysType, rlTpScIdList);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -96,7 +98,7 @@ public class ProductSpecService extends MgProductInfService {
     /**
      * 批量修改规格模板
      */
-    public int setTpScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<ParamUpdater> updaterList) throws IOException {
+    public int setTpScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, FaiList<ParamUpdater> updaterList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -114,7 +116,7 @@ public class ProductSpecService extends MgProductInfService {
             }
             int unionPriId = idRef.value;
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
-            rt = productSpecProc.setTpScInfoList(aid, tid, unionPriId, updaterList);
+            rt = productSpecProc.setTpScInfoList(aid, tid, unionPriId, sysType, updaterList);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -130,7 +132,7 @@ public class ProductSpecService extends MgProductInfService {
     /**
      * 获取规格模板列表
      */
-    public int getTpScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1) throws IOException {
+    public int getTpScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -149,7 +151,7 @@ public class ProductSpecService extends MgProductInfService {
             int unionPriId = idRef.value;
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
             FaiList<Param> infoList = new FaiList<Param>();
-            rt = productSpecProc.getTpScInfoList(aid, tid, unionPriId, infoList);
+            rt = productSpecProc.getTpScInfoList(aid, tid, unionPriId, sysType, infoList);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -166,7 +168,7 @@ public class ProductSpecService extends MgProductInfService {
     /**
      * 批量添加规格模板详情
      */
-    public int addTpScDetailInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlTpScId, FaiList<Param> list) throws IOException {
+    public int addTpScDetailInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, int rlTpScId, FaiList<Param> list) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -184,7 +186,7 @@ public class ProductSpecService extends MgProductInfService {
             }
             int unionPriId = idRef.value;
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
-            rt = productSpecProc.addTpScDetailInfoList(aid, tid, unionPriId, rlTpScId, list);
+            rt = productSpecProc.addTpScDetailInfoList(aid, tid, unionPriId, sysType, rlTpScId, list);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -193,14 +195,14 @@ public class ProductSpecService extends MgProductInfService {
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK && rt < MgErrno.MIN_VALUE, rt);
+            stat.end(rt != Errno.OK && rt != Errno.ALREADY_EXISTED && rt < MgErrno.MIN_VALUE, rt);
         }
         return rt;
     }
     /**
      * 批量删除规格模板详情
      */
-    public int delTpScDetailInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlTpScId, FaiList<Integer> tpScDtIdList) throws IOException {
+    public int delTpScDetailInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, int rlTpScId, FaiList<Integer> tpScDtIdList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -218,7 +220,7 @@ public class ProductSpecService extends MgProductInfService {
             }
             int unionPriId = idRef.value;
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
-            rt = productSpecProc.delTpScDetailInfoList(aid, tid, unionPriId, rlTpScId, tpScDtIdList);
+            rt = productSpecProc.delTpScDetailInfoList(aid, tid, unionPriId, sysType, rlTpScId, tpScDtIdList);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -234,7 +236,7 @@ public class ProductSpecService extends MgProductInfService {
     /**
      * 批量修改规格模板详情
      */
-    public int setTpScDetailInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlTpScId, FaiList<ParamUpdater> updaterList) throws IOException {
+    public int setTpScDetailInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, int rlTpScId, FaiList<ParamUpdater> updaterList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -252,7 +254,7 @@ public class ProductSpecService extends MgProductInfService {
             }
             int unionPriId = idRef.value;
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
-            rt = productSpecProc.setTpScDetailInfoList(aid, tid, unionPriId, rlTpScId, updaterList);
+            rt = productSpecProc.setTpScDetailInfoList(aid, tid, unionPriId, sysType, rlTpScId, updaterList);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -261,14 +263,14 @@ public class ProductSpecService extends MgProductInfService {
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
         }finally {
-            stat.end(rt != Errno.OK, rt);
+            stat.end(rt != Errno.OK && rt != Errno.ALREADY_EXISTED, rt);
         }
         return rt;
     }
     /**
      * 获取规格模板列表详情
      */
-    public int getTpScDetailInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlTpScId) throws IOException {
+    public int getTpScDetailInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, int rlTpScId) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -287,7 +289,7 @@ public class ProductSpecService extends MgProductInfService {
             int unionPriId = idRef.value;
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
             FaiList<Param> infoList = new FaiList<Param>();
-            rt = productSpecProc.getTpScDetailInfoList(aid, tid, unionPriId, rlTpScId, infoList);
+            rt = productSpecProc.getTpScDetailInfoList(aid, tid, unionPriId, sysType, rlTpScId, infoList);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -324,7 +326,7 @@ public class ProductSpecService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdIdWithAdd(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
+            rt = getPdIdWithAdd(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -332,7 +334,7 @@ public class ProductSpecService extends MgProductInfService {
 
 
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
-            rt = productSpecProc.importPdScInfo(aid, tid, unionPriId, pdId, rlTpScId, tpScDtIdList);
+            rt = productSpecProc.importPdScInfo(aid, tid, unionPriId, sysType, pdId, rlTpScId, tpScDtIdList);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -393,7 +395,7 @@ public class ProductSpecService extends MgProductInfService {
                     );
                 }
                 FaiList<Param> idInfoList = new FaiList<>();
-                rt = productBasicProc.batchAddProductAndRel(aid, ownerTid, ownerUnionPriId, list, idInfoList);
+                rt = productBasicProc.batchAddProductAndRel(aid, ownerTid, ownerSiteId, ownerUnionPriId, list, idInfoList);
                 if(rt != Errno.OK){
                     Log.logErr(rt, "productBasicProc.batchAddProductAndRel err;aid=%s;ownerTid=%s;ownerUnionPriId=%s;list=%s;", aid, ownerTid, ownerUnionPriId, list);
                     return rt;
@@ -462,7 +464,7 @@ public class ProductSpecService extends MgProductInfService {
      * 修改产品规格总接口
      * 批量修改(包括增、删、改)指定商品的商品规格总接口；会自动生成sku规格，并且会调用商品库存服务的“刷新商品库存销售sku”
      */
-    public int unionSetPdScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, int rlPdId, FaiList<Param> addList, FaiList<Integer> delList, FaiList<ParamUpdater> updaterList) throws IOException, TransactionException {
+    public int unionSetPdScInfoList(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, int rlPdId, String xid, FaiList<Param> addList, FaiList<Integer> delList, FaiList<ParamUpdater> updaterList) throws IOException, TransactionException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -482,21 +484,20 @@ public class ProductSpecService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdIdWithAdd(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
+            rt = getPdIdWithAdd(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
             int pdId = idRef.value;
 
-            /*GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
-            tx.begin(aid, 60000, "mgProduct-unionSetPdScInfoList", flow);*/
+            GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
+            tx.begin(aid, 60000, "mgProduct-unionSetPdScInfoList", flow);
+            xid = tx.getXid();
             try {
                 ProductSpecProc productSpecProc = new ProductSpecProc(flow);
                 FaiList<Param> pdScSkuInfoList = new FaiList<>();
-                Log.logDbg("whalelog updaterList=%s", updaterList);
-                // TODO 分布式事务
                 // 针对规格的操作
-                rt = productSpecProc.unionSetPdScInfoList(aid, tid, unionPriId, pdId, addList, delList, updaterList, pdScSkuInfoList);
+                rt = productSpecProc.unionSetPdScInfoList(aid, tid, unionPriId, xid, pdId, addList, delList, updaterList, pdScSkuInfoList);
                 if(rt != Errno.OK) {
                     return rt;
                 }
@@ -519,15 +520,15 @@ public class ProductSpecService extends MgProductInfService {
 
                 ProductStoreProc productStoreProc = new ProductStoreProc(flow);
                 // 刷新sku，修改库存
-                rt = productStoreProc.refreshSkuStoreSales(aid, tid, unionPriId, sysType, "" ,pdId, rlPdId, storeSalesSkuList);
+                rt = productStoreProc.refreshSkuStoreSales(aid, tid, unionPriId, sysType, xid, pdId, rlPdId, storeSalesSkuList);
                 if(rt != Errno.OK) {
                     return rt;
                 }
-                //tx.commit();
+                tx.commit();
             } finally {
-                /*if (rt != Errno.OK) {
+                if (rt != Errno.OK) {
                     tx.rollback();
-                }*/
+                }
             }
             rt = Errno.OK;
             FaiBuffer sendBuf = new FaiBuffer(true);
@@ -560,7 +561,7 @@ public class ProductSpecService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
+            rt = getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -663,14 +664,14 @@ public class ProductSpecService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
+            rt = getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
             int pdId = idRef.value;
 
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
-            rt = productSpecProc.setPdSkuScInfoList(aid, tid, unionPriId, null, pdId, updaterList);
+            rt = productSpecProc.setPdSkuScInfoList(aid, tid, unionPriId, "", pdId, updaterList);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -705,7 +706,7 @@ public class ProductSpecService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdId(flow, aid, tid, unionPriId, sysType, rlPdId, idRef);
+            rt = getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -811,7 +812,7 @@ public class ProductSpecService extends MgProductInfService {
             // 获取pdId
             ProductBasicProc productBasicProc = new ProductBasicProc(flow);
             FaiList<Param> list = new FaiList<>();
-            rt = productBasicProc.getRelListByRlIds(aid, unionPriId, sysType, rlPdIdList, list);
+            rt = productBasicProc.getRelListByRlIds(aid, unionPriId, sysType, rlPdIdList, true, list);
             if(rt != Errno.OK) {
                 return rt;
             }

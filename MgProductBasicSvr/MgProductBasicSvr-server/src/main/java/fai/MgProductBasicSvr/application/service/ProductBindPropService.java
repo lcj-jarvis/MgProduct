@@ -227,7 +227,7 @@ public class ProductBindPropService extends ServicePub {
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
             return rt;
         }
-
+        long begin = System.currentTimeMillis();
         Param info;
         TransactionCtrl tc = new TransactionCtrl();
         try {
@@ -240,13 +240,15 @@ public class ProductBindPropService extends ServicePub {
         info.toBuffer(sendBuf, ProductBindPropDto.Key.DATA_STATUS, DataStatus.Dto.getDataStatusDto());
         session.write(sendBuf);
         rt = Errno.OK;
-        Log.logDbg("getBindPropDataStatus ok;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+        long end = System.currentTimeMillis();
+        Log.logStd("getBindPropDataStatus ok;flow=%d;aid=%d;unionPriId=%d;consume=%d", flow, aid, unionPriId, end - begin);
         return rt;
     }
 
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getAllBindProp(FaiSession session, int flow, int aid, int unionPriId) throws IOException {
         int rt;
+        long begin = System.currentTimeMillis();
         if(aid <= 0) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
@@ -268,7 +270,8 @@ public class ProductBindPropService extends ServicePub {
         list.toBuffer(sendBuf, ProductBindPropDto.Key.INFO_LIST, ProductBindPropDto.getInfoDto());
         session.write(sendBuf);
         rt = Errno.OK;
-        Log.logDbg("get list ok;flow=%d;aid=%d;unionPriId=%d;size=%d;", flow, aid, unionPriId, list.size());
+        long end = System.currentTimeMillis();
+        Log.logStd("get list ok;flow=%d;aid=%d;unionPriId=%d;size=%d;consume=%d", flow, aid, unionPriId, list.size(), end - begin);
 
         return rt;
     }
@@ -276,6 +279,7 @@ public class ProductBindPropService extends ServicePub {
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int searchBindPropFromDb(FaiSession session, int flow, int aid, int unionPriId, SearchArg searchArg) throws IOException {
         int rt;
+        long begin = System.currentTimeMillis();
         if(aid <= 0) {
             rt = Errno.ARGS_ERROR;
             Log.logErr("args error, aid error;flow=%d;aid=%d;", flow, aid);
@@ -298,7 +302,8 @@ public class ProductBindPropService extends ServicePub {
         }
         session.write(sendBuf);
         rt = Errno.OK;
-        Log.logDbg("search from db ok;flow=%d;aid=%d;unionPriId=%d;size=%d;", flow, aid, unionPriId, list.size());
+        long end = System.currentTimeMillis();
+        Log.logStd("search from db ok;flow=%d;aid=%d;unionPriId=%d;size=%d;consume=%d", flow, aid, unionPriId, list.size(), end - begin);
 
         return rt;
     }

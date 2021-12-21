@@ -78,7 +78,9 @@ public class HoldingStoreMakeUpTask implements Runnable{
             }catch (Exception e){
                 Log.logErr(e);
             }finally {
-                dao.close();
+                if (dao != null) {
+                    dao.close();
+                }
             }
         }
     }

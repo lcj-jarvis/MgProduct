@@ -54,7 +54,7 @@ public class ProductBasicEntity {
         public static final String PD_TYPE = "productType"; // int 商品类型
         public static final String IMG_LIST = "imgList"; // varchar(255) 商品图片
         public static final String VIDEO_LIST = "videoList"; // varchar(255) 商品视频
-        public static final String UNIT = "unit"; // tinyInt(4) 单位
+        public static final String UNIT = "unit"; // varchar(50) 单位
         public static final String FLAG = "flag"; // int
         public static final String FLAG1 = "flag1"; // int
         public static final String KEEP_PROP1 = "keepProp1"; // varchar(255) 保留字段1
@@ -77,6 +77,7 @@ public class ProductBasicEntity {
         public static final String UP_SALE_TIME = "upSaleTime"; // datetime 上架时间
         public static final String RL_FLAG = "rlFlag"; // int
         public static final String SORT = "sort"; // int 排序
+        public static final String TOP = "top"; // datetime 置顶时间
 
         public static final String TID = "tid";  // int 项目id
         public static final String SITE_ID = "siteId"; // int 站点id
@@ -86,6 +87,7 @@ public class ProductBasicEntity {
         public static final String RL_GROUP_IDS = "rlGroupIds"; // 商品分类业务ids
         public static final String RL_TAG_IDS = "rlTagIds"; // 商品标签业务ids
         public static final String RL_PROPS = "rlProps"; // 商品参数绑定关系
+        public static final String BIND_BIZ = "bindBiz"; // 商品被哪些业务绑定了
 
         public static final String REMARK = "remark"; // 富文本(商品详情)
         public static final String REMARK1 = "remark1"; // 富文本1

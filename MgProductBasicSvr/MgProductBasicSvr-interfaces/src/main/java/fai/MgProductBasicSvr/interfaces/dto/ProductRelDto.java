@@ -8,6 +8,7 @@ public class ProductRelDto {
     private static ParamDef g_infoDtoDef = new ParamDef();
     private static ParamDef g_reducedInfoDtoDef = new ParamDef();
     private static ParamDef g_relAndPdDtoDef = new ParamDef();
+    private static ParamDef g_getPdBindBizDef = new ParamDef();
 
     private static ParamDef g_tmpBindRef = new ParamDef(); // 给悦客接入进销存临时使用的
 
@@ -31,6 +32,7 @@ public class ProductRelDto {
         g_infoDtoDef.add(ProductRelEntity.Info.PD_TYPE, 16);
         g_infoDtoDef.add(ProductRelEntity.Info.SYS_TYPE, 17);
         g_infoDtoDef.add(ProductRelEntity.Info.SORT, 18);
+        g_infoDtoDef.add(ProductRelEntity.Info.TOP, 19);
     }
 
     static {
@@ -38,6 +40,9 @@ public class ProductRelDto {
         g_reducedInfoDtoDef.add(ProductRelEntity.Info.RL_PD_ID, 1);
         g_reducedInfoDtoDef.add(ProductRelEntity.Info.PD_ID, 2);
         g_reducedInfoDtoDef.add(ProductRelEntity.Info.UNION_PRI_ID, 3);
+        g_reducedInfoDtoDef.add(ProductRelEntity.Info.STATUS, 4);
+        g_reducedInfoDtoDef.add(ProductRelEntity.Info.SYS_TYPE, 5);
+        g_reducedInfoDtoDef.add(ProductEntity.Info.NAME, 6);
     }
 
     static {
@@ -76,6 +81,14 @@ public class ProductRelDto {
         g_relAndPdDtoDef.add(ProductRelEntity.Info.RL_PROPS, 30, ProductBindPropDto.getSimpleDto());
         g_relAndPdDtoDef.add(ProductRelEntity.Info.SYS_TYPE, 31);
         g_relAndPdDtoDef.add(ProductRelEntity.Info.SORT, 32);
+        g_relAndPdDtoDef.add(ProductRelEntity.Info.TOP, 33);
+
+        g_relAndPdDtoDef.add(ProductEntity.Info.SOURCE_UNIONPRIID, 34);
+    }
+
+    static {
+        g_getPdBindBizDef.add(ProductRelEntity.Info.RL_PD_ID, 0);
+        g_getPdBindBizDef.add(ProductRelEntity.Info.BIND_LIST, 1, g_reducedInfoDtoDef);
     }
 
     static {
@@ -93,6 +106,10 @@ public class ProductRelDto {
 
     public static ParamDef getRelAndPdDto() {
         return g_relAndPdDtoDef;
+    }
+
+    public static ParamDef getPdBindBizDto() {
+        return g_getPdBindBizDef;
     }
 
     public static ParamDef getTmpBindDto() {
@@ -117,5 +134,16 @@ public class ProductRelDto {
         public static final int UNION_PRI_IDS = 15;
         public static final int XID = 16;
         public static final int SYS_TYPE = 17;
+        public static final int FROM_UNION_PRI_ID = 18;
+        public static final int STATUS = 19;
+        public static final int RESTORE_ID = 20;
+        public static final int BACKUP_INFO = 21;
+        public static final int SITE_ID = 22;
+        public static final int FROM_AID = 23;
+        public static final int CLONE_UNION_PRI_IDS = 24;
+        public static final int EXIST = 25;
+        public static final int PRE_RL_PD_ID = 26;
+        public static final int NEED_SYNC_INFO = 27;
+        public static final int NAME = 28;
     }
 }

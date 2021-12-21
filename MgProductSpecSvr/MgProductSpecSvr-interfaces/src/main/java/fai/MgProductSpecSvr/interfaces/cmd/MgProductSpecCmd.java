@@ -45,6 +45,8 @@ public class MgProductSpecCmd {
 		public static final int NUM15 = 1015;
 		public static final int NUM16 = 1016;
 		public static final int NUM17 = 1017;
+		public static final int NUM18 = 1018;
+		public static final int NUM19 = 1019;
 	}
 
 	////////////////// cmd对外定义，实际做cmd读写分离 ////////////////////
@@ -92,6 +94,7 @@ public class MgProductSpecCmd {
 		public static final int IMPORT_PD_SC_WITH_SKU = WriteCmdNum.NUM12;
 		public static final int BATCH_DEL_PD_ALL_SC_ROLLBACK = WriteCmdNum.NUM16;
 		public static final int IMPORT_PD_SC_WITH_SKU_ROLLBACK = WriteCmdNum.NUM17;
+		public static final int UNION_SET_ROLLBACK = WriteCmdNum.NUM19;
     }
 
 	/**
@@ -109,7 +112,8 @@ public class MgProductSpecCmd {
 
 		public static final int SET_LIST = WriteCmdNum.NUM9;
 		public static final int BATCH_GEN_SPU = WriteCmdNum.NUM13;
-	}
+		public static final int SET_LIST_ROLLBACK = WriteCmdNum.NUM18;
+    }
 	public static class SkuCodeCmd{
 		public static final int GET_DATA_STATUS = ReadCmdNum.NUM14;
 		public static final int GET_ALL_DATA = ReadCmdNum.NUM15;

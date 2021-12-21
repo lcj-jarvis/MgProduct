@@ -31,6 +31,8 @@ public class MgProductBasicCmd {
         public static final int NUM24 = 5024; /** @see BindTagCmd#SEARCH_FROM_DB */
         public static final int NUM25 = 5025; /** @see BasicCmd#GET_BY_PDID */
         public static final int NUM26 = 5026; /** @see BasicCmd#GET_PD_INFO */
+        public static final int NUM27 = 5027; /** @see BasicCmd#GET_LIST_BY_PDID */
+        public static final int NUM28 = 5028; /** @see BasicCmd#GET_BIND_BIZ */
     }
 
     // 1000 到 5000 的范围
@@ -64,6 +66,19 @@ public class MgProductBasicCmd {
         public static final int NUM25 = 1025; /** @see BasicCmd#ADD_PD_AND_REL_ROLLBACK */
         public static final int NUM26 = 1026; /** @see BasicCmd#SET_SINGLE_PD_ROLLBACK */
         public static final int NUM27 = 1027; /** @see BasicCmd#DEL_PDS_ROLLBACK */
+        public static final int NUM28 = 1028; /** @see BasicCmd#CLONE_BIZ_BIND */
+        public static final int NUM29 = 1029; /** @see BasicCmd#BATCH_SET_4YK */
+        public static final int NUM30 = 1030; /** @see BasicCmd#BATCH_SET_4YK_ROLLBACK */
+        public static final int NUM31 = 1031; /** @see Cmd#MIGRATE */
+        public static final int NUM32 = 1032; /** @see Cmd#BACKUP */
+        public static final int NUM33 = 1033; /** @see Cmd#RESTORE */
+        public static final int NUM34 = 1034; /** @see Cmd#DEL_BACKUP */
+        public static final int NUM35 = 1035; /** @see Cmd#CLONE */
+        public static final int NUM36 = 1036; /** @see Cmd#INCR_CLONE */
+        public static final int NUM37 = 1037; /** @see BasicCmd#BATCH_ADD_REL_BIND_ROLLBACK */
+        public static final int NUM38 = 1038; /** @see BasicCmd#SET_SORT */
+        public static final int NUM39 = 1039; /** @see BasicCmd#BATCH_BIND_PDS_REL */
+        public static final int NUM40 = 1040; /** @see BasicCmd#GET_REDUCED_LIST_BY_NAME */
     }
 
     /**
@@ -116,6 +131,8 @@ public class MgProductBasicCmd {
         public static final int GET_PD_LIST = ReadCmdNum.NUM19;
         public static final int GET_BY_PDID = ReadCmdNum.NUM25;
         public static final int GET_PD_INFO = ReadCmdNum.NUM26;
+        public static final int GET_LIST_BY_PDID = ReadCmdNum.NUM27;
+        public static final int GET_BIND_BIZ = ReadCmdNum.NUM28;
 
         public static final int ADD_PD_AND_REL = WriteCmdNum.NUM1;
         public static final int ADD_REL_BIND = WriteCmdNum.NUM2;
@@ -132,6 +149,21 @@ public class MgProductBasicCmd {
         public static final int ADD_PD_AND_REL_ROLLBACK = WriteCmdNum.NUM25;
         public static final int SET_SINGLE_PD_ROLLBACK = WriteCmdNum.NUM26;
         public static final int DEL_PDS_ROLLBACK = WriteCmdNum.NUM27;
+        public static final int CLONE_BIZ_BIND = WriteCmdNum.NUM28;
+        public static final int BATCH_SET_4YK = WriteCmdNum.NUM29;
+        public static final int BATCH_SET_4YK_ROLLBACK = WriteCmdNum.NUM30;
+        public static final int BATCH_ADD_REL_BIND_ROLLBACK = WriteCmdNum.NUM37;
+        public static final int SET_SORT = WriteCmdNum.NUM38;
+        public static final int BATCH_BIND_PDS_REL = WriteCmdNum.NUM39;
+        public static final int GET_REDUCED_LIST_BY_NAME = WriteCmdNum.NUM40;
     }
 
+    public static class Cmd {
+        public static final int MIGRATE = WriteCmdNum.NUM31;
+        public static final int BACKUP = WriteCmdNum.NUM32;
+        public static final int RESTORE = WriteCmdNum.NUM33;
+        public static final int DEL_BACKUP = WriteCmdNum.NUM34;
+        public static final int CLONE = WriteCmdNum.NUM35;
+        public static final int INCR_CLONE = WriteCmdNum.NUM36;
+    }
 }

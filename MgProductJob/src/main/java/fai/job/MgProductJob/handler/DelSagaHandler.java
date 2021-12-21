@@ -58,7 +58,7 @@ public class DelSagaHandler implements IJobHandler {
             // 清除业务数据表对应saga数据
             FaiList<String> tablePrefixs = sagaDBOption.getTablePrefixs();
             for(String tablePre : tablePrefixs) {
-                for(int i=0; i<10; i++) {
+                for(int i=0; i<100; i++) {
                     String table = getSagaTable(tablePre, i);
                     rt = dao.delete(table, matcher);
                     if(rt != Errno.OK){
@@ -75,6 +75,6 @@ public class DelSagaHandler implements IJobHandler {
     }
 
     public static String getSagaTable(String tablePre, int num) {
-        return tablePre + "_" + String.format("%02d", num % 10);
+        return tablePre + "_" + String.format("%03d", num % 100);
     }
 }

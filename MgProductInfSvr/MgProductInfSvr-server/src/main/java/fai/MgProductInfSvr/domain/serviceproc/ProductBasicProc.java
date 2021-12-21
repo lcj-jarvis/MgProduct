@@ -2,6 +2,7 @@ package fai.MgProductInfSvr.domain.serviceproc;
 
 import fai.MgProductBasicSvr.interfaces.cli.MgProductBasicCli;
 import fai.comm.util.*;
+import fai.middleground.svrutil.exception.MgException;
 
 /**
  * 商品基础信息服务
@@ -13,6 +14,15 @@ public class ProductBasicProc {
         if(!m_cli.init()) {
             m_cli = null;
         }
+    }
+
+    public FaiList<Param> getPdBindBiz(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds) {
+        FaiList<Param> list = new FaiList<>();
+        int rt = m_cli.getPdBindBiz(aid, unionPriId, sysType, rlPdIds, list);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "getProductList error;flow=%d;aid=%d;uid=%d;rlPdIds=%s;", m_flow, aid, unionPriId, rlPdIds);
+        }
+        return list;
     }
 
     public int getProductList(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, FaiList<Param> list) {
@@ -117,14 +127,14 @@ public class ProductBasicProc {
      * 新增商品数据，并添加与当前unionPriId的关联
      * @return
      */
-    public int addProductAndRel(int aid, int tid, int unionPriId, String xid, Param info, Ref<Integer> pdIdRef, Ref<Integer> rlPdIdRef) {
+    public int addProductAndRel(int aid, int tid, int siteId, int unionPriId, String xid, Param info, Ref<Integer> pdIdRef, Ref<Integer> rlPdIdRef) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.addProductAndRel(aid, tid, unionPriId, xid, info, pdIdRef, rlPdIdRef);
+        rt = m_cli.addProductAndRel(aid, tid, siteId, unionPriId, xid, info, pdIdRef, rlPdIdRef);
         if(rt != Errno.OK) {
             Log.logErr(rt, "addProductAndRel error;flow=%d;aid=%d;tid=%d;unionPriId=%d;", m_flow, aid, tid, unionPriId);
             return rt;
@@ -137,14 +147,14 @@ public class ProductBasicProc {
      * 新增商品业务关联
      * @return
      */
-    public int bindProductRel(int aid, int tid, int unionPriId, String xid, Param bindRlPdInfo, Param info, Ref<Integer> rlPdIdRef, Ref<Integer> pdIdRef) {
+    public int bindProductRel(int aid, int tid, int unionPriId, String xid, Param bindRlPdInfo, Param info, Ref<Integer> rlPdIdRef, Ref<Integer> pdIdRef, Ref<Boolean> existRef) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.bindProductRel(aid, tid, unionPriId, xid, bindRlPdInfo, info, rlPdIdRef, pdIdRef);
+        rt = m_cli.bindProductRel(aid, tid, unionPriId, xid, bindRlPdInfo, info, rlPdIdRef, pdIdRef, existRef);
         if(rt != Errno.OK) {
             Log.logErr(rt, "bindProductRel error;flow=%d;aid=%d;tid=%d;unionPriId=%d;", m_flow, aid, tid, unionPriId);
             return rt;
@@ -157,14 +167,14 @@ public class ProductBasicProc {
      * 批量新增商品业务关联
      * @return
      */
-    public int batchBindProductRel(int aid, int tid, Param bindRlPdInfo, FaiList<Param> infoList, Ref<FaiList<Integer>> rlPdIdsRef) {
+    public int batchBindProductRel(int aid, String xid, int tid, Param bindRlPdInfo, FaiList<Param> infoList, Ref<FaiList<Integer>> rlPdIdsRef, Ref<Integer> pdIdRef, Ref<FaiList<Integer>> existListRef) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
             return rt;
         }
-        rt = m_cli.batchBindProductRel(aid, tid, bindRlPdInfo, infoList, rlPdIdsRef);
+        rt = m_cli.batchBindProductRel(aid, xid, tid, bindRlPdInfo, infoList, rlPdIdsRef, pdIdRef, existListRef);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batchBindProductRel error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
             return rt;
@@ -174,16 +184,55 @@ public class ProductBasicProc {
     }
 
     /**
-     * 修改指定商品
+     * 批量新增商品业务关联
+     * @return
      */
-    public int setSinglePd(int aid, String xid, int unionPriId, int sysType, Integer rlPdId, ParamUpdater updater) {
+    public int batchBindProductsRel(int aid, String xid, int tid, int unionPriId, int fromUnionPriId, int sysType, FaiList<Param> infoList, Ref<FaiList<Integer>> rlPdIdsRef, Ref<FaiList<Integer>> pdIdsRef, Ref<FaiList<Integer>> existListRef) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
+            return rt;
+        }
+        rt = m_cli.batchBindProductsRel(aid, xid, tid, unionPriId, fromUnionPriId, sysType, infoList, rlPdIdsRef, pdIdsRef, existListRef);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "batchBindProductsRel error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
+            return rt;
+        }
+
+        return rt;
+    }
+
+    /**
+     * 修改商品排序
+     */
+    public int setPdSort(int aid, int tid, int unionPriId, int sysType, int rlPdId, int preRlPdId) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.setSinglePd(aid, xid, unionPriId, sysType, rlPdId, updater);
+        rt = m_cli.setPdSort(aid, tid, unionPriId, sysType, rlPdId, preRlPdId);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "setSinglePd error;flow=%d;aid=%d;unionPriId=%d;rlPdId=%d;preRlPdId=%s;", m_flow, aid, unionPriId, rlPdId, preRlPdId);
+            return rt;
+        }
+
+        return rt;
+    }
+
+    /**
+     * 修改指定商品
+     */
+    public int setSinglePd(int aid, String xid, int tid, int siteId, int unionPriId, int sysType, Integer rlPdId, ParamUpdater updater) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.setSinglePd(aid, xid, tid, siteId, unionPriId, sysType, rlPdId, updater);
         if(rt != Errno.OK) {
             Log.logErr(rt, "setSinglePd error;flow=%d;aid=%d;unionPriId=%d;rlPdId=%d;updater=%s;", m_flow, aid, unionPriId, rlPdId, updater.toJson());
             return rt;
@@ -195,20 +244,55 @@ public class ProductBasicProc {
     /**
      * 修改指定商品
      */
-    public int setProducts(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, ParamUpdater updater) {
+    public int setProducts(int aid, int tid, int siteId, int unionPriId, int sysType, FaiList<Integer> rlPdIds, ParamUpdater updater) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.setProducts(aid, unionPriId, sysType, rlPdIds, updater);
+        rt = m_cli.setProducts(aid, tid, siteId, unionPriId, sysType, rlPdIds, updater);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batchDelPdRelBind error;flow=%d;aid=%d;unionPriId=%d;updater=%s;", m_flow, aid, unionPriId, updater.toJson());
             return rt;
         }
 
         return rt;
+    }
+
+    /**
+     * 批量设置商品的状态
+     * for 门店通总店批量设置上下架，若门店数据不存在，则添加
+     * @return
+     */
+    public FaiList<Param> batchSet4YK(int aid, String xid, int ownUnionPriId, int sysType, FaiList unionPriIds, FaiList<Integer> rlPdIds, ParamUpdater updater) {
+        int rt;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get ProductBasicCli error;aid=%d;ownUid=%d;uids=%s;sysType=%s;rlPdIds=%s;updater=%s;", aid, ownUnionPriId, unionPriIds, sysType, rlPdIds, updater.toJson());
+        }
+        FaiList<Param> addList = new FaiList<>();
+        rt = m_cli.batchSet4YK(aid, xid, ownUnionPriId, sysType, unionPriIds, rlPdIds, updater, addList);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "batchSet4YK error;aid=%d;ownUid=%d;uids=%s;sysType=%s;rlPdIds=%s;updater=%s;", aid, ownUnionPriId, unionPriIds, sysType, rlPdIds, updater.toJson());
+        }
+        return addList;
+    }
+
+    /**
+     * 克隆业务绑定关系数据
+     * @return
+     */
+    public void cloneBizBind(int aid, int fromUnionPriId, int toUnionPriId, boolean silentDel) {
+        int rt;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get ProductBasicCli error;flow=%d;aid=%d;fromUnionPriId=%s;toUnionPriId=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+        }
+        rt = m_cli.cloneBizBind(aid, fromUnionPriId, toUnionPriId, silentDel);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "cloneBizBind error;flow=%d;aid=%d;fromUnionPriId=%s;toUnionPriId=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+        }
     }
 
     /**
@@ -373,13 +457,16 @@ public class ProductBasicProc {
      * 根据业务商品id集合，获取商品业务关系数据集合
      */
     public int getRelListByRlIds(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, FaiList<Param> list) {
+        return getRelListByRlIds(aid, unionPriId, sysType, rlPdIds, false, list);
+    }
+    public int getRelListByRlIds(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, boolean withSoftDel, FaiList<Param> list) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.getRelListByRlIds(aid, unionPriId, sysType, rlPdIds, list);
+        rt = m_cli.getRelListByRlIds(aid, unionPriId, sysType, rlPdIds, withSoftDel, list);
         if(rt != Errno.OK) {
             if(rt != Errno.NOT_FOUND) {
                 Log.logErr(rt, "getRelListByRlIds error;flow=%d;aid=%d;unionPriId=%d;list=%s;", m_flow, aid, unionPriId, list);
@@ -389,6 +476,28 @@ public class ProductBasicProc {
 
         return rt;
     }
+
+    /**
+     * 根据pdIds获取商品数据
+     */
+    public int getPdListByPdIds(int aid, int unionPriId, FaiList<Integer> pdIds, FaiList<Param> list) {
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.getPdListByPdIds(aid, unionPriId, pdIds, list);
+        if(rt != Errno.OK) {
+            if(rt != Errno.NOT_FOUND) {
+                Log.logErr(rt, "getRelListByRlIds error;flow=%d;aid=%d;unionPriId=%d;list=%s;", m_flow, aid, unionPriId, list);
+            }
+            return rt;
+        }
+
+        return rt;
+    }
+
     /**
      * 根据pdIds获取业务关联数据，仅获取有限的字段，aid+unionPriId+pdId+rlPdId
      */
@@ -409,17 +518,42 @@ public class ProductBasicProc {
 
         return rt;
     }
+
     /**
-     * 批量新增商品数据，并添加与当前unionPriId的关联
+     * 根据pdIds获取业务关联数据，仅获取有限的字段，aid+unionPriId+pdId+rlPdId
      */
-    public int batchAddProductAndRel(int aid, int tid, int unionPriId, FaiList<Param> list, FaiList<Param> idInfoList){
+    public int getPdReducedList4Adm(int aid, int unionPriId, Integer sysType, FaiList<String> names, FaiList<Integer> status, FaiList<Param> list){
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
         }
-        rt = m_cli.batchAddProductAndRel(aid, tid, unionPriId, list, idInfoList);
+        rt = m_cli.getPdReducedList4Adm(aid, unionPriId, sysType, names, status, list);
+        if(rt != Errno.OK) {
+            if(rt != Errno.NOT_FOUND) {
+                Log.logErr(rt, "getPdReducedList4Adm error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            }
+            return rt;
+        }
+
+        return rt;
+    }
+
+    /**
+     * 批量新增商品数据，并添加与当前unionPriId的关联
+     */
+    public int batchAddProductAndRel(int aid, int tid, int siteId, int unionPriId, FaiList<Param> list, FaiList<Param> idInfoList){
+        return batchAddProductAndRel(aid, null, tid, siteId, unionPriId, list, idInfoList);
+    }
+    public int batchAddProductAndRel(int aid, String xid, int tid, int siteId, int unionPriId, FaiList<Param> list, FaiList<Param> idInfoList){
+        int rt = Errno.ERROR;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            return rt;
+        }
+        rt = m_cli.batchAddProductAndRel(aid, xid, tid, siteId, unionPriId, list, idInfoList);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batchAddProductAndRel error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
             return rt;
@@ -430,15 +564,16 @@ public class ProductBasicProc {
 
     /**
      * 批量新增商品业务关联，同时绑定多个产品数据
+     * @Param needSyncInfo 导入方法调用时需要为 true ：用于同步商品关系，和插入分类、标签等的绑定表（场景：门店通业务要求门店的商品数据需要和总店一致，同时门店也要绑定分类等信息）
      */
-    public int batchBindProductsRel(int aid, int tid, FaiList<Param> list){
+    public int batchBindProductsRel(int aid, String xid, int tid, boolean needSyncInfo, FaiList<Param> list){
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
             return rt;
         }
-        rt = m_cli.batchBindProductsRel(aid, tid, list);
+        rt = m_cli.batchBindProductsRel(aid, xid, tid, needSyncInfo, list);
         if(rt != Errno.OK) {
             Log.logErr(rt, "batchBindProductsRel error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
             return rt;
@@ -548,4 +683,76 @@ public class ProductBasicProc {
     }
     /********************************************商品和标签的关联结束********************************************************/
 
+
+    /**
+     * 备份数据
+     * @param aid
+     * @param unionPriIds
+     * @param backupInfo
+     */
+    public void backupData(int aid, FaiList<Integer> unionPriIds, Param backupInfo) {
+        int rt = m_cli.backupData(aid, unionPriIds, backupInfo);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "backupData error;flow=%d;aid=%d;uid=%s;backupInfo=%s;", m_flow, aid, unionPriIds, backupInfo);
+        }
+    }
+
+    /**
+     * 还原备份
+     * @param aid
+     * @param unionPriIds
+     * @param backupInfo
+     */
+    public void restoreBackup(int aid, FaiList<Integer> unionPriIds, int restoreId, Param backupInfo) {
+        int rt = m_cli.restoreBackupData(aid, unionPriIds, restoreId, backupInfo);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "restoreBackup error;flow=%d;aid=%d;uid=%s;restoreId=%s;backupInfo=%s;", m_flow, aid, unionPriIds, restoreId, backupInfo);
+        }
+    }
+
+    /**
+     * 删除备份
+     * @param aid
+     * @param backupInfo
+     */
+    public void delBackup(int aid, Param backupInfo) {
+        int rt = m_cli.delBackupData(aid, backupInfo);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "restoreBackup error;flow=%d;aid=%d;backupInfo=%s;", m_flow, aid, backupInfo);
+        }
+    }
+
+    /**
+     * 克隆数据
+     */
+    public void cloneData(int aid, int tid, int siteId, int fromAid, FaiList<Param> cloneUnionPriIds) {
+        int rt = m_cli.cloneData(aid, tid, siteId, fromAid, cloneUnionPriIds);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "cloneData error;flow=%d;aid=%d;uids=%s", m_flow, aid, cloneUnionPriIds);
+        }
+    }
+
+    /**
+     * 增量克隆数据
+     */
+    public void incrementalClone(int aid, int tid, int siteId, int unionPriId, int fromAid, int fromUnionPriId) {
+        int rt = m_cli.incrementalClone(aid, tid, siteId, unionPriId, fromAid, fromUnionPriId);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "incrementalClone error;flow=%d;aid=%d;uid=%s;fromAid=%d;fromUid=%d;", m_flow, aid, unionPriId, fromAid, fromUnionPriId);
+        }
+    }
+
+    public FaiList<Param> dataMigrate(int aid, int tid, FaiList<Param> addList) {
+        int rt;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get ProductBasicCli error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
+        }
+        FaiList<Param> returnList = new FaiList<>();
+        rt = m_cli.dataMigrate(aid, tid, addList, returnList);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "setPdBindTag error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
+        }
+        return returnList;
+    }
 }

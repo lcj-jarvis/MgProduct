@@ -100,6 +100,7 @@ public class ProductSpecDto {
             g_dtoDef.add(ProductSpecEntity.SpecTempInfo.SORT, 6, Var.Type.INT);
             g_dtoDef.add(ProductSpecEntity.SpecTempInfo.SYS_CREATE_TIME, 7);
             g_dtoDef.add(ProductSpecEntity.SpecTempInfo.SYS_UPDATE_TIME, 8);
+            g_dtoDef.add(ProductSpecEntity.SpecTempInfo.SYS_TYPE, 9);
         }
 
         public static ParamDef getInfoDto() {
@@ -157,6 +158,7 @@ public class ProductSpecDto {
         public static final int WITH_SPU_INFO = 14;
         public static final int SPU_INFO = 15;
         public static final int SYS_TYPE = 16;
+        public static final int XID = 17;
     }
 
 }

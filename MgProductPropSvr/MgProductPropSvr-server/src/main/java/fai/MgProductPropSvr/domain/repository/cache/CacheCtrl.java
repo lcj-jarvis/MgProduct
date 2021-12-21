@@ -1,4 +1,4 @@
-package fai.MgProductPropSvr.domain.repository;
+package fai.MgProductPropSvr.domain.repository.cache;
 
 import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.util.Parser;

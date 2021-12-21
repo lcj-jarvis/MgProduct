@@ -22,6 +22,103 @@ public class MgProductStoreCli extends MgProductInternalCli {
         return init("MgProductStoreCli", true);
     }
 
+    public int cloneBizBind(int aid, int fromUnionPriId, int toUnionPriId) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(StoreSalesSkuDto.Key.FROM_UNION_PRI_ID, fromUnionPriId);
+            sendBody.putInt(StoreSalesSkuDto.Key.UNION_PRI_ID, toUnionPriId);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.CLONE_BIZ_BIND);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    public int copyBizBind(int aid, String xid, int fromUnionPriId, FaiList<Param> copyBindList) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(copyBindList == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;copyBindList is null;aid=%d;fromUid=%s;", aid, fromUnionPriId);
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            if(xid == null) {
+                xid = "";
+            }
+            sendBody.putString(StoreSalesSkuDto.Key.XID, xid);
+            sendBody.putInt(StoreSalesSkuDto.Key.FROM_UNION_PRI_ID, fromUnionPriId);
+            copyBindList.toBuffer(sendBody, StoreSalesSkuDto.Key.INFO_LIST, StoreSalesSkuDto.getCopyDto());
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.COPY_BIZ_BIND);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
     /**
      * 刷新指定商品id和指定skuId的库存销售汇总
      * for工具，一般用于出现异常数据，工具处理库存销售数据后，重新上报汇总数据
@@ -318,7 +415,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
     /**
      * 修改商品规格库存销售sku
      */
-    public int batchSetSkuStoreSales(int aid, int tid, int ownerUnionPriId, FaiList<Integer> uidList, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList){
+    public int batchSetSkuStoreSales(int aid, String xid, int tid, int ownerUnionPriId, FaiList<Integer> uidList, int pdId, int rlPdId, int sysType, FaiList<ParamUpdater> updaterList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -337,14 +434,19 @@ public class MgProductStoreCli extends MgProductInternalCli {
                 Log.logErr(m_rt, "updaterList error");
                 return m_rt;
             }
+            if(xid == null) {
+                xid = "";
+            }
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putString(StoreSalesSkuDto.Key.XID, xid);
             sendBody.putInt(StoreSalesSkuDto.Key.TID, tid);
             sendBody.putInt(StoreSalesSkuDto.Key.UNION_PRI_ID, ownerUnionPriId);
             uidList.toBuffer(sendBody, StoreSalesSkuDto.Key.UID_LIST);
             sendBody.putInt(StoreSalesSkuDto.Key.PD_ID, pdId);
             sendBody.putInt(StoreSalesSkuDto.Key.RL_PD_ID, rlPdId);
+            sendBody.putInt(StoreSalesSkuDto.Key.SYS_TYPE, sysType);
             m_rt = updaterList.toBuffer(sendBody, StoreSalesSkuDto.Key.UPDATER_LIST, StoreSalesSkuDto.getInfoDto());
             if(m_rt != Errno.OK){
                 m_rt = Errno.ARGS_ERROR;
@@ -1838,6 +1940,166 @@ public class MgProductStoreCli extends MgProductInternalCli {
         }
     }
 
+    public int setSpuBizSummary(int aid, String xid, int unionPriId, int pdId, ParamUpdater updater){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "aid error");
+                return m_rt;
+            }
+            if(updater == null || updater.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "updater error");
+                return m_rt;
+            }
+            if(xid == null) {
+                xid = "";
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putString(SpuBizSummaryDto.Key.XID, xid);
+            sendBody.putInt(SpuBizSummaryDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(SpuBizSummaryDto.Key.PD_ID, pdId);
+            updater.toBuffer(sendBody, SpuBizSummaryDto.Key.UPDATER, SpuBizSummaryDto.getInfoDto());
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.SpuBizSummaryCmd.SET);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    public int batchSetSpuBizSummary(int aid, String xid, FaiList<Integer> unionPriIds, FaiList<Integer> pdIds, ParamUpdater updater){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "aid error");
+                return m_rt;
+            }
+            if(updater == null || updater.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "updater error");
+                return m_rt;
+            }
+            if(xid == null) {
+                xid = "";
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putString(SpuBizSummaryDto.Key.XID, xid);
+            unionPriIds.toBuffer(sendBody, SpuBizSummaryDto.Key.UID_LIST);
+            pdIds.toBuffer(sendBody, SpuBizSummaryDto.Key.PD_ID);
+            updater.toBuffer(sendBody, SpuBizSummaryDto.Key.UPDATER, SpuBizSummaryDto.getInfoDto());
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.SpuBizSummaryCmd.BATCH_SET);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    public int batchAddSpuBizSummary(int aid, String xid, FaiList<Param> list){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "aid error");
+                return m_rt;
+            }
+            if(list == null || list.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "list error");
+                return m_rt;
+            }
+            if(xid == null) {
+                xid = "";
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putString(SpuBizSummaryDto.Key.XID, xid);
+            list.toBuffer(sendBody, SpuBizSummaryDto.Key.INFO_LIST, SpuBizSummaryDto.getInfoDto());
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.SpuBizSummaryCmd.BATCH_ADD);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
     /**
      * 获取spu库存销售汇总信息
      */
@@ -2135,11 +2397,11 @@ public class MgProductStoreCli extends MgProductInternalCli {
                 Log.logErr(m_rt, "storeSaleSkuList error");
                 return m_rt;
             }
-            if(Str.isEmpty(inStoreRecordInfo)){
+            /*if(Str.isEmpty(inStoreRecordInfo)){
                 m_rt = Errno.ARGS_ERROR;
                 Log.logErr(m_rt, "inStoreRecordInfo error");
                 return m_rt;
-            }
+            }*/
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
@@ -2148,7 +2410,9 @@ public class MgProductStoreCli extends MgProductInternalCli {
             sendBody.putInt(StoreSalesSkuDto.Key.SYS_TYPE, sysType);
             sendBody.putString(StoreSalesSkuDto.Key.XID, xid);
             storeSaleSkuList.toBuffer(sendBody, StoreSalesSkuDto.Key.INFO_LIST, StoreSalesSkuDto.getInfoDto());
-            inStoreRecordInfo.toBuffer(sendBody, StoreSalesSkuDto.Key.IN_OUT_STORE_RECORD_INFO, InOutStoreRecordDto.getInfoDto());
+            if(!Str.isEmpty(inStoreRecordInfo)) {
+                inStoreRecordInfo.toBuffer(sendBody, StoreSalesSkuDto.Key.IN_OUT_STORE_RECORD_INFO, InOutStoreRecordDto.getInfoDto());
+            }
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.IMPORT);
@@ -2297,6 +2561,54 @@ public class MgProductStoreCli extends MgProductInternalCli {
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_ADD);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK), m_rt);
+        }
+    }
+
+    public int migrate(int aid, FaiList<Param> spuList){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(spuList == null || spuList.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "storeSaleSkuList error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            spuList.toBuffer(sendBody, SpuBizSummaryDto.Key.INFO_LIST, SpuBizSummaryDto.getInfoDto());
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.Cmd.MIGRATE);
             sendProtocol.setAid(aid);
             sendProtocol.addEncodeBody(sendBody);
             m_rt = send(sendProtocol);

@@ -121,7 +121,6 @@ public class MgProductInfCli7ForProductTag extends MgProductInfCli6ForProductLib
                     new Pair(ProductTagDto.Key.SITE_ID, siteId),
                     new Pair(ProductTagDto.Key.LGID, lgId),
                     new Pair(ProductTagDto.Key.KEEP_PRIID1, keepPriId1));
-            sendBody.putInt(ProductTagDto.Key.SYS_TYPE, mgProductArg.getSysType());
             delRlTagIds.toBuffer(sendBody, ProductTagDto.Key.RL_TAG_IDS);
 
             // send and recv
@@ -536,7 +535,7 @@ public class MgProductInfCli7ForProductTag extends MgProductInfCli6ForProductLib
             rlPdIds.toBuffer(sendBody, ProductBasicDto.Key.RL_PD_IDS);
 
             // send and recv
-            sendAndRecv(aid, MgProductInfCmd.TagCmd.DEL_TAG_LIST, sendBody, false, false);
+            sendAndRecv(aid, MgProductInfCmd.BasicCmd.DEL_PD_TAG_LIST, sendBody, false, false);
             return m_rt;
         } finally {
             close();

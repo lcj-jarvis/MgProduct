@@ -355,7 +355,8 @@ public class MgProductTagCli extends FaiClient {
      * @param delRlTagIds  要删除的标签
      * @param rlTagIdsRef  接收新增标签的标签id
      */
-    public int unionSetTagList(int aid, int tid, int unionPriId, FaiList<Param> addInfoList,
+    public int unionSetTagList(int aid, int tid, int unionPriId,
+                               FaiList<Param> addInfoList,
                                FaiList<ParamUpdater> updaterList,
                                FaiList<Integer> delRlTagIds,
                                FaiList<Integer> rlTagIdsRef) {
@@ -394,8 +395,9 @@ public class MgProductTagCli extends FaiClient {
             }
             delRlTagIds.toBuffer(sendBody, ProductTagRelDto.Key.RL_TAG_IDS);
 
+
             //发送数据
-            Param result = sendAndReceive(aid, MgProductTagCmd.TagCmd.UNION_SET_TAG_LIST, sendBody, true);
+            Param result = sendAndReceive(aid, MgProductTagCmd.TagCmd.UNION_SET_TAG_LIST, sendBody, !Util.isEmptyList(addInfoList));
             Boolean success = result.getBoolean("success");
             if (!success) {
                 return m_rt;
@@ -489,18 +491,6 @@ public class MgProductTagCli extends FaiClient {
     }
 
     public int backupData(int aid, FaiList<Integer> unionPriIds, Param backupInfo) {
-        return operateBackup(aid, unionPriIds, backupInfo, MgProductTagCmd.TagCmd.BACKUP);
-    }
-
-    public int restoreBackupData(int aid, FaiList<Integer> unionPriIds, Param backupInfo) {
-        return operateBackup(aid, unionPriIds, backupInfo, MgProductTagCmd.TagCmd.RESTORE);
-    }
-
-    public int delBackupData(int aid, Param backupInfo) {
-        return operateBackup(aid, null, backupInfo, MgProductTagCmd.TagCmd.DEL_BACKUP);
-    }
-
-    private int operateBackup(int aid, FaiList<Integer> unionPriIds, Param backupInfo, int cmd) {
         if (!useProductTag()) {
             return Errno.OK;
         }
@@ -514,11 +504,59 @@ public class MgProductTagCli extends FaiClient {
             }
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
-            if (!Util.isEmptyList(unionPriIds)) {
-                unionPriIds.toBuffer(sendBody, ProductTagRelDto.Key.UNION_PRI_ID);
-            }
+            unionPriIds.toBuffer(sendBody, ProductTagRelDto.Key.UNION_PRI_ID);
             backupInfo.toBuffer(sendBody, ProductTagRelDto.Key.BACKUP_INFO, MgBackupDto.getInfoDto());
-            sendAndReceive(aid, cmd, sendBody, false);
+            sendAndReceive(aid, MgProductTagCmd.TagCmd.BACKUP, sendBody, false);
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    public int restoreBackupData(int aid, FaiList<Integer> unionPriIds, int restoreId, Param backupInfo) {
+        if (!useProductTag()) {
+            return Errno.OK;
+        }
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0 || Util.isEmptyList(unionPriIds) || Str.isEmpty(backupInfo)) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;aid=%d;uids=%s;backupInfo=%s;", aid, unionPriIds, backupInfo);
+                return m_rt;
+            }
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            unionPriIds.toBuffer(sendBody, ProductTagRelDto.Key.UNION_PRI_ID);
+            sendBody.putInt(ProductTagRelDto.Key.RESTORE_ID, restoreId);
+            backupInfo.toBuffer(sendBody, ProductTagRelDto.Key.BACKUP_INFO, MgBackupDto.getInfoDto());
+            sendAndReceive(aid, MgProductTagCmd.TagCmd.RESTORE, sendBody, false);
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
+
+    public int delBackupData(int aid, Param backupInfo) {
+        if (!useProductTag()) {
+            return Errno.OK;
+        }
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0 || Str.isEmpty(backupInfo)) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;aid=%d;backupInfo=%s;", aid, backupInfo);
+                return m_rt;
+            }
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            backupInfo.toBuffer(sendBody, ProductTagRelDto.Key.BACKUP_INFO, MgBackupDto.getInfoDto());
+            sendAndReceive(aid, MgProductTagCmd.TagCmd.DEL_BACKUP, sendBody, false);
             m_rt = Errno.OK;
             return m_rt;
         } finally {

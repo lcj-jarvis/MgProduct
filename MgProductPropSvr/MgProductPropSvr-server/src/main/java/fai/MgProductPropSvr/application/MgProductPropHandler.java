@@ -1,14 +1,17 @@
 package fai.MgProductPropSvr.application;
 
+import fai.MgBackupSvr.interfaces.dto.MgBackupDto;
 import fai.MgProductPropSvr.application.service.ProductPropService;
 import fai.MgProductPropSvr.interfaces.cmd.MgProductPropCmd;
 import fai.MgProductPropSvr.interfaces.dto.ProductPropDto;
 import fai.MgProductPropSvr.interfaces.dto.ProductPropValDto;
+import fai.comm.cache.redis.RedisCacheManager;
 import fai.comm.jnetkit.server.fai.FaiServer;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.jnetkit.server.fai.annotation.Cmd;
 import fai.comm.jnetkit.server.fai.annotation.WrittenCmd;
 import fai.comm.jnetkit.server.fai.annotation.args.*;
+import fai.comm.middleground.app.CloneDef;
 import fai.comm.netkit.NKDef;
 import fai.comm.util.*;
 import fai.middleground.svrutil.service.MiddleGroundHandler;
@@ -18,8 +21,9 @@ import java.io.IOException;
 
 public class MgProductPropHandler extends MiddleGroundHandler {
 
-	public MgProductPropHandler(FaiServer server) {
+	public MgProductPropHandler(FaiServer server, RedisCacheManager cache) {
 		super(server);
+		service.initBackupStatus(cache);
 	}
 
 	@Cmd(MgProductPropCmd.PropCmd.GET_LIST)
@@ -175,5 +179,61 @@ public class MgProductPropHandler extends MiddleGroundHandler {
 								   @ArgAid final int aid) throws IOException {
 		return service.clearCache(session, flow, aid);
 	}
+
+	@WrittenCmd
+	@Cmd(MgProductPropCmd.Cmd.BACKUP)
+	public int backupData(final FaiSession session,
+						  @ArgFlow final int flow,
+						  @ArgAid int aid,
+						  @ArgList(keyMatch = ProductPropDto.Key.UNION_PRI_ID) FaiList<Integer> unionPriIds,
+						  @ArgParam(classDef = MgBackupDto.class, methodDef = "getInfoDto",
+								  keyMatch = ProductPropDto.Key.BACKUP_INFO) Param backupInfo) throws IOException {
+		return service.backupData(session, flow, aid, unionPriIds, backupInfo);
+	}
+
+	@WrittenCmd
+	@Cmd(MgProductPropCmd.Cmd.RESTORE)
+	public int restoreBackupData(final FaiSession session,
+								 @ArgFlow final int flow,
+								 @ArgAid int aid,
+								 @ArgList(keyMatch = ProductPropDto.Key.UNION_PRI_ID) FaiList<Integer> unionPriIds,
+								 @ArgBodyInteger(ProductPropDto.Key.RESTORE_ID) int restoreId,
+								 @ArgParam(classDef = MgBackupDto.class, methodDef = "getInfoDto",
+										 keyMatch = ProductPropDto.Key.BACKUP_INFO) Param backupInfo) throws IOException {
+		return service.restoreBackupData(session, flow, aid, unionPriIds, restoreId, backupInfo);
+	}
+
+	@WrittenCmd
+	@Cmd(MgProductPropCmd.Cmd.DEL_BACKUP)
+	public int delBackupData(final FaiSession session,
+							 @ArgFlow final int flow,
+							 @ArgAid int aid,
+							 @ArgParam(classDef = MgBackupDto.class, methodDef = "getInfoDto",
+									 keyMatch = ProductPropDto.Key.BACKUP_INFO) Param backupInfo) throws IOException {
+		return service.delBackupData(session, flow, aid, backupInfo);
+	}
+
+	@WrittenCmd
+	@Cmd(MgProductPropCmd.Cmd.CLONE)
+	public int cloneData(final FaiSession session,
+						 @ArgFlow final int flow,
+						 @ArgAid int aid,
+						 @ArgBodyInteger(ProductPropDto.Key.FROM_AID) int fromAid,
+						 @ArgList(classDef = CloneDef.Dto.class, methodDef = "getInternalDto",
+								 keyMatch = ProductPropDto.Key.CLONE_UNION_PRI_IDS) FaiList<Param> cloneUnionPriIds) throws IOException {
+		return service.cloneData(session, flow, aid, fromAid, cloneUnionPriIds);
+	}
+
+	@WrittenCmd
+	@Cmd(MgProductPropCmd.Cmd.INCR_CLONE)
+	public int incrementalClone(final FaiSession session,
+								@ArgFlow final int flow,
+								@ArgAid int aid,
+								@ArgBodyInteger(ProductPropDto.Key.UNION_PRI_ID) int unionPriId,
+								@ArgBodyInteger(ProductPropDto.Key.FROM_AID) int fromAid,
+								@ArgBodyInteger(ProductPropDto.Key.FROM_UNION_PRI_ID) int fromUnionPriId) throws IOException {
+		return service.incrementalClone(session, flow, aid, unionPriId, fromAid, fromUnionPriId);
+	}
+
 	private ProductPropService service = ServiceProxy.create(new ProductPropService());
 }

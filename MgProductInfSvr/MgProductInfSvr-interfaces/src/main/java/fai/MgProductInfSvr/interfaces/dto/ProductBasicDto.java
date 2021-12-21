@@ -69,6 +69,13 @@ public class ProductBasicDto {
         g_productDef.add(ProductBasicEntity.ProductInfo.REMARK9, 48, Var.Type.STRING);
         g_productDef.add(ProductBasicEntity.ProductInfo.REMARK10, 49, Var.Type.STRING);
         g_productDef.add(ProductBasicEntity.ProductInfo.REMARK11, 50, Var.Type.STRING);
+
+        g_productDef.add(ProductBasicEntity.ProductInfo.TOP, 51);
+
+        g_productDef.add(ProductBasicEntity.ProductInfo.SITE_ID, 52);
+        g_productDef.add(ProductBasicEntity.ProductInfo.LGID, 53);
+        g_productDef.add(ProductBasicEntity.ProductInfo.KEEP_PRI_ID1, 54);
+        g_productDef.add(ProductBasicEntity.ProductInfo.TID, 55);
     }
 
     public static ParamDef getProductDto() {
@@ -101,6 +108,9 @@ public class ProductBasicDto {
 
         g_productRelDef.add(ProductBasicEntity.ProductInfo.PD_TYPE, 18);
         g_productRelDef.add(ProductBasicEntity.ProductInfo.SYS_TYPE, 19);
+
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.SORT, 20);
+        g_productRelDef.add(ProductBasicEntity.ProductInfo.TOP, 21);
     }
 
     public static ParamDef getProductRelDto() {
@@ -155,6 +165,30 @@ public class ProductBasicDto {
         return g_bindTagDef;
     }
 
+
+    private static ParamDef g_pdReduceDef = new ParamDef();
+    static {
+        g_pdReduceDef.add(ProductBasicEntity.ProductInfo.TID, 0, Var.Type.INT);
+        g_pdReduceDef.add(ProductBasicEntity.ProductInfo.SITE_ID, 1, Var.Type.INT);
+        g_pdReduceDef.add(ProductBasicEntity.ProductInfo.LGID, 2, Var.Type.INT);
+        g_pdReduceDef.add(ProductBasicEntity.ProductInfo.KEEP_PRI_ID1, 3, Var.Type.INT);
+        g_pdReduceDef.add(ProductBasicEntity.ProductInfo.RL_PD_ID, 4, Var.Type.INT);
+        g_pdReduceDef.add(ProductBasicEntity.ProductInfo.STATUS, 5, Var.Type.INT);
+    }
+    public static ParamDef getPdReduceDto() {
+        return g_pdReduceDef;
+    }
+
+    /*** 商品绑定的业务 ***/
+    private static ParamDef g_bindBizDef = new ParamDef();
+    static {
+        g_bindBizDef.add(ProductBasicEntity.ProductInfo.RL_PD_ID, 0);
+        g_bindBizDef.add(ProductBasicEntity.ProductInfo.BIND_BIZ, 1, g_pdReduceDef);
+    }
+    public static ParamDef getBindBizDto() {
+        return g_bindBizDef;
+    }
+
     public static class Key {
         public static final int BIND_PROP_INFO  = 1;
         public static final int TID  = 2;
@@ -185,6 +219,12 @@ public class ProductBasicDto {
         public static final int DEL_BIND_TAG_IDS = 26;
         public static final int SYS_TYPE = 27;
         public static final int XID = 28;
+        public static final int PRIMARY_KEY = 29;
+        public static final int PRIMARY_KEYS = 30;
+        public static final int PRE_RL_PD_ID  = 31;
+        public static final int FROM_PRIMARY_KEY = 32;
+        public static final int NAME = 33;
+        public static final int STATUS = 34;
     }
 
 

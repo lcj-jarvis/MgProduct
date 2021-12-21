@@ -5,11 +5,10 @@ import fai.MgProductSpecSvr.domain.serviceProc.SpecStrProc;
 import fai.MgProductSpecSvr.interfaces.dto.SpecStrDto;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
-import fai.middleground.svrutil.service.ServicePub;
 
 import java.io.IOException;
 
-public class SpecStrService  extends ServicePub {
+public class SpecStrService  extends SpecParentService {
 
     /**
      * 跟据规格字符串id集 获取规格字符串

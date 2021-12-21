@@ -1,10 +1,7 @@
 package fai.MgProductStoreSvr.application;
 
 import fai.MgProductStoreSvr.application.mq.ReportConsumeListener;
-import fai.MgProductStoreSvr.application.service.RecordService;
-import fai.MgProductStoreSvr.application.service.StoreSalesSkuService;
-import fai.MgProductStoreSvr.application.service.StoreService;
-import fai.MgProductStoreSvr.application.service.SummaryService;
+import fai.MgProductStoreSvr.application.service.*;
 import fai.MgProductStoreSvr.interfaces.cmd.MgProductStoreCmd;
 import fai.MgProductStoreSvr.interfaces.conf.MqConfig;
 import fai.MgProductStoreSvr.interfaces.dto.*;
@@ -22,6 +19,7 @@ import fai.comm.mq.api.MqFactory;
 import fai.comm.mq.api.Producer;
 import fai.comm.util.*;
 import fai.middleground.svrutil.service.MiddleGroundHandler;
+import fai.middleground.svrutil.service.ServiceProxy;
 
 import java.io.IOException;
 import java.util.Calendar;
@@ -91,6 +89,39 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
     }
 
     @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.CLONE_BIZ_BIND)
+    private int cloneBizBind(final FaiSession session,
+                              @ArgFlow final int flow,
+                              @ArgAid final int aid,
+                              @ArgBodyInteger(StoreSalesSkuDto.Key.FROM_UNION_PRI_ID) final int fromUnionPriId,
+                              @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int toUnionPriId) throws IOException {
+        return m_storeSalesSkuService.cloneBizBind(session, flow, aid, fromUnionPriId, toUnionPriId);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.COPY_BIZ_BIND)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductStoreCmd.StoreSalesSkuCmd.COPY_BIZ_BIND_ROLLBACK)
+    private int copyBizBind(final FaiSession session,
+                             @ArgFlow final int flow,
+                             @ArgAid final int aid,
+                             @ArgBodyXid(value = StoreSalesSkuDto.Key.XID, useDefault = true) final String xid,
+                             @ArgBodyInteger(StoreSalesSkuDto.Key.FROM_UNION_PRI_ID) final int fromUnionPriId,
+                             @ArgList(keyMatch = StoreSalesSkuDto.Key.INFO_LIST, classDef = StoreSalesSkuDto.class,
+                             methodDef = "getCopyDto") FaiList<Param> copyBindList) throws IOException {
+        return m_storeSalesSkuService.copyBizBind(session, flow, aid, xid, fromUnionPriId, copyBindList);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.COPY_BIZ_BIND_ROLLBACK)
+    private int copyBizBindRollback(final FaiSession session,
+                                         @ArgFlow final int flow,
+                                         @ArgAid final int aid,
+                                         @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                         @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return m_storeSalesSkuService.copyBizBindRollback(session, flow, aid, xid, branchId);
+    }
+
+    @WrittenCmd
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.REPORT)
     private int reportSummary(final FaiSession session,
                                      @ArgFlow final int flow,
@@ -155,9 +186,11 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_SET_LIST)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductStoreCmd.StoreSalesSkuCmd.SET_SKU_STORE_SALES_ROLLBACK)
     private int batchSetSkuStoreSales(final FaiSession session,
                                       @ArgFlow final int flow,
                                       @ArgAid final int aid,
+                                      @ArgBodyXid(value = StoreSalesSkuDto.Key.XID, useDefault = true) final String xid,
                                       @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
                                       @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int ownerUnionPriId,
                                       @ArgList(keyMatch = StoreSalesSkuDto.Key.UID_LIST) final FaiList<Integer> unionPriIdList,
@@ -166,7 +199,7 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                       @ArgBodyInteger(value = StoreSalesSkuDto.Key.SYS_TYPE, useDefault = true) final int sysType,
                                       @ArgList(classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto", keyMatch = StoreSalesSkuDto.Key.UPDATER_LIST)
                                               FaiList<ParamUpdater> updaterList) throws IOException {
-        return m_storeSalesSkuService.batchSetSkuStoreSales(session, flow, aid, tid, ownerUnionPriId, unionPriIdList, pdId, rlPdId, sysType, updaterList);
+        return m_storeSalesSkuService.batchSetSkuStoreSales(session, flow, aid, tid, ownerUnionPriId, unionPriIdList, xid, pdId, rlPdId, sysType, updaterList);
     }
 
     @WrittenCmd
@@ -473,7 +506,7 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                  @ArgList(keyMatch = StoreSalesSkuDto.Key.INFO_LIST,
                                          classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto") FaiList<Param> storeSaleSkuList,
                                  @ArgParam(keyMatch = StoreSalesSkuDto.Key.IN_OUT_STORE_RECORD_INFO,
-                                         classDef = InOutStoreRecordDto.class, methodDef = "getInfoDto") Param inStoreRecordInfo) throws IOException {
+                                         classDef = InOutStoreRecordDto.class, methodDef = "getInfoDto", useDefault = true) Param inStoreRecordInfo) throws IOException {
         return m_storeService.importStoreSales(session, flow, aid, tid, unionPriId, sysType, xid, storeSaleSkuList, inStoreRecordInfo);
     }
 
@@ -537,6 +570,76 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
         return m_summaryService.getSkuSummaryInfoList(session, flow, aid, tid, sourceUnionPriId, searchArg);
     }
 
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.SET)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductStoreCmd.SpuBizSummaryCmd.SET_ROLLBACK)
+    private int setSpuBizSummary(final FaiSession session,
+                                      @ArgFlow final int flow,
+                                      @ArgAid final int aid,
+                                      @ArgBodyXid(value = SpuBizSummaryDto.Key.XID, useDefault = true) String xid,
+                                      @ArgBodyInteger(SpuBizSummaryDto.Key.UNION_PRI_ID) int unionPriId,
+                                      @ArgBodyInteger(SpuBizSummaryDto.Key.PD_ID) int pdId,
+                                      @ArgParamUpdater(keyMatch = SpuBizSummaryDto.Key.UPDATER, methodDef = "getInfoDto",
+                                      classDef = SpuBizSummaryDto.class) ParamUpdater updater) throws IOException {
+        return m_summaryService.setSpuBizSummary(session, flow, aid, xid, unionPriId, pdId, updater);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.SET_ROLLBACK)
+    private int setSpuBizSummaryRollback(final FaiSession session,
+                                         @ArgFlow final int flow,
+                                         @ArgAid final int aid,
+                                         @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                         @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return m_summaryService.setSpuBizSummaryRollback(session, flow, aid, xid, branchId);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.BATCH_SET)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductStoreCmd.SpuBizSummaryCmd.BATCH_SET_ROLLBACK)
+    private int batchSetSpuBizSummary(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid final int aid,
+                                 @ArgBodyXid(value = SpuBizSummaryDto.Key.XID, useDefault = true) String xid,
+                                 @ArgList(keyMatch = SpuBizSummaryDto.Key.UID_LIST) FaiList<Integer> unionPriIds,
+                                 @ArgList(keyMatch = SpuBizSummaryDto.Key.PD_ID) FaiList<Integer> pdIds,
+                                 @ArgParamUpdater(keyMatch = SpuBizSummaryDto.Key.UPDATER, methodDef = "getInfoDto",
+                                         classDef = SpuBizSummaryDto.class) ParamUpdater updater) throws IOException {
+        return m_summaryService.batchSetSpuBizSummary(session, flow, aid, xid, unionPriIds, pdIds, updater);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.BATCH_SET_ROLLBACK)
+    private int batchSetSpuBizSummaryRollback(final FaiSession session,
+                                         @ArgFlow final int flow,
+                                         @ArgAid final int aid,
+                                         @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                         @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return m_summaryService.batchSetSpuBizSummaryRollback(session, flow, aid, xid, branchId);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.BATCH_ADD)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductStoreCmd.SpuBizSummaryCmd.BATCH_ADD_ROLLBACK)
+    private int batchAddSpuBizSummary(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid final int aid,
+                                 @ArgBodyXid(value = SpuBizSummaryDto.Key.XID, useDefault = true) String xid,
+                                 @ArgList(keyMatch = SpuBizSummaryDto.Key.INFO_LIST, methodDef = "getInfoDto",
+                                         classDef = SpuBizSummaryDto.class) FaiList<Param> list) throws IOException {
+        return m_summaryService.batchAddSpuBizSummary(session, flow, aid, xid, list);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.SpuBizSummaryCmd.BATCH_ADD_ROLLBACK)
+    private int batchAddSpuBizSummaryRollback(final FaiSession session,
+                                         @ArgFlow final int flow,
+                                         @ArgAid final int aid,
+                                         @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                         @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return m_summaryService.batchAddSpuBizSummaryRollback(session, flow, aid, xid, branchId);
+    }
+
     @Cmd(NKDef.Protocol.Cmd.CLEAR_CACHE)
     @WrittenCmd
     private int clearCache(final FaiSession session,
@@ -545,9 +648,21 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
         return m_storeService.clearAllCache(session, flow, aid);
     }
 
+    @Cmd(MgProductStoreCmd.Cmd.MIGRATE)
+    @WrittenCmd
+    private int migrate(final FaiSession session,
+                           @ArgFlow final int flow,
+                           @ArgAid final int aid,
+                           @ArgList(keyMatch = SpuBizSummaryDto.Key.INFO_LIST, methodDef = "getInfoDto",
+                           classDef = SpuBizSummaryDto.class) FaiList<Param> spuList) throws IOException {
+        return migrateService.migrate(session, flow, aid, spuList);
+    }
+
     private static final String CLI_NAME = "MgProductStoreCli";
-    private StoreService m_storeService = new StoreService();
-    private StoreSalesSkuService m_storeSalesSkuService = new StoreSalesSkuService();
+    private StoreService m_storeService = ServiceProxy.create(new StoreService());
+    private StoreSalesSkuService m_storeSalesSkuService = ServiceProxy.create(new StoreSalesSkuService());
     private RecordService m_recordService = new RecordService();
     private SummaryService m_summaryService = new SummaryService();
+
+    private MigrateService migrateService = new MigrateService();
 }

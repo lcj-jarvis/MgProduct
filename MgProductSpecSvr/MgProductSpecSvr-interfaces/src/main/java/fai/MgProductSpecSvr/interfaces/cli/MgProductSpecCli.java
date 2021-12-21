@@ -9,6 +9,7 @@ import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 
 public class MgProductSpecCli extends MgProductInternalCli {
+
     public MgProductSpecCli(int flow) {
         super(flow, "MgProductSpecCli");
     }
@@ -73,7 +74,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
     /**
      * 批量添加规格模板
      */
-    public int addTpScInfoList(int aid, int tid, int unionPriId, FaiList<Param> list) {
+    public int addTpScInfoList(int aid, int tid, int unionPriId, int sysType, FaiList<Param> list) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -91,6 +92,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(SpecTempDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(SpecTempDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(SpecTempDto.Key.TID, tid);
             m_rt = list.toBuffer(sendBody, SpecTempDto.Key.INFO_LIST, SpecTempDto.getInfoDto());
             if(m_rt != Errno.OK){
@@ -130,7 +132,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
     /**
      * 批量删除规格模板
      */
-    public int delTpScInfoList(int aid, int tid, int unionPriId, FaiList<Integer> rlTpScIdList) {
+    public int delTpScInfoList(int aid, int tid, int unionPriId, int sysType, FaiList<Integer> rlTpScIdList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -148,6 +150,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(SpecTempDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(SpecTempDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(SpecTempDto.Key.TID, tid);
             rlTpScIdList.toBuffer(sendBody, SpecTempDto.Key.ID_LIST);
 
@@ -183,7 +186,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
     /**
      * 批量修改规格模板
      */
-    public int setTpScInfoList(int aid, int tid, int unionPriId, FaiList<ParamUpdater> updaterList) {
+    public int setTpScInfoList(int aid, int tid, int unionPriId, int sysType, FaiList<ParamUpdater> updaterList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -201,6 +204,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(SpecTempDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(SpecTempDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(SpecTempDto.Key.TID, tid);
             m_rt = updaterList.toBuffer(sendBody, SpecTempDto.Key.UPDATER_LIST, SpecTempDto.getInfoDto());
             if(m_rt != Errno.OK){
@@ -240,7 +244,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
     /**
      * 获取规格模板列表
      */
-    public int getTpScInfoList(int aid, int tid, int unionPriId, FaiList<Param> infoList) {
+    public int getTpScInfoList(int aid, int tid, int unionPriId, int sysType, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -258,6 +262,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(SpecTempDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(SpecTempDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(SpecTempDto.Key.TID, tid);
 
             FaiProtocol sendProtocol = new FaiProtocol();
@@ -305,7 +310,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
     /**
      * 批量添加规格模板详情
      */
-    public int addTpScDetailInfoList(int aid, int tid, int unionPriId, int rlTpScId, FaiList<Param> list) {
+    public int addTpScDetailInfoList(int aid, int tid, int unionPriId, int sysType, int rlTpScId, FaiList<Param> list) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -323,6 +328,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(SpecTempDetailDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(SpecTempDetailDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(SpecTempDetailDto.Key.TID, tid);
             sendBody.putInt(SpecTempDetailDto.Key.RL_TP_SC_ID, rlTpScId);
             m_rt = list.toBuffer(sendBody, SpecTempDetailDto.Key.INFO_LIST, SpecTempDetailDto.getInfoDto());
@@ -357,14 +363,14 @@ public class MgProductSpecCli extends MgProductInternalCli {
             return m_rt;
         } finally {
             close();
-            stat.end(m_rt != Errno.OK, m_rt);
+            stat.end(m_rt != Errno.OK && m_rt != Errno.ALREADY_EXISTED, m_rt);
         }
     }
 
     /**
      * 批量删除规格模板详情
      */
-    public int delTpScDetailInfoList(int aid, int tid, int unionPriId, int rlTpScId, FaiList<Integer> tpScDtIdList) {
+    public int delTpScDetailInfoList(int aid, int tid, int unionPriId, int sysType, int rlTpScId, FaiList<Integer> tpScDtIdList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -382,6 +388,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(SpecTempDetailDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(SpecTempDetailDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(SpecTempDetailDto.Key.TID, tid);
             sendBody.putInt(SpecTempDetailDto.Key.RL_TP_SC_ID, rlTpScId);
             tpScDtIdList.toBuffer(sendBody, SpecTempDetailDto.Key.ID_LIST);
@@ -418,7 +425,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
     /**
      * 批量修改规格模板详情
      */
-    public int setTpScDetailInfoList(int aid, int tid, int unionPriId, int rlTpScId, FaiList<ParamUpdater> updaterList) {
+    public int setTpScDetailInfoList(int aid, int tid, int unionPriId, int sysType, int rlTpScId, FaiList<ParamUpdater> updaterList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -436,6 +443,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(SpecTempDetailDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(SpecTempDetailDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(SpecTempDetailDto.Key.TID, tid);
             sendBody.putInt(SpecTempDetailDto.Key.RL_TP_SC_ID, rlTpScId);
             m_rt = updaterList.toBuffer(sendBody, SpecTempDetailDto.Key.UPDATER_LIST, SpecTempDetailDto.getInfoDto());
@@ -470,14 +478,14 @@ public class MgProductSpecCli extends MgProductInternalCli {
             return m_rt;
         } finally {
             close();
-            stat.end(m_rt != Errno.OK, m_rt);
+            stat.end(m_rt != Errno.OK && m_rt != Errno.ALREADY_EXISTED, m_rt);
         }
     }
 
     /**
      * 获取规格模板列表详情
      */
-    public int getTpScDetailInfoList(int aid, int tid, int unionPriId, int rlTpScId, FaiList<Param> infoList) {
+    public int getTpScDetailInfoList(int aid, int tid, int unionPriId, int sysType, int rlTpScId, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -495,6 +503,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(SpecTempDetailDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(SpecTempDetailDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(SpecTempDetailDto.Key.TID, tid);
             sendBody.putInt(SpecTempDetailDto.Key.RL_TP_SC_ID, rlTpScId);
 
@@ -542,7 +551,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
     /**
      * 导入规格模板
      */
-    public int importPdScInfo(int aid, int tid, int unionPriId, int pdId, int rlTpScId, FaiList<Integer> tpScDtIdList) {
+    public int importPdScInfo(int aid, int tid, int unionPriId, int sysType, int pdId, int rlTpScId, FaiList<Integer> tpScDtIdList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -555,6 +564,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductSpecDto.Key.UNION_PRI_ID, unionPriId);
+            sendBody.putInt(ProductSpecDto.Key.SYS_TYPE, sysType);
             sendBody.putInt(ProductSpecDto.Key.TID, tid);
             sendBody.putInt(ProductSpecDto.Key.PD_ID, pdId);
             sendBody.putInt(ProductSpecDto.Key.RL_TP_SC_ID, rlTpScId);
@@ -657,14 +667,11 @@ public class MgProductSpecCli extends MgProductInternalCli {
         }
     }
 
-    public int unionSetPdScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<Param> addList, FaiList<Integer> delList, FaiList<ParamUpdater> updaterList) {
-        return unionSetPdScInfoList(aid, tid, unionPriId, pdId, addList, delList, updaterList, null);
-    }
     /**
      * 修改产品规格总接口
      * 批量修改(包括增、删、改)指定商品的商品规格总接口；会自动生成sku规格，并且会调用商品库存服务的“刷新商品库存销售sku”
      */
-    public int unionSetPdScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<Param> addList, FaiList<Integer> delList, FaiList<ParamUpdater> updaterList, FaiList<Param> rtPdScSkuInfoList) {
+    public int unionSetPdScInfoList(int aid, int tid, int unionPriId, String xid, int pdId, FaiList<Param> addList, FaiList<Integer> delList, FaiList<ParamUpdater> updaterList, FaiList<Param> rtPdScSkuInfoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -679,6 +686,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             sendBody.putInt(ProductSpecDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(ProductSpecDto.Key.TID, tid);
             sendBody.putInt(ProductSpecDto.Key.PD_ID, pdId);
+            sendBody.putString(ProductSpecDto.Key.XID, xid);
             if(addList != null){
                 m_rt = addList.toBuffer(sendBody, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.getInfoDto());
                 if(m_rt != Errno.OK){
@@ -945,7 +953,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
         return setPdSkuScInfoList(aid, tid, unionPriId, pdId, updaterList, null);
     }
     public int setPdSkuScInfoList(int aid, int tid, int unionPriId, int pdId, FaiList<ParamUpdater> updaterList, FaiList<Param> rtPdScSkuInfoList) {
-        return setPdSkuScInfoList(aid, tid, unionPriId, null, pdId, updaterList, rtPdScSkuInfoList);
+        return setPdSkuScInfoList(aid, tid, unionPriId, "", pdId, updaterList, rtPdScSkuInfoList);
     }
     /**
      * 批量修改产品规格SKU
@@ -1648,7 +1656,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             // recv info
             Ref<Integer> keyRef = new Ref<Integer>();
             m_rt = dataStatusInfo.fromBuffer(recvBody, keyRef, DataStatus.Dto.getDataStatusDto());
-            if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuCodeDao.Key.INFO) {
+            if (m_rt != Errno.OK || keyRef.value != ProductSpecSkuCodeDao.Key.DATA_STATUS) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
             }

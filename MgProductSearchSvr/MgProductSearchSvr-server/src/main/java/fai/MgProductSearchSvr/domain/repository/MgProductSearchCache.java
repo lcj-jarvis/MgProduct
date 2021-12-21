@@ -1,0 +1,118 @@
+package fai.MgProductSearchSvr.domain.repository;
+
+import fai.MgProductInfSvr.interfaces.dto.MgProductSearchDto;
+import fai.MgProductSearchSvr.application.MgProductSearchSvr;
+import fai.comm.cache.redis.RedisCacheManager;
+import fai.comm.util.*;
+
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * @author LuChaoJi
+ * @date 2021-08-06 10:28
+ */
+public class MgProductSearchCache {
+
+    public static void init(RedisCacheManager cache, ParamCacheRecycle cacheRecycle){
+        m_result_cache = cache;
+        m_cacheRecycle = cacheRecycle;
+        m_cacheRecycle.addParamCache("localDataStatusCache", M_LOCAL_DATA_STATUS_CACHE);
+    }
+
+    /**
+     * 本地缓存回收器
+     */
+    private static ParamCacheRecycle m_cacheRecycle;
+
+    /**
+     * 各个表的本地数据缓存
+     * ConcurrentHashMap<Integer, ParamListCache1>  eg: <unionPriId, ParamCache1>
+     */
+    private static final ConcurrentHashMap<Integer, ParamListCache1> M_LOCAL_MG_PRODUCT_SEARCH_DATA_CACHE = new ConcurrentHashMap<>();
+
+    public static String getLocalMgProductSearchDataCacheKey(int aid, String searchTableName){
+        return aid + "-" + searchTableName;
+    }
+
+    public static ParamListCache1 getLocalMgProductSearchDataCache(int unionPriId) {
+        ParamListCache1 cache = M_LOCAL_MG_PRODUCT_SEARCH_DATA_CACHE.get(unionPriId);
+        if (cache != null) {
+            return cache;
+        }
+        synchronized (M_LOCAL_MG_PRODUCT_SEARCH_DATA_CACHE) {
+            // double check
+            cache = M_LOCAL_MG_PRODUCT_SEARCH_DATA_CACHE.get(unionPriId);
+            if (cache != null) {
+                return cache;
+            }
+            cache = new ParamListCache1();
+            M_LOCAL_MG_PRODUCT_SEARCH_DATA_CACHE.put(unionPriId, cache);
+            m_cacheRecycle.addParamCache("mgpd-" + unionPriId, cache);
+            return cache;
+        }
+    }
+
+
+    /**
+     * 数据的更新时间和总条数的缓存
+     */
+    private static final ParamCache1 M_LOCAL_DATA_STATUS_CACHE = new ParamCache1();
+
+    public static class LocalDataStatusCache {
+        public static String getDataStatusCacheKey(int aid, int unionPriId, String searchTableName) {
+            return aid + "-" + unionPriId + "-" + searchTableName;
+        }
+
+        public static Param getLocalDataStatusCache(String cacheKey) {
+            return M_LOCAL_DATA_STATUS_CACHE.get(cacheKey);
+        }
+
+        public static void addLocalDataStatusCache(String cacheKey, Param dataStatusInfo) {
+            M_LOCAL_DATA_STATUS_CACHE.put(cacheKey, dataStatusInfo);
+        }
+    }
+
+
+    /**
+     * 搜索结果集的缓存
+     */
+    private static RedisCacheManager m_result_cache;
+
+    public static class ResultCache {
+
+        public static final String CACHE_CONFIG_KEY = "cacheConfigKey";
+
+        public static String getResultCacheKey(int aid, int unionPriId, String esSearchParamString, String dbSearchParamString, String startAndLimit){
+            // 根据搜索词的 md5
+            return aid + "-" + unionPriId + "-" + getSearchResultCacheConfigKey() + "-"
+                + MD5Util.MD5Encode(esSearchParamString, "utf-8") + "-"
+                + MD5Util.MD5Encode(dbSearchParamString, "utf-8") + "-"
+                + MD5Util.MD5Encode(startAndLimit, "utf-8");
+        }
+
+        public static Param  getCacheInfo(String resultCacheKey) {
+            return m_result_cache.getParam(resultCacheKey, MgProductSearchDto.Key.RESULT_INFO, MgProductSearchDto.getProductSearchDto());
+        }
+
+        public static void delCache(String resultCacheKey) {
+            m_result_cache.del(resultCacheKey);
+        }
+
+        public static void addCacheInfo(String resultCacheKey, Param resultCacheInfo) {
+            m_result_cache.setParam(resultCacheKey, resultCacheInfo, MgProductSearchDto.Key.RESULT_INFO, MgProductSearchDto.getProductSearchDto());
+        }
+
+        public static boolean existsCache(String resultCacheKey) {
+            return m_result_cache.exists(resultCacheKey);
+        }
+
+        //  搜索结果缓存的部分key，可在配置中心修改，让缓存失效
+        public static String getSearchResultCacheConfigKey(){
+            Param conf = ConfPool.getConf(MgProductSearchSvr.SvrConfigGlobalConf.svrConfigGlobalConfKey);
+            if(Str.isEmpty(conf) || Str.isEmpty(conf.getString(MgProductSearchSvr.SvrConfigGlobalConf.searchResultCacheConfigKey))){
+                return CACHE_CONFIG_KEY;
+            }
+            return conf.getString(MgProductSearchSvr.SvrConfigGlobalConf.searchResultCacheConfigKey, CACHE_CONFIG_KEY);
+        }
+    }
+}

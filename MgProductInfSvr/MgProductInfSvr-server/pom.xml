@@ -5,7 +5,7 @@
     <parent>
         <groupId>MgProduct</groupId>
         <artifactId>MgProductInfSvr</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.2</version>
     </parent>
     <artifactId>MgProductInfSvr-server</artifactId>
     <packaging>jar</packaging>
@@ -91,6 +91,12 @@
         </dependency>
 
         <dependency>
+            <groupId>fai-comm-netkit</groupId>
+            <artifactId>fai-comm-netkit</artifactId>
+            <version>${fai-comm-netkit-ver}</version>
+        </dependency>
+
+        <dependency>
             <groupId>fai-comm-jnetkit</groupId>
             <artifactId>fai-comm-jnetkit</artifactId>
             <version>${fai-comm-jnetkit-ver}</version>
@@ -109,12 +115,6 @@
         </dependency>
 
         <dependency>
-            <groupId>fai-comm-cache</groupId>
-            <artifactId>fai-comm-cache</artifactId>
-            <version>${fai-comm-cache-ver}</version>
-        </dependency>
-
-        <dependency>
             <groupId>fai-comm-distributedkit</groupId>
             <artifactId>fai-comm-distributedkit</artifactId>
             <version>${fai-comm-distributedkit-ver}</version>
@@ -123,7 +123,6 @@
         <dependency>
             <groupId>fai-comm-util-opt</groupId>
             <artifactId>fai-comm-util-opt</artifactId>
-            <version>${fai-comm-util-opt-ver}</version>
         </dependency>
 
         <dependency>

@@ -133,6 +133,7 @@ public class ProductBasicService extends BasicParentService {
             ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
             Integer pdId = relProc.getPdId(aid, unionPriId, sysType, rlPdId);
             if(pdId == null) {
+                Log.logStd("not found pdId;flow=%d;aid=%d;unionPriId=%;sysType=%d;rlPdId=%d", flow, aid, unionPriId, sysType, rlPdId);
                 return Errno.NOT_FOUND;
             }
             // 获取商品业务关系表数据
@@ -140,6 +141,7 @@ public class ProductBasicService extends BasicParentService {
             // TODO 不支持获取软删除数据，查不到业务表信息直接返回，避免空指针
             if (Str.isEmpty(relInfo)) {
                 rt = Errno.NOT_FOUND;
+                Log.logStd("not found rel info;flow=%d;aid=%d;unionPriId=%;pdId=%d", flow, aid, unionPriId, pdId);
                 return rt;
             }
 

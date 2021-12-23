@@ -213,17 +213,17 @@ public class MgProductInfService extends ServicePub {
         return list;
     }
 
-    protected int getPdIdWithAdd(int flow, int aid, int tid, int siteId, int unionPriId, int sysType, int rlPdId, Ref<Integer> idRef) {
-        return getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef, true);
+    protected int getPdIdWithAdd(int flow, int aid, int tid, int siteId, int unionPriId, int sysType, int rlPdId, String xid, Ref<Integer> idRef) {
+        return getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef, true, xid);
     }
     /**
      * 获取PdId
      */
     protected int getPdId(int flow, int aid, int tid, int siteId, int unionPriId, int sysType, int rlPdId, Ref<Integer> idRef) {
-        return getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef, false);
+        return getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef, false, null);
     }
 
-    protected int getPdId(int flow, int aid, int tid, int siteId, int unionPriId, int sysType, int rlPdId, Ref<Integer> idRef, boolean withAdd) {
+    protected int getPdId(int flow, int aid, int tid, int siteId, int unionPriId, int sysType, int rlPdId, Ref<Integer> idRef, boolean withAdd, String xid) {
         int rt = Errno.ERROR;
         MgProductBasicCli mgProductBasicCli = new MgProductBasicCli(flow);
         if(!mgProductBasicCli.init()) {
@@ -235,9 +235,14 @@ public class MgProductInfService extends ServicePub {
         Param pdRelInfo = new Param();
         rt = mgProductBasicCli.getRelInfoByRlId(aid, unionPriId, sysType, rlPdId, pdRelInfo);
         if(rt != Errno.OK) {
-            if(withAdd && (rt == Errno.NOT_FOUND)){
-                rt = mgProductBasicCli.addProductAndRel(aid, tid, siteId, unionPriId, "", new Param()
+            // sysType为0才触发添加
+            if(withAdd && (rt == Errno.NOT_FOUND) && sysType == 0){
+                if(xid == null) {
+                    xid = "";
+                }
+                rt = mgProductBasicCli.addProductAndRel(aid, tid, siteId, unionPriId, xid, new Param()
                                 .setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId)
+                                .setInt(ProductRelEntity.Info.SYS_TYPE, sysType)
                                 .setBoolean(ProductRelEntity.Info.INFO_CHECK, false)
                         , idRef, new Ref<>());
                 if(rt != Errno.OK) {

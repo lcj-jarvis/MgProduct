@@ -326,7 +326,7 @@ public class ProductSpecService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdIdWithAdd(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
+            rt = getPdIdWithAdd(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, "", idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -482,18 +482,18 @@ public class ProductSpecService extends MgProductInfService {
             }
             int unionPriId = idRef.value;
 
-            // 获取pdId
-            idRef.value = null;
-            rt = getPdIdWithAdd(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
-            if(rt != Errno.OK) {
-                return rt;
-            }
-            int pdId = idRef.value;
-
             GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
             tx.begin(aid, 60000, "mgProduct-unionSetPdScInfoList", flow);
             xid = tx.getXid();
             try {
+                // 获取pdId
+                idRef.value = null;
+                rt = getPdIdWithAdd(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, xid, idRef);
+                if(rt != Errno.OK) {
+                    return rt;
+                }
+                int pdId = idRef.value;
+
                 ProductSpecProc productSpecProc = new ProductSpecProc(flow);
                 FaiList<Param> pdScSkuInfoList = new FaiList<>();
                 // 针对规格的操作

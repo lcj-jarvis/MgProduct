@@ -133,7 +133,7 @@ public class ProductBasicService extends BasicParentService {
             ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
             Integer pdId = relProc.getPdId(aid, unionPriId, sysType, rlPdId);
             if(pdId == null) {
-                Log.logStd("not found pdId;flow=%d;aid=%d;unionPriId=%;sysType=%d;rlPdId=%d", flow, aid, unionPriId, sysType, rlPdId);
+                Log.logStd("not found pdId;flow=%d;aid=%d;unionPriId=%d;sysType=%d;rlPdId=%d", flow, aid, unionPriId, sysType, rlPdId);
                 return Errno.NOT_FOUND;
             }
             // 获取商品业务关系表数据

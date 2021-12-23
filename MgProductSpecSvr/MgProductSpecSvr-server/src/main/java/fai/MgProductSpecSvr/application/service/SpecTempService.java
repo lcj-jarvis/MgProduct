@@ -776,6 +776,7 @@ public class SpecTempService extends SpecParentService {
             }
 
             ParamComparator comparator = new ParamComparator(SpecTempDetailEntity.Info.SORT);
+            comparator.addKey(SpecTempDetailEntity.Info.TP_SC_DT_ID);
             Collections.sort(specTempDetailList, comparator);
             sendDetailInfoList(session, specTempDetailList);
         }finally {

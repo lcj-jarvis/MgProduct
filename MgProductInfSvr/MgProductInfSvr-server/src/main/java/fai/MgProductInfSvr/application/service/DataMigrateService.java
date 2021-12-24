@@ -640,7 +640,7 @@ public class DataMigrateService extends MgProductInfService {
             int rlPdId = ykService.getInt("serviceId");
             String name = ykService.getString("name");
             long price = ykService.getInt("price");
-            String imgList = ykService.getString("post");
+            String imgList = ykService.getString("poster");
             int ykFlag = ykService.getInt("flag");
             int ykStatus = ykService.getInt("status");
             long createTime = ykService.getLong("createTime");

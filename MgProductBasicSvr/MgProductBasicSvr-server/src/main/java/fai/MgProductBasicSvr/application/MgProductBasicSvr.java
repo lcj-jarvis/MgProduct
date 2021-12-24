@@ -63,6 +63,7 @@ public class MgProductBasicSvr {
 
         server.setHandler(new MgProductBasicHandler(server, m_cache));
         server.start();
+        
     }
 
     private static DaoPool getDaoPool(String svrName, int type, int maxSize, String instance) {

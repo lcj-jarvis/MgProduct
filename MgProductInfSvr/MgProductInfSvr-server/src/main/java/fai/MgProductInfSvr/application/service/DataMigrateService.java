@@ -653,6 +653,7 @@ public class DataMigrateService extends MgProductInfService {
             int priceType = ykService.getInt("priceType");
             int modeType = ykService.getInt("modeType");
             int sort = ykService.getInt("sort");
+            int keepIntProp1 = ykService.getInt("serviceType");
 
             int unionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
             int ownUnionPriId = unionPriId;
@@ -754,6 +755,7 @@ public class DataMigrateService extends MgProductInfService {
                 basicInfo.setString(ProductBasicEntity.ProductInfo.IMG_LIST, imgList);
                 basicInfo.setInt(ProductBasicEntity.ProductInfo.STATUS, ykStatus);
                 basicInfo.setInt(ProductBasicEntity.ProductInfo.FLAG, ykFlag);
+                basicInfo.setInt(ProductBasicEntity.ProductInfo.KEEP_INT_PROP1, keepIntProp1);
                 basicInfo.setCalendar(ProductBasicEntity.ProductInfo.CREATE_TIME, sysCreateTime);
                 basicInfo.setCalendar(ProductBasicEntity.ProductInfo.UPDATE_TIME, sysUpdateTime);
 

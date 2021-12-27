@@ -700,7 +700,7 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
     }
 
     @WrittenCmd
-    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.REFRESH_ROLLBACK)
+    @Cmd(MgProductStoreCmd.Cmd.RESTORE_DATA_ROLLBACK)
     private int restoreDataRollback(final FaiSession session,
                                              @ArgFlow final int flow,
                                              @ArgAid final int aid,

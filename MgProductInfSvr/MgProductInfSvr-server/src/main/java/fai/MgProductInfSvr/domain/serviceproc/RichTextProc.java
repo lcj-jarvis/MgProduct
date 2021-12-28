@@ -112,6 +112,37 @@ public class RichTextProc {
         return list;
     }
 
+    public int checkoutAndAdd(String xid, int aid, int tid, int siteId, int lgId, int keepPriId1, int pdId, FaiList<Param> richTextList) {
+        int rt;
+        if(pdId <= 0 || Utils.isEmptyList(richTextList)) {
+            rt = Errno.ARGS_ERROR;
+            Log.logErr("updatePdRichText arg err;aid=%d;tid=%d;siteId=%d;lgId=%d;keepId=%d;pdId=%d;", aid, tid, siteId, lgId, keepPriId1, pdId);
+            return rt;
+        }
+        FaiList<Param> existList = getPdRichText(aid, tid, siteId, lgId, keepPriId1, pdId);
+        FaiList<Integer> existTypes = Utils.getValList(existList, MgRichTextEntity.Info.TYPE);
+        if(existTypes == null) {
+            existTypes = new FaiList<>();
+        }
+        FaiList<Param> addList = new FaiList<>();
+        for(Param richInfo : richTextList) {
+            int type = richInfo.getInt(MgRichTextEntity.Info.TYPE);
+            if(!existTypes.contains(type)) {
+                addList.add(richInfo);
+            }
+        }
+        if(addList.isEmpty()) {
+            return Errno.OK;
+        }
+        rt = addPdRichTexts(xid, aid, tid, siteId, lgId, keepPriId1, pdId, addList);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "addPdRichTexts err;aid=%d;tid=%d;siteId=%d;lgId=%d;keepId=%d;pdId=%d;addList=%s;", aid, tid, siteId, lgId, keepPriId1, pdId, addList);
+            return rt;
+        }
+        Log.logStd("checkoutAndAdd ok;aid=%d;tid=%d;siteId=%d;lgId=%d;keepId=%d;pdId=%d;addList=%s;", aid, tid, siteId, lgId, keepPriId1, pdId, addList);
+        return rt;
+    }
+
     public int updatePdRichText(String xid, int aid, int tid, int siteId, int lgId, int keepPriId1, int pdId, FaiList<Param> richTextList) {
         int rt;
         if(pdId <= 0 || Utils.isEmptyList(richTextList)) {

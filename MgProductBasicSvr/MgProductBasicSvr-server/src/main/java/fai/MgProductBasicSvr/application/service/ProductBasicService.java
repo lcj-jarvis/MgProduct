@@ -2727,12 +2727,23 @@ public class ProductBasicService extends BasicParentService {
                     if(Utils.isEmptyList(list)) {
                         continue;
                     }
-
+                    // 这里克隆数据是为了将数据中的 分类、标签、参数绑定字段去除，不然添加业务关联表会出问题
+                    FaiList<Param> cloneList = list.clone();
+                    cloneList.forEach(o -> {
+                        o.remove(ProductRelEntity.Info.RL_PROPS);
+                        o.remove(ProductRelEntity.Info.RL_GROUP_IDS);
+                        o.remove(ProductRelEntity.Info.RL_TAG_IDS);
+                    });
+                    FaiList<Integer> rlPdIds = relProc.batchAddProductRel(aid, tid, unionPriId, cloneList);
+                    if (rlPdIds.size() != list.size()) {
+                        throw new MgException(Errno.ERROR, "rlPdIds size not equals list size;flow=%d;aid=%d;rlPdIdsSize=%d;listSize=%d;", flow, aid, rlPdIds.size(), list.size());
+                    }
                     int maxSort = relProc.getMaxSort(aid, unionPriId);
+                    int index = 0;
                     for(Param info : list) {
                         Integer sort = info.getInt(ProductRelEntity.Info.SORT);
                         Integer sysType = info.getInt(ProductRelEntity.Info.SYS_TYPE);
-                        Integer rlPdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
+                        Integer rlPdId = rlPdIds.get(index);
                         Integer pdId = info.getInt(ProductRelEntity.Info.PD_ID);
                         if(sort == null) {
                             info.setInt(ProductRelEntity.Info.SORT, ++maxSort);
@@ -2758,7 +2769,6 @@ public class ProductBasicService extends BasicParentService {
                             Log.logStd("add bind rlTagIds ok;flow=%d;aid=%d;uid=%d;rlPdId=%d;pdId=%d;rlTagIds=%s;", flow, aid, unionPriId, rlPdId, pdId, rlTagIds);
                         }
                     }
-                    relProc.batchAddProductRel(aid, tid, unionPriId, list);
                     // 记录要同步给es 的数据
                     ESUtil.batchPreLog(aid, list, DocOplogDef.Operation.UPDATE_ONE);
                 }

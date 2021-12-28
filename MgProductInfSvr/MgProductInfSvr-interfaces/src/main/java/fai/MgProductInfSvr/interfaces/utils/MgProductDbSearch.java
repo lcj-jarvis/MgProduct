@@ -44,6 +44,8 @@ public class MgProductDbSearch extends BaseMgProductSearch {
     private Integer modeType; // 服务模型
     private Integer sysType; // 商品中台系统类型（商品/服务）
 
+    private FaiList<Integer> keepIntProp1List; // 商品表保留字段，目前门店用到该字段来筛选
+
     private String firstComparatorTable;  // 第一排序字段的table
     private String secondComparatorTable = SearchTableNameEnum.MG_PRODUCT_REL.searchTableName;   // 第二排序字段的table,默认是MG_PRODUCT_REL
 
@@ -98,6 +100,7 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         param.setInt(DbSearchInfo.REMAIN_COUNT_END, remainCountEnd);          // 搜索商品 结束 库存
         param.setInt(DbSearchInfo.MODE_TYPE, modeType); // 服务模型
         param.setInt(DbSearchInfo.SYS_TYPE, sysType); // 商品中台系统类型（商品/服务）
+        param.setList(DbSearchInfo.KEEP_INTPROP1_LIST, keepIntProp1List);
 
         // 排序相关
         param.setString(DbSearchInfo.CUSTOM_COMPARATOR_KEY, customComparatorKey); //自定义排序的key
@@ -143,6 +146,7 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         this.remainCountEnd = dbSearchParam.getInt(DbSearchInfo.REMAIN_COUNT_END);      // 搜索商品 结束 库存
         this.modeType = dbSearchParam.getInt(DbSearchInfo.MODE_TYPE); // 服务模型
         this.sysType = dbSearchParam.getInt(DbSearchInfo.SYS_TYPE); // 商品中台系统类型（商品/服务）
+        this.keepIntProp1List = dbSearchParam.getList(DbSearchInfo.KEEP_INTPROP1_LIST);
 
         // 排序相关
         this.customComparatorKey = dbSearchParam.getString(DbSearchInfo.CUSTOM_COMPARATOR_KEY); // 自定义的排序
@@ -181,6 +185,7 @@ public class MgProductDbSearch extends BaseMgProductSearch {
         public static final String REMAIN_COUNT_END = "remainCountEnd"; // 搜索商品 结束 库存
         public static final String MODE_TYPE = "modeType"; // 服务模型
         public static final String SYS_TYPE = "sysType"; // 商品中台系统类型（商品/服务）
+        public static final String KEEP_INTPROP1_LIST = "keepIntProp1List";
 
         public static final String CUSTOM_COMPARATOR_KEY = "customComparatorKey";// 自定义的排序，如果设置了该排序，其他的排序无效（包括es里的排序）
         public static final String CUSTOM_COMPARATOR_TABLE = "customComparatorTable"; // 自定义排序字段所在的表
@@ -363,6 +368,14 @@ public class MgProductDbSearch extends BaseMgProductSearch {
                 paramMatcher = flagMatcher;
             } else {
                 paramMatcher = new ParamMatcher();
+            }
+        }
+
+        if (keepIntProp1List != null) {
+            if (keepIntProp1List.size() == 1) {
+                paramMatcher.and(ProductBasicEntity.ProductInfo.KEEP_INT_PROP1, ParamMatcher.EQ, keepIntProp1List.get(0));
+            } else {
+                paramMatcher.and(ProductBasicEntity.ProductInfo.KEEP_INT_PROP1, ParamMatcher.IN, keepIntProp1List);
             }
         }
         return paramMatcher;
@@ -1003,6 +1016,15 @@ public class MgProductDbSearch extends BaseMgProductSearch {
 
     public MgProductDbSearch setCustomComparatorList(FaiList<?> customComparatorList) {
         this.customComparatorList = customComparatorList;
+        return this;
+    }
+
+    public FaiList<Integer> getKeepIntProp1List() {
+        return keepIntProp1List;
+    }
+
+    public MgProductDbSearch setKeepIntProp1List(FaiList<Integer> keepIntProp1List) {
+        this.keepIntProp1List = keepIntProp1List;
         return this;
     }
 

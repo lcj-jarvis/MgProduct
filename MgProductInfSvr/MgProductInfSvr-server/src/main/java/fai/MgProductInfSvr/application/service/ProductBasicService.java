@@ -1117,6 +1117,11 @@ public class ProductBasicService extends MgProductInfService {
                 /** 修改富文本 start */
                 if(!Utils.isEmptyList(remarkList)) {
                     RichTextProc richTextProc = new RichTextProc(flow);
+                    rt = richTextProc.checkoutAndAdd(xid, aid, tid, siteId, lgId, keepPriId1, pdId, remarkList);
+                    if(rt != Errno.OK) {
+                        Log.logErr(rt, "checkoutAndAdd err;aid=%d;uid=%d;pdId=%d;remarks=%s;", aid, unionPriId, pdId, remarkList);
+                        return rt;
+                    }
                     rt = richTextProc.updatePdRichText(xid, aid, tid, siteId, lgId, keepPriId1, pdId, remarkList);
                     if(rt != Errno.OK) {
                         Oss.logAlarm("updatePdRichText err;aid=" + aid + ";unionPriId=" + unionPriId + ";pdId=" + pdId);

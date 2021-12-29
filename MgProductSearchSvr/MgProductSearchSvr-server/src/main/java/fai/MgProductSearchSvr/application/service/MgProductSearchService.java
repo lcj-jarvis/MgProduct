@@ -470,6 +470,7 @@ public class MgProductSearchService {
                 // 关键字搜索的结果取并集，目前关键字搜索主要用于商品名称，商品条形码，es搜索
                 Set<Integer> searchKeywordPdIdSearchResult = new HashSet<>();
                 searchKeywordTableMappingPdIdParam.values().forEach(pdId_info -> searchKeywordPdIdSearchResult.addAll(pdId_info.keySet()));
+                searchKeywordPdIdSearchResult.addAll(pdIdFromEsSearch);
                 boolean hasSearchKeywordSearch = Objects.nonNull(mgProductEsSearch) && mgProductEsSearch.hasEsSearchKeyWordSearch() ||
                     (!searchKeywordTableMappingPdIdParam.isEmpty());
 

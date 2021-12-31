@@ -40,6 +40,7 @@ public class ProductEntity {
         MANAGE_FIELDS.add(Info.PD_TYPE);
         MANAGE_FIELDS.add(Info.FLAG);
         MANAGE_FIELDS.add(Info.FLAG1);
+        MANAGE_FIELDS.add(Info.KEEP_INT_PROP1);
         MANAGE_FIELDS.setReadOnly(true);
 
         VISITOR_FIELDS = new FaiList<>();

@@ -93,30 +93,30 @@ public class ProductRelCacheCtrl extends CacheCtrl {
 
     /** 空数据缓存 **/
     public static class EmptyCache {
-        public static FaiList<Integer> getNoCacheIds(int aid, int unionPriId, FaiList<Integer> ids) {
+        public static FaiList<Integer> getNoCacheIds(int aid, int unionPriId, int sysType, FaiList<Integer> ids) {
             if(Utils.isEmptyList(ids)) {
                 return null;
             }
-            String cacheKey = getEmptyCacheKey(aid, unionPriId);
+            String cacheKey = getEmptyCacheKey(aid, unionPriId, sysType);
             List<Integer> noCacheIds = EmptyCacheManager.getNotExisted(cacheKey, ids);
             return new FaiList<>(noCacheIds);
         }
 
-        public static void addCacheList(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
-            String cacheKey = getEmptyCacheKey(aid, unionPriId);
+        public static void addCacheList(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds) {
+            String cacheKey = getEmptyCacheKey(aid, unionPriId, sysType);
             EmptyCacheManager.addCacheList(cacheKey, rlPdIds);
         }
 
-        public static void delCache(int aid, int unionPriId, int rlPdId) {
-            EmptyCacheManager.delCache(getEmptyCacheKey(aid, unionPriId), rlPdId);
+        public static void delCache(int aid, int unionPriId, int sysType, int rlPdId) {
+            EmptyCacheManager.delCache(getEmptyCacheKey(aid, unionPriId, sysType), rlPdId);
         }
 
-        public static void delCache(int aid, int unionPriId, FaiList<Integer> rlPdIds) {
-            EmptyCacheManager.delCache(getEmptyCacheKey(aid, unionPriId), rlPdIds);
+        public static void delCache(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds) {
+            EmptyCacheManager.delCache(getEmptyCacheKey(aid, unionPriId, sysType), rlPdIds);
         }
 
-        public static String getEmptyCacheKey(int aid, int unionPriId) {
-            return wrapCacheVersion(EMPTY_CACHE_KEY + "-" + aid + "-" + unionPriId, aid);
+        public static String getEmptyCacheKey(int aid, int unionPriId, int sysType) {
+            return wrapCacheVersion(EMPTY_CACHE_KEY + "-" + aid + "-" + unionPriId + "-" + sysType, aid);
         }
 
         private static final String EMPTY_CACHE_KEY = "MG_pdRelEmpty";
@@ -157,7 +157,7 @@ public class ProductRelCacheCtrl extends CacheCtrl {
                 Integer rlPdId = info.getInt(ProductRelEntity.Info.RL_PD_ID);
                 noCacheIds.remove(rlPdId);
             }
-            nocacheIdsRef.value = EmptyCache.getNoCacheIds(aid, unionPriId, noCacheIds);
+            nocacheIdsRef.value = EmptyCache.getNoCacheIds(aid, unionPriId, sysType, noCacheIds);
 
             return list;
         }
@@ -187,32 +187,32 @@ public class ProductRelCacheCtrl extends CacheCtrl {
 
     /*** sort 字段的 cache ***/
     public static class SortCache {
-        public static void set(int aid, int unionPriId, int sort) {
+        public static void set(int aid, int unionPriId, int sysType, int sort) {
             if(sort < 0) {
                 return;
             }
-            String cacheKey = getCacheKey(aid, unionPriId);
+            String cacheKey = getCacheKey(aid, unionPriId, sysType);
             m_cache.set(cacheKey, String.valueOf(sort));
         }
 
-        public static void del(int aid, int unionPriId) {
-            String cacheKey = getCacheKey(aid, unionPriId);
+        public static void del(int aid, int unionPriId, int sysType) {
+            String cacheKey = getCacheKey(aid, unionPriId, sysType);
             if(!m_cache.exists(cacheKey)) {
                 return;
             }
             m_cache.del(cacheKey);
         }
 
-        public static String get(int aid, int unionPriId) {
-            String cacheKey = getCacheKey(aid, unionPriId);
+        public static String get(int aid, int unionPriId, int sysType) {
+            String cacheKey = getCacheKey(aid, unionPriId, sysType);
             if(!m_cache.exists(cacheKey)) {
                 return null;
             }
             return m_cache.get(cacheKey);
         }
 
-        public static String getCacheKey(int aid, int unionPriId) {
-            return wrapCacheVersion(SORT_CACHE_KEY + "-" + aid + "-" + unionPriId, aid);
+        public static String getCacheKey(int aid, int unionPriId, int sysType) {
+            return wrapCacheVersion(SORT_CACHE_KEY + "-" + aid + "-" + unionPriId + "-" + sysType, aid);
         }
         private static final String SORT_CACHE_KEY = "MG_pdRelSort";
     }

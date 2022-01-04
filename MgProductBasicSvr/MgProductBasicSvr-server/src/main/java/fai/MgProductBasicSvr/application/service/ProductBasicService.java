@@ -938,7 +938,7 @@ public class ProductBasicService extends BasicParentService {
                     pdProc.setSingle(aid, pdId, pdUpdate);
 
                     // gfw
-                    GfwUtil.preWriteGfwLog(aid, tid, siteId, pdId, pdUpdate.getData());
+                    GfwUtil.preWriteGfwLog(aid, tid, siteId, unionPriId, pdId, pdUpdate.getData());
                 }
 
                 // 修改绑定的商品分类
@@ -961,6 +961,9 @@ public class ProductBasicService extends BasicParentService {
                 relProc.transactionEnd(aid);
                 commit = true;
                 tc.commit();
+
+                // gfw
+                GfwUtil.commitPre(tid, relProc);
             } finally {
                 if(!commit){
                     tc.rollback();
@@ -983,9 +986,6 @@ public class ProductBasicService extends BasicParentService {
 
             // 同步数据给es
             ESUtil.logDocId(flow, aid, pdId, unionPriId, DocOplogDef.Operation.UPDATE_ONE);
-
-            // gfw
-            GfwUtil.commitPre(tid);
         }finally {
             LockUtil.unlock(aid);
         }
@@ -1073,10 +1073,13 @@ public class ProductBasicService extends BasicParentService {
                     pdProc.setProducts(aid, pdIdList, pdUpdate);
 
                     // gfw
-                    GfwUtil.preWriteGfwLog(aid, tid, siteId, pdIdList, pdUpdate.getData());
+                    GfwUtil.preWriteGfwLog(aid, tid, siteId, unionPriId, pdIdList, pdUpdate.getData());
                 }
                 commit = true;
                 tc.commit();
+
+                // gfw
+                GfwUtil.commitPre(tid, relProc);
             } finally {
                 if(!commit){
                     tc.rollback();
@@ -1093,8 +1096,6 @@ public class ProductBasicService extends BasicParentService {
 
             // 同步数据给es
             ESUtil.batchLogDocId(flow, aid, unionPriId, pdIdList, DocOplogDef.Operation.UPDATE_ONE);
-            // gfw
-            GfwUtil.commitPre(tid);
         }finally {
             LockUtil.unlock(aid);
         }
@@ -1433,6 +1434,7 @@ public class ProductBasicService extends BasicParentService {
             //统一控制事务
             TransactionCtrl tc = new TransactionCtrl();
             boolean commit = false;
+            ProductRelProc relProc = null;
             try {
                 tc.setAutoCommit(false);
                 // xid不为空，则开启了分布式事务，saga添加一条记录
@@ -1447,7 +1449,7 @@ public class ProductBasicService extends BasicParentService {
 
                 relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
                 // 新增业务关系
-                ProductRelProc relProc = new ProductRelProc(flow, aid, tc, xid, true);
+                relProc = new ProductRelProc(flow, aid, tc, xid, true);
                 Integer sort = relData.getInt(ProductRelEntity.Info.SORT);
                 sysType = relData.getInt(ProductRelEntity.Info.SYS_TYPE);
                 if(sort == null) {
@@ -1482,6 +1484,8 @@ public class ProductBasicService extends BasicParentService {
             } finally {
                 if(commit) {
                     tc.commit();
+                    // gfw
+                    GfwUtil.commitPre(tid, relProc);
                 }else {
                     tc.rollback();
                     ProductDaoCtrl.clearIdBuilderCache(aid);
@@ -1501,8 +1505,6 @@ public class ProductBasicService extends BasicParentService {
             // 同步数据给es
             ESUtil.logDocId(flow, aid, pdId, unionPriId, DocOplogDef.Operation.UPDATE_ONE);
 
-            // gfw
-            GfwUtil.commitPre(tid);
         } finally {
             LockUtil.unlock(aid);
         }
@@ -1574,6 +1576,7 @@ public class ProductBasicService extends BasicParentService {
         try {
             FaiList<Integer> pdIdList;
             FaiList<Integer> rlPdIds;
+            ProductRelProc relProc = null;
             //统一控制事务
             TransactionCtrl tc = new TransactionCtrl();
             boolean commit = false;
@@ -1593,7 +1596,7 @@ public class ProductBasicService extends BasicParentService {
                 GfwUtil.preWriteGfwLog(aid, tid, siteId, pdDataList);
 
                 // 新增业务关系
-                ProductRelProc relProc = new ProductRelProc(flow, aid, tc, xid, true);
+                relProc = new ProductRelProc(flow, aid, tc, xid, true);
                 maxSort = relProc.getMaxSort(aid, unionPriId, sysType);
                 for(int i = 0;i < relDataList.size(); i++) {
                     Param relData = relDataList.get(i);
@@ -1672,6 +1675,8 @@ public class ProductBasicService extends BasicParentService {
                     ProductRelDaoCtrl.clearIdBuilderCache(aid, unionPriId);
                 }else {
                     tc.commit();
+                    // gfw
+                    GfwUtil.commitPre(tid, relProc);
                 }
                 tc.closeDao();
             }
@@ -1702,8 +1707,6 @@ public class ProductBasicService extends BasicParentService {
             // 同步数据给es
             ESUtil.batchLogDocId(flow, aid, unionPriId, pdIdList, DocOplogDef.Operation.UPDATE_ONE);
 
-            // gfw
-            GfwUtil.commitPre(tid);
         } finally {
             LockUtil.unlock(aid);
         }
@@ -3334,10 +3337,11 @@ public class ProductBasicService extends BasicParentService {
         LockUtil.lock(toAid);
         try {
             boolean commit = false;
+            ProductRelProc relProc = null;
             TransactionCtrl tc = new TransactionCtrl();
             tc.setAutoCommit(false);
             try {
-                ProductRelProc relProc = new ProductRelProc(flow, toAid, tc);
+                relProc = new ProductRelProc(flow, toAid, tc);
                 ProductProc pdProc = new ProductProc(flow, toAid, tc);
                 ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, toAid, tc);
                 ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, toAid, tc);
@@ -3489,12 +3493,13 @@ public class ProductBasicService extends BasicParentService {
                     addPdList.add(data);
                 }
 
-                // gfw预记录
-                GfwUtil.preWriteGfwLog(toAid, toTid, toSiteId, addPdList);
-
                 // 插入商品表数据
                 Map<Integer, Integer> fromPdId_toPdId = new HashMap<>();
                 FaiList<Integer> pdIds = pdProc.batchAddProduct(toAid, addPdList);
+
+                // gfw预记录
+                GfwUtil.preWriteGfwLog(toAid, toTid, toSiteId, addPdList);
+
                 // 组装fromPdId 和 toPdId的映射关系
                 for(int i = 0; i < pdIds.size(); i++) {
                     fromPdId_toPdId.put(fromPdIds.get(i), pdIds.get(i));
@@ -3561,6 +3566,8 @@ public class ProductBasicService extends BasicParentService {
             }finally {
                 if(commit) {
                     tc.commit();
+                    // gfw
+                    GfwUtil.commitPre(toTid, relProc);
                 }else {
                     tc.rollback();
                 }
@@ -3568,8 +3575,6 @@ public class ProductBasicService extends BasicParentService {
             }
             // 清缓存
             CacheCtrl.clearCacheVersion(toAid);
-            // gfw
-            GfwUtil.commitPre(toTid);
 
             // es
             ESUtil.commitPre(flow, toAid);

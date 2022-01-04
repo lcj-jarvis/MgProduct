@@ -1,5 +1,6 @@
 package fai.MgProductInfSvr.domain.serviceproc;
 
+import fai.MgProductInfSvr.domain.comm.gfw.GfwUtil;
 import fai.MgRichTextInfSvr.interfaces.cli.MgRichTextInfCli;
 import fai.MgRichTextInfSvr.interfaces.entity.MgRichTextEntity;
 import fai.MgRichTextInfSvr.interfaces.entity.MgRichTextValObj;
@@ -23,7 +24,7 @@ public class RichTextProc {
         m_cli = createCli();
     }
 
-    public int addPdRichTexts(String xid, int aid, int tid, int siteId, int lgId, int keepPriId1, int pdId, FaiList<Param> richList) {
+    public int addPdRichTexts(String xid, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, int pdId, FaiList<Param> richList) {
         int rt;
         if(pdId <= 0 || Utils.isEmptyList(richList)) {
             rt = Errno.ARGS_ERROR;
@@ -41,9 +42,11 @@ public class RichTextProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "updatePdRichText err;aid=%d;tid=%d;siteId=%d;lgId=%d;keepId=%d;pdId=%d;", aid, tid, siteId, lgId, keepPriId1, pdId);
         }
+        GfwUtil.writeRichGfwLog(aid, tid, siteId, rlPdId, richList);
         return rt;
     }
 
+    // 迁移门店通数据用，不做gfw上报，如后续对外开放，需做上报处理
     public void batchAdd(String xid, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Param> richList) {
         int rt;
         if(Utils.isEmptyList(richList)) {
@@ -112,7 +115,7 @@ public class RichTextProc {
         return list;
     }
 
-    public int checkoutAndAdd(String xid, int aid, int tid, int siteId, int lgId, int keepPriId1, int pdId, FaiList<Param> richTextList) {
+    public int checkoutAndAdd(String xid, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, int pdId, FaiList<Param> richTextList) {
         int rt;
         if(pdId <= 0 || Utils.isEmptyList(richTextList)) {
             rt = Errno.ARGS_ERROR;
@@ -134,7 +137,7 @@ public class RichTextProc {
         if(addList.isEmpty()) {
             return Errno.OK;
         }
-        rt = addPdRichTexts(xid, aid, tid, siteId, lgId, keepPriId1, pdId, addList);
+        rt = addPdRichTexts(xid, aid, tid, siteId, lgId, keepPriId1, rlPdId, pdId, addList);
         if(rt != Errno.OK) {
             Log.logErr(rt, "addPdRichTexts err;aid=%d;tid=%d;siteId=%d;lgId=%d;keepId=%d;pdId=%d;addList=%s;", aid, tid, siteId, lgId, keepPriId1, pdId, addList);
             return rt;
@@ -143,7 +146,7 @@ public class RichTextProc {
         return rt;
     }
 
-    public int updatePdRichText(String xid, int aid, int tid, int siteId, int lgId, int keepPriId1, int pdId, FaiList<Param> richTextList) {
+    public int updatePdRichText(String xid, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, int pdId, FaiList<Param> richTextList) {
         int rt;
         if(pdId <= 0 || Utils.isEmptyList(richTextList)) {
             rt = Errno.ARGS_ERROR;
@@ -161,6 +164,7 @@ public class RichTextProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "updatePdRichText err;aid=%d;tid=%d;siteId=%d;lgId=%d;keepId=%d;pdId=%d;", aid, tid, siteId, lgId, keepPriId1, pdId);
         }
+        GfwUtil.writeRichGfwLog(aid, tid, siteId, rlPdId, richTextList);
         return rt;
     }
 

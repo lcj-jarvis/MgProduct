@@ -4,6 +4,8 @@ import fai.MgProductBasicSvr.domain.common.gfw.MgGfw;
 import fai.MgProductBasicSvr.domain.common.gfw.SiteGfw;
 import fai.MgProductBasicSvr.domain.common.gfw.YkGfw;
 import fai.MgProductBasicSvr.domain.entity.ProductEntity;
+import fai.MgProductBasicSvr.domain.entity.ProductRelEntity;
+import fai.MgProductBasicSvr.domain.serviceproc.ProductRelProc;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.util.FaiList;
 import fai.comm.util.Log;
@@ -26,18 +28,19 @@ public class GfwUtil {
         }
     }
 
-    public static void preWriteGfwLog(int aid, int tid, int siteId, int pdId, Param info) {
+    public static void preWriteGfwLog(int aid, int tid, int siteId, int unionPriId, int pdId, Param info) {
         MgGfw mgGfw = getGfw(tid);
         if(mgGfw == null) {
-            Log.logErr("get mg gfw error;tid=%s;siteId=%s;info=%s", tid, siteId, info);
+            Log.logErr("get mg gfw error;tid=%s;siteId=%s;unionPriId=%s;info=%s", tid, siteId, unionPriId, info);
             return;
         }
         info = info.clone();
-        info.setInt(ProductEntity.Info.PD_ID, pdId);
+        info.setInt(ProductRelEntity.Info.PD_ID, pdId);
+        info.setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId);
         mgGfw.preWriteGfwLog(aid, siteId, info);
     }
 
-    public static void preWriteGfwLog(int aid, int tid, int siteId, FaiList<Integer> pdIds, Param info) {
+    public static void preWriteGfwLog(int aid, int tid, int siteId, int unionPriId, FaiList<Integer> pdIds, Param info) {
         MgGfw mgGfw = getGfw(tid);
         if(mgGfw == null) {
             Log.logErr("get mg gfw error;tid=%s;siteId=%s;info=%s", tid, siteId, info);
@@ -46,7 +49,8 @@ public class GfwUtil {
         FaiList<Param> list = new FaiList<>();
         for(int pdId : pdIds) {
             Param data = info.clone();
-            data.setInt(ProductEntity.Info.PD_ID, pdId);
+            data.setInt(ProductRelEntity.Info.PD_ID, pdId);
+            data.setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId);
             list.add(data);
         }
         mgGfw.preWriteGfwLog(aid, siteId, list);
@@ -70,12 +74,12 @@ public class GfwUtil {
         mgGfw.preWriteGfwLog(aid, siteId, list);
     }
 
-    public static void commitPre(int tid) {
+    public static void commitPre(int tid, ProductRelProc relProc) {
         MgGfw mgGfw = getGfw(tid);
         if(mgGfw == null) {
             Log.logErr("get mg gfw error;tid=%s;", tid);
             return;
         }
-        mgGfw.commitPre();
+        mgGfw.commitPre(relProc);
     }
 }

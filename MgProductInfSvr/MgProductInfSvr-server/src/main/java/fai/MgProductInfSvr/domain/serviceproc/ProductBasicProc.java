@@ -263,6 +263,7 @@ public class ProductBasicProc {
     /**
      * 批量设置商品的状态
      * for 门店通总店批量设置上下架，若门店数据不存在，则添加
+     * 可修改：分类绑定，top 字段 （现阶段接入使用的字段）
      * @return
      */
     public FaiList<Param> batchSet4YK(int aid, String xid, int ownUnionPriId, int sysType, FaiList unionPriIds, FaiList<Integer> rlPdIds, ParamUpdater updater) {

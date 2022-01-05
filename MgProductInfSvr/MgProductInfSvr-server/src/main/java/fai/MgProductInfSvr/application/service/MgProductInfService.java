@@ -1069,6 +1069,7 @@ public class MgProductInfService extends ServicePub {
     /**
      * 批量设置商品的状态
      * for 门店通总店批量设置上下架：若门店数据不存在，则添加
+     * 可修改：分类绑定，top 字段 （现阶段接入使用的字段）
      */
     @SuccessRt(Errno.OK)
     public int batchSet4YK(FaiSession session, int flow, int aid, Param ownPrimaryKey, int sysType, FaiList<Integer> rlPdIds, FaiList<Param> primaryKeys, ParamUpdater basicUpdater) throws IOException, TransactionException {

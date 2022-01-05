@@ -1128,7 +1128,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
 
     /**
      * for yk 批量修改多门店数据
-     * 支持修改上下架状态、绑定分类
+     * 支持修改上下架状态、绑定分类、top 字段 （现阶段接入使用的字段）
      * @param mgProductArg
      * @return
      */

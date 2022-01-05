@@ -1157,12 +1157,12 @@ public class ProductBasicService extends MgProductInfService {
                 /** 修改富文本 start */
                 if(!Utils.isEmptyList(remarkList)) {
                     RichTextProc richTextProc = new RichTextProc(flow);
-                    rt = richTextProc.checkoutAndAdd(xid, aid, tid, siteId, lgId, keepPriId1, pdId, remarkList);
+                    rt = richTextProc.checkoutAndAdd(xid, aid, tid, siteId, lgId, keepPriId1, rlPdId, pdId, remarkList);
                     if(rt != Errno.OK) {
                         Log.logErr(rt, "checkoutAndAdd err;aid=%d;uid=%d;pdId=%d;remarks=%s;", aid, unionPriId, pdId, remarkList);
                         return rt;
                     }
-                    rt = richTextProc.updatePdRichText(xid, aid, tid, siteId, lgId, keepPriId1, pdId, remarkList);
+                    rt = richTextProc.updatePdRichText(xid, aid, tid, siteId, lgId, keepPriId1, rlPdId, pdId, remarkList);
                     if(rt != Errno.OK) {
                         Oss.logAlarm("updatePdRichText err;aid=" + aid + ";unionPriId=" + unionPriId + ";pdId=" + pdId);
                         Log.logErr(rt, "updatePdRichText err;aid=%d;uid=%d;pdId=%d;remarks=%s;", aid, unionPriId, pdId, remarkList);
@@ -1487,7 +1487,7 @@ public class ProductBasicService extends MgProductInfService {
                 // 添加富文本
                 FaiList<Param> remarkList = RichTextConverter.getRemarkList(basicInfo, true);
                 RichTextProc richTextProc = new RichTextProc(flow);
-                rt = richTextProc.addPdRichTexts(xid, aid, tid, siteId, lgId, keepPriId1, pdIdRef.value, remarkList);
+                rt = richTextProc.addPdRichTexts(xid, aid, tid, siteId, lgId, keepPriId1, rlPdIdRef.value, pdIdRef.value, remarkList);
                 if(rt != Errno.OK) {
                     return rt;
                 }

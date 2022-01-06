@@ -352,6 +352,59 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
         }
     }
 
+    /**
+     * 根据业务商品id获取skuId集 (可获取软删除的商品 skuId)
+     * 只对 YK 开放，用于 YK 的同步脚本，直到服务规格上线后废弃
+     * MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *               .setRlPdIds(rlPdIdList)
+     *               .setWithSpu(withSpuInfo)
+     *               .setSysType(sysType)
+     *               .build();
+     */
+    public int getPdSkuIdInfoList4YK(MgProductArg mgProductArg, FaiList<Param> infoList) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            int aid = mgProductArg.getAid();
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            FaiList<Integer> rlPdIdList = mgProductArg.getRlPdIds();
+            if(rlPdIdList == null){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "rlPdIdList error");
+                return m_rt;
+            }
+            if (infoList == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "infoList error");
+                return m_rt;
+            }
+            // packaging send data
+            FaiBuffer sendBody = getPrimaryKeyBuffer(mgProductArg);
+            sendBody.putInt(ProductSpecDto.Key.SYS_TYPE, mgProductArg.getSysType());
+            rlPdIdList.toBuffer(sendBody, ProductSpecDto.Key.ID_LIST);
+            // send and recv
+            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.ProductSpecSkuCmd.GET_SKU_ID_LIST_4YK, sendBody, true);
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<Integer>();
+            m_rt = infoList.fromBuffer(recvBody, keyRef, ProductSpecDto.SpecSku.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductSpecDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
+
     @Deprecated
     public int searchPdSkuIdInfoListBySkuCode(int aid, int tid, int siteId, int lgId, int keepPriId1, String skuCodeKeyWord, Param condition, FaiList<Param> skuIdInfoList) {
         MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)

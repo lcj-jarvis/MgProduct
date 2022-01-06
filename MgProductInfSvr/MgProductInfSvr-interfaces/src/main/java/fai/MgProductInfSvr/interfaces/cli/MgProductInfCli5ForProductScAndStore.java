@@ -354,7 +354,6 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
 
     /**
      * 根据业务商品id获取skuId集 (可获取软删除的商品 skuId)
-     * 只对 YK 开放，用于 YK 的同步脚本，直到服务规格上线后废弃
      * MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
      *               .setRlPdIds(rlPdIdList)
      *               .setWithSpu(withSpuInfo)

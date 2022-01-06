@@ -361,7 +361,7 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
      *               .setSysType(sysType)
      *               .build();
      */
-    public int getPdSkuIdInfoList4YK(MgProductArg mgProductArg, FaiList<Param> infoList) {
+    public int getPdSkuIdInfoListWithDel(MgProductArg mgProductArg, FaiList<Param> infoList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -385,9 +385,10 @@ public class MgProductInfCli5ForProductScAndStore extends MgProductInfCli4ForPro
             // packaging send data
             FaiBuffer sendBody = getPrimaryKeyBuffer(mgProductArg);
             sendBody.putInt(ProductSpecDto.Key.SYS_TYPE, mgProductArg.getSysType());
+            sendBody.putBoolean(ProductSpecDto.Key.WITH_SPU_INFO, mgProductArg.getWithSpu());
             rlPdIdList.toBuffer(sendBody, ProductSpecDto.Key.ID_LIST);
             // send and recv
-            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.ProductSpecSkuCmd.GET_SKU_ID_LIST_4YK, sendBody, true);
+            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.ProductSpecSkuCmd.GET_SKU_ID_LIST_WITH_DEL, sendBody, true);
             if (m_rt != Errno.OK) {
                 return m_rt;
             }

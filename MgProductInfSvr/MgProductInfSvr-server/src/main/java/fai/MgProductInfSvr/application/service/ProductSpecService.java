@@ -1019,10 +1019,9 @@ public class ProductSpecService extends MgProductInfService {
     }
 
     /**
-     * 根据业务商品id获取skuId集 (可获取软删除的商品 skuId)
-     * 只对 YK 开放，用于 YK 的同步脚本，直到服务规格上线后废弃
+     * 根据业务商品id获取skuId信息 (可获取软删除的商品 skuId)
      */
-    public int getPdSkuIdInfoList4YK(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, FaiList<Integer> rlPdIdList) throws IOException {
+    public int getPdSkuIdInfoListWithDel(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, boolean withSpuInfo, FaiList<Integer> rlPdIdList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -1056,8 +1055,8 @@ public class ProductSpecService extends MgProductInfService {
             }
 
             ProductSpecProc productSpecProc = new ProductSpecProc(flow);
-            FaiList<Param> infoList = new FaiList<Param>();
-            rt = productSpecProc.getPdSkuIdInfoList(aid, tid, pdIdList, false, infoList);
+            FaiList<Param> infoList = new FaiList<>();
+            rt = productSpecProc.getPdSkuIdInfoList(aid, tid, pdIdList, withSpuInfo, infoList);
             if(rt != Errno.OK) {
                 return rt;
             }

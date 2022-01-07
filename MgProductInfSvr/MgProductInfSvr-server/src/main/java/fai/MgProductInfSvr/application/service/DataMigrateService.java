@@ -843,6 +843,7 @@ public class DataMigrateService extends MgProductInfService {
         ProductBasicProc basicProc = new ProductBasicProc(flow);
         // 先找出是否是重复迁移数据的 pdId, 如果存在则清除基础信息中的数据
         FaiList<Integer> migratePdIds = basicProc.getMigratePdIds(aid, sysType);
+        Log.logDbg("needDelPdId=%s", migratePdIds);
 
         // 同步基础信息
         FaiList<Param> returnList = basicProc.dataMigrate(aid, tid, serviceList, sysType);

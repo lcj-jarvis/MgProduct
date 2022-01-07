@@ -669,8 +669,8 @@ public class DataMigrateService extends MgProductInfService {
                     rt = Errno.ERROR;
                     throw new MgException(rt, "data error,ykServiceSub is empty;aid=%d;yid=%d;serviceId=%d;storeId=%d", siteId, rlPdId, keepPriId1);
                 }
-                String remark = ykServiceSub.getString("context");
-                String remark1 = ykServiceSub.getString("detail");
+                String remark = ykServiceSub.getString("context", "");
+                String remark1 = ykServiceSub.getString("detail", "");
 
                 FaiList<Param> remarkList = remarkMap.get(unionPriId);
                 if(remarkList == null) {

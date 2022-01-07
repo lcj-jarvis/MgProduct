@@ -37,17 +37,16 @@ public class MigrateService {
                     if(rt != Errno.OK) {
                         return rt;
                     }
-
-                }finally {
-                    if(rt != Errno.OK){
-                        tc.rollback();
-                        return rt;
-                    }
                     // 事务提交前先设置一个较短的过期时间
                     spuBizSummaryProc.setDirtyCacheEx(aid);
                     tc.commit();
                     // 提交成功再删除缓存
                     spuBizSummaryProc.deleteDirtyCache(aid);
+                }finally {
+                    if(rt != Errno.OK){
+                        tc.rollback();
+                        return rt;
+                    }
                 }
             }finally {
                 LockUtil.unlock(aid);
@@ -85,12 +84,12 @@ public class MigrateService {
                         return rt;
                     }
 
+                    tc.commit();
                 }finally {
                     if(rt != Errno.OK){
                         tc.rollback();
                         return rt;
                     }
-                    tc.commit();
                 }
             }finally {
                 LockUtil.unlock(aid);
@@ -130,12 +129,12 @@ public class MigrateService {
 
                 commit = true;
                 rt = Errno.OK;
+                tc.commit();
             } finally {
                 if (!commit) {
                     tc.rollback();
                     return rt;
                 }
-                tc.commit();
             }
         } finally {
             LockUtil.unlock(aid);

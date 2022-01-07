@@ -2067,13 +2067,13 @@ public class ProductSpecService extends SpecParentService {
                     returnList = productSpecSkuProc.migrateYkService(aid, skuList);
 
                     commit = true;
+                    tc.commit();
                 } finally {
                     if(!commit){
                         productSpecProc.clearIdBuilderCache(aid);
                         productSpecSkuProc.clearIdBuilderCache(aid);
                         tc.rollback();
                     }
-                    tc.commit();
                     productSpecProc.deleteDirtyCache(aid);
                     productSpecSkuProc.deleteDirtyCache(aid);
                 }

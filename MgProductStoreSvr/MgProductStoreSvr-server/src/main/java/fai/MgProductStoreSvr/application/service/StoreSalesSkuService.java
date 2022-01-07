@@ -2000,12 +2000,12 @@ public class StoreSalesSkuService extends StoreService {
                         return rt;
                     }
 
+                    tc.commit();
                 }finally {
                     if(rt != Errno.OK){
                         tc.rollback();
                         return rt;
                     }
-                    tc.commit();
                 }
             }finally {
                 LockUtil.unlock(aid);

@@ -665,7 +665,7 @@ public class DataMigrateService extends MgProductInfService {
             // 富文本数据，只处理总部的数据
             if (keepPriId1 == 0) {
                 Param ykServiceSub = ykServiceSubMap.get(siteId + "-" + rlPdId + "-" + keepPriId1);
-                if (Str.isEmpty(ykService)) {
+                if (Str.isEmpty(ykServiceSub)) {
                     rt = Errno.ERROR;
                     throw new MgException(rt, "data error,ykServiceSub is empty;aid=%d;yid=%d;serviceId=%d;storeId=%d", siteId, rlPdId, keepPriId1);
                 }

@@ -194,6 +194,7 @@ public class ProductStoreEntity {
 
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
+        public static final String SYS_TYPE = "sysType";                            // int 系统类型
     }
 
     /**

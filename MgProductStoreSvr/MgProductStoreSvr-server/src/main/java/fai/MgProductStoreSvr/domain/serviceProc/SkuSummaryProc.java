@@ -142,6 +142,7 @@ public class SkuSummaryProc {
                 data.assign(info, SkuSummaryEntity.Info.COUNT);
                 data.assign(info, SkuSummaryEntity.Info.REMAIN_COUNT);
                 data.assign(info, SkuSummaryEntity.Info.HOLDING_COUNT);
+                data.assign(info, SkuSummaryEntity.Info.SYS_TYPE);
                 addDataList.add(data);
             }
             rt = m_daoCtrl.batchInsert(addDataList, null, true);
@@ -597,7 +598,7 @@ public class SkuSummaryProc {
         }
     }
 
-    public void skuSummaryProc(int aid, FaiList<Integer> pdIds, boolean isSaga) {
+    public void restoreData(int aid, FaiList<Integer> pdIds, boolean isSaga) {
         int rt;
         if (Utils.isEmptyList(pdIds)) {
             rt = Errno.ARGS_ERROR;

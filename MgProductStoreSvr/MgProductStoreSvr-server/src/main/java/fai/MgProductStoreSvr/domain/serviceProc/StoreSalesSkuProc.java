@@ -1165,6 +1165,7 @@ public class StoreSalesSkuProc {
         Dao.SelectArg selectArg = new Dao.SelectArg();
         selectArg.field = StoreSalesSkuEntity.Info.PD_ID + ", " +
                 StoreSalesSkuEntity.Info.SKU_ID + ", " +
+                StoreSalesSkuEntity.Info.SYS_TYPE + ", " +
                 COMM_REPORT_FIELDS;
         selectArg.group = StoreSalesSkuEntity.Info.SKU_ID;
         selectArg.searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);

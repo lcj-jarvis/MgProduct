@@ -529,6 +529,7 @@ public class StoreSalesSkuService extends StoreService {
                         int pdId = reportInfo.getInt(StoreSalesSkuEntity.Info.PD_ID);
                         int unionPriId = reportInfo.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
                         long skuId = reportInfo.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                        int sysType = reportInfo.getInt(StoreSalesSkuEntity.Info.SYS_TYPE);
                         // 计算spu+业务维度的汇总
                         {
                             Param spuBizSummaryInfo = new Param();
@@ -579,6 +580,7 @@ public class StoreSalesSkuService extends StoreService {
                                 skuSummaryInfo = new Param();
                                 skuSummaryInfo.setInt(SkuSummaryEntity.Info.PD_ID, pdId);
                                 skuSummaryInfo.setInt(SkuSummaryEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
+                                skuSummaryInfo.setInt(SkuSummaryEntity.Info.SYS_TYPE, sysType);
                                 skuIdSkuSummaryInfoMap.put(skuId, skuSummaryInfo);
                             }
                             int lastCount = skuSummaryInfo.getInt(SkuSummaryEntity.Info.COUNT, 0);

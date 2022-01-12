@@ -297,7 +297,7 @@ public class StoreService extends StoreParentService {
 
                 spuBizSummaryProc.restoreData(aid, pdIds, isSaga);
 
-                skuSummaryProc.skuSummaryProc(aid, pdIds, isSaga);
+                skuSummaryProc.restoreData(aid, pdIds, isSaga);
 
                 if (isSaga) {
                     // 将预记录的修改数据持久化到 db
@@ -858,6 +858,7 @@ public class StoreService extends StoreParentService {
         skuSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.MAX_PRICE, SkuSummaryEntity.Info.MAX_PRICE);
         skuSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.SUM_FIFO_TOTAL_COST, SkuSummaryEntity.Info.FIFO_TOTAL_COST);
         skuSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.SUM_MW_TOTAL_COST, SkuSummaryEntity.Info.MW_TOTAL_COST);
+        skuSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.Info.SYS_TYPE, SkuSummaryEntity.Info.SYS_TYPE);
     }
 
 

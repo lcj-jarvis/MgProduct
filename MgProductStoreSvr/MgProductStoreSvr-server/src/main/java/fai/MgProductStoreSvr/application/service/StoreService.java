@@ -459,6 +459,13 @@ public class StoreService extends StoreParentService {
                         if(rt != Errno.OK){
                             return rt;
                         }
+                        // 需要在第一个事务里就添加 saga 状态记录
+                        // 如果在后面记录的话，当后面的事务失败回滚时，会将状态记录回滚掉，这样 saga 补偿进来后查不到记录就会认为是空补偿或悬挂，而无法补偿第一次事务提交的内容
+                        StoreSagaProc storeSagaProc = new StoreSagaProc(flow, aid, transactionCtrl);
+                        rt = storeSagaProc.add(aid, xid, RootContext.getBranchId());
+                        if (rt != Errno.OK) {
+                            return rt;
+                        }
                     }finally {
                         if(rt != Errno.OK){
                             inOutStoreRecordProc.clearIdBuilderCache(aid);
@@ -489,11 +496,6 @@ public class StoreService extends StoreParentService {
                             return rt;
                         }
                         rt = skuSummaryProc.addUpdateSaga2Db(aid);
-                        if (rt != Errno.OK) {
-                            return rt;
-                        }
-                        StoreSagaProc storeSagaProc = new StoreSagaProc(flow, aid, transactionCtrl);
-                        rt = storeSagaProc.add(aid, xid, RootContext.getBranchId());
                         if (rt != Errno.OK) {
                             return rt;
                         }

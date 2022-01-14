@@ -181,10 +181,12 @@ public class SpuBizSummaryProc {
                 return rt;
             }
         }
-        rt = m_daoCtrl.batchInsert(list, null, true);
-        if(rt != Errno.OK) {
-            Log.logErr(rt, "copyBizBind error;flow=%d;aid=%d;fromUid=%s;toUid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
-            return rt;
+        if (!Utils.isEmptyList(list)) {
+            rt = m_daoCtrl.batchInsert(list, null, true);
+            if(rt != Errno.OK) {
+                Log.logErr(rt, "copyBizBind error;flow=%d;aid=%d;fromUid=%s;toUid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
+                return rt;
+            }
         }
 
         Log.logStd("copyBizBind ok;flow=%d;aid=%d;fromUid=%s;toUid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);

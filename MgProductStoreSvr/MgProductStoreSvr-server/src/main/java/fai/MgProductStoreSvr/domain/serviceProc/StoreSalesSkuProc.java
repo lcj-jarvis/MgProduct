@@ -175,6 +175,8 @@ public class StoreSalesSkuProc {
                 Log.logErr(rt, "cloneBizBind error;flow=%d;aid=%d;fromUid=%s;toUid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
                 return rt;
             }
+        } else {
+            return Errno.OK;
         }
         Log.logStd("copyBizBind ok;flow=%d;aid=%d;fromUid=%s;toUid=%s;pdIds=%s;", m_flow, aid, fromUnionPriId, toUnionPriId, pdIds);
         return rt;

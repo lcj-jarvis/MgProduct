@@ -203,6 +203,8 @@ public class SpuBizSummaryProc {
                 Log.logErr(rt, "copyBizBind error;flow=%d;aid=%d;fromUid=%s;toUid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
                 return rt;
             }
+        } else {
+            return Errno.OK;
         }
 
         Log.logStd("copyBizBind ok;flow=%d;aid=%d;fromUid=%s;toUid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);

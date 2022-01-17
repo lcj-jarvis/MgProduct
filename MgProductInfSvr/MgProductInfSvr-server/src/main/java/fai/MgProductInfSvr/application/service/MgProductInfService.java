@@ -1189,11 +1189,6 @@ public class MgProductInfService extends ServicePub {
             }
             int pdId = idRef.value;
 
-            ParamUpdater spuUpdater = (ParamUpdater) combinedUpdate.getObject(MgProductEntity.Info.SPU_SALES);
-            if(spuUpdater != null && !spuUpdater.isEmpty()) {
-                storeProc.batchSetSpuBizSummary(aid, xid, unionPriIds, Utils.asFaiList(pdId), spuUpdater);
-            }
-
             FaiList<ParamUpdater> storeUpdaters = combinedUpdate.getList(MgProductEntity.Info.STORE_SALES);
 
             /** 库存信息修改 start */
@@ -1235,6 +1230,12 @@ public class MgProductInfService extends ServicePub {
                 rt = storeProc.batchSetSkuStoreSales(aid, xid, tid, ownUnionPriId, unionPriIds, pdId, rlPdId, sysType, storeUpdaters);
                 if(rt != Errno.OK) {
                     return rt;
+                }
+
+                // 2022/1/15 spu 的修改放在 storeSales 后面, 因为门店通在 batchSetSkuStoreSales 时可能会添加其他门店的销售库存信息，然后汇总出 spuBiz 数据，如果先修改 spu 的话，门店的数据无法修改到
+                ParamUpdater spuUpdater = (ParamUpdater) combinedUpdate.getObject(MgProductEntity.Info.SPU_SALES);
+                if(spuUpdater != null && !spuUpdater.isEmpty()) {
+                    storeProc.batchSetSpuBizSummary(aid, xid, unionPriIds, Utils.asFaiList(pdId), spuUpdater);
                 }
             }
 

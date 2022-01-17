@@ -572,11 +572,9 @@ public class MgProductSearchService {
 
             // 排序优先级：自定义排序 > 第一排序 > 第二排序 > es排序
 
-            // 根据es的结果定制排序，保证es的排序优先级最低
-            boolean hasComparatorInEs = (Objects.nonNull(mgProductEsSearch) && mgProductEsSearch.hasFirstComparator()) ||
-                (Objects.nonNull(mgProductEsSearch) && mgProductEsSearch.isNeedSecondComparatorSorting());
-            if (!resultList.isEmpty() && hasComparatorInEs) {
-                Log.logStd("have comparator in es;Sorted by es pdIds;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
+            // 根据es的结果定制排序，保证es的排序优先级最低.es默认按照匹配度进行排序，所以不管有没有排序，最终结果都对es的结果进行一次自定义排序，尽量保证匹配度最高的在前面。
+            if (!resultList.isEmpty()) {
+                Log.logStd("Sorted by es pdIds;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
                 // 根据es的结果进行定制排序
                 ParamComparator customComparatorOfEsSearchResult = new ParamComparator();
                 customComparatorOfEsSearchResult.addKey(ProductEntity.Info.PD_ID, pdIdFromEsSearch);

@@ -383,6 +383,7 @@ public class MgProductSearchProc {
         info.setLong(DataStatus.Info.VISITOR_LAST_UPDATE_TIME, visitorDataUpdateTime);
         info.setInt(DataStatus.Info.TOTAL_SIZE, dataAllSize);
         info.setObject(SEARCH_MATCHER, searchMatcher);
+        Log.logStd("=====>dataStatusInfo=%s", info);
         // 线程安全的Map
         tableMappingSearchAndSortInfo.put(searchTableName, info);
     }

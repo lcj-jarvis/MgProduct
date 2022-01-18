@@ -1302,6 +1302,7 @@ public class ProductRelProc {
 
     private FaiList<Param> getListByPdId(int aid, int unionPriId, HashSet<Integer> pdIds) {
         FaiList<Param> list = getList(aid, unionPriId, pdIds, false);
+        // 2022-1-18, 因为中台会将软删除数据也加入到缓存中，所以存在读取到缓存的可能性，这个方法不查询软删除，则将软删除数据手动过滤
         list.removeIf(param -> param.getInt(ProductRelEntity.Info.STATUS) == ProductRelValObj.Status.DEL);
         return list;
     }

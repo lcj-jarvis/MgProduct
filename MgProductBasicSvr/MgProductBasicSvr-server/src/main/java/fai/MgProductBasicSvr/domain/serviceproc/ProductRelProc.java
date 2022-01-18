@@ -3,7 +3,9 @@ package fai.MgProductBasicSvr.domain.serviceproc;
 import fai.MgBackupSvr.interfaces.entity.MgBackupEntity;
 import fai.MgProductBasicSvr.domain.common.ESUtil;
 import fai.MgProductBasicSvr.domain.common.MgProductCheck;
-import fai.MgProductBasicSvr.domain.entity.*;
+import fai.MgProductBasicSvr.domain.entity.ProductEntity;
+import fai.MgProductBasicSvr.domain.entity.ProductRelEntity;
+import fai.MgProductBasicSvr.domain.entity.ProductRelValObj;
 import fai.MgProductBasicSvr.domain.repository.cache.ProductRelCacheCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.ProductRelDaoCtrl;
 import fai.MgProductBasicSvr.domain.repository.dao.bak.ProductRelBakDaoCtrl;
@@ -13,11 +15,10 @@ import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.middleground.FaiValObj;
 import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
-import fai.mgproduct.comm.Util;
 import fai.mgproduct.comm.entity.SagaEntity;
 import fai.mgproduct.comm.entity.SagaValObj;
-import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.exception.MgException;
+import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.*;
@@ -1253,7 +1254,9 @@ public class ProductRelProc {
     }
 
     private FaiList<Param> getListByPdId(int aid, int unionPriId, HashSet<Integer> pdIds) {
-        return getList(aid, unionPriId, pdIds, false);
+        FaiList<Param> list = getList(aid, unionPriId, pdIds, false);
+        list.removeIf(param -> param.getInt(ProductRelEntity.Info.STATUS) == ProductRelValObj.Status.DEL);
+        return list;
     }
 
     private FaiList<Param> getList(int aid, int unionPriId, HashSet<Integer> pdIds, boolean withDel) {

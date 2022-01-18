@@ -1301,7 +1301,9 @@ public class ProductRelProc {
     }
 
     private FaiList<Param> getListByPdId(int aid, int unionPriId, HashSet<Integer> pdIds) {
-        return getList(aid, unionPriId, pdIds, false);
+        FaiList<Param> list = getList(aid, unionPriId, pdIds, false);
+        list.removeIf(param -> param.getInt(ProductRelEntity.Info.STATUS) == ProductRelValObj.Status.DEL);
+        return list;
     }
 
     private FaiList<Param> getList(int aid, int unionPriId, HashSet<Integer> pdIds, boolean withDel) {

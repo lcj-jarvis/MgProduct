@@ -1073,7 +1073,7 @@ public class ProductBasicService extends BasicParentService {
                     pdProc.setProducts(aid, pdIdList, pdUpdate);
 
                     // gfw
-                    GfwUtil.preWriteGfwLog(aid, tid, siteId, unionPriId, pdIdList, pdUpdate.getData());
+                    GfwUtil.preWriteGfwLog(aid, tid, siteId, pdIdList, pdUpdate.getData());
                 }
                 commit = true;
                 tc.commit();
@@ -1494,8 +1494,6 @@ public class ProductBasicService extends BasicParentService {
                 tc.closeDao();
             }
             // 更新缓存
-            ProductCacheCtrl.InfoCache.addCache(aid, pdData);
-            ProductRelCacheCtrl.InfoCache.addCache(aid, unionPriId, relData);
             ProductCacheCtrl.DataStatusCache.update(aid, 1); // 更新数据状态缓存
             ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, 1); // 更新数据状态缓存
             ProductRelCacheCtrl.SortCache.set(aid, unionPriId, sysType, maxSort); // sort缓存
@@ -1683,11 +1681,9 @@ public class ProductBasicService extends BasicParentService {
 
             // 更新缓存
             if(!Utils.isEmptyList(pdDataList)) {
-                ProductCacheCtrl.InfoCache.addCacheList(aid, pdDataList);
                 ProductCacheCtrl.DataStatusCache.update(aid, pdDataList.size()); // 更新数据状态缓存
             }
             if(!Utils.isEmptyList(relDataList)) {
-                ProductRelCacheCtrl.InfoCache.addCacheList(aid, unionPriId, relDataList);
                 ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, relDataList.size()); // 更新数据状态缓存
                 ProductRelCacheCtrl.SortCache.set(aid, unionPriId, sysType, maxSort); // 更新sort缓存
                 ProductRelCacheCtrl.EmptyCache.delCache(aid, unionPriId, sysType, rlPdIds); // 删除空缓存
@@ -2002,7 +1998,6 @@ public class ProductBasicService extends BasicParentService {
                 }else {
                     tc.commit();
                     // 更新缓存
-                    ProductRelCacheCtrl.InfoCache.addCache(aid, unionPriId, relData);
                     ProductRelCacheCtrl.SortCache.set(aid, unionPriId, sysType, maxSort);
                     ProductRelCacheCtrl.DataStatusCache.update(aid, unionPriId, 1); //更新数据状态缓存
                 }

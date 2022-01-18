@@ -2581,8 +2581,12 @@ public class ProductBasicService extends BasicParentService {
             if (needSyncInfo) {
                 // 先查询 总店 导入的商品业务信息
                 TransactionCtrl tc = new TransactionCtrl();
-                ProductRelProc productRelProc = new ProductRelProc(flow, aid, tc);
-                sourceInfo = productRelProc.getProductRel(aid, boundUniPriIds.get(0), pdId);
+                try {
+                    ProductRelProc productRelProc = new ProductRelProc(flow, aid, tc);
+                    sourceInfo = productRelProc.getProductRel(aid, boundUniPriIds.get(0), pdId);
+                } finally {
+                    tc.closeDao();
+                }
             }
 
             for(Param info : infoList) {

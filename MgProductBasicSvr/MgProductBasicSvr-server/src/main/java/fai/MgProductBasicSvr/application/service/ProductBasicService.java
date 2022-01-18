@@ -1073,7 +1073,7 @@ public class ProductBasicService extends BasicParentService {
                     pdProc.setProducts(aid, pdIdList, pdUpdate);
 
                     // gfw
-                    GfwUtil.preWriteGfwLog(aid, tid, siteId, pdIdList, pdUpdate.getData());
+                    GfwUtil.preWriteGfwLog(aid, tid, siteId, unionPriId, pdIdList, pdUpdate.getData());
                 }
                 commit = true;
                 tc.commit();

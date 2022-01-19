@@ -107,6 +107,8 @@ public class SpuBizSummaryProc {
             return rt;
         }
         cacheManage.addDirtyCacheKey(aid, unionPriId_pdIds);
+        cacheManage.addDataTypeDirtyCacheKey(DataType.Manage, unionPriId_pdIds.keySet());
+        cacheManage.addDataTypeDirtyCacheKey(DataType.Visitor, unionPriId_pdIds.keySet());
         return rt;
     }
 
@@ -143,6 +145,8 @@ public class SpuBizSummaryProc {
             return rt;
         }
         cacheManage.addDirtyCacheKey(aid, unionPriId_pdIds);
+        cacheManage.addDataTypeDirtyCacheKey(DataType.Visitor, unionPriId);
+        cacheManage.addDataTypeDirtyCacheKey(DataType.Manage, unionPriId);
         return rt;
     }
 
@@ -203,10 +207,8 @@ public class SpuBizSummaryProc {
                 Log.logErr(rt, "copyBizBind error;flow=%d;aid=%d;fromUid=%s;toUid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
                 return rt;
             }
-        } else {
-            return Errno.OK;
         }
-
+        rt = Errno.OK;
         Log.logStd("copyBizBind ok;flow=%d;aid=%d;fromUid=%s;toUid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
         return rt;
     }
@@ -248,6 +250,16 @@ public class SpuBizSummaryProc {
                 batchUpdateDataList.add(data);
             }
             if(!batchUpdateDataList.isEmpty()){
+                HashMap<Integer, FaiList<Integer>> unionPriId_pdIds = new HashMap<>();
+                batchUpdateDataList.forEach(o -> {
+                    int uid = o.getInt(SpuBizSummaryEntity.Info.UNION_PRI_ID);
+                    int pdId = o.getInt(SpuBizSummaryEntity.Info.PD_ID);
+                    FaiList<Integer> pdIds = unionPriId_pdIds.get(uid);
+                    if (pdIds == null) {
+                        pdIds = new FaiList<>();
+                    }
+                    pdIds.add(pdId);
+                });
                 ParamUpdater batchUpdater = new ParamUpdater();
                 batchUpdater.getData().setString(SpuBizSummaryEntity.Info.MAX_PRICE, "?");
                 batchUpdater.getData().setString(SpuBizSummaryEntity.Info.MIN_PRICE, "?");
@@ -262,6 +274,9 @@ public class SpuBizSummaryProc {
                 batchMatcher.and(SpuBizSummaryEntity.Info.AID,ParamMatcher.EQ, "?");
                 batchMatcher.and(SpuBizSummaryEntity.Info.UNION_PRI_ID,ParamMatcher.EQ, "?");
                 batchMatcher.and(SpuBizSummaryEntity.Info.PD_ID,ParamMatcher.EQ, "?");
+                cacheManage.addDirtyCacheKey(aid, unionPriId_pdIds);
+                cacheManage.addDataTypeDirtyCacheKey(DataType.Manage, unionPriId_pdIds.keySet());
+                cacheManage.addDataTypeDirtyCacheKey(DataType.Visitor, unionPriId_pdIds.keySet());
                 rt = m_daoCtrl.batchUpdate(batchUpdater, batchMatcher, batchUpdateDataList);
                 if(rt != Errno.OK){
                     Log.logErr(rt,"m_daoCtrl.batchUpdate err;flow=%s;aid=%s;batchUpdateDataList=%s;", m_flow, aid, batchUpdateDataList);
@@ -270,6 +285,7 @@ public class SpuBizSummaryProc {
             }
             if(!pdId_bizSalesSummaryInfoMap.isEmpty()){
                 FaiList<Param> addDataList = new FaiList<>();
+                HashMap<Integer, FaiList<Integer>> unionPriId_pdIds = new HashMap<>();
                 for (Map.Entry<Integer, Param> pdId_bizSalesSummaryInfoEntry : pdId_bizSalesSummaryInfoMap.entrySet()) {
                     Integer pdId = pdId_bizSalesSummaryInfoEntry.getKey();
                     Param bizSalesSummaryInfo = pdId_bizSalesSummaryInfoEntry.getValue();
@@ -289,8 +305,16 @@ public class SpuBizSummaryProc {
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.FLAG);
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.REMAIN_COUNT);
                     data.assign(bizSalesSummaryInfo, SpuBizSummaryEntity.Info.HOLDING_COUNT);
+                    // 2022/1/19 这里是为了记录在 cacheManage 中记录 unionPriId，方便在调用 deleteDirtyCache 时清除总条数的缓存
+                    FaiList<Integer> pdIds = unionPriId_pdIds.get(unionPriId);
+                    if (pdIds == null) {
+                        pdIds = new FaiList<>();
+                        unionPriId_pdIds.put(unionPriId, pdIds);
+                    }
                     addDataList.add(data);
                 }
+                // 标记需要清除的总条数缓存
+                cacheManage.addDirtyCacheKey(aid, unionPriId_pdIds);
                 // 标记访客数据为脏
                 cacheManage.addDataTypeDirtyCacheKey(DataType.Visitor, unionPriId);
                 // 标记管理数据为脏
@@ -395,6 +419,8 @@ public class SpuBizSummaryProc {
             pdIdList.add(pdId);
         }
 
+        // 2022/1/19 记录 <unionPriId, pdIds> pdIds 为空，这是为了清除总条数的缓存，总条数缓存只需 unionPriIds 即可，所以不记录 pdIds
+        Map<Integer, FaiList<Integer>> unionPriId_pdIds = new HashMap<>();
         // 在 unionPriIdInfoMap 剩下的就是应该添加的数据
         for (Param info : unionPriIdInfoMap.values()) {
             Param addData = new Param();
@@ -435,6 +461,12 @@ public class SpuBizSummaryProc {
             addData.setCalendar(SpuBizSummaryEntity.Info.SYS_UPDATE_TIME, now);
             addData.setCalendar(SpuBizSummaryEntity.Info.SYS_CREATE_TIME, now);
             addDataList.add(addData);
+            // 为了标记总条数缓存
+            FaiList<Integer> pdIds = unionPriId_pdIds.get(unionPriId);
+            if (pdIds == null) {
+                pdIds = new FaiList<>();
+                unionPriId_pdIds.put(unionPriId, pdIds);
+            }
         }
         if(!addDataList.isEmpty()){
             rt = m_daoCtrl.batchInsert(addDataList, null, !isSaga);
@@ -449,6 +481,8 @@ public class SpuBizSummaryProc {
                     return rt;
                 }
             }
+            // 标记总条数缓存
+            cacheManage.addDirtyCacheKey(aid, unionPriId_pdIds);
         }
         if(!batchUpdateDataList.isEmpty()){
             ParamUpdater doBatchUpdater = new ParamUpdater();
@@ -573,6 +607,8 @@ public class SpuBizSummaryProc {
         }
         FaiList<Param> addList = new FaiList<>(infoList.size());
         Calendar now = Calendar.getInstance();
+        // 2022/1/19 用来记录 unionPriIds，为了标记总条数的缓存
+        HashMap<Integer, FaiList<Integer>> unionPriId_pdIds = new HashMap<>();
         for (Param info : infoList) {
             Param data = new Param();
             Integer unionPriId = info.getInt(SpuBizSummaryEntity.Info.UNION_PRI_ID);
@@ -601,6 +637,12 @@ public class SpuBizSummaryProc {
             data.setCalendar(SpuBizSummaryEntity.Info.SYS_CREATE_TIME, now);
             data.setCalendar(SpuBizSummaryEntity.Info.SYS_UPDATE_TIME, now);
             addList.add(data);
+            // pdIds 中不需要有数据，只是用来标记总条数缓存
+            FaiList<Integer> pdIds = unionPriId_pdIds.get(unionPriId);
+            if (pdIds == null) {
+                pdIds = new FaiList<>();
+                unionPriId_pdIds.put(unionPriId, pdIds);
+            }
         }
         rt = m_daoCtrl.batchInsert(addList, null, !isSaga);
         if(rt != Errno.OK){
@@ -613,6 +655,9 @@ public class SpuBizSummaryProc {
                 return rt;
             }
         }
+        cacheManage.addDirtyCacheKey(aid, unionPriId_pdIds);
+        cacheManage.addDataTypeDirtyCacheKey(DataType.Manage, unionPriId_pdIds.keySet());
+        cacheManage.addDataTypeDirtyCacheKey(DataType.Visitor, unionPriId_pdIds.keySet());
         Log.logStd("ok;flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
@@ -639,6 +684,8 @@ public class SpuBizSummaryProc {
             return rt;
         }
         cacheManage.addDirtyCacheKey(aid, unionPriId_pdIds);
+        cacheManage.addDataTypeDirtyCacheKey(DataType.Manage, new HashSet<>(unionPriIds));
+        cacheManage.addDataTypeDirtyCacheKey(DataType.Visitor, new HashSet<>(unionPriIds));
 
         Log.logStd("batchSet ok;flow=%s;aid=%s;pdIds=%s;unionPriId=%s;update=%s;", m_flow, aid, pdIds, unionPriIds, updater.toJson());
         return rt;

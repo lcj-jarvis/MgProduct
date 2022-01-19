@@ -519,6 +519,7 @@ public class SummaryService extends StoreService {
             boolean commit = false;
             TransactionCtrl tc = new TransactionCtrl();
             tc.setAutoCommit(false);
+            SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
             try {
                 if(isSaga) {
                     // 向 mgStoreSaga 表插入记录
@@ -528,7 +529,6 @@ public class SummaryService extends StoreService {
                         return rt;
                     }
                 }
-                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
                 rt = spuBizSummaryProc.setSingle(aid, unionPriId, pdId, updater, isSaga);
                 if(rt != Errno.OK){
                     return rt;
@@ -545,7 +545,11 @@ public class SummaryService extends StoreService {
                 commit = true;
             }finally {
                 if(commit) {
+                    // 事务提交前先设置一个较短的过期时间
+                    spuBizSummaryProc.setDirtyCacheEx(aid);
                     tc.commit();
+                    // 提交成功再删除缓存
+                    spuBizSummaryProc.deleteDirtyCache(aid);
                 }else {
                     tc.rollback();
                 }
@@ -581,6 +585,7 @@ public class SummaryService extends StoreService {
             boolean commit = false;
             TransactionCtrl tc = new TransactionCtrl();
             tc.setAutoCommit(false);
+            SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
             try {
                 if(isSaga) {
                     // 向 mgStoreSaga 表插入记录
@@ -590,7 +595,6 @@ public class SummaryService extends StoreService {
                         return rt;
                     }
                 }
-                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
                 rt = spuBizSummaryProc.batchSet(aid, unionPriIds, pdIds, updater, isSaga);
                 if(rt != Errno.OK){
                     return rt;
@@ -608,7 +612,11 @@ public class SummaryService extends StoreService {
                 commit = true;
             }finally {
                 if(commit) {
+                    // 事务提交前先设置一个较短的过期时间
+                    spuBizSummaryProc.setDirtyCacheEx(aid);
                     tc.commit();
+                    // 提交成功再删除缓存
+                    spuBizSummaryProc.deleteDirtyCache(aid);
                 }else {
                     tc.rollback();
                 }
@@ -663,6 +671,7 @@ public class SummaryService extends StoreService {
             boolean commit = false;
             TransactionCtrl tc = new TransactionCtrl();
             tc.setAutoCommit(false);
+            SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
             try {
                 if(isSaga) {
                     // 向 mgStoreSaga 表插入记录
@@ -672,7 +681,6 @@ public class SummaryService extends StoreService {
                         return rt;
                     }
                 }
-                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
                 rt = spuBizSummaryProc.batchAdd(aid, infoList, isSaga);
                 if(rt != Errno.OK){
                     return rt;
@@ -681,7 +689,11 @@ public class SummaryService extends StoreService {
                 commit = true;
             }finally {
                 if(commit) {
+                    // 事务提交前先设置一个较短的过期时间
+                    spuBizSummaryProc.setDirtyCacheEx(aid);
                     tc.commit();
+                    // 提交成功再删除缓存
+                    spuBizSummaryProc.deleteDirtyCache(aid);
                 }else {
                     tc.rollback();
                 }

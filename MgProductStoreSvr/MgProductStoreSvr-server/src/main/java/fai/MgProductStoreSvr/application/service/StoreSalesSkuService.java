@@ -71,7 +71,11 @@ public class StoreSalesSkuService extends StoreService {
                         tc.rollback();
                         return rt;
                     }
+                    // 事务提交前先设置一个较短的过期时间
+                    spuBizSummaryProc.setDirtyCacheEx(aid);
                     tc.commit();
+                    // 提交成功再删除缓存
+                    spuBizSummaryProc.deleteDirtyCache(aid);
                 }
             }finally {
                 LockUtil.unlock(aid);
@@ -141,7 +145,11 @@ public class StoreSalesSkuService extends StoreService {
                         tc.rollback();
                         return rt;
                     }
+                    // 事务提交前先设置一个较短的过期时间
+                    spuBizSummaryProc.setDirtyCacheEx(aid);
                     tc.commit();
+                    // 提交成功再删除缓存
+                    spuBizSummaryProc.deleteDirtyCache(aid);
                 }
             }finally {
                 LockUtil.unlock(aid);

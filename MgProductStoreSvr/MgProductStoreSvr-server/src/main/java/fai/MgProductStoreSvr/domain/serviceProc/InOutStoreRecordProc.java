@@ -1139,7 +1139,9 @@ public class InOutStoreRecordProc {
         // 构建数据
         for (Param info : list) {
             int ioStoreRecId = info.getInt(InOutStoreRecordEntity.Info.IN_OUT_STORE_REC_ID);
-            PrimaryKey primaryKey = new PrimaryKey(aid, ioStoreRecId);
+            int unionPriId = info.getInt(InOutStoreRecordEntity.Info.UNION_PRI_ID);
+            long skuId = info.getInt(InOutStoreRecordEntity.Info.SKU_ID);
+            PrimaryKey primaryKey = new PrimaryKey(aid, ioStoreRecId, unionPriId, skuId);
             if (sagaMap.containsKey(primaryKey)) {
                 continue;
             }
@@ -1375,10 +1377,14 @@ public class InOutStoreRecordProc {
     private static class PrimaryKey {
         int aid;
         int ioStoreRecId;
+        int unionPriId;
+        long skuId;
 
-        public PrimaryKey(int aid, int ioStoreRecId) {
+        public PrimaryKey(int aid, int ioStoreRecId, int unionPriId, long skuId) {
             this.aid = aid;
             this.ioStoreRecId = ioStoreRecId;
+            this.unionPriId = unionPriId;
+            this.skuId = skuId;
         }
 
         @Override
@@ -1387,20 +1393,14 @@ public class InOutStoreRecordProc {
             if (o == null || getClass() != o.getClass()) return false;
             PrimaryKey that = (PrimaryKey) o;
             return aid == that.aid &&
-                    ioStoreRecId == that.ioStoreRecId;
+                    ioStoreRecId == that.ioStoreRecId &&
+                    unionPriId == that.unionPriId &&
+                    skuId == that.skuId;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(aid, ioStoreRecId);
-        }
-
-        @Override
-        public String toString() {
-            return "PrimaryKey{" +
-                    "aid=" + aid +
-                    ", ioStoreRecId=" + ioStoreRecId +
-                    '}';
+            return Objects.hash(aid, ioStoreRecId, unionPriId, skuId);
         }
     }
 

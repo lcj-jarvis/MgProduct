@@ -70,16 +70,15 @@ public class StoreSalesSkuService extends StoreService {
                         tc.rollback();
                         return rt;
                     }
-                    // 事务提交前先设置一个较短的过期时间
-                    spuBizSummaryProc.setDirtyCacheEx(aid);
                     tc.commit();
-                    // 提交成功再删除缓存
-                    spuBizSummaryProc.deleteDirtyCache(aid);
                 }
             }finally {
                 LockUtil.unlock(aid);
                 tc.closeDao();
             }
+
+            // 清除缓存
+            CacheCtrl.clearAllCache(aid);
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
             Log.logStd("cloneBizBind ok;aid=%s;fromUid=%s;toUid=%s;",aid, fromUnionPriId, toUnionPriId);
@@ -141,16 +140,15 @@ public class StoreSalesSkuService extends StoreService {
                         tc.rollback();
                         return rt;
                     }
-                    // 事务提交前先设置一个较短的过期时间
-                    spuBizSummaryProc.setDirtyCacheEx(aid);
                     tc.commit();
-                    // 提交成功再删除缓存
-                    spuBizSummaryProc.deleteDirtyCache(aid);
                 }
             }finally {
                 LockUtil.unlock(aid);
                 tc.closeDao();
             }
+
+            // 清除缓存
+            CacheCtrl.clearAllCache(aid);
             rt = Errno.OK;
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);

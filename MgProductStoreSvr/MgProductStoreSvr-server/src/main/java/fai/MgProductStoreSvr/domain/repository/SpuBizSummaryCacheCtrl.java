@@ -26,21 +26,19 @@ public class SpuBizSummaryCacheCtrl extends CacheCtrl{
         unionPirIdPdIdListMap.forEach((unionPirId, pdIdList)->{
             String cacheKey = getCacheKey(aid, unionPirId);
             List<String> pdIdStrList = pdIdList.stream().map(String::valueOf).collect(Collectors.toList());
-            boolean boo = m_cache.hdel(cacheKey, pdIdStrList.toArray(new String[]{}));
-            if(!boo){
-                Log.logErr("hdel err key:"+cacheKey+"fields:"+ pdIdList);
+            if (!pdIdList.isEmpty()) {
+                // 删除数据缓存
+                boolean boo = m_cache.hdel(cacheKey, pdIdStrList.toArray(new String[]{}));
+                if(!boo){
+                    Log.logErr("hdel err key:"+cacheKey+"fields:"+ pdIdList);
+                }
             }
+            // 删除总条数缓存
+            cacheKey = getTotalCacheKey(aid, unionPirId);
+            m_cache.del(cacheKey);
         });
     }
-    public static void delCache(int aid, int unionPriId) {
-        String cacheKey = getCacheKey(aid, unionPriId);
-        if(m_cache.exists(cacheKey)) {
-            boolean boo = m_cache.del(cacheKey);
-            if(!boo){
-                Log.logErr("hdel err key:"+cacheKey);
-            }
-        }
-    }
+
     public static void setCacheList(int aid, int unionPriId, FaiList<Param> list) {
         if(list == null || list.isEmpty()) {
             return;
@@ -51,6 +49,7 @@ public class SpuBizSummaryCacheCtrl extends CacheCtrl{
             Log.logErr("hmsetFaiList err key:"+cacheKey);
         }
     }
+
     public static int getTotal(int aid, int unionPriId){
         String totalCacheKey = getTotalCacheKey(aid, unionPriId);
         String totalStr = m_cache.get(totalCacheKey);

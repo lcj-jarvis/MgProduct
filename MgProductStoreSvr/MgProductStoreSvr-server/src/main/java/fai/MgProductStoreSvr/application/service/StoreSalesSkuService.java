@@ -80,6 +80,9 @@ public class StoreSalesSkuService extends StoreService {
                 LockUtil.unlock(aid);
                 tc.closeDao();
             }
+
+            // 清除缓存
+            CacheCtrl.clearAllCache(aid);
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
             Log.logStd("cloneBizBind ok;aid=%s;fromUid=%s;toUid=%s;",aid, fromUnionPriId, toUnionPriId);
@@ -151,6 +154,9 @@ public class StoreSalesSkuService extends StoreService {
                 LockUtil.unlock(aid);
                 tc.closeDao();
             }
+
+            // 清除缓存
+            CacheCtrl.clearAllCache(aid);
             rt = Errno.OK;
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);

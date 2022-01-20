@@ -1706,6 +1706,11 @@ public class ProductStoreService extends MgProductInfService {
                 }
             }
 
+            // 2022-1-11 sku汇总表需要添加 sysType, 在 searchArg 中添加 sysType 做区分
+            if (searchArg.matcher == null) {
+                searchArg.matcher = new ParamMatcher();
+            }
+            searchArg.matcher.and(ProductStoreEntity.SkuSummaryInfo.SYS_TYPE, ParamMatcher.EQ, sysType);
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
             FaiList<Param> infoList = new FaiList<Param>();

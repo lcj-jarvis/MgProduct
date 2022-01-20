@@ -95,7 +95,7 @@ public class ProductTagRelProc {
 
         Param info = listRef.value.get(0);
         int sort = info.getInt(ProductTagRelEntity.Info.SORT, ProductTagRelValObj.Default.SORT);
-        // 添加到缓存
+        // TODO 添加到缓存.后面删除掉，因为在调用了这个方法的方法里面的finally会处理。
         ProductTagRelCache.SortCache.set(aid, unionPriId, sort);
         return sort;
     }

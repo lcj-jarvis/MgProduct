@@ -37,6 +37,7 @@ public class ProductStoreEntity {
         public static final String FLAG = "flag";                                   // int flag
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // Calendar 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // Calendar 修改时间
+        public static final String STATUS = "status";                               // int 数据状态
 
         // for init
         public static final String IN_PD_SC_STR_NAME_LIST = ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_NAME_LIST;
@@ -137,6 +138,7 @@ public class ProductStoreEntity {
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
         public static final String DISTRIBUTE_LIST = "distributeList";              // varchar(255) 配送方式（支持多个）
+        public static final String STATUS = "status";                               // int 数据状态
 
 
         public static final FaiList<String> MANAGE_FIELDS; // 管理态字段
@@ -192,6 +194,7 @@ public class ProductStoreEntity {
 
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
+        public static final String SYS_TYPE = "sysType";                            // int 系统类型
     }
 
     /**

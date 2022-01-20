@@ -1,10 +1,7 @@
 package fai.MgProductInfSvr.interfaces.cli;
 
 import fai.MgProductInfSvr.interfaces.cmd.MgProductInfCmd;
-import fai.MgProductInfSvr.interfaces.dto.MgProductDto;
-import fai.MgProductInfSvr.interfaces.dto.MgProductSearchDto;
-import fai.MgProductInfSvr.interfaces.dto.ProductBasicDto;
-import fai.MgProductInfSvr.interfaces.dto.ProductStoreDto;
+import fai.MgProductInfSvr.interfaces.dto.*;
 import fai.MgProductInfSvr.interfaces.entity.MgProductEntity;
 import fai.MgProductInfSvr.interfaces.entity.ProductBasicValObj;
 import fai.MgProductInfSvr.interfaces.entity.ProductStoreEntity;
@@ -1032,6 +1029,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
      *                 .setCombinedUpdater(combinedUpdater)   // 必填
      *                 .setRlPdId(rlPdId)             // 必填
+     *                 .setXid(xid)                   // 选填
      *                 .build();
      * updater说明： updater详见 {@link MgProductDto#getInfoDto}
      *          只需要其中的 MgProductEntity.Info.BASIC、MgProductEntity.Info.SPEC_SKU、MgProductEntity.Info.STORE_SALES
@@ -1054,6 +1052,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 Log.logErr("arg error;updater is empty");
                 return m_rt;
             }
+
             int tid = mgProductArg.getTid();
             int siteId = mgProductArg.getSiteId();
             int lgId = mgProductArg.getLgId();
@@ -1129,7 +1128,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
 
     /**
      * for yk 批量修改多门店数据
-     * 支持修改上下架状态、绑定分类
+     * 支持修改上下架状态、绑定分类、top 字段 （现阶段接入使用的字段）
      * @param mgProductArg
      * @return
      */

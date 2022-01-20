@@ -1,5 +1,6 @@
-package fai.MgProductStoreSvr.domain.repository;
+package fai.MgProductStoreSvr.domain.repository.dao;
 
+import fai.MgProductStoreSvr.domain.repository.TableDBMapping;
 import fai.comm.util.DaoPool;
 import fai.comm.util.Log;
 import fai.middleground.svrutil.repository.DaoCtrl;

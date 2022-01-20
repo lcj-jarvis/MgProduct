@@ -28,6 +28,7 @@ public class SpuBizSummaryDto {
         g_dtoDef.add(SpuBizSummaryEntity.Info.DISTRIBUTE_LIST, 17, Var.Type.STRING);
         g_dtoDef.add(SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID, 18, Var.Type.INT);
         g_dtoDef.add(SpuBizSummaryEntity.Info.SYS_TYPE, 19, Var.Type.INT);
+        g_dtoDef.add(SpuBizSummaryEntity.Info.STATUS, 20, Var.Type.INT);
     }
 
     public static ParamDef getInfoDto() {

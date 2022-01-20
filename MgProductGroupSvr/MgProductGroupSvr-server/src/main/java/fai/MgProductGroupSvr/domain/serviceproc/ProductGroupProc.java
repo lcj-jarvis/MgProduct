@@ -519,6 +519,25 @@ public class ProductGroupProc {
         return listRef.value;
     }
 
+    public void clearAcct(int aid, FaiList<Integer> unionPriIds) {
+        int rt;
+        if (unionPriIds == null || unionPriIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "arg error;flow=%d;aid=%d;unionPriIds=%s", aid, unionPriIds, m_flow);
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductGroupEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductGroupEntity.Info.SOURCE_UNIONPRIID, ParamMatcher.IN, unionPriIds);
+
+        rt = m_daoCtrl.delete(matcher);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "clearAcct error;flow=%d;aid=%d;unionPriIds=%s", aid, unionPriIds, m_flow);
+        }
+
+        m_daoCtrl.restoreMaxId(false);
+        m_daoCtrl.clearIdBuilderCache(aid);
+        Log.logStd("clearAcct ok;flow=%d;aid=%d;unionPrIdId=%s;", m_flow, aid, unionPriIds);
+    }
+
     private FaiList<Param> getList(int aid) {
         // 从缓存获取数据
         FaiList<Param> list = ProductGroupCache.getCacheList(aid);
@@ -602,5 +621,4 @@ public class ProductGroupProc {
     private int m_flow;
     private ProductGroupDaoCtrl m_daoCtrl;
     private ProductGroupBakDaoCtrl m_bakDao;
-
 }

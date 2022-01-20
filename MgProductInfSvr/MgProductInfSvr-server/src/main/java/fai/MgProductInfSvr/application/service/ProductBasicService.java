@@ -1042,8 +1042,13 @@ public class ProductBasicService extends MgProductInfService {
                 FaiList<ParamUpdater> specSkuUpdaterList = combinedUpdater.getList(MgProductEntity.Info.SPEC_SKU);
                 FaiList<ParamUpdater> storeUpdaters = combinedUpdater.getList(MgProductEntity.Info.STORE_SALES);
                 ParamUpdater spuUpdater = (ParamUpdater) combinedUpdater.getObject(MgProductEntity.Info.SPU_SALES);
+                FaiList<Param> addSpecList = combinedUpdater.getListNullIsEmpty(MgProductEntity.Info.ADD_SPEC);
+                FaiList<Integer> delPdScIds = combinedUpdater.getListNullIsEmpty(MgProductEntity.Info.DEL_SPEC);
+                FaiList<ParamUpdater> updaterSpecList = combinedUpdater.getListNullIsEmpty(MgProductEntity.Info.UP_SPEC);
                 int pdId = 0;
-                if(!Utils.isEmptyList(specSkuUpdaterList) || !Utils.isEmptyList(storeUpdaters) || !Utils.isEmptyList(remarkList) || (spuUpdater != null && !spuUpdater.isEmpty())) {
+                if(!Utils.isEmptyList(specSkuUpdaterList) || !Utils.isEmptyList(storeUpdaters)
+                        || !Utils.isEmptyList(remarkList) || (spuUpdater != null && !spuUpdater.isEmpty())
+                        || !Utils.isEmptyList(addSpecList) || !Utils.isEmptyList(delPdScIds) || !Utils.isEmptyList(updaterSpecList)) {
                     // 获取 pdId
                     idRef.value = null;
                     rt = getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
@@ -1052,6 +1057,41 @@ public class ProductBasicService extends MgProductInfService {
                     }
                     pdId = idRef.value;
                 }
+
+                /** 规格修改, 同时刷新销售sku start */
+                if (!addSpecList.isEmpty() || !delPdScIds.isEmpty() || !updaterSpecList.isEmpty()) {
+                    ProductSpecProc productSpecProc = new ProductSpecProc(flow);
+                    FaiList<Param> pdScSkuInfoList = new FaiList<>();
+                    rt = productSpecProc.unionSetPdScInfoList(aid, tid, unionPriId, xid, pdId, addSpecList, delPdScIds, updaterSpecList, pdScSkuInfoList);
+                    if (rt != Errno.OK) {
+                        return rt;
+                    }
+
+                    FaiList<Param> storeSalesSkuList = new FaiList<>(pdScSkuInfoList.size());
+                    for (Param productSpuInfo : pdScSkuInfoList) {
+                        long skuId = productSpuInfo.getLong(ProductSpecSkuEntity.Info.SKU_ID);
+                        int skuFlag = productSpuInfo.getInt(ProductSpecSkuEntity.Info.FLAG);
+                        int flag = 0;
+                        if(Misc.checkBit(skuFlag, ProductSpecSkuValObj.FLag.SPU)){
+                            // flag |= StoreSalesSkuValObj.FLag.SPU;
+                            // 暂时先跳过表示为spu的sku数据的刷新
+                            continue;
+                        }
+                        storeSalesSkuList.add(
+                                new Param()
+                                        .setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId)
+                                        .setInt(StoreSalesSkuEntity.Info.FLAG, flag)
+                        );
+                    }
+
+                    ProductStoreProc productStoreProc = new ProductStoreProc(flow);
+                    // 刷新sku，修改库存
+                    rt = productStoreProc.refreshSkuStoreSales(aid, tid, unionPriId, sysType, xid, pdId, rlPdId, storeSalesSkuList);
+                    if(rt != Errno.OK) {
+                        return rt;
+                    }
+                }
+                /** 规格、规格sku修改，同时刷新销售sku end */
 
                 /** 规格SKU 修改 start */
                 if (!Utils.isEmptyList(specSkuUpdaterList)) {

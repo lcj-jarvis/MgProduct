@@ -4,7 +4,8 @@ import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
 import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
 import fai.MgProductStoreSvr.domain.comm.*;
 import fai.MgProductStoreSvr.domain.entity.*;
-import fai.MgProductStoreSvr.domain.repository.*;
+import fai.MgProductStoreSvr.domain.repository.dao.*;
+import fai.MgProductStoreSvr.domain.repository.cache.*;
 import fai.MgProductStoreSvr.domain.serviceProc.*;
 import fai.MgProductStoreSvr.interfaces.conf.MqConfig;
 import fai.MgProductStoreSvr.interfaces.dto.HoldingRecordDto;
@@ -316,11 +317,11 @@ public class StoreSalesSkuService extends StoreService {
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = spuBizSummaryProc.batchDel(aid, pdIds, isSaga);
+                        rt = spuBizSummaryProc.batchDel(aid, pdIds, false, isSaga);
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = spuSummaryProc.batchDel(aid, pdIds, isSaga);
+                        rt = spuSummaryProc.batchDel(aid, pdIds, false, isSaga);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -535,6 +536,7 @@ public class StoreSalesSkuService extends StoreService {
                         int pdId = reportInfo.getInt(StoreSalesSkuEntity.Info.PD_ID);
                         int unionPriId = reportInfo.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
                         long skuId = reportInfo.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                        int sysType = reportInfo.getInt(StoreSalesSkuEntity.Info.SYS_TYPE);
                         // 计算spu+业务维度的汇总
                         {
                             Param spuBizSummaryInfo = new Param();
@@ -585,6 +587,7 @@ public class StoreSalesSkuService extends StoreService {
                                 skuSummaryInfo = new Param();
                                 skuSummaryInfo.setInt(SkuSummaryEntity.Info.PD_ID, pdId);
                                 skuSummaryInfo.setInt(SkuSummaryEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
+                                skuSummaryInfo.setInt(SkuSummaryEntity.Info.SYS_TYPE, sysType);
                                 skuIdSkuSummaryInfoMap.put(skuId, skuSummaryInfo);
                             }
                             int lastCount = skuSummaryInfo.getInt(SkuSummaryEntity.Info.COUNT, 0);
@@ -1978,6 +1981,50 @@ public class StoreSalesSkuService extends StoreService {
             Log.logDbg("ok;aid=%d;unionPriId=%s;skuIdList=%s;", aid, unionPriId, skuIdList);
         }finally {
             stat.end(rt != Errno.OK && rt != Errno.NOT_FOUND, rt);
+        }
+        return rt;
+    }
+
+    public int migrateYKStoreSku(FaiSession session, int flow, int aid, FaiList<Param> storeSkuList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || Utils.isEmptyList(storeSkuList)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;aid=%s;storeSkuList=%s;",aid, storeSkuList);
+                return rt;
+            }
+
+            TransactionCtrl tc = new TransactionCtrl();
+
+            StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, tc);
+
+            LockUtil.lock(aid);
+            try {
+                try {
+                    tc.setAutoCommit(false);
+
+                    rt = storeSalesSkuProc.migrateYKService(aid, storeSkuList);
+                    if(rt != Errno.OK) {
+                        return rt;
+                    }
+
+                    tc.commit();
+                }finally {
+                    if(rt != Errno.OK){
+                        tc.rollback();
+                        return rt;
+                    }
+                }
+            }finally {
+                LockUtil.unlock(aid);
+                tc.closeDao();
+            }
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("migrate ok;aid=%s;", aid);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
         }
         return rt;
     }

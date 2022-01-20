@@ -5,6 +5,7 @@ import fai.MgProductSpecSvr.domain.comm.*;
 import fai.MgProductSpecSvr.domain.entity.*;
 import fai.MgProductSpecSvr.domain.repository.*;
 import fai.MgProductSpecSvr.domain.serviceProc.*;
+import fai.MgProductSpecSvr.interfaces.dto.MigrateDto;
 import fai.MgProductSpecSvr.interfaces.dto.ProductSpecDto;
 import fai.MgProductSpecSvr.interfaces.dto.ProductSpecSkuCodeDao;
 import fai.MgProductSpecSvr.interfaces.dto.ProductSpecSkuDto;
@@ -16,6 +17,7 @@ import fai.comm.util.*;
 import fai.mgproduct.comm.DataStatus;
 import fai.mgproduct.comm.Util;
 import fai.middleground.svrutil.annotation.SuccessRt;
+import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
@@ -563,11 +565,9 @@ public class ProductSpecService extends SpecParentService {
                     LockUtil.lock(aid);
                     try {
                         transactionCtrl.setAutoCommit(false);
-                        if(!softDel){
-                            rt = productSpecProc.batchDel(aid, pdIdList, isSaga);
-                            if(rt != Errno.OK){
-                                return rt;
-                            }
+                        rt = productSpecProc.batchDel(aid, pdIdList, softDel, isSaga);
+                        if(rt != Errno.OK){
+                            return rt;
                         }
                         rt = productSpecSkuProc.batchDel(aid, pdIdList, softDel, isSaga);
                         if(rt != Errno.OK){
@@ -579,6 +579,10 @@ public class ProductSpecService extends SpecParentService {
                         }
                         if (isSaga) {
                             // 记录 Saga 状态 & 将修改记录持久化到 db
+                            rt = productSpecProc.addUpdateSaga2Db(aid);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
                             rt = productSpecSkuProc.addUpdateSaga2Db(aid);
                             if (rt != Errno.OK) {
                                 return rt;
@@ -2007,6 +2011,163 @@ public class ProductSpecService extends SpecParentService {
             stat.end(rt != Errno.OK, rt);
         }
         return rt;
+    }
+
+    @SuccessRt(Errno.OK)
+    public int migrateYKService(FaiSession session, int flow, int aid, FaiList<Param> specList) throws IOException {
+        int rt;
+
+        if (specList == null || specList.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "specList is empty");
+        }
+
+        int tid = specList.get(0).getInt(ProductSpecEntity.Info.SOURCE_TID);
+        int unionPriId = specList.get(0).getInt(ProductSpecEntity.Info.SOURCE_UNION_PRI_ID);
+
+        rt = checkAndReplaceAddPdScInfoList(flow, aid, tid, unionPriId, null, specList, new Param(), false);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "check and replace pdScInfo error;flow=%d;aid=%d;", flow, aid);
+        }
+        Log.logStd("specList=%s", specList);
+
+        // 构建 skuList
+        FaiList<Param> skuList = new FaiList<>();
+        for (Param spec : specList) {
+            Param sku = new Param();
+            sku.setInt(ProductSpecSkuEntity.Info.AID, aid);
+            sku.setString(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST, new FaiList<>().toJson());
+            sku.setString(ProductSpecSkuEntity.Info.IN_PD_SC_LIST, "");
+            sku.setInt(ProductSpecSkuEntity.Info.FLAG, ProductSpecSkuValObj.FLag.ALLOW_EMPTY);
+            sku.assign(spec, ProductSpecSkuEntity.Info.STATUS);
+
+            sku.assign(spec, ProductSpecSkuEntity.Info.SYS_CREATE_TIME);
+            sku.assign(spec, ProductSpecSkuEntity.Info.SYS_UPDATE_TIME);
+            sku.assign(spec, ProductSpecSkuEntity.Info.SOURCE_UNION_PRI_ID);
+            sku.assign(spec, ProductSpecSkuEntity.Info.SOURCE_TID);
+            sku.assign(spec, ProductSpecSkuEntity.Info.PD_ID);
+            skuList.add(sku);
+        }
+
+        boolean commit = false;
+        FaiList<Param> returnList = new FaiList<>();
+        TransactionCtrl tc = new TransactionCtrl();
+        try {
+            ProductSpecProc productSpecProc = new ProductSpecProc(flow, aid, tc);
+            ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(flow, aid, tc);
+            try {
+                LockUtil.lock(aid);
+                try {
+                    productSpecProc.clearIdBuilderCache(aid);
+                    productSpecSkuProc.clearIdBuilderCache(aid);
+                    tc.setAutoCommit(false);
+                    // 添加 商品规格表数据 mgProductSpec_0xxx
+                    productSpecProc.migrateYkService(aid, specList);
+                    // 添加 商品规格sku表数据
+                    returnList = productSpecSkuProc.migrateYkService(aid, skuList);
+
+                    commit = true;
+                    tc.commit();
+                } finally {
+                    if(!commit){
+                        productSpecProc.clearIdBuilderCache(aid);
+                        productSpecSkuProc.clearIdBuilderCache(aid);
+                        tc.rollback();
+                    }
+                    productSpecProc.deleteDirtyCache(aid);
+                    productSpecSkuProc.deleteDirtyCache(aid);
+                }
+            } finally {
+                LockUtil.unlock(aid);
+            }
+        } finally {
+            tc.closeDao();
+        }
+        rt = Errno.OK;
+        Log.logStd("migrate ok;flow=%d;aid=%d;", flow, aid);
+
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        returnList.toBuffer(sendBuf, ProductSpecDto.Key.RETURN_LIST, MigrateDto.getReturnListDtoDef());
+        session.write(sendBuf);
+        return rt;
+    }
+
+    @SuccessRt(Errno.OK)
+    public int restoreData(FaiSession session, int flow, int aid, String xid, FaiList<Integer> pdIds) throws IOException {
+        int rt;
+        if (aid <= 0 || pdIds == null || pdIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args error;flow=%d;aid=%d;pdIds=%s", flow, aid, pdIds);
+        }
+        LockUtil.lock(aid);
+        try {
+            TransactionCtrl tc = new TransactionCtrl(false);
+            boolean commit = false;
+            try {
+                boolean isSaga = !Str.isEmpty(xid);
+
+                // 恢复商品规格
+                ProductSpecProc productSpecProc = new ProductSpecProc(flow, aid, tc);
+                productSpecProc.restoreData(aid, pdIds, isSaga);
+
+                // 恢复商品 sku
+                ProductSpecSkuProc productSpecSkuProc = new ProductSpecSkuProc(flow, aid, tc);
+                productSpecSkuProc.restoreData(aid, pdIds, isSaga);
+
+                // 记录分布式事务状态 && 将修改记录持久化到db
+                if (isSaga) {
+                    rt = productSpecProc.addUpdateSaga2Db(aid);
+                    if (rt != Errno.OK) {
+                        return rt;
+                    }
+                    rt = productSpecSkuProc.addUpdateSaga2Db(aid);
+                    if (rt != Errno.OK) {
+                        return rt;
+                    }
+                    SpecSagaProc specSagaProc = new SpecSagaProc(flow, aid, tc);
+                    rt = specSagaProc.add(aid, xid, RootContext.getBranchId());
+                    if (rt != Errno.OK) {
+                        return rt;
+                    }
+                }
+                commit = true;
+                tc.commit();
+            } finally {
+                if (!commit) {
+                    tc.rollback();
+                }
+                tc.closeDao();
+            }
+        } finally {
+            LockUtil.unlock(aid);
+        }
+        // 处理缓存
+        ProductSpecCacheCtrl.setCacheDirty(aid, pdIds);
+        ProductSpecSkuCacheCtrl.delAllCache(aid);
+        rt = Errno.OK;
+        Log.logStd("spec restoreData ok;flow=%d;aid=%d;", flow, aid);
+
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        return rt;
+    }
+
+    @SuccessRt(value = Errno.OK)
+    public int restoreDataRollback(FaiSession session, int flow, int aid, String xid, Long branchId) throws IOException {
+        // 定义回调函数
+        SagaRollback sagaRollback = tc -> {
+            ProductSpecSkuProc specSkuProc = new ProductSpecSkuProc(flow, aid, tc);
+            specSkuProc.rollback4Saga(aid, xid, branchId);
+
+            ProductSpecProc specProc = new ProductSpecProc(flow, aid, tc);
+            specProc.rollback4Saga(aid, xid, branchId);
+        };
+        // 执行回滚
+        int branchStatus = doRollback(flow, aid, xid, branchId, sagaRollback);
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, branchStatus);
+        session.write(sendBuf);
+        return Errno.OK;
     }
 
     private void sendSkuCode(FaiSession session, FaiList<Param> infoList, SearchArg searchArg) throws IOException {

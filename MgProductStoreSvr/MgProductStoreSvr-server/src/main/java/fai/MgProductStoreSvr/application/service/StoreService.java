@@ -5,13 +5,14 @@ import fai.MgProductStoreSvr.domain.comm.LockUtil;
 import fai.MgProductStoreSvr.domain.comm.SagaRollback;
 import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
 import fai.MgProductStoreSvr.domain.entity.*;
-import fai.MgProductStoreSvr.domain.repository.CacheCtrl;
+import fai.MgProductStoreSvr.domain.repository.cache.CacheCtrl;
 import fai.MgProductStoreSvr.domain.serviceProc.*;
 import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.fseata.client.core.rpc.def.CommDef;
 import fai.comm.jnetkit.server.fai.FaiSession;
 import fai.comm.util.*;
 import fai.middleground.svrutil.annotation.SuccessRt;
+import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
@@ -132,7 +133,7 @@ public class StoreService extends StoreParentService {
     /**
      * 删除商品所有库存销售相关信息
      */
-    public int batchDelPdAllStoreSales(FaiSession session, int flow, int aid, int tid, FaiList<Integer> pdIdList, String xid) throws IOException{
+    public int batchDelPdAllStoreSales(FaiSession session, int flow, int aid, int tid, FaiList<Integer> pdIdList, boolean softDel, String xid) throws IOException{
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -162,15 +163,15 @@ public class StoreService extends StoreParentService {
                     LockUtil.lock(aid);
                     try {
                         transactionCtrl.setAutoCommit(false);
-                        rt = skuSummaryProc.batchDel(aid, pdIdList, isSaga);
+                        rt = skuSummaryProc.batchDel(aid, pdIdList, softDel, isSaga);
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = spuBizSummaryProc.batchDel(aid, pdIdList, isSaga);
+                        rt = spuBizSummaryProc.batchDel(aid, pdIdList, softDel, isSaga);
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = spuSummaryProc.batchDel(aid, pdIdList, isSaga);
+                        rt = spuSummaryProc.batchDel(aid, pdIdList, softDel, isSaga);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -179,13 +180,29 @@ public class StoreService extends StoreParentService {
                         if(rt != Errno.OK){
                             return rt;
                         }
-                        rt = storeSalesSkuProc.batchDel(aid, pdIdList, isSaga);
+                        rt = storeSalesSkuProc.batchDel(aid, pdIdList, softDel, isSaga);
                         if(rt != Errno.OK){
                             return rt;
                         }
 
                         if (isSaga) {
                             // 将预记录的修改数据持久化到 db
+                            rt = skuSummaryProc.addUpdateSaga2Db(aid);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                            rt = spuBizSummaryProc.addUpdateSaga2Db(aid);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                            rt = spuSummaryProc.addUpdateSaga2Db(aid);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                            rt = storeSalesSkuProc.addUpdateSaga2Db(aid);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
                             rt = inOutStoreRecordProc.addUpdateSaga2Db(aid);
                             if (rt != Errno.OK) {
                                 return rt;
@@ -243,6 +260,113 @@ public class StoreService extends StoreParentService {
 
             SkuSummaryProc skuSummaryProc = new SkuSummaryProc(flow, aid, tc);
             skuSummaryProc.rollback4Saga(aid, xid, branchId);
+        };
+        int branchStatus = doRollback(flow, aid, xid, branchId, sagaRollback);
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, branchStatus);
+        session.write(sendBuf);
+        return Errno.OK;
+    }
+
+    @SuccessRt(Errno.OK)
+    public int restoreData(FaiSession session, int flow, int aid, String xid, FaiList<Integer> pdIds) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        if (aid <= 0 || Utils.isEmptyList(pdIds)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "arg error;aid=%d;pdIds=%s", aid, pdIds);
+        }
+        LockUtil.lock(aid);
+        try {
+            TransactionCtrl tc = new TransactionCtrl(false);
+            boolean commit = false;
+            try {
+                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, tc);
+                InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(flow, aid, tc);
+                SpuSummaryProc spuSummaryProc = new SpuSummaryProc(flow, aid, tc);
+                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
+                SkuSummaryProc skuSummaryProc = new SkuSummaryProc(flow, aid, tc);
+
+                boolean isSaga = !Str.isEmpty(xid);
+
+                storeSalesSkuProc.restoreData(aid, pdIds, isSaga);
+
+                inOutStoreRecordProc.restoreData(aid, pdIds, isSaga);
+
+                spuSummaryProc.restoreData(aid, pdIds, isSaga);
+
+                spuBizSummaryProc.restoreData(aid, pdIds, isSaga);
+
+                skuSummaryProc.restoreData(aid, pdIds, isSaga);
+
+                if (isSaga) {
+                    // 将预记录的修改数据持久化到 db
+                    rt = skuSummaryProc.addUpdateSaga2Db(aid);
+                    if (rt != Errno.OK) {
+                        return rt;
+                    }
+                    rt = spuBizSummaryProc.addUpdateSaga2Db(aid);
+                    if (rt != Errno.OK) {
+                        return rt;
+                    }
+                    rt = spuSummaryProc.addUpdateSaga2Db(aid);
+                    if (rt != Errno.OK) {
+                        return rt;
+                    }
+                    rt = storeSalesSkuProc.addUpdateSaga2Db(aid);
+                    if (rt != Errno.OK) {
+                        return rt;
+                    }
+                    rt = inOutStoreRecordProc.addUpdateSaga2Db(aid);
+                    if (rt != Errno.OK) {
+                        return rt;
+                    }
+                    // 记录 Saga 状态
+                    StoreSagaProc storeSagaProc = new StoreSagaProc(flow, aid, tc);
+                    rt = storeSagaProc.add(aid, xid, RootContext.getBranchId());
+                    if (rt != Errno.OK) {
+                        return rt;
+                    }
+                }
+
+                commit = true;
+                tc.commit();
+            } finally {
+                if (!commit) {
+                    tc.rollback();
+                }
+                tc.closeDao();
+                CacheCtrl.clearAllCache(aid);
+            }
+        } finally {
+            LockUtil.unlock(aid);
+        }
+
+
+        rt = Errno.OK;
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        session.write(sendBuf);
+        Log.logStd("ok;flow=%s;aid=%s;pdIdList=%s;", flow, aid, pdIds);
+        return rt;
+    }
+
+    @SuccessRt(Errno.OK)
+    public int restoreDataRollback(FaiSession session, int flow, int aid, String xid, Long branchId) throws IOException {
+        SagaRollback sagaRollback = tc -> {
+            SkuSummaryProc skuSummaryProc = new SkuSummaryProc(flow, aid, tc);
+            skuSummaryProc.rollback4Saga(aid, xid, branchId);
+
+            SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
+            spuBizSummaryProc.rollback4Saga(aid, xid, branchId);
+
+            SpuSummaryProc spuSummaryProc = new SpuSummaryProc(flow, aid, tc);
+            spuSummaryProc.rollback4Saga(aid, xid, branchId);
+
+            InOutStoreRecordProc inOutStoreRecordProc = new InOutStoreRecordProc(flow, aid, tc);
+            inOutStoreRecordProc.rollback4Saga(aid, xid, branchId);
+
+            StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, tc);
+            storeSalesSkuProc.rollback4Saga(aid, xid, branchId);
         };
         int branchStatus = doRollback(flow, aid, xid, branchId, sagaRollback);
         FaiBuffer sendBuf = new FaiBuffer(true);
@@ -736,6 +860,7 @@ public class StoreService extends StoreParentService {
         skuSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.MAX_PRICE, SkuSummaryEntity.Info.MAX_PRICE);
         skuSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.SUM_FIFO_TOTAL_COST, SkuSummaryEntity.Info.FIFO_TOTAL_COST);
         skuSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.ReportInfo.SUM_MW_TOTAL_COST, SkuSummaryEntity.Info.MW_TOTAL_COST);
+        skuSummaryInfo.assign(reportInfo, StoreSalesSkuEntity.Info.SYS_TYPE, SkuSummaryEntity.Info.SYS_TYPE);
     }
 
 

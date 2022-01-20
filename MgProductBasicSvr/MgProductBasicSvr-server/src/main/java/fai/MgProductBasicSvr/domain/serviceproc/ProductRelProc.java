@@ -711,8 +711,8 @@ public class ProductRelProc {
         return updater;
     }
 
-    public int getMaxSort(int aid, int unionPriId) {
-        String sortCache = ProductRelCacheCtrl.SortCache.get(aid, unionPriId);
+    public int getMaxSort(int aid, int unionPriId, int sysType) {
+        String sortCache = ProductRelCacheCtrl.SortCache.get(aid, unionPriId, sysType);
         if(!Str.isEmpty(sortCache)) {
             return Parser.parseInt(sortCache, ProductRelValObj.Default.SORT);
         }
@@ -721,6 +721,7 @@ public class ProductRelProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        searchArg.matcher.and(ProductRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
         FaiList<Param> resList = searchFromDbWithDel(aid, searchArg, Utils.asFaiList("max(sort) as sort"));
         if (Utils.isEmptyList(resList)) {
             Log.logDbg(Errno.NOT_FOUND, "not found;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
@@ -730,7 +731,7 @@ public class ProductRelProc {
         Param info = resList.get(0);
         int sort = info.getInt(ProductRelEntity.Info.SORT, ProductRelValObj.Default.SORT);
         // 添加到缓存
-        ProductRelCacheCtrl.SortCache.set(aid, unionPriId, sort);
+        ProductRelCacheCtrl.SortCache.set(aid, unionPriId, sysType, sort);
         return sort;
     }
 
@@ -804,6 +805,52 @@ public class ProductRelProc {
         }
     }
     private Map<PrimaryKey, Param> sagaMap;
+
+    public FaiList<Integer> getMigratePdIds(int aid, int sysType) {
+        int rt;
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
+
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        rt = m_dao.select(searchArg, listRef);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "dao.getMigratePdIds error;flow=%d;aid=%d;matcher=%s", m_flow, aid, searchArg.matcher);
+        }
+        if (listRef.value == null) {
+            listRef.value = new FaiList<>();
+        }
+        return Utils.getValList(listRef.value, ProductRelEntity.Info.PD_ID);
+    }
+
+    public void restoreData(int aid, FaiList<Integer> pdIds) {
+        int rt;
+        if (pdIds == null || pdIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "arg error;pdIds is empty;flow=%d", m_flow);
+        }
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        rt = m_dao.select(searchArg, listRef, ProductRelEntity.Info.UNION_PRI_ID);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "dao.get restore data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+        }
+        FaiList<Integer> unionPriIds = Utils.getValList(listRef.value, ProductRelEntity.Info.UNION_PRI_ID);
+
+        // es同步数据 预处理
+        for(int unionPriId : unionPriIds) {
+            ESUtil.batchPreLog(aid, unionPriId, pdIds, DocOplogDef.Operation.UPDATE_ONE);
+        }
+
+        ParamUpdater updater = new ParamUpdater(new Param().setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DOWN));
+        rt = m_dao.update(updater, searchArg.matcher);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "dao.restore data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+        }
+    }
+
     private class PrimaryKey {
         int aid;
         int unionPirId;
@@ -1239,7 +1286,7 @@ public class ProductRelProc {
             FaiList<Integer> existedIds = Utils.getValList(tmpList, ProductRelEntity.Info.RL_PD_ID);
             noCacheIds.removeAll(existedIds);
         }
-        ProductRelCacheCtrl.EmptyCache.addCacheList(aid, unionPriId, noCacheIds);
+        ProductRelCacheCtrl.EmptyCache.addCacheList(aid, unionPriId, sysType, noCacheIds);
 
         if (list.isEmpty()) {
             Log.logDbg(Errno.NOT_FOUND, "not found;flow=%d;aid=%d;", m_flow, aid);

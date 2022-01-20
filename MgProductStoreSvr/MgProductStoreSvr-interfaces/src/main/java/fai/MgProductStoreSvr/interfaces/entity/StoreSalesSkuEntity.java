@@ -29,6 +29,7 @@ public class StoreSalesSkuEntity {
         public static final String FLAG = "flag";                                   // int flag
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // Calendar 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // Calendar 修改时间
+        public static final String STATUS = "status";                               // int 数据状态
 
 
 

@@ -425,6 +425,36 @@ public class MgProductSpecHandler extends MiddleGroundHandler {
         return m_productSpecService.clearAcct(session, flow, aid, unionPriIds);
     }
 
+    @Cmd(MgProductSpecCmd.CommCmd.MIGRATE_YK_SERVICE)
+    @WrittenCmd
+    private int migrateYKService(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid final int aid,
+                                 @ArgList(classDef = ProductSpecDto.class, keyMatch = ProductSpecDto.Key.INFO_LIST, methodDef = "getInfoDto") FaiList<Param> list) throws IOException {
+        return m_productSpecService.migrateYKService(session, flow, aid, list);
+    }
+
+    @Cmd(MgProductSpecCmd.CommCmd.RESTORE_DATA)
+    @WrittenCmd
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductSpecCmd.CommCmd.RESTORE_DATA_ROLLBACK)
+    private int restoreData(final FaiSession session,
+                            @ArgFlow final int flow,
+                            @ArgAid final int aid,
+                            @ArgBodyXid(value = ProductSpecDto.Key.XID, useDefault = true) String xid,
+                            @ArgList(keyMatch = ProductSpecDto.Key.PD_ID_LIST) FaiList<Integer> pdIds) throws IOException {
+        return m_productSpecService.restoreData(session, flow, aid, xid, pdIds);
+    }
+
+    @Cmd(MgProductSpecCmd.CommCmd.RESTORE_DATA_ROLLBACK)
+    @WrittenCmd
+    private int restoreDataRollback(final FaiSession session,
+                                    @ArgFlow final int flow,
+                                    @ArgAid final int aid,
+                                    @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                    @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return m_productSpecService.restoreDataRollback(session, flow, aid, xid, branchId);
+    }
+
     private SpecTempService m_specTempService = new SpecTempService();
 
     private ProductSpecService m_productSpecService = ServiceProxy.create(new ProductSpecService());

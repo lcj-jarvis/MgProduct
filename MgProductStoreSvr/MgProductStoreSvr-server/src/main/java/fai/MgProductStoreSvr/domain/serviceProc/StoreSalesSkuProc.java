@@ -6,9 +6,9 @@ import fai.MgProductStoreSvr.domain.comm.LockUtil;
 import fai.MgProductStoreSvr.domain.comm.PdKey;
 import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
 import fai.MgProductStoreSvr.domain.entity.*;
-import fai.MgProductStoreSvr.domain.repository.StoreSalesSkuCacheCtrl;
-import fai.MgProductStoreSvr.domain.repository.StoreSalesSkuDaoCtrl;
-import fai.MgProductStoreSvr.domain.repository.StoreSalesSkuSagaDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.cache.StoreSalesSkuCacheCtrl;
+import fai.MgProductStoreSvr.domain.repository.dao.StoreSalesSkuDaoCtrl;
+import fai.MgProductStoreSvr.domain.repository.dao.saga.StoreSalesSkuSagaDaoCtrl;
 import fai.comm.fseata.client.core.context.RootContext;
 import fai.comm.util.*;
 import fai.mgproduct.comm.MgProductErrno;
@@ -292,21 +292,48 @@ public class StoreSalesSkuProc {
         Log.logStd("ok;flow=%d;aid=%d;pdId=%s;delSkuIdList=%s;", m_flow, aid, pdId, delSkuIdList);
         return rt;
     }
-    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean isSaga) {
+    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean softDel, boolean isSaga) {
         int rt;
         ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
-        if (isSaga) {
-            rt = addDelOp4Saga(aid, matcher);
+
+        if(softDel) {
+            if (isSaga) {
+                SearchArg searchArg = new SearchArg();
+                searchArg.matcher = matcher.clone();
+
+                Ref<FaiList<Param>> listRef = new Ref<>();
+                rt = m_daoCtrl.select(searchArg, listRef);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                    Log.logErr("select err;matcher=%s;", searchArg.matcher.toJson());
+                    return rt;
+                }
+
+                preAddUpdateSaga(aid, listRef.value);
+            }
+
+            ParamUpdater updater = new ParamUpdater();
+            updater.getData().setInt(StoreSalesSkuEntity.Info.STATUS, StoreSalesSkuValObj.Status.DEL);
+            rt = m_daoCtrl.update(updater, matcher);
             if(rt != Errno.OK){
+                Log.logStd(rt, "soft del err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                return rt;
+            }
+        }else {
+            if (isSaga) {
+                rt = addDelOp4Saga(aid, matcher);
+                if(rt != Errno.OK){
+                    return rt;
+                }
+            }
+
+            rt = m_daoCtrl.delete(matcher);
+            if(rt != Errno.OK){
+                Log.logStd(rt, "dao.delete err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
                 return rt;
             }
         }
-        rt = m_daoCtrl.delete(matcher);
-        if(rt != Errno.OK){
-            Log.logStd(rt, "dao.delete err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
-            return rt;
-        }
+
         Log.logStd("ok;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
         return rt;
     }
@@ -1140,6 +1167,7 @@ public class StoreSalesSkuProc {
         Dao.SelectArg selectArg = new Dao.SelectArg();
         selectArg.field = StoreSalesSkuEntity.Info.PD_ID + ", " +
                 StoreSalesSkuEntity.Info.SKU_ID + ", " +
+                StoreSalesSkuEntity.Info.SYS_TYPE + ", " +
                 COMM_REPORT_FIELDS;
         selectArg.group = StoreSalesSkuEntity.Info.SKU_ID;
         selectArg.searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
@@ -1273,6 +1301,45 @@ public class StoreSalesSkuProc {
         return rt;
     }
 
+    public int migrateYKService(int aid, FaiList<Param> storeSkuList) {
+        int rt;
+        Log.logDbg("joke:storeSkuList=%s", storeSkuList);
+        rt = m_daoCtrl.batchInsert(storeSkuList, null, false);
+        if (rt != Errno.OK) {
+            Log.logErr("dao.insert storeSku error;flow=%d;aid=%d;storeSkuList=%s", m_flow, aid, storeSkuList);
+            return rt;
+        }
+        Log.logStd("migrate StoreSku ok;flow=%d;aid=%d", m_flow, aid);
+        return rt;
+    }
+
+    public void restoreData(int aid, FaiList<Integer> pdIds, boolean isSaga) {
+        int rt;
+        if (Utils.isEmptyList(pdIds)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "arg error;pdIds is empty;flow=%d;aid=%d;", m_flow, aid);
+        }
+        if (isSaga) {
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+            searchArg.matcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            rt = m_daoCtrl.select(searchArg, listRef);
+            if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                throw new MgException(rt, "dao.get restore data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+            }
+            preAddUpdateSaga(aid, listRef.value);
+        }
+
+        ParamUpdater updater = new ParamUpdater(new Param().setInt(StoreSalesSkuEntity.Info.STATUS, StoreSalesSkuValObj.Status.DEFAULT));
+        ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        rt = m_daoCtrl.update(updater, matcher);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "dao.restore data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+        }
+    }
+
     private void initReportInfoList(FaiList<Param> list){
         for (Param info : list) {
             initReportInfo(info);
@@ -1297,6 +1364,15 @@ public class StoreSalesSkuProc {
             + ", bit_or(" + StoreSalesSkuEntity.Info.FLAG + ") as " + StoreSalesSkuEntity.ReportInfo.BIT_OR_FLAG
             ;
     //========================== 用于汇总 ↑↑↑ ===================================//
+
+    public void migrateYKDel(int aid, FaiList<Integer> pdIds) {
+        ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        int rt = m_daoCtrl.delete(matcher);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "dao.migrateYKDel error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher);
+        }
+    }
 
     public boolean deleteDirtyCache(int aid) {
         return cacheManage.deleteDirtyCache(aid);

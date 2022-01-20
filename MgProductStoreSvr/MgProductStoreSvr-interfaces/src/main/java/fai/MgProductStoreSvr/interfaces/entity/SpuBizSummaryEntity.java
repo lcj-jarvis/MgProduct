@@ -31,6 +31,7 @@ public class SpuBizSummaryEntity {
         public static final String DISTRIBUTE_LIST = "distributeList";              // varchar(255) 配送方式（支持多个）
         public static final String KEEP_PROP1 = "keepProp1";                        // varchar(255) 字符串 保留字段1 TODO
         public static final String KEEP_INT_PROP1 = "keepIntProp1";                 // int 整型 保留字段1 TODO
+        public static final String STATUS = "status";                               // int 数据状态
     }
 
     public static final FaiList<String> MANAGE_FIELDS; // 管理态字段

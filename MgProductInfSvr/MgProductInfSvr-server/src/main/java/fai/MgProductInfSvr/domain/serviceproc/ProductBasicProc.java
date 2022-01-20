@@ -263,6 +263,7 @@ public class ProductBasicProc {
     /**
      * 批量设置商品的状态
      * for 门店通总店批量设置上下架，若门店数据不存在，则添加
+     * 可修改：分类绑定，top 字段 （现阶段接入使用的字段）
      * @return
      */
     public FaiList<Param> batchSet4YK(int aid, String xid, int ownUnionPriId, int sysType, FaiList unionPriIds, FaiList<Integer> rlPdIds, ParamUpdater updater) {
@@ -743,16 +744,46 @@ public class ProductBasicProc {
     }
 
     public FaiList<Param> dataMigrate(int aid, int tid, FaiList<Param> addList) {
+        return dataMigrate(aid, tid, addList, 0);
+    }
+
+    public FaiList<Param> dataMigrate(int aid, int tid, FaiList<Param> addList, int sysType) {
         int rt;
         if(m_cli == null) {
             rt = Errno.ERROR;
             throw new MgException(rt, "get ProductBasicCli error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
         }
         FaiList<Param> returnList = new FaiList<>();
-        rt = m_cli.dataMigrate(aid, tid, addList, returnList);
+        rt = m_cli.dataMigrate(aid, tid, addList, sysType, returnList);
         if(rt != Errno.OK) {
             throw new MgException(rt, "setPdBindTag error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
         }
         return returnList;
+    }
+
+    public FaiList<Integer> getMigratePdIds(int aid, int sysType) {
+        int rt;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get ProductBasicCli error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        FaiList<Integer> pdIds = new FaiList<>();
+        rt = m_cli.getMigratePdIds(aid, sysType, pdIds);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "getMigratePdIds error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        return pdIds;
+    }
+
+    public void restoreData(int aid, int unionPriId, String xid, FaiList<Integer> rlPdIds, int sysType, FaiList<Integer> pdIds) {
+        int rt;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get ProductBasicCli error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        rt = m_cli.restoreData(aid, unionPriId, xid, rlPdIds, sysType, pdIds);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "restoreData error;flow=%d;aid=%;rlPdIds=%s", m_flow, aid, rlPdIds);
+        }
     }
 }

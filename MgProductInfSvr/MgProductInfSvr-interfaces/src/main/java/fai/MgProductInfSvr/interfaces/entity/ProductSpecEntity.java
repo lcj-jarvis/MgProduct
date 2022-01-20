@@ -26,6 +26,7 @@ public class ProductSpecEntity {
         public static final String IN_PD_SC_VAL_LIST = "inPdScValList";             // 规格值(FaiList<Param>([{psScStrId1 , checked},{psScStrId2 , checked}])), 支持最大50个值
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
+        public static final String STATUS = "status";                               // int 数据状态
     }
     /**
      * 产品规格SKU
@@ -42,6 +43,7 @@ public class ProductSpecEntity {
          * @see SpecStrInfo#SC_STR_ID
          */
         public static final String IN_PD_SC_STR_ID_LIST = "inPdScStrIdList";        // 规格值 id FaiList<Integer>, 支持最大 15 种规格
+        public static final String IN_PD_SC_LIST = "inPdScList";                    // varchar(255) 规格id-规格值id FaiList<String>, 规格值id和inPdScStrIdList一一对应, 若修改了inPdScStrIdList，需同步修改inPdScList
         /**
          * 每个元素值:
          * @see SpecStrInfo#NAME

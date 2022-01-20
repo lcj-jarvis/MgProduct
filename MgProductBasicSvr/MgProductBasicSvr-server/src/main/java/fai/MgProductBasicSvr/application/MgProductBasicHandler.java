@@ -757,8 +757,40 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                 @ArgAid final int aid,
                                 @ArgBodyInteger(ProductDto.Key.TID) int tid,
                                 @ArgList(keyMatch = ProductDto.Key.INFO_LIST, methodDef = "getInfoDto",
-                                classDef = MigrateDef.Dto.class) FaiList<Param> list) throws IOException {
-        return dataMigrateService.dataMigrate(session, flow, aid, tid, list);
+                                classDef = MigrateDef.Dto.class) FaiList<Param> list,
+                                @ArgBodyInteger(value = ProductDto.Key.SYS_TYPE, useDefault = true) int sysType) throws IOException {
+        return dataMigrateService.dataMigrate(session, flow, aid, tid, list, sysType);
+    }
+
+    @Cmd(MgProductBasicCmd.Cmd.MIGRATE_GET)
+    public int getMigratePdIds(final FaiSession session,
+                           @ArgFlow final int flow,
+                           @ArgAid final int aid,
+                           @ArgBodyInteger(value = ProductDto.Key.SYS_TYPE, useDefault = true) int sysType) throws IOException {
+        return dataMigrateService.getMigratePdIds(session, flow, aid, sysType);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.Cmd.RESTORE_DATA)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductBasicCmd.Cmd.RESTORE_DATA_ROLLBACK)
+    public int restoreData(final FaiSession session,
+                           @ArgFlow final int flow,
+                           @ArgAid final int aid,
+                           @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
+                           @ArgBodyXid(value = ProductRelDto.Key.XID, useDefault = true) String xid,
+                           @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
+                           @ArgBodyInteger(value = ProductRelDto.Key.SYS_TYPE, useDefault = true) int sysType) throws IOException {
+        return service.restoreData(session, flow, aid, unionPriId, xid, rlPdIds, sysType);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.Cmd.RESTORE_DATA_ROLLBACK)
+    public int restoreDataRollback(final FaiSession session,
+                                   @ArgFlow final int flow,
+                                   @ArgAid final int aid,
+                                   @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                   @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return service.restoreDataRollback(session, flow, aid, xid, branchId);
     }
 
     private ProductBasicService service = ServiceProxy.create(new ProductBasicService());

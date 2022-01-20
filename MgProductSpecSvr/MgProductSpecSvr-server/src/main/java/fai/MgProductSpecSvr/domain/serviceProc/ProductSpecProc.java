@@ -238,7 +238,7 @@ public class ProductSpecProc {
         Log.logStd("ok!flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
-    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean isSaga) {
+    public int batchDel(int aid, FaiList<Integer> pdIdList, boolean softDel, boolean isSaga) {
         if(aid <= 0 || pdIdList == null || pdIdList.isEmpty()){
             Log.logErr("batchDel arg error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
             return Errno.ARGS_ERROR;
@@ -248,15 +248,34 @@ public class ProductSpecProc {
         matcher.and(ProductSpecEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
         cacheManage.addNeedDelCachedPdIdList(aid, pdIdList);
         if (isSaga) {
-            rt = addDelOp4Saga(aid, matcher);
-            if (rt != Errno.OK) {
-                return rt;
+            // 根据 是否软删除 记录不同的 Saga 操作
+            if(softDel) {
+                Ref<FaiList<Param>> listRef = new Ref<>();
+                rt = getListFromDao(aid, pdIdList, listRef);
+                if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                    Log.logErr(rt, "dao.select error;flow=%d;aid=%s;matcher=%s;", m_flow, aid, matcher.toJson());
+                    return rt;
+                }
+                // 预记录修改操作数据
+                preAddUpdateSaga(aid, listRef.value);
+            }else {
+                // 记录删除操作数据
+                rt = addDelOp4Saga(aid, matcher);
+                if (rt != Errno.OK) {
+                    return rt;
+                }
             }
         }
-        rt = m_daoCtrl.delete(matcher);
-        if (rt != Errno.OK) {
-            Log.logErr(rt, "batchDel error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
-            return rt;
+        if(softDel) {
+            ParamUpdater updater = new ParamUpdater();
+            updater.getData().setInt(ProductSpecEntity.Info.STATUS, ProductSpecValObj.Status.DEL);
+            rt = m_daoCtrl.update(updater, matcher);
+        }else {
+            rt = m_daoCtrl.delete(matcher);
+            if (rt != Errno.OK) {
+                Log.logErr(rt, "batchDel error;flow=%d;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                return rt;
+            }
         }
 
         Log.logStd("batchDel ok;flow=%d;aid=%d;pdIdList=%s;", m_flow, aid, pdIdList);
@@ -837,6 +856,81 @@ public class ProductSpecProc {
         }
         Log.logDbg(rt,"getList ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
         return rt;
+    }
+
+    // 门店迁移服务接口，后续不要用
+    public void migrateYkService(int aid, FaiList<Param> specList) {
+        int rt;
+        if (aid <= 0) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "arg error;flow=%d;aid=%d", m_flow ,aid);
+        }
+        if (specList == null || specList.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "arg error;flow=%d;aid=%d", m_flow ,aid);
+        }
+        Integer pdScId = m_daoCtrl.getId();
+        if(pdScId == null){
+            rt = Errno.ERROR;
+            throw new MgException(rt, "pdScId error;flow=%d;aid=%s;tpScId=%s;", m_flow, aid, pdScId);
+        }
+        FaiList<Integer> pdIdList = new FaiList<>();
+        FaiList<Param> dataList = new FaiList<>(specList.size());
+        for (Param info : specList) {
+            Param data = new Param();
+            int pdId = info.getInt(ProductSpecEntity.Info.PD_ID);
+            data.setInt(ProductSpecEntity.Info.AID, aid);
+            pdScId++;
+            data.setInt(ProductSpecEntity.Info.PD_SC_ID, pdScId);
+            data.setInt(ProductSpecEntity.Info.PD_ID, pdId);
+            data.assign(info, ProductSpecEntity.Info.SC_STR_ID);
+            data.assign(info, ProductSpecEntity.Info.SOURCE_TID);
+            data.assign(info, ProductSpecEntity.Info.SOURCE_UNION_PRI_ID);
+            data.assign(info, ProductSpecEntity.Info.FLAG);
+            data.assign(info, ProductSpecEntity.Info.STATUS);
+            data.setString(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST, new FaiList<>().toJson());
+            data.assign(info, ProductSpecEntity.Info.SYS_CREATE_TIME);
+            data.assign(info, ProductSpecEntity.Info.SYS_UPDATE_TIME);
+            pdIdList.add(pdId);
+            dataList.add(data);
+        }
+        cacheManage.addNeedDelCachedPdIdList(aid, pdIdList);
+        if (m_daoCtrl.updateId(pdScId) == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "dao.updateId error;flow=%d;aid=%s;pdScId=%s;", m_flow, aid, pdScId);
+        }
+        Log.logDbg("joke:add specList=%s", specList);
+        rt = m_daoCtrl.batchInsert(dataList);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "dao.batchInsert error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
+        }
+        Log.logStd("ok;flow=%d;aid=%d;", m_flow, aid);
+    }
+
+    public void restoreData(int aid, FaiList<Integer> pdIds, boolean isSaga) {
+        int rt;
+        if (pdIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "arg error;pdIds is empty;flow=%d;aid=%d;", m_flow, aid);
+        }
+        // 开启分布式事务
+        if (isSaga) {
+            // 先获取一遍旧数据
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            rt = getListFromDao(aid, pdIds, listRef);
+            if (rt != Errno.OK) {
+                throw new MgException(Errno.ERROR, "dao.get softDel data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+            }
+            preAddUpdateSaga(aid, listRef.value);
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductSpecEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductSpecEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        ParamUpdater updater = new ParamUpdater();
+        updater.getData().setInt(ProductSpecEntity.Info.STATUS, ProductSpecValObj.Status.DEFAULT);
+        rt = m_daoCtrl.update(updater, matcher);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "dao.restoreData error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+        }
     }
 
     public void restoreMaxId(int aid, boolean needLock) {

@@ -57,6 +57,7 @@ public class SpecTempService extends SpecParentService {
                     rlLibId = SpecTempBizRelValObj.Default.RL_LIB_ID;
                 }
                 rlLibIdList.add(rlLibId);
+                specTempBizRelInfo.setInt(SpecTempBizRelEntity.Info.SYS_TYPE, sysType);
                 specTempBizRelInfo.setInt(SpecTempBizRelEntity.Info.RL_LIB_ID, rlLibId);
                 specTempBizRelInfo.assign(info, SpecTempBizRelEntity.Info.RL_TP_SC_ID);
                 specTempBizRelInfo.assign(info, SpecTempBizRelEntity.Info.SORT);
@@ -775,6 +776,7 @@ public class SpecTempService extends SpecParentService {
             }
 
             ParamComparator comparator = new ParamComparator(SpecTempDetailEntity.Info.SORT);
+            comparator.addKey(SpecTempDetailEntity.Info.TP_SC_DT_ID);
             Collections.sort(specTempDetailList, comparator);
             sendDetailInfoList(session, specTempDetailList);
         }finally {

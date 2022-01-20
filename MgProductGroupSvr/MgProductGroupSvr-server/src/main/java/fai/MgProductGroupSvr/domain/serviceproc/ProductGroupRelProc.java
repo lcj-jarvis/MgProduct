@@ -625,6 +625,32 @@ public class ProductGroupRelProc {
         m_relDao.clearIdBuilderCache(aid, unionPriId);
     }
 
+    public void clearAcct(int aid, FaiList<Integer> unionPriIds) {
+        int rt;
+        if (unionPriIds == null || unionPriIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "arg error;flow=%d;aid=%d;unionPriIds=%s", aid, unionPriIds, m_flow);
+        }
+        ParamMatcher matcher = new ParamMatcher(ProductGroupRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(ProductGroupRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+
+        rt = m_relDao.delete(matcher);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "clearAcct error;flow=%d;aid=%d;unionPriIds=%s", aid, unionPriIds, m_flow);
+        }
+
+        // 处理下idBuilder
+        for(int unionPriId : unionPriIds) {
+            restoreMaxId(aid, unionPriId, false);
+        }
+        Log.logStd("clearAcct ok;flow=%d;aid=%d;unionPrIdId=%s;", m_flow, aid, unionPriIds);
+    }
+
+    public void restoreMaxId(int aid, int unionPriId, boolean needLock) {
+        m_relDao.restoreMaxId(unionPriId, needLock);
+        m_relDao.clearIdBuilderCache(aid, unionPriId);
+    }
+
     private void init(TransactionCtrl transactionCrtl) {
         if(transactionCrtl == null) {
             return;

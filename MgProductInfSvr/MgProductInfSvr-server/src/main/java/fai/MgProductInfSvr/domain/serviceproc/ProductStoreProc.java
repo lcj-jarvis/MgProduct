@@ -676,9 +676,62 @@ public class ProductStoreProc extends AbstractProductProc{
         return rt;
     }
 
+    public void migrateYKService(int aid, FaiList<Param> spuList) {
+        int rt;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
+        }
+
+        rt = m_cli.migrateYKService(aid, spuList);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "migrateYKService error;flow=%d;aid=%d;", m_flow, aid);
+        }
+    }
+
+    public void migrateYKStoreSku(int aid, FaiList<Param> storeSkuList) {
+        int rt;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
+        }
+
+        rt = m_cli.migrateYKStoreSku(aid, storeSkuList);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "migrateYKService error;flow=%d;aid=%d;", m_flow, aid);
+        }
+    }
+
+    public void migrateYKServiceDel(int aid, FaiList<Integer> pdIds) {
+        if (pdIds == null || pdIds.isEmpty()) {
+            return;
+        }
+        int rt;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        rt = m_cli.migrateYKServiceDel(aid, pdIds);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "migrateYKService error;flow=%d;aid=%d;", m_flow, aid);
+        }
+    }
+
+    public void restoreData(int aid, String xid, FaiList<Integer> pdIds) {
+        if (pdIds == null || pdIds.isEmpty()) {
+            return;
+        }
+        int rt;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        rt = m_cli.restoreData(aid, xid, pdIds);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "restoreData error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+        }
+    }
+
     private int m_flow;
     private MgProductStoreCli m_cli;
-
-
-
 }

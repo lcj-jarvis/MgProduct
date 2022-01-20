@@ -24,6 +24,8 @@ public class SkuSummaryEntity {
         public static final String MW_TOTAL_COST = "mwTotalCost";                   // bigint 移动加权方式计算的总成本（数据不完全实时，做搜索，从 sku 冗余）
         public static final String SYS_CREATE_TIME = "sysCreateTime";               // datetime 创建时间
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
+        public static final String STATUS = "status";                               // int 数据状态
+        public static final String SYS_TYPE = "sysType";                            // int 系统类型
     }
 
     private static final String[] MAX_UPDATE_AND_PRI_KEYS = new String[]{
@@ -36,7 +38,8 @@ public class SkuSummaryEntity {
             Info.HOLDING_COUNT,
             Info.FIFO_TOTAL_COST,
             Info.MW_TOTAL_COST,
-            Info.SYS_UPDATE_TIME
+            Info.SYS_UPDATE_TIME,
+            Info.STATUS
     };
 
     /**

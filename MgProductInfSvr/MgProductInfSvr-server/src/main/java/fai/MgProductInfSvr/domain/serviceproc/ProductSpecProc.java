@@ -2,6 +2,7 @@ package fai.MgProductInfSvr.domain.serviceproc;
 
 import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
 import fai.comm.util.*;
+import fai.middleground.svrutil.exception.MgException;
 
 
 public class ProductSpecProc extends AbstractProductProc {
@@ -452,6 +453,32 @@ public class ProductSpecProc extends AbstractProductProc {
             return rt;
         }
         return rt;
+    }
+
+    public FaiList<Param> migrateYKService(int aid, FaiList<Param> list) {
+        int rt;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get MgProductSpecCli error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        FaiList<Param> returnList = new FaiList<>();
+        rt = m_cli.migrateYKService(aid, list, returnList);
+        if(rt != Errno.OK) {
+            throw new MgException(rt, "error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        return returnList;
+    }
+
+    public void restoreData(int aid, String xid, FaiList<Integer> pdIds) {
+        int rt;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get MgProductSpecCli error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        rt = m_cli.restoreData(aid, xid, pdIds);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "restoreData error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+        }
     }
 
     private int m_flow;

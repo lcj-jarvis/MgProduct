@@ -43,6 +43,7 @@ public class StoreSalesSkuDto {
         g_dtoDef.add(StoreSalesSkuEntity.Info.COST_PRICE, 25, Var.Type.LONG);
         g_dtoDef.add(StoreSalesSkuEntity.Info.MW_COST, 26, Var.Type.LONG);
         g_dtoDef.add(StoreSalesSkuEntity.Info.SYS_TYPE, 27, Var.Type.INT);
+        g_dtoDef.add(StoreSalesSkuEntity.Info.STATUS, 28, Var.Type.INT);
     }
 
     public static ParamDef getInfoDto() {
@@ -91,6 +92,7 @@ public class StoreSalesSkuDto {
         public static final int RL_REFUND_ID = 21;
         public static final int XID = 22;
         public static final int SYS_TYPE = 23;
+        public static final int PD_IDS = 24;
     }
 
     public static class CacheDto{
@@ -117,6 +119,7 @@ public class StoreSalesSkuDto {
             g_manageInfoDef.add(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, 22, Var.Type.INT);
             g_manageInfoDef.add(StoreSalesSkuEntity.Info.MW_COST, 23, Var.Type.LONG);
             g_manageInfoDef.add(StoreSalesSkuEntity.Info.SYS_TYPE, 24, Var.Type.INT);
+            g_manageInfoDef.add(StoreSalesSkuEntity.Info.STATUS, 25, Var.Type.INT);
         }
 
         public static ParamDef getManageInfoDto() {

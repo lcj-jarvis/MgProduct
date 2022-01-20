@@ -31,6 +31,7 @@ public class ProductSpecDto {
         g_dtoDef.add(ProductSpecEntity.Info.SYS_CREATE_TIME, 9);
         g_dtoDef.add(ProductSpecEntity.Info.SYS_UPDATE_TIME, 10);
         g_dtoDef.add(ProductSpecEntity.Info.SOURCE_UNION_PRI_ID, 11, Var.Type.INT);
+        g_dtoDef.add(ProductSpecEntity.Info.STATUS, 12, Var.Type.INT);
     }
 
     public static ParamDef getInfoDto() {
@@ -54,6 +55,7 @@ public class ProductSpecDto {
         public static final int ONLY_CHECKED = 14;
         public static final int XID = 15;
         public static final int SYS_TYPE = 16;
+        public static final int RETURN_LIST = 17;
     }
 
     /**
@@ -82,6 +84,7 @@ public class ProductSpecDto {
             g_cacheDtoDef.add(ProductSpecEntity.Info.SYS_CREATE_TIME, 9);
             g_cacheDtoDef.add(ProductSpecEntity.Info.SYS_UPDATE_TIME, 10);
             g_cacheDtoDef.add(ProductSpecEntity.Info.SOURCE_UNION_PRI_ID, 11, Var.Type.INT);
+            g_cacheDtoDef.add(ProductSpecEntity.Info.STATUS, 12, Var.Type.INT);
         }
 
         public static ParamDef getCacheDto() {

@@ -1957,4 +1957,110 @@ public class MgProductSpecCli extends MgProductInternalCli {
         }
         return m_rt;
     }
+
+    public int migrateYKService(int aid, FaiList<Param> list, FaiList<Param> returnList) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid <= 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if (Util.isEmptyList(list)) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "list is empty");
+                return m_rt;
+            }
+
+            FaiBuffer sendBody = new FaiBuffer(true);
+            list.toBuffer(sendBody, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.getInfoDto());
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductSpecCmd.CommCmd.MIGRATE_YK_SERVICE);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            FaiBuffer recvBody = recvProtocol.getDecodeBody();
+            if (recvBody == null) {
+                m_rt = Errno.CODEC_ERROR;
+                Log.logErr(m_rt, "recv body null");
+                return m_rt;
+            }
+            if(returnList == null){
+                returnList = new FaiList<>();
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<>();
+            m_rt = returnList.fromBuffer(recvBody, keyRef, MigrateDto.getReturnListDtoDef());
+            if (m_rt != Errno.OK || keyRef.value != ProductSpecDto.Key.RETURN_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+        return m_rt;
+    }
+
+    public int restoreData(int aid, String xid, FaiList<Integer> pdIds) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid <= 0 || pdIds == null || pdIds.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+                return m_rt;
+            }
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putString(ProductSpecDto.Key.XID, xid);
+            pdIds.toBuffer(sendBody, ProductSpecDto.Key.PD_ID_LIST);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductSpecCmd.CommCmd.RESTORE_DATA);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
 }

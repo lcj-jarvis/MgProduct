@@ -479,8 +479,9 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                         @ArgBodyInteger(StoreSalesSkuDto.Key.TID) final int tid,
                                         @ArgList(keyMatch = StoreSalesSkuDto.Key.ID_LIST)
                                                 FaiList<Integer> pdIdList,
-                                        @ArgBodyXid(value = StoreSalesSkuDto.Key.XID, useDefault = true) String xid) throws IOException {
-        return m_storeService.batchDelPdAllStoreSales(session, flow, aid, tid, pdIdList, xid);
+                                        @ArgBodyXid(value = StoreSalesSkuDto.Key.XID, useDefault = true) String xid,
+                                        @ArgBodyBoolean(value = StoreSalesSkuDto.Key.SOFT_DEL, useDefault = true) boolean softDel) throws IOException {
+        return m_storeService.batchDelPdAllStoreSales(session, flow, aid, tid, pdIdList, softDel, xid);
     }
 
     @WrittenCmd
@@ -656,6 +657,56 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                            @ArgList(keyMatch = SpuBizSummaryDto.Key.INFO_LIST, methodDef = "getInfoDto",
                            classDef = SpuBizSummaryDto.class) FaiList<Param> spuList) throws IOException {
         return migrateService.migrate(session, flow, aid, spuList);
+    }
+
+    @Cmd(MgProductStoreCmd.Cmd.MIGRATE_YK_SERVICE)
+    @WrittenCmd
+    private int migrateYKService(final FaiSession session,
+                        @ArgFlow final int flow,
+                        @ArgAid final int aid,
+                        @ArgList(keyMatch = SpuBizSummaryDto.Key.INFO_LIST, methodDef = "getInfoDto",
+                                classDef = SpuBizSummaryDto.class) FaiList<Param> spuList) throws IOException {
+        return migrateService.migrateYKService(session, flow, aid, spuList);
+    }
+
+    @Cmd(MgProductStoreCmd.Cmd.MIGRATE_YK_STORE_SKU)
+    @WrittenCmd
+    private int migrateYKStoreSku(final FaiSession session,
+                                  @ArgFlow final int flow,
+                                  @ArgAid final int aid,
+                                  @ArgList(keyMatch = StoreSalesSkuDto.Key.INFO_LIST, methodDef = "getInfoDto",
+                                          classDef = StoreSalesSkuDto.class) FaiList<Param> storeSkuList) throws IOException {
+        return m_storeSalesSkuService.migrateYKStoreSku(session, flow, aid, storeSkuList);
+    }
+
+    @Cmd(MgProductStoreCmd.Cmd.MIGRATE_YK_DEL)
+    @WrittenCmd
+    private int migrateYKServiceDel(final FaiSession session,
+                                 @ArgFlow final int flow,
+                                 @ArgAid final int aid,
+                                 @ArgList(keyMatch = StoreSalesSkuDto.Key.PD_IDS) FaiList<Integer> pdIds) throws IOException {
+        return migrateService.migrateYKServiceDel(session, flow, aid, pdIds);
+    }
+
+    @Cmd(MgProductStoreCmd.Cmd.RESTORE_DATA)
+    @WrittenCmd
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductStoreCmd.Cmd.RESTORE_DATA_ROLLBACK)
+    private int restoreData(final FaiSession session,
+                                    @ArgFlow final int flow,
+                                    @ArgAid final int aid,
+                                    @ArgBodyXid(StoreSalesSkuDto.Key.XID) String xid,
+                                    @ArgList(keyMatch = StoreSalesSkuDto.Key.PD_IDS) FaiList<Integer> pdIds) throws IOException {
+        return m_storeService.restoreData(session, flow, aid, xid, pdIds);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.Cmd.RESTORE_DATA_ROLLBACK)
+    private int restoreDataRollback(final FaiSession session,
+                                             @ArgFlow final int flow,
+                                             @ArgAid final int aid,
+                                             @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                             @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return m_storeService.restoreDataRollback(session, flow, aid, xid, branchId);
     }
 
     private static final String CLI_NAME = "MgProductStoreCli";

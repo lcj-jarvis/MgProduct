@@ -512,6 +512,20 @@ public class MgProductInfHandler extends FaiHandler {
         return specService.getPdSkuIdInfoList(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, rlPdIdList, withSpuInfo);
     }
 
+    @Cmd(MgProductInfCmd.ProductSpecSkuCmd.GET_SKU_ID_LIST_WITH_DEL)
+    public int getPdSkuIdInfoListWithDel(final FaiSession session,
+                                  @ArgFlow final int flow,
+                                  @ArgAid final int aid,
+                                  @ArgBodyInteger(ProductSpecDto.Key.TID) int tid,
+                                  @ArgBodyInteger(ProductSpecDto.Key.SITE_ID) int siteId,
+                                  @ArgBodyInteger(ProductSpecDto.Key.LGID) int lgId,
+                                  @ArgBodyInteger(ProductSpecDto.Key.KEEP_PRIID1) int keepPriId1,
+                                  @ArgBodyInteger(value = ProductSpecDto.Key.SYS_TYPE, useDefault = true) int sysType,
+                                         @ArgBodyBoolean(value = ProductSpecDto.Key.WITH_SPU_INFO, useDefault = true) boolean withSpuInfo,
+                                  @ArgList(keyMatch = ProductSpecDto.Key.ID_LIST) FaiList<Integer> rlPdIdList) throws IOException {
+        return specService.getPdSkuIdInfoListWithDel(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, withSpuInfo, rlPdIdList);
+    }
+
     @Cmd(MgProductInfCmd.BasicCmd.GET_PD_LIST)
     public int getProductList(final FaiSession session,
                               @ArgFlow final int flow,
@@ -718,7 +732,7 @@ public class MgProductInfHandler extends FaiHandler {
                               @ArgBodyString(value = ProductBasicDto.Key.XID, useDefault = true) String xid,
                               @ArgBodyInteger( ProductBasicDto.Key.RL_PD_ID) Integer rlPdId,
                               @ArgParam(classDef = MgProductDto.class, methodDef = "getInfoDto",
-                                      keyMatch = ProductBasicDto.Key.UPDATER) Param combinedUpdater) throws IOException, TransactionException {
+                                      keyMatch = ProductBasicDto.Key.UPDATER) Param combinedUpdater)throws IOException, TransactionException {
         if (!Str.isEmpty(xid)) {
             RootContext.bind(xid, flow);
         }
@@ -1687,6 +1701,26 @@ public class MgProductInfHandler extends FaiHandler {
                            @ArgFlow final int flow,
                            @ArgAid final int aid) throws IOException {
         return dataMigrateService.migrateYK(session, flow, aid);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.Cmd.MIGRATE_SERVICE)
+    public int migrateYKService(final FaiSession session,
+                           @ArgFlow final int flow,
+                           @ArgAid final int aid) throws IOException {
+        return dataMigrateService.migrateYKService(session, flow, aid);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductInfCmd.Cmd.RESTORE_DATA)
+    public int restoreData(final FaiSession session,
+                           @ArgFlow final int flow,
+                           @ArgAid final int aid,
+                           @ArgParam(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
+                                   keyMatch = MgProductDto.Key.PRIMARY_KEY) Param primaryKey,
+                           @ArgList(keyMatch = MgProductDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
+                           @ArgBodyInteger(value = MgProductDto.Key.SYS_TYPE) int sysType) throws IOException, TransactionException {
+        return mgProductInfService.restoreData(session, flow, aid, primaryKey, rlPdIds, sysType);
     }
 
     //MgProductInfService mgProductInfService = new MgProductInfService();

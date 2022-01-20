@@ -1,15 +1,15 @@
-package fai.MgProductStoreSvr.domain.repository;
+package fai.MgProductStoreSvr.domain.repository.dao;
 
+import fai.MgProductStoreSvr.domain.repository.TableDBMapping;
 import fai.comm.util.DaoPool;
 import fai.comm.util.Log;
-import fai.middleground.svrutil.repository.DaoCtrl;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 /**
  * dao ctrl中不再对传进来的数据做解析校验
  * 主要是处理dao相关逻辑
  */
-public class SpuBizSummaryDaoCtrl extends DaoCtrl {
+public class SpuBizSummaryDaoCtrl extends DaoCtrlWithoutDel {
 
     private SpuBizSummaryDaoCtrl(int flow, int aid) {
         super(flow, aid);

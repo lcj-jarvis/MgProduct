@@ -213,17 +213,17 @@ public class MgProductInfService extends ServicePub {
         return list;
     }
 
-    protected int getPdIdWithAdd(int flow, int aid, int tid, int siteId, int unionPriId, int sysType, int rlPdId, Ref<Integer> idRef) {
-        return getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef, true);
+    protected int getPdIdWithAdd(int flow, int aid, int tid, int siteId, int unionPriId, int sysType, int rlPdId, String xid, Ref<Integer> idRef) {
+        return getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef, true, xid);
     }
     /**
      * 获取PdId
      */
     protected int getPdId(int flow, int aid, int tid, int siteId, int unionPriId, int sysType, int rlPdId, Ref<Integer> idRef) {
-        return getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef, false);
+        return getPdId(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef, false, null);
     }
 
-    protected int getPdId(int flow, int aid, int tid, int siteId, int unionPriId, int sysType, int rlPdId, Ref<Integer> idRef, boolean withAdd) {
+    protected int getPdId(int flow, int aid, int tid, int siteId, int unionPriId, int sysType, int rlPdId, Ref<Integer> idRef, boolean withAdd, String xid) {
         int rt = Errno.ERROR;
         MgProductBasicCli mgProductBasicCli = new MgProductBasicCli(flow);
         if(!mgProductBasicCli.init()) {
@@ -235,9 +235,14 @@ public class MgProductInfService extends ServicePub {
         Param pdRelInfo = new Param();
         rt = mgProductBasicCli.getRelInfoByRlId(aid, unionPriId, sysType, rlPdId, pdRelInfo);
         if(rt != Errno.OK) {
-            if(withAdd && (rt == Errno.NOT_FOUND)){
-                rt = mgProductBasicCli.addProductAndRel(aid, tid, siteId, unionPriId, "", new Param()
+            // sysType为0才触发添加
+            if(withAdd && (rt == Errno.NOT_FOUND) && sysType == 0){
+                if(xid == null) {
+                    xid = "";
+                }
+                rt = mgProductBasicCli.addProductAndRel(aid, tid, siteId, unionPriId, xid, new Param()
                                 .setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId)
+                                .setInt(ProductRelEntity.Info.SYS_TYPE, sysType)
                                 .setBoolean(ProductRelEntity.Info.INFO_CHECK, false)
                         , idRef, new Ref<>());
                 if(rt != Errno.OK) {
@@ -1064,6 +1069,7 @@ public class MgProductInfService extends ServicePub {
     /**
      * 批量设置商品的状态
      * for 门店通总店批量设置上下架：若门店数据不存在，则添加
+     * 可修改：分类绑定，top 字段 （现阶段接入使用的字段）
      */
     @SuccessRt(Errno.OK)
     public int batchSet4YK(FaiSession session, int flow, int aid, Param ownPrimaryKey, int sysType, FaiList<Integer> rlPdIds, FaiList<Param> primaryKeys, ParamUpdater basicUpdater) throws IOException, TransactionException {
@@ -1366,9 +1372,19 @@ public class MgProductInfService extends ServicePub {
                 return rt;
             }
 
-            //TODO 删除商品分类数据(商品分类还没上线)
+            // 删除分类相关数据
+            ProductGroupProc groupProc = new ProductGroupProc(flow);
+            rt = groupProc.clearAcct(aid, unionPriIds);
+            if (rt != Errno.OK) {
+                return rt;
+            }
 
-            //TODO 删除富文本中台数据
+            // 删除富文本数据
+            RichTextProc richTextProc = new RichTextProc(flow);
+            rt = richTextProc.clearAcct(aid, tid, siteId, lgId, keepPriId1, primaryKeys);
+            if (rt != Errno.OK) {
+                return rt;
+            }
 
             // 删除规格数据
             ProductSpecProc specProc = new ProductSpecProc(flow);
@@ -1865,6 +1881,75 @@ public class MgProductInfService extends ServicePub {
         }
         return rt;
     }
+
+    /**
+     * 恢复软删数据
+     * @param session session
+     * @param flow flow
+     * @param aid aid
+     * @param primaryKey 主键维度
+     * @param rlPdIds 商品业务id集合
+     * @param sysType sysType
+     * @return {@link Errno}
+     */
+    public int restoreData(FaiSession session, int flow, int aid, Param primaryKey, FaiList<Integer> rlPdIds, int sysType) throws IOException, TransactionException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+
+            int tid = primaryKey.getInt(MgProductEntity.Info.TID);
+            // todo 暂时只提供给门店通使用，后续需要在扩展
+            if (tid != FaiValObj.TermId.YK) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr(rt, "Not supported by current business;flow=%d;aid=%d;tid=%d", flow, aid, tid);
+                return rt;
+            }
+            int siteId = primaryKey.getInt(MgProductEntity.Info.SITE_ID);
+            int lgId = primaryKey.getInt(MgProductEntity.Info.LGID);
+            int keepPriId1 = primaryKey.getInt(MgProductEntity.Info.KEEP_PRI_ID1);
+
+            int unionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
+
+            // 开启全局事务
+            GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
+            tx.begin(aid, 60000, "mgProduct-importProduct", flow);
+            String xid = tx.getXid();
+            boolean commit = false;
+            try {
+                // 恢复基础信息
+                ProductBasicProc basicProc = new ProductBasicProc(flow);
+                FaiList<Integer> pdIds = new FaiList<>();
+                basicProc.restoreData(aid, unionPriId, xid, rlPdIds, sysType, pdIds);
+
+                if (pdIds.isEmpty()) {
+                    throw new MgException(rt, "not found pdIds;flow=%d;aid=%d;", flow, aid);
+                }
+
+                // 恢复商品规格相关信息
+                ProductSpecProc specProc = new ProductSpecProc(flow);
+                specProc.restoreData(aid, xid, pdIds);
+
+                // 恢复商品库存信息
+                ProductStoreProc storeProc = new ProductStoreProc(flow);
+                storeProc.restoreData(aid, xid, pdIds);
+
+                commit = true;
+                tx.commit();
+            } finally {
+                if (!commit) {
+                    tx.rollback();
+                }
+            }
+            Log.logStd("restore data ok;aid=%d;unionPriId=%d;rlPdIds=%s;", aid, unionPriId, rlPdIds);
+            rt = Errno.OK;
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            return rt;
+        } finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+    }
+
     private void filterExistsSkuCode(FaiList<Param> productList, HashSet<String> existsSkuCodeSet, FaiList<Integer> idList, Set<Param> needRemoveParamSet, FaiList<Param> errProductList){
         for (int i = 0; i < productList.size(); i++) {
             Param productInfo = productList.get(i);

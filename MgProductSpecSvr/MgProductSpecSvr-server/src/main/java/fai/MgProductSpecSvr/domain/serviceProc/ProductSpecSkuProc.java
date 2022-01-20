@@ -1281,6 +1281,88 @@ public class ProductSpecSkuProc {
         rollback4Update(aid, groupBySagaOp.get(SagaValObj.SagaOp.UPDATE));
     }
 
+    // 门店迁移服务使用，之后废弃
+    public FaiList<Param> migrateYkService(int aid, FaiList<Param> skuList) {
+        int rt = Errno.ARGS_ERROR;
+        if(aid <= 0){
+            throw new MgException(rt, "error;flow=%d;aid=%s;", m_flow, aid);
+        }
+
+        Long skuId = m_daoCtrl.getId();
+        if(skuId == null){
+            rt = Errno.ERROR;
+            throw new MgException(rt, "skuId err;flow=%d;aid=%s;skuId=%s;", m_flow, aid, skuId);
+        }
+
+        if (skuList == null || skuList.isEmpty()) {
+            throw new MgException(rt, "skuList is empty;flow=%d;aid=%s;", m_flow, aid);
+        }
+
+        FaiList<Param> returnList = new FaiList<>();
+        FaiList<Integer> pdIdList = new FaiList<>();
+        FaiList<Long> skuIdList = new FaiList<>();
+        for (Param sku : skuList) {
+            Param returnParam = new Param();
+            Integer pdId = sku.getInt(ProductSpecSkuEntity.Info.PD_ID);
+            skuId++;
+            sku.setLong(ProductSpecSkuEntity.Info.SKU_ID, skuId);
+            returnParam.assign(sku, ProductSpecSkuEntity.Info.AID);
+            returnParam.assign(sku, ProductSpecSkuEntity.Info.PD_ID);
+            returnParam.assign(sku, ProductSpecSkuEntity.Info.SOURCE_TID);
+            returnParam.assign(sku, ProductSpecSkuEntity.Info.SKU_ID);
+            pdIdList.add(pdId);
+            skuIdList.add(skuId);
+            returnList.add(returnParam);
+        }
+
+        cacheManage.addNeedDelCachedPdIdList(aid, pdIdList);
+        cacheManage.addNeedDelCachedSkuIdList(aid, skuIdList);
+
+        if (m_daoCtrl.updateId(skuId) == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "dao.updateId error;flow=%d;aid=%s;skuId=%s;", m_flow, aid, skuId);
+        }
+
+        Log.logDbg("joke add skuList=%s", skuList);
+        rt = m_daoCtrl.batchInsert(skuList, null, false);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "dao.addSkuList error;flow=%d;aid=%d;skuList=%s", m_flow, aid, skuList);
+        }
+
+        Log.logStd("ok;flow=%d;aid=%d;skuIds=%s", m_flow, aid, skuIdList);
+
+        return returnList;
+    }
+
+    public void restoreData(int aid, FaiList<Integer> pdIds, boolean isSaga) {
+        int rt;
+        if (pdIds == null || pdIds.isEmpty()) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "arg error;pdIds is empty");
+        }
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductSpecSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductSpecSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        rt = m_daoCtrl.select(searchArg, listRef);
+
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "dao.get softDel data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+        }
+
+        if (isSaga) {
+            preAddUpdateSaga(aid, listRef.value);
+        }
+
+        ParamUpdater updater = new ParamUpdater();
+        updater.getData().setInt(ProductSpecSkuEntity.Info.STATUS, ProductSpecSkuValObj.Status.DEFAULT);
+        rt = m_daoCtrl.update(updater, searchArg.matcher);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "dao.restore data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
+        }
+    }
+
     // 回滚修改
     private void rollback4Update(int aid, List<Param> list) {
         if (fai.middleground.svrutil.misc.Utils.isEmptyList(list)) {

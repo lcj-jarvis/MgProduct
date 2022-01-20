@@ -326,7 +326,7 @@ public class ProductSpecService extends MgProductInfService {
 
             // 获取pdId
             idRef.value = null;
-            rt = getPdIdWithAdd(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
+            rt = getPdIdWithAdd(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, "", idRef);
             if(rt != Errno.OK) {
                 return rt;
             }
@@ -482,18 +482,18 @@ public class ProductSpecService extends MgProductInfService {
             }
             int unionPriId = idRef.value;
 
-            // 获取pdId
-            idRef.value = null;
-            rt = getPdIdWithAdd(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, idRef);
-            if(rt != Errno.OK) {
-                return rt;
-            }
-            int pdId = idRef.value;
-
             GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
             tx.begin(aid, 60000, "mgProduct-unionSetPdScInfoList", flow);
             xid = tx.getXid();
             try {
+                // 获取pdId
+                idRef.value = null;
+                rt = getPdIdWithAdd(flow, aid, tid, siteId, unionPriId, sysType, rlPdId, xid, idRef);
+                if(rt != Errno.OK) {
+                    return rt;
+                }
+                int pdId = idRef.value;
+
                 ProductSpecProc productSpecProc = new ProductSpecProc(flow);
                 FaiList<Param> pdScSkuInfoList = new FaiList<>();
                 // 针对规格的操作
@@ -1011,6 +1011,63 @@ public class ProductSpecService extends MgProductInfService {
 
             FaiBuffer sendBuf = new FaiBuffer(true);
             pdSkuInfoList.toBuffer(sendBuf, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecSku.getInfoDto());
+            session.write(sendBuf);
+        }finally {
+            stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
+        }
+        return rt;
+    }
+
+    /**
+     * 根据业务商品id获取skuId信息 (可获取软删除的商品 skuId)
+     */
+    public int getPdSkuIdInfoListWithDel(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, boolean withSpuInfo, FaiList<Integer> rlPdIdList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if(!FaiValObj.TermId.isValidTid(tid)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("args error, tid is not valid;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
+                return rt;
+            }
+            // 获取unionPriId
+            Ref<Integer> idRef = new Ref<Integer>();
+            rt = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1, idRef);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            int unionPriId = idRef.value;
+
+            // 获取pdId
+            ProductBasicProc productBasicProc = new ProductBasicProc(flow);
+            FaiList<Param> list = new FaiList<>();
+            rt = productBasicProc.getRelListByRlIds(aid, unionPriId, sysType, rlPdIdList, true, list);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            Map<Integer, Integer> pdIdRlPdIdMap = new HashMap<>(list.size()*4/3+1);
+            FaiList<Integer> pdIdList = new FaiList<>();
+            for (Param info : list) {
+                int pdId = info.getInt(ProductBasicEntity.ProductInfo.PD_ID);
+                int rlPdId = info.getInt(ProductBasicEntity.ProductInfo.RL_PD_ID);
+                pdIdRlPdIdMap.put(pdId, rlPdId);
+                pdIdList.add(pdId);
+            }
+
+            ProductSpecProc productSpecProc = new ProductSpecProc(flow);
+            FaiList<Param> infoList = new FaiList<>();
+            rt = productSpecProc.getPdSkuIdInfoList(aid, tid, pdIdList, withSpuInfo, infoList);
+            if(rt != Errno.OK) {
+                return rt;
+            }
+            for (Param info : infoList) {
+                Integer pdId = info.getInt(ProductSpecSkuEntity.Info.PD_ID);
+                Integer rlPdId = pdIdRlPdIdMap.get(pdId);
+                info.setInt(fai.MgProductInfSvr.interfaces.entity.ProductSpecEntity.SpecInfo.RL_PD_ID, rlPdId);
+            }
+
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            infoList.toBuffer(sendBuf, ProductSpecDto.Key.INFO_LIST, ProductSpecDto.SpecSku.getInfoDto());
             session.write(sendBuf);
         }finally {
             stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);

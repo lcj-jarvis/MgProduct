@@ -2746,7 +2746,7 @@ public class ProductBasicService extends BasicParentService {
                     int index = 0;
                     for(Param info : list) {
                         Integer sort = info.getInt(ProductRelEntity.Info.SORT);
-                        Integer rlPdId = rlPdIds.get(index);
+                        Integer rlPdId = rlPdIds.get(index++);
                         Integer pdId = info.getInt(ProductRelEntity.Info.PD_ID);
                         if(sort == null) {
                             info.setInt(ProductRelEntity.Info.SORT, ++maxSort);

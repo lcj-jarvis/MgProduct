@@ -788,6 +788,9 @@ public class DataMigrateService extends MgProductInfService {
             relInfo.setInt(ProductBasicEntity.ProductInfo.SYS_TYPE, 1);
 
             Param info = unionPriIdRlPdId_info.get(ownUnionPriId + "-" + rlPdId);
+            if (info == null) {
+                Log.logErr("get ownUnionPriId info is null;aid=%d;ownUnionPriId=%d;rlPdId=%d", aid, ownUnionPriId, rlPdId);
+            }
             FaiList<Param> bindList = info.getList(MigrateDef.Info.BIND_PD_REL);
             if(bindList == null) {
                 bindList = new FaiList<>();

@@ -711,7 +711,7 @@ public class DataMigrateService extends MgProductInfService {
                 spec.setInt(ProductSpecEntity.Info.SOURCE_TID, tid);
                 spec.setCalendar(ProductSpecEntity.Info.SYS_CREATE_TIME, sysCreateTime);
                 spec.setCalendar(ProductSpecEntity.Info.SYS_UPDATE_TIME, sysUpdateTime);
-                spec.setInt(ProductSpecSkuEntity.Info.STATUS, ykStatus);
+                spec.setInt(ProductSpecSkuEntity.Info.STATUS, 0);
                 // 允许规格值为空
                 spec.setInt(ProductSpecEntity.Info.FLAG, ProductSpecValObj.Spec.FLag.ALLOW_IN_PD_SC_VAL_LIST_IS_EMPTY);
                 spec.setList(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST, new FaiList<>());

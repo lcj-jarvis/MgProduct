@@ -15,10 +15,11 @@
         <module>MgProductPropSvr</module>
         <module>MgProductSpecSvr</module>
         <module>MgProductStoreSvr</module>
-        <module>MgProductSearchSvr</module>
         <module>MgProductLibSvr</module>
         <module>MgProductTagSvr</module>
-        <module>MgProductInfSvr</module>
+        <module>MgProductInfSvr/MgProductInfSvr-interfaces</module>
+        <module>MgProductSearchSvr</module>
+        <module>MgProductInfSvr/MgProductInfSvr-server</module>
     </modules>
 
     <build>

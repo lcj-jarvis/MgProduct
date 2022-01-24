@@ -538,8 +538,13 @@ public class DataMigrateService extends MgProductInfService {
             Param ykPd = it.next();
             int yid = ykPd.getInt("yid");
             int storeId = ykPd.getInt("storeId");
+            int rlPdId = ykPd.getInt("serviceId");
             if(storeId != 0) {
                 Param storeInfo = storeInfoMap.get(yid + "-" + storeId);
+                if (storeInfo == null) {
+                    Log.logErr("storeInfo is null;please check db data;aid=%d;yid=%d;storeId=%d;serviceId=%d", aid, yid, storeId, rlPdId);
+                    return Errno.ERROR;
+                }
                 int flag2 = storeInfo.getInt("flag2");
                 // 不同步已删除门店的商品数据
                 if(Misc.checkBit(flag2, 0x400)) {
@@ -548,7 +553,6 @@ public class DataMigrateService extends MgProductInfService {
                 }
             }
 
-            int rlPdId = ykPd.getInt("serviceId");
             // 总部
             if(storeId == 0) {
                 FaiList<Integer> rlPdIds = yid_rlPdIds.get(yid);

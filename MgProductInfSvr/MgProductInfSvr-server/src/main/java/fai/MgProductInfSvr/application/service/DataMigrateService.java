@@ -711,7 +711,8 @@ public class DataMigrateService extends MgProductInfService {
                 spec.setInt(ProductSpecEntity.Info.SOURCE_TID, tid);
                 spec.setCalendar(ProductSpecEntity.Info.SYS_CREATE_TIME, sysCreateTime);
                 spec.setCalendar(ProductSpecEntity.Info.SYS_UPDATE_TIME, sysUpdateTime);
-                spec.setInt(ProductSpecSkuEntity.Info.STATUS, 0);
+                // 规格只有软删除状态或者默认状态
+                spec.setInt(ProductSpecSkuEntity.Info.STATUS, ykStatus == -1 ? -1 : 0);
                 // 允许规格值为空
                 spec.setInt(ProductSpecEntity.Info.FLAG, ProductSpecValObj.Spec.FLag.ALLOW_IN_PD_SC_VAL_LIST_IS_EMPTY);
                 spec.setList(ProductSpecEntity.Info.IN_PD_SC_VAL_LIST, new FaiList<>());
@@ -790,6 +791,7 @@ public class DataMigrateService extends MgProductInfService {
             Param info = unionPriIdRlPdId_info.get(ownUnionPriId + "-" + rlPdId);
             if (info == null) {
                 Log.logErr("get ownUnionPriId info is null;aid=%d;ownUnionPriId=%d;rlPdId=%d", aid, ownUnionPriId, rlPdId);
+                return Errno.ERROR;
             }
             FaiList<Param> bindList = info.getList(MigrateDef.Info.BIND_PD_REL);
             if(bindList == null) {

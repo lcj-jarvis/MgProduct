@@ -529,7 +529,7 @@ public class ProductSpecService extends SpecParentService {
             specSkuProc.rollback4Saga(aid, xid, branchId);
 
             ProductSpecProc specProc = new ProductSpecProc(flow, aid, tc);
-            specProc.rollback4Saga(aid, xid, branchId);
+            specProc.rollback4SagaAddFirst(aid, xid, branchId);
 
             SpecStrProc specStrProc = new SpecStrProc(flow, aid, tc);
             specStrProc.rollback4Saga(aid, xid, branchId);

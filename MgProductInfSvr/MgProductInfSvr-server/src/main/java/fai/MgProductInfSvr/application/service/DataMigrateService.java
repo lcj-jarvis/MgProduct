@@ -608,11 +608,15 @@ public class DataMigrateService extends MgProductInfService {
             }
         }
 
-        Map<String, HashSet<Integer>> bindGroupMap = new HashMap<>();
+        Map<String, FaiList<Integer>> bindGroupMap = new HashMap<>();
         for (Param bindGroup : ykPdBindGroupList) {
             int yid = bindGroup.getInt("yid");
             int rlPdId = bindGroup.getInt("serviceId");
-            Set<Integer> bindGroupIds = bindGroupMap.computeIfAbsent(yid + "-" + rlPdId, k -> new HashSet<>());
+            FaiList<Integer> bindGroupIds = bindGroupMap.get(yid + "-" + rlPdId);
+            if (bindGroupIds == null) {
+                bindGroupIds = new FaiList<>();
+                bindGroupMap.put(yid + "-" + rlPdId, bindGroupIds);
+            }
             int rlGroupId = bindGroup.getInt("categoryId");
             bindGroupIds.add(rlGroupId);
         }
@@ -761,11 +765,11 @@ public class DataMigrateService extends MgProductInfService {
                 basicInfo.setCalendar(ProductBasicEntity.ProductInfo.CREATE_TIME, sysCreateTime);
                 basicInfo.setCalendar(ProductBasicEntity.ProductInfo.UPDATE_TIME, sysUpdateTime);
 
-                Set<Integer> bindGroupIds = bindGroupMap.get(siteId + "-" + rlPdId);
+                FaiList<Integer> bindGroupIds = bindGroupMap.get(siteId + "-" + rlPdId);
                 Param info = new Param();
                 info.setParam(MigrateDef.Info.ADD_PD, basicInfo);
                 if(bindGroupIds != null) {
-                    info.setList(MigrateDef.Info.BIND_RL_GROUP, new FaiList<>(bindGroupIds));
+                    info.setList(MigrateDef.Info.BIND_RL_GROUP, bindGroupIds);
                 }
                 unionPriIdRlPdId_info.put(ownUnionPriId + "-" + rlPdId, info);
             }

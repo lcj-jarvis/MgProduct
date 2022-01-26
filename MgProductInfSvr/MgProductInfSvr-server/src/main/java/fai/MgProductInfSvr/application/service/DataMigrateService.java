@@ -542,8 +542,9 @@ public class DataMigrateService extends MgProductInfService {
             if(storeId != 0) {
                 Param storeInfo = storeInfoMap.get(yid + "-" + storeId);
                 if (storeInfo == null) {
-                    Log.logErr("storeInfo is null;please check db data;aid=%d;yid=%d;storeId=%d;serviceId=%d", aid, yid, storeId, rlPdId);
-                    return Errno.ERROR;
+                    // 2022/1/26 线上存在 storeInfo 为 null 的情况，和门店确认后不迁移这些数据
+                    it.remove();
+                    continue;
                 }
                 int flag2 = storeInfo.getInt("flag2");
                 // 不同步已删除门店的商品数据

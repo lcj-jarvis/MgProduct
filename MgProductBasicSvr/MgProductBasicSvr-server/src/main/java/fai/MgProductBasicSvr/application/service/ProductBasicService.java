@@ -2544,6 +2544,8 @@ public class ProductBasicService extends BasicParentService {
         int sysType = 0;
 
         HashMap<Integer, FaiList<Param>> listOfUid = new HashMap<>();
+        /* <unionPriId, maxSort> 绑定信息的最大 sort 排序记录*/
+        Map<Integer, Integer> sortMap = new HashMap<>();
         for(Param recvInfo : recvList) {
             Integer pdId = recvInfo.getInt(ProductRelEntity.Info.PD_ID);
             if(pdId == null) {
@@ -2579,6 +2581,8 @@ public class ProductBasicService extends BasicParentService {
             }
 
             for(Param info : infoList) {
+                TransactionCtrl tc = new TransactionCtrl();
+                ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
                 if (sourceInfo == null) {
                     Integer unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
                     if(unionPriId == null) {
@@ -2662,6 +2666,12 @@ public class ProductBasicService extends BasicParentService {
                     if(boundUniPriIds.contains(unionPriId)) {
                         continue;
                     }
+                    // 获取当前最大排序, 并自增添加到 map 中
+                    Integer sort = sortMap.get(unionPriId);
+                    if (sort == null) {
+                        sort = relProc.getMaxSort(aid, unionPriId, sysType);
+                    }
+                    sortMap.put(unionPriId, ++sort);
 
                     Param relData = new Param();
                     relData.setInt(ProductRelEntity.Info.AID, aid);
@@ -2681,8 +2691,7 @@ public class ProductBasicService extends BasicParentService {
                     relData.assign(sourceInfo, ProductRelEntity.Info.STATUS);
                     relData.assign(sourceInfo, ProductRelEntity.Info.UP_SALE_TIME);
                     relData.assign(sourceInfo, ProductRelEntity.Info.FLAG);
-                    // 不确定是否 sort 也要一致
-                    // relData.assign(info, ProductRelEntity.Info.SORT);
+                    relData.setInt(ProductRelEntity.Info.SORT, sort);
                     relData.assign(sourceInfo, ProductRelEntity.Info.PD_TYPE);
                     relData.assign(sourceInfo, ProductRelEntity.Info.TOP);
 

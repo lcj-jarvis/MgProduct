@@ -396,10 +396,10 @@ public class StoreSalesSkuService extends StoreService {
     public int refreshSkuStoreSalesRollback(FaiSession session, int flow, int aid, String xid, Long branchId) throws IOException {
         SagaRollback sagaRollback = tc -> {
             SpuSummaryProc spuSummaryProc = new SpuSummaryProc(flow, aid, tc);
-            spuSummaryProc.rollback4Saga(aid, xid, branchId);
+            spuSummaryProc.rollback4SagaAddFirst(aid, xid, branchId);
 
             SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
-            spuBizSummaryProc.rollback4Saga(aid, xid, branchId);
+            spuBizSummaryProc.rollback4SagaAddFirst(aid, xid, branchId);
 
             StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, tc);
             storeSalesSkuProc.rollback4Saga(aid, xid, branchId);

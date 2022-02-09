@@ -324,7 +324,7 @@ public class StoreSalesSkuService extends StoreService {
                         rt = spuSummaryProc.batchDel(aid, pdIds, false, isSaga);
                         if(rt != Errno.OK){
                             return rt;
-                        }
+                        }*/
                     }
                     if(!addInfoList.isEmpty()){
                         notModify = false;

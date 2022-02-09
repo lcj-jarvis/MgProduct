@@ -2656,6 +2656,7 @@ public class ProductBasicService extends BasicParentService {
                     }
                     curUidList.add(relData);
                 } else  {
+                    sysType = sourceInfo.getInt(ProductRelEntity.Info.SYS_TYPE, ProductRelValObj.SysType.DEFAULT);
                     Integer unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
                     if(unionPriId == null) {
                         rt = Errno.ARGS_ERROR;

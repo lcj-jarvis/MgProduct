@@ -317,10 +317,11 @@ public class StoreSalesSkuService extends StoreService {
                         if(rt != Errno.OK){
                             return rt;
                         }
+                        /*
                         rt = spuBizSummaryProc.batchDel(aid, pdIds, false, isSaga);
                         if(rt != Errno.OK){
                             return rt;
-                        }
+                        }*/
                         rt = spuSummaryProc.batchDel(aid, pdIds, false, isSaga);
                         if(rt != Errno.OK){
                             return rt;

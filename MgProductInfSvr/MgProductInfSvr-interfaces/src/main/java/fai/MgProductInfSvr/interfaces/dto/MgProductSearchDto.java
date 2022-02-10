@@ -9,7 +9,6 @@ public class MgProductSearchDto {
     private static ParamDef g_productSearchDtoDef = new ParamDef();
     static{
         g_productSearchDtoDef.add(MgProductSearchResult.Info.ID_LIST, 0, Var.Type.FAI_LIST);
-        // g_productSearchDtoDef.add(MgProductSearchResult.Info.TOTAL, 1, Var.Type.INT);
         g_productSearchDtoDef.add(MgProductSearchResult.Info.TOTAL, 1);
         g_productSearchDtoDef.add(MgProductSearchResult.Info.MANAGE_DATA_CACHE_TIME, 2, Var.Type.LONG);
         g_productSearchDtoDef.add(MgProductSearchResult.Info.VISTOR_DATA_CACHE_TIME, 3, Var.Type.LONG);

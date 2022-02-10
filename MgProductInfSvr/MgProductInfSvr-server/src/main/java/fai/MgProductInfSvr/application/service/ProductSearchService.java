@@ -296,6 +296,7 @@ public class ProductSearchService extends MgProductInfService {
 
         // 先查搜索服务
         Param searchResult = searchPd(flow, aid, unionPriId, tid, esSearchParamString, dbSearchParamString, pageInfoString);
+        FaiList<Param> list = new FaiList<>();
         Integer total = searchResult.getInt(MgProductSearchResult.Info.TOTAL);
         FaiList<Integer> pdIds = searchResult.getList(MgProductSearchResult.Info.ID_LIST);
         if(Utils.isEmptyList(pdIds)) {
@@ -303,6 +304,7 @@ public class ProductSearchService extends MgProductInfService {
 
             // not found 也要total。
             FaiBuffer sendBuf = new FaiBuffer(true);
+            list.toBuffer(sendBuf, MgProductDto.Key.INFO_LIST, MgProductDto.getInfoDto());
             if(total != null) {
                 sendBuf.putInt(MgProductDto.Key.TOTAL, total);
             }
@@ -374,7 +376,6 @@ public class ProductSearchService extends MgProductInfService {
         customComparatorOfPdIds.addKey(ProductEntity.Info.PD_ID, pdIds);
         pdList.sort(customComparatorOfPdIds);*/
 
-        FaiList<Param> list = new FaiList<>();
         Log.logStd("flow=%d;aid=%d;unionPriId=%d;pdList=%s;", flow, aid, unionPriId, pdList);
         for (Param productInfo : pdList) {
             Integer pdId = productInfo.getInt(ProductBasicEntity.ProductInfo.PD_ID);

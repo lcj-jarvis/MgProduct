@@ -301,7 +301,7 @@ public class ProductSearchService extends MgProductInfService {
             Log.logDbg("not found;aid=%d;uid=%d;esSearchParamString=%s;dbSearchParamString=%s", aid, unionPriId, esSearchParamString, dbSearchParamString);
             return Errno.NOT_FOUND;
         }
-        Integer total = searchResult.getInt(MgProductSearchResult.Info.TOTAL);
+        Long total = searchResult.getLong(MgProductSearchResult.Info.TOTAL);
 
         // 1 获取商品信息（目前是商品表、商品业务表、商品与分类关联表的数据）
         ProductBasicProc productBasicProc = new ProductBasicProc(flow);
@@ -403,7 +403,7 @@ public class ProductSearchService extends MgProductInfService {
         FaiBuffer sendBuf = new FaiBuffer(true);
         list.toBuffer(sendBuf, MgProductDto.Key.INFO_LIST, MgProductDto.getInfoDto());
         if(total != null) {
-            sendBuf.putInt(MgProductDto.Key.TOTAL, total);
+            sendBuf.putInt(MgProductDto.Key.TOTAL, Math.toIntExact(total));
         }
         session.write(sendBuf);
         return rt;

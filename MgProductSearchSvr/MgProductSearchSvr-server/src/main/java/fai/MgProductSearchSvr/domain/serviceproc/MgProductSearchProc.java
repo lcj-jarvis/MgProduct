@@ -401,7 +401,7 @@ public class MgProductSearchProc {
         // 分页后的结果
         resultCacheInfo.setList(MgProductSearchResult.Info.ID_LIST, idList);
         // 搜索结果的总条数
-        resultCacheInfo.setInt(MgProductSearchResult.Info.TOTAL, (int) total);
+        resultCacheInfo.setLong(MgProductSearchResult.Info.TOTAL, total);
         resultCacheInfo.setLong(MgProductSearchResult.Info.MANAGE_DATA_CACHE_TIME, manageDataCacheTime);
         resultCacheInfo.setLong(MgProductSearchResult.Info.VISTOR_DATA_CACHE_TIME, visitDataCacheTime);
         // 缓存处理，先删除再添加

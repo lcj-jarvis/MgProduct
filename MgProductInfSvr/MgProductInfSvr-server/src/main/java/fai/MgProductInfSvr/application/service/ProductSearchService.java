@@ -296,12 +296,21 @@ public class ProductSearchService extends MgProductInfService {
 
         // 先查搜索服务
         Param searchResult = searchPd(flow, aid, unionPriId, tid, esSearchParamString, dbSearchParamString, pageInfoString);
+        FaiList<Param> list = new FaiList<>();
+        Integer total = searchResult.getInt(MgProductSearchResult.Info.TOTAL);
         FaiList<Integer> pdIds = searchResult.getList(MgProductSearchResult.Info.ID_LIST);
         if(Utils.isEmptyList(pdIds)) {
             Log.logDbg("not found;aid=%d;uid=%d;esSearchParamString=%s;dbSearchParamString=%s", aid, unionPriId, esSearchParamString, dbSearchParamString);
+
+            // not found 也要total。
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            list.toBuffer(sendBuf, MgProductDto.Key.INFO_LIST, MgProductDto.getInfoDto());
+            if(total != null) {
+                sendBuf.putInt(MgProductDto.Key.TOTAL, total);
+            }
+            session.write(sendBuf);
             return Errno.NOT_FOUND;
         }
-        Integer total = searchResult.getInt(MgProductSearchResult.Info.TOTAL);
 
         // 1 获取商品信息（目前是商品表、商品业务表、商品与分类关联表的数据）
         ProductBasicProc productBasicProc = new ProductBasicProc(flow);
@@ -367,7 +376,6 @@ public class ProductSearchService extends MgProductInfService {
         customComparatorOfPdIds.addKey(ProductEntity.Info.PD_ID, pdIds);
         pdList.sort(customComparatorOfPdIds);*/
 
-        FaiList<Param> list = new FaiList<>();
         Log.logStd("flow=%d;aid=%d;unionPriId=%d;pdList=%s;", flow, aid, unionPriId, pdList);
         for (Param productInfo : pdList) {
             Integer pdId = productInfo.getInt(ProductBasicEntity.ProductInfo.PD_ID);

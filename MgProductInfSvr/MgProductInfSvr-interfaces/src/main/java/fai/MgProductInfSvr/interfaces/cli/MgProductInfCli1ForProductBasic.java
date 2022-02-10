@@ -184,7 +184,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             int aid = mgProductArg.getAid();
             // send and recv
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.MgProductSearchCmd.SEARCH_LIST, sendBody, true);
-            if (m_rt != Errno.OK) {
+            if (m_rt != Errno.OK && m_rt != Errno.NOT_FOUND) {
                 return m_rt;
             }
             // recv info
@@ -272,7 +272,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             int aid = mgProductArg.getAid();
             FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.MgProductSearchCmd.SEARCH_PD, sendBody, true);
 
-            if (m_rt != Errno.OK) {
+            if (m_rt != Errno.OK && m_rt != Errno.NOT_FOUND) {
                 return m_rt;
             }
             // recv info

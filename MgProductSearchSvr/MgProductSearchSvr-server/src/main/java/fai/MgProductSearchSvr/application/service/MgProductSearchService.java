@@ -484,6 +484,8 @@ public class MgProductSearchService {
                 FaiList<Param> minSearchResultList = searchInfoOfMinSearchResult.getList(SEARCH_RESULT_LIST);
                 String table = searchInfoOfMinSearchResult.getString(SEARCH_TABLE);
                 // 每张表的搜索结果，pdId -> 保存搜索结果的info
+                // 加上这个可能合理点
+                tableMappingPdIdParam.remove(table);
                 Collection<Map<Integer, Param>> listOfPdIdMappingInfo = tableMappingPdIdParam.values();
 
                 Set<Integer> pdIds = new HashSet<>(minSearchResultList.size());

@@ -164,7 +164,9 @@ public class MgProductSearchService {
         Param esResultInfo = new Param();
         esResultInfo.setList(PDIDLIST_FROME_ES_SEARCH_RESULT, esSearchResult);
         esResultInfo.setList(ES_SEARCH_RESULT, esSearchResultInfoList);
-        esResultInfo.setLong(ES_SEARCH_RESULT_TOTAL, foundTotalRef.value);
+        // 不会超过int范围，统一改为int
+        long esTotal = foundTotalRef.value;
+        esResultInfo.setInt(ES_SEARCH_RESULT_TOTAL, (int) esTotal);
         long end = System.currentTimeMillis();
         Log.logStd("finish es search data;flow=%d,aid=%d,unionPriId=%d,consume=%d,foundTotalSize=%d,fields=%s,filters=%s,sorts=%s,esSearchResultSize=%d,esSearchResult=%s", flow, aid, unionPriId, end - begin, foundTotalRef.value, fields, filters, sorts, esSearchResult.size(), esSearchResult);
         return esResultInfo;
@@ -245,7 +247,7 @@ public class MgProductSearchService {
                 FaiList<Integer> esSearchResult = esResultInfo.getList(PDIDLIST_FROME_ES_SEARCH_RESULT);
                 // 对单独搜es得到的结果进行分页
                 esSearchResult = esSearchResult.stream().skip(mgProductSearchArg.getStart()).limit(mgProductSearchArg.getLimit()).collect(Collectors.toCollection(FaiList::new));
-                Long total = esResultInfo.getLong(ES_SEARCH_RESULT_TOTAL);
+                Integer total = esResultInfo.getInt(ES_SEARCH_RESULT_TOTAL);
                 // 添加缓存
                 Param resultCacheInfo = searchProc.integrateAndAddCache(esSearchResult, total, manageDataMaxChangeTime.value, visitorDataMaxChangeTime.value, cacheKey);
                 resultCacheInfo.toBuffer(sendBuf, MgProductSearchDto.Key.RESULT_INFO, MgProductSearchDto.getProductSearchDto());

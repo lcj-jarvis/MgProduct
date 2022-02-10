@@ -395,13 +395,13 @@ public class MgProductSearchProc {
      * @param cacheKey 缓存的key
      * @return 返回包含缓存结果的Param
      */
-    public Param integrateAndAddCache(FaiList<Integer> idList, long total, Long manageDataCacheTime, Long visitDataCacheTime, String cacheKey) {
+    public Param integrateAndAddCache(FaiList<Integer> idList, int total, Long manageDataCacheTime, Long visitDataCacheTime, String cacheKey) {
         // 缓存的数据
         Param resultCacheInfo = new Param();
         // 分页后的结果
         resultCacheInfo.setList(MgProductSearchResult.Info.ID_LIST, idList);
         // 搜索结果的总条数
-        resultCacheInfo.setLong(MgProductSearchResult.Info.TOTAL, total);
+        resultCacheInfo.setInt(MgProductSearchResult.Info.TOTAL, total);
         resultCacheInfo.setLong(MgProductSearchResult.Info.MANAGE_DATA_CACHE_TIME, manageDataCacheTime);
         resultCacheInfo.setLong(MgProductSearchResult.Info.VISTOR_DATA_CACHE_TIME, visitDataCacheTime);
         // 缓存处理，先删除再添加

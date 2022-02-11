@@ -21,6 +21,7 @@ import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.io.IOException;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -147,6 +148,13 @@ public class DataMigrateService {
                             addList.add(relInfo);
                         }
                         relInfo.setInt(ProductRelEntity.Info.PD_ID, pdId);
+                        if (sysType == 1) {
+                            Integer flag = relInfo.getInt(ProductRelEntity.Info.FLAG);
+                            boolean top = Misc.checkBit(flag, 0x200);
+                            if (top) {
+                                relInfo.setCalendar(ProductRelEntity.Info.TOP, Calendar.getInstance());
+                            }
+                        }
                         // es预处理
                         ESUtil.preLog(aid, pdId, unionPriId, DocOplogDef.Operation.UPDATE_ONE);
 

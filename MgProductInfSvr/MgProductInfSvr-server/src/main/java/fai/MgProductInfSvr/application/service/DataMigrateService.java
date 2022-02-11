@@ -456,6 +456,9 @@ public class DataMigrateService extends MgProductInfService {
         FaiList<Param> ykPdBindGroupList;
         FaiList<Param> ykServiceSubList;
 
+        Calendar defaultCal = Calendar.getInstance();
+        defaultCal.setTimeInMillis(0L);
+
         Dao ykDao = null;
         Dao ykStoreDao = null;
 
@@ -784,6 +787,7 @@ public class DataMigrateService extends MgProductInfService {
             relInfo.setCalendar(ProductBasicEntity.ProductInfo.CREATE_TIME, sysCreateTime);
             relInfo.setCalendar(ProductBasicEntity.ProductInfo.UPDATE_TIME, sysUpdateTime);
             relInfo.setInt(ProductBasicEntity.ProductInfo.SYS_TYPE, 1);
+            relInfo.setCalendar(ProductBasicEntity.ProductInfo.TOP, defaultCal);
             if(Misc.checkBit(ykFlag, 0x2)) {
                 relInfo.setCalendar(ProductBasicEntity.ProductInfo.TOP, Calendar.getInstance());
             }

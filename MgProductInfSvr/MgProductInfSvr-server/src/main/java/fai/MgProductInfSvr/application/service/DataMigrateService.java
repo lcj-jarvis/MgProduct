@@ -456,6 +456,9 @@ public class DataMigrateService extends MgProductInfService {
         FaiList<Param> ykPdBindGroupList;
         FaiList<Param> ykServiceSubList;
 
+        Calendar defaultCal = Calendar.getInstance();
+        defaultCal.setTimeInMillis(0L);
+
         Dao ykDao = null;
         Dao ykStoreDao = null;
 
@@ -784,6 +787,11 @@ public class DataMigrateService extends MgProductInfService {
             relInfo.setCalendar(ProductBasicEntity.ProductInfo.CREATE_TIME, sysCreateTime);
             relInfo.setCalendar(ProductBasicEntity.ProductInfo.UPDATE_TIME, sysUpdateTime);
             relInfo.setInt(ProductBasicEntity.ProductInfo.SYS_TYPE, 1);
+            relInfo.setCalendar(ProductBasicEntity.ProductInfo.TOP, defaultCal);
+            // 0x200 门店通的service 用这个位标识 置顶
+            if(Misc.checkBit(ykFlag, 0x200)) {
+                relInfo.setCalendar(ProductBasicEntity.ProductInfo.TOP, Calendar.getInstance());
+            }
 
             Param info = unionPriIdRlPdId_info.get(ownUnionPriId + "-" + rlPdId);
             if (info == null) {

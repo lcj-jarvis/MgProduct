@@ -57,7 +57,7 @@
         <fai-middleground-svrutil-ver>1.2.3</fai-middleground-svrutil-ver>
         <MgCommon-MgPrimaryKeySvr-interfaces-ver>1.0.4</MgCommon-MgPrimaryKeySvr-interfaces-ver>
         <MgCommon-MgBackupSvr-interfaces-ver>1.0.0</MgCommon-MgBackupSvr-interfaces-ver>
-        <MgProduct-MgProductInfSvr-interfaces-ver>1.0.3</MgProduct-MgProductInfSvr-interfaces-ver>
+        <MgProduct-MgProductInfSvr-interfaces-ver>1.0.4</MgProduct-MgProductInfSvr-interfaces-ver>
         <MgProduct-MgProductPropSvr-interfaces-ver>1.0.0</MgProduct-MgProductPropSvr-interfaces-ver>
         <MgProduct-MgProductSearchSvr-interfaces-ver>1.0.0</MgProduct-MgProductSearchSvr-interfaces-ver>
         <MgProduct-MgProductBasicSvr-interfaces-ver>1.0.0</MgProduct-MgProductBasicSvr-interfaces-ver>

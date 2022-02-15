@@ -118,6 +118,76 @@ public class ProductBasicService extends BasicParentService {
         return result;
     }
 
+    private FaiList<Param> assignPdInfoList(FaiList<Param> relList, Param pdInfo, FaiList<Param> pdBindGroupList, FaiList<Param> pdBindTagList, FaiList<Param> pdBindPropList) {
+        if (Utils.isEmptyList(relList) || Str.isEmpty(pdInfo)) {
+            return new FaiList<>();
+        }
+        Map<Integer, List<Param>> pdBindGroupMap = new HashMap<>();
+        Map<Integer, List<Param>> pdBindTagMap = new HashMap<>();
+        Map<Integer, List<Param>> pdBindPropMap = new HashMap<>();
+        // 将绑定的信息都转成map，根据 unionPriId 划分
+        if (!Utils.isEmptyList(pdBindGroupList)) {
+            pdBindGroupMap = pdBindGroupList.stream().collect(Collectors.groupingBy(x -> x.getInt(ProductRelEntity.Info.UNION_PRI_ID)));
+        }
+        if (!Utils.isEmptyList(pdBindTagList)) {
+            pdBindTagMap = pdBindTagList.stream().collect(Collectors.groupingBy(x -> x.getInt(ProductRelEntity.Info.UNION_PRI_ID)));
+        }
+        if (!Utils.isEmptyList(pdBindPropList)) {
+            pdBindPropMap = pdBindPropList.stream().collect(Collectors.groupingBy(x -> x.getInt(ProductRelEntity.Info.UNION_PRI_ID)));
+        }
+
+        FaiList<Param> list = new FaiList<>(relList.size());
+        for (Param relInfo : relList) {
+            Param result = new Param();
+            // 先assign pdInfo
+            result.assign(pdInfo);
+
+            // 再assign relInfo
+            result.assign(relInfo);
+
+            Calendar relUpdateTime = relInfo.getCalendar(ProductRelEntity.Info.UPDATE_TIME);
+            Calendar pdUpdateTime = pdInfo.getCalendar(ProductEntity.Info.UPDATE_TIME);
+            // 如果商品表的修改时间更晚，则用商品表的修改时间
+            if(relUpdateTime.before(pdUpdateTime)) {
+                result.setCalendar(ProductRelEntity.Info.UPDATE_TIME, pdUpdateTime);
+            }
+
+            Integer unionPriId = result.getInt(ProductRelEntity.Info.UNION_PRI_ID);
+
+            // 分类绑定
+            if (!pdBindGroupMap.isEmpty()) {
+                List<Param> bindGroupList = pdBindGroupMap.get(unionPriId);
+                if (bindGroupList == null) {
+                    bindGroupList = new FaiList<>();
+                }
+                FaiList<Integer> bindGroupIds = Utils.getValList(bindGroupList, ProductBindGroupEntity.Info.RL_GROUP_ID);
+                result.setList(ProductRelEntity.Info.RL_GROUP_IDS, bindGroupIds);
+            }
+
+            // 标签绑定
+            if (!pdBindTagMap.isEmpty()) {
+                List<Param> bindTagList = pdBindTagMap.get(unionPriId);
+                if (bindTagList == null) {
+                    bindTagList = new FaiList<>();
+                }
+                FaiList<Integer> bindTagIds = Utils.getValList(bindTagList, ProductBindTagEntity.Info.RL_TAG_ID);
+                result.setList(ProductRelEntity.Info.RL_TAG_IDS, bindTagIds);
+            }
+
+            // 参数绑定
+            if (!pdBindPropMap.isEmpty()) {
+                List<Param> bindPropList = pdBindPropMap.get(unionPriId);
+                if (bindPropList == null) {
+                    bindPropList = new FaiList<>();
+                }
+                result.setList(ProductRelEntity.Info.RL_PROPS, new FaiList<>(bindPropList));
+            }
+
+            list.add(result);
+        }
+        return list;
+    }
+
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getProductInfo(FaiSession session, int flow, int aid, int unionPriId, int sysType, int rlPdId) throws IOException {
         int rt;
@@ -3696,6 +3766,54 @@ public class ProductBasicService extends BasicParentService {
         };
 
         return sagaRollback;
+    }
+
+    @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
+    public int getListByUnionPriIds(FaiSession session, int flow, int aid, FaiList<Integer> unionPriIds, int rlPdId, int sysType) throws IOException {
+        int rt;
+        FaiList<Param> list = new FaiList<>();
+        if (rlPdId <= 0) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args err");
+        }
+        TransactionCtrl tc = new TransactionCtrl();
+        try {
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+            FaiList<Param> relList = relProc.getProductRels(aid, unionPriIds, rlPdId, sysType);
+            if (relList.isEmpty()) {
+                rt = Errno.NOT_FOUND;
+                return rt;
+            }
+            int pdId = (int) Utils.getValList(relList, ProductRelEntity.Info.PD_ID).get(0);
+            ProductProc productProc = new ProductProc(flow, aid, tc);
+            Param pdInfo = productProc.getProductInfo(aid, pdId);
+
+            // 获取绑定分类
+            ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+            FaiList<Param> pdBindGroupList = bindGroupProc.getPdBindGroupList(aid, unionPriIds, pdId);
+
+            FaiList<Param> pdBindTagList = new FaiList<>();
+            // 获取绑定标签
+            if(useProductTag()) {
+                ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
+                pdBindTagList = bindTagProc.getPdBindTagList(aid, unionPriIds, pdId);
+            }
+
+            // 获取绑定参数
+            ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
+            FaiList<Param> pdBindPropList = bindPropProc.getPdBindPropList(aid, unionPriIds, pdId);
+
+            list = assignPdInfoList(relList, pdInfo, pdBindGroupList, pdBindTagList, pdBindPropList);
+        } finally {
+            tc.closeDao();
+        }
+
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        list.toBuffer(sendBuf, ProductRelDto.Key.INFO_LIST, ProductRelDto.getRelAndPdDto());
+        session.write(sendBuf);
+        rt = Errno.OK;
+        Log.logDbg("get List by unionPriIds ok;flow=%d;aid=%d;unionPriIds=%s;sysType=%s;rlPdId=%d;", flow, aid, unionPriIds, sysType, rlPdId);
+        return rt;
     }
 
     public static boolean useProductTag() {

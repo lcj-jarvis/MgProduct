@@ -3531,4 +3531,40 @@ public class MgProductBasicCli extends FaiClient {
             stat.end(m_rt != Errno.OK, m_rt);
         }
     }
+
+    public int getListByUnionPriIds(int aid, FaiList<Integer> unionPriIdList, int rlPdId, int sysType, FaiList<Param> list) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0 || rlPdId == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;aid=%d;unionPriIdList=%s;rlPdId=%d;", aid, unionPriIdList, rlPdId);
+                return m_rt;
+            }
+
+            FaiBuffer sendBody = new FaiBuffer(true);
+            unionPriIdList.toBuffer(sendBody, ProductRelDto.Key.UNION_PRI_IDS);
+            sendBody.putInt(ProductRelDto.Key.RL_PD_ID, rlPdId);
+            sendBody.putInt(ProductRelDto.Key.SYS_TYPE, sysType);
+
+            Param result = sendAndReceive(aid, MgProductBasicCmd.Cmd.GET_PRI_LIST, sendBody, true);
+            Boolean success = result.getBoolean("success");
+            if (!success) {
+                return m_rt;
+            }
+            // recv info
+            FaiBuffer recvBody = (FaiBuffer) result.getObject("recvBody");
+            Ref<Integer> keyRef = new Ref<>();
+            m_rt = list.fromBuffer(recvBody, keyRef, ProductRelDto.getRelAndPdDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.INFO_LIST) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
 }

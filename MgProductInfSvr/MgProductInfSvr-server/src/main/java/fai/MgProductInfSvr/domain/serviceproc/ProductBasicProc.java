@@ -786,4 +786,18 @@ public class ProductBasicProc {
             throw new MgException(rt, "restoreData error;flow=%d;aid=%;rlPdIds=%s", m_flow, aid, rlPdIds);
         }
     }
+
+    public FaiList<Param> getListByUnionPriIds(int aid, FaiList<Integer> unionPriIdList, int rlPdId, int sysType) {
+        int rt;
+        FaiList<Param> basicList = new FaiList<>();
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get ProductBasicCli error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        rt = m_cli.getListByUnionPriIds(aid, unionPriIdList, rlPdId, sysType, basicList);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "getListByUnionPriIds error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        return basicList;
+    }
 }

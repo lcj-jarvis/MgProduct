@@ -756,7 +756,7 @@ public class ProductBasicProc {
         FaiList<Param> returnList = new FaiList<>();
         rt = m_cli.dataMigrate(aid, tid, addList, sysType, returnList);
         if(rt != Errno.OK) {
-            throw new MgException(rt, "setPdBindTag error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
+            throw new MgException(rt, "dataMigrate error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
         }
         return returnList;
     }

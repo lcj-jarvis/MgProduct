@@ -639,6 +639,7 @@ public class DataMigrateService extends MgProductInfService {
         Map<Integer, FaiList<Param>> remarkMap = new HashMap<>();
         FaiList<Param> specList = new FaiList<>();
 
+        HashMap<String, Integer> unionPriIdMap = new HashMap<>();
         for (Param ykService : ykServiceList) {
             int siteId = ykService.getInt("yid");
             int keepPriId1 = ykService.getInt("storeId");
@@ -660,10 +661,19 @@ public class DataMigrateService extends MgProductInfService {
             int sort = ykService.getInt("sort");
             int keepIntProp1 = ykService.getInt("serviceType");
 
-            int unionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
-            int ownUnionPriId = unionPriId;
+            // 记录 tid siteId lgId keepPriId 和 uid 的关系, 减少调用主键服务
+            Integer unionPriId = unionPriIdMap.get(tid + "_" + siteId + "_" + lgId + "_" + keepIntProp1);
+            if (unionPriId == null) {
+                unionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
+                unionPriIdMap.put(tid + "_" + siteId + "_" + lgId + "_" + keepPriId1, unionPriId);
+            }
+            Integer ownUnionPriId = unionPriId;
             if (keepPriId1 != 0) {
-                ownUnionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, 0);
+                ownUnionPriId = unionPriIdMap.get(tid + "_" + siteId + "_" + lgId + "_" + 0);
+                if (ownUnionPriId == null) {
+                    ownUnionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, 0);
+                    unionPriIdMap.put(tid + "_" + siteId + "_" + lgId + "_" + 0, ownUnionPriId);
+                }
             }
 
             // 富文本数据，只处理总部的数据

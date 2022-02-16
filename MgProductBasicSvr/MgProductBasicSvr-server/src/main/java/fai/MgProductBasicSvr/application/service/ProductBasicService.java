@@ -359,6 +359,10 @@ public class ProductBasicService extends BasicParentService {
                     ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, true);
                     for(int unionPirId : unionPriIds) {
                         FaiList<Param> relList = relProc.getProductRelListWithDel(aid, unionPirId, pdIds);
+                        if(relList.isEmpty()) {
+                            Log.logErr("set pd not exist;aid=%d;unionPriId=%d;pdIds=%s;", aid, unionPirId, pdIds);
+                            continue;
+                        }
                         Map<Integer, Integer> pdId_rlPdId = Utils.getMap(relList, ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID);
                         // 组装新设置的分类绑定关系
                         FaiList<Param> newBindGroupList = new FaiList<>();

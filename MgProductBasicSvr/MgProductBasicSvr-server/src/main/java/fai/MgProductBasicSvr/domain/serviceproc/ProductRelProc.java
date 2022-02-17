@@ -851,6 +851,33 @@ public class ProductRelProc {
         }
     }
 
+    public FaiList<Param> getProductRels(int aid, FaiList<Integer> unionPriIds, int rlPdId, int sysType) {
+        int rt;
+        if (Utils.isEmptyList(unionPriIds)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "arg error;unionPriIds is empty;flow=%d", m_flow);
+        }
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+        searchArg.matcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
+        searchArg.matcher.and(ProductRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
+
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        rt = m_dao.select(searchArg, listRef);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "dao.select error;flow=%d;aid=%d;search=%s", m_flow, aid, searchArg.matcher);
+        }
+        if(listRef.value == null) {
+            listRef.value = new FaiList<>();
+        }
+        if (listRef.value.isEmpty()) {
+            rt = Errno.NOT_FOUND;
+            Log.logDbg(rt, "not found;flow=%d;aid=%d;match=%s;", m_flow, aid, searchArg.matcher.toJson());
+        }
+        return listRef.value;
+    }
+
     private class PrimaryKey {
         int aid;
         int unionPirId;
@@ -1060,6 +1087,7 @@ public class ProductRelProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
+        searchArg.matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.NE, ProductRelValObj.Status.DEL);
 
         //只查aid+pdId+unionPriId+rlPdId+status
         FaiList<Param> list = searchFromDb(aid, searchArg, Utils.asFaiList(ProductRelEntity.Info.AID, ProductRelEntity.Info.UNION_PRI_ID, ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID, ProductRelEntity.Info.STATUS));

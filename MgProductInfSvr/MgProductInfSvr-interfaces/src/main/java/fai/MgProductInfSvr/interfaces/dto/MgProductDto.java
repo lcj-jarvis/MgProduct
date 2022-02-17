@@ -84,6 +84,74 @@ public class MgProductDto {
         return g_esPdInfoDef;
     }
 
+    public static ParamDef g_fullInfoDtoDef = new ParamDef();
+    static {
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.AID, 0);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.RL_PD_ID, 1);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.RL_LIB_ID, 2);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.ADD_TIME, 3);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.ADD_SID, 4);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.LAST_SID, 5);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.LAST_UPDATE_TIME, 6);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.STATUS, 7);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.UP_SALE_TIME, 8);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.RL_FLAG, 9);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.PD_ID, 10);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.SOURCE_TID, 11);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.NAME, 12);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.PD_TYPE, 13);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.IMG_LIST, 14);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.VIDEO_LIST, 15);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.UNIT, 16);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.FLAG, 17);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.FLAG1, 18);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.KEEP_PROP1, 19);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.KEEP_PROP2, 20);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.KEEP_PROP3, 21);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.KEEP_INT_PROP1, 22);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.KEEP_INT_PROP2, 23);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.CREATE_TIME, 24);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.UPDATE_TIME, 25);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.SOURCE_UNIONPRIID, 26);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.RL_GROUP_IDS, 28);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.RL_PROPS, 35, ProductPropDto.getPropValInfoDto(), Var.Type.FAI_LIST);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.RL_TAG_IDS, 36, Var.Type.FAI_LIST);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.SYS_TYPE, 37, Var.Type.INT);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.SORT, 38);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.REMARK, 39, Var.Type.STRING);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.REMARK1, 40, Var.Type.STRING);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.REMARK2, 41, Var.Type.STRING);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.REMARK3, 42, Var.Type.STRING);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.REMARK4, 43, Var.Type.STRING);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.REMARK5, 44, Var.Type.STRING);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.REMARK6, 45, Var.Type.STRING);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.REMARK7, 46, Var.Type.STRING);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.REMARK8, 47, Var.Type.STRING);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.REMARK9, 48, Var.Type.STRING);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.REMARK10, 49, Var.Type.STRING);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.REMARK11, 50, Var.Type.STRING);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.TOP, 51);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.SITE_ID, 52);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.LGID, 53);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.KEEP_PRI_ID1, 54);
+        g_fullInfoDtoDef.add(ProductBasicEntity.ProductInfo.TID, 55);
+        g_fullInfoDtoDef.add(MgProductEntity.Info.STORE_SALES, 56, ProductStoreDto.StoreSalesSku.getInfoDto(), Var.Type.PARAM);
+        g_fullInfoDtoDef.add(MgProductEntity.Info.SPU_SALES, 57, ProductStoreDto.SpuBizSummary.getInfoDto(), Var.Type.PARAM);
+    }
+    public static ParamDef getFullInfoDto() {
+        return g_fullInfoDtoDef;
+    }
+
+    public static ParamDef g_uidsInfoDto = new ParamDef();
+    static {
+        g_uidsInfoDto.add(MgProductEntity.Info.BASIC, 0, MgProductDto.getFullInfoDto());
+        g_uidsInfoDto.add(MgProductEntity.Info.SPEC, 1, ProductSpecDto.Spec.getInfoDto());
+        g_uidsInfoDto.add(MgProductEntity.Info.SPEC_SKU, 2, ProductSpecDto.SpecSku.getInfoDto());
+    }
+    public static ParamDef getUidsInfoDto() {
+        return g_uidsInfoDto;
+    }
+
     public static class Key {
         public static final int TID  = 1;
         public static final int SITE_ID  = 2;

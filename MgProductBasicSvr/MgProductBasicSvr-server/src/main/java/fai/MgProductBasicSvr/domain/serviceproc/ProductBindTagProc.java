@@ -343,6 +343,30 @@ public class ProductBindTagProc {
         return cacheList;
     }
 
+    public FaiList<Param> getPdBindTagList(int aid, FaiList<Integer> unionPriIds, int pdId) {
+        if (Utils.isEmptyList(unionPriIds)) {
+            throw new MgException(Errno.ARGS_ERROR, "unionPriIds is empty;aid=%d;pdIds=%d;", aid, pdId);
+        }
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+        searchArg.matcher.and(ProductBindTagEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
+
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        int rt = m_dao.select(searchArg, listRef);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "dao.select err;flow=%d;aid=%d;matcher=%s", m_flow, aid, searchArg.matcher);
+        }
+        if(listRef.value == null) {
+            listRef.value = new FaiList<>();
+        }
+        if (listRef.value.isEmpty()) {
+            rt = Errno.NOT_FOUND;
+            Log.logDbg(rt, "not found;flow=%d;aid=%d;matcher=%s;", m_flow, aid, searchArg.matcher.toJson());
+        }
+        return listRef.value;
+    }
+
     public FaiList<Param> getListByConditions(Integer aid, SearchArg searchArg, FaiList<String> onlyNeedFields) {
         //无searchArg
         if (searchArg == null) {

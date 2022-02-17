@@ -354,6 +354,68 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
     }
 
     /**
+     * 获取单个商品在多个UnionPriId下的数据
+     * @param mgProductArg
+     *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
+     *                 .setSysType(sysType) // 选填 系统类型，默认为0
+     *                 .setRlPdId(rlPdId) // 必填 商品业务id
+     *                 .build();
+     * @param list 返回商品中台数据
+     * @return {@link Errno}
+     */
+    public int getProductInfoByPrimaryKeysFromDb(MgProductArg mgProductArg, Param info) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            int aid = mgProductArg.getAid();
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            FaiList<Param> primaryKeys = mgProductArg.getPrimaryKeys();
+            if (primaryKeys == null || primaryKeys.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;primaryKeys is null or empty;");
+                return m_rt;
+            }
+            Param combined = mgProductArg.getCombined();
+            if (combined == null) {
+                combined = new Param();
+                combined.setBoolean(MgProductEntity.Info.SPEC, true);
+                combined.setBoolean(MgProductEntity.Info.SPEC_SKU, true);
+                combined.setBoolean(MgProductEntity.Info.STORE_SALES, true);
+                combined.setBoolean(MgProductEntity.Info.SPU_SALES, true);
+            }
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+            FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(MgProductDto.Key.TID, tid), new Pair(MgProductDto.Key.SITE_ID, siteId), new Pair(MgProductDto.Key.LGID, lgId), new Pair(MgProductDto.Key.KEEP_PRIID1, keepPriId1));
+            sendBody.putInt(MgProductDto.Key.ID,  mgProductArg.getRlPdId());
+            sendBody.putInt(MgProductDto.Key.SYS_TYPE, mgProductArg.getSysType());
+            primaryKeys.toBuffer(sendBody, MgProductDto.Key.PRIMARY_KEYS, MgProductDto.getPrimaryKeyDto());
+            combined.toBuffer(sendBody, MgProductDto.Key.COMBINED, MgProductDto.getCombinedInfoDto());
+
+            FaiBuffer recvBody = sendAndRecv(aid, MgProductInfCmd.Cmd.GET_PRI_INFO, sendBody, true);
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+            // recv info
+            Ref<Integer> keyRef = new Ref<>();
+            m_rt = info.fromBuffer(recvBody, keyRef, MgProductDto.getUidsInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != MgProductDto.Key.INFO) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            stat.end(m_rt != Errno.OK && m_rt != Errno.NOT_FOUND, m_rt);
+        }
+    }
+
+    /**
      * 根据rlPdIds获取商品数据（商品表+商品业表）
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)

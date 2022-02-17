@@ -34,6 +34,7 @@ public class MgProductBasicCmd {
         public static final int NUM27 = 5027; /** @see BasicCmd#GET_LIST_BY_PDID */
         public static final int NUM28 = 5028; /** @see BasicCmd#GET_BIND_BIZ */
         public static final int NUM29 = 5029; /** @see Cmd#MIGRATE_GET */
+        public static final int NUM30 = 5030; /** @see Cmd#GET_PRI_LIST */
     }
 
     // 1000 到 5000 的范围
@@ -171,5 +172,6 @@ public class MgProductBasicCmd {
         public static final int MIGRATE_GET = ReadCmdNum.NUM29;
         public static final int RESTORE_DATA = WriteCmdNum.NUM41;
         public static final int RESTORE_DATA_ROLLBACK = WriteCmdNum.NUM42;
+        public static final int GET_PRI_LIST = ReadCmdNum.NUM30;
     }
 }

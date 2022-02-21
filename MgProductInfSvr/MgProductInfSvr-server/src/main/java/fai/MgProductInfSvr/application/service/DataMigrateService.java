@@ -640,6 +640,8 @@ public class DataMigrateService extends MgProductInfService {
         FaiList<Param> specList = new FaiList<>();
 
         HashMap<String, Integer> unionPriIdMap = new HashMap<>();
+        // 记录总店服务的状态
+        HashMap<String, Integer> storeStatusMap = new HashMap<>();
         for (Param ykService : ykServiceList) {
             int siteId = ykService.getInt("yid");
             int keepPriId1 = ykService.getInt("storeId");
@@ -711,6 +713,10 @@ public class DataMigrateService extends MgProductInfService {
                 ykStatus = -1;
             }
 
+            if (keepPriId1 == 0) {
+                storeStatusMap.put(siteId + "-" + keepPriId1 + "-" + rlPdId, ykStatus);
+            }
+
             // 规格数据，只处理总店的数据 (实际服务没有规格，由中台默认生成一个规格)
             if (keepPriId1 == 0) {
                 Param spec = new Param();
@@ -743,6 +749,14 @@ public class DataMigrateService extends MgProductInfService {
             spuInfo.setLong(SpuBizSummaryEntity.Info.MIN_PRICE, price);
             spuInfo.setLong(SpuBizSummaryEntity.Info.MAX_PRICE, price);
             spuInfo.setInt(SpuBizSummaryEntity.Info.STATUS, ykStatus);
+            if (keepPriId1 != 0) {
+                Integer curStatus = storeStatusMap.get(siteId + "-" + 0 + "-" + rlPdId);
+                if (curStatus == null) {
+                    Log.logErr(Errno.ERROR, "获取总店状态失败;flow=%d;aid=%d;siteId=%d;keepPriId=%d;rlPdId=%d;", flow, aid, siteId, keepPriId1, rlPdId);
+                    return Errno.ERROR;
+                }
+                spuInfo.setInt(SpuBizSummaryEntity.Info.STATUS, curStatus);
+            }
             spuList.add(spuInfo);
 
             // 销售 sku 数据
@@ -756,6 +770,14 @@ public class DataMigrateService extends MgProductInfService {
             storeSku.setInt(StoreSalesSkuEntity.Info.FLAG, StoreSalesSkuValObj.FLag.SETED_PRICE);
             storeSku.setInt(StoreSalesSkuEntity.Info.SYS_TYPE, sysType);
             storeSku.setInt("status", ykStatus);
+            if (keepPriId1 != 0) {
+                Integer curStatus = storeStatusMap.get(siteId + "-" + 0 + "-" + rlPdId);
+                if (curStatus == null) {
+                    Log.logErr(Errno.ERROR, "获取总店状态失败;flow=%d;aid=%d;siteId=%d;keepPriId=%d;rlPdId=%d;", flow, aid, siteId, keepPriId1, rlPdId);
+                    return Errno.ERROR;
+                }
+                storeSku.setInt("status", curStatus);
+            }
             storeSku.setCalendar(StoreSalesSkuEntity.Info.SYS_CREATE_TIME, sysCreateTime);
             storeSku.setCalendar(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, sysUpdateTime);
             storeSkuList.add(storeSku);
@@ -841,6 +863,14 @@ public class DataMigrateService extends MgProductInfService {
                         curSpuInfo.setLong(SpuBizSummaryEntity.Info.MIN_PRICE, price);
                         curSpuInfo.setLong(SpuBizSummaryEntity.Info.MAX_PRICE, price);
                         curSpuInfo.setInt(SpuBizSummaryEntity.Info.STATUS, ykStatus);
+                        if (storeId != 0) {
+                            Integer curStatus = storeStatusMap.get(siteId + "-" + 0 + "-" + rlPdId);
+                            if (curStatus == null) {
+                                Log.logErr(Errno.ERROR, "获取总店状态失败;flow=%d;aid=%d;siteId=%d;keepPriId=%d;rlPdId=%d;", flow, aid, siteId, keepPriId1, rlPdId);
+                                return Errno.ERROR;
+                            }
+                            curSpuInfo.setInt("status", curStatus);
+                        }
                         spuList.add(curSpuInfo);
                         // storeSku 数据
                         Param curStoreSku = new Param();
@@ -853,6 +883,14 @@ public class DataMigrateService extends MgProductInfService {
                         curStoreSku.setInt(StoreSalesSkuEntity.Info.FLAG, StoreSalesSkuValObj.FLag.SETED_PRICE);
                         curStoreSku.setInt(StoreSalesSkuEntity.Info.SYS_TYPE, sysType);
                         curStoreSku.setInt("status", ykStatus);
+                        if (storeId != 0) {
+                            Integer curStatus = storeStatusMap.get(siteId + "-" + 0 + "-" + rlPdId);
+                            if (curStatus == null) {
+                                Log.logErr(Errno.ERROR, "获取总店状态失败;flow=%d;aid=%d;siteId=%d;keepPriId=%d;rlPdId=%d;", flow, aid, siteId, keepPriId1, rlPdId);
+                                return Errno.ERROR;
+                            }
+                            storeSku.setInt("status", curStatus);
+                        }
                         curStoreSku.setCalendar(StoreSalesSkuEntity.Info.SYS_CREATE_TIME, sysCreateTime);
                         curStoreSku.setCalendar(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, sysUpdateTime);
                         storeSkuList.add(curStoreSku);

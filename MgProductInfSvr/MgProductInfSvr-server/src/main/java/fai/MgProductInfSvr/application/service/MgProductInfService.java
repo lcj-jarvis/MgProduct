@@ -1951,11 +1951,13 @@ public class MgProductInfService extends ServicePub {
     }
 
     @SuccessRt(value = { Errno.OK, Errno.NOT_FOUND })
-    public int getProductInfoByPrimaryKeysFromDb(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int rlPdId, int sysType, FaiList<Param> primaryKeys, Param combined) throws IOException {
+    public int getProductListByUidsAndRlPdIdsFromDb(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, FaiList<Integer> rlPdIds, int sysType, FaiList<Param> primaryKeys, Param combined) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
-        Param info;
+        FaiList<Param> list;
         try {
+            // todo 预留对 rlPdId 和 unionPriId 数量的限制
+
             // unionPriId 对应的 tid siteId lgId keepPriId1
             Map<Integer, Param> unionPriId_primaryKeyMap = new HashMap<>(primaryKeys.size() + 1);
             FaiList<Integer> unionPriIdList = new FaiList<>();
@@ -1985,132 +1987,123 @@ public class MgProductInfService extends ServicePub {
 
             ProductBasicProc basicProc = new ProductBasicProc(flow);
             // 1.获取基础信息
-            FaiList<Param> basicList = basicProc.getListByUnionPriIds(aid, unionPriIdList, rlPdId, sysType);
+            FaiList<Param> basicList = basicProc.getListByUidsAndRlPdIds(aid, unionPriIdList, rlPdIds, sysType);
             if (Utils.isEmptyList(basicList)) {
                 return Errno.NOT_FOUND;
             }
 
-            Integer sourceUnionPriId = basicList.get(0).getInt(ProductBasicEntity.ProductInfo.SOURCE_UNIONPRIID);
-            Integer pdId = basicList.get(0).getInt(ProductBasicEntity.ProductInfo.PD_ID);
-            Param primary = getByUnionPriId(flow, aid, sourceUnionPriId);
-            int sourceTid = primary.getInt(MgPrimaryKeyEntity.Info.TID);
-            int sourceSiteId = primary.getInt(MgPrimaryKeyEntity.Info.SITE_ID);
-            int sourceLgId = primary.getInt(MgPrimaryKeyEntity.Info.LGID);
-            int sourceKeepPriId = primary.getInt(MgPrimaryKeyEntity.Info.KEEP_PRI_ID1);
-            // 2.获取富文本字段，需要通过 sourceUnionPriId 查询
-            RichTextProc richProc = new RichTextProc(flow);
-            FaiList<Param> richTexts = richProc.getPdRichText(aid, sourceTid, sourceSiteId, sourceLgId, sourceKeepPriId, pdId);
+            Set<Integer> pdIdSet = new HashSet<>(Utils.getValList(basicList, ProductBasicEntity.ProductInfo.PD_ID));
 
-            ProductSpecProc productSpecProc = new ProductSpecProc(flow);
-            // 3.获取规格相关
-            FaiList<Param> pdScInfoList = new FaiList<>();
-            if (getSpec) {
-                // 获取商品规格
-                rt = productSpecProc.getPdScInfoList(aid, tid, unionPriId, pdId, pdScInfoList, false);
-                if(rt != Errno.OK && rt != Errno.NOT_FOUND){
-                    return rt;
-                }
-            }
-            FaiList<Param> pdScSkuInfoList = new FaiList<>();
-            if (getSpecSku) {
-                // 获取商品规格sku
-                rt = productSpecProc.getPdSkuScInfoList(aid, tid, unionPriId, pdId, true, pdScSkuInfoList);
-                if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
-                    return rt;
-                }
-            }
+            // 2、todo 暂时不支持获取富文本的字段
+
+            // 3、todo 暂不支持获取规格和规格sku
 
             // 4.获取销售库存相关
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
             FaiList<Param> pdScSkuSalesStoreInfoList = new FaiList<>();
             if (getStoreSales) {
-                rt = productStoreProc.getSkuStoreSalesByPdId(aid, tid, pdId, pdScSkuSalesStoreInfoList);
+                rt = productStoreProc.getStoreSalesByPdIdsAndUIdList(aid, tid, new FaiList<>(pdIdSet), unionPriIdList, pdScSkuSalesStoreInfoList);
                 if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                     return rt;
                 }
             }
             FaiList<Param> spuSalesStoreInfoList = new FaiList<>();
             if (getSpuSales) {
-                rt = productStoreProc.getSpuBizSummaryListByUidsFromDb(aid, tid, unionPriIdList, pdId, spuSalesStoreInfoList);
+                rt = productStoreProc.getSpuBizSummaryInfoListByPdIdListAndUidList(aid, tid, unionPriIdList, new FaiList<>(pdIdSet), spuSalesStoreInfoList);
                 if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                     return rt;
                 }
             }
 
             // 组装数据
-            info = assignInfoList(flow, aid, basicList, richTexts, pdScInfoList, pdScSkuInfoList, pdScSkuSalesStoreInfoList, spuSalesStoreInfoList, unionPriId_primaryKeyMap);
+            list = assignInfoList(flow, aid, basicList, null, null, null, pdScSkuSalesStoreInfoList, spuSalesStoreInfoList, unionPriId_primaryKeyMap);
             FaiBuffer sendBuf = new FaiBuffer(true);
-            info.toBuffer(sendBuf, MgProductDto.Key.INFO, MgProductDto.getUidsInfoDto());
+            list.toBuffer(sendBuf, MgProductDto.Key.INFO_LIST, MgProductDto.getInfoDto());
             session.write(sendBuf);
-            Log.logStd("getProductInfoByPrimaryKeysFromDb ok;flow=%d;aid=%d;uids=%s", flow, aid, unionPriIdList);
+            Log.logStd("getProductListByUidsAndRlPdIdsFromDb ok;flow=%d;aid=%d;uids=%s;rlPdIds=%s", flow, aid, unionPriIdList, rlPdIds);
             return rt;
         } finally {
             stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
         }
     }
 
-    private Param assignInfoList(int flow, int aid, FaiList<Param> basicList, FaiList<Param> richTexts, FaiList<Param> pdScInfoList, FaiList<Param> pdScSkuInfoList, FaiList<Param> pdScSkuSalesStoreInfoList, FaiList<Param> spuSalesStoreInfoList, Map<Integer, Param> unionPriId_primaryKeyMap) {
-        Param info = new Param();
+    private FaiList<Param> assignInfoList(int flow, int aid, FaiList<Param> basicList, FaiList<Param> richTexts, FaiList<Param> pdScInfoList, FaiList<Param> pdScSkuInfoList, FaiList<Param> pdScSkuSalesStoreInfoList, FaiList<Param> spuSalesStoreInfoList, Map<Integer, Param> unionPriId_primaryKeyMap) {
+        FaiList<Param> list = new FaiList<>();
         if (Utils.isEmptyList(basicList)) {
-            return info;
+            return list;
         }
-        Map<Integer, List<Param>> storeSalesMap = new HashMap<>();
+        /* uid_pdId */
+        Map<String, List<Param>> storeSalesMap = new HashMap<>();
         if (!Utils.isEmptyList(pdScSkuSalesStoreInfoList)) {
-             storeSalesMap = pdScSkuSalesStoreInfoList.stream().collect(Collectors.groupingBy(x -> x.getInt(ProductBasicEntity.ProductInfo.UNION_PRI_ID)));
+             storeSalesMap = pdScSkuSalesStoreInfoList.stream().collect(Collectors.groupingBy(x -> x.getInt(ProductStoreEntity.StoreSalesSkuInfo.UNION_PRI_ID) + "_" + x.getInt(ProductStoreEntity.StoreSalesSkuInfo.PD_ID)));
         }
-
-        Map<Integer, List<Param>> spuSalesMap = new HashMap<>();
+        /* uid_pdId */
+        Map<String, List<Param>> spuSalesMap = new HashMap<>();
         if (!Utils.isEmptyList(spuSalesStoreInfoList)) {
-            spuSalesMap = spuSalesStoreInfoList.stream().collect(Collectors.groupingBy(x -> x.getInt(ProductBasicEntity.ProductInfo.UNION_PRI_ID)));
+            spuSalesMap = spuSalesStoreInfoList.stream().collect(Collectors.groupingBy(x -> x.getInt(ProductStoreEntity.SpuBizSummaryInfo.UNION_PRI_ID) + "_" + x.getInt(ProductStoreEntity.SpuBizSummaryInfo.PD_ID)));
         }
 
         for (Param pdInfo : basicList) {
+            Param info = new Param();
             // 1、将 unionPriId 转换成 tid siteId lgId keepPriId1
             Integer unionPriId = pdInfo.getInt(ProductBasicEntity.ProductInfo.UNION_PRI_ID);
             Param primaryKey = unionPriId_primaryKeyMap.get(unionPriId);
             if (primaryKey == null) {
                 throw new MgException(Errno.ERROR, "primaryKey is null;flow=%d;aid=%d;unionPriId=%d;", flow, aid, unionPriId);
             }
-            pdInfo.setInt(ProductBasicEntity.ProductInfo.TID, primaryKey.getInt(ProductBasicEntity.ProductInfo.TID));
-            pdInfo.setInt(ProductBasicEntity.ProductInfo.SITE_ID, primaryKey.getInt(ProductBasicEntity.ProductInfo.SITE_ID));
-            pdInfo.setInt(ProductBasicEntity.ProductInfo.LGID, primaryKey.getInt(ProductBasicEntity.ProductInfo.LGID));
-            pdInfo.setInt(ProductBasicEntity.ProductInfo.KEEP_PRI_ID1, primaryKey.getInt(ProductBasicEntity.ProductInfo.KEEP_PRI_ID1));
+            Integer tid = primaryKey.getInt(ProductBasicEntity.ProductInfo.TID);
+            Integer siteId = primaryKey.getInt(ProductBasicEntity.ProductInfo.SITE_ID);
+            Integer lgId = primaryKey.getInt(ProductBasicEntity.ProductInfo.LGID);
+            Integer keepPriId1 = primaryKey.getInt(ProductBasicEntity.ProductInfo.KEEP_PRI_ID1);
+            pdInfo.setInt(ProductBasicEntity.ProductInfo.TID, tid);
+            pdInfo.setInt(ProductBasicEntity.ProductInfo.SITE_ID, siteId);
+            pdInfo.setInt(ProductBasicEntity.ProductInfo.LGID, lgId);
+            pdInfo.setInt(ProductBasicEntity.ProductInfo.KEEP_PRI_ID1, keepPriId1);
+            int pdId = pdInfo.getInt(ProductBasicEntity.ProductInfo.PD_ID);
 
-            // 2、设置富文本字段
-            for (Param richText : richTexts) {
-                int richType = richText.getInt(MgRichTextEntity.Info.TYPE);
-                String content = richText.getString(MgRichTextEntity.Info.CONTENT);
-                pdInfo.setString(RichTextConverter.getKey(richType), content);
+            // todo 2、设置富文本字段
+            if (!Utils.isEmptyList(richTexts)) {
+                for (Param richText : richTexts) {
+                    int richType = richText.getInt(MgRichTextEntity.Info.TYPE);
+                    String content = richText.getString(MgRichTextEntity.Info.CONTENT);
+                    pdInfo.setString(RichTextConverter.getKey(richType), content);
+                }
             }
+            info.setParam(MgProductEntity.Info.BASIC, pdInfo);
+
+            // todo 设置规格
+            // todo 设置规格sku
 
             // 3、设置销售库存信息
-            List<Param> storeList = storeSalesMap.get(unionPriId);
+            List<Param> storeList = storeSalesMap.get(unionPriId + "_" + pdId);
             if (storeList == null) {
-                pdInfo.setParam(MgProductEntity.Info.STORE_SALES, new Param());
+                info.setParam(MgProductEntity.Info.STORE_SALES, new Param());
             } else {
                 Param storeInfo = storeList.get(0);
-                storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.TID, primaryKey.getInt(ProductBasicEntity.ProductInfo.TID));
-                storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.SITE_ID, primaryKey.getInt(ProductBasicEntity.ProductInfo.SITE_ID));
-                storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.LGID, primaryKey.getInt(ProductBasicEntity.ProductInfo.LGID));
-                storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, primaryKey.getInt(ProductBasicEntity.ProductInfo.KEEP_PRI_ID1));
-                pdInfo.setParam(MgProductEntity.Info.STORE_SALES, storeInfo);
+                storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.TID, tid);
+                storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.SITE_ID, siteId);
+                storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.LGID, lgId);
+                storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, keepPriId1);
+                info.setParam(MgProductEntity.Info.STORE_SALES, storeInfo);
             }
 
             // 4、设置 spuBizSales 信息
-            List<Param> spuSalesList = spuSalesMap.get(unionPriId);
+            List<Param> spuSalesList = spuSalesMap.get(unionPriId + "_" + pdId);
             if (spuSalesList == null) {
-                pdInfo.setParam(MgProductEntity.Info.SPU_SALES, new Param());
+                info.setParam(MgProductEntity.Info.SPU_SALES, new Param());
             } else {
                 Param spuSalesInfo = spuSalesList.get(0);
-                pdInfo.setParam(MgProductEntity.Info.SPU_SALES, spuSalesInfo);
+                spuSalesInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.TID, tid);
+                spuSalesInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.SITE_ID, siteId);
+                spuSalesInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.LGID, lgId);
+                spuSalesInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, keepPriId1);
+                info.setParam(MgProductEntity.Info.SPU_SALES, spuSalesInfo);
             }
+
+            list.add(info);
         }
 
-        info.setList(MgProductEntity.Info.BASIC, basicList);
-        info.setList(MgProductEntity.Info.SPEC, pdScInfoList);
-        info.setList(MgProductEntity.Info.SPEC_SKU, pdScSkuInfoList);
-
-        return info;
+        return list;
     }
 
     private void filterExistsSkuCode(FaiList<Param> productList, HashSet<String> existsSkuCodeSet, FaiList<Integer> idList, Set<Param> needRemoveParamSet, FaiList<Param> errProductList){

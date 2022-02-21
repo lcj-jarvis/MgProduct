@@ -794,13 +794,13 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
     }
 
     @Cmd(MgProductBasicCmd.Cmd.GET_PRI_LIST)
-    public int getListByUnionPriIds(final FaiSession session,
+    public int getListByUidsAndRlPdIds(final FaiSession session,
                                     @ArgFlow final int flow,
                                     @ArgAid final int aid,
                                     @ArgList(classDef = ProductRelDto.class, keyMatch = ProductRelDto.Key.UNION_PRI_IDS) FaiList<Integer> unionPriIds,
-                                    @ArgBodyInteger(ProductRelDto.Key.RL_PD_ID) int rlPdId,
+                                    @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
                                     @ArgBodyInteger(ProductRelDto.Key.SYS_TYPE) int sysType) throws IOException {
-        return service.getListByUnionPriIds(session, flow, aid, unionPriIds, rlPdId, sysType);
+        return service.getListByUidsAndRlPdIds(session, flow, aid, unionPriIds, rlPdIds, sysType);
     }
 
     private ProductBasicService service = ServiceProxy.create(new ProductBasicService());

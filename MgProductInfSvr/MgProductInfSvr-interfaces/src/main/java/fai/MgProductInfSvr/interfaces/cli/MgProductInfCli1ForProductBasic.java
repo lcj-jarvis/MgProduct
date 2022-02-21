@@ -354,16 +354,18 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
     }
 
     /**
-     * 获取单个商品在多个UnionPriId下的数据
+     * 获取多个商品在多个UnionPriId下的数据 详细文档 https://train.faisco.biz/fmn2
      * @param mgProductArg
      *        MgProductArg mgProductArg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId1)
-     *                 .setSysType(sysType) // 选填 系统类型，默认为0
-     *                 .setRlPdId(rlPdId) // 必填 商品业务id
+     *                 .setPrimaryList(primaryKeys) // 必填 查询的主键维度
+     *                 .setRlPdIds(rlPdIds) // 必填 商品业务id
+     *                 .setSysType(sysType) // 必填 系统类型，默认为0
+     *                 .setCombined(combined) // 选填 需要查询的内容
      *                 .build();
      * @param list 返回商品中台数据
      * @return {@link Errno}
      */
-    public int getProductInfoByPrimaryKeysFromDb(MgProductArg mgProductArg, Param info) {
+    public int getProductListByUidsAndRlPdIdsFromDb(MgProductArg mgProductArg, FaiList<Param> list) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -379,6 +381,12 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
                 Log.logErr(m_rt, "args error;primaryKeys is null or empty;");
                 return m_rt;
             }
+            FaiList<Integer> rlPdIds = mgProductArg.getRlPdIds();
+            if (rlPdIds == null || rlPdIds.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;rlPdIds is empty;");
+                return m_rt;
+            }
             Param combined = mgProductArg.getCombined();
             if (combined == null) {
                 combined = new Param();
@@ -392,7 +400,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             int lgId = mgProductArg.getLgId();
             int keepPriId1 = mgProductArg.getKeepPriId1();
             FaiBuffer sendBody = getDefaultFaiBuffer(new Pair(MgProductDto.Key.TID, tid), new Pair(MgProductDto.Key.SITE_ID, siteId), new Pair(MgProductDto.Key.LGID, lgId), new Pair(MgProductDto.Key.KEEP_PRIID1, keepPriId1));
-            sendBody.putInt(MgProductDto.Key.ID,  mgProductArg.getRlPdId());
+            rlPdIds.toBuffer(sendBody, MgProductDto.Key.RL_PD_IDS);
             sendBody.putInt(MgProductDto.Key.SYS_TYPE, mgProductArg.getSysType());
             primaryKeys.toBuffer(sendBody, MgProductDto.Key.PRIMARY_KEYS, MgProductDto.getPrimaryKeyDto());
             combined.toBuffer(sendBody, MgProductDto.Key.COMBINED, MgProductDto.getCombinedInfoDto());
@@ -403,8 +411,8 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
             }
             // recv info
             Ref<Integer> keyRef = new Ref<>();
-            m_rt = info.fromBuffer(recvBody, keyRef, MgProductDto.getUidsInfoDto());
-            if (m_rt != Errno.OK || keyRef.value != MgProductDto.Key.INFO) {
+            m_rt = list.fromBuffer(recvBody, keyRef, MgProductDto.getInfoDto());
+            if (m_rt != Errno.OK || keyRef.value != MgProductDto.Key.INFO_LIST) {
                 Log.logErr(m_rt, "recv codec err");
                 return m_rt;
             }

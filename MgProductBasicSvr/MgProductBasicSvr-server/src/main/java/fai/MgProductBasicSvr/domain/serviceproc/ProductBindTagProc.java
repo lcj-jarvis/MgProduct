@@ -343,14 +343,14 @@ public class ProductBindTagProc {
         return cacheList;
     }
 
-    public FaiList<Param> getPdBindTagList(int aid, FaiList<Integer> unionPriIds, int pdId) {
+    public FaiList<Param> getPdBindTagList(int aid, FaiList<Integer> unionPriIds, FaiList<Integer> pdIds) {
         if (Utils.isEmptyList(unionPriIds)) {
-            throw new MgException(Errno.ARGS_ERROR, "unionPriIds is empty;aid=%d;pdIds=%d;", aid, pdId);
+            throw new MgException(Errno.ARGS_ERROR, "unionPriIds is empty;aid=%d;pdIds=%s;", aid, pdIds);
         }
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
-        searchArg.matcher.and(ProductBindTagEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
+        searchArg.matcher.and(ProductBindTagEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
         int rt = m_dao.select(searchArg, listRef);

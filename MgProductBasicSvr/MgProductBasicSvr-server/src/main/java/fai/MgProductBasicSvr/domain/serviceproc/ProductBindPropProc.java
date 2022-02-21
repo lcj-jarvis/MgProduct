@@ -229,14 +229,14 @@ public class ProductBindPropProc {
         return getList(aid, unionPriId, sysType, rlPdId);
     }
 
-    public FaiList<Param> getPdBindPropList(int aid, FaiList<Integer> unionPriIds, int pdId) {
+    public FaiList<Param> getPdBindPropList(int aid, FaiList<Integer> unionPriIds, FaiList<Integer> pdIds) {
         if (Utils.isEmptyList(unionPriIds)) {
-            throw new MgException(Errno.ARGS_ERROR, "unionPriIds is empty;aid=%d;pdIds=%d;", aid, pdId);
+            throw new MgException(Errno.ARGS_ERROR, "unionPriIds is empty;aid=%d;pdIds=%d;", aid, pdIds);
         }
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
-        searchArg.matcher.and(ProductBindPropEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
+        searchArg.matcher.and(ProductBindPropEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
         int rt = m_bindPropDao.select(searchArg, listRef);

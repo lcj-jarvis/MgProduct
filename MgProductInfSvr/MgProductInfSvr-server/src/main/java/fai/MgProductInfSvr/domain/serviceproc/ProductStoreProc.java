@@ -745,6 +745,19 @@ public class ProductStoreProc extends AbstractProductProc{
         return rt;
     }
 
+    public int getSpuBizSummaryInfoListByPdIdListAndUidList(int aid, int tid, FaiList<Integer> unionPriIdList, FaiList<Integer> pdIds, FaiList<Param> spuSalesStoreInfoList) {
+        int rt;
+        if (m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get MgProductStoreCli error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        rt = m_cli.getSpuBizSummaryInfoListByPdIdListAndUidList(aid, tid, unionPriIdList, pdIds, spuSalesStoreInfoList);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "getSpuBizSummaryInfoListByPdIdListAndUidList err;flow=%d;aid=%d;tid=%d;pdIds=%s;unionPriIds=%s", m_flow, aid, tid, pdIds, unionPriIdList);
+        }
+        return rt;
+    }
+
     private int m_flow;
     private MgProductStoreCli m_cli;
 }

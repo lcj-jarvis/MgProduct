@@ -749,7 +749,7 @@ public class DataMigrateService extends MgProductInfService {
             spuInfo.setLong(SpuBizSummaryEntity.Info.MIN_PRICE, price);
             spuInfo.setLong(SpuBizSummaryEntity.Info.MAX_PRICE, price);
             spuInfo.setInt(SpuBizSummaryEntity.Info.STATUS, ykStatus);
-            if (keepPriId1 != 0) {
+            if (keepPriId1 != 0 && ykStatus == -1) {
                 Integer curStatus = storeStatusMap.get(siteId + "-" + 0 + "-" + rlPdId);
                 if (curStatus == null) {
                     Log.logErr(Errno.ERROR, "获取总店状态失败;flow=%d;aid=%d;siteId=%d;keepPriId=%d;rlPdId=%d;", flow, aid, siteId, keepPriId1, rlPdId);
@@ -770,7 +770,7 @@ public class DataMigrateService extends MgProductInfService {
             storeSku.setInt(StoreSalesSkuEntity.Info.FLAG, StoreSalesSkuValObj.FLag.SETED_PRICE);
             storeSku.setInt(StoreSalesSkuEntity.Info.SYS_TYPE, sysType);
             storeSku.setInt("status", ykStatus);
-            if (keepPriId1 != 0) {
+            if (keepPriId1 != 0 && ykStatus == -1) {
                 Integer curStatus = storeStatusMap.get(siteId + "-" + 0 + "-" + rlPdId);
                 if (curStatus == null) {
                     Log.logErr(Errno.ERROR, "获取总店状态失败;flow=%d;aid=%d;siteId=%d;keepPriId=%d;rlPdId=%d;", flow, aid, siteId, keepPriId1, rlPdId);
@@ -863,7 +863,7 @@ public class DataMigrateService extends MgProductInfService {
                         curSpuInfo.setLong(SpuBizSummaryEntity.Info.MIN_PRICE, price);
                         curSpuInfo.setLong(SpuBizSummaryEntity.Info.MAX_PRICE, price);
                         curSpuInfo.setInt(SpuBizSummaryEntity.Info.STATUS, ykStatus);
-                        if (storeId != 0) {
+                        if (storeId != 0 && ykStatus == -1) {
                             Integer curStatus = storeStatusMap.get(siteId + "-" + 0 + "-" + rlPdId);
                             if (curStatus == null) {
                                 Log.logErr(Errno.ERROR, "获取总店状态失败;flow=%d;aid=%d;siteId=%d;keepPriId=%d;rlPdId=%d;", flow, aid, siteId, keepPriId1, rlPdId);
@@ -883,7 +883,7 @@ public class DataMigrateService extends MgProductInfService {
                         curStoreSku.setInt(StoreSalesSkuEntity.Info.FLAG, StoreSalesSkuValObj.FLag.SETED_PRICE);
                         curStoreSku.setInt(StoreSalesSkuEntity.Info.SYS_TYPE, sysType);
                         curStoreSku.setInt("status", ykStatus);
-                        if (storeId != 0) {
+                        if (storeId != 0 && ykStatus == -1) {
                             Integer curStatus = storeStatusMap.get(siteId + "-" + 0 + "-" + rlPdId);
                             if (curStatus == null) {
                                 Log.logErr(Errno.ERROR, "获取总店状态失败;flow=%d;aid=%d;siteId=%d;keepPriId=%d;rlPdId=%d;", flow, aid, siteId, keepPriId1, rlPdId);

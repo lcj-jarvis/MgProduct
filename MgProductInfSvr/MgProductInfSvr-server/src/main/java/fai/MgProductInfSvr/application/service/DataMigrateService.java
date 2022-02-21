@@ -820,7 +820,7 @@ public class DataMigrateService extends MgProductInfService {
                 if(storeIds != null) {
                     for(int storeId : storeIds) {
                         Param newRelInfo = relInfo.clone();
-                        Integer curUnionPriId = unionPriIdMap.get(tid + "_" + siteId + "_" + lgId + "_" + 0);
+                        Integer curUnionPriId = unionPriIdMap.get(tid + "_" + siteId + "_" + lgId + "_" + storeId);
                         if (curUnionPriId == null) {
                             curUnionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, storeId);
                             unionPriIdMap.put(tid + "_" + siteId + "_" + lgId + "_" + storeId, curUnionPriId);

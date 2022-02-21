@@ -3532,19 +3532,19 @@ public class MgProductBasicCli extends FaiClient {
         }
     }
 
-    public int getListByUnionPriIds(int aid, FaiList<Integer> unionPriIdList, int rlPdId, int sysType, FaiList<Param> list) {
+    public int getListByUidsAndRlPdIds(int aid, FaiList<Integer> unionPriIdList, FaiList<Integer> rlPdIds, int sysType, FaiList<Param> list) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
-            if (aid == 0 || rlPdId == 0) {
+            if (aid == 0 || rlPdIds == null || rlPdIds.isEmpty()) {
                 m_rt = Errno.ARGS_ERROR;
-                Log.logErr(m_rt, "args error;aid=%d;unionPriIdList=%s;rlPdId=%d;", aid, unionPriIdList, rlPdId);
+                Log.logErr(m_rt, "args error;aid=%d;unionPriIdList=%s;rlPdId=%s;", aid, unionPriIdList, rlPdIds);
                 return m_rt;
             }
 
             FaiBuffer sendBody = new FaiBuffer(true);
             unionPriIdList.toBuffer(sendBody, ProductRelDto.Key.UNION_PRI_IDS);
-            sendBody.putInt(ProductRelDto.Key.RL_PD_ID, rlPdId);
+            rlPdIds.toBuffer(sendBody, ProductRelDto.Key.RL_PD_IDS);
             sendBody.putInt(ProductRelDto.Key.SYS_TYPE, sysType);
 
             Param result = sendAndReceive(aid, MgProductBasicCmd.Cmd.GET_PRI_LIST, sendBody, true);

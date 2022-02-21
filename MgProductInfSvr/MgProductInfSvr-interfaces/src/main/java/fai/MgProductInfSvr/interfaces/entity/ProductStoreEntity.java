@@ -43,6 +43,8 @@ public class ProductStoreEntity {
         public static final String IN_PD_SC_STR_NAME_LIST = ProductSpecEntity.SpecSkuInfo.IN_PD_SC_STR_NAME_LIST;
         public static final String COST_PRICE = "costPrice";                        // long 商品成本单价，商品导入用，不入库存销售信息库，为了设置出入库的成本价
         public static final String OWNER_RL_PD_ID = "ownerRlPdId";                  // int 该商品所属者的商品业务id，批量添加库存信息时，兼容商品信息未绑定过来
+        public static final String PD_ID = "pdId";
+        public static final String UNION_PRI_ID = "unionPriId";
     }
 
     /**
@@ -139,10 +141,14 @@ public class ProductStoreEntity {
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
         public static final String DISTRIBUTE_LIST = "distributeList";              // varchar(255) 配送方式（支持多个）
         public static final String STATUS = "status";                               // int 数据状态
+        public static final String UNION_PRI_ID = "unionPriId";
+        public static final String PD_ID = "pdId";
+
 
 
         public static final FaiList<String> MANAGE_FIELDS; // 管理态字段
         public static final FaiList<String> VISITOR_FIELDS; // 访客态字段
+
         static {
             MANAGE_FIELDS = new FaiList<String>(
                     Arrays.asList(

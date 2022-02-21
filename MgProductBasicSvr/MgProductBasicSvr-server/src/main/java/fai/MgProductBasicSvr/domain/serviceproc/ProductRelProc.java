@@ -851,7 +851,7 @@ public class ProductRelProc {
         }
     }
 
-    public FaiList<Param> getProductRels(int aid, FaiList<Integer> unionPriIds, int rlPdId, int sysType) {
+    public FaiList<Param> getProductRels(int aid, FaiList<Integer> unionPriIds, FaiList<Integer> rlPdIds, int sysType) {
         int rt;
         if (Utils.isEmptyList(unionPriIds)) {
             rt = Errno.ARGS_ERROR;
@@ -860,8 +860,9 @@ public class ProductRelProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
-        searchArg.matcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.EQ, rlPdId);
+        searchArg.matcher.and(ProductRelEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
         searchArg.matcher.and(ProductRelEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
+        searchArg.matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.NE, ProductRelValObj.Status.DEL);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
         rt = m_dao.select(searchArg, listRef);

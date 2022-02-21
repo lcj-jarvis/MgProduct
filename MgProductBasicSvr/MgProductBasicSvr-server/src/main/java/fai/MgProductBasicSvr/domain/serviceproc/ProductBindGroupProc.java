@@ -232,14 +232,14 @@ public class ProductBindGroupProc {
         return getList(aid, unionPriId, new HashSet<>(pdIds));
     }
 
-    public FaiList<Param> getPdBindGroupList(int aid, FaiList<Integer> unionPriIds, int pdId) {
+    public FaiList<Param> getPdBindGroupList(int aid, FaiList<Integer> unionPriIds, FaiList<Integer> pdIds) {
         if (Utils.isEmptyList(unionPriIds)) {
-            throw new MgException(Errno.ARGS_ERROR, "unionPriIds is empty;aid=%d;pdIds=%d;", aid, pdId);
+            throw new MgException(Errno.ARGS_ERROR, "unionPriIds is empty;aid=%d;pdIds=%s;", aid, pdIds);
         }
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
-        searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
+        searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
         int rt = m_dao.select(searchArg, listRef);

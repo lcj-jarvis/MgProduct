@@ -1724,20 +1724,20 @@ public class MgProductInfHandler extends FaiHandler {
     }
 
     @Cmd(MgProductInfCmd.Cmd.GET_PRI_INFO)
-    public int getProductInfoByPrimaryKeysFromDb(final FaiSession session,
+    public int getProductListByUidsAndRlPdIdsFromDb(final FaiSession session,
                                                  @ArgFlow final int flow,
                                                  @ArgAid final int aid,
                                                  @ArgBodyInteger(MgProductDto.Key.TID) int tid,
                                                  @ArgBodyInteger(MgProductDto.Key.SITE_ID) int siteId,
                                                  @ArgBodyInteger(MgProductDto.Key.LGID) int lgId,
                                                  @ArgBodyInteger(MgProductDto.Key.KEEP_PRIID1) int keepPriId1,
-                                                 @ArgBodyInteger(MgProductDto.Key.ID) int rlPdId,
+                                                 @ArgList(keyMatch = MgProductDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
                                                  @ArgBodyInteger(MgProductDto.Key.SYS_TYPE) int sysType,
                                                  @ArgList(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto",
                                                          keyMatch = MgProductDto.Key.PRIMARY_KEYS) FaiList<Param> primaryKeys,
                                                  @ArgParam(classDef = MgProductDto.class, methodDef = "getCombinedInfoDto",
                                                          keyMatch = MgProductDto.Key.COMBINED) Param combined) throws IOException {
-        return mgProductInfService.getProductInfoByPrimaryKeysFromDb(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdId, sysType, primaryKeys, combined);
+        return mgProductInfService.getProductListByUidsAndRlPdIdsFromDb(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIds, sysType, primaryKeys, combined);
     }
 
     //MgProductInfService mgProductInfService = new MgProductInfService();

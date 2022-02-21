@@ -662,7 +662,7 @@ public class DataMigrateService extends MgProductInfService {
             int keepIntProp1 = ykService.getInt("serviceType");
 
             // 记录 tid siteId lgId keepPriId 和 uid 的关系, 减少调用主键服务
-            Integer unionPriId = unionPriIdMap.get(tid + "_" + siteId + "_" + lgId + "_" + keepIntProp1);
+            Integer unionPriId = unionPriIdMap.get(tid + "_" + siteId + "_" + lgId + "_" + keepPriId1);
             if (unionPriId == null) {
                 unionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, keepPriId1);
                 unionPriIdMap.put(tid + "_" + siteId + "_" + lgId + "_" + keepPriId1, unionPriId);
@@ -820,7 +820,11 @@ public class DataMigrateService extends MgProductInfService {
                 if(storeIds != null) {
                     for(int storeId : storeIds) {
                         Param newRelInfo = relInfo.clone();
-                        int curUnionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, storeId);
+                        Integer curUnionPriId = unionPriIdMap.get(tid + "_" + siteId + "_" + lgId + "_" + 0);
+                        if (curUnionPriId == null) {
+                            curUnionPriId = getUnionPriId(flow, aid, tid, siteId, lgId, storeId);
+                            unionPriIdMap.put(tid + "_" + siteId + "_" + lgId + "_" + storeId, curUnionPriId);
+                        }
                         newRelInfo.setInt(ProductBasicEntity.ProductInfo.UNION_PRI_ID, curUnionPriId);
                         bindList.add(newRelInfo);
                         // spu数据

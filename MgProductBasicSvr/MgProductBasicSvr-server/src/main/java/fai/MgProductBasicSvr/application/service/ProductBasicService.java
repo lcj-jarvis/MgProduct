@@ -2133,6 +2133,11 @@ public class ProductBasicService extends BasicParentService {
                     int fromRlPdId = (int) relData.remove(ProductRelEntity.Info.RL_PD_ID);
                     int pdId = fromRlPdId_pdId.get(fromRlPdId);
                     relData.setInt(ProductRelEntity.Info.PD_ID, pdId);
+                    // 如果是门店通，门店的 rlPdId 要和 总店保持一致
+                    if (tid == FaiValObj.TermId.YK) {
+                        relData.setInt(ProductRelEntity.Info.RL_PD_ID, fromRlPdId);
+                        relData.setInt(ProductRelEntity.Info.SYS_TYPE, sysType);
+                    }
                     if(pdId_toRlPdId.containsKey(pdId)) {
                         existRlPdIds.add(pdId_toRlPdId.get(pdId));
                         continue;

@@ -7,7 +7,7 @@ dev:
     - master          # branch support regex
   script:
     - ssh -p 50805 faier@dev0.faidev.cc << ssh
-    - /usr/bin/python /home/faier/script/cicd/cicd_mg.py -g mgproduct -t svr -b master
+    - /usr/bin/python /home/faier/script/cicd/cicd_mg.py -g mgproduct -t svr -b master -c '/home/faier/bin/jtool_jdk8 MgProductInfTool -f junitTestRunner'
     - ssh
 
 dep:

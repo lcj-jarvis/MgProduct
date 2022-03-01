@@ -318,7 +318,7 @@ public class StoreSalesSkuProc {
         searchArg.matcher.and(StoreSalesSkuEntity.Info.STATUS, ParamMatcher.EQ, StoreSalesSkuValObj.Status.DEL);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
-        rt = m_daoCtrl.select(searchArg, listRef);
+        rt = m_daoCtrl.selectWithDel(searchArg, listRef);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
             Log.logErr("select err;matcher=%s;", searchArg.matcher.toJson());
             return rt;

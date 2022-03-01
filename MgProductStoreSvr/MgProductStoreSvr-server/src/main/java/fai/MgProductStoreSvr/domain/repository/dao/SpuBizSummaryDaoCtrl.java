@@ -1,8 +1,7 @@
 package fai.MgProductStoreSvr.domain.repository.dao;
 
 import fai.MgProductStoreSvr.domain.repository.TableDBMapping;
-import fai.comm.util.DaoPool;
-import fai.comm.util.Log;
+import fai.comm.util.*;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 /**
@@ -26,6 +25,29 @@ public class SpuBizSummaryDaoCtrl extends DaoCtrlWithoutDel {
         }
         return daoCtrl;
     }
+
+    public int selectWithDel(SearchArg searchArg, Ref<FaiList<Param>> listRef) {
+        int rt = openDao();
+        if(rt != Errno.OK){
+            return rt;
+        }
+        Dao.SelectArg sltArg = new Dao.SelectArg();
+        sltArg.table = getTableName();
+        sltArg.searchArg = searchArg;
+        FaiList<Param> list = m_dao.select(sltArg);
+        if(list == null) {
+            rt = Errno.DAO_ERROR;
+            Log.logErr(rt, "select db err;");
+            return rt;
+        }
+        listRef.value = list;
+        if(list.isEmpty()) {
+            rt = Errno.NOT_FOUND;
+            return rt;
+        }
+        return rt;
+    }
+
     public static SpuBizSummaryDaoCtrl getInstance(int flow, int aid) {
         if(m_daoProxy == null) {
             Log.logErr("m_daoProxy is not init;");

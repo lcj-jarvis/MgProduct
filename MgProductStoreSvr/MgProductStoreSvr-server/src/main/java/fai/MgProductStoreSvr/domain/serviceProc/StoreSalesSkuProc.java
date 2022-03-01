@@ -363,6 +363,7 @@ public class StoreSalesSkuProc {
             data.setInt(StoreSalesSkuEntity.Info.SYS_TYPE, sysType);
             data.setInt(StoreSalesSkuEntity.Info.RL_PD_ID, rlPdId);
             data.setInt(StoreSalesSkuEntity.Info.STATUS, StoreSalesSkuValObj.Status.DEL);
+            dataList.add(data);
         }
 
         // prepare updater

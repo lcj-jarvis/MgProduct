@@ -756,6 +756,7 @@ public class SpuBizSummaryProc {
             data.setInt(SpuBizSummaryEntity.Info.SYS_TYPE, sysType);
             data.setInt(SpuBizSummaryEntity.Info.RL_PD_ID, rlPdId);
             data.setInt(SpuBizSummaryEntity.Info.STATUS, SpuBizSummaryValObj.Status.DEL);
+            dataList.add(data);
         }
 
         // prepare updater

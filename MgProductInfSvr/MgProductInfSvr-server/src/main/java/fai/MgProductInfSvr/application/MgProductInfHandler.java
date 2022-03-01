@@ -767,7 +767,7 @@ public class MgProductInfHandler extends FaiHandler {
                                  @ArgBodyInteger(value = ProductBasicDto.Key.SYS_TYPE, useDefault = true) int sysType,
                                  @ArgList(keyMatch = ProductBasicDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
                                  @ArgBodyBoolean(value = ProductBasicDto.Key.SOFT_DEL,
-                                 useDefault = true, defaultValue = false) boolean softDel) throws IOException {
+                                 useDefault = true, defaultValue = false) boolean softDel) throws IOException, TransactionException {
         return basicService.batchDelPdRelBind(session, flow, aid, tid, siteId, lgId, keepPriId1, sysType, rlPdIds, softDel);
     }
 

@@ -315,7 +315,7 @@ public class StoreSalesSkuProc {
         searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.IN, uids);
         searchArg.matcher.and(StoreSalesSkuEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
-        searchArg.matcher.and(StoreSalesSkuEntity.Info.STATUS_MATCHER, ParamMatcher.EQ, StoreSalesSkuValObj.Status.DEL);
+        searchArg.matcher.and(StoreSalesSkuEntity.Info.STATUS, ParamMatcher.EQ, StoreSalesSkuValObj.Status.DEL);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
         rt = m_daoCtrl.selectWithDel(searchArg, listRef);
@@ -362,7 +362,7 @@ public class StoreSalesSkuProc {
             data.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId);
             data.setInt(StoreSalesSkuEntity.Info.SYS_TYPE, sysType);
             data.setInt(StoreSalesSkuEntity.Info.RL_PD_ID, rlPdId);
-            data.setInt(StoreSalesSkuEntity.Info.STATUS, StoreSalesSkuValObj.Status.DEL);
+            data.setInt(StoreSalesSkuEntity.Info.STATUS_MATCHER, StoreSalesSkuValObj.Status.DEL);
             dataList.add(data);
         }
 

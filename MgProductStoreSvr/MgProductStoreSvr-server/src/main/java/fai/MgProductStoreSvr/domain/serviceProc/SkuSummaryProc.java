@@ -486,7 +486,6 @@ public class SkuSummaryProc {
             Log.logErr("insert sagaMap error;flow=%d;aid=%d;sagaList=%s", m_flow, aid, sagaMap.values().toString());
             return rt;
         }
-        sagaMap.clear();
         return rt;
     }
 

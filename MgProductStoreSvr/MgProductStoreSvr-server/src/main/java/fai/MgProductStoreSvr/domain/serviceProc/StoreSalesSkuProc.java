@@ -315,7 +315,7 @@ public class StoreSalesSkuProc {
         searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.IN, uids);
         searchArg.matcher.and(StoreSalesSkuEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
-        searchArg.matcher.and(StoreSalesSkuEntity.Info.STATUS, ParamMatcher.EQ, StoreSalesSkuValObj.Status.DEL);
+        searchArg.matcher.and(StoreSalesSkuEntity.Info.STATUS_MATCHER, ParamMatcher.EQ, StoreSalesSkuValObj.Status.DEL);
 
         Ref<FaiList<Param>> listRef = new Ref<>();
         rt = m_daoCtrl.selectWithDel(searchArg, listRef);
@@ -1645,7 +1645,6 @@ public class StoreSalesSkuProc {
             Log.logErr("insert sagaMap error;flow=%d;aid=%d;sagaList=%s", m_flow, aid, sagaMap.values().toString());
             return rt;
         }
-        sagaMap.clear();
         Log.logStd("addUpdateSaga2Db ok;flow=%d;aid=%d", m_flow, aid);
         return rt;
     }

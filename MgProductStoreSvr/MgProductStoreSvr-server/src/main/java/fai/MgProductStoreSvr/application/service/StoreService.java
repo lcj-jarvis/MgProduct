@@ -184,6 +184,7 @@ public class StoreService extends StoreParentService {
                                 return rt;
                             }
                         }
+                        commit = true;
                     }finally {
                         if(commit) {
                             tc.commit();
@@ -239,7 +240,7 @@ public class StoreService extends StoreParentService {
                     LockUtil.unlock(aid);
                 }
             }finally {
-
+                tc.closeDao();
             }
 
 

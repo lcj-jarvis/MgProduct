@@ -755,7 +755,7 @@ public class SpuBizSummaryProc {
             data.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, unionPriId);
             data.setInt(SpuBizSummaryEntity.Info.SYS_TYPE, sysType);
             data.setInt(SpuBizSummaryEntity.Info.RL_PD_ID, rlPdId);
-            data.setInt(SpuBizSummaryEntity.Info.STATUS, SpuBizSummaryValObj.Status.DEL);
+            data.setInt(SpuBizSummaryEntity.Info.STATUS_MATCHER, SpuBizSummaryValObj.Status.DEL);
             dataList.add(data);
         }
 
@@ -1327,7 +1327,6 @@ public class SpuBizSummaryProc {
             Log.logErr("insert sagaMap error;flow=%d;aid=%d;sagaList=%s", m_flow, aid, sagaMap.values().toString());
             return rt;
         }
-        sagaMap.clear();
         return rt;
     }
 

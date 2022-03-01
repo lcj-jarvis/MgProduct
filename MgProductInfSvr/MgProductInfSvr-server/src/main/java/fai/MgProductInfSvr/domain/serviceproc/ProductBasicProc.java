@@ -300,16 +300,16 @@ public class ProductBasicProc {
      * 取消 rlPdIds 的商品业务关联
      * @return
      */
-    public int batchDelPdRelBind(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, boolean softDel) {
+    public int batchDelPdRelBind(int aid, int unionPriId, String xid, int sysType, FaiList<Integer> rlPdIds, boolean softDel) {
         int rt = Errno.ERROR;
         if(m_cli == null) {
             rt = Errno.ERROR;
-            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;", m_flow, aid, unionPriId);
+            Log.logErr(rt, "get ProductBasicCli error;flow=%d;aid=%d;unionPriId=%d;xid=%s;", m_flow, aid, unionPriId, xid);
             return rt;
         }
-        rt = m_cli.batchDelPdRelBind(aid, unionPriId, sysType, rlPdIds, softDel);
+        rt = m_cli.batchDelPdRelBind(aid, unionPriId, xid, sysType, rlPdIds, softDel);
         if(rt != Errno.OK) {
-            Log.logErr(rt, "batchDelPdRelBind error;flow=%d;aid=%d;unionPriId=%d;rlPdIds=%s;", m_flow, aid, unionPriId, rlPdIds);
+            Log.logErr(rt, "batchDelPdRelBind error;flow=%d;aid=%d;unionPriId=%d;rlPdIds=%s;xid=%s;", m_flow, aid, unionPriId, rlPdIds, xid);
             return rt;
         }
 

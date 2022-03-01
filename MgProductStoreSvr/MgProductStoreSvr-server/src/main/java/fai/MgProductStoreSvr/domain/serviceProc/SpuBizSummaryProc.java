@@ -691,12 +691,112 @@ public class SpuBizSummaryProc {
         return rt;
     }
 
+    public int restoreSoftDelBizPds(int aid, FaiList<Param> restoreList, boolean isSaga) {
+        int rt = Errno.OK;
+        if(Utils.isEmptyList(restoreList)) {
+            return rt;
+        }
+
+        // 有分布式事务，查出会被修改的数据，记录到saga表
+        if(isSaga) {
+            Set<String> dataKeys = new HashSet<>();
+            FaiList<Integer> uids = new FaiList<>();
+            FaiList<Integer> rlPdIds = new FaiList<>();
+            for(Param info : restoreList) {
+                int unionPriId = info.getInt(SpuBizSummaryEntity.Info.UNION_PRI_ID);
+                int rlPdId = info.getInt(SpuBizSummaryEntity.Info.RL_PD_ID);
+                int sysType = info.getInt(SpuBizSummaryEntity.Info.SYS_TYPE);
+                uids.add(unionPriId);
+                rlPdIds.add(rlPdId);
+                dataKeys.add(unionPriId + "-" + sysType + "-" + rlPdId);
+            }
+
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+            searchArg.matcher.and(SpuBizSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.IN, uids);
+            searchArg.matcher.and(SpuBizSummaryEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
+            searchArg.matcher.and(SpuBizSummaryEntity.Info.STATUS, ParamMatcher.EQ, SpuBizSummaryValObj.Status.DEL);
+
+            Ref<FaiList<Param>> listRef = new Ref<>();
+            rt = m_daoCtrl.select(searchArg, listRef);
+            if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+                Log.logErr("select err;matcher=%s;", searchArg.matcher.toJson());
+                return rt;
+            }
+
+            FaiList<Param> updateList = new FaiList<>();
+            for(Param info : listRef.value) {
+                int unionPriId = info.getInt(SpuBizSummaryEntity.Info.UNION_PRI_ID);
+                int rlPdId = info.getInt(SpuBizSummaryEntity.Info.RL_PD_ID);
+                int sysType = info.getInt(SpuBizSummaryEntity.Info.SYS_TYPE);
+                // dataKeys 中包含，则说明会被修改
+                if(dataKeys.contains(unionPriId + "-" + sysType + "-" + rlPdId)) {
+                    updateList.add(info);
+                }
+            }
+
+            preAddUpdateSaga(aid, updateList);
+        }
+
+        Calendar now = Calendar.getInstance();
+
+        FaiList<Param> dataList = new FaiList<>();
+        for(Param info : restoreList) {
+            int unionPriId = info.getInt(SpuBizSummaryEntity.Info.UNION_PRI_ID);
+            int rlPdId = info.getInt(SpuBizSummaryEntity.Info.RL_PD_ID);
+            int sysType = info.getInt(SpuBizSummaryEntity.Info.SYS_TYPE);
+            Param data = new Param();
+            // for prepare updater
+            data.setInt(SpuBizSummaryEntity.Info.STATUS, SpuBizSummaryValObj.Status.DEFAULT);
+            data.setCalendar(SpuBizSummaryEntity.Info.SYS_UPDATE_TIME, now);
+
+            // for prepare matcher
+            data.setInt(SpuBizSummaryEntity.Info.AID, aid);
+            data.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, unionPriId);
+            data.setInt(SpuBizSummaryEntity.Info.SYS_TYPE, sysType);
+            data.setInt(SpuBizSummaryEntity.Info.RL_PD_ID, rlPdId);
+            data.setInt(SpuBizSummaryEntity.Info.STATUS, SpuBizSummaryValObj.Status.DEL);
+        }
+
+        // prepare updater
+        ParamUpdater doBatchUpdater = new ParamUpdater();
+        doBatchUpdater.getData().setString(SpuBizSummaryEntity.Info.STATUS, "?");
+        doBatchUpdater.getData().setString(SpuBizSummaryEntity.Info.SYS_UPDATE_TIME, "?");
+        // prepare matcher
+        ParamMatcher doBatchMatcher = new ParamMatcher();
+        doBatchMatcher.and(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(SpuBizSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(SpuBizSummaryEntity.Info.SYS_TYPE, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(SpuBizSummaryEntity.Info.RL_PD_ID, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(SpuBizSummaryEntity.Info.STATUS, ParamMatcher.EQ, "?");
+
+        rt = m_daoCtrl.batchUpdate(doBatchUpdater, doBatchMatcher, dataList);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "dao.batchUpdate error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
+            return rt;
+        }
+
+        return rt;
+    }
+
+    public int batchDelByRlPdIds(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIdList, boolean softDel, boolean isSaga) {
+        ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(SpuBizSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(SpuBizSummaryEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
+        matcher.and(SpuBizSummaryEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIdList);
+        return batchDel(aid, matcher, softDel, isSaga);
+    }
+
     public int batchDel(int aid, FaiList<Integer> pdIdList, boolean softDel, boolean isSaga) {
-        int rt;
         ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(SpuBizSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        return batchDel(aid, matcher, softDel, isSaga);
+    }
+
+    private int batchDel(int aid, ParamMatcher delMatcher, boolean softDel, boolean isSaga) {
+        int rt;
         SearchArg searchArg = new SearchArg();
-        searchArg.matcher = matcher.clone();
+        searchArg.matcher = delMatcher.clone();
         Ref<FaiList<Param>> listRef = new Ref<>();
         // 如果不是分布式事务只需要查询，单个字段
         if (isSaga) {
@@ -705,12 +805,19 @@ public class SpuBizSummaryProc {
             rt = m_daoCtrl.select(searchArg, listRef, SpuBizSummaryEntity.Info.UNION_PRI_ID);
         }
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
-            Log.logStd(rt, "select err;flow=%s;aid=%s;pdIdList;", m_flow, aid, pdIdList);
+            Log.logStd(rt, "select err;flow=%s;matcher=%s;softDel=%s;", m_flow, delMatcher.toJson(), softDel);
             return rt;
         }
         Map<Integer, FaiList<Integer>> unionPirIdPdIdListMap = new HashMap<>(listRef.value.size()*4/3+1);
         for (Param info : listRef.value) {
-            unionPirIdPdIdListMap.put(info.getInt(SpuBizSummaryEntity.Info.UNION_PRI_ID), pdIdList);
+            int unionPriId = info.getInt(SpuBizSummaryEntity.Info.UNION_PRI_ID);
+            int pdId = info.getInt(SpuBizSummaryEntity.Info.PD_ID);
+            FaiList<Integer> pdIdList = unionPirIdPdIdListMap.get(unionPriId);
+            if(pdIdList == null) {
+                pdIdList = new FaiList<>();
+                unionPirIdPdIdListMap.put(unionPriId, pdIdList);
+            }
+            pdIdList.add(pdId);
         }
         // 标记访客数据为脏
         cacheManage.addDataTypeDirtyCacheKey(DataType.Visitor, unionPirIdPdIdListMap.keySet());
@@ -731,20 +838,20 @@ public class SpuBizSummaryProc {
         if(softDel) {
             ParamUpdater updater = new ParamUpdater();
             updater.getData().setInt(SpuBizSummaryEntity.Info.STATUS, SpuBizSummaryValObj.Status.DEL);
-            rt = m_daoCtrl.update(updater, matcher);
+            rt = m_daoCtrl.update(updater, delMatcher);
             if(rt != Errno.OK){
-                Log.logStd(rt, "softdel err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                Log.logStd(rt, "softdel err;flow=%s;aid=%s;delMatcher=%s;", m_flow, aid, delMatcher.toJson());
                 return rt;
             }
         }else {
-            rt = m_daoCtrl.delete(matcher);
+            rt = m_daoCtrl.delete(delMatcher);
             if(rt != Errno.OK){
-                Log.logStd(rt, "delete err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                Log.logStd(rt, "delete err;flow=%s;aid=%s;delMatcher=%s;", m_flow, aid, delMatcher.toJson());
                 return rt;
             }
         }
 
-        Log.logStd("ok;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+        Log.logStd("ok;flow=%s;aid=%s;delMatcher=%s;", m_flow, aid, delMatcher.toJson());
         return rt;
     }
 
@@ -1219,6 +1326,7 @@ public class SpuBizSummaryProc {
             Log.logErr("insert sagaMap error;flow=%d;aid=%d;sagaList=%s", m_flow, aid, sagaMap.values().toString());
             return rt;
         }
+        sagaMap.clear();
         return rt;
     }
 

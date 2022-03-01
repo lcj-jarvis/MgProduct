@@ -129,6 +129,309 @@ public class StoreService extends StoreParentService {
         return rt;
     }
 
+    public int restoreSoftDelBizPd(FaiSession session, int flow, int aid, String xid, FaiList<Param> restoreList) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || Utils.isEmptyList(restoreList)) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;restoreList=%s;", flow, aid, restoreList);
+                return rt;
+            }
+            FaiList<Param> updateList = new FaiList<>();
+
+            TransactionCtrl tc = new TransactionCtrl();
+            try {
+                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, tc);
+                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
+                SpuSummaryProc spuSummaryProc = new SpuSummaryProc(flow, aid, tc);
+                SkuSummaryProc skuSummaryProc = new SkuSummaryProc(flow, aid, tc);
+                boolean isSaga = !Str.isEmpty(xid);
+                LockUtil.lock(aid);
+                try {
+                    boolean commit = false;
+                    tc.setAutoCommit(false);
+                    try {
+                        Ref<FaiList<Param>> updateListRef = new Ref<>();
+                        rt = storeSalesSkuProc.restoreSoftDelBizPds(aid, restoreList, isSaga, updateListRef);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+                        updateList = updateListRef.value;
+                        // 要更新的都不存在，直接返回ok
+                        if(updateList.isEmpty()) {
+                            return Errno.OK;
+                        }
+                        rt = spuBizSummaryProc.restoreSoftDelBizPds(aid, restoreList, isSaga);
+                        if(rt != Errno.OK) {
+                            return rt;
+                        }
+
+                        if (isSaga) {
+                            // 将预记录的修改数据持久化到 db
+                            rt = spuBizSummaryProc.addUpdateSaga2Db(aid);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                            rt = storeSalesSkuProc.addUpdateSaga2Db(aid);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                            // 记录 Saga 状态
+                            StoreSagaProc storeSagaProc = new StoreSagaProc(flow, aid, tc);
+                            rt = storeSagaProc.add(aid, xid, RootContext.getBranchId());
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                        }
+                    }finally {
+                        if(commit) {
+                            tc.commit();
+                        }else {
+                            tc.rollback();
+                        }
+                    }
+                    try {
+                        FaiList<Integer> updatePdIds = new FaiList<>();
+                        FaiList<Long> updateSkuIds = new FaiList<>();
+                        for(Param updateInfo : updateList) {
+                            int pdId = updateInfo.getInt(StoreSalesSkuEntity.Info.PD_ID);
+                            long skuId = updateInfo.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+                            updatePdIds.add(pdId);
+                            updateSkuIds.add(skuId);
+                        }
+                        tc.setAutoCommit(false);
+                        rt = reportSummary(aid, updatePdIds, ReportValObj.Flag.REPORT_COUNT|ReportValObj.Flag.REPORT_PRICE,
+                                updateSkuIds, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc, true);
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
+
+                        // 上面已经记录过saga状态了，这里直接记录修改到的数据就行
+                        if (isSaga) {
+                            // 将预记录的修改数据持久化到 db
+                            rt = spuBizSummaryProc.addUpdateSaga2Db(aid);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                            rt = skuSummaryProc.addUpdateSaga2Db(aid);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                            rt = spuSummaryProc.addUpdateSaga2Db(aid);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                        }
+                    }finally {
+                        if(rt != Errno.OK){
+                            tc.rollback();
+                            return rt;
+                        }
+                        spuBizSummaryProc.setDirtyCacheEx(aid);
+                        spuSummaryProc.setDirtyCacheEx(aid);
+                        tc.commit();
+                        spuBizSummaryProc.deleteDirtyCache(aid);
+                        spuSummaryProc.deleteDirtyCache(aid);
+                    }
+
+                }finally {
+                    LockUtil.unlock(aid);
+                }
+            }finally {
+
+            }
+
+
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("ok;flow=%s;aid=%s;uid=%s;restoreList=%s;", flow, aid, restoreList);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    /**
+     *  restoreSoftDelBizPd 的补偿方法
+     */
+    @SuccessRt(value = Errno.OK)
+    public int restoreSoftDelBizPdRollback(FaiSession session, int flow, int aid, String xid, Long branchId) throws IOException {
+        SagaRollback sagaRollback = tc -> {
+            StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, tc);
+            storeSalesSkuProc.rollback4Saga(aid, xid, branchId);
+
+            SpuSummaryProc spuSummaryProc = new SpuSummaryProc(flow, aid, tc);
+            spuSummaryProc.rollback4Saga(aid, xid, branchId);
+
+            SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
+            spuBizSummaryProc.rollback4Saga(aid, xid, branchId);
+
+            SkuSummaryProc skuSummaryProc = new SkuSummaryProc(flow, aid, tc);
+            skuSummaryProc.rollback4Saga(aid, xid, branchId);
+        };
+        int branchStatus = doRollback(flow, aid, xid, branchId, sagaRollback);
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, branchStatus);
+        session.write(sendBuf);
+        return Errno.OK;
+    }
+
+    public int batchDelBizPdStoreSales(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIdList, boolean softDel, String xid) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || rlPdIdList == null || rlPdIdList.isEmpty()) {
+                rt = Errno.ARGS_ERROR;
+                Log.logErr("arg err;flow=%d;aid=%d;rlPdIdList=%s;", flow, aid, rlPdIdList);
+                return rt;
+            }
+            FaiList<Param> delList = new FaiList<>();
+
+            // 事务
+            TransactionCtrl transactionCtrl = new TransactionCtrl();
+            try {
+                StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, transactionCtrl);
+                SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, transactionCtrl);
+                SpuSummaryProc spuSummaryProc = new SpuSummaryProc(flow, aid, transactionCtrl);
+                SkuSummaryProc skuSummaryProc = new SkuSummaryProc(flow, aid, transactionCtrl);
+                try {
+                    boolean commit = false;
+                    boolean isSaga = !Str.isEmpty(xid);
+                    LockUtil.lock(aid);
+                    try {
+                        transactionCtrl.setAutoCommit(false);
+                        Ref<FaiList<Param>> listRef = new Ref<>();
+                        rt = storeSalesSkuProc.batchDelByRlPdIds(aid, unionPriId, sysType, rlPdIdList, softDel, isSaga, listRef);
+                        if(rt != Errno.OK){
+                            Log.logErr(rt, "batchDelByRlPdIds err;");
+                            return rt;
+                        }
+
+                        delList = listRef.value;
+                        if(delList == null) {
+                            rt = Errno.ERROR;
+                            Log.logErr(rt, "get del list err;flow=%s;aid=%s;uid=%s;sysType=%s;delRlPdIds=%s;", flow, aid, unionPriId, sysType, rlPdIdList);
+                            return rt;
+                        }
+
+                        rt = spuBizSummaryProc.batchDelByRlPdIds(aid, unionPriId, sysType, rlPdIdList, softDel, isSaga);
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
+
+                        if (isSaga) {
+                            // 将预记录的修改数据持久化到 db
+                            rt = spuBizSummaryProc.addUpdateSaga2Db(aid);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                            rt = storeSalesSkuProc.addUpdateSaga2Db(aid);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                            // 记录 Saga 状态
+                            StoreSagaProc storeSagaProc = new StoreSagaProc(flow, aid, transactionCtrl);
+                            rt = storeSagaProc.add(aid, xid, RootContext.getBranchId());
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                        }
+                        commit = true;
+                    }finally {
+                        if(!commit){
+                            transactionCtrl.rollback();
+                        }
+                    }
+                    spuBizSummaryProc.setDirtyCacheEx(aid);
+                    transactionCtrl.commit();
+                    spuBizSummaryProc.deleteDirtyCache(aid);
+
+                    FaiList<Integer> delPdIds = new FaiList<>();
+                    FaiList<Long> delSkuIds = new FaiList<>();
+                    for(Param info : delList) {
+                        int pdId = info.getInt(StoreSalesSkuEntity.Info.PD_ID);
+                        long skuId = info.getInt(StoreSalesSkuEntity.Info.SKU_ID);
+                        delPdIds.add(pdId);
+                        delSkuIds.add(skuId);
+                    }
+
+                    // 重新汇总
+                    try {
+                        transactionCtrl.setAutoCommit(false);
+                        rt = reportSummary(aid, delPdIds, ReportValObj.Flag.REPORT_COUNT|ReportValObj.Flag.REPORT_PRICE,
+                                delSkuIds, storeSalesSkuProc, spuBizSummaryProc, spuSummaryProc, skuSummaryProc, isSaga);
+                        if(rt != Errno.OK){
+                            return rt;
+                        }
+
+                        // 上面已经记录过saga状态了，这里直接记录修改到的数据就行
+                        if (isSaga) {
+                            // 将预记录的修改数据持久化到 db
+                            rt = spuBizSummaryProc.addUpdateSaga2Db(aid);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                            rt = skuSummaryProc.addUpdateSaga2Db(aid);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                            rt = spuSummaryProc.addUpdateSaga2Db(aid);
+                            if (rt != Errno.OK) {
+                                return rt;
+                            }
+                        }
+                    }finally {
+                        if(rt != Errno.OK){
+                            transactionCtrl.rollback();
+                            return rt;
+                        }
+                        spuBizSummaryProc.setDirtyCacheEx(aid);
+                        spuSummaryProc.setDirtyCacheEx(aid);
+                        transactionCtrl.commit();
+                        spuBizSummaryProc.deleteDirtyCache(aid);
+                        spuSummaryProc.deleteDirtyCache(aid);
+                    }
+                }finally {
+                    LockUtil.unlock(aid);
+                }
+            }finally {
+                transactionCtrl.closeDao();
+            }
+            FaiBuffer sendBuf = new FaiBuffer(true);
+            session.write(sendBuf);
+            Log.logStd("ok;flow=%s;aid=%s;uid=%s;sysType=%s;delRlPdIds=%s;", flow, aid, unionPriId, sysType, rlPdIdList);
+        }finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+        return rt;
+    }
+
+    /**
+     *  batchDelBizPdStoreSales 的补偿方法
+     */
+    @SuccessRt(value = Errno.OK)
+    public int batchDelBizPdStoreSalesRollback(FaiSession session, int flow, int aid, String xid, Long branchId) throws IOException {
+        SagaRollback sagaRollback = tc -> {
+            StoreSalesSkuProc storeSalesSkuProc = new StoreSalesSkuProc(flow, aid, tc);
+            storeSalesSkuProc.rollback4Saga(aid, xid, branchId);
+
+            SpuSummaryProc spuSummaryProc = new SpuSummaryProc(flow, aid, tc);
+            spuSummaryProc.rollback4Saga(aid, xid, branchId);
+
+            SpuBizSummaryProc spuBizSummaryProc = new SpuBizSummaryProc(flow, aid, tc);
+            spuBizSummaryProc.rollback4Saga(aid, xid, branchId);
+
+            SkuSummaryProc skuSummaryProc = new SkuSummaryProc(flow, aid, tc);
+            skuSummaryProc.rollback4Saga(aid, xid, branchId);
+        };
+        int branchStatus = doRollback(flow, aid, xid, branchId, sagaRollback);
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, branchStatus);
+        session.write(sendBuf);
+        return Errno.OK;
+    }
+
 
     /**
      * 删除商品所有库存销售相关信息

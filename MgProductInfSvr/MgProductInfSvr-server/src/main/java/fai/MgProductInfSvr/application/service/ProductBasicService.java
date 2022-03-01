@@ -437,12 +437,22 @@ public class ProductBasicService extends MgProductInfService {
                 addInfo.setInt(MgProductEntity.Info.PD_ID, pdIdRef.value);
                 addInfo.setInt(MgProductEntity.Info.RL_PD_ID, rlPdIdRef.value);
 
-                // 如果之前已存在，则说明之前是软删除了，不需要新增数据
+                // 如果之前已存在，则说明之前是软删除了，不需要新增数据, 恢复库存销售数据
                 if(!existRef.value) {
                     // 添加规格和库存
                     rt = addPdSpecAndStore(flow, aid, tid, ownerUnionPriId, unionPriId, sysType, xid, addInfo, inStoreRecordInfo);
                     if(rt != Errno.OK) {
                         Log.logErr("addPdSpecAndStore error;aid=%d;uid=%d;xid=%s;addInfo=%s;record=%s;", aid, unionPriId, xid, addInfo, inStoreRecordInfo);
+                        return rt;
+                    }
+                }else {
+                    Param restoreInfo = new Param();
+                    restoreInfo.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId);
+                    restoreInfo.setInt(StoreSalesSkuEntity.Info.SYS_TYPE, sysType);
+                    restoreInfo.setInt(StoreSalesSkuEntity.Info.RL_PD_ID, rlPdIdRef.value);
+                    ProductStoreProc storeProc = new ProductStoreProc(flow);
+                    rt = storeProc.restoreSoftDelBizPd(aid, xid, new FaiList<>(Arrays.asList(restoreInfo)));
+                    if (rt != Errno.OK) {
                         return rt;
                     }
                 }
@@ -612,16 +622,22 @@ public class ProductBasicService extends MgProductInfService {
                     skuIdInPdScStrIdMap.put(skuId, skuIdInfo.getList(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST));
                 }
 
+                FaiList<Param> restoreList = new FaiList<>();
                 FaiList<Param> addSpuSales = new FaiList<>();
                 FaiList<Param> storeSaleSkuList = new FaiList<>();
                 for(int i = 0; i < infoList.size(); i++) {
                     Param info = infoList.get(i);
                     int rlPdId = rlPdIds.get(i);
+                    int unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
                     if(existList.contains(rlPdId)) {
+                        Param restoreInfo = new Param();
+                        restoreInfo.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId);
+                        restoreInfo.setInt(StoreSalesSkuEntity.Info.SYS_TYPE, sysType);
+                        restoreInfo.setInt(StoreSalesSkuEntity.Info.RL_PD_ID, rlPdId);
+                        restoreList.add(restoreInfo);
                         continue;
                     }
 
-                    int unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
                     // spu信息
                     Param spuSales = info.getParam(MgProductEntity.Info.SPU_SALES);
                     if(!Str.isEmpty(spuSales)) {
@@ -692,6 +708,15 @@ public class ProductBasicService extends MgProductInfService {
                 if (!storeSaleSkuList.isEmpty()) {
                     ProductStoreProc productStoreProc = new ProductStoreProc(flow);
                     rt = productStoreProc.importStoreSales(aid, tid, bindUnionPriId, sysType, xid, storeSaleSkuList, inStoreRecordInfo);
+                    if (rt != Errno.OK) {
+                        return rt;
+                    }
+                }
+
+                // 恢复软删数据
+                if(!restoreList.isEmpty()) {
+                    ProductStoreProc productStoreProc = new ProductStoreProc(flow);
+                    rt = productStoreProc.restoreSoftDelBizPd(aid, xid, restoreList);
                     if (rt != Errno.OK) {
                         return rt;
                     }
@@ -809,17 +834,23 @@ public class ProductBasicService extends MgProductInfService {
                     skuIdInPdScStrIdMap.put(skuId, skuIdInfo.getList(ProductSpecSkuEntity.Info.IN_PD_SC_STR_ID_LIST));
                 }
 
+                FaiList<Param> restoreList = new FaiList<>();
                 FaiList<Param> addSpuSales = new FaiList<>();
                 FaiList<Param> storeSaleSkuList = new FaiList<>();
                 for(int i = 0; i < infoList.size(); i++) {
                     Param info = infoList.get(i);
                     int rlPdId = rlPdIds.get(i);
                     int pdId = pdIds.get(i);
+                    int unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
                     if(existList.contains(rlPdId)) {
+                        Param restoreInfo = new Param();
+                        restoreInfo.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId);
+                        restoreInfo.setInt(StoreSalesSkuEntity.Info.SYS_TYPE, sysType);
+                        restoreInfo.setInt(StoreSalesSkuEntity.Info.RL_PD_ID, rlPdId);
+                        restoreList.add(restoreInfo);
                         continue;
                     }
 
-                    int unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
                     // spu信息
                     Param spuSales = info.getParam(MgProductEntity.Info.SPU_SALES);
                     if(!Str.isEmpty(spuSales)) {
@@ -890,6 +921,15 @@ public class ProductBasicService extends MgProductInfService {
                 if (!storeSaleSkuList.isEmpty()) {
                     ProductStoreProc productStoreProc = new ProductStoreProc(flow);
                     rt = productStoreProc.importStoreSales(aid, tid, fromUnionPriId, sysType, xid, storeSaleSkuList, inStoreRecordInfo);
+                    if (rt != Errno.OK) {
+                        return rt;
+                    }
+                }
+
+                // 恢复软删数据
+                if(!restoreList.isEmpty()) {
+                    ProductStoreProc productStoreProc = new ProductStoreProc(flow);
+                    rt = productStoreProc.restoreSoftDelBizPd(aid, xid, restoreList);
                     if (rt != Errno.OK) {
                         return rt;
                     }
@@ -1231,7 +1271,7 @@ public class ProductBasicService extends MgProductInfService {
      * 这个逻辑已经有业务依赖，不要改动
      * @return
      */
-    public int batchDelPdRelBind(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, FaiList<Integer> rlPdIds, boolean softDel) throws IOException {
+    public int batchDelPdRelBind(FaiSession session, int flow, int aid, int tid, int siteId, int lgId, int keepPriId1, int sysType, FaiList<Integer> rlPdIds, boolean softDel) throws IOException, TransactionException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -1253,15 +1293,35 @@ public class ProductBasicService extends MgProductInfService {
             }
             int unionPriId = idRef.value;
 
-            ProductBasicProc basicService = new ProductBasicProc(flow);
-            rt = basicService.batchDelPdRelBind(aid, unionPriId, sysType, rlPdIds, softDel);
-            if (rt != Errno.OK) {
-                return rt;
-            }
+            boolean commit = false;
+            GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
+            tx.begin(aid, 60000, "mgProduct-batchDelPdRelBind", flow);
+            String xid = tx.getXid();
+            try {
+                ProductBasicProc basicService = new ProductBasicProc(flow);
+                rt = basicService.batchDelPdRelBind(aid, unionPriId, xid, sysType, rlPdIds, softDel);
+                if (rt != Errno.OK) {
+                    return rt;
+                }
 
-            FaiBuffer sendBuf = new FaiBuffer(true);
-            session.write(sendBuf);
-            Log.logStd("batch del bind ok;flow=%d;aid=%d;tid=%d;rlPdIds=%s;", flow, aid, tid, rlPdIds);
+                ProductStoreProc storeProc = new ProductStoreProc(flow);
+                rt = storeProc.batchDelBizPdStoreSales(aid, unionPriId, sysType, rlPdIds, xid, softDel);
+                if (rt != Errno.OK) {
+                    return rt;
+                }
+
+                FaiBuffer sendBuf = new FaiBuffer(true);
+                session.write(sendBuf);
+                Log.logStd("batch del bind ok;flow=%d;aid=%d;tid=%d;rlPdIds=%s;", flow, aid, tid, rlPdIds);
+
+                commit = true;
+            } finally {
+                if (!commit) {
+                    tx.rollback();
+                }else {
+                    tx.commit();
+                }
+            }
         } finally {
             stat.end(rt != Errno.OK, rt);
         }

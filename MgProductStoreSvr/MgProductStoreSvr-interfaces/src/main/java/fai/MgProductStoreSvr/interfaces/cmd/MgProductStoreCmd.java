@@ -69,6 +69,10 @@ public class MgProductStoreCmd {
 		public static final int NUM39 = 1039;
 		public static final int NUM40 = 1040;
 		public static final int NUM41 = 1041;
+		public static final int NUM42 = 1042;
+		public static final int NUM43 = 1043;
+		public static final int NUM44 = 1044;
+		public static final int NUM45 = 1045;
 	}
 
 	////////////////// cmd对外定义，实际做cmd读写分离 ////////////////////
@@ -115,7 +119,11 @@ public class MgProductStoreCmd {
 		public static final int CLONE_BIZ_BIND = WriteCmdNum.NUM27;
 		public static final int COPY_BIZ_BIND = WriteCmdNum.NUM28;
 		public static final int COPY_BIZ_BIND_ROLLBACK = WriteCmdNum.NUM36;
-    }
+		public static final int BATCH_DEL_BIZ_PD_STORE_SALES = WriteCmdNum.NUM42;
+		public static final int BATCH_DEL_BIZ_PD_STORE_SALES_ROLLBACK = WriteCmdNum.NUM43;
+		public static final int RESTORE_SOFT_DEL_BIZ_PD = WriteCmdNum.NUM44;
+		public static final int RESTORE_SOFT_DEL_BIZ_PD_ROLLBACK = WriteCmdNum.NUM45;
+	}
 
 	/**
 	 * 出入库存记录 相关 cmd

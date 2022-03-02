@@ -387,9 +387,9 @@ public class StoreSalesSkuProc {
         return rt;
     }
 
-    public int batchDelByRlPdIds(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, boolean softDel, boolean isSaga, Ref<FaiList<Param>> listRef) {
+    public int batchDelByRlPdIds(int aid, FaiList<Integer> unionPriIds, int sysType, FaiList<Integer> rlPdIds, boolean softDel, boolean isSaga, Ref<FaiList<Param>> listRef) {
         ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
         matcher.and(StoreSalesSkuEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
         matcher.and(StoreSalesSkuEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
 

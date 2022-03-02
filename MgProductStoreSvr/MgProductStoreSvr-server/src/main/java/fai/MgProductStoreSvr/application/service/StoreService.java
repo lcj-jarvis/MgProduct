@@ -274,7 +274,7 @@ public class StoreService extends StoreParentService {
         return Errno.OK;
     }
 
-    public int batchDelBizPdStoreSales(FaiSession session, int flow, int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIdList, boolean softDel, String xid) throws IOException {
+    public int batchDelBizPdStoreSales(FaiSession session, int flow, int aid, FaiList<Integer> unionPriIds, int sysType, FaiList<Integer> rlPdIdList, boolean softDel, String xid) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -299,7 +299,7 @@ public class StoreService extends StoreParentService {
                     try {
                         transactionCtrl.setAutoCommit(false);
                         Ref<FaiList<Param>> listRef = new Ref<>();
-                        rt = storeSalesSkuProc.batchDelByRlPdIds(aid, unionPriId, sysType, rlPdIdList, softDel, isSaga, listRef);
+                        rt = storeSalesSkuProc.batchDelByRlPdIds(aid, unionPriIds, sysType, rlPdIdList, softDel, isSaga, listRef);
                         if(rt != Errno.OK){
                             Log.logErr(rt, "batchDelByRlPdIds err;");
                             return rt;
@@ -308,11 +308,11 @@ public class StoreService extends StoreParentService {
                         delList = listRef.value;
                         if(delList == null) {
                             rt = Errno.ERROR;
-                            Log.logErr(rt, "get del list err;flow=%s;aid=%s;uid=%s;sysType=%s;delRlPdIds=%s;", flow, aid, unionPriId, sysType, rlPdIdList);
+                            Log.logErr(rt, "get del list err;flow=%s;aid=%s;uids=%s;sysType=%s;delRlPdIds=%s;", flow, aid, unionPriIds, sysType, rlPdIdList);
                             return rt;
                         }
 
-                        rt = spuBizSummaryProc.batchDelByRlPdIds(aid, unionPriId, sysType, rlPdIdList, softDel, isSaga);
+                        rt = spuBizSummaryProc.batchDelByRlPdIds(aid, unionPriIds, sysType, rlPdIdList, softDel, isSaga);
                         if(rt != Errno.OK){
                             return rt;
                         }
@@ -397,7 +397,7 @@ public class StoreService extends StoreParentService {
             }
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
-            Log.logStd("ok;flow=%s;aid=%s;uid=%s;sysType=%s;delRlPdIds=%s;", flow, aid, unionPriId, sysType, rlPdIdList);
+            Log.logStd("ok;flow=%s;aid=%s;uid=%s;sysType=%s;delRlPdIds=%s;", flow, aid, unionPriIds, sysType, rlPdIdList);
         }finally {
             stat.end(rt != Errno.OK, rt);
         }

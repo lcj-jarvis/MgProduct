@@ -1085,15 +1085,6 @@ public class MgProductInfService extends ServicePub {
             Log.logErr("args error, update is empty;flow=%d;aid=%d;ownPrimaryKey=%s;sysType=%s;rlPdIds=%s;primaryKeys=%s;updater=%s;", flow, aid, ownPrimaryKey, sysType, rlPdIds, primaryKeys, basicUpdater);
             return rt;
         }
-        // 如果是修改数据状态，则需要尝试恢复软删数据
-        boolean restoreSoftDelProduct = false;
-        Param updaterInfo = basicUpdater.getData();
-        if(!Str.isEmpty(updaterInfo)) {
-            int status = updaterInfo.getInt(ProductBasicEntity.ProductInfo.STATUS, ProductBasicValObj.ProductValObj.Status.DEL);
-            if(status != ProductBasicValObj.ProductValObj.Status.DEL) {
-                restoreSoftDelProduct = true;
-            }
-        }
 
         FaiList<Param> list = new FaiList<>();
         rt = getPrimaryKeyList(flow, aid, primaryKeys, list);
@@ -1127,6 +1118,22 @@ public class MgProductInfService extends ServicePub {
                 storeProc.copyBizBind(aid, xid, ownUnionPriId, addList);
             }
 
+            // 如果是修改数据状态，则需要尝试恢复软删数据
+            boolean restoreSoftDelProduct = false;
+            // 如果是软删商品，则需要软删库存销售信息
+            boolean softDel = false;
+            Param updaterInfo = basicUpdater.getData();
+            if(!Str.isEmpty(updaterInfo)) {
+                Integer status = updaterInfo.getInt(ProductBasicEntity.ProductInfo.STATUS);
+                if(status != null) {
+                    if(status != ProductBasicValObj.ProductValObj.Status.DEL) {
+                        restoreSoftDelProduct = true;
+                    }else {
+                        softDel = true;
+                    }
+                }
+            }
+
             // 恢复软删数据
             if(restoreSoftDelProduct) {
                 FaiList<Param> restoreList = new FaiList<>();
@@ -1143,6 +1150,14 @@ public class MgProductInfService extends ServicePub {
                 rt = storeProc.restoreSoftDelBizPd(aid, xid, restoreList);
                 if(rt != Errno.OK) {
                     Log.logErr("restoreSoftDelBizPd err;aid=%d;ownPrimaryKey=%s;sysType=%s;rlPdIds=%s;primaryKeys=%s;updater=%s;", aid, ownPrimaryKey, sysType, rlPdIds, primaryKeys, basicUpdater);
+                    return rt;
+                }
+            }
+
+            if(softDel) {
+                ProductStoreProc storeProc = new ProductStoreProc(flow);
+                rt = storeProc.batchDelBizPdStoreSales(aid, unionPriIds, sysType, rlPdIds, xid, true);
+                if(rt != Errno.OK) {
                     return rt;
                 }
             }

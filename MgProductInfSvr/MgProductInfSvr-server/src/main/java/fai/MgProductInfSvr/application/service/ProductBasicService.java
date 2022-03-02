@@ -1305,7 +1305,7 @@ public class ProductBasicService extends MgProductInfService {
                 }
 
                 ProductStoreProc storeProc = new ProductStoreProc(flow);
-                rt = storeProc.batchDelBizPdStoreSales(aid, unionPriId, sysType, rlPdIds, xid, softDel);
+                rt = storeProc.batchDelBizPdStoreSales(aid, new FaiList<>(Arrays.asList(unionPriId)), sysType, rlPdIds, xid, softDel);
                 if (rt != Errno.OK) {
                     return rt;
                 }

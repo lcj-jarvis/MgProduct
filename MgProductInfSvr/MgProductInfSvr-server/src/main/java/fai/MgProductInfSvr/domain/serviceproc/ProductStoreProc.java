@@ -508,16 +508,16 @@ public class ProductStoreProc extends AbstractProductProc{
     /**
      * 批量删除商品库存销售业务相关信息
      */
-    public int batchDelBizPdStoreSales(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIdList, String xid, boolean softDel){
+    public int batchDelBizPdStoreSales(int aid, FaiList<Integer> unionPriIds, int sysType, FaiList<Integer> rlPdIdList, String xid, boolean softDel){
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
-            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;unionPriId=%s;rlPdIdList=%s;", m_flow, aid, unionPriId, rlPdIdList);
+            Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;unionPriIds=%s;rlPdIdList=%s;", m_flow, aid, unionPriIds, rlPdIdList);
             return rt;
         }
-        rt = m_cli.batchDelBizPdStoreSales(aid, unionPriId, sysType, rlPdIdList, xid, softDel);
+        rt = m_cli.batchDelBizPdStoreSales(aid, unionPriIds, sysType, rlPdIdList, xid, softDel);
         if (rt != Errno.OK) {
-            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriId=%s;rlPdIdList=%s;", m_flow, aid, unionPriId, rlPdIdList);
+            logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriIds=%s;rlPdIdList=%s;", m_flow, aid, unionPriIds, rlPdIdList);
             return rt;
         }
         return rt;

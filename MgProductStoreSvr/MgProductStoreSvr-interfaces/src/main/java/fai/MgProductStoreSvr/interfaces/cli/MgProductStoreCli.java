@@ -2378,7 +2378,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
     /**
      * 批量删除商品库存销售业务相关信息
      */
-    public int batchDelBizPdStoreSales(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIdList, String xid, boolean softDel){
+    public int batchDelBizPdStoreSales(int aid, FaiList<Integer> unionPriIds, int sysType, FaiList<Integer> rlPdIdList, String xid, boolean softDel){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2396,7 +2396,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putString(StoreSalesSkuDto.Key.XID, xid);
-            sendBody.putInt(StoreSalesSkuDto.Key.UNION_PRI_ID, unionPriId);
+            unionPriIds.toBuffer(sendBody, StoreSalesSkuDto.Key.UNION_PRI_ID);
             sendBody.putInt(StoreSalesSkuDto.Key.SYS_TYPE, sysType);
             rlPdIdList.toBuffer(sendBody, StoreSalesSkuDto.Key.ID_LIST);
             sendBody.putBoolean(StoreSalesSkuDto.Key.SOFT_DEL, softDel);

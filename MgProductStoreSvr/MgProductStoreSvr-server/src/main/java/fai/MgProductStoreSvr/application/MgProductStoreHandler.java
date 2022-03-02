@@ -498,7 +498,7 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                         @ArgFlow final int flow,
                                         @ArgAid final int aid,
                                         @ArgBodyXid(value = StoreSalesSkuDto.Key.XID, useDefault = true) String xid,
-                                        @ArgBodyInteger(StoreSalesSkuDto.Key.UNION_PRI_ID) final int unionPriId,
+                                        @ArgList(keyMatch = StoreSalesSkuDto.Key.UNION_PRI_ID) FaiList<Integer> unionPriId,
                                         @ArgBodyInteger(StoreSalesSkuDto.Key.SYS_TYPE) final int sysType,
                                         @ArgList(keyMatch = StoreSalesSkuDto.Key.ID_LIST) FaiList<Integer> rlPdIdList,
                                         @ArgBodyBoolean(value = StoreSalesSkuDto.Key.SOFT_DEL, useDefault = true) boolean softDel) throws IOException {

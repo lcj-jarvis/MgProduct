@@ -780,9 +780,9 @@ public class SpuBizSummaryProc {
         return rt;
     }
 
-    public int batchDelByRlPdIds(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIdList, boolean softDel, boolean isSaga) {
+    public int batchDelByRlPdIds(int aid, FaiList<Integer> unionPriIds, int sysType, FaiList<Integer> rlPdIdList, boolean softDel, boolean isSaga) {
         ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
-        matcher.and(SpuBizSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+        matcher.and(SpuBizSummaryEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
         matcher.and(SpuBizSummaryEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
         matcher.and(SpuBizSummaryEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIdList);
         return batchDel(aid, matcher, softDel, isSaga);

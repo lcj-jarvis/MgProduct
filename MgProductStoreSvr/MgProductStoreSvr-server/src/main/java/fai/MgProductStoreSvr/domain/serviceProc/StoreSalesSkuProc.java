@@ -292,15 +292,131 @@ public class StoreSalesSkuProc {
         Log.logStd("ok;flow=%d;aid=%d;pdId=%s;delSkuIdList=%s;", m_flow, aid, pdId, delSkuIdList);
         return rt;
     }
+
+    public int restoreSoftDelBizPds(int aid, FaiList<Param> restoreList, boolean isSaga, Ref<FaiList<Param>> updateListRef) {
+        int rt = Errno.OK;
+        if(Utils.isEmptyList(restoreList)) {
+            return rt;
+        }
+
+        Set<String> dataKeys = new HashSet<>();
+        FaiList<Integer> uids = new FaiList<>();
+        FaiList<Integer> rlPdIds = new FaiList<>();
+        for(Param info : restoreList) {
+            int unionPriId = info.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+            int rlPdId = info.getInt(StoreSalesSkuEntity.Info.RL_PD_ID);
+            int sysType = info.getInt(StoreSalesSkuEntity.Info.SYS_TYPE);
+            uids.add(unionPriId);
+            rlPdIds.add(rlPdId);
+            dataKeys.add(unionPriId + "-" + sysType + "-" + rlPdId);
+        }
+
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.IN, uids);
+        searchArg.matcher.and(StoreSalesSkuEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
+        searchArg.matcher.and(StoreSalesSkuEntity.Info.STATUS, ParamMatcher.EQ, StoreSalesSkuValObj.Status.DEL);
+
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        rt = m_daoCtrl.selectWithDel(searchArg, listRef);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            Log.logErr("select err;matcher=%s;", searchArg.matcher.toJson());
+            return rt;
+        }
+
+        FaiList<Param> updateList = new FaiList<>();
+        for(Param info : listRef.value) {
+            int unionPriId = info.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+            int rlPdId = info.getInt(StoreSalesSkuEntity.Info.RL_PD_ID);
+            int sysType = info.getInt(StoreSalesSkuEntity.Info.SYS_TYPE);
+            // dataKeys 中包含，则说明会被修改
+            if(dataKeys.contains(unionPriId + "-" + sysType + "-" + rlPdId)) {
+                updateList.add(info);
+            }
+        }
+        updateListRef.value = updateList;
+        if(updateList.isEmpty()) {
+            Log.logStd("need restore all not existed;aid=%s;restoreList=%s;", aid, restoreList);
+            return Errno.OK;
+        }
+
+        // 有分布式事务，查出会被修改的数据，记录到saga表
+        if(isSaga) {
+            preAddUpdateSaga(aid, updateList);
+        }
+
+        Calendar now = Calendar.getInstance();
+
+        FaiList<Param> dataList = new FaiList<>();
+        for(Param info : restoreList) {
+            int unionPriId = info.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID);
+            int rlPdId = info.getInt(StoreSalesSkuEntity.Info.RL_PD_ID);
+            int sysType = info.getInt(StoreSalesSkuEntity.Info.SYS_TYPE);
+            Param data = new Param();
+            // for prepare updater
+            data.setInt(StoreSalesSkuEntity.Info.STATUS, StoreSalesSkuValObj.Status.DEFAULT);
+            data.setCalendar(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, now);
+
+            // for prepare matcher
+            data.setInt(StoreSalesSkuEntity.Info.AID, aid);
+            data.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId);
+            data.setInt(StoreSalesSkuEntity.Info.SYS_TYPE, sysType);
+            data.setInt(StoreSalesSkuEntity.Info.RL_PD_ID, rlPdId);
+            data.setInt(StoreSalesSkuEntity.Info.STATUS_MATCHER, StoreSalesSkuValObj.Status.DEL);
+            dataList.add(data);
+        }
+
+        // prepare updater
+        ParamUpdater doBatchUpdater = new ParamUpdater();
+        doBatchUpdater.getData().setString(StoreSalesSkuEntity.Info.STATUS, "?");
+        doBatchUpdater.getData().setString(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, "?");
+        // prepare matcher
+        ParamMatcher doBatchMatcher = new ParamMatcher();
+        doBatchMatcher.and(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(StoreSalesSkuEntity.Info.SYS_TYPE, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(StoreSalesSkuEntity.Info.RL_PD_ID, ParamMatcher.EQ, "?");
+        doBatchMatcher.and(StoreSalesSkuEntity.Info.STATUS, ParamMatcher.EQ, "?");
+
+        rt = m_daoCtrl.batchUpdate(doBatchUpdater, doBatchMatcher, dataList);
+        if(rt != Errno.OK) {
+            Log.logErr(rt, "dao.batchUpdate error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
+            return rt;
+        }
+
+        return rt;
+    }
+
+    public int batchDelByRlPdIds(int aid, FaiList<Integer> unionPriIds, int sysType, FaiList<Integer> rlPdIds, boolean softDel, boolean isSaga, Ref<FaiList<Param>> listRef) {
+        ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+        matcher.and(StoreSalesSkuEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
+        matcher.and(StoreSalesSkuEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
+
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = matcher.clone();
+        int rt = m_daoCtrl.select(searchArg, listRef, StoreSalesSkuEntity.Info.RL_PD_ID, StoreSalesSkuEntity.Info.PD_ID, StoreSalesSkuEntity.Info.SKU_ID);
+        if(rt != Errno.OK && rt != Errno.NOT_FOUND){
+            Log.logStd("dao.select error;flow=%d;aid=%s;matcher=%s;", m_flow, aid, searchArg.matcher.toJson());
+            return rt;
+        }
+
+        return doBatchDel(aid, matcher, softDel, isSaga);
+    }
+
     public int batchDel(int aid, FaiList<Integer> pdIdList, boolean softDel, boolean isSaga) {
-        int rt;
         ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIdList);
+        return doBatchDel(aid, matcher, softDel, isSaga);
+    }
+
+    private int doBatchDel(int aid, ParamMatcher delMatcher, boolean softDel, boolean isSaga) {
+        int rt;
 
         if(softDel) {
             if (isSaga) {
                 SearchArg searchArg = new SearchArg();
-                searchArg.matcher = matcher.clone();
+                searchArg.matcher = delMatcher.clone();
 
                 Ref<FaiList<Param>> listRef = new Ref<>();
                 rt = m_daoCtrl.select(searchArg, listRef);
@@ -314,27 +430,27 @@ public class StoreSalesSkuProc {
 
             ParamUpdater updater = new ParamUpdater();
             updater.getData().setInt(StoreSalesSkuEntity.Info.STATUS, StoreSalesSkuValObj.Status.DEL);
-            rt = m_daoCtrl.update(updater, matcher);
+            rt = m_daoCtrl.update(updater, delMatcher);
             if(rt != Errno.OK){
-                Log.logStd(rt, "soft del err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                Log.logStd(rt, "soft del err;flow=%s;aid=%s;delMatcher=%s;", m_flow, aid, delMatcher.toJson());
                 return rt;
             }
         }else {
             if (isSaga) {
-                rt = addDelOp4Saga(aid, matcher);
+                rt = addDelOp4Saga(aid, delMatcher);
                 if(rt != Errno.OK){
                     return rt;
                 }
             }
 
-            rt = m_daoCtrl.delete(matcher);
+            rt = m_daoCtrl.delete(delMatcher);
             if(rt != Errno.OK){
-                Log.logStd(rt, "dao.delete err;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+                Log.logStd(rt, "dao.delete err;flow=%s;aid=%s;delMatcher=%s;", m_flow, aid, delMatcher.toJson());
                 return rt;
             }
         }
 
-        Log.logStd("ok;flow=%s;aid=%s;pdIdList=%s;", m_flow, aid, pdIdList);
+        Log.logStd("ok;flow=%s;aid=%s;delMatcher=%s;", m_flow, aid, delMatcher.toJson());
         return rt;
     }
 

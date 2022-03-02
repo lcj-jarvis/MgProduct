@@ -383,15 +383,26 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
 
     @WrittenCmd
     @Cmd(MgProductBasicCmd.BasicCmd.DEL_REL_BIND)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductBasicCmd.BasicCmd.DEL_REL_BIND_ROLLBACK)
     public int batchDelPdRelBind(final FaiSession session,
                                  @ArgFlow final int flow,
                                  @ArgAid final int aid,
+                                 @ArgBodyXid(value = ProductRelDto.Key.XID, useDefault = true) String xid,
                                  @ArgBodyInteger(ProductRelDto.Key.UNION_PRI_ID) int unionPriId,
                                  @ArgBodyInteger(value = ProductRelDto.Key.SYS_TYPE, useDefault = true) int sysType,
                                  @ArgList(keyMatch = ProductRelDto.Key.RL_PD_IDS) FaiList<Integer> rlPdIds,
                                  @ArgBodyBoolean(value = ProductRelDto.Key.SOFT_DEL,
                                  useDefault = true, defaultValue = false) boolean softDel) throws IOException {
-        return service.batchDelPdRelBind(session, flow, aid, unionPriId, sysType, rlPdIds, softDel);
+        return service.batchDelPdRelBind(session, flow, aid, xid, unionPriId, sysType, rlPdIds, softDel);
+    }
+    @WrittenCmd
+    @Cmd(MgProductBasicCmd.BasicCmd.DEL_REL_BIND_ROLLBACK)
+    public int batchDelPdRelBindRollback(final FaiSession session,
+                                   @ArgFlow final int flow,
+                                   @ArgAid final int aid,
+                                   @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                   @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return service.batchDelPdRelBindRollback(session, flow, aid, xid, branchId);
     }
 
     @WrittenCmd

@@ -83,6 +83,7 @@ public class MgProductBasicCmd {
         public static final int NUM40 = 1040; /** @see BasicCmd#GET_REDUCED_LIST_BY_NAME */
         public static final int NUM41 = 1041; /** @see Cmd#RESTORE_DATA */
         public static final int NUM42 = 1042; /** @see Cmd#RESTORE_DATA_ROLLBACK */
+        public static final int NUM43 = 1043; /** @see BasicCmd#DEL_REL_BIND_ROLLBACK */
     }
 
     /**
@@ -160,6 +161,7 @@ public class MgProductBasicCmd {
         public static final int SET_SORT = WriteCmdNum.NUM38;
         public static final int BATCH_BIND_PDS_REL = WriteCmdNum.NUM39;
         public static final int GET_REDUCED_LIST_BY_NAME = WriteCmdNum.NUM40;
+        public static final int DEL_REL_BIND_ROLLBACK = WriteCmdNum.NUM43;
     }
 
     public static class Cmd {

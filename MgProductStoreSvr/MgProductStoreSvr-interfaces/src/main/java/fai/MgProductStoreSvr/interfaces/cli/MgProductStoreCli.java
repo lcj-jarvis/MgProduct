@@ -2323,6 +2323,113 @@ public class MgProductStoreCli extends MgProductInternalCli {
         }
     }
 
+    /**
+     * 恢复软删商品库存销售业务相关信息
+     */
+    public int restoreSoftDelBizPd(int aid, String xid, FaiList<Param> restoreList){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(restoreList == null || restoreList.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "restoreList error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putString(StoreSalesSkuDto.Key.XID, xid);
+            restoreList.toBuffer(sendBody, StoreSalesSkuDto.Key.INFO_LIST, StoreSalesSkuDto.getInfoDto());
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.RESTORE_SOFT_DEL_BIZ_PD);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK), m_rt);
+        }
+    }
+
+    /**
+     * 批量删除商品库存销售业务相关信息
+     */
+    public int batchDelBizPdStoreSales(int aid, FaiList<Integer> unionPriIds, int sysType, FaiList<Integer> rlPdIdList, String xid, boolean softDel){
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (aid == 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error");
+                return m_rt;
+            }
+            if(rlPdIdList == null || rlPdIdList.isEmpty()){
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "rlPdIdList error");
+                return m_rt;
+            }
+
+            // send
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putString(StoreSalesSkuDto.Key.XID, xid);
+            unionPriIds.toBuffer(sendBody, StoreSalesSkuDto.Key.UNION_PRI_ID);
+            sendBody.putInt(StoreSalesSkuDto.Key.SYS_TYPE, sysType);
+            rlPdIdList.toBuffer(sendBody, StoreSalesSkuDto.Key.ID_LIST);
+            sendBody.putBoolean(StoreSalesSkuDto.Key.SOFT_DEL, softDel);
+
+            FaiProtocol sendProtocol = new FaiProtocol();
+            sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_DEL_BIZ_PD_STORE_SALES);
+            sendProtocol.setAid(aid);
+            sendProtocol.addEncodeBody(sendBody);
+            m_rt = send(sendProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "send err");
+                return m_rt;
+            }
+
+            // recv
+            FaiProtocol recvProtocol = new FaiProtocol();
+            m_rt = recv(recvProtocol);
+            if (m_rt != Errno.OK) {
+                Log.logErr(m_rt, "recv err");
+                return m_rt;
+            }
+            m_rt = recvProtocol.getResult();
+            if (m_rt != Errno.OK) {
+                return m_rt;
+            }
+
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK), m_rt);
+        }
+    }
+
     public int batchDelPdAllStoreSales(int aid, int tid, FaiList<Integer> pdIdList){
         return batchDelPdAllStoreSales(aid, tid, pdIdList, "", false);
     }

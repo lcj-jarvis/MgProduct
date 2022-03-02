@@ -509,7 +509,7 @@ public class ProductBasicService extends BasicParentService {
      * softDel: 是否软删除，软删除实际只是置起标志位
      */
     @SuccessRt(value = Errno.OK)
-    public int batchDelPdRelBind(FaiSession session, int flow ,int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, boolean softDel) throws IOException {
+    public int batchDelPdRelBind(FaiSession session, int flow ,int aid, String xid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, boolean softDel) throws IOException {
         int rt;
         if(!MgProductCheck.RequestLimit.checkWriteSize(aid, rlPdIds)) {
             return Errno.SIZE_LIMIT;
@@ -525,7 +525,14 @@ public class ProductBasicService extends BasicParentService {
             FaiList<Integer> delPdIds;
             try {
                 tc.setAutoCommit(false);
-                ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+
+                // xid不为空，则开启了分布式事务，saga添加一条记录
+                if(!Str.isEmpty(xid)) {
+                    SagaProc sagaProc = new SagaProc(flow, aid, tc);
+                    sagaProc.addInfo(aid, xid);
+                }
+
+                ProductRelProc relProc = new ProductRelProc(flow, aid, tc, xid, true);
                 delPdIds = relProc.getPdIds(aid, unionPriId, sysType, new HashSet<>(rlPdIds));
                 if(Utils.isEmptyList(delPdIds)) {
                     rt = Errno.NOT_FOUND;
@@ -536,16 +543,16 @@ public class ProductBasicService extends BasicParentService {
                 delCount = relProc.delProductRel(aid, unionPriId, delPdIds, softDel);
                 // 删除参数、分类、标签关联数据
                 if(!softDel) {
-                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc);
+                    ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, true);
                     delGroupCount = bindGroupProc.delPdBindGroupList(aid, unionPriId, delPdIds);
 
                     if(useProductTag()) {
-                        ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc);
+                        ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc, xid, true);
                         ProductBindTagCache.setExpire(aid, unionPriId, delPdIds);
                         delGroupCount = bindTagProc.delPdBindTagList(aid, unionPriId, delPdIds);
                     }
 
-                    ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc);
+                    ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc, xid, true);
                     ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
                     matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
                     matcher.and(ProductBindPropEntity.Info.SYS_TYPE, ParamMatcher.EQ, sysType);
@@ -591,6 +598,35 @@ public class ProductBasicService extends BasicParentService {
         session.write(sendBuf);
         Log.logStd("delProductRels ok;flow=%d;aid=%d;unionPriId=%d;rlPdIds=%s;", flow, aid, unionPriId, rlPdIds);
         return rt;
+    }
+
+    @SuccessRt(value = Errno.OK)
+    public int batchDelPdRelBindRollback(FaiSession session, int flow, int aid, String xid, long branchId) throws IOException {
+        SagaRollback sagaRollback = (tc) -> {
+            // 回滚商品业务关系表数据
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc, xid, false);
+            relProc.rollback4Saga(aid, branchId);
+
+            // 回滚绑定参数
+            ProductBindPropProc bindPropProc = new ProductBindPropProc(flow, aid, tc, xid, false);
+            bindPropProc.rollback4Saga(aid, branchId);
+
+            // 回滚绑定分类
+            ProductBindGroupProc bindGroupProc = new ProductBindGroupProc(flow, aid, tc, xid, false);
+            bindGroupProc.rollback4Saga(aid, branchId);
+
+            // 回滚绑定标签
+            if(useProductTag()) {
+                ProductBindTagProc bindTagProc = new ProductBindTagProc(flow, aid, tc, xid, false);
+                bindTagProc.rollback4Saga(aid, branchId);
+            }
+        };
+
+        int branchStatus = doRollback(flow, aid, xid, branchId, sagaRollback);
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        sendBuf.putInt(CommDef.Protocol.Key.BRANCH_STATUS, branchStatus);
+        session.write(sendBuf);
+        return Errno.OK;
     }
 
     /**

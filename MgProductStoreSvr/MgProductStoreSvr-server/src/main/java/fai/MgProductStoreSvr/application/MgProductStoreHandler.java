@@ -469,6 +469,51 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
         return m_summaryService.getSpuSummaryInfoList(session, flow, aid, tid, unionPriId, pdIdList);
     }
 
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.RESTORE_SOFT_DEL_BIZ_PD)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductStoreCmd.StoreSalesSkuCmd.RESTORE_SOFT_DEL_BIZ_PD_ROLLBACK)
+    private int restoreSoftDelBizPd(final FaiSession session,
+                                    @ArgFlow final int flow,
+                                    @ArgAid final int aid,
+                                    @ArgBodyXid(value = StoreSalesSkuDto.Key.XID, useDefault = true) String xid,
+                                    @ArgList(keyMatch = StoreSalesSkuDto.Key.INFO_LIST,
+                                    classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto") FaiList<Param> restoreList) throws IOException {
+        return m_storeService.restoreSoftDelBizPd(session, flow, aid, xid, restoreList);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.RESTORE_SOFT_DEL_BIZ_PD_ROLLBACK)
+    private int restoreSoftDelBizPdRollback(final FaiSession session,
+                                                @ArgFlow final int flow,
+                                                @ArgAid final int aid,
+                                                @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                                @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return m_storeService.restoreSoftDelBizPdRollback(session, flow, aid, xid, branchId);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_DEL_BIZ_PD_STORE_SALES)
+    @SagaTransaction(clientName = CLI_NAME, rollbackCmd = MgProductStoreCmd.StoreSalesSkuCmd.BATCH_DEL_BIZ_PD_STORE_SALES_ROLLBACK)
+    private int batchDelBizPdStoreSales(final FaiSession session,
+                                        @ArgFlow final int flow,
+                                        @ArgAid final int aid,
+                                        @ArgBodyXid(value = StoreSalesSkuDto.Key.XID, useDefault = true) String xid,
+                                        @ArgList(keyMatch = StoreSalesSkuDto.Key.UNION_PRI_ID) FaiList<Integer> unionPriId,
+                                        @ArgBodyInteger(StoreSalesSkuDto.Key.SYS_TYPE) final int sysType,
+                                        @ArgList(keyMatch = StoreSalesSkuDto.Key.ID_LIST) FaiList<Integer> rlPdIdList,
+                                        @ArgBodyBoolean(value = StoreSalesSkuDto.Key.SOFT_DEL, useDefault = true) boolean softDel) throws IOException {
+        return m_storeService.batchDelBizPdStoreSales(session, flow, aid, unionPriId, sysType, rlPdIdList, softDel, xid);
+    }
+
+    @WrittenCmd
+    @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_DEL_BIZ_PD_STORE_SALES_ROLLBACK)
+    private int batchDelBizPdStoreSalesRollback(final FaiSession session,
+                                                @ArgFlow final int flow,
+                                                @ArgAid final int aid,
+                                                @ArgBodyString(CommDef.Protocol.Key.XID) String xid,
+                                                @ArgBodyLong(CommDef.Protocol.Key.BRANCH_ID) Long branchId) throws IOException {
+        return m_storeService.batchDelBizPdStoreSalesRollback(session, flow, aid, xid, branchId);
+    }
 
     @WrittenCmd
     @Cmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_DEL_PD_ALL_STORE_SALES)

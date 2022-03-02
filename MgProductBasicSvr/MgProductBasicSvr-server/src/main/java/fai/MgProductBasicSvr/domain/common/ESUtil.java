@@ -26,7 +26,7 @@ import java.util.HashSet;
  *
  */
 public class ESUtil {
-    private static final int BATCH_SIZE = 2000;
+    private static final int BATCH_SIZE = 500;
     private static ThreadLocal<HashSet<Param>> preLogList = new ThreadLocal<>();
 
     public static void clear() {

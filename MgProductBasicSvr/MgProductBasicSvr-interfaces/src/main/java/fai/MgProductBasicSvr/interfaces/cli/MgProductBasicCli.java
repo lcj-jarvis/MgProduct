@@ -1654,6 +1654,9 @@ public class MgProductBasicCli extends FaiClient {
      * softDel: 是否软删除
      */
     public int batchDelPdRelBind(int aid, int unionPriId, int sysType, FaiList<Integer> rlPdIds, boolean softDel) {
+        return batchDelPdRelBind(aid, unionPriId, "", sysType, rlPdIds, softDel);
+    }
+    public int batchDelPdRelBind(int aid, int unionPriId, String xid, int sysType, FaiList<Integer> rlPdIds, boolean softDel) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -1670,6 +1673,7 @@ public class MgProductBasicCli extends FaiClient {
 
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putString(ProductRelDto.Key.XID, xid);
             sendBody.putInt(ProductRelDto.Key.UNION_PRI_ID, unionPriId);
             sendBody.putInt(ProductRelDto.Key.SYS_TYPE, sysType);
             rlPdIds.toBuffer(sendBody, ProductRelDto.Key.RL_PD_IDS);

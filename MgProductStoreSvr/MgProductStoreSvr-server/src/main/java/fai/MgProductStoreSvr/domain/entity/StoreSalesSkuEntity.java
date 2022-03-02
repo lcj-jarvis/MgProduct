@@ -33,6 +33,8 @@ public class StoreSalesSkuEntity {
         public static final String SYS_UPDATE_TIME = "sysUpdateTime";               // datetime 修改时间
         public static final String STATUS = "status";                               // int 数据状态
 
+
+        public static final String STATUS_MATCHER = "statusMatcher";                // int 数据状态，batchUpdate时，避免matcher和updater都需要status而冲突
         public static final String COST_PRICE = "costPrice";                        // long 商品成本单价，商品导入用，不入库存销售信息库
     }
 

@@ -1085,12 +1085,22 @@ public class MgProductInfService extends ServicePub {
             Log.logErr("args error, update is empty;flow=%d;aid=%d;ownPrimaryKey=%s;sysType=%s;rlPdIds=%s;primaryKeys=%s;updater=%s;", flow, aid, ownPrimaryKey, sysType, rlPdIds, primaryKeys, basicUpdater);
             return rt;
         }
+        // 如果是修改数据状态，则需要尝试恢复软删数据
+        boolean restoreSoftDelProduct = false;
+        Param updaterInfo = basicUpdater.getData();
+        if(!Str.isEmpty(updaterInfo)) {
+            int status = updaterInfo.getInt(ProductBasicEntity.ProductInfo.STATUS, ProductBasicValObj.ProductValObj.Status.DEL);
+            if(status != ProductBasicValObj.ProductValObj.Status.DEL) {
+                restoreSoftDelProduct = true;
+            }
+        }
 
         FaiList<Param> list = new FaiList<>();
         rt = getPrimaryKeyList(flow, aid, primaryKeys, list);
         if(rt != Errno.OK){
             return rt;
         }
+
         FaiList<Integer> unionPriIds = new FaiList<>();
         for(Param primaryKeyInfo : list) {
             Integer tmpUnionPriId = primaryKeyInfo.getInt(MgPrimaryKeyEntity.Info.UNION_PRI_ID);
@@ -1115,6 +1125,26 @@ public class MgProductInfService extends ServicePub {
                 ProductStoreProc storeProc = new ProductStoreProc(flow);
                 // 如果存在新增的商品数据，则需同步库存销售的价格等信息
                 storeProc.copyBizBind(aid, xid, ownUnionPriId, addList);
+            }
+
+            // 恢复软删数据
+            if(restoreSoftDelProduct) {
+                FaiList<Param> restoreList = new FaiList<>();
+                for(int unionPriId : unionPriIds) {
+                    for(int rlPdId : rlPdIds) {
+                        Param info = new Param();
+                        info.setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, unionPriId);
+                        info.setInt(StoreSalesSkuEntity.Info.RL_PD_ID, rlPdId);
+                        info.setInt(StoreSalesSkuEntity.Info.SYS_TYPE, sysType);
+                        restoreList.add(info);
+                    }
+                }
+                ProductStoreProc storeProc = new ProductStoreProc(flow);
+                rt = storeProc.restoreSoftDelBizPd(aid, xid, restoreList);
+                if(rt != Errno.OK) {
+                    Log.logErr("restoreSoftDelBizPd err;aid=%d;ownPrimaryKey=%s;sysType=%s;rlPdIds=%s;primaryKeys=%s;updater=%s;", aid, ownPrimaryKey, sysType, rlPdIds, primaryKeys, basicUpdater);
+                    return rt;
+                }
             }
 
             commit = true;

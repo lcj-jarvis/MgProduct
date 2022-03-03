@@ -5,6 +5,7 @@ import fai.MgPrimaryKeySvr.interfaces.cli.MgPrimaryKeyCli;
 import fai.MgPrimaryKeySvr.interfaces.entity.MgPrimaryKeyEntity;
 import fai.MgProductBasicSvr.interfaces.cli.MgProductBasicCli;
 import fai.MgProductBasicSvr.interfaces.entity.ProductRelEntity;
+import fai.MgProductBasicSvr.interfaces.entity.ProductRelValObj;
 import fai.MgProductGroupSvr.interfaces.cli.MgProductGroupCli;
 import fai.MgProductInfSvr.application.MgProductInfSvr;
 import fai.MgProductInfSvr.domain.comm.BizPriKey;
@@ -1663,6 +1664,8 @@ public class MgProductInfService extends ServicePub {
                 // 绑定业务关联
                 {
                     FaiList<Param> batchBindPdRelList = new FaiList<>();
+                    // 判断绑定业务的状态，如果 unionPriId + rlPdId 维度下所有的 销售库存 status 都是 -1 的话，则绑定信息状态也是 -1
+                    HashMap<String, Boolean> softDelMap = new HashMap<>();
                     for (Param productInfo : productList) {
                         FaiList<Param> storeSales = productInfo.getListNullIsEmpty(MgProductEntity.Info.STORE_SALES);
                         if(Utils.isEmptyList(storeSales)){
@@ -1682,6 +1685,7 @@ public class MgProductInfService extends ServicePub {
                             Integer lgId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.LGID, ownerLgId);
                             Integer keepPriId1 = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, ownerKeepPriId1);
                             int rlPdId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.RL_PD_ID, ownerRlPdId);
+                            int status = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.STATUS, ProductRelValObj.Status.DOWN);
                             BizPriKey bizPriKey = new BizPriKey(tid, siteId, lgId, keepPriId1);
                             Integer unionPriId = bizPriKeyMap.get(bizPriKey);
                             if(unionPriId == null){
@@ -1690,6 +1694,10 @@ public class MgProductInfService extends ServicePub {
                             }
                             if(unionPriId != ownerUnionPriId){
                                 unionPriIdRlPdIdMap.put(unionPriId, rlPdId);
+                                // 比较 unionPriId + rlPdId 下，是否全部都是软删除的
+                                softDelMap.computeIfAbsent(unionPriId + "-" + rlPdId, map -> status == ProductRelValObj.Status.DEL);
+                                Boolean softDel = softDelMap.get(unionPriId + "-" + rlPdId);
+                                softDelMap.put(unionPriId + "-" + rlPdId, softDel & status == ProductRelValObj.Status.DEL);
                             }
                         }
                         if(!unionPriIdRlPdIdMap.isEmpty()){
@@ -1697,15 +1705,17 @@ public class MgProductInfService extends ServicePub {
                             for (Map.Entry<Integer, Integer> unionPriIdRlPdIdEntry : unionPriIdRlPdIdMap.entrySet()) {
                                 int unionPriId = unionPriIdRlPdIdEntry.getKey();
                                 int rlPdId = unionPriIdRlPdIdEntry.getValue();
-                                bindPdRelList.add(
-                                        new Param()
-                                                .setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId)
-                                                .setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId)
-                                                .setList(ProductBasicEntity.ProductInfo.RL_GROUP_IDS, rlGroupIds)
-                                                .setList(ProductBasicEntity.ProductInfo.RL_TAG_IDS, rlTagIds)
-                                                .setList(ProductBasicEntity.ProductInfo.RL_PROPS, rlProps)
-                                                .setBoolean(ProductRelEntity.Info.INFO_CHECK, false)
-                                );
+                                Param bindPdRelInfo = new Param()
+                                        .setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId)
+                                        .setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId)
+                                        .setList(ProductBasicEntity.ProductInfo.RL_GROUP_IDS, rlGroupIds)
+                                        .setList(ProductBasicEntity.ProductInfo.RL_TAG_IDS, rlTagIds)
+                                        .setList(ProductBasicEntity.ProductInfo.RL_PROPS, rlProps)
+                                        .setBoolean(ProductRelEntity.Info.INFO_CHECK, false);
+                                if (softDelMap.get(unionPriId + "-" + rlPdId)) {
+                                    bindPdRelInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DEL);
+                                }
+                                bindPdRelList.add(bindPdRelInfo);
                             }
                             batchBindPdRelList.add(
                                     new Param()
@@ -1885,6 +1895,7 @@ public class MgProductInfService extends ServicePub {
                             importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.VIRTUAL_COUNT, StoreSalesSkuEntity.Info.VIRTUAL_COUNT);
                             importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.FLAG, StoreSalesSkuEntity.Info.FLAG);
                             importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.COST_PRICE, StoreSalesSkuEntity.Info.COST_PRICE);
+                            importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.STATUS, StoreSalesSkuEntity.Info.STATUS);
                             importStoreSaleSkuInfo.setList(StoreSalesSkuEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList);
                             storeSaleSkuList.add(importStoreSaleSkuInfo);
                         }

@@ -2778,6 +2778,7 @@ public class ProductBasicService extends BasicParentService {
                     } else  {
                         sysType = sourceInfo.getInt(ProductRelEntity.Info.SYS_TYPE, ProductRelValObj.SysType.DEFAULT);
                         Integer unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
+                        Integer status = info.getInt(ProductRelEntity.Info.STATUS);
                         if(unionPriId == null) {
                             rt = Errno.ARGS_ERROR;
                             Log.logErr("args error, unionPriId is null;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
@@ -2809,7 +2810,12 @@ public class ProductBasicService extends BasicParentService {
                         relData.assign(sourceInfo, ProductRelEntity.Info.UPDATE_TIME);
                         relData.assign(sourceInfo, ProductRelEntity.Info.RL_PD_ID);
                         relData.assign(sourceInfo, ProductRelEntity.Info.LAST_SID);
-                        relData.assign(sourceInfo, ProductRelEntity.Info.STATUS);
+                        // 如果没有设置 status 则跟随源数据
+                        if (status == null) {
+                            relData.assign(sourceInfo, ProductRelEntity.Info.STATUS);
+                        } else {
+                            relData.setInt(ProductRelEntity.Info.STATUS, status);
+                        }
                         relData.assign(sourceInfo, ProductRelEntity.Info.UP_SALE_TIME);
                         relData.assign(sourceInfo, ProductRelEntity.Info.FLAG);
                         relData.setInt(ProductRelEntity.Info.SORT, sort);

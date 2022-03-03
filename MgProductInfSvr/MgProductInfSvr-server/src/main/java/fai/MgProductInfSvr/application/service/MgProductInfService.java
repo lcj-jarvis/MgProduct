@@ -2133,14 +2133,15 @@ public class MgProductInfService extends ServicePub {
             // 3、设置销售库存信息
             List<Param> storeList = storeSalesMap.get(unionPriId + "_" + pdId);
             if (storeList == null) {
-                info.setParam(MgProductEntity.Info.STORE_SALES, new Param());
+                info.setList(MgProductEntity.Info.STORE_SALES, new FaiList<>());
             } else {
-                Param storeInfo = storeList.get(0);
-                storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.TID, tid);
-                storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.SITE_ID, siteId);
-                storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.LGID, lgId);
-                storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, keepPriId1);
-                info.setParam(MgProductEntity.Info.STORE_SALES, storeInfo);
+                for (Param storeInfo : storeList) {
+                    storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.TID, tid);
+                    storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.SITE_ID, siteId);
+                    storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.LGID, lgId);
+                    storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, keepPriId1);
+                }
+                info.setList(MgProductEntity.Info.STORE_SALES, new FaiList<>(storeList));
             }
 
             // 4、设置 spuBizSales 信息

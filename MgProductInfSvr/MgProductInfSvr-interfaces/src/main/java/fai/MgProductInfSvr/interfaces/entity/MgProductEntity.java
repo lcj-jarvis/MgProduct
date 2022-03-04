@@ -33,6 +33,12 @@ public class MgProductEntity {
         public static final String ADD_SPEC = "addSpec";                    // FaiList<Param>
         public static final String DEL_SPEC = "delSpec";                    // FaiList<Integer>
         public static final String UP_SPEC = "upSpec";                      // FaiList<ParamUpdater>
+
+        public static final String FROM_RL_PD_ID = "fromRlPdId";
+        public static final String TO_RL_PD_ID = "toRlPdId";
+
+        public static final String FROM_RL_ID = "fromRlId";
+        public static final String TO_RL_ID = "toRlId";
     }
 
     /**

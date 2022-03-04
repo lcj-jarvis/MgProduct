@@ -23,6 +23,9 @@ public class ProductEntity {
         public static final String CREATE_TIME = "sysCreateTime"; // datetime 创建时间
         public static final String UPDATE_TIME = "sysUpdateTime"; // datetime 更新时间
         public static final String STATUS = "status"; // int 数据状态
+
+        public static final String TO_RL_PD_ID = "toRlPdId";
+        public static final String FROM_RL_PD_ID = "fromRlPdId";
     }
 
     public static final FaiList<String> MANAGE_FIELDS; // 管理态字段

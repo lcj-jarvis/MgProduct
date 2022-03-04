@@ -93,6 +93,9 @@ public class MgProductArg {
     private boolean useMgProductBasicInfo;
     private FaiList<Integer> status;
     private FaiList<String> names;
+    private FaiList<Param> idMap;
+    private Integer toSysType;
+    private Integer fromSysType;
 
     private MgProductArg(Builder builder) {
         this.usedVar = builder.usedVar;
@@ -176,6 +179,9 @@ public class MgProductArg {
         this.useMgProductBasicInfo = builder.useMgProductBasicInfo;
         this.status = builder.status;
         this.names = builder.names;
+        this.idMap = builder.idMap;
+        this.toSysType = builder.toSysType;
+        this.fromSysType = builder.fromSysType;
     }
 
     public String getXid() {
@@ -473,6 +479,36 @@ public class MgProductArg {
         return names;
     }
 
+    public FaiList<Param> getIdMap() {
+        return idMap;
+    }
+
+    public void setIdMap(FaiList<Param> idMap) {
+        this.idMap = idMap;
+    }
+
+    public Integer getToSysType() {
+        if(toSysType == null) {
+            return 0;
+        }
+        return toSysType;
+    }
+
+    public void setToSysType(Integer toSysType) {
+        this.toSysType = toSysType;
+    }
+
+    public Integer getFromSysType() {
+        if(fromSysType == null) {
+            return 0;
+        }
+        return fromSysType;
+    }
+
+    public void setFromSysType(Integer fromSysType) {
+        this.fromSysType = fromSysType;
+    }
+
     private static abstract class TopBuilder {
         protected int aid;
         protected int tid;
@@ -502,6 +538,9 @@ public class MgProductArg {
         protected boolean useMgProductBasicInfo;
         protected FaiList<Integer> status;
         protected FaiList<String> names;
+        protected FaiList<Param> idMap;
+        protected Integer toSysType;
+        protected Integer fromSysType;
 
         public abstract Builder setXid(String xid);
 
@@ -525,6 +564,9 @@ public class MgProductArg {
         public abstract Builder setUseMgProductBasicInfo(boolean useMgProductBasicInfo);
         public abstract Builder setStatus(FaiList<Integer> status);
         public abstract Builder setNames(FaiList<String> names);
+        public abstract Builder setIdMap(FaiList<Param> idMap);
+        public abstract Builder setToSysType(Integer toSysType);
+        public abstract Builder setFromSysType(Integer fromSysType);
     }
 
     private static abstract class BasicBuilder extends TopBuilder {
@@ -1039,6 +1081,27 @@ public class MgProductArg {
         public Builder setNames(FaiList<String> names) {
             this.names = names;
             record("names", this.names);
+            return this;
+        }
+
+        @Override
+        public Builder setIdMap(FaiList<Param> idMap) {
+            this.idMap = idMap;
+            record("idMap", this.idMap);
+            return this;
+        }
+
+        @Override
+        public Builder setToSysType(Integer toSysType) {
+            this.toSysType = toSysType;
+            record("toSysType", this.toSysType);
+            return this;
+        }
+
+        @Override
+        public Builder setFromSysType(Integer fromSysType) {
+            this.fromSysType = fromSysType;
+            record("fromSysType", this.fromSysType);
             return this;
         }
 

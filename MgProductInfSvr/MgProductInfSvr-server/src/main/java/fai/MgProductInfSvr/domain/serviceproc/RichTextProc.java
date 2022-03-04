@@ -6,10 +6,7 @@ import fai.MgRichTextInfSvr.interfaces.entity.MgRichTextEntity;
 import fai.MgRichTextInfSvr.interfaces.entity.MgRichTextValObj;
 import fai.MgRichTextInfSvr.interfaces.utils.MgRichTextArg;
 import fai.MgRichTextInfSvr.interfaces.utils.MgRichTextSearch;
-import fai.comm.util.Errno;
-import fai.comm.util.FaiList;
-import fai.comm.util.Log;
-import fai.comm.util.Param;
+import fai.comm.util.*;
 import fai.middleground.svrutil.exception.MgException;
 import fai.middleground.svrutil.misc.Utils;
 
@@ -184,6 +181,25 @@ public class RichTextProc {
             return rt;
         }
         return rt;
+    }
+
+    public void incCloneRichText(int aid, Integer toTid, Integer toSiteId, Integer toLgId, Integer toKeepPriId1, int toBiz, int fromAid, Param fromPrimaryKey, int fromBiz, FaiList<Param> pdIdMapList) {
+        int rt;
+        if (aid <= 0 || Str.isEmpty(fromPrimaryKey) || Utils.isEmptyList(pdIdMapList)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "arg error;flow=%d;aid=%d;fromPrimaryKey=%s;pdIdMapList=%s", m_flow, aid, fromPrimaryKey, pdIdMapList);
+        }
+        MgRichTextArg mgRichTextArg = new MgRichTextArg.Builder(aid, toTid, toSiteId, toLgId, toKeepPriId1)
+                .setFromAid(fromAid)
+                .setToBiz(toBiz)
+                .setFromBiz(fromBiz)
+                .setFromPrimaryKey(fromPrimaryKey)
+                .setRlIdMapList(pdIdMapList)
+                .build();
+        rt = m_cli.incCloneByIdMap(mgRichTextArg);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "incCloneRichText error;flow=%d;aid=%d;fromAid=%d;pdIdMapList=%s", m_flow, aid, fromAid, pdIdMapList);
+        }
     }
 
     private MgRichTextInfCli createCli() {

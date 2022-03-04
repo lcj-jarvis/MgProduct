@@ -71,6 +71,7 @@ public class MgProductInfCmd {
         public static final int NUM45 = 5045; /**@see BasicCmd#GET_PD_REDUCE_BY_NAME */
         public static final int NUM46 = 5046; /**@see ProductSpecSkuCmd#GET_SKU_ID_LIST_WITH_DEL */
         public static final int NUM47 = 5047; /**@see Cmd #GET_PRI_INFO */
+        public static final int NUM48 = 5048; /**@see Cmd#INC_CLONE_RICH_TEXT */
     }
 
     // 1000 到 5000 的范围
@@ -384,6 +385,7 @@ public class MgProductInfCmd {
         public static final int GET_SUM_LIST_4ADM = ReadCmdNum.NUM35;
         public static final int GET_INFO_4ES = ReadCmdNum.NUM42;
         public static final int GET_PRI_INFO = ReadCmdNum.NUM47;
+        public static final int INC_CLONE_RICH_TEXT = ReadCmdNum.NUM48;
 
         public static final int IMPORT_PRODUCT = WriteCmdNum.NUM34;
         public static final int CLEAR_REL_DATA = WriteCmdNum.NUM45;

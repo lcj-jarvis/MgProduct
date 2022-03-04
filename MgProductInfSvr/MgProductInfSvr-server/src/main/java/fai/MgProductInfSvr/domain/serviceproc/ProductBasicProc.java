@@ -800,4 +800,17 @@ public class ProductBasicProc {
         }
         return basicList;
     }
+
+    public int getRlPdIdAndPdIdMap(int aid, int fromAid, int toUnionPriId, int fromUnionPriId, int toSysType, int fromSysType, FaiList<Param> idMap, FaiList<Param> toRlPdIdAndPdIdList, FaiList<Param> fromRlPdIdAndPdIdList) {
+        int rt;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get ProductBasicCli error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        rt = m_cli.getRlPdIdAndPdIdMap(aid, fromAid, toUnionPriId, toSysType, fromSysType, fromUnionPriId, idMap, toRlPdIdAndPdIdList, fromRlPdIdAndPdIdList);
+        if (rt != Errno.OK) {
+            throw new MgException(rt, "getRlPdIdAndPdIdMap error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        return rt;
+    }
 }

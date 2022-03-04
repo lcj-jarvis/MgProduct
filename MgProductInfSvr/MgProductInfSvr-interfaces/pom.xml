@@ -7,7 +7,7 @@
     </parent>
     <artifactId>MgProductInfSvr-interfaces</artifactId>
     <packaging>jar</packaging>
-    <version>1.0.4</version>
+    <version>TEST-1.0.6</version>
     <dependencies>
         <dependency>
             <groupId>fai-comm-middleground</groupId>

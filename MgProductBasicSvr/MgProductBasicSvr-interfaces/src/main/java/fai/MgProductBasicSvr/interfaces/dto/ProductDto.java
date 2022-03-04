@@ -32,6 +32,17 @@ public class ProductDto {
         return g_infoDtoDef;
     }
 
+    private static ParamDef g_rlPdIdDtoDef = new ParamDef();
+
+    static {
+        g_rlPdIdDtoDef.add(ProductEntity.Info.TO_RL_PD_ID, 0);
+        g_rlPdIdDtoDef.add(ProductEntity.Info.FROM_RL_PD_ID, 1);
+    }
+
+    public static ParamDef getRlPdIdDto() {
+        return g_rlPdIdDtoDef;
+    }
+
     public static class Key {
         public static final int INFO = 1;
         public static final int INFO_LIST = 2;
@@ -43,5 +54,11 @@ public class ProductDto {
         public static final int SEARCH_ARG = 8;
         public static final int XID = 9;
         public static final int SYS_TYPE = 10;
+        public static final int FROM_AID = 11;
+        public static final int TO_UNION_PRI_ID = 12;
+        public static final int FROM_UNION_PRI_ID = 13;
+        public static final int TO_SYS_TYPE = 14;
+        public static final int FROM_SYS_TYPE = 15;
+        public static final int RL_PD_ID_MAP = 16;
     }
 }

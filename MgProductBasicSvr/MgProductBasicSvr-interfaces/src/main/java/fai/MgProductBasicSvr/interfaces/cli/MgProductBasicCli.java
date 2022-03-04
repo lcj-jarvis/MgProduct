@@ -3571,4 +3571,49 @@ public class MgProductBasicCli extends FaiClient {
             stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
         }
     }
+
+    public int getRlPdIdAndPdIdMap(int aid, int fromAid, int toUnionPriId, int toSysType, int fromSysType, int fromUnionPriId, FaiList<Param> idMap, FaiList<Param> toRlPdIdAndPdIdList, FaiList<Param> fromRlPdIdAndPdIdList) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            if (idMap == null || idMap.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args error;idMap is empty");
+                return m_rt;
+            }
+
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductDto.Key.FROM_AID, fromAid);
+            sendBody.putInt(ProductDto.Key.TO_UNION_PRI_ID, toUnionPriId);
+            sendBody.putInt(ProductDto.Key.TO_SYS_TYPE, toSysType);
+            sendBody.putInt(ProductDto.Key.FROM_SYS_TYPE, fromSysType);
+            sendBody.putInt(ProductDto.Key.FROM_UNION_PRI_ID, fromUnionPriId);
+
+            idMap.toBuffer(sendBody, ProductDto.Key.RL_PD_ID_MAP, ProductDto.getRlPdIdDto());
+
+            Param result = sendAndReceive(aid, MgProductBasicCmd.Cmd.GET_PD_ID_MAP, sendBody, true);
+            Boolean success = result.getBoolean("success");
+            if (!success) {
+                return m_rt;
+            }
+            // recv info
+            FaiBuffer recvBody = (FaiBuffer) result.getObject("recvBody");
+            Ref<Integer> keyRef = new Ref<>();
+            m_rt = toRlPdIdAndPdIdList.fromBuffer(recvBody, keyRef, ProductRelDto.getRelAndPdDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.TO_RL_PD_ID_AND_PD_ID) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+            m_rt = fromRlPdIdAndPdIdList.fromBuffer(recvBody, keyRef, ProductRelDto.getRelAndPdDto());
+            if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.FROM_RL_PD_ID_AND_PD_ID) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
 }

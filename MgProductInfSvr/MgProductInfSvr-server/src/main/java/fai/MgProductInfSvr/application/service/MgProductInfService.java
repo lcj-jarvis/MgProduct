@@ -25,6 +25,7 @@ import fai.MgProductStoreSvr.interfaces.entity.SpuBizSummaryEntity;
 import fai.MgProductStoreSvr.interfaces.entity.SpuSummaryEntity;
 import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity;
 import fai.MgRichTextInfSvr.interfaces.entity.MgRichTextEntity;
+import fai.MgRichTextInfSvr.interfaces.entity.MgRichTextValObj;
 import fai.comm.fseata.client.core.exception.TransactionException;
 import fai.comm.fseata.client.tm.GlobalTransactionContext;
 import fai.comm.fseata.client.tm.api.GlobalTransaction;
@@ -2080,6 +2081,88 @@ public class MgProductInfService extends ServicePub {
             return rt;
         } finally {
             stat.end((rt != Errno.OK) && (rt != Errno.NOT_FOUND), rt);
+        }
+    }
+
+    /**
+     * 根据 id Map 获取 pdId 的映射关系，然后通过调用富文本进行增量克隆
+     */
+    @SuccessRt(Errno.OK)
+    public int incCloneRichText(FaiSession session, int flow, int aid, int toSysType, int fromSysType, int fromAid, Param primaryKey, Param fromPrimaryKey, FaiList<Param> idMap) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || Str.isEmpty(primaryKey) || Str.isEmpty(fromPrimaryKey) || Utils.isEmptyList(idMap)) {
+                rt = Errno.ARGS_ERROR;
+                throw new MgException(rt, "args err;aid=%d;primaryKey=%s;fromPrimaryKey=%s;idMap=%s", aid, primaryKey, fromPrimaryKey, idMap);
+            }
+
+            // 获取主键维度
+            Integer toTid = primaryKey.getInt(MgProductEntity.Info.TID);
+            Integer toSiteId = primaryKey.getInt(MgProductEntity.Info.SITE_ID);
+            Integer toLgId = primaryKey.getInt(MgProductEntity.Info.LGID);
+            Integer toKeepPriId1 = primaryKey.getInt(MgProductEntity.Info.KEEP_PRI_ID1);
+            int toUnionPriId = getUnionPriId(flow, aid, toTid, toSiteId, toLgId, toKeepPriId1);
+
+            Integer fromTid = fromPrimaryKey.getInt(MgProductEntity.Info.TID);
+            Integer fromSiteId = fromPrimaryKey.getInt(MgProductEntity.Info.SITE_ID);
+            Integer fromLgId = fromPrimaryKey.getInt(MgProductEntity.Info.LGID);
+            Integer fromKeepPriId1 = fromPrimaryKey.getInt(MgProductEntity.Info.KEEP_PRI_ID1);
+            int fromUnionPriId = getUnionPriId(flow, aid, fromTid, fromSiteId, fromLgId, fromKeepPriId1);
+
+            // 获取 rlPdId 和 pdId 的映射关系
+            ProductBasicProc basicProc = new ProductBasicProc(flow);
+            FaiList<Param> toRlPdIdAndPdIdList = new FaiList<>();
+            FaiList<Param> fromRlPdIdAndPdIdList = new FaiList<>();
+            rt = basicProc.getRlPdIdAndPdIdMap(aid, fromAid, toUnionPriId, fromUnionPriId, toSysType, fromSysType, idMap, toRlPdIdAndPdIdList, fromRlPdIdAndPdIdList);
+            if (rt != Errno.OK) {
+                Log.logErr(rt, "getRlPdIdAndPdIdMap error;flow=%d;aid=%d;fromAid=%d;toUnionPriId=%d;fromUnionPriId=%d;toSysType=%d;fromSysType=%d;rlPdIdMap=%s;", flow, aid, fromAid, toUnionPriId, fromUnionPriId, toSysType, fromSysType, idMap);
+                return rt;
+            }
+
+            // 找出 pdId 的映射关系
+            Map<Integer, Integer> toRlPdIdMap = new HashMap<>(toRlPdIdAndPdIdList.size());
+            for (Param toInfo : toRlPdIdAndPdIdList) {
+                Integer rlPdId = toInfo.getInt(MgProductEntity.Info.RL_PD_ID);
+                Integer pdId = toInfo.getInt(MgProductEntity.Info.PD_ID);
+                toRlPdIdMap.put(rlPdId, pdId);
+            }
+
+            Map<Integer, Integer> fromRlPdIdMap = new HashMap<>(fromRlPdIdAndPdIdList.size());
+            for (Param fromInfo : fromRlPdIdAndPdIdList) {
+                Integer rlPdId = fromInfo.getInt(MgProductEntity.Info.RL_PD_ID);
+                Integer pdId = fromInfo.getInt(MgProductEntity.Info.PD_ID);
+                fromRlPdIdMap.put(rlPdId, pdId);
+            }
+
+            // 将 pdId 的映射关系放到 list 中，传给 富文本中台，做克隆处理
+            FaiList<Param> pdIdMapList = new FaiList<>();
+            for (Param info : idMap) {
+                Integer toRlPdId = info.getInt(MgProductEntity.Info.TO_RL_PD_ID);
+                Integer fromRlPdId = info.getInt(MgProductEntity.Info.FROM_RL_PD_ID);
+
+                Integer toPdId = toRlPdIdMap.get(toRlPdId);
+                Integer fromPdId = fromRlPdIdMap.get(fromRlPdId);
+
+                if (toPdId == null || fromPdId == null) {
+                    rt = Errno.ERROR;
+                    Log.logErr(rt, "get pdId err;flow=%d;aid=%d;fromAid=%d;toUnionPriId=%d;fromUnionPriId=%d;toSysType=%d;fromSysType=%d;toRlPdId=%d;fromRlPdId=%d;", flow, aid, fromAid, toUnionPriId, fromUnionPriId, toSysType, fromSysType, toRlPdId, fromRlPdId);
+                    return rt;
+                }
+
+                pdIdMapList.add(new Param().setInt(MgProductEntity.Info.TO_RL_ID, toPdId).setInt(MgProductEntity.Info.FROM_RL_ID, fromPdId));
+            }
+
+            // 调用富文本中台进行克隆
+            RichTextProc richTextProc = new RichTextProc(flow);
+            richTextProc.incCloneRichText(aid, toTid, toSiteId, toLgId, toKeepPriId1, MgRichTextValObj.Biz.PRODUCT, fromAid, fromPrimaryKey, MgRichTextValObj.Biz.PRODUCT, pdIdMapList);
+
+            rt = Errno.OK;
+            session.write(new FaiBuffer(true));
+            Log.logStd("incCloneRichText ok;flow=%d;aid=%d;fromAid=%d;pdIdMapList=%s", flow, aid, fromAid, pdIdMapList);
+            return rt;
+        } finally {
+            stat.end(rt != Errno.OK, rt);
         }
     }
 

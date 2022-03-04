@@ -84,6 +84,15 @@ public class MgProductDto {
         return g_esPdInfoDef;
     }
 
+    public static ParamDef g_idMapInfoDef = new ParamDef();
+    static {
+        g_idMapInfoDef.add(MgProductEntity.Info.TO_RL_PD_ID, 0, Var.Type.INT);
+        g_idMapInfoDef.add(MgProductEntity.Info.FROM_RL_PD_ID, 1, Var.Type.INT);
+    }
+    public static ParamDef getIdMapDto() {
+        return g_idMapInfoDef;
+    }
+
     public static class Key {
         public static final int TID  = 1;
         public static final int SITE_ID  = 2;
@@ -110,5 +119,8 @@ public class MgProductDto {
         public static final int TOTAL = 23;
         public static final int RL_RESTOREID = 24;
         public static final int UPDATER = 25;
+        public static final int ID_MAP = 26;
+        public static final int TO_SYS_TYPE = 27;
+        public static final int FROM_SYS_TYPE = 28;
     }
 }

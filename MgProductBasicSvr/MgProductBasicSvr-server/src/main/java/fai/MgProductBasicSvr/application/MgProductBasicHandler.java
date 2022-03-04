@@ -814,6 +814,19 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
         return service.getListByUidsAndRlPdIds(session, flow, aid, unionPriIds, rlPdIds, sysType);
     }
 
+    @Cmd(MgProductBasicCmd.Cmd.GET_PD_ID_MAP)
+    public int getRlPdIdAndPdIdMap(final FaiSession session,
+                                   @ArgFlow final int flow,
+                                   @ArgAid final int aid,
+                                   @ArgBodyInteger(ProductDto.Key.FROM_AID) int fromAid,
+                                   @ArgBodyInteger(ProductDto.Key.TO_UNION_PRI_ID) int toUnionPriId,
+                                   @ArgBodyInteger(ProductDto.Key.TO_SYS_TYPE) int toSysType,
+                                   @ArgBodyInteger(ProductDto.Key.FROM_SYS_TYPE) int fromSysType,
+                                   @ArgBodyInteger(ProductDto.Key.FROM_UNION_PRI_ID) int fromUnionPriId,
+                                   @ArgList(classDef = ProductDto.class, keyMatch = ProductDto.Key.RL_PD_ID_MAP, methodDef = "getRlPdIdDto") FaiList<Param> rlPdIdMap) throws IOException {
+        return service.getRlPdIdAndPdIdMap(session, flow, aid, fromAid, toUnionPriId, toSysType, fromSysType, fromUnionPriId, rlPdIdMap);
+    }
+
     private ProductBasicService service = ServiceProxy.create(new ProductBasicService());
     private ProductBindGroupService groupBindService = ServiceProxy.create(new ProductBindGroupService());
     private ProductBindPropService propBindService = ServiceProxy.create(new ProductBindPropService());

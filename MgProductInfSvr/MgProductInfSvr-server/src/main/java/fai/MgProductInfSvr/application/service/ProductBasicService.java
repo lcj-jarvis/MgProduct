@@ -2,6 +2,7 @@ package fai.MgProductInfSvr.application.service;
 
 import fai.MgPrimaryKeySvr.interfaces.entity.MgPrimaryKeyEntity;
 import fai.MgProductBasicSvr.interfaces.entity.ProductRelEntity;
+import fai.MgProductBasicSvr.interfaces.entity.ProductRelValObj;
 import fai.MgProductInfSvr.domain.entity.RichTextConverter;
 import fai.MgProductInfSvr.domain.serviceproc.*;
 import fai.MgProductInfSvr.interfaces.dto.ProductBasicDto;
@@ -656,6 +657,7 @@ public class ProductBasicService extends MgProductInfService {
                             Set<Long> unionPriIdSkuIdSet = new HashSet<>();
                             for (Param storeSale : storeSales) {
                                 Long skuId = storeSale.getLong(ProductStoreEntity.StoreSalesSkuInfo.SKU_ID);
+                                Integer status = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.STATUS, ProductRelValObj.Status.DOWN);
                                 if(skuId == null) {
                                     FaiList<String> inPdScStrNameList = storeSale.getList(ProductStoreEntity.StoreSalesSkuInfo.IN_PD_SC_STR_NAME_LIST);
                                     if(inPdScStrNameList != null) {
@@ -680,6 +682,7 @@ public class ProductBasicService extends MgProductInfService {
                                 addStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, bindUnionPriId);
                                 addStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.RL_PD_ID, rlPdId);
                                 addStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.SYS_TYPE, sysType);
+                                addStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.STATUS, status);
                                 addStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.SKU_TYPE, StoreSalesSkuEntity.Info.SKU_TYPE);
                                 addStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.SORT, StoreSalesSkuEntity.Info.SORT);
                                 addStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.COUNT, StoreSalesSkuEntity.Info.COUNT);
@@ -869,6 +872,7 @@ public class ProductBasicService extends MgProductInfService {
                             Set<Long> unionPriIdSkuIdSet = new HashSet<>();
                             for (Param storeSale : storeSales) {
                                 Long skuId = storeSale.getLong(ProductStoreEntity.StoreSalesSkuInfo.SKU_ID);
+                                int status = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.STATUS, ProductRelValObj.Status.DOWN);
                                 if(skuId == null) {
                                     FaiList<String> inPdScStrNameList = storeSale.getList(ProductStoreEntity.StoreSalesSkuInfo.IN_PD_SC_STR_NAME_LIST);
                                     if(inPdScStrNameList != null) {
@@ -893,6 +897,7 @@ public class ProductBasicService extends MgProductInfService {
                                 addStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, fromUnionPriId);
                                 addStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.RL_PD_ID, rlPdId);
                                 addStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.SYS_TYPE, sysType);
+                                addStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.STATUS, status);
                                 addStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.SKU_TYPE, StoreSalesSkuEntity.Info.SKU_TYPE);
                                 addStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.SORT, StoreSalesSkuEntity.Info.SORT);
                                 addStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.COUNT, StoreSalesSkuEntity.Info.COUNT);
@@ -1652,6 +1657,7 @@ public class ProductBasicService extends MgProductInfService {
                 for (Param storeSale : storeSales) {
                     FaiList<String> inPdScStrNameList = storeSale.getList(ProductStoreEntity.StoreSalesSkuInfo.IN_PD_SC_STR_NAME_LIST);
                     Long skuId = inPdScStrNameListJsonSkuIdMap.get(inPdScStrNameList.toJson());
+                    int stauts = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.STATUS, ProductRelValObj.Status.DOWN);
                     if (skuId == null) {
                         Log.logStd("skuId empty;flow=%s;aid=%s;addInfo=%s;inPdScStrNameList=%s;", flow, aid, addInfo, inPdScStrNameList);
                         continue;
@@ -1670,6 +1676,7 @@ public class ProductBasicService extends MgProductInfService {
                     addStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, unionPriId);
                     addStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.RL_PD_ID, rlPdId);
                     addStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.SYS_TYPE, sysType);
+                    addStoreSaleSkuInfo.setInt(StoreSalesSkuEntity.Info.STATUS, stauts);
                     addStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.SKU_TYPE, StoreSalesSkuEntity.Info.SKU_TYPE);
                     addStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.SORT, StoreSalesSkuEntity.Info.SORT);
                     addStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.COUNT, StoreSalesSkuEntity.Info.COUNT);

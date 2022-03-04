@@ -1627,6 +1627,9 @@ public class MgProductInfService extends ServicePub {
                         Integer pdId = info.getInt(ProductRelEntity.Info.PD_ID);
                         addedPdIdSet.add(pdId);
                         ownerRlPdId_pdIdMap.put(rlPdId, pdId);
+                        if (pdId == 6544) {
+                            Log.logErr("joke:basic=%s;", info);
+                        }
                     }
                     for (Param productInfo : productList) {
                         Param basicInfo = productInfo.getParam(MgProductEntity.Info.BASIC);

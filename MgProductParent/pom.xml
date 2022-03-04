@@ -68,7 +68,7 @@
         <MgProduct-MgProductTagSvr-interfaces-ver>1.0.0</MgProduct-MgProductTagSvr-interfaces-ver>
         <MgProduct-MgProductComm-ver>1.0.0</MgProduct-MgProductComm-ver>
         <MgProduct-MgProductInfUtil-ver>1.0.0</MgProduct-MgProductInfUtil-ver>
-        <MgRichText-MgRichTextInfSvr-ver>1.0.0</MgRichText-MgRichTextInfSvr-ver>
+        <MgRichText-MgRichTextInfSvr-ver>1.0.1</MgRichText-MgRichTextInfSvr-ver>
     </properties>
 
     <distributionManagement>

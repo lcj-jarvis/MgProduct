@@ -1,10 +1,7 @@
 package fai.MgProductStoreSvr.domain.repository.dao;
 
-import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryEntity;
-import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryValObj;
 import fai.MgProductStoreSvr.domain.repository.TableDBMapping;
 import fai.comm.util.*;
-import fai.middleground.svrutil.repository.DaoCtrl;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 /**

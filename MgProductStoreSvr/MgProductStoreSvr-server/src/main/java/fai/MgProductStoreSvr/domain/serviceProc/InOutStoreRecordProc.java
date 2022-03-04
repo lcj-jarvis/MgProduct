@@ -369,6 +369,7 @@ public class InOutStoreRecordProc {
             long skuId = info.getLong(InOutStoreRecordEntity.Info.SKU_ID, 0L);
             int optType = info.getInt(InOutStoreRecordEntity.Info.OPT_TYPE, 0);
             int changeCount = info.getInt(InOutStoreRecordEntity.Info.CHANGE_COUNT, -1);
+            int stauts = info.getInt(InOutStoreRecordEntity.Info.STATUS, 0);
             if(unionPriId == 0 || skuId == 0 || optType == 0 || changeCount < 0){
                 Log.logStd("arg error;flow=%d;aid=%s;info=%s;", m_flow, aid, info);
                 return rt = Errno.ARGS_ERROR;
@@ -417,6 +418,7 @@ public class InOutStoreRecordProc {
             // 默认为0
             data.setLong(InOutStoreRecordEntity.Info.TOTAL_PRICE, 0L);
             data.setLong(InOutStoreRecordEntity.Info.MW_TOTAL_PRICE, 0L);
+            data.setInt(InOutStoreRecordEntity.Info.STATUS, stauts);
 
             data.assign(info, InOutStoreRecordEntity.Info.C_TYPE);
             data.assign(info, InOutStoreRecordEntity.Info.S_TYPE);

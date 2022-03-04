@@ -723,6 +723,7 @@ public class StoreService extends StoreParentService {
                     addInStoreRecordInfo.setList(InOutStoreRecordEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList);
                     addInStoreRecordInfo.setLong(InOutStoreRecordEntity.Info.PRICE, costPrice);
                     addInStoreRecordInfo.setLong(InOutStoreRecordEntity.Info.TOTAL_PRICE, costPrice * count);
+                    addInStoreRecordInfo.setInt(InOutStoreRecordEntity.Info.STATUS, storeSaleSku.getInt(StoreSalesSkuEntity.Info.STATUS, 0));
                     inStoreRecordList.add(addInStoreRecordInfo);
                 }
             }

@@ -617,9 +617,11 @@ public class SpuBizSummaryProc {
                 return rt;
             }
             int sourceUnionPriId = info.getInt(SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID, unionPriId);
+            Integer status = info.getInt(SpuBizSummaryEntity.Info.STATUS, 0);
             data.setInt(SpuBizSummaryEntity.Info.AID, aid);
             data.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, unionPriId);
             data.setInt(SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID, sourceUnionPriId);
+            data.setInt(SpuBizSummaryEntity.Info.STATUS, status);
             data.assign(info, SpuBizSummaryEntity.Info.PD_ID);
             data.assign(info, SpuBizSummaryEntity.Info.RL_PD_ID);
             data.assign(info, SpuBizSummaryEntity.Info.SYS_TYPE);

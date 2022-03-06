@@ -354,9 +354,6 @@ public class SpuBizSummaryProc {
             needMaxFields.addAll(info.keySet());
             unionPriIdInfoMap.put(unionPriId, info);
             unionPriIdList.add(unionPriId);
-            if (unionPriId == 42) {
-                Log.logStd("joke:bizinfo=%s", info);
-            }
         }
         { // 移除字段
             needMaxFields.remove(SpuBizSummaryEntity.Info.AID);
@@ -472,7 +469,6 @@ public class SpuBizSummaryProc {
             }
         }
         if(!addDataList.isEmpty()){
-            Log.logStd("joke:reportAdd=%s",addDataList);
             rt = m_daoCtrl.batchInsert(addDataList, null, !isSaga);
             if(rt != Errno.OK){
                 Log.logErr("batchInsert err;flow=%s;aid=%s;pdId=%s;", m_flow, aid, pdId);
@@ -650,7 +646,6 @@ public class SpuBizSummaryProc {
                 unionPriId_pdIds.put(unionPriId, pdIds);
             }
         }
-        Log.logStd("joke:addList=%s",addList);
         rt = m_daoCtrl.batchInsert(addList, null, !isSaga);
         if(rt != Errno.OK){
             Log.logErr(rt, "arg error;flow=%s;aid=%s;addList=%s", m_flow, aid, addList);

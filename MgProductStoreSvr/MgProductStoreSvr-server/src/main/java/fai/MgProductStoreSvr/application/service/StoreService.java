@@ -51,9 +51,6 @@ public class StoreService extends StoreParentService {
                     Integer pdId = pdIdReportListEntry.getKey();
                     List<Param> reportList = pdIdReportListEntry.getValue();
                     FaiList<Param> bizSalesSummaryInfoList = new FaiList<>(reportList.size());
-                    if (pdId == 6544) {
-                        Log.logStd("joke:getFromList=%s", reportList);
-                    }
                     for (Param reportInfo : reportList) {
                         Param bizSalesSummaryInfo = new Param();
                         assemblySpuBizSummaryInfo(bizSalesSummaryInfo, reportInfo, flag);

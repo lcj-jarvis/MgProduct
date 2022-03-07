@@ -322,10 +322,6 @@ public class StoreService extends StoreParentService {
 
                         if (isSaga) {
                             // 将预记录的修改数据持久化到 db
-                            rt = spuBizSummaryProc.addUpdateSaga2Db(aid);
-                            if (rt != Errno.OK) {
-                                return rt;
-                            }
                             rt = storeSalesSkuProc.addUpdateSaga2Db(aid);
                             if (rt != Errno.OK) {
                                 return rt;

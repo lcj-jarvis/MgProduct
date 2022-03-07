@@ -5,6 +5,7 @@ import fai.MgPrimaryKeySvr.interfaces.cli.MgPrimaryKeyCli;
 import fai.MgPrimaryKeySvr.interfaces.entity.MgPrimaryKeyEntity;
 import fai.MgProductBasicSvr.interfaces.cli.MgProductBasicCli;
 import fai.MgProductBasicSvr.interfaces.entity.ProductRelEntity;
+import fai.MgProductBasicSvr.interfaces.entity.ProductRelValObj;
 import fai.MgProductGroupSvr.interfaces.cli.MgProductGroupCli;
 import fai.MgProductInfSvr.application.MgProductInfSvr;
 import fai.MgProductInfSvr.domain.comm.BizPriKey;
@@ -24,6 +25,7 @@ import fai.MgProductStoreSvr.interfaces.entity.SpuBizSummaryEntity;
 import fai.MgProductStoreSvr.interfaces.entity.SpuSummaryEntity;
 import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity;
 import fai.MgRichTextInfSvr.interfaces.entity.MgRichTextEntity;
+import fai.MgRichTextInfSvr.interfaces.entity.MgRichTextValObj;
 import fai.comm.fseata.client.core.exception.TransactionException;
 import fai.comm.fseata.client.tm.GlobalTransactionContext;
 import fai.comm.fseata.client.tm.api.GlobalTransaction;
@@ -1663,6 +1665,8 @@ public class MgProductInfService extends ServicePub {
                 // 绑定业务关联
                 {
                     FaiList<Param> batchBindPdRelList = new FaiList<>();
+                    // 判断绑定业务的状态，如果 unionPriId + rlPdId 维度下所有的 销售库存 status 都是 -1 的话，则绑定信息状态也是 -1
+                    HashMap<String, Boolean> softDelMap = new HashMap<>();
                     for (Param productInfo : productList) {
                         FaiList<Param> storeSales = productInfo.getListNullIsEmpty(MgProductEntity.Info.STORE_SALES);
                         if(Utils.isEmptyList(storeSales)){
@@ -1682,6 +1686,7 @@ public class MgProductInfService extends ServicePub {
                             Integer lgId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.LGID, ownerLgId);
                             Integer keepPriId1 = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, ownerKeepPriId1);
                             int rlPdId = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.RL_PD_ID, ownerRlPdId);
+                            int status = storeSale.getInt(ProductStoreEntity.StoreSalesSkuInfo.STATUS, ProductRelValObj.Status.DOWN);
                             BizPriKey bizPriKey = new BizPriKey(tid, siteId, lgId, keepPriId1);
                             Integer unionPriId = bizPriKeyMap.get(bizPriKey);
                             if(unionPriId == null){
@@ -1690,6 +1695,10 @@ public class MgProductInfService extends ServicePub {
                             }
                             if(unionPriId != ownerUnionPriId){
                                 unionPriIdRlPdIdMap.put(unionPriId, rlPdId);
+                                // 比较 unionPriId + rlPdId 下，是否全部都是软删除的
+                                softDelMap.computeIfAbsent(unionPriId + "-" + rlPdId, map -> status == ProductRelValObj.Status.DEL);
+                                Boolean softDel = softDelMap.get(unionPriId + "-" + rlPdId);
+                                softDelMap.put(unionPriId + "-" + rlPdId, softDel & status == ProductRelValObj.Status.DEL);
                             }
                         }
                         if(!unionPriIdRlPdIdMap.isEmpty()){
@@ -1697,15 +1706,17 @@ public class MgProductInfService extends ServicePub {
                             for (Map.Entry<Integer, Integer> unionPriIdRlPdIdEntry : unionPriIdRlPdIdMap.entrySet()) {
                                 int unionPriId = unionPriIdRlPdIdEntry.getKey();
                                 int rlPdId = unionPriIdRlPdIdEntry.getValue();
-                                bindPdRelList.add(
-                                        new Param()
-                                                .setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId)
-                                                .setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId)
-                                                .setList(ProductBasicEntity.ProductInfo.RL_GROUP_IDS, rlGroupIds)
-                                                .setList(ProductBasicEntity.ProductInfo.RL_TAG_IDS, rlTagIds)
-                                                .setList(ProductBasicEntity.ProductInfo.RL_PROPS, rlProps)
-                                                .setBoolean(ProductRelEntity.Info.INFO_CHECK, false)
-                                );
+                                Param bindPdRelInfo = new Param()
+                                        .setInt(ProductRelEntity.Info.RL_PD_ID, rlPdId)
+                                        .setInt(ProductRelEntity.Info.UNION_PRI_ID, unionPriId)
+                                        .setList(ProductBasicEntity.ProductInfo.RL_GROUP_IDS, rlGroupIds)
+                                        .setList(ProductBasicEntity.ProductInfo.RL_TAG_IDS, rlTagIds)
+                                        .setList(ProductBasicEntity.ProductInfo.RL_PROPS, rlProps)
+                                        .setBoolean(ProductRelEntity.Info.INFO_CHECK, false);
+                                if (softDelMap.get(unionPriId + "-" + rlPdId)) {
+                                    bindPdRelInfo.setInt(ProductRelEntity.Info.STATUS, ProductRelValObj.Status.DEL);
+                                }
+                                bindPdRelList.add(bindPdRelInfo);
                             }
                             batchBindPdRelList.add(
                                     new Param()
@@ -1885,6 +1896,7 @@ public class MgProductInfService extends ServicePub {
                             importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.VIRTUAL_COUNT, StoreSalesSkuEntity.Info.VIRTUAL_COUNT);
                             importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.FLAG, StoreSalesSkuEntity.Info.FLAG);
                             importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.COST_PRICE, StoreSalesSkuEntity.Info.COST_PRICE);
+                            importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.STATUS, StoreSalesSkuEntity.Info.STATUS);
                             importStoreSaleSkuInfo.setList(StoreSalesSkuEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList);
                             storeSaleSkuList.add(importStoreSaleSkuInfo);
                         }
@@ -2072,6 +2084,88 @@ public class MgProductInfService extends ServicePub {
         }
     }
 
+    /**
+     * 根据 id Map 获取 pdId 的映射关系，然后通过调用富文本进行增量克隆
+     */
+    @SuccessRt(Errno.OK)
+    public int incCloneRichText(FaiSession session, int flow, int aid, int toSysType, int fromSysType, int fromAid, Param primaryKey, Param fromPrimaryKey, FaiList<Param> idMap) throws IOException {
+        int rt = Errno.ERROR;
+        Oss.SvrStat stat = new Oss.SvrStat(flow);
+        try {
+            if (aid <= 0 || Str.isEmpty(primaryKey) || Str.isEmpty(fromPrimaryKey) || Utils.isEmptyList(idMap)) {
+                rt = Errno.ARGS_ERROR;
+                throw new MgException(rt, "args err;aid=%d;primaryKey=%s;fromPrimaryKey=%s;idMap=%s", aid, primaryKey, fromPrimaryKey, idMap);
+            }
+
+            // 获取主键维度
+            Integer toTid = primaryKey.getInt(MgProductEntity.Info.TID);
+            Integer toSiteId = primaryKey.getInt(MgProductEntity.Info.SITE_ID);
+            Integer toLgId = primaryKey.getInt(MgProductEntity.Info.LGID);
+            Integer toKeepPriId1 = primaryKey.getInt(MgProductEntity.Info.KEEP_PRI_ID1);
+            int toUnionPriId = getUnionPriId(flow, aid, toTid, toSiteId, toLgId, toKeepPriId1);
+
+            Integer fromTid = fromPrimaryKey.getInt(MgProductEntity.Info.TID);
+            Integer fromSiteId = fromPrimaryKey.getInt(MgProductEntity.Info.SITE_ID);
+            Integer fromLgId = fromPrimaryKey.getInt(MgProductEntity.Info.LGID);
+            Integer fromKeepPriId1 = fromPrimaryKey.getInt(MgProductEntity.Info.KEEP_PRI_ID1);
+            int fromUnionPriId = getUnionPriId(flow, aid, fromTid, fromSiteId, fromLgId, fromKeepPriId1);
+
+            // 获取 rlPdId 和 pdId 的映射关系
+            ProductBasicProc basicProc = new ProductBasicProc(flow);
+            FaiList<Param> toRlPdIdAndPdIdList = new FaiList<>();
+            FaiList<Param> fromRlPdIdAndPdIdList = new FaiList<>();
+            rt = basicProc.getRlPdIdAndPdIdMap(aid, fromAid, toUnionPriId, fromUnionPriId, toSysType, fromSysType, idMap, toRlPdIdAndPdIdList, fromRlPdIdAndPdIdList);
+            if (rt != Errno.OK) {
+                Log.logErr(rt, "getRlPdIdAndPdIdMap error;flow=%d;aid=%d;fromAid=%d;toUnionPriId=%d;fromUnionPriId=%d;toSysType=%d;fromSysType=%d;rlPdIdMap=%s;", flow, aid, fromAid, toUnionPriId, fromUnionPriId, toSysType, fromSysType, idMap);
+                return rt;
+            }
+
+            // 找出 pdId 的映射关系
+            Map<Integer, Integer> toRlPdIdMap = new HashMap<>(toRlPdIdAndPdIdList.size());
+            for (Param toInfo : toRlPdIdAndPdIdList) {
+                Integer rlPdId = toInfo.getInt(MgProductEntity.Info.RL_PD_ID);
+                Integer pdId = toInfo.getInt(MgProductEntity.Info.PD_ID);
+                toRlPdIdMap.put(rlPdId, pdId);
+            }
+
+            Map<Integer, Integer> fromRlPdIdMap = new HashMap<>(fromRlPdIdAndPdIdList.size());
+            for (Param fromInfo : fromRlPdIdAndPdIdList) {
+                Integer rlPdId = fromInfo.getInt(MgProductEntity.Info.RL_PD_ID);
+                Integer pdId = fromInfo.getInt(MgProductEntity.Info.PD_ID);
+                fromRlPdIdMap.put(rlPdId, pdId);
+            }
+
+            // 将 pdId 的映射关系放到 list 中，传给 富文本中台，做克隆处理
+            FaiList<Param> pdIdMapList = new FaiList<>();
+            for (Param info : idMap) {
+                Integer toRlPdId = info.getInt(MgProductEntity.Info.TO_RL_PD_ID);
+                Integer fromRlPdId = info.getInt(MgProductEntity.Info.FROM_RL_PD_ID);
+
+                Integer toPdId = toRlPdIdMap.get(toRlPdId);
+                Integer fromPdId = fromRlPdIdMap.get(fromRlPdId);
+
+                if (toPdId == null || fromPdId == null) {
+                    rt = Errno.ERROR;
+                    Log.logErr(rt, "get pdId err;flow=%d;aid=%d;fromAid=%d;toUnionPriId=%d;fromUnionPriId=%d;toSysType=%d;fromSysType=%d;toRlPdId=%d;fromRlPdId=%d;", flow, aid, fromAid, toUnionPriId, fromUnionPriId, toSysType, fromSysType, toRlPdId, fromRlPdId);
+                    return rt;
+                }
+
+                pdIdMapList.add(new Param().setInt(MgProductEntity.Info.TO_RL_ID, toPdId).setInt(MgProductEntity.Info.FROM_RL_ID, fromPdId));
+            }
+
+            // 调用富文本中台进行克隆
+            RichTextProc richTextProc = new RichTextProc(flow);
+            richTextProc.incCloneRichText(aid, toTid, toSiteId, toLgId, toKeepPriId1, MgRichTextValObj.Biz.PRODUCT, fromAid, fromPrimaryKey, MgRichTextValObj.Biz.PRODUCT, pdIdMapList);
+
+            rt = Errno.OK;
+            session.write(new FaiBuffer(true));
+            Log.logStd("incCloneRichText ok;flow=%d;aid=%d;fromAid=%d;pdIdMapList=%s", flow, aid, fromAid, pdIdMapList);
+            return rt;
+        } finally {
+            stat.end(rt != Errno.OK, rt);
+        }
+    }
+
     private FaiList<Param> assignInfoList(int flow, int aid, FaiList<Param> basicList, FaiList<Param> richTexts, FaiList<Param> pdScInfoList, FaiList<Param> pdScSkuInfoList, FaiList<Param> pdScSkuSalesStoreInfoList, FaiList<Param> spuSalesStoreInfoList, Map<Integer, Param> unionPriId_primaryKeyMap) {
         FaiList<Param> list = new FaiList<>();
         if (Utils.isEmptyList(basicList)) {
@@ -2122,14 +2216,15 @@ public class MgProductInfService extends ServicePub {
             // 3、设置销售库存信息
             List<Param> storeList = storeSalesMap.get(unionPriId + "_" + pdId);
             if (storeList == null) {
-                info.setParam(MgProductEntity.Info.STORE_SALES, new Param());
+                info.setList(MgProductEntity.Info.STORE_SALES, new FaiList<>());
             } else {
-                Param storeInfo = storeList.get(0);
-                storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.TID, tid);
-                storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.SITE_ID, siteId);
-                storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.LGID, lgId);
-                storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, keepPriId1);
-                info.setParam(MgProductEntity.Info.STORE_SALES, storeInfo);
+                for (Param storeInfo : storeList) {
+                    storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.TID, tid);
+                    storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.SITE_ID, siteId);
+                    storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.LGID, lgId);
+                    storeInfo.setInt(ProductStoreEntity.StoreSalesSkuInfo.KEEP_PRI_ID1, keepPriId1);
+                }
+                info.setList(MgProductEntity.Info.STORE_SALES, new FaiList<>(storeList));
             }
 
             // 4、设置 spuBizSales 信息

@@ -145,5 +145,7 @@ public class ProductRelDto {
         public static final int PRE_RL_PD_ID = 26;
         public static final int NEED_SYNC_INFO = 27;
         public static final int NAME = 28;
+        public static final int TO_RL_PD_ID_AND_PD_ID = 29;
+        public static final int FROM_RL_PD_ID_AND_PD_ID = 30;
     }
 }

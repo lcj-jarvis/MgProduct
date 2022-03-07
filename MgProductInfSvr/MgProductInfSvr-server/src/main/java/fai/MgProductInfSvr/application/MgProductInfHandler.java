@@ -1740,6 +1740,19 @@ public class MgProductInfHandler extends FaiHandler {
         return mgProductInfService.getProductListByUidsAndRlPdIdsFromDb(session, flow, aid, tid, siteId, lgId, keepPriId1, rlPdIds, sysType, primaryKeys, combined);
     }
 
+    @Cmd(MgProductInfCmd.Cmd.INC_CLONE_RICH_TEXT)
+    public int incCloneRichText(final FaiSession session,
+                                @ArgFlow final int flow,
+                                @ArgAid final int aid,
+                                @ArgBodyInteger(value = MgProductDto.Key.TO_SYS_TYPE, useDefault = true) int toSysType,
+                                @ArgBodyInteger(value = MgProductDto.Key.FROM_SYS_TYPE, useDefault = true) int fromSysType,
+                                @ArgBodyInteger(MgProductDto.Key.FROM_AID) int fromAid,
+                                @ArgParam(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto", keyMatch = MgProductDto.Key.PRIMARY_KEY) Param primaryKey,
+                                @ArgParam(classDef = MgProductDto.class, methodDef = "getPrimaryKeyDto", keyMatch = MgProductDto.Key.FROM_PRIMARY_KEY) Param fromPrimaryKey,
+                                @ArgList(classDef = MgProductDto.class, methodDef = "getIdMapDto", keyMatch = MgProductDto.Key.ID_MAP) FaiList<Param> idMap) throws IOException {
+        return mgProductInfService.incCloneRichText(session, flow, aid, toSysType, fromSysType, fromAid, primaryKey, fromPrimaryKey, idMap);
+    }
+
     //MgProductInfService mgProductInfService = new MgProductInfService();
     //ProductBasicService basicService = new ProductBasicService();
     MgProductInfService mgProductInfService = ServiceProxy.create(new MgProductInfService());

@@ -2778,6 +2778,7 @@ public class ProductBasicService extends BasicParentService {
                     } else  {
                         sysType = sourceInfo.getInt(ProductRelEntity.Info.SYS_TYPE, ProductRelValObj.SysType.DEFAULT);
                         Integer unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
+                        Integer status = info.getInt(ProductRelEntity.Info.STATUS);
                         if(unionPriId == null) {
                             rt = Errno.ARGS_ERROR;
                             Log.logErr("args error, unionPriId is null;flow=%d;aid=%d;tid=%d;", flow, aid, tid);
@@ -2809,7 +2810,12 @@ public class ProductBasicService extends BasicParentService {
                         relData.assign(sourceInfo, ProductRelEntity.Info.UPDATE_TIME);
                         relData.assign(sourceInfo, ProductRelEntity.Info.RL_PD_ID);
                         relData.assign(sourceInfo, ProductRelEntity.Info.LAST_SID);
-                        relData.assign(sourceInfo, ProductRelEntity.Info.STATUS);
+                        // 如果没有设置 status 则跟随源数据
+                        if (status == null) {
+                            relData.assign(sourceInfo, ProductRelEntity.Info.STATUS);
+                        } else {
+                            relData.setInt(ProductRelEntity.Info.STATUS, status);
+                        }
                         relData.assign(sourceInfo, ProductRelEntity.Info.UP_SALE_TIME);
                         relData.assign(sourceInfo, ProductRelEntity.Info.FLAG);
                         relData.setInt(ProductRelEntity.Info.SORT, sort);
@@ -3874,6 +3880,46 @@ public class ProductBasicService extends BasicParentService {
         session.write(sendBuf);
         rt = Errno.OK;
         Log.logDbg("get List by unionPriIds ok;flow=%d;aid=%d;unionPriIds=%s;sysType=%s;rlPdIds=%s;", flow, aid, unionPriIds, sysType, rlPdIds);
+        return rt;
+    }
+
+    @SuccessRt({Errno.OK})
+    public int getRlPdIdAndPdIdMap(FaiSession session, int flow, int aid, int fromAid, int toUnionPriId, int toSysType, int fromSysType, int fromUnionPriId, FaiList<Param> rlPdIdMap) throws IOException {
+        int rt;
+        if (Utils.isEmptyList(rlPdIdMap)) {
+            rt = Errno.ARGS_ERROR;
+            throw new MgException(rt, "args err;");
+        }
+        FaiList<Param> toRlPdIdAndPdIdList;
+        FaiList<Param> fromRlPdIdAndPdIdList;
+        TransactionCtrl tc = new TransactionCtrl();
+        try {
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+            HashSet<Integer> toRlPdIdSet = new HashSet<>(Utils.getValList(rlPdIdMap, ProductRelEntity.Info.TO_RL_PD_ID));
+            // 获取 去向 rlPdId 和 pdId 的映射
+            toRlPdIdAndPdIdList = relProc.getPdIdRels(aid, toUnionPriId, toSysType, toRlPdIdSet);
+            if (toRlPdIdAndPdIdList.isEmpty()) {
+                rt = Errno.NOT_FOUND;
+                throw new MgException(rt, "not found toRlPdIds;flow=%d;aid=%d;unionPriId=%d;sysType=%d;rlPdIds=%s", flow, aid, toUnionPriId, toSysType, toRlPdIdSet.toString());
+            }
+
+            HashSet<Integer> fromRlPdIdSet = new HashSet<>(Utils.getValList(rlPdIdMap, ProductRelEntity.Info.FROM_RL_PD_ID));
+            // 获取 来源 rlPdId 和 pdId 的映射
+            fromRlPdIdAndPdIdList = relProc.getPdIdRels(fromAid, fromUnionPriId, fromSysType, fromRlPdIdSet);
+            if (fromRlPdIdAndPdIdList.isEmpty()) {
+                rt = Errno.NOT_FOUND;
+                throw new MgException(rt, "not found fromRlPdIds;flow=%d;aid=%d;unionPriId=%d;sysType=%d;rlPdIds=%s", flow, fromAid, fromUnionPriId, fromSysType, fromRlPdIdSet.toString());
+            }
+        } finally {
+            tc.closeDao();
+        }
+
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        toRlPdIdAndPdIdList.toBuffer(sendBuf, ProductRelDto.Key.TO_RL_PD_ID_AND_PD_ID, ProductRelDto.getInfoDto());
+        fromRlPdIdAndPdIdList.toBuffer(sendBuf, ProductRelDto.Key.FROM_RL_PD_ID_AND_PD_ID, ProductRelDto.getInfoDto());
+        session.write(sendBuf);
+        rt = Errno.OK;
+        Log.logStd("getRlPdIdAndPdIdMap ok;flow=%d;aid=%d;fromAid=%d;toUnionPriId=%d;fromUnionPriId=%d;toSysType=%d;fromSysType=%d;rlPdIdMap=%s;", flow, aid, fromAid, toUnionPriId, fromUnionPriId, toSysType, fromSysType, rlPdIdMap);
         return rt;
     }
 

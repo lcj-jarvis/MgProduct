@@ -60,6 +60,7 @@ public class StoreSalesSkuProc {
         Set<Integer> addPdIdList = new HashSet<>();
         for (Param info : infoList) {
             Param data = new Param();
+            Integer status = info.getInt(StoreSalesSkuEntity.Info.STATUS, 0);
             data.setInt(StoreSalesSkuEntity.Info.AID, aid);
             data.assign(info, StoreSalesSkuEntity.Info.UNION_PRI_ID);
             data.assign(info, StoreSalesSkuEntity.Info.RL_PD_ID);
@@ -88,6 +89,7 @@ public class StoreSalesSkuProc {
             }
             data.setLong(StoreSalesSkuEntity.Info.PRICE, price);
             data.setInt(StoreSalesSkuEntity.Info.FLAG, flag);
+            data.setInt(StoreSalesSkuEntity.Info.STATUS, status);
             data.setLong(StoreSalesSkuEntity.Info.ORIGIN_PRICE, 0L); // 给默认值
             data.assign(info, StoreSalesSkuEntity.Info.ORIGIN_PRICE); // 有就覆盖
             data.assign(info, StoreSalesSkuEntity.Info.MIN_AMOUNT);
@@ -1227,17 +1229,11 @@ public class StoreSalesSkuProc {
             Integer unionPriId = unionPriIdSkuIdListEntry.getKey();
             FaiList<Long> skuIdList = unionPriIdSkuIdListEntry.getValue();
             Ref<FaiList<Param>> listRef = new Ref<>();
-            rt = getListFromDaoBySkuIdList(aid, unionPriId, skuIdList, listRef,
-                    StoreSalesSkuEntity.Info.SKU_ID,
-                    StoreSalesSkuEntity.Info.RL_PD_ID,
-                    StoreSalesSkuEntity.Info.SYS_TYPE,
-                    StoreSalesSkuEntity.Info.PD_ID,
-                    StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID,
-                    StoreSalesSkuEntity.Info.REMAIN_COUNT,
-                    StoreSalesSkuEntity.Info.HOLDING_COUNT,
-                    StoreSalesSkuEntity.Info.FIFO_TOTAL_COST,
-                    StoreSalesSkuEntity.Info.MW_TOTAL_COST,
-                    StoreSalesSkuEntity.Info.MW_COST);
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+            searchArg.matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, unionPriId);
+            searchArg.matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, skuIdList);
+            rt = m_daoCtrl.selectWithDel(searchArg, listRef);
             if(rt != Errno.OK){
                 return rt;
             }

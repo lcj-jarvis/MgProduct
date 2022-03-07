@@ -504,4 +504,68 @@ public class MgProductInfCli extends MgProductInfCli7ForProductTag {
             stat.end(m_rt != Errno.OK, m_rt);
         }
     }
+
+    /**
+     * 根据业务传入 商品 id 映射 克隆富文本信息
+     * @param mgProductArg
+     * MgProductArg arg = new MgProductArg.Builder(aid, tid, siteId, lgId, keepPriId)
+     *      .setToSysType(0) // 选填，默认0
+     *      .setFromSysType(1) // 选填，默认0
+     *      .setIdMap(idMap) // 必填，商品id映射
+     *      .setFromAid(aid) // 必填，克隆数据来源 aid
+     *      .setFromPrimaryKey(fromPrimaryKey) // 必填，克隆数据来源 主键维度
+     *      .build();
+     * @return {@link Errno}
+     */
+    public int incCloneRichText(MgProductArg mgProductArg) {
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            int aid = mgProductArg.getAid();
+            int fromAid = mgProductArg.getFromAid();
+            if (aid <= 0 || fromAid <= 0) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args err;aid=%d;fromAid=%d", aid, fromAid);
+                return m_rt;
+            }
+            Param fromPrimaryKey = mgProductArg.getFromPrimaryKey();
+            if (fromPrimaryKey == null) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args err;fromPrimaryKey is null");
+                return m_rt;
+            }
+            FaiList<Param> idMap = mgProductArg.getIdMap();
+            if (idMap == null || idMap.isEmpty()) {
+                m_rt = Errno.ARGS_ERROR;
+                Log.logErr(m_rt, "args err;idMap is null");
+                return m_rt;
+            }
+
+            int toSysType = mgProductArg.getToSysType();
+            int fromSysType = mgProductArg.getFromSysType();
+            int tid = mgProductArg.getTid();
+            int siteId = mgProductArg.getSiteId();
+            int lgId = mgProductArg.getLgId();
+            int keepPriId1 = mgProductArg.getKeepPriId1();
+
+            Param primaryKey = new Param();
+            primaryKey.setInt(MgProductEntity.Info.TID, tid);
+            primaryKey.setInt(MgProductEntity.Info.SITE_ID, siteId);
+            primaryKey.setInt(MgProductEntity.Info.LGID, lgId);
+            primaryKey.setInt(MgProductEntity.Info.KEEP_PRI_ID1, keepPriId1);
+
+            FaiBuffer sendBody = getDefaultFaiBuffer();
+            sendBody.putInt(MgProductDto.Key.TO_SYS_TYPE, toSysType);
+            sendBody.putInt(MgProductDto.Key.FROM_SYS_TYPE, fromSysType);
+            sendBody.putInt(MgProductDto.Key.FROM_AID, fromAid);
+            primaryKey.toBuffer(sendBody, MgProductDto.Key.PRIMARY_KEY, MgProductDto.getPrimaryKeyDto());
+            fromPrimaryKey.toBuffer(sendBody, MgProductDto.Key.FROM_PRIMARY_KEY, MgProductDto.getPrimaryKeyDto());
+            idMap.toBuffer(sendBody, MgProductDto.Key.ID_MAP, MgProductDto.getIdMapDto());
+
+            sendAndRecv(aid, MgProductInfCmd.Cmd.INC_CLONE_RICH_TEXT, sendBody, false, false);
+            return m_rt;
+        } finally {
+            close();
+            stat.end(m_rt != Errno.OK, m_rt);
+        }
+    }
 }

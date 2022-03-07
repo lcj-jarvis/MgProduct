@@ -14,6 +14,7 @@ import fai.MgProductInfSvr.domain.entity.RichTextConverter;
 import fai.MgProductInfSvr.domain.serviceproc.*;
 import fai.MgProductInfSvr.interfaces.dto.MgProductDto;
 import fai.MgProductInfSvr.interfaces.dto.ProductBasicDto;
+import fai.MgProductInfSvr.interfaces.dto.ProductStoreDto;
 import fai.MgProductInfSvr.interfaces.entity.*;
 import fai.MgProductPropSvr.interfaces.cli.MgProductPropCli;
 import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
@@ -1826,6 +1827,9 @@ public class MgProductInfService extends ServicePub {
                             spuSales.setInt(SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID, ownerUnionPriId);
                             spuSales.setInt(SpuBizSummaryEntity.Info.PD_ID, pdId);
                             spuSales.setInt(SpuBizSummaryEntity.Info.RL_PD_ID, rlPdId);
+
+                            // 2022/03/07 设置 sysType
+                            spuSales.setInt(SpuBizSummaryEntity.Info.SYS_TYPE, sysType);
 
                             importSpuSales.add(spuSales);
                         }

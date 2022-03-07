@@ -559,8 +559,9 @@ public class ProductBasicService extends BasicParentService {
                     matcher.and(ProductBindPropEntity.Info.RL_PD_ID, ParamMatcher.IN, rlPdIds);
                     delPropCount = bindPropProc.delPdBindProp(aid, matcher);
                 }
-                commit = true;
 
+                relProc.transactionEnd(aid);
+                commit = true;
             }finally {
                 if(!commit) {
                     tc.rollback();

@@ -599,7 +599,11 @@ public class ProductRelProc {
         }
     }
 
-    public void batchSet(int aid, FaiList<Param> list) {
+    public void batchSetWithoutSaga(int aid, FaiList<Param> list) {
+        batchSet(aid, list, null);
+    }
+
+    public void batchSet(int aid, FaiList<Param> list, FaiList<Param> oldList) {
         if(Utils.isEmptyList(list)) {
             return;
         }
@@ -638,6 +642,25 @@ public class ProductRelProc {
         int rt = m_dao.batchUpdate(updater, matcher, dataList);
         if(rt != Errno.OK) {
             throw new MgException(rt, "updatePdRel error;flow=%d;aid=%d;dataList=%s;", m_flow, aid, dataList);
+        }
+
+        if(addSaga && oldList != null) {
+            Calendar now = Calendar.getInstance();
+            for(Param info : oldList) {
+                int unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
+                int pdId = info.getInt(ProductRelEntity.Info.PD_ID);
+                PrimaryKey primaryKey = new PrimaryKey(aid, unionPriId, pdId);
+                if(sagaMap.containsKey(primaryKey)) {
+                    continue;
+                }
+
+                long branchId = RootContext.getBranchId();
+                info.setString(SagaEntity.Common.XID, m_xid);
+                info.setLong(SagaEntity.Common.BRANCH_ID, branchId);
+                info.setInt(SagaEntity.Common.SAGA_OP, SagaValObj.SagaOp.UPDATE);
+                info.setCalendar(SagaEntity.Common.SAGA_TIME, now);
+                sagaMap.put(primaryKey, info);
+            }
         }
 
         // es同步数据 预处理

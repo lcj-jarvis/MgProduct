@@ -958,7 +958,7 @@ public class ProductBasicService extends BasicParentService {
 
                     updatePdIds.add(pdId);
                 }
-                relProc.batchSet(aid, needUpdateList);
+                relProc.batchSetWithoutSaga(aid, needUpdateList);
 
                 relProc.transactionEnd(aid);
                 commit = true;
@@ -2221,7 +2221,15 @@ public class ProductBasicService extends BasicParentService {
                 searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, toUnionPriId);
                 searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
                 //searchArg.matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.EQ, ProductRelValObj.Status.DEL);
-                FaiList<Param> existList = relProc.searchFromDbWithDel(aid, searchArg, Utils.asFaiList(ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID, ProductRelEntity.Info.STATUS));
+                FaiList<String> selectFields = new FaiList<>();
+                selectFields.add(ProductRelEntity.Info.AID);
+                selectFields.add(ProductRelEntity.Info.UNION_PRI_ID);
+                selectFields.add(ProductRelEntity.Info.PD_ID);
+                selectFields.add(ProductRelEntity.Info.RL_PD_ID);
+                // 修改字段
+                selectFields.add(ProductRelEntity.Info.STATUS);
+                selectFields.add(ProductRelEntity.Info.SORT);
+                FaiList<Param> existList = relProc.searchFromDbWithDel(aid, searchArg, selectFields);
                 Map<Integer, Integer> pdId_toRlPdId = Utils.getMap(existList, ProductRelEntity.Info.PD_ID, ProductRelEntity.Info.RL_PD_ID);
 
                 int maxSort = relProc.getMaxSort(aid, toUnionPriId, sysType);
@@ -2242,7 +2250,7 @@ public class ProductBasicService extends BasicParentService {
                     updateInfo.setInt(ProductRelEntity.Info.SORT, ++maxSort);
                     updateList.add(updateInfo);
                 }
-                relProc.batchSet(aid, updateList);
+                relProc.batchSet(aid, updateList, existList);
 
                 // 新增商品业务关系
                 FaiList<Param> addRelList = new FaiList<>();

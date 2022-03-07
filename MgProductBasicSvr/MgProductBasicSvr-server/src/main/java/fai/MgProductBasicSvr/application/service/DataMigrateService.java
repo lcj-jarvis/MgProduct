@@ -179,7 +179,7 @@ public class DataMigrateService {
 
                 // 更新业务关系表数据
                 if(!updatePdRelList.isEmpty()) {
-                    relProc.batchSet(aid, updatePdRelList);
+                    relProc.batchSetWithoutSaga(aid, updatePdRelList);
                 }
 
                 // 新增分类绑定

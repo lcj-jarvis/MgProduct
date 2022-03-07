@@ -646,7 +646,7 @@ public class ProductRelProc {
 
         if(addSaga && oldList != null) {
             Calendar now = Calendar.getInstance();
-            for(Param info : oldList) {
+            for(Param info : oldList.clone()) {
                 int unionPriId = info.getInt(ProductRelEntity.Info.UNION_PRI_ID);
                 int pdId = info.getInt(ProductRelEntity.Info.PD_ID);
                 PrimaryKey primaryKey = new PrimaryKey(aid, unionPriId, pdId);

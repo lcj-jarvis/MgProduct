@@ -162,7 +162,7 @@ public class StoreService extends StoreParentService {
                         if(updateList.isEmpty()) {
                             FaiBuffer sendBuf = new FaiBuffer(true);
                             session.write(sendBuf);
-                            Log.logStd("ok, update is empty;flow=%s;aid=%s;uid=%s;restoreList=%s;", flow, aid, restoreList);
+                            Log.logStd("ok, update is empty;flow=%s;aid=%s;restoreList=%s;", flow, aid, restoreList);
                             return Errno.OK;
                         }
                         rt = spuBizSummaryProc.restoreSoftDelBizPds(aid, restoreList, isSaga);
@@ -245,7 +245,7 @@ public class StoreService extends StoreParentService {
 
             FaiBuffer sendBuf = new FaiBuffer(true);
             session.write(sendBuf);
-            Log.logStd("ok;flow=%s;aid=%s;uid=%s;restoreList=%s;", flow, aid, restoreList);
+            Log.logStd("ok;flow=%s;aid=%s;restoreList=%s;", flow, aid, restoreList);
         }finally {
             stat.end(rt != Errno.OK, rt);
         }

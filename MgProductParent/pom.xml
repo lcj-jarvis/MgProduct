@@ -90,6 +90,10 @@
                         <groupId>asm</groupId>
                         <artifactId>asm</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>fai-comm-dao</groupId>
+                        <artifactId>fai-comm-dao</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>

@@ -647,6 +647,7 @@ public class ProductBasicService extends MgProductInfService {
                         spuSales.setInt(SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID, bindUnionPriId);
                         spuSales.setInt(SpuBizSummaryEntity.Info.PD_ID, pdId);
                         spuSales.setInt(SpuBizSummaryEntity.Info.RL_PD_ID, rlPdId);
+                        spuSales.setInt(SpuBizSummaryEntity.Info.SYS_TYPE, sysType);
                         addSpuSales.add(spuSales);
                     }
 
@@ -862,6 +863,7 @@ public class ProductBasicService extends MgProductInfService {
                         spuSales.setInt(SpuBizSummaryEntity.Info.SOURCE_UNION_PRI_ID, fromUnionPriId);
                         spuSales.setInt(SpuBizSummaryEntity.Info.PD_ID, pdId);
                         spuSales.setInt(SpuBizSummaryEntity.Info.RL_PD_ID, rlPdId);
+                        spuSales.setInt(SpuBizSummaryEntity.Info.SYS_TYPE, sysType);
                         addSpuSales.add(spuSales);
                     }
 
@@ -1641,6 +1643,7 @@ public class ProductBasicService extends MgProductInfService {
             spuSales.setInt(SpuBizSummaryEntity.Info.UNION_PRI_ID, unionPriId);
             spuSales.setInt(SpuBizSummaryEntity.Info.PD_ID, pdId);
             spuSales.setInt(SpuBizSummaryEntity.Info.RL_PD_ID, rlPdId);
+            spuSales.setInt(SpuBizSummaryEntity.Info.SYS_TYPE, sysType);
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
             productStoreProc.batchAddSpuBizSummary(aid, xid, Utils.asFaiList(spuSales));
             if (rt != Errno.OK) {

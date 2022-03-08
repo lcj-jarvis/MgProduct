@@ -702,7 +702,7 @@ public class ProductBasicService extends MgProductInfService {
                 // 添加spu信息
                 if(!addSpuSales.isEmpty()) {
                     ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-                    productStoreProc.batchAddSpuBizSummary(aid, xid, addSpuSales);
+                    rt = productStoreProc.batchAddSpuBizSummary(aid, xid, addSpuSales);
                     if (rt != Errno.OK) {
                         return rt;
                     }

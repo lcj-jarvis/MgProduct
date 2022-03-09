@@ -382,6 +382,11 @@ public class DataMigrateService extends MgProductInfService {
         }
 
         ProductBasicProc basicProc = new ProductBasicProc(flow);
+
+        // 先找出是否是重复迁移数据的 pdId, 如果存在则清除基础信息中的数据
+        FaiList<Integer> migratePdIds = basicProc.getMigratePdIds(aid, 0);
+        Log.logDbg("needDelPdId=%s", migratePdIds);
+
         FaiList<Param> returnList = basicProc.dataMigrate(aid, tid, pdList);
         Map<String, Integer> unionPriIdRlPdId_pdId = new HashMap<>();
 
@@ -435,7 +440,7 @@ public class DataMigrateService extends MgProductInfService {
                 Param primary = getByUnionPriId(flow, aid, unionPriId);
                 int siteId = primary.getInt(MgPrimaryKeyEntity.Info.SITE_ID);
                 int keepPriId1 = primary.getInt(MgPrimaryKeyEntity.Info.KEEP_PRI_ID1);
-                richProc.migrateDel(aid, tid, siteId, lgId, keepPriId1);
+                richProc.batchDel("", aid, tid, siteId, lgId, keepPriId1, migratePdIds);
                 richProc.batchAdd("", aid, tid, siteId, lgId, keepPriId1, remarkMap.get(unionPriId));
             }
         }

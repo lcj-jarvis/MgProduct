@@ -223,15 +223,11 @@ public class DataMigrateService extends MgProductInfService {
             }
         }
 
-        Map<String, FaiList<Integer>> bindGroupMap = new HashMap<>();
-        for(Param bindGroup : ykPdBindGroupList) {
+        Map<String, Set<Integer>> bindGroupMap = new HashMap<>();
+        for (Param bindGroup : ykPdBindGroupList) {
             int yid = bindGroup.getInt("yid");
             int rlPdId = bindGroup.getInt("itemId");
-            FaiList<Integer> bindGroupIds = bindGroupMap.get(yid + "-" + rlPdId);
-            if(bindGroupIds == null) {
-                bindGroupIds = new FaiList<>();
-                bindGroupMap.put(yid + "-" + rlPdId, bindGroupIds);
-            }
+            Set<Integer> bindGroupIds = bindGroupMap.computeIfAbsent(yid + "-" + rlPdId, k -> new HashSet<>());
             int rlGroupId = bindGroup.getInt("categoryId");
             bindGroupIds.add(rlGroupId);
         }
@@ -311,11 +307,11 @@ public class DataMigrateService extends MgProductInfService {
                 basicInfo.setCalendar(ProductBasicEntity.ProductInfo.CREATE_TIME, sysCreateTime);
                 basicInfo.setCalendar(ProductBasicEntity.ProductInfo.UPDATE_TIME, sysUpdateTime);
 
-                FaiList<Integer> bindGroupIds = bindGroupMap.get(siteId + "-" + rlPdId);
+                Set<Integer> bindGroupIds = bindGroupMap.get(siteId + "-" + rlPdId);
                 Param info = new Param();
                 info.setParam(MigrateDef.Info.ADD_PD, basicInfo);
                 if(bindGroupIds != null) {
-                    info.setList(MigrateDef.Info.BIND_RL_GROUP, bindGroupIds);
+                    info.setList(MigrateDef.Info.BIND_RL_GROUP, new FaiList<>(bindGroupIds));
                 }
                 unionPriIdRlPdId_info.put(ownUnionPriId+"-"+rlPdId, info);
             }
@@ -382,6 +378,11 @@ public class DataMigrateService extends MgProductInfService {
         }
 
         ProductBasicProc basicProc = new ProductBasicProc(flow);
+
+        // 先找出是否是重复迁移数据的 pdId, 如果存在则清除基础信息中的数据
+        FaiList<Integer> migratePdIds = basicProc.getMigratePdIds(aid, 0);
+        Log.logDbg("needDelPdId=%s", migratePdIds);
+
         FaiList<Param> returnList = basicProc.dataMigrate(aid, tid, pdList);
         Map<String, Integer> unionPriIdRlPdId_pdId = new HashMap<>();
 
@@ -435,7 +436,7 @@ public class DataMigrateService extends MgProductInfService {
                 Param primary = getByUnionPriId(flow, aid, unionPriId);
                 int siteId = primary.getInt(MgPrimaryKeyEntity.Info.SITE_ID);
                 int keepPriId1 = primary.getInt(MgPrimaryKeyEntity.Info.KEEP_PRI_ID1);
-                richProc.migrateDel(aid, tid, siteId, lgId, keepPriId1);
+                richProc.batchDel("", aid, tid, siteId, lgId, keepPriId1, migratePdIds);
                 richProc.batchAdd("", aid, tid, siteId, lgId, keepPriId1, remarkMap.get(unionPriId));
             }
         }

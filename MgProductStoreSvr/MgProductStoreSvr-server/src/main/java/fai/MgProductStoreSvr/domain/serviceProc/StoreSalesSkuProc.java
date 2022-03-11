@@ -95,6 +95,7 @@ public class StoreSalesSkuProc {
             data.assign(info, StoreSalesSkuEntity.Info.MIN_AMOUNT);
             data.assign(info, StoreSalesSkuEntity.Info.MAX_AMOUNT);
             data.assign(info, StoreSalesSkuEntity.Info.DURATION);
+            data.assign(info, StoreSalesSkuEntity.Info.WEIGHT);
             data.assign(info, StoreSalesSkuEntity.Info.VIRTUAL_COUNT);
             data.setCalendar(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME, now);
             data.setCalendar(StoreSalesSkuEntity.Info.SYS_CREATE_TIME, now);

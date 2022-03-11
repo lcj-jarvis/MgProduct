@@ -45,6 +45,7 @@ public class ProductStoreEntity {
         public static final String OWNER_RL_PD_ID = "ownerRlPdId";                  // int 该商品所属者的商品业务id，批量添加库存信息时，兼容商品信息未绑定过来
         public static final String PD_ID = "pdId";
         public static final String UNION_PRI_ID = "unionPriId";
+        public static final String WEIGHT = "weight";
     }
 
     /**
@@ -143,6 +144,7 @@ public class ProductStoreEntity {
         public static final String STATUS = "status";                               // int 数据状态
         public static final String UNION_PRI_ID = "unionPriId";
         public static final String PD_ID = "pdId";
+        public static final String WEIGHT = "weight";
 
 
 

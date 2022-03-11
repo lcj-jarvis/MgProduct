@@ -380,7 +380,7 @@ public class DataMigrateService extends MgProductInfService {
         ProductBasicProc basicProc = new ProductBasicProc(flow);
 
         // 先找出是否是重复迁移数据的 pdId, 如果存在则清除基础信息中的数据
-        FaiList<Integer> migratePdIds = basicProc.getMigratePdIds(aid, 0);
+        FaiList<Integer> migratePdIds = basicProc.getMigratePdIds(aid, 0, false);
         Log.logDbg("needDelPdId=%s", migratePdIds);
 
         FaiList<Param> returnList = basicProc.dataMigrate(aid, tid, pdList);
@@ -909,7 +909,7 @@ public class DataMigrateService extends MgProductInfService {
 
         ProductBasicProc basicProc = new ProductBasicProc(flow);
         // 先找出是否是重复迁移数据的 pdId, 如果存在则清除基础信息中的数据
-        FaiList<Integer> migratePdIds = basicProc.getMigratePdIds(aid, sysType);
+        FaiList<Integer> migratePdIds = basicProc.getMigratePdIds(aid, sysType, true);
         Log.logDbg("needDelPdId=%s", migratePdIds);
 
         // 同步基础信息

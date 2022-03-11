@@ -761,14 +761,14 @@ public class ProductBasicProc {
         return returnList;
     }
 
-    public FaiList<Integer> getMigratePdIds(int aid, int sysType) {
+    public FaiList<Integer> getMigratePdIds(int aid, int sysType, boolean needDel) {
         int rt;
         if(m_cli == null) {
             rt = Errno.ERROR;
             throw new MgException(rt, "get ProductBasicCli error;flow=%d;aid=%d;", m_flow, aid);
         }
         FaiList<Integer> pdIds = new FaiList<>();
-        rt = m_cli.getMigratePdIds(aid, sysType, pdIds);
+        rt = m_cli.getMigratePdIds(aid, sysType, pdIds, needDel);
         if(rt != Errno.OK) {
             throw new MgException(rt, "getMigratePdIds error;flow=%d;aid=%d;", m_flow, aid);
         }

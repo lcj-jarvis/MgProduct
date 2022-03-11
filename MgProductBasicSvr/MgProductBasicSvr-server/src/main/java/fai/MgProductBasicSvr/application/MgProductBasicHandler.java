@@ -777,8 +777,9 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
     public int getMigratePdIds(final FaiSession session,
                            @ArgFlow final int flow,
                            @ArgAid final int aid,
-                           @ArgBodyInteger(value = ProductDto.Key.SYS_TYPE, useDefault = true) int sysType) throws IOException {
-        return dataMigrateService.getMigratePdIds(session, flow, aid, sysType);
+                           @ArgBodyInteger(value = ProductDto.Key.SYS_TYPE, useDefault = true) int sysType,
+                           @ArgBodyBoolean(value = ProductDto.Key.DEL, useDefault = true, defaultValue = false) boolean needDel) throws IOException {
+        return dataMigrateService.getMigratePdIds(session, flow, aid, sysType, needDel);
     }
 
     @WrittenCmd

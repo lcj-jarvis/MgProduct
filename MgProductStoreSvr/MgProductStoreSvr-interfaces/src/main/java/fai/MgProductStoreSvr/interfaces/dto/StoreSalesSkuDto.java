@@ -44,6 +44,7 @@ public class StoreSalesSkuDto {
         g_dtoDef.add(StoreSalesSkuEntity.Info.MW_COST, 26, Var.Type.LONG);
         g_dtoDef.add(StoreSalesSkuEntity.Info.SYS_TYPE, 27, Var.Type.INT);
         g_dtoDef.add(StoreSalesSkuEntity.Info.STATUS, 28, Var.Type.INT);
+        g_dtoDef.add(StoreSalesSkuEntity.Info.WEIGHT, 29, Var.Type.DOUBLE);
     }
 
     public static ParamDef getInfoDto() {

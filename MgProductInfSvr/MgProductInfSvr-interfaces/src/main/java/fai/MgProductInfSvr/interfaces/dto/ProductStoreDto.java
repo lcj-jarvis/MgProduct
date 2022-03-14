@@ -53,6 +53,7 @@ public class ProductStoreDto {
             g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.MW_COST, 28, Var.Type.LONG);
             g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.OWNER_RL_PD_ID, 29, Var.Type.INT);
             g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.STATUS, 30, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.StoreSalesSkuInfo.WEIGHT, 31, Var.Type.DOUBLE);
         }
         public static ParamDef getInfoDto() {
             return g_infoDtoDef;
@@ -122,6 +123,7 @@ public class ProductStoreDto {
             g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.KEEP_PRI_ID1, 20, Var.Type.INT);
             g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.DISTRIBUTE_LIST, 21, Var.Type.STRING);
             g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.STATUS, 22, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.WEIGHT, 23, Var.Type.DOUBLE);
         }
         public static ParamDef getInfoDto() {
             return g_infoDtoDef;

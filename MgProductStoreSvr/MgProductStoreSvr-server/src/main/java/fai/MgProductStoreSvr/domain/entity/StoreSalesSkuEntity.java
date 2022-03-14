@@ -36,6 +36,8 @@ public class StoreSalesSkuEntity {
 
         public static final String STATUS_MATCHER = "statusMatcher";                // int 数据状态，batchUpdate时，避免matcher和updater都需要status而冲突
         public static final String COST_PRICE = "costPrice";                        // long 商品成本单价，商品导入用，不入库存销售信息库
+
+        public static final String WEIGHT = "weight";                               // double 商品重量
     }
 
     private static final String[] MAX_UPDATE_AND_PRI_KEYS = new String[]{
@@ -55,7 +57,8 @@ public class StoreSalesSkuEntity {
             Info.VIRTUAL_COUNT,
             Info.FLAG,
             Info.SYS_UPDATE_TIME,
-            Info.STATUS
+            Info.STATUS,
+            Info.WEIGHT
     };
 
     /**
@@ -79,7 +82,8 @@ public class StoreSalesSkuEntity {
             Info.DURATION,
             Info.VIRTUAL_COUNT,
             Info.FLAG,
-            Info.STATUS
+            Info.STATUS,
+            Info.WEIGHT
     };
     /**
      * 支持批量更新的字段

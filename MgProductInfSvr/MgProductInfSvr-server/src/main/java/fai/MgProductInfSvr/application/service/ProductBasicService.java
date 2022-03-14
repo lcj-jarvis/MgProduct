@@ -692,6 +692,7 @@ public class ProductBasicService extends MgProductInfService {
                                 addStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.DURATION, StoreSalesSkuEntity.Info.DURATION);
                                 addStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.VIRTUAL_COUNT, StoreSalesSkuEntity.Info.VIRTUAL_COUNT);
                                 addStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.FLAG, StoreSalesSkuEntity.Info.FLAG);
+                                addStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.WEIGHT);
                                 addStoreSaleSkuInfo.setList(StoreSalesSkuEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList);
                                 storeSaleSkuList.add(addStoreSaleSkuInfo);
                             }
@@ -908,6 +909,7 @@ public class ProductBasicService extends MgProductInfService {
                                 addStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.DURATION, StoreSalesSkuEntity.Info.DURATION);
                                 addStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.VIRTUAL_COUNT, StoreSalesSkuEntity.Info.VIRTUAL_COUNT);
                                 addStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.FLAG, StoreSalesSkuEntity.Info.FLAG);
+                                addStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.WEIGHT);
                                 addStoreSaleSkuInfo.setList(StoreSalesSkuEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList);
                                 storeSaleSkuList.add(addStoreSaleSkuInfo);
                             }
@@ -1688,6 +1690,7 @@ public class ProductBasicService extends MgProductInfService {
                     addStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.DURATION, StoreSalesSkuEntity.Info.DURATION);
                     addStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.VIRTUAL_COUNT, StoreSalesSkuEntity.Info.VIRTUAL_COUNT);
                     addStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.FLAG, StoreSalesSkuEntity.Info.FLAG);
+                    addStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.WEIGHT);
                     addStoreSaleSkuInfo.setList(StoreSalesSkuEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList);
                     storeSaleSkuList.add(addStoreSaleSkuInfo);
                 }

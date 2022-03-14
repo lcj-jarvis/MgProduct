@@ -29,6 +29,7 @@ public class SpuBizSummaryEntity {
         public static final String KEEP_PROP1 = "keepProp1";                        // varchar(255) 字符串 保留字段1 TODO
         public static final String KEEP_INT_PROP1 = "keepIntProp1";                 // int 整型 保留字段1 TODO
         public static final String STATUS = "status";                               // int 数据状态
+        public static final String WEIGHT = "weight";                               // double 重量
 
         public static final String STATUS_MATCHER = "statusMatcher";                // int 数据状态，batchUpdate时，避免matcher和updater都需要status而冲突
     }

@@ -3439,7 +3439,7 @@ public class MgProductBasicCli extends FaiClient {
         }
     }
 
-    public int getMigratePdIds(int aid, int sysType, FaiList<Integer> pdIds) {
+    public int getMigratePdIds(int aid, int sysType, FaiList<Integer> pdIds, boolean needDel) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -3452,6 +3452,7 @@ public class MgProductBasicCli extends FaiClient {
             // send
             FaiBuffer sendBody = new FaiBuffer(true);
             sendBody.putInt(ProductDto.Key.SYS_TYPE, sysType);
+            sendBody.putBoolean(ProductDto.Key.DEL, needDel);
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductBasicCmd.Cmd.MIGRATE_GET);

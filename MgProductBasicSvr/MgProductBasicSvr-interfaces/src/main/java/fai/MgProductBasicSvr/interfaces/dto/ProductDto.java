@@ -60,5 +60,6 @@ public class ProductDto {
         public static final int TO_SYS_TYPE = 14;
         public static final int FROM_SYS_TYPE = 15;
         public static final int RL_PD_ID_MAP = 16;
+        public static final int DEL = 17;
     }
 }

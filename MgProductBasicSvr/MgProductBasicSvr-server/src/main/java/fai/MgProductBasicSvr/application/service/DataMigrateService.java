@@ -238,7 +238,7 @@ public class DataMigrateService {
     }
 
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
-    public int getMigratePdIds(FaiSession session, int flow, int aid, int sysType) throws IOException {
+    public int getMigratePdIds(FaiSession session, int flow, int aid, int sysType, boolean needDel) throws IOException {
         int rt = Errno.ERROR;
         FaiList<Integer> pdIds;
         TransactionCtrl tc = new TransactionCtrl();
@@ -251,7 +251,7 @@ public class DataMigrateService {
             boolean commit = false;
             try {
                 pdIds = productRelProc.getMigratePdIds(aid, sysType);
-                if (!pdIds.isEmpty()) {
+                if (!pdIds.isEmpty() && needDel) {
                     pdIds = new FaiList<>(new HashSet<>(pdIds));
                     ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
                     matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.IN, pdIds);

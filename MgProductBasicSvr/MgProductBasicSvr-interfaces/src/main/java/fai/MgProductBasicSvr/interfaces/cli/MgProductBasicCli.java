@@ -3533,6 +3533,7 @@ public class MgProductBasicCli extends FaiClient {
             m_rt = Errno.OK;
             return m_rt;
         } finally {
+            close();
             stat.end(m_rt != Errno.OK, m_rt);
         }
     }
@@ -3569,6 +3570,7 @@ public class MgProductBasicCli extends FaiClient {
             m_rt = Errno.OK;
             return m_rt;
         } finally {
+            close();
             stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
         }
     }
@@ -3614,6 +3616,7 @@ public class MgProductBasicCli extends FaiClient {
             m_rt = Errno.OK;
             return m_rt;
         } finally {
+            close();
             stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
         }
     }

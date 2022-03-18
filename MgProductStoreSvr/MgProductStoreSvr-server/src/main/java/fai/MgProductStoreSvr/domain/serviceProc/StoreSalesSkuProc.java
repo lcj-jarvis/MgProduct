@@ -927,7 +927,7 @@ public class StoreSalesSkuProc {
             searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
             searchArg.matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, uid);
             searchArg.matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, skuIdSet);
-            rt = m_daoCtrl.selectWithDel(searchArg, listRef);
+            rt = m_daoCtrl.selectWithDel(searchArg, listRef, StoreSalesSkuEntity.Info.SKU_ID);
             if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                 return rt;
             }
@@ -940,8 +940,11 @@ public class StoreSalesSkuProc {
             return Errno.OK;
         }
         Ref<FaiList<Param>> sourceListRef = new Ref<>();
-        rt = getListFromDaoBySkuIdList(aid, ownerUnionPriId, new FaiList<>(needAddedSkuIdSet), sourceListRef,
-                StoreSalesSkuEntity.Info.SKU_ID, StoreSalesSkuEntity.Info.PRICE, StoreSalesSkuEntity.Info.ORIGIN_PRICE);
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, ownerUnionPriId);
+        searchArg.matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, needAddedSkuIdSet);
+        rt = m_daoCtrl.selectWithDel(searchArg, sourceListRef, StoreSalesSkuEntity.Info.SKU_ID, StoreSalesSkuEntity.Info.PRICE, StoreSalesSkuEntity.Info.ORIGIN_PRICE);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             Log.logErr(rt, "get sourceList err;flow=%s;aid=%s;ownerUnionPriId=%s;skuSet=%s;", m_flow, aid, ownerUnionPriId, needAddedSkuIdSet);
             return rt;

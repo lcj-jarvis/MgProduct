@@ -923,7 +923,11 @@ public class StoreSalesSkuProc {
             int uid = uidSkuIdSetEntry.getKey();
             Set<Long> skuIdSet = uidSkuIdSetEntry.getValue();
             Ref<FaiList<Param>> listRef = new Ref<>();
-            rt = getListFromDaoBySkuIdList(aid, uid, new FaiList<>(skuIdSet), listRef, StoreSalesSkuEntity.Info.SKU_ID);
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+            searchArg.matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, uid);
+            searchArg.matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, skuIdSet);
+            rt = m_daoCtrl.selectWithDel(searchArg, listRef);
             if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                 return rt;
             }

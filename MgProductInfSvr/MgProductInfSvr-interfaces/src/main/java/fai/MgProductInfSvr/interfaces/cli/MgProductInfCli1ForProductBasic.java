@@ -419,6 +419,7 @@ public class MgProductInfCli1ForProductBasic extends MgProductParentInfCli {
 
             return m_rt;
         } finally {
+            close();
             stat.end(m_rt != Errno.OK && m_rt != Errno.NOT_FOUND, m_rt);
         }
     }

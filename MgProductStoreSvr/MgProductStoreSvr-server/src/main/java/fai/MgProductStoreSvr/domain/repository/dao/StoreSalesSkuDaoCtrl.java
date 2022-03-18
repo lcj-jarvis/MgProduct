@@ -53,7 +53,7 @@ public class StoreSalesSkuDaoCtrl extends DaoCtrlWithoutDel {
 	}
 
 	public int selectWithDel(SearchArg searchArg, Ref<FaiList<Param>> listRef) {
-		return selectWithDel(searchArg, listRef, "");
+		return selectWithDel(searchArg, listRef, null);
 	}
 
 	public static StoreSalesSkuDaoCtrl getInstance(int flow, int aid) {

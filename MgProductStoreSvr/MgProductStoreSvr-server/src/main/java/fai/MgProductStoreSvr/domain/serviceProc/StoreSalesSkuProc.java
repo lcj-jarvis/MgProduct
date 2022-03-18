@@ -505,10 +505,10 @@ public class StoreSalesSkuProc {
         maxUpdaterKeys.add(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME);
         if (isSaga) {
             // 查询分布式事务所需要修改的全部字段
-            rt = m_daoCtrl.select(searchArg, listRef, StoreSalesSkuEntity.getMaxUpdateAndPriKeys());
+            rt = m_daoCtrl.selectWithDel(searchArg, listRef, StoreSalesSkuEntity.getMaxUpdateAndPriKeys());
         } else {
             // 查询老数据
-            rt = m_daoCtrl.select(searchArg, listRef, maxUpdaterKeys.toArray(new String[]{}));
+            rt = m_daoCtrl.selectWithDel(searchArg, listRef, maxUpdaterKeys.toArray(new String[]{}));
         }
         if(rt != Errno.OK){
             Log.logErr(rt,"dao.select error;flow=%d;aid=%s;unionPriIdList=%s;skuIdList=%s;", m_flow, aid, unionPriIdList, skuIdList);
@@ -923,7 +923,11 @@ public class StoreSalesSkuProc {
             int uid = uidSkuIdSetEntry.getKey();
             Set<Long> skuIdSet = uidSkuIdSetEntry.getValue();
             Ref<FaiList<Param>> listRef = new Ref<>();
-            rt = getListFromDaoBySkuIdList(aid, uid, new FaiList<>(skuIdSet), listRef, StoreSalesSkuEntity.Info.SKU_ID);
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+            searchArg.matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, uid);
+            searchArg.matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, new FaiList<>(skuIdSet));
+            rt = m_daoCtrl.selectWithDel(searchArg, listRef, StoreSalesSkuEntity.Info.SKU_ID);
             if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                 return rt;
             }
@@ -936,8 +940,11 @@ public class StoreSalesSkuProc {
             return Errno.OK;
         }
         Ref<FaiList<Param>> sourceListRef = new Ref<>();
-        rt = getListFromDaoBySkuIdList(aid, ownerUnionPriId, new FaiList<>(needAddedSkuIdSet), sourceListRef,
-                StoreSalesSkuEntity.Info.SKU_ID, StoreSalesSkuEntity.Info.PRICE, StoreSalesSkuEntity.Info.ORIGIN_PRICE);
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, ownerUnionPriId);
+        searchArg.matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, new FaiList<>(needAddedSkuIdSet));
+        rt = m_daoCtrl.selectWithDel(searchArg, sourceListRef, StoreSalesSkuEntity.Info.SKU_ID, StoreSalesSkuEntity.Info.PRICE, StoreSalesSkuEntity.Info.ORIGIN_PRICE);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             Log.logErr(rt, "get sourceList err;flow=%s;aid=%s;ownerUnionPriId=%s;skuSet=%s;", m_flow, aid, ownerUnionPriId, needAddedSkuIdSet);
             return rt;

@@ -21,6 +21,7 @@
         <module>MgProductInfSvr-interfaces</module>
     </modules>
 
+
     <build>
         <plugins>
             <plugin>

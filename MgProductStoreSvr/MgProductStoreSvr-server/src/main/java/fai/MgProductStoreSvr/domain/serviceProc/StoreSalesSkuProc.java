@@ -943,7 +943,7 @@ public class StoreSalesSkuProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, ownerUnionPriId);
-        searchArg.matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, needAddedSkuIdSet);
+        searchArg.matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, new FaiList<>(needAddedSkuIdSet));
         rt = m_daoCtrl.selectWithDel(searchArg, sourceListRef, StoreSalesSkuEntity.Info.SKU_ID, StoreSalesSkuEntity.Info.PRICE, StoreSalesSkuEntity.Info.ORIGIN_PRICE);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             Log.logErr(rt, "get sourceList err;flow=%s;aid=%s;ownerUnionPriId=%s;skuSet=%s;", m_flow, aid, ownerUnionPriId, needAddedSkuIdSet);

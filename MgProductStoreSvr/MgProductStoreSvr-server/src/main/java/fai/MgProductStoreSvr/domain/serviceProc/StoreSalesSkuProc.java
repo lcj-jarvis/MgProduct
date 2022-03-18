@@ -926,7 +926,7 @@ public class StoreSalesSkuProc {
             SearchArg searchArg = new SearchArg();
             searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
             searchArg.matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, uid);
-            searchArg.matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, skuIdSet);
+            searchArg.matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, new FaiList<>(skuIdSet));
             rt = m_daoCtrl.selectWithDel(searchArg, listRef, StoreSalesSkuEntity.Info.SKU_ID);
             if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                 return rt;

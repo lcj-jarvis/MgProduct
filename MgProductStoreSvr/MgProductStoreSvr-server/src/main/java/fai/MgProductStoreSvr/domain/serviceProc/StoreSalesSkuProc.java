@@ -505,10 +505,10 @@ public class StoreSalesSkuProc {
         maxUpdaterKeys.add(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME);
         if (isSaga) {
             // 查询分布式事务所需要修改的全部字段
-            rt = m_daoCtrl.select(searchArg, listRef, StoreSalesSkuEntity.getMaxUpdateAndPriKeys());
+            rt = m_daoCtrl.selectWithDel(searchArg, listRef, StoreSalesSkuEntity.getMaxUpdateAndPriKeys());
         } else {
             // 查询老数据
-            rt = m_daoCtrl.select(searchArg, listRef, maxUpdaterKeys.toArray(new String[]{}));
+            rt = m_daoCtrl.selectWithDel(searchArg, listRef, maxUpdaterKeys.toArray(new String[]{}));
         }
         if(rt != Errno.OK){
             Log.logErr(rt,"dao.select error;flow=%d;aid=%s;unionPriIdList=%s;skuIdList=%s;", m_flow, aid, unionPriIdList, skuIdList);

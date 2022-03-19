@@ -5,7 +5,8 @@ import fai.MgProductStoreSvr.application.MgProductStoreSvr;
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
 import fai.MgProductStoreSvr.domain.comm.PdKey;
 import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
-import fai.MgProductStoreSvr.domain.entity.*;
+import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuEntity;
+import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuValObj;
 import fai.MgProductStoreSvr.domain.repository.cache.StoreSalesSkuCacheCtrl;
 import fai.MgProductStoreSvr.domain.repository.dao.StoreSalesSkuDaoCtrl;
 import fai.MgProductStoreSvr.domain.repository.dao.saga.StoreSalesSkuSagaDaoCtrl;
@@ -504,10 +505,10 @@ public class StoreSalesSkuProc {
         maxUpdaterKeys.add(StoreSalesSkuEntity.Info.SYS_UPDATE_TIME);
         if (isSaga) {
             // 查询分布式事务所需要修改的全部字段
-            rt = m_daoCtrl.select(searchArg, listRef, StoreSalesSkuEntity.getMaxUpdateAndPriKeys());
+            rt = m_daoCtrl.selectWithDel(searchArg, listRef, StoreSalesSkuEntity.getMaxUpdateAndPriKeys());
         } else {
             // 查询老数据
-            rt = m_daoCtrl.select(searchArg, listRef, maxUpdaterKeys.toArray(new String[]{}));
+            rt = m_daoCtrl.selectWithDel(searchArg, listRef, maxUpdaterKeys.toArray(new String[]{}));
         }
         if(rt != Errno.OK){
             Log.logErr(rt,"dao.select error;flow=%d;aid=%s;unionPriIdList=%s;skuIdList=%s;", m_flow, aid, unionPriIdList, skuIdList);
@@ -894,6 +895,10 @@ public class StoreSalesSkuProc {
         return rt;
     }
 
+    public int checkAndAdd(int aid, int ownerUnionPriId, Map<SkuBizKey, PdKey> needCheckSkuStoreKeyPdKeyMap, boolean isSaga) {
+        return checkAndAdd(aid, ownerUnionPriId, needCheckSkuStoreKeyPdKeyMap, isSaga, new FaiList<>());
+    }
+
     /**
      * 检查是否存在sku, 没有则生成
      * @param aid
@@ -902,7 +907,7 @@ public class StoreSalesSkuProc {
      * @param isSaga
      * @return
      */
-    public int checkAndAdd(int aid, int ownerUnionPriId, Map<SkuBizKey, PdKey> needCheckSkuStoreKeyPdKeyMap, boolean isSaga) {
+    public int checkAndAdd(int aid, int ownerUnionPriId, Map<SkuBizKey, PdKey> needCheckSkuStoreKeyPdKeyMap, boolean isSaga, FaiList<Integer> softDelUnionPriIds) {
         if(needCheckSkuStoreKeyPdKeyMap == null || needCheckSkuStoreKeyPdKeyMap.isEmpty()){
             Log.logErr("arg error;flow=%s;aid=%s;ownerUnionPriId=%s;needCheckSkuStoreKeyPdKeyMap=%s;", m_flow, aid, ownerUnionPriId, needCheckSkuStoreKeyPdKeyMap);
             return Errno.ARGS_ERROR;
@@ -922,7 +927,11 @@ public class StoreSalesSkuProc {
             int uid = uidSkuIdSetEntry.getKey();
             Set<Long> skuIdSet = uidSkuIdSetEntry.getValue();
             Ref<FaiList<Param>> listRef = new Ref<>();
-            rt = getListFromDaoBySkuIdList(aid, uid, new FaiList<>(skuIdSet), listRef, StoreSalesSkuEntity.Info.SKU_ID);
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+            searchArg.matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, uid);
+            searchArg.matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, new FaiList<>(skuIdSet));
+            rt = m_daoCtrl.selectWithDel(searchArg, listRef, StoreSalesSkuEntity.Info.SKU_ID);
             if(rt != Errno.OK && rt != Errno.NOT_FOUND){
                 return rt;
             }
@@ -934,9 +943,11 @@ public class StoreSalesSkuProc {
         if(needAddedSkuIdSet.isEmpty()){
             return Errno.OK;
         }
-        Ref<FaiList<Param>> sourceListRef = new Ref<>();
-        rt = getListFromDaoBySkuIdList(aid, ownerUnionPriId, new FaiList<>(needAddedSkuIdSet), sourceListRef,
-                StoreSalesSkuEntity.Info.SKU_ID, StoreSalesSkuEntity.Info.PRICE, StoreSalesSkuEntity.Info.ORIGIN_PRICE);
+        Ref<FaiList<Param>> sourceListRef = new Ref<>();SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(StoreSalesSkuEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, ownerUnionPriId);
+        searchArg.matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, new FaiList<>(needAddedSkuIdSet));
+        rt = m_daoCtrl.selectWithDel(searchArg, sourceListRef, StoreSalesSkuEntity.Info.SKU_ID, StoreSalesSkuEntity.Info.PRICE, StoreSalesSkuEntity.Info.ORIGIN_PRICE);
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             Log.logErr(rt, "get sourceList err;flow=%s;aid=%s;ownerUnionPriId=%s;skuSet=%s;", m_flow, aid, ownerUnionPriId, needAddedSkuIdSet);
             return rt;
@@ -961,18 +972,20 @@ public class StoreSalesSkuProc {
                 long price = sourceInfo.getLong(StoreSalesSkuEntity.Info.PRICE, 0L);
                 long originPrice = sourceInfo.getLong(StoreSalesSkuEntity.Info.ORIGIN_PRICE, 0L);
                 PdKey pdKey = needCheckSkuStoreKeyPdKeyMap.get(new SkuBizKey(uid, skuId));
-                addInfoList.add(
-                        new Param()
-                                .setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, uid)
-                                .setInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, ownerUnionPriId)
-                                .setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId)
-                                .setInt(StoreSalesSkuEntity.Info.PD_ID, pdKey.pdId)
-                                .setInt(StoreSalesSkuEntity.Info.RL_PD_ID, pdKey.rlPdId)
-                                .setInt(StoreSalesSkuEntity.Info.SYS_TYPE, pdKey.sysType)
-                                .setLong(StoreSalesSkuEntity.Info.PRICE, price)
-                                .setLong(StoreSalesSkuEntity.Info.ORIGIN_PRICE, originPrice)
-                                .setInt(StoreSalesSkuEntity.Info.FLAG, flag)
-                );
+                Param addInfo = new Param()
+                        .setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, uid)
+                        .setInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, ownerUnionPriId)
+                        .setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId)
+                        .setInt(StoreSalesSkuEntity.Info.PD_ID, pdKey.pdId)
+                        .setInt(StoreSalesSkuEntity.Info.RL_PD_ID, pdKey.rlPdId)
+                        .setInt(StoreSalesSkuEntity.Info.SYS_TYPE, pdKey.sysType)
+                        .setLong(StoreSalesSkuEntity.Info.PRICE, price)
+                        .setLong(StoreSalesSkuEntity.Info.ORIGIN_PRICE, originPrice)
+                        .setInt(StoreSalesSkuEntity.Info.FLAG, flag);
+                if (softDelUnionPriIds.contains(uid)) {
+                    addInfo.setInt(StoreSalesSkuEntity.Info.STATUS, StoreSalesSkuValObj.Status.DEL);
+                }
+                addInfoList.add(addInfo);
             }
         }
         rt = batchAdd(aid, null, addInfoList, isSaga);

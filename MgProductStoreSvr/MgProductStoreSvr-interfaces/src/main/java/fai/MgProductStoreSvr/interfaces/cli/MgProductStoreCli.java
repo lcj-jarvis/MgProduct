@@ -415,7 +415,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
     /**
      * 修改商品规格库存销售sku
      */
-    public int batchSetSkuStoreSales(int aid, String xid, int tid, int ownerUnionPriId, FaiList<Integer> uidList, int pdId, int rlPdId, int sysType, FaiList<ParamUpdater> updaterList){
+    public int batchSetSkuStoreSales(int aid, String xid, int tid, int ownerUnionPriId, FaiList<Integer> uidList, int pdId, int rlPdId, int sysType, FaiList<ParamUpdater> updaterList, FaiList<Integer> softDelUnionPriIds){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -453,6 +453,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
                 Log.logErr(m_rt, "updaterList error;");
                 return m_rt;
             }
+            softDelUnionPriIds.toBuffer(sendBody, StoreSalesSkuDto.Key.SOFT_DEL_UNION_PRI_IDS);
 
             FaiProtocol sendProtocol = new FaiProtocol();
             sendProtocol.setCmd(MgProductStoreCmd.StoreSalesSkuCmd.BATCH_SET_LIST);

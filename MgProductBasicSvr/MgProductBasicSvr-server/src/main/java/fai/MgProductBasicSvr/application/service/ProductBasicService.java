@@ -3892,7 +3892,7 @@ public class ProductBasicService extends BasicParentService {
         return rt;
     }
 
-    @SuccessRt({Errno.OK})
+    @SuccessRt({Errno.OK, Errno.NOT_FOUND})
     public int getRlPdIdAndPdIdMap(FaiSession session, int flow, int aid, int fromAid, int toUnionPriId, int toSysType, int fromSysType, int fromUnionPriId, FaiList<Param> rlPdIdMap) throws IOException {
         int rt;
         if (Utils.isEmptyList(rlPdIdMap)) {
@@ -3929,6 +3929,25 @@ public class ProductBasicService extends BasicParentService {
         session.write(sendBuf);
         rt = Errno.OK;
         Log.logStd("getRlPdIdAndPdIdMap ok;flow=%d;aid=%d;fromAid=%d;toUnionPriId=%d;fromUnionPriId=%d;toSysType=%d;fromSysType=%d;rlPdIdMap=%s;", flow, aid, fromAid, toUnionPriId, fromUnionPriId, toSysType, fromSysType, rlPdIdMap);
+        return rt;
+    }
+
+    @SuccessRt({Errno.OK, Errno.NOT_FOUND})
+    public int getSoftDelUnionPriIdList(FaiSession session, int flow, int aid, int pdId, FaiList<Integer> unionPriIds) throws IOException {
+        int rt;
+        TransactionCtrl tc = new TransactionCtrl();
+        FaiList<Integer> softDelUnionPriIdList = new FaiList<>();
+        try {
+            ProductRelProc relProc = new ProductRelProc(flow, aid, tc);
+            softDelUnionPriIdList = relProc.getSoftDelUnionPriIdList(aid, pdId, unionPriIds);
+        } finally {
+            tc.closeDao();
+        }
+        FaiBuffer sendBuf = new FaiBuffer(true);
+        softDelUnionPriIdList.toBuffer(sendBuf, ProductRelDto.Key.UNION_PRI_IDS);
+        rt = Errno.OK;
+        session.write(sendBuf);
+        Log.logStd("getSoftDelUnionPriIdList ok;flow=%d;aid=%d;pdId=%d;softDelUnionPriIds=%s", flow, aid, pdId, softDelUnionPriIdList);
         return rt;
     }
 

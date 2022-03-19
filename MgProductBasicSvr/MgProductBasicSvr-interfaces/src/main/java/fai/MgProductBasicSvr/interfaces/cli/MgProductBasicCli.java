@@ -3620,4 +3620,34 @@ public class MgProductBasicCli extends FaiClient {
             stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
         }
     }
+
+    public int getSoftDelUnionPriIdList(int aid, int pdId, FaiList<Integer> unionPriIds, FaiList<Integer> softDelUnionPriIdList) {
+        m_rt = Errno.ERROR;
+        Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
+        try {
+            FaiBuffer sendBody = new FaiBuffer(true);
+            sendBody.putInt(ProductRelDto.Key.PD_ID, pdId);
+            unionPriIds.toBuffer(sendBody, ProductRelDto.Key.UNION_PRI_IDS);
+
+            Param result = sendAndReceive(aid, MgProductBasicCmd.BasicCmd.GET_SOFT_DEL_UNION_PRI_IDS, sendBody, true);
+            Boolean success = result.getBoolean("success");
+            if (!success) {
+                return m_rt;
+            }
+            // recv info
+            FaiBuffer recvBody = (FaiBuffer) result.getObject("recvBody");
+            Ref<Integer> keyRef = new Ref<>();
+            m_rt = softDelUnionPriIdList.fromBuffer(recvBody, keyRef);
+            if (m_rt != Errno.OK || keyRef.value != ProductRelDto.Key.UNION_PRI_IDS) {
+                Log.logErr(m_rt, "recv codec err");
+                return m_rt;
+            }
+
+            m_rt = Errno.OK;
+            return m_rt;
+        } finally {
+            close();
+            stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
+        }
+    }
 }

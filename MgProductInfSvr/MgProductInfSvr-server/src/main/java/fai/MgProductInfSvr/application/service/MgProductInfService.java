@@ -14,7 +14,6 @@ import fai.MgProductInfSvr.domain.entity.RichTextConverter;
 import fai.MgProductInfSvr.domain.serviceproc.*;
 import fai.MgProductInfSvr.interfaces.dto.MgProductDto;
 import fai.MgProductInfSvr.interfaces.dto.ProductBasicDto;
-import fai.MgProductInfSvr.interfaces.dto.ProductStoreDto;
 import fai.MgProductInfSvr.interfaces.entity.*;
 import fai.MgProductPropSvr.interfaces.cli.MgProductPropCli;
 import fai.MgProductSpecSvr.interfaces.cli.MgProductSpecCli;
@@ -1241,6 +1240,9 @@ public class MgProductInfService extends ServicePub {
 
             /** 库存信息修改 start */
             if (!Utils.isEmptyList(storeUpdaters)) {
+                // 获取商品在各个 unionPriId 下为软删状态的 unionPriIdList，为了后面在帮门店添加不存的销售库存 sku 时设置状态，避免在汇总时出现 -112 问题
+                FaiList<Integer> softDelUnionPriIdList = basicProc.getSoftDelUnionPriIdList(aid, pdId, unionPriIds);
+
                 Map<FaiList<String>, Param> inPdScStrNameInfoMap = new HashMap<>();
                 for (ParamUpdater storeUpdater : storeUpdaters) {
                     Param storeInfo = storeUpdater.getData();
@@ -1275,7 +1277,7 @@ public class MgProductInfService extends ServicePub {
                     }
                 }
 
-                rt = storeProc.batchSetSkuStoreSales(aid, xid, tid, ownUnionPriId, unionPriIds, pdId, rlPdId, sysType, storeUpdaters);
+                rt = storeProc.batchSetSkuStoreSales(aid, xid, tid, ownUnionPriId, unionPriIds, pdId, rlPdId, sysType, storeUpdaters, softDelUnionPriIdList);
                 if(rt != Errno.OK) {
                     return rt;
                 }

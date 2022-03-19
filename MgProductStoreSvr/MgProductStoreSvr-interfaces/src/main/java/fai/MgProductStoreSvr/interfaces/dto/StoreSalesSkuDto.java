@@ -94,6 +94,7 @@ public class StoreSalesSkuDto {
         public static final int XID = 22;
         public static final int SYS_TYPE = 23;
         public static final int PD_IDS = 24;
+        public static final int SOFT_DEL_UNION_PRI_IDS = 25;
     }
 
     public static class CacheDto{

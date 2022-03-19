@@ -902,6 +902,25 @@ public class ProductRelProc {
         return listRef.value;
     }
 
+    public FaiList<Integer> getSoftDelUnionPriIdList(int aid, int pdId, FaiList<Integer> unionPriIds) {
+        SearchArg searchArg = new SearchArg();
+        searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
+        searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
+        if (Utils.isEmptyList(unionPriIds)) {
+            searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
+        }
+        searchArg.matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.EQ, ProductRelValObj.Status.DEL);
+        Ref<FaiList<Param>> listRef = new Ref<>();
+        int rt = m_dao.select(searchArg, listRef, ProductRelEntity.Info.UNION_PRI_ID);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "dao.select err;flow=%d;aid=%d;pdId=%d;search=%s", m_flow, aid, pdId, searchArg);
+        }
+        if (listRef.value == null) {
+            return new FaiList<>();
+        }
+        return Utils.getValList(listRef.value, ProductRelEntity.Info.UNION_PRI_ID);
+    }
+
     private class PrimaryKey {
         int aid;
         int unionPirId;

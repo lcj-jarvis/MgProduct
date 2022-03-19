@@ -828,6 +828,15 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
         return service.getRlPdIdAndPdIdMap(session, flow, aid, fromAid, toUnionPriId, toSysType, fromSysType, fromUnionPriId, rlPdIdMap);
     }
 
+    @Cmd(MgProductBasicCmd.BasicCmd.GET_SOFT_DEL_UNION_PRI_IDS)
+    public int getSoftDelUnionPriIdList(final FaiSession session,
+                                        @ArgFlow final int flow,
+                                        @ArgAid final int aid,
+                                        @ArgBodyInteger(ProductRelDto.Key.PD_ID) int pdId,
+                                        @ArgList(keyMatch = ProductRelDto.Key.UNION_PRI_IDS, useDefault = true) FaiList<Integer> unionPriIds) throws IOException {
+        return service.getSoftDelUnionPriIdList(session, flow, aid, pdId, unionPriIds);
+    }
+
     private ProductBasicService service = ServiceProxy.create(new ProductBasicService());
     private ProductBindGroupService groupBindService = ServiceProxy.create(new ProductBindGroupService());
     private ProductBindPropService propBindService = ServiceProxy.create(new ProductBindPropService());

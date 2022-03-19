@@ -198,8 +198,9 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                       @ArgBodyInteger(StoreSalesSkuDto.Key.RL_PD_ID) final int rlPdId,
                                       @ArgBodyInteger(value = StoreSalesSkuDto.Key.SYS_TYPE, useDefault = true) final int sysType,
                                       @ArgList(classDef = StoreSalesSkuDto.class, methodDef = "getInfoDto", keyMatch = StoreSalesSkuDto.Key.UPDATER_LIST)
-                                              FaiList<ParamUpdater> updaterList) throws IOException {
-        return m_storeSalesSkuService.batchSetSkuStoreSales(session, flow, aid, tid, ownerUnionPriId, unionPriIdList, xid, pdId, rlPdId, sysType, updaterList);
+                                              FaiList<ParamUpdater> updaterList,
+                                      @ArgList(keyMatch = StoreSalesSkuDto.Key.SOFT_DEL_UNION_PRI_IDS, useDefault = true) FaiList<Integer> softDelUnionPriIds) throws IOException {
+        return m_storeSalesSkuService.batchSetSkuStoreSales(session, flow, aid, tid, ownerUnionPriId, unionPriIdList, xid, pdId, rlPdId, sysType, updaterList, softDelUnionPriIds);
     }
 
     @WrittenCmd

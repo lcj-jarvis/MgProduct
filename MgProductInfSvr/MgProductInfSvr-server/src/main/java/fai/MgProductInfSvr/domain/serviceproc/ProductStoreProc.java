@@ -121,21 +121,21 @@ public class ProductStoreProc extends AbstractProductProc{
         return rt;
     }
 
-    public int batchSetSkuStoreSales(int aid, String xid, int tid, int ownerUnionPriId, FaiList<Integer> unionPriIds, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList) {
-        return batchSetSkuStoreSales(aid, xid, tid, ownerUnionPriId, unionPriIds, pdId, rlPdId, ProductStoreValObj.SysType.PRODUCT, updaterList);
+    public int batchSetSkuStoreSales(int aid, String xid, int tid, int ownerUnionPriId, FaiList<Integer> unionPriIds, int pdId, int rlPdId, FaiList<ParamUpdater> updaterList, FaiList<Integer> softDelUnionPriIds) {
+        return batchSetSkuStoreSales(aid, xid, tid, ownerUnionPriId, unionPriIds, pdId, rlPdId, ProductStoreValObj.SysType.PRODUCT, updaterList, softDelUnionPriIds);
     }
 
     /**
      * 修改sku库存销售信息
      */
-    public int batchSetSkuStoreSales(int aid, String xid, int tid, int ownerUnionPriId, FaiList<Integer> unionPriIds, int pdId, int rlPdId, int sysType, FaiList<ParamUpdater> updaterList) {
+    public int batchSetSkuStoreSales(int aid, String xid, int tid, int ownerUnionPriId, FaiList<Integer> unionPriIds, int pdId, int rlPdId, int sysType, FaiList<ParamUpdater> updaterList, FaiList<Integer> softDelUnionPriIds) {
         int rt = Errno.ERROR;
         if (m_cli == null) {
             rt = Errno.ERROR;
             Log.logErr(rt, "get MgProductStoreCli error;flow=%d;aid=%d;unionPriIds=%s;", m_flow, aid, unionPriIds);
             return rt;
         }
-        rt = m_cli.batchSetSkuStoreSales(aid, xid, tid, ownerUnionPriId, unionPriIds, pdId, rlPdId, sysType, updaterList);
+        rt = m_cli.batchSetSkuStoreSales(aid, xid, tid, ownerUnionPriId, unionPriIds, pdId, rlPdId, sysType, updaterList, softDelUnionPriIds);
         if (rt != Errno.OK) {
             logErrWithPrintInvoked(rt, "error;flow=%d;aid=%d;unionPriIds=%s;rlPdId=%s;", m_flow, aid, unionPriIds, rlPdId);
             return rt;

@@ -281,7 +281,7 @@ public class StoreSalesSkuProc {
         matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, delSkuIdList);
 
         if (isSaga) {
-            rt = addDelOp4Saga(aid, matcher);
+            rt = addDelOp4Saga(aid, matcher.clone());
             if (rt != Errno.OK) {
                 return rt;
             }

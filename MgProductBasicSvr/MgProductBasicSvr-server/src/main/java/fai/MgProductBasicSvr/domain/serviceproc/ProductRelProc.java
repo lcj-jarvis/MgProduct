@@ -906,7 +906,7 @@ public class ProductRelProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         searchArg.matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.EQ, pdId);
-        if (Utils.isEmptyList(unionPriIds)) {
+        if (!Utils.isEmptyList(unionPriIds)) {
             searchArg.matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
         }
         searchArg.matcher.and(ProductRelEntity.Info.STATUS, ParamMatcher.EQ, ProductRelValObj.Status.DEL);

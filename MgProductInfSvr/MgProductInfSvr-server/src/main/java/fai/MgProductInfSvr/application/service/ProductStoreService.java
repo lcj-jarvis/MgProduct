@@ -139,6 +139,7 @@ public class ProductStoreService extends MgProductInfService {
             if(rt != Errno.OK){
                 return rt;
             }
+            FaiList<Integer> unionPriIds = Utils.getValList(list, ProductRelEntity.Info.UNION_PRI_ID);
             Map<Integer, BizPriKey> unionPriIdBizPriKeyMap = toUnionPriIdBizPriKeyMap(list);
 
             // 获取pdId
@@ -148,6 +149,8 @@ public class ProductStoreService extends MgProductInfService {
                 return rt;
             }
             int pdId = idRef.value;
+            ProductBasicProc basicProc = new ProductBasicProc(flow);
+            FaiList<Integer> softDelUnionPriIdList = basicProc.getSoftDelUnionPriIdList(aid, pdId, unionPriIds);
 
             Map<FaiList<String>, Param> inPdScStrNameInfoMap = new HashMap<>();
             for (ParamUpdater updater : updaterList) {
@@ -186,7 +189,7 @@ public class ProductStoreService extends MgProductInfService {
             }
 
             ProductStoreProc productStoreProc = new ProductStoreProc(flow);
-            rt = productStoreProc.batchSetSkuStoreSales(aid, "", tid, unionPriId, new FaiList<>(unionPriIdBizPriKeyMap.keySet()), pdId, rlPdId, updaterList);
+            rt = productStoreProc.batchSetSkuStoreSales(aid, "", tid, unionPriId, new FaiList<>(unionPriIdBizPriKeyMap.keySet()), pdId, rlPdId, updaterList, softDelUnionPriIdList);
             if(rt != Errno.OK) {
                 return rt;
             }

@@ -813,4 +813,18 @@ public class ProductBasicProc {
         }
         return rt;
     }
+
+    public FaiList<Integer> getSoftDelUnionPriIdList(int aid, int pdId, FaiList<Integer> unionPriIds) {
+        int rt;
+        if(m_cli == null) {
+            rt = Errno.ERROR;
+            throw new MgException(rt, "get ProductBasicCli error;flow=%d;aid=%d;", m_flow, aid);
+        }
+        FaiList<Integer> softDelUnionPriIdList = new FaiList<>();
+        rt = m_cli.getSoftDelUnionPriIdList(aid, pdId, unionPriIds, softDelUnionPriIdList);
+        if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
+            throw new MgException(rt, "getSoftDelUnionPriIdList error;flow=%d;aid=%d;pdId=%d;unionPriIds=%s", m_flow, aid, pdId, unionPriIds);
+        }
+        return softDelUnionPriIdList;
+    }
 }

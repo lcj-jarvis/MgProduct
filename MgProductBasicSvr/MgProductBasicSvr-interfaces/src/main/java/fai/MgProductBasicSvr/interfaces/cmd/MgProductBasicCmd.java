@@ -36,6 +36,7 @@ public class MgProductBasicCmd {
         public static final int NUM29 = 5029; /** @see Cmd#MIGRATE_GET */
         public static final int NUM30 = 5030; /** @see Cmd#GET_PRI_LIST */
         public static final int NUM31 = 5031; /** @see Cmd#GET_PD_ID_MAP */
+        public static final int NUM32 = 5032; /** @see BasicCmd#GET_SOFT_DEL_UNION_PRI_IDS */
     }
 
     // 1000 到 5000 的范围
@@ -139,6 +140,7 @@ public class MgProductBasicCmd {
         public static final int GET_PD_INFO = ReadCmdNum.NUM26;
         public static final int GET_LIST_BY_PDID = ReadCmdNum.NUM27;
         public static final int GET_BIND_BIZ = ReadCmdNum.NUM28;
+        public static final int GET_SOFT_DEL_UNION_PRI_IDS = ReadCmdNum.NUM32;
 
         public static final int ADD_PD_AND_REL = WriteCmdNum.NUM1;
         public static final int ADD_REL_BIND = WriteCmdNum.NUM2;

@@ -5,7 +5,8 @@ import fai.MgProductStoreSvr.application.MgProductStoreSvr;
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
 import fai.MgProductStoreSvr.domain.comm.PdKey;
 import fai.MgProductStoreSvr.domain.comm.SkuBizKey;
-import fai.MgProductStoreSvr.domain.entity.*;
+import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuEntity;
+import fai.MgProductStoreSvr.domain.entity.StoreSalesSkuValObj;
 import fai.MgProductStoreSvr.domain.repository.cache.StoreSalesSkuCacheCtrl;
 import fai.MgProductStoreSvr.domain.repository.dao.StoreSalesSkuDaoCtrl;
 import fai.MgProductStoreSvr.domain.repository.dao.saga.StoreSalesSkuSagaDaoCtrl;
@@ -280,7 +281,7 @@ public class StoreSalesSkuProc {
         matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, delSkuIdList);
 
         if (isSaga) {
-            rt = addDelOp4Saga(aid, matcher);
+            rt = addDelOp4Saga(aid, matcher.clone());
             if (rt != Errno.OK) {
                 return rt;
             }
@@ -895,6 +896,10 @@ public class StoreSalesSkuProc {
         return rt;
     }
 
+    public int checkAndAdd(int aid, int ownerUnionPriId, Map<SkuBizKey, PdKey> needCheckSkuStoreKeyPdKeyMap, boolean isSaga) {
+        return checkAndAdd(aid, ownerUnionPriId, needCheckSkuStoreKeyPdKeyMap, isSaga, new FaiList<>());
+    }
+
     /**
      * 检查是否存在sku, 没有则生成
      * @param aid
@@ -903,7 +908,7 @@ public class StoreSalesSkuProc {
      * @param isSaga
      * @return
      */
-    public int checkAndAdd(int aid, int ownerUnionPriId, Map<SkuBizKey, PdKey> needCheckSkuStoreKeyPdKeyMap, boolean isSaga) {
+    public int checkAndAdd(int aid, int ownerUnionPriId, Map<SkuBizKey, PdKey> needCheckSkuStoreKeyPdKeyMap, boolean isSaga, FaiList<Integer> softDelUnionPriIds) {
         if(needCheckSkuStoreKeyPdKeyMap == null || needCheckSkuStoreKeyPdKeyMap.isEmpty()){
             Log.logErr("arg error;flow=%s;aid=%s;ownerUnionPriId=%s;needCheckSkuStoreKeyPdKeyMap=%s;", m_flow, aid, ownerUnionPriId, needCheckSkuStoreKeyPdKeyMap);
             return Errno.ARGS_ERROR;
@@ -969,18 +974,20 @@ public class StoreSalesSkuProc {
                 long price = sourceInfo.getLong(StoreSalesSkuEntity.Info.PRICE, 0L);
                 long originPrice = sourceInfo.getLong(StoreSalesSkuEntity.Info.ORIGIN_PRICE, 0L);
                 PdKey pdKey = needCheckSkuStoreKeyPdKeyMap.get(new SkuBizKey(uid, skuId));
-                addInfoList.add(
-                        new Param()
-                                .setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, uid)
-                                .setInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, ownerUnionPriId)
-                                .setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId)
-                                .setInt(StoreSalesSkuEntity.Info.PD_ID, pdKey.pdId)
-                                .setInt(StoreSalesSkuEntity.Info.RL_PD_ID, pdKey.rlPdId)
-                                .setInt(StoreSalesSkuEntity.Info.SYS_TYPE, pdKey.sysType)
-                                .setLong(StoreSalesSkuEntity.Info.PRICE, price)
-                                .setLong(StoreSalesSkuEntity.Info.ORIGIN_PRICE, originPrice)
-                                .setInt(StoreSalesSkuEntity.Info.FLAG, flag)
-                );
+                Param addInfo = new Param()
+                        .setInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, uid)
+                        .setInt(StoreSalesSkuEntity.Info.SOURCE_UNION_PRI_ID, ownerUnionPriId)
+                        .setLong(StoreSalesSkuEntity.Info.SKU_ID, skuId)
+                        .setInt(StoreSalesSkuEntity.Info.PD_ID, pdKey.pdId)
+                        .setInt(StoreSalesSkuEntity.Info.RL_PD_ID, pdKey.rlPdId)
+                        .setInt(StoreSalesSkuEntity.Info.SYS_TYPE, pdKey.sysType)
+                        .setLong(StoreSalesSkuEntity.Info.PRICE, price)
+                        .setLong(StoreSalesSkuEntity.Info.ORIGIN_PRICE, originPrice)
+                        .setInt(StoreSalesSkuEntity.Info.FLAG, flag);
+                if (softDelUnionPriIds.contains(uid)) {
+                    addInfo.setInt(StoreSalesSkuEntity.Info.STATUS, StoreSalesSkuValObj.Status.DEL);
+                }
+                addInfoList.add(addInfo);
             }
         }
         rt = batchAdd(aid, null, addInfoList, isSaga);

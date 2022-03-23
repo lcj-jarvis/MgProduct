@@ -576,7 +576,7 @@ public class ProductRelProc {
             if(addSaga) {
                 SearchArg searchArg = new SearchArg();
                 searchArg.matcher = matcher;
-                FaiList<Param> oldList = searchFromDb(aid, searchArg, null);
+                FaiList<Param> oldList = searchFromDbWithDel(aid, searchArg, null);
                 if(Utils.isEmptyList(oldList)) {
                     return;
                 }

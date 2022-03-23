@@ -259,7 +259,9 @@ public class SpuSummaryProc {
             if (isSaga) {
                 // 分布式事务，需要记录修改前的数据 录入 Saga 操作记录表中
                 Ref<FaiList<Param>> listRef = new Ref<>();
-                rt = getListFromDao(aid, pdIdList, listRef);
+                SearchArg searchArg = new SearchArg();
+                searchArg.matcher = matcher;
+                rt = m_daoCtrl.selectWithDel(searchArg, listRef);
                 if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
                     return rt;
                 }
@@ -473,7 +475,7 @@ public class SpuSummaryProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
         Ref<FaiList<Param>> listRef = new Ref<>();
-        int rt = m_daoCtrl.select(searchArg, listRef);
+        int rt = m_daoCtrl.selectWithDel(searchArg, listRef);
         if (rt != Errno.OK) {
             if (rt == Errno.NOT_FOUND) {
                 return Errno.OK;

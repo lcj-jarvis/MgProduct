@@ -803,9 +803,9 @@ public class SpuBizSummaryProc {
         Ref<FaiList<Param>> listRef = new Ref<>();
         // 如果不是分布式事务只需要查询，单个字段
         if (isSaga) {
-            rt = m_daoCtrl.select(searchArg, listRef);
+            rt = m_daoCtrl.selectWithDel(searchArg, listRef);
         } else {
-            rt = m_daoCtrl.select(searchArg, listRef, SpuBizSummaryEntity.Info.UNION_PRI_ID);
+            rt = m_daoCtrl.selectWithDel(searchArg, listRef, SpuBizSummaryEntity.Info.UNION_PRI_ID);
         }
         if(rt != Errno.OK && rt != Errno.NOT_FOUND){
             Log.logStd(rt, "select err;flow=%s;matcher=%s;softDel=%s;", m_flow, delMatcher.toJson(), softDel);
@@ -1089,7 +1089,7 @@ public class SpuBizSummaryProc {
             searchArg.matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
             searchArg.matcher.and(SpuBizSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
             Ref<FaiList<Param>> listRef = new Ref<>();
-            rt = m_daoCtrl.select(searchArg, listRef);
+            rt = m_daoCtrl.selectWithDel(searchArg, listRef);
             if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
                 throw new MgException(rt, "dao.get restore data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
             }
@@ -1203,7 +1203,9 @@ public class SpuBizSummaryProc {
         // Saga 模式下需要记录下原始数据
         if (isSaga) {
             Ref<FaiList<Param>> listRef = new Ref<>();
-            rt = searchFromDB(aid, matcher, listRef);
+            SearchArg searchArg = new SearchArg();
+            searchArg.matcher = matcher;
+            rt = m_daoCtrl.selectWithDel(searchArg, listRef);
             if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
                 return rt;
             }

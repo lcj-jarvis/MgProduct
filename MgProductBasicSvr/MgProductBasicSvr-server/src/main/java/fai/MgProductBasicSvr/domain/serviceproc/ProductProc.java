@@ -454,7 +454,7 @@ public class ProductProc {
 
             SearchArg searchArg = new SearchArg();
             searchArg.matcher = matcher;
-            FaiList<Param> list = searchFromDb(aid, searchArg, new FaiList<>(updateFields));
+            FaiList<Param> list = searchFromDbWithDel(aid, searchArg, new FaiList<>(updateFields));
             // 修改的matcher 没有命中数据
             if(list.isEmpty()) {
                 return 0;
@@ -500,7 +500,7 @@ public class ProductProc {
         if(withSaga) {
             SearchArg searchArg = new SearchArg();
             searchArg.matcher = matcher;
-            FaiList<Param> list = searchFromDb(aid, searchArg, null);
+            FaiList<Param> list = searchFromDbWithDel(aid, searchArg, null);
             if(list.isEmpty()) {
                 return 0;
             }

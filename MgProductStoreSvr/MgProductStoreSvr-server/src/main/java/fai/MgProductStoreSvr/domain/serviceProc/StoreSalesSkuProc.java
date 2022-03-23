@@ -280,7 +280,7 @@ public class StoreSalesSkuProc {
         matcher.and(StoreSalesSkuEntity.Info.SKU_ID, ParamMatcher.IN, delSkuIdList);
 
         if (isSaga) {
-            rt = addDelOp4Saga(aid, matcher.clone());
+            rt = addDelOp4Saga(aid, matcher);
             if (rt != Errno.OK) {
                 return rt;
             }
@@ -422,7 +422,7 @@ public class StoreSalesSkuProc {
                 searchArg.matcher = delMatcher.clone();
 
                 Ref<FaiList<Param>> listRef = new Ref<>();
-                rt = m_daoCtrl.select(searchArg, listRef);
+                rt = m_daoCtrl.selectWithDel(searchArg, listRef);
                 if(rt != Errno.OK && rt != Errno.NOT_FOUND) {
                     Log.logErr("select err;matcher=%s;", searchArg.matcher.toJson());
                     return rt;
@@ -1450,7 +1450,7 @@ public class StoreSalesSkuProc {
             searchArg.matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
             searchArg.matcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
             Ref<FaiList<Param>> listRef = new Ref<>();
-            rt = m_daoCtrl.select(searchArg, listRef);
+            rt = m_daoCtrl.selectWithDel(searchArg, listRef);
             if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
                 throw new MgException(rt, "dao.get restore data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
             }
@@ -1615,7 +1615,7 @@ public class StoreSalesSkuProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
         Ref<FaiList<Param>> listRef = new Ref<>();
-        int rt = m_daoCtrl.select(searchArg, listRef);
+        int rt = m_daoCtrl.selectWithDel(searchArg, listRef);
         if (rt != Errno.OK) {
             if (rt == Errno.NOT_FOUND) {
                 return Errno.OK;

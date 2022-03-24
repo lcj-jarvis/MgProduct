@@ -390,7 +390,7 @@ public class SkuSummaryProc {
         SearchArg searchArg = new SearchArg();
         searchArg.matcher = matcher;
         Ref<FaiList<Param>> listRef = new Ref<>();
-        rt = m_daoCtrl.select(searchArg, listRef);
+        rt = m_daoCtrl.selectWithDel(searchArg, listRef);
         if (rt != Errno.OK) {
             if (rt == Errno.NOT_FOUND) {
                 return Errno.OK;
@@ -609,7 +609,7 @@ public class SkuSummaryProc {
             searchArg.matcher = new ParamMatcher(SkuSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
             searchArg.matcher.and(SkuSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
             Ref<FaiList<Param>> listRef = new Ref<>();
-            rt = m_daoCtrl.select(searchArg, listRef);
+            rt = m_daoCtrl.selectWithDel(searchArg, listRef);
             if (rt != Errno.OK && rt != Errno.NOT_FOUND) {
                 throw new MgException(rt, "dao.get restore data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
             }

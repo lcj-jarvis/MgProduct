@@ -197,6 +197,7 @@ public class ProductBindTagProc {
                 if(rt != Errno.OK) {
                     throw new MgException(rt, "merge bak update err;aid=%d;uid=%s;backupId=%d;backupFlag=%d;", aid, unionPriId, backupId, backupFlag);
                 }
+                Log.logStd("backupData update;aid=%d;updater=%s", aid, dataList);
             }
 
             // 移除掉合并的数据，剩下的就是需要新增的备份数据
@@ -220,6 +221,7 @@ public class ProductBindTagProc {
             if(rt != Errno.OK) {
                 throw new MgException(rt, "batchInsert bak err;aid=%d;uid=%s;backupId=%d;backupFlag=%d;", aid, unionPriId, backupId, backupFlag);
             }
+            Log.logStd("backupData insert;aid=%d;", aid);
         }
 
         Log.logStd("backupData ok;aid=%d;uids=%s;backupId=%d;backupFlag=%d;", aid, unionPriIds, backupId, backupFlag);
@@ -244,7 +246,7 @@ public class ProductBindTagProc {
         if(rt != Errno.OK) {
             throw new MgException("do del err;aid=%d;backupId=%d;backupFlag=%d;", aid, backupId, backupFlag);
         }
-
+        Log.logStd("delBackupData del;aid=%d;delMatcher=%s", aid, delMatcher);
         Log.logStd("del rel bak ok;aid=%d;backupId=%d;backupFlag=%d;", aid, backupId, backupFlag);
     }
 
@@ -266,6 +268,7 @@ public class ProductBindTagProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "restore del old err;delMatcher=%s;backupId=%d;backupFlag=%d;", delMatcher, backupId, backupFlag);
         }
+        Log.logStd("restoreBackupData del;aid=%d;delMatcher=%s", aid, delMatcher);
 
         // 查出备份数据
         SearchArg bakSearchArg = new SearchArg();
@@ -283,6 +286,7 @@ public class ProductBindTagProc {
             if(rt != Errno.OK) {
                 throw new MgException(rt, "restore insert err;aid=%d;uids=%s;backupId=%d;backupFlag=%d;", aid, unionPriIds, backupId, backupFlag);
             }
+            Log.logStd("restoreBackupData insert;aid=%d;uids=%s;backupId=%d;backupFlag=%d;", aid, unionPriIds, backupId, backupFlag);
         }
     }
 
@@ -452,6 +456,7 @@ public class ProductBindTagProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "clear old list error;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
         }
+        Log.logStd("cloneBizBind del;aid=%d;delMatcher=%s", aid, delMatcher);
 
         ParamMatcher matcher = new ParamMatcher(ProductBindTagEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductBindTagEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, fromUnionPriId);
@@ -470,6 +475,7 @@ public class ProductBindTagProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "cloneBizBind error;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
         }
+        Log.logStd("cloneBizBind insert;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
         Log.logStd("cloneBizBind ok;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
     }
 
@@ -549,6 +555,7 @@ public class ProductBindTagProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "batch insert product bind tag error;flow=%d;aid=%d;", m_flow, aid);
         }
+        Log.logStd("batchBindTagList insert;flow=%d;aid=%d;", m_flow, aid);
         // 使用分布式事务时，记录下新增的数据主键
         addSagaList(aid, sagaList);
         Log.logStd("batch bind tags ok;aid=%d;uid=%d;addRlTags=%s;", aid, unionPriId, addList);
@@ -565,6 +572,7 @@ public class ProductBindTagProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "batch insert pd bind tag error;flow=%d;aid=%d;", m_flow, aid);
         }
+        Log.logStd("insert4Clone insert;flow=%d;aid=%d;", m_flow, aid);
     }
 
     public void updateBindTagList(int aid, int unionPriId, int sysType, int rlPdId, int pdId, FaiList<Integer> rlTagIds) {
@@ -661,7 +669,7 @@ public class ProductBindTagProc {
             throw new MgException(rt, "del info error;flow=%d;aid=%d;matcher=%s;", m_flow, aid, matcher.toJson());
         }
 
-        Log.logStd("del bind tag ok;aid=%d;matcher=%s;", aid, matcher.toJson());
+        Log.logStd("delPdBindTag del ok;aid=%d;matcher=%s;", aid, matcher.toJson());
         return refRowCount.value;
     }
 
@@ -720,6 +728,7 @@ public class ProductBindTagProc {
             if(rt != Errno.OK) {
                 throw new MgException(rt, "del bind tag error;flow=%d;aid=%d;xid=%s;matcher=%s;", m_flow, aid, m_xid, matcher.toJson());
             }
+            Log.logStd("rollback4Add del;aid=%d;delMatcher=%s", aid, matcher);
         }
 
         Log.logStd("rollback add ok;aid=%d;xid=%s;list=%s;", aid, m_xid, list);
@@ -743,6 +752,7 @@ public class ProductBindTagProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "add list error;flow=%d;aid=%d;list=%s;", m_flow, aid, list);
         }
+        Log.logStd("rollback4Delete insert;aid=%d;", aid);
 
         Log.logStd("rollback del ok;aid=%d;xid=%s;list=%s;", aid, m_xid, list);
     }

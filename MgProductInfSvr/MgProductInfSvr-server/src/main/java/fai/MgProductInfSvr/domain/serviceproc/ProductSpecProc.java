@@ -455,7 +455,7 @@ public class ProductSpecProc extends AbstractProductProc {
         return rt;
     }
 
-    public FaiList<Param> migrateYKService(int aid, FaiList<Param> list) {
+   /* public FaiList<Param> migrateYKService(int aid, FaiList<Param> list) {
         int rt;
         if(m_cli == null) {
             rt = Errno.ERROR;
@@ -467,7 +467,7 @@ public class ProductSpecProc extends AbstractProductProc {
             throw new MgException(rt, "error;flow=%d;aid=%d;", m_flow, aid);
         }
         return returnList;
-    }
+    }*/
 
     public void restoreData(int aid, String xid, FaiList<Integer> pdIds) {
         int rt;

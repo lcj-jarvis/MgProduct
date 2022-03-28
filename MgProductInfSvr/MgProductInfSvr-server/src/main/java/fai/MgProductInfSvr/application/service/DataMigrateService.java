@@ -1,36 +1,10 @@
 package fai.MgProductInfSvr.application.service;
 
-import fai.MgPrimaryKeySvr.interfaces.entity.MgPrimaryKeyEntity;
-import fai.MgProductBasicSvr.interfaces.dto.MigrateDef;
-import fai.MgProductInfSvr.application.MgProductInfSvr;
-import fai.MgProductInfSvr.domain.entity.RichTextValObj;
-import fai.MgProductInfSvr.domain.serviceproc.ProductBasicProc;
-import fai.MgProductInfSvr.domain.serviceproc.ProductSpecProc;
-import fai.MgProductInfSvr.domain.serviceproc.ProductStoreProc;
-import fai.MgProductInfSvr.domain.serviceproc.RichTextProc;
-import fai.MgProductInfSvr.interfaces.entity.ProductBasicEntity;
-import fai.MgProductInfSvr.interfaces.entity.ProductSpecValObj;
-import fai.MgProductSpecSvr.interfaces.entity.ProductSpecEntity;
-import fai.MgProductSpecSvr.interfaces.entity.ProductSpecSkuEntity;
-import fai.MgProductStoreSvr.interfaces.entity.SpuBizSummaryEntity;
-import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuEntity;
-import fai.MgProductStoreSvr.interfaces.entity.StoreSalesSkuValObj;
-import fai.MgRichTextInfSvr.interfaces.entity.MgRichTextEntity;
-import fai.MgRichTextInfSvr.interfaces.entity.MgRichTextValObj;
-import fai.comm.jnetkit.server.fai.FaiSession;
-import fai.comm.middleground.FaiValObj;
-import fai.comm.util.*;
-import fai.middleground.svrutil.annotation.SuccessRt;
-import fai.middleground.svrutil.exception.MgException;
-
-import java.io.IOException;
-import java.util.*;
-
 /**
  * 数据迁移用，迁移完成后废弃
  */
 public class DataMigrateService extends MgProductInfService {
-    private static DaoPool daoPool;
+    /*private static DaoPool daoPool;
     private static DaoPool ykStoreDaoPool;
     private static DaoPool ykServiceDaoPool;
     public static void init(MgProductInfSvr.SvrOption svrOption) {
@@ -447,9 +421,9 @@ public class DataMigrateService extends MgProductInfService {
 
         rt = Errno.OK;
         return rt;
-    }
+    }*/
 
-    @SuccessRt(Errno.OK)
+    /*@SuccessRt(Errno.OK)
     public int migrateYKService(FaiSession session, int flow, int aid) throws IOException {
         int rt;
 
@@ -1036,6 +1010,6 @@ public class DataMigrateService extends MgProductInfService {
         Log.logDbg("migrateYKService ok;flow=%d;aid=%d;", flow, aid);
         rt = Errno.OK;
         return rt;
-    }
+    }*/
 }
 

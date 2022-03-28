@@ -696,7 +696,7 @@ public class ProductStoreProc extends AbstractProductProc{
         return rt;
     }
 
-    public int migrate(int aid, FaiList<Param> spuList) {
+    /*public int migrate(int aid, FaiList<Param> spuList) {
         int rt;
         if (m_cli == null) {
             rt = Errno.ERROR;
@@ -710,9 +710,9 @@ public class ProductStoreProc extends AbstractProductProc{
             return rt;
         }
         return rt;
-    }
+    }*/
 
-    public void migrateYKService(int aid, FaiList<Param> spuList) {
+   /* public void migrateYKService(int aid, FaiList<Param> spuList) {
         int rt;
         if (m_cli == null) {
             rt = Errno.ERROR;
@@ -723,9 +723,9 @@ public class ProductStoreProc extends AbstractProductProc{
         if (rt != Errno.OK) {
             throw new MgException(rt, "migrateYKService error;flow=%d;aid=%d;", m_flow, aid);
         }
-    }
+    }*/
 
-    public void migrateYKStoreSku(int aid, FaiList<Param> storeSkuList) {
+    /*public void migrateYKStoreSku(int aid, FaiList<Param> storeSkuList) {
         int rt;
         if (m_cli == null) {
             rt = Errno.ERROR;
@@ -736,9 +736,9 @@ public class ProductStoreProc extends AbstractProductProc{
         if (rt != Errno.OK) {
             throw new MgException(rt, "migrateYKService error;flow=%d;aid=%d;", m_flow, aid);
         }
-    }
+    }*/
 
-    public void migrateYKServiceDel(int aid, FaiList<Integer> pdIds) {
+    /*public void migrateYKServiceDel(int aid, FaiList<Integer> pdIds) {
         if (pdIds == null || pdIds.isEmpty()) {
             return;
         }
@@ -751,7 +751,7 @@ public class ProductStoreProc extends AbstractProductProc{
         if (rt != Errno.OK) {
             throw new MgException(rt, "migrateYKService error;flow=%d;aid=%d;", m_flow, aid);
         }
-    }
+    }*/
 
     public void restoreData(int aid, String xid, FaiList<Integer> pdIds) {
         if (pdIds == null || pdIds.isEmpty()) {

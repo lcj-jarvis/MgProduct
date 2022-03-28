@@ -3375,7 +3375,7 @@ public class MgProductBasicCli extends FaiClient {
     }
     /**==========================================操作商品与标签关联结束===========================================================*/
 
-    public int dataMigrate(int aid, int tid, FaiList<Param> addList, int sysType, FaiList<Param> returnList) {
+    /*public int dataMigrate(int aid, int tid, FaiList<Param> addList, int sysType, FaiList<Param> returnList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -3437,8 +3437,9 @@ public class MgProductBasicCli extends FaiClient {
             close();
             stat.end(m_rt != Errno.OK, m_rt);
         }
-    }
+    }*/
 
+    /*
     public int getMigratePdIds(int aid, int sysType, FaiList<Integer> pdIds, boolean needDel) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
@@ -3495,7 +3496,7 @@ public class MgProductBasicCli extends FaiClient {
             close();
             stat.end((m_rt != Errno.OK) && (m_rt != Errno.NOT_FOUND), m_rt);
         }
-    }
+    }*/
 
     /**
      * 恢复软删除数据

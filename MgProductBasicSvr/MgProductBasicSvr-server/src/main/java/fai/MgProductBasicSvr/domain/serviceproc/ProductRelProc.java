@@ -138,6 +138,7 @@ public class ProductRelProc {
                     dataList.add(data);
                 }
                 rt = m_bakDao.doBatchUpdate(mergeUpdater, mergeMatcher, dataList, false);
+                Log.logStd("backupData update;aid=%d;updater=%s;",aid, dataList);
                 if(rt != Errno.OK) {
                     throw new MgException(rt, "merge bak update err;aid=%d;uid=%s;backupId=%d;backupFlag=%d;", aid, unionPriId, backupId, backupFlag);
                 }
@@ -160,10 +161,12 @@ public class ProductRelProc {
                 continue;
             }
             // 批量插入备份表
+            HashSet<Integer> rlPdIdSet = new HashSet<>(Utils.getValList(fromList, ProductRelEntity.Info.RL_PD_ID));
             rt = m_bakDao.batchInsert(fromList);
             if(rt != Errno.OK) {
                 throw new MgException(rt, "batchInsert bak err;aid=%d;uid=%s;backupId=%d;backupFlag=%d;", aid, unionPriId, backupId, backupFlag);
             }
+            Log.logStd("backupData insert;aid=%d;unionPriIds=%s;rlPdIdSet=%s",aid, unionPriIds, rlPdIdSet);
         }
 
         Log.logStd("backupData ok;aid=%d;uids=%s;backupId=%d;backupFlag=%d;", aid, unionPriIds, backupId, backupFlag);
@@ -180,6 +183,7 @@ public class ProductRelProc {
         if(rt != Errno.OK) {
             throw new MgException("do update err;aid=%d;backupId=%d;backupFlag=%d;", aid, backupId, backupFlag);
         }
+        Log.logStd("delBackupData update;aid=%d;backupId=%d;backupFlag=%d;updater=%s;matcher=%s", aid, backupId, backupFlag, updater, updateMatcher);
 
         // 删除 backupIdFlag 为0的数据，backupIdFlag为0 说明没有一个现存备份关联到了这个数据
         ParamMatcher delMatcher = new ParamMatcher(MgBackupEntity.Info.AID, ParamMatcher.EQ, aid);
@@ -188,7 +192,7 @@ public class ProductRelProc {
         if(rt != Errno.OK) {
             throw new MgException("do del err;aid=%d;backupId=%d;backupFlag=%d;", aid, backupId, backupFlag);
         }
-
+        Log.logStd("delBackupData del;aid=%d;backupId=%d;backupFlag=%d;delMatcher=%s", aid, backupId, backupFlag, delMatcher);
         Log.logStd("del rel bak ok;aid=%d;backupId=%d;backupFlag=%d;", aid, backupId, backupFlag);
     }
 
@@ -207,6 +211,7 @@ public class ProductRelProc {
         ParamMatcher delMatcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         delMatcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.IN, unionPriIds);
         rt = m_dao.delete(delMatcher);
+        Log.logStd("restoreBackupData del;aid=%d;backupId=%d;backupFlag=%d;delMatcher=%s", aid, backupId, backupFlag, delMatcher);
         if(rt != Errno.OK) {
             throw new MgException(rt, "restore del old err;delMatcher=%s;backupId=%d;backupFlag=%d;", delMatcher, backupId, backupFlag);
         }
@@ -224,10 +229,12 @@ public class ProductRelProc {
 
         if(!fromList.isEmpty()) {
             // 批量插入
+            FaiList<Integer> rlPdIdList = Utils.getValList(fromList, ProductRelEntity.Info.RL_PD_ID);
             rt = m_dao.batchInsert(fromList);
             if(rt != Errno.OK) {
                 throw new MgException(rt, "restore insert err;aid=%d;uids=%s;backupId=%d;backupFlag=%d;", aid, unionPriIds, backupId, backupFlag);
             }
+            Log.logStd("restoreBackupData insert;aid=%d;backupId=%d;backupFlag=%d;rlPdIdList=%s", aid, backupId, backupFlag, rlPdIdList);
         }
 
         // 处理idBuilder
@@ -245,6 +252,7 @@ public class ProductRelProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "clear old list error;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
         }
+        Log.logStd("cloneBizBind del;aid=%d;fromUnionPriId=%d;toUnionPriId=%d;delMatcher=%s", aid, fromUnionPriId, toUnionPriId, delMatcher);
 
         ParamMatcher matcher = new ParamMatcher(ProductRelEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductRelEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, fromUnionPriId);
@@ -264,10 +272,13 @@ public class ProductRelProc {
         // 记录要同步给es的数据
         ESUtil.batchPreLog(aid, list, DocOplogDef.Operation.UPDATE_ONE);
         // insert
+        FaiList<Integer> rlPdIdList = Utils.getValList(list, ProductRelEntity.Info.RL_PD_ID);
         rt = m_dao.batchInsert(list, null, true);
         if(rt != Errno.OK) {
             throw new MgException(rt, "cloneBizBind error;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
         }
+        Log.logStd("cloneBizBind insert;aid=%d;toUnionPriId=%d;rlPdIdList=%s", aid, toUnionPriId, rlPdIdList);
+
         // 处理idBuidler
         restoreMaxId(aid, toUnionPriId, false);
 
@@ -322,6 +333,7 @@ public class ProductRelProc {
             if(rt != Errno.OK) {
                 throw new MgException(rt, "batch insert err;aid=%d;addList=%s;", aid, addList);
             }
+            Log.logStd("setPdStatus insert;aid=%d;addList=%s;", aid, addList);
             // 处理idBuidler
             for(int unionPirId : needAddUnionPriIds) {
                 restoreMaxId(aid, unionPirId, false);
@@ -359,6 +371,7 @@ public class ProductRelProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "insert product rel error;flow=%d;aid=%d;uid=%d;relData=%s;", m_flow, aid, unionPriId, relData);
         }
+        Log.logStd("addProductRel insert;aid=%d;tid=%d;unionPriId=%d;relData=%s;", aid, tid, unionPriId, relData);
         // 使用分布式事务时，记录下新增数据的主键
         if(addSaga) {
             Param pdRelSaga = new Param();
@@ -393,10 +406,12 @@ public class ProductRelProc {
 
         FaiList<Integer> rlPdIds = batchCreatAndSetId(aid, tid, unionPriId, relDataList);
 
+        FaiList<Integer> rlPdIdList = Utils.getValList(relDataList, ProductRelEntity.Info.RL_PD_ID);
         rt = m_dao.batchInsert(relDataList, null, false);
         if(rt != Errno.OK) {
             throw new MgException(rt, "batch insert product rel error;flow=%d;aid=%d;", m_flow, aid);
         }
+        Log.logStd("batchAddProductRel insert;aid=%d;tid=%d;unionPriId=%d;rlPdIdList=%s;", aid, tid, unionPriId, rlPdIdList);
 
         // 使用分布式事务时，记录下新增数据的主键
         if(addSaga) {
@@ -429,10 +444,12 @@ public class ProductRelProc {
             throw new MgException(rt, "args err, infoList is empty;flow=%d;aid=%d;relDataList=%s;", m_flow, aid, relDataList);
         }
 
+        FaiList<Integer> rlPdIdList = Utils.getValList(relDataList, ProductRelEntity.Info.RL_PD_ID);
         rt = m_dao.batchInsert(relDataList, null, false);
         if(rt != Errno.OK) {
             throw new MgException(rt, "batch insert product rel error;flow=%d;aid=%d;", m_flow, aid);
         }
+        Log.logStd("insert4Clone insert;aid=%d;unionPriIds=%s;rlPdIdList=%s;", aid, unionPriIds, rlPdIdList);
 
         for(Integer unionPriId : unionPriIds) {
             m_dao.restoreMaxId(aid, unionPriId, false);
@@ -474,6 +491,7 @@ public class ProductRelProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "del product rel error;flow=%d;aid=%d;unionPridId=%d;", m_flow, aid, unionPriId);
         }
+        Log.logStd("clearData del;aid=%d;unionPriId=%d;delMatcher=%s;", aid, unionPriId, matcher);
         // 处理下idBuilder
         restoreMaxId(aid, unionPriId, false);
         Log.logStd("clearData ok;flow=%d;aid=%d;unionPriId=%s;delCnt=%s;", m_flow, aid, unionPriId, refRowCount.value);
@@ -504,6 +522,7 @@ public class ProductRelProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "del product rel error;flow=%d;aid=%d;unionPridId=%s;", m_flow, aid, unionPriIds);
         }
+        Log.logStd("clearAcct del;aid=%d;unionPriId=%s;delMatcher=%s;", aid, unionPriIds, matcher);
         // 处理下idBuilder
         for(int unionPriId : unionPriIds) {
             restoreMaxId(aid, unionPriId, false);
@@ -546,6 +565,7 @@ public class ProductRelProc {
         if(rt != Errno.OK){
             throw new MgException(rt, "delProductRel error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher.toJson());
         }
+        Log.logStd("delProductRel del;aid=%d;delMatcher=%s;", aid, matcher);
         return refRowCount.value;
     }
 
@@ -596,6 +616,7 @@ public class ProductRelProc {
             if(rt != Errno.OK) {
                 throw new MgException(rt, "del product rel error;flow=%d;aid=%d;tmpPdIds=%d;", m_flow, aid, tmpPdIds);
             }
+            Log.logStd("delProductRelByPdId del;aid=%d;delMatcher=%s;", aid, matcher);
         }
     }
 
@@ -643,6 +664,7 @@ public class ProductRelProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "updatePdRel error;flow=%d;aid=%d;dataList=%s;", m_flow, aid, dataList);
         }
+        Log.logStd("batchSet update;aid=%d;updater=%s;", aid, updater);
 
         if(addSaga && oldList != null) {
             Calendar now = Calendar.getInstance();
@@ -781,6 +803,7 @@ public class ProductRelProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "updatePdRel error;flow=%d;aid=%d;", m_flow, aid);
         }
+        Log.logStd("updatePdRel update;aid=%d;updater=%s;matcher=%s;", aid, updater, matcher);
         return refRowCount.value;
     }
     // 预记录修改操作数据 for saga
@@ -872,6 +895,7 @@ public class ProductRelProc {
         if (rt != Errno.OK) {
             throw new MgException(rt, "dao.restore data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
         }
+        Log.logStd("restoreData update;aid=%d;updater=%s;matcher=%s;", aid, updater, searchArg.matcher);
     }
 
     public FaiList<Param> getProductRels(int aid, FaiList<Integer> unionPriIds, FaiList<Integer> rlPdIds, int sysType) {
@@ -998,6 +1022,7 @@ public class ProductRelProc {
             if(rt != Errno.OK) {
                 throw new MgException(rt, "del product rel error;flow=%d;aid=%d;unionPridId=%d;pdIds=%s;", m_flow, aid, unionPriId, pdIds);
             }
+            Log.logStd("rollback4Add delete;aid=%d;delMatcher=%s;", aid, matcher);
 
             restoreMaxId(aid, unionPriId, false);
             Log.logStd("rollback add ok;aid=%d;uid=%d;pdIds=%s;", aid, unionPriId, pdIds);
@@ -1052,6 +1077,7 @@ public class ProductRelProc {
         matcher.and(ProductRelEntity.Info.PD_ID, ParamMatcher.EQ, "?");
 
         int rt = m_dao.batchUpdate(updater, matcher, dataList);
+        Log.logStd("rollback4Update update;aid=%d;updater=%s;", aid, updater);
         if(rt != Errno.OK) {
             throw new MgException(rt, "updatePdRel error;flow=%d;aid=%d;dataList=%s;", m_flow, aid, dataList);
         }
@@ -1080,6 +1106,7 @@ public class ProductRelProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "add list error;flow=%d;aid=%d;list=%s;", m_flow, aid, list);
         }
+        Log.logStd("rollback4Delete insert;aid=%d;addList=%s;", aid, list);
 
         // es同步数据 预处理
         ESUtil.batchPreLog(aid, new FaiList<>(list), DocOplogDef.Operation.UPDATE_ONE);

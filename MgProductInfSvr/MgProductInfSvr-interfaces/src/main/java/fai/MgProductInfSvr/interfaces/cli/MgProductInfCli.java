@@ -414,6 +414,8 @@ public class MgProductInfCli extends MgProductInfCli7ForProductTag {
         }
     }
 
+    @Deprecated
+    /** 迁移门店商品接口， 已经废弃，勿调用**/
     public int migrate4YK(int aid) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
@@ -434,6 +436,8 @@ public class MgProductInfCli extends MgProductInfCli7ForProductTag {
         }
     }
 
+    @Deprecated
+    /** 迁移门店服务接口， 已经废弃，勿调用**/
     public int migrate4YKService(int aid) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);

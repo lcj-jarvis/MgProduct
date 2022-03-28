@@ -695,7 +695,7 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
         return m_storeService.clearAllCache(session, flow, aid);
     }
 
-    @Cmd(MgProductStoreCmd.Cmd.MIGRATE)
+    /*@Cmd(MgProductStoreCmd.Cmd.MIGRATE)
     @WrittenCmd
     private int migrate(final FaiSession session,
                            @ArgFlow final int flow,
@@ -703,9 +703,9 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                            @ArgList(keyMatch = SpuBizSummaryDto.Key.INFO_LIST, methodDef = "getInfoDto",
                            classDef = SpuBizSummaryDto.class) FaiList<Param> spuList) throws IOException {
         return migrateService.migrate(session, flow, aid, spuList);
-    }
+    }*/
 
-    @Cmd(MgProductStoreCmd.Cmd.MIGRATE_YK_SERVICE)
+    /*@Cmd(MgProductStoreCmd.Cmd.MIGRATE_YK_SERVICE)
     @WrittenCmd
     private int migrateYKService(final FaiSession session,
                         @ArgFlow final int flow,
@@ -713,9 +713,9 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                         @ArgList(keyMatch = SpuBizSummaryDto.Key.INFO_LIST, methodDef = "getInfoDto",
                                 classDef = SpuBizSummaryDto.class) FaiList<Param> spuList) throws IOException {
         return migrateService.migrateYKService(session, flow, aid, spuList);
-    }
+    }*/
 
-    @Cmd(MgProductStoreCmd.Cmd.MIGRATE_YK_STORE_SKU)
+    /*@Cmd(MgProductStoreCmd.Cmd.MIGRATE_YK_STORE_SKU)
     @WrittenCmd
     private int migrateYKStoreSku(final FaiSession session,
                                   @ArgFlow final int flow,
@@ -723,16 +723,16 @@ public class MgProductStoreHandler extends MiddleGroundHandler {
                                   @ArgList(keyMatch = StoreSalesSkuDto.Key.INFO_LIST, methodDef = "getInfoDto",
                                           classDef = StoreSalesSkuDto.class) FaiList<Param> storeSkuList) throws IOException {
         return m_storeSalesSkuService.migrateYKStoreSku(session, flow, aid, storeSkuList);
-    }
+    }*/
 
-    @Cmd(MgProductStoreCmd.Cmd.MIGRATE_YK_DEL)
+    /*@Cmd(MgProductStoreCmd.Cmd.MIGRATE_YK_DEL)
     @WrittenCmd
     private int migrateYKServiceDel(final FaiSession session,
                                  @ArgFlow final int flow,
                                  @ArgAid final int aid,
                                  @ArgList(keyMatch = StoreSalesSkuDto.Key.PD_IDS) FaiList<Integer> pdIds) throws IOException {
         return migrateService.migrateYKServiceDel(session, flow, aid, pdIds);
-    }
+    }*/
 
     @Cmd(MgProductStoreCmd.Cmd.RESTORE_DATA)
     @WrittenCmd

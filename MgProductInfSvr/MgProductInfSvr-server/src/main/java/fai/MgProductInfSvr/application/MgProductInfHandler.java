@@ -1695,7 +1695,7 @@ public class MgProductInfHandler extends FaiHandler {
     }
     /**商品和标签的关联 end*/
 
-    @WrittenCmd
+    /*@WrittenCmd
     @Cmd(MgProductInfCmd.Cmd.MIGRATE)
     public int migrateData(final FaiSession session,
                            @ArgFlow final int flow,
@@ -1709,7 +1709,7 @@ public class MgProductInfHandler extends FaiHandler {
                            @ArgFlow final int flow,
                            @ArgAid final int aid) throws IOException {
         return dataMigrateService.migrateYKService(session, flow, aid);
-    }
+    }*/
 
     @WrittenCmd
     @Cmd(MgProductInfCmd.Cmd.RESTORE_DATA)

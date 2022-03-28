@@ -884,7 +884,7 @@ public class ProductSpecProc {
     }
 
     // 门店迁移服务接口，后续不要用
-    public void migrateYkService(int aid, FaiList<Param> specList) {
+    /*public void migrateYkService(int aid, FaiList<Param> specList) {
         int rt;
         if (aid <= 0) {
             rt = Errno.ARGS_ERROR;
@@ -930,8 +930,7 @@ public class ProductSpecProc {
             throw new MgException(rt, "dao.batchInsert error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
         }
         Log.logStd("ok;flow=%d;aid=%d;", m_flow, aid);
-    }
-
+    }*/
     public void restoreData(int aid, FaiList<Integer> pdIds, boolean isSaga) {
         int rt;
         if (pdIds.isEmpty()) {

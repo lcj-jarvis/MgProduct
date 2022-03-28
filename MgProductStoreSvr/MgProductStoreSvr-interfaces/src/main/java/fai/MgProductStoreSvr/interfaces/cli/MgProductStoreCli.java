@@ -2696,7 +2696,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
         }
     }
 
-    public int migrate(int aid, FaiList<Param> spuList){
+    /*public int migrate(int aid, FaiList<Param> spuList){
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2742,9 +2742,9 @@ public class MgProductStoreCli extends MgProductInternalCli {
             close();
             stat.end((m_rt != Errno.OK), m_rt);
         }
-    }
+    }*/
 
-    public int migrateYKService(int aid, FaiList<Param> spuList) {
+    /*public int migrateYKService(int aid, FaiList<Param> spuList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2790,9 +2790,9 @@ public class MgProductStoreCli extends MgProductInternalCli {
             close();
             stat.end((m_rt != Errno.OK), m_rt);
         }
-    }
+    }*/
 
-    public int migrateYKStoreSku(int aid, FaiList<Param> storeSkuList) {
+   /* public int migrateYKStoreSku(int aid, FaiList<Param> storeSkuList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2838,9 +2838,9 @@ public class MgProductStoreCli extends MgProductInternalCli {
             close();
             stat.end((m_rt != Errno.OK), m_rt);
         }
-    }
+    }*/
 
-    public int migrateYKServiceDel(int aid, FaiList<Integer> pdIds) {
+    /*public int migrateYKServiceDel(int aid, FaiList<Integer> pdIds) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2886,7 +2886,7 @@ public class MgProductStoreCli extends MgProductInternalCli {
             close();
             stat.end((m_rt != Errno.OK), m_rt);
         }
-    }
+    }*/
 
     public int restoreData(int aid, String xid, FaiList<Integer> pdIds) {
         m_rt = Errno.ERROR;

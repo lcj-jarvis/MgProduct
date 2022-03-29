@@ -40,7 +40,7 @@
         <fai-comm-config-ver>1.0.0</fai-comm-config-ver>
         <fai-comm-mq-ver>1.0.1</fai-comm-mq-ver>
         <fai-comm-cache-ver>1.0.5</fai-comm-cache-ver>
-        <fai-comm-mskit-ver>1.0.0</fai-comm-mskit-ver>
+        <fai-comm-mskit-ver>1.1.4</fai-comm-mskit-ver>
         <fai-comm-zkcli-ver>1.0.0</fai-comm-zkcli-ver>
         <fai-comm-fseata-client-version>1.0.0</fai-comm-fseata-client-version>
         <fai-webgateway-client-ver>1.0.0</fai-webgateway-client-ver>

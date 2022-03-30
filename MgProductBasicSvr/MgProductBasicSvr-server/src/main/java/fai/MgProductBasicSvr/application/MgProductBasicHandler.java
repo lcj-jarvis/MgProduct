@@ -761,7 +761,7 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
     }
     /**==========================================操作商品与标签关联结束===========================================================*/
 
-    @WrittenCmd
+    /*@WrittenCmd
     @Cmd(MgProductBasicCmd.Cmd.MIGRATE)
     public int dataMigrate(final FaiSession session,
                                 @ArgFlow final int flow,
@@ -771,16 +771,16 @@ public class MgProductBasicHandler extends MiddleGroundHandler {
                                 classDef = MigrateDef.Dto.class) FaiList<Param> list,
                                 @ArgBodyInteger(value = ProductDto.Key.SYS_TYPE, useDefault = true) int sysType) throws IOException {
         return dataMigrateService.dataMigrate(session, flow, aid, tid, list, sysType);
-    }
+    }*/
 
-    @Cmd(MgProductBasicCmd.Cmd.MIGRATE_GET)
+    /*@Cmd(MgProductBasicCmd.Cmd.MIGRATE_GET)
     public int getMigratePdIds(final FaiSession session,
                            @ArgFlow final int flow,
                            @ArgAid final int aid,
                            @ArgBodyInteger(value = ProductDto.Key.SYS_TYPE, useDefault = true) int sysType,
                            @ArgBodyBoolean(value = ProductDto.Key.DEL, useDefault = true, defaultValue = false) boolean needDel) throws IOException {
         return dataMigrateService.getMigratePdIds(session, flow, aid, sysType, needDel);
-    }
+    }*/
 
     @WrittenCmd
     @Cmd(MgProductBasicCmd.Cmd.RESTORE_DATA)

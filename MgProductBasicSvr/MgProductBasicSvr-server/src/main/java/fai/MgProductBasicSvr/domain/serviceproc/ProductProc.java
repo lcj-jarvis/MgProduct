@@ -138,6 +138,7 @@ public class ProductProc {
             if(rt != Errno.OK) {
                 throw new MgException(rt, "merge bak update err;aid=%d;uids=%s;backupId=%d;backupFlag=%d;", aid, unionPriIds, backupId, backupFlag);
             }
+            Log.logStd("backupData update;aid=%d;update=%s", aid, dataList);
         }
 
         // 移除掉合并的数据，剩下的就是需要新增的备份数据
@@ -161,6 +162,7 @@ public class ProductProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "batchInsert bak err;aid=%d;uids=%s;backupId=%d;backupFlag=%d;", aid, unionPriIds, backupId, backupFlag);
         }
+        Log.logStd("backupData insert;aid=%d;", aid);
 
         Log.logStd("backupData ok;aid=%d;uids=%s;backupId=%d;backupFlag=%d;", aid, unionPriIds, backupId, backupFlag);
     }
@@ -173,6 +175,7 @@ public class ProductProc {
         // 先将 backupFlag 对应的备份数据取消置起
         ParamUpdater updater = new ParamUpdater(MgBackupEntity.Comm.BACKUP_ID_FLAG, backupFlag, false);
         int rt = m_bakDao.update(updater, updateMatcher);
+        Log.logStd("delBackupData update;aid=%d;update=%s;updateMatcher=%s", aid, updater, updateMatcher);
         if(rt != Errno.OK) {
             throw new MgException("do update err;aid=%d;backupId=%d;backupFlag=%d;", aid, backupId, backupFlag);
         }
@@ -184,7 +187,7 @@ public class ProductProc {
         if(rt != Errno.OK) {
             throw new MgException("do del err;aid=%d;backupId=%d;backupFlag=%d;", aid, backupId, backupFlag);
         }
-
+        Log.logStd("delBackupData del;aid=%d;delMatcher=%s", aid, delMatcher);
         Log.logStd("del rel bak ok;aid=%d;backupId=%d;backupFlag=%d;", aid, backupId, backupFlag);
     }
 
@@ -206,6 +209,7 @@ public class ProductProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "delete err;delMatcher=%s;backupId=%d;backupFlag=%d;", delMatcher.toJson(), backupId, backupFlag);
         }
+        Log.logStd("restoreBackupData del;aid=%d;delMatcher=%s", aid, delMatcher);
 
         // 查出备份数据
         SearchArg bakSearchArg = new SearchArg();
@@ -224,6 +228,8 @@ public class ProductProc {
             if(rt != Errno.OK) {
                 throw new MgException(rt, "restore insert err;aid=%d;uids=%s;backupId=%d;backupFlag=%d;", aid, unionPriIds, backupId, backupFlag);
             }
+            FaiList<Integer> pdIdList = Utils.getValList(fromList, ProductEntity.Info.PD_ID);
+            Log.logStd("restoreBackupData insert;aid=%d;pdIdList=%s;unionPriId=%s;", aid, pdIdList, unionPriIds);
         }
 
         // 处理idBuilder
@@ -244,6 +250,7 @@ public class ProductProc {
         }
         int pdId = creatAndSetId(aid, pdData);
         rt = m_dao.insert(pdData);
+        Log.logStd("addProduct insert;aid=%d;tid=%d;siteId=%d;pdId=%d;", aid, tid, siteId, pdId);
         if(rt != Errno.OK) {
             throw new MgException(rt, "insert product error;flow=%d;aid=%d;", m_flow, aid);
         }
@@ -304,6 +311,7 @@ public class ProductProc {
         }
 
         rt = m_dao.batchInsert(pdDataList, null, false);
+        Log.logStd("batchAddProduct insert;aid=%d;pdIdList=%s", aid, pdIdList);
         if(rt != Errno.OK) {
             throw new MgException(rt, "insert product error;flow=%d;aid=%d;", m_flow, aid);
         }
@@ -347,6 +355,7 @@ public class ProductProc {
         }
 
         rt = m_dao.batchUpdate(updater, matcher, dataList);
+        Log.logStd("batchSet update;aid=%d;updater=%s", aid, updater);
         if(rt != Errno.OK) {
             throw new MgException(rt, "batchUpdate product error;flow=%d;aid=%d;", m_flow, aid);
         }
@@ -473,6 +482,7 @@ public class ProductProc {
 
         Ref<Integer> refRowCount = new Ref<>();
         rt = m_dao.update(updater, matcher, refRowCount);
+        Log.logStd("updateProduct update;aid=%d;matcher=%s;updater=%s",aid, matcher, updater);
         if(rt != Errno.OK) {
             throw new MgException(rt, "updateProduct error;flow=%d;aid=%d;", m_flow, aid);
         }
@@ -531,6 +541,7 @@ public class ProductProc {
         if(rt != Errno.OK){
             throw new MgException(rt, "del product list error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher.toJson());
         }
+        Log.logStd("delProduct del;aid=%d;delMatcher=%s;",aid, matcher);
         return refRowCount.value;
     }
 
@@ -547,6 +558,7 @@ public class ProductProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "del product rel error;flow=%d;aid=%d;sourceUnionPriId=%s;", m_flow, aid, unionPriIds);
         }
+        Log.logStd("clearAcct del;aid=%d;delMatcher=%s;",aid, matcher);
         // 处理下idBuilder
         restoreMaxId(aid, false);
         Log.logStd("clearAcct ok;flow=%d;aid=%d;sourceUnionPriId=%s;", m_flow, aid, unionPriIds);

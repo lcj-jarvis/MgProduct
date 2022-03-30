@@ -743,11 +743,11 @@ public class ProductBasicProc {
         }
     }
 
-    public FaiList<Param> dataMigrate(int aid, int tid, FaiList<Param> addList) {
+    /*public FaiList<Param> dataMigrate(int aid, int tid, FaiList<Param> addList) {
         return dataMigrate(aid, tid, addList, 0);
-    }
+    }*/
 
-    public FaiList<Param> dataMigrate(int aid, int tid, FaiList<Param> addList, int sysType) {
+    /*public FaiList<Param> dataMigrate(int aid, int tid, FaiList<Param> addList, int sysType) {
         int rt;
         if(m_cli == null) {
             rt = Errno.ERROR;
@@ -759,9 +759,9 @@ public class ProductBasicProc {
             throw new MgException(rt, "dataMigrate error;flow=%d;aid=%d;tid=%d;", m_flow, aid, tid);
         }
         return returnList;
-    }
+    }*/
 
-    public FaiList<Integer> getMigratePdIds(int aid, int sysType, boolean needDel) {
+    /*public FaiList<Integer> getMigratePdIds(int aid, int sysType, boolean needDel) {
         int rt;
         if(m_cli == null) {
             rt = Errno.ERROR;
@@ -773,7 +773,7 @@ public class ProductBasicProc {
             throw new MgException(rt, "getMigratePdIds error;flow=%d;aid=%d;", m_flow, aid);
         }
         return pdIds;
-    }
+    }*/
 
     public void restoreData(int aid, int unionPriId, String xid, FaiList<Integer> rlPdIds, int sysType, FaiList<Integer> pdIds) {
         int rt;

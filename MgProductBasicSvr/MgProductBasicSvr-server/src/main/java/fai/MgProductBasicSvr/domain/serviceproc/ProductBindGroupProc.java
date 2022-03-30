@@ -205,6 +205,7 @@ public class ProductBindGroupProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "restore del old err;delMatcher=%s;backupId=%d;backupFlag=%d;", delMatcher, backupId, backupFlag);
         }
+        Log.logStd("restoreBackupData del;aid=%d;unionPriIds=%s;delMatcher=%s", aid, unionPriIds, delMatcher);
 
         // 查出备份数据
         SearchArg bakSearchArg = new SearchArg();
@@ -222,6 +223,7 @@ public class ProductBindGroupProc {
             if(rt != Errno.OK) {
                 throw new MgException(rt, "restore insert err;aid=%d;uids=%s;backupId=%d;backupFlag=%d;", aid, unionPriIds, backupId, backupFlag);
             }
+            Log.logStd("restore insert;aid=%d;uids=%s;backupId=%d;backupFlag=%d;", aid, unionPriIds, backupId, backupFlag);
         }
     }
 
@@ -251,7 +253,7 @@ public class ProductBindGroupProc {
         }
         if (listRef.value.isEmpty()) {
             rt = Errno.NOT_FOUND;
-            Log.logDbg(rt, "not found;flow=%d;aid=%d;matcher=%s;", m_flow, aid, searchArg.matcher.toJson());
+            Log.logStd(rt, "not found;flow=%d;aid=%d;matcher=%s;", m_flow, aid, searchArg.matcher.toJson());
         }
         return listRef.value;
     }
@@ -264,6 +266,7 @@ public class ProductBindGroupProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "clear old list error;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
         }
+        Log.logStd("cloneBizBind del;aid=%d;delMatcher=%s", aid, delMatcher);
 
         ParamMatcher matcher = new ParamMatcher(ProductBindPropEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(ProductBindPropEntity.Info.UNION_PRI_ID, ParamMatcher.EQ, fromUnionPriId);
@@ -408,6 +411,7 @@ public class ProductBindGroupProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "batch insert pd bind group error;flow=%d;aid=%d;", m_flow, aid);
         }
+        Log.logStd("insert4Clone insert;aid=%d;", aid);
     }
 
     public int delPdBindGroup(int aid, int unionPriId, ParamMatcher matcher) {
@@ -552,7 +556,7 @@ public class ProductBindGroupProc {
         if(rt != Errno.OK) {
             throw new MgException(rt, "del product rel error;flow=%d;aid=%d;unionPridId=%s;", m_flow, aid, unionPriIds);
         }
-        Log.logStd("clearAcct ok;flow=%d;aid=%d;unionPridId=%s;", m_flow, aid, unionPriIds);
+        Log.logStd("clearAcct ok;flow=%d;aid=%d;unionPridId=%s;delMatcher=%s", m_flow, aid, unionPriIds, matcher);
     }
 
     public FaiList<Integer> getRlPdIdsByGroupId(int aid, int unionPriId, int sysType, FaiList<Integer> rlGroupIds) {
@@ -726,6 +730,7 @@ public class ProductBindGroupProc {
             if(rt != Errno.OK) {
                 throw new MgException(rt, "del bind group error;flow=%d;aid=%d;xid=%s;matcher=%s;", m_flow, aid, m_xid, matcher.toJson());
             }
+            Log.logStd("rollback4Add del;aid=%d;delMatcher=%s", aid, matcher);
         }
 
         Log.logStd("rollback add ok;aid=%d;xid=%s;list=%s;", aid, m_xid, list);

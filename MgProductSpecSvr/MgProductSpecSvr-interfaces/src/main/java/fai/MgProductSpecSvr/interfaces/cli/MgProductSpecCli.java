@@ -1958,7 +1958,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
         return m_rt;
     }
 
-    public int migrateYKService(int aid, FaiList<Param> list, FaiList<Param> returnList) {
+   /* public int migrateYKService(int aid, FaiList<Param> list, FaiList<Param> returnList) {
         m_rt = Errno.ERROR;
         Oss.CliStat stat = new Oss.CliStat(m_name, m_flow);
         try {
@@ -2019,7 +2019,7 @@ public class MgProductSpecCli extends MgProductInternalCli {
             stat.end(m_rt != Errno.OK, m_rt);
         }
         return m_rt;
-    }
+    }*/
 
     public int restoreData(int aid, String xid, FaiList<Integer> pdIds) {
         m_rt = Errno.ERROR;

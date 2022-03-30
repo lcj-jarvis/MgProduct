@@ -1987,7 +1987,7 @@ public class StoreSalesSkuService extends StoreService {
         return rt;
     }
 
-    public int migrateYKStoreSku(FaiSession session, int flow, int aid, FaiList<Param> storeSkuList) throws IOException {
+    /*public int migrateYKStoreSku(FaiSession session, int flow, int aid, FaiList<Param> storeSkuList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -2029,7 +2029,7 @@ public class StoreSalesSkuService extends StoreService {
             stat.end(rt != Errno.OK, rt);
         }
         return rt;
-    }
+    }*/
 
     /**
      * MQ 异步上报

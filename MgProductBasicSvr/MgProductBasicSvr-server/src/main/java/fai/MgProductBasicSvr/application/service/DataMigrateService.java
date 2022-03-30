@@ -1,33 +1,8 @@
 package fai.MgProductBasicSvr.application.service;
 
-import fai.MgProductBasicSvr.domain.common.ESUtil;
-import fai.MgProductBasicSvr.domain.common.LockUtil;
-import fai.MgProductBasicSvr.domain.entity.ProductBindGroupEntity;
-import fai.MgProductBasicSvr.domain.entity.ProductEntity;
-import fai.MgProductBasicSvr.domain.entity.ProductRelEntity;
-import fai.MgProductBasicSvr.domain.repository.cache.CacheCtrl;
-import fai.MgProductBasicSvr.domain.repository.dao.ProductDaoCtrl;
-import fai.MgProductBasicSvr.domain.repository.dao.ProductRelDaoCtrl;
-import fai.MgProductBasicSvr.domain.serviceproc.ProductBindGroupProc;
-import fai.MgProductBasicSvr.domain.serviceproc.ProductProc;
-import fai.MgProductBasicSvr.domain.serviceproc.ProductRelProc;
-import fai.MgProductBasicSvr.interfaces.dto.MigrateDef;
-import fai.MgProductBasicSvr.interfaces.dto.ProductRelDto;
-import fai.app.DocOplogDef;
-import fai.comm.jnetkit.server.fai.FaiSession;
-import fai.comm.util.*;
-import fai.middleground.svrutil.annotation.SuccessRt;
-import fai.middleground.svrutil.misc.Utils;
-import fai.middleground.svrutil.repository.TransactionCtrl;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-
 public class DataMigrateService {
 
-    @SuccessRt(value = Errno.OK)
+    /*@SuccessRt(value = Errno.OK)
     public int dataMigrate(FaiSession session, int flow, int aid, int tid, FaiList<Param> list, int sysType) throws IOException {
         int rt;
         if(Utils.isEmptyList(list)) {
@@ -235,8 +210,9 @@ public class DataMigrateService {
         returnList.toBuffer(sendBuf, ProductRelDto.Key.REDUCED_INFO, ProductRelDto.getReducedInfoDto());
         session.write(sendBuf);
         return rt;
-    }
+    }*/
 
+    /*
     @SuccessRt(value = {Errno.OK, Errno.NOT_FOUND})
     public int getMigratePdIds(FaiSession session, int flow, int aid, int sysType, boolean needDel) throws IOException {
         int rt = Errno.ERROR;
@@ -281,4 +257,5 @@ public class DataMigrateService {
         session.write(sendBuf);
         return rt;
     }
+    */
 }

@@ -2013,7 +2013,7 @@ public class ProductSpecService extends SpecParentService {
         return rt;
     }
 
-    @SuccessRt(Errno.OK)
+  /*  @SuccessRt(Errno.OK)
     public int migrateYKService(FaiSession session, int flow, int aid, FaiList<Param> specList) throws IOException {
         int rt;
 
@@ -2090,7 +2090,7 @@ public class ProductSpecService extends SpecParentService {
         returnList.toBuffer(sendBuf, ProductSpecDto.Key.RETURN_LIST, MigrateDto.getReturnListDtoDef());
         session.write(sendBuf);
         return rt;
-    }
+    }*/
 
     @SuccessRt(Errno.OK)
     public int restoreData(FaiSession session, int flow, int aid, String xid, FaiList<Integer> pdIds) throws IOException {

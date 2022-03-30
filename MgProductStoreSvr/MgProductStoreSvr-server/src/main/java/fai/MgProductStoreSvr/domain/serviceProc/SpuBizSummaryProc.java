@@ -1,7 +1,8 @@
 package fai.MgProductStoreSvr.domain.serviceProc;
 
 import fai.MgProductStoreSvr.domain.comm.LockUtil;
-import fai.MgProductStoreSvr.domain.entity.*;
+import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryEntity;
+import fai.MgProductStoreSvr.domain.entity.SpuBizSummaryValObj;
 import fai.MgProductStoreSvr.domain.repository.DataType;
 import fai.MgProductStoreSvr.domain.repository.cache.SpuBizSummaryCacheCtrl;
 import fai.MgProductStoreSvr.domain.repository.dao.SpuBizSummaryDaoCtrl;
@@ -11,9 +12,8 @@ import fai.comm.util.*;
 import fai.mgproduct.comm.Util;
 import fai.mgproduct.comm.entity.SagaEntity;
 import fai.mgproduct.comm.entity.SagaValObj;
-import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.exception.MgException;
-
+import fai.middleground.svrutil.misc.Utils;
 import fai.middleground.svrutil.repository.TransactionCtrl;
 
 import java.util.*;
@@ -36,7 +36,7 @@ public class SpuBizSummaryProc {
         sagaMap = new HashMap<>();
     }
 
-    public int migrate(int aid, FaiList<Param> list) {
+   /* public int migrate(int aid, FaiList<Param> list) {
         if(Utils.isEmptyList(list)) {
             Log.logErr("arg error;flow=%d;aid=%s;", m_flow, aid);
             return Errno.ARGS_ERROR;
@@ -110,9 +110,9 @@ public class SpuBizSummaryProc {
         cacheManage.addDataTypeDirtyCacheKey(DataType.Manage, unionPriId_pdIds.keySet());
         cacheManage.addDataTypeDirtyCacheKey(DataType.Visitor, unionPriId_pdIds.keySet());
         return rt;
-    }
+    }*/
 
-    public int migrateYKService(int aid, FaiList<Param> list) {
+    /*public int migrateYKService(int aid, FaiList<Param> list) {
         if(Utils.isEmptyList(list)) {
             Log.logErr("arg error;flow=%d;aid=%s;", m_flow, aid);
             return Errno.ARGS_ERROR;
@@ -125,7 +125,7 @@ public class SpuBizSummaryProc {
         }
         Log.logStd("migrate spu ok;flow=%d;aid=%d", m_flow, aid);
         return rt;
-    }
+    }*/
 
     public int setSingle(int aid, int unionPriId, int pdId, ParamUpdater updater, boolean isSaga) {
         if(updater == null || updater.isEmpty()) {
@@ -159,6 +159,7 @@ public class SpuBizSummaryProc {
             Log.logErr(rt, "clear old list error;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
             return rt;
         }
+        Log.logStd("cloneBizBind del;aid=%d;fromUnionPriId=%d;toUnionPriId=%d;delMatcher=%s", aid, fromUnionPriId, toUnionPriId, delMatcher);
 
         return copyBizBind(aid, fromUnionPriId, toUnionPriId, null, false);
     }
@@ -202,11 +203,13 @@ public class SpuBizSummaryProc {
             }
         }
         if (!Utils.isEmptyList(list)) {
+            FaiList<Integer> pdIdList = Utils.getValList(list, SpuBizSummaryEntity.Info.PD_ID);
             rt = m_daoCtrl.batchInsert(list, null, true);
             if(rt != Errno.OK) {
                 Log.logErr(rt, "copyBizBind error;flow=%d;aid=%d;fromUid=%s;toUid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
                 return rt;
             }
+            Log.logStd("cloneBizBind insert;aid=%d;fromUnionPriId=%d;toUnionPriId=%d;pdIdList=%s", aid, fromUnionPriId, toUnionPriId, pdIdList);
         }
         rt = Errno.OK;
         Log.logStd("copyBizBind ok;flow=%d;aid=%d;fromUid=%s;toUid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
@@ -282,6 +285,7 @@ public class SpuBizSummaryProc {
                     Log.logErr(rt,"m_daoCtrl.batchUpdate err;flow=%s;aid=%s;batchUpdateDataList=%s;", m_flow, aid, batchUpdateDataList);
                     return rt;
                 }
+                Log.logStd("report4synSPU2SKU update;aid=%d;updater=%s", aid, batchUpdateDataList);
             }
             if(!pdId_bizSalesSummaryInfoMap.isEmpty()){
                 FaiList<Param> addDataList = new FaiList<>();
@@ -324,6 +328,7 @@ public class SpuBizSummaryProc {
                     Log.logErr(rt,"m_daoCtrl.batchInsert err;flow=%s;aid=%s;batchUpdateDataList=%s;", m_flow, aid, batchUpdateDataList);
                     return rt;
                 }
+                Log.logStd("report4synSPU2SKU insert;aid=%d;pdIdList=%s", aid, pdId_bizSalesSummaryInfoMap.keySet());
             }
             Log.logStd("doing;flow=%s;aid=%s;unionPruId=%s;pdIdList=%s;", m_flow, aid, unionPriId, pdIdList);
         }
@@ -469,11 +474,13 @@ public class SpuBizSummaryProc {
             }
         }
         if(!addDataList.isEmpty()){
+            FaiList<Integer> uids = Utils.getValList(addDataList, SpuBizSummaryEntity.Info.UNION_PRI_ID);
             rt = m_daoCtrl.batchInsert(addDataList, null, !isSaga);
             if(rt != Errno.OK){
                 Log.logErr("batchInsert err;flow=%s;aid=%s;pdId=%s;", m_flow, aid, pdId);
                 return rt;
             }
+            Log.logStd("report insert;aid=%d;pdId=%d;unionPriIds=%s", aid, pdId, uids);
             // 分布式事务需要添加 Saga 记录
             if (isSaga) {
                 rt = addInsOp4Saga(aid, addDataList);
@@ -500,6 +507,7 @@ public class SpuBizSummaryProc {
                 Log.logErr("batchUpdate err;flow=%s;aid=%s;pdId=%s;doBatchUpdater.json=%s;batchUpdateDataList=%s;", m_flow, aid, pdId, doBatchUpdater.toJson(), batchUpdateDataList);
                 return rt;
             }
+            Log.logStd("report update;aid=%d;pdId=%d;updater=%s", aid, pdId, batchUpdateDataList);
         }
         Log.logStd("ok!;flow=%s;aid=%s;pdId=%s;", m_flow, aid, pdId);
         return rt;
@@ -647,11 +655,14 @@ public class SpuBizSummaryProc {
                 unionPriId_pdIds.put(unionPriId, pdIds);
             }
         }
+        FaiList<Integer> unionPriIds = Utils.getValList(addList, SpuBizSummaryEntity.Info.UNION_PRI_ID);
+        FaiList<Integer> pdIdList = Utils.getValList(addList, SpuBizSummaryEntity.Info.PD_ID);
         rt = m_daoCtrl.batchInsert(addList, null, !isSaga);
         if(rt != Errno.OK){
             Log.logErr(rt, "arg error;flow=%s;aid=%s;addList=%s", m_flow, aid, addList);
             return rt;
         }
+        Log.logStd("batchAdd insert;aid=%d;pdIdList=%s;unionPriIds=%s", aid, pdIdList, unionPriIds);
         if(isSaga) {
             rt = addInsOp4Saga(aid, addList);
             if (rt != Errno.OK) {
@@ -779,6 +790,7 @@ public class SpuBizSummaryProc {
             Log.logErr(rt, "dao.batchUpdate error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
             return rt;
         }
+        Log.logStd("restoreSoftDelBizPds update;aid=%d;updater=%s", aid, dataList);
 
         return rt;
     }
@@ -847,12 +859,14 @@ public class SpuBizSummaryProc {
                 Log.logStd(rt, "softdel err;flow=%s;aid=%s;delMatcher=%s;", m_flow, aid, delMatcher.toJson());
                 return rt;
             }
+            Log.logStd("batchDel update;aid=%d;updater=%s;matcher=%s", aid, updater, delMatcher);
         }else {
             rt = m_daoCtrl.delete(delMatcher);
             if(rt != Errno.OK){
                 Log.logStd(rt, "delete err;flow=%s;aid=%s;delMatcher=%s;", m_flow, aid, delMatcher.toJson());
                 return rt;
             }
+            Log.logStd("batchDel del;aid=%d;delMatcher=%s", aid, delMatcher);
         }
 
         Log.logStd("ok;flow=%s;aid=%s;delMatcher=%s;", m_flow, aid, delMatcher.toJson());
@@ -876,6 +890,7 @@ public class SpuBizSummaryProc {
             Log.logStd(rt, "delete err;flow=%s;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
             return rt;
         }
+        Log.logStd("clearData del;aid=%d;unionPriIds=%s;delMatcher=%s", aid, unionPriIds, matcher);
         Log.logStd("ok;flow=%s;aid=%s;unionPriIds=%s;", m_flow, aid, unionPriIds);
         return rt;
     }
@@ -1050,14 +1065,14 @@ public class SpuBizSummaryProc {
         return rt;
     }
 
-    public void migrateYKDel(int aid, FaiList<Integer> pdIds) {
+    /*public void migrateYKDel(int aid, FaiList<Integer> pdIds) {
         ParamMatcher matcher = new ParamMatcher(SpuBizSummaryEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(SpuBizSummaryEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
         int rt = m_daoCtrl.delete(matcher);
         if (rt != Errno.OK) {
             throw new MgException(rt, "dao.migrateYKDel error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher);
         }
-    }
+    }*/
 
     public FaiList<Integer> getPdIds(int aid, ParamMatcher matcher) {
         int rt;
@@ -1104,6 +1119,7 @@ public class SpuBizSummaryProc {
         if (rt != Errno.OK) {
             throw new MgException(rt, "dao.restore data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
         }
+        Log.logStd("restoreData update;aid=%d;updater=%s;matcher=%s", aid, updater, matcher);
     }
 
     /**
@@ -1218,6 +1234,7 @@ public class SpuBizSummaryProc {
             Log.logErr(rt, "spu batchUpdate err;aid=%d;", aid);
             return rt;
         }
+        Log.logStd("doUpdate update;aid=%d;updater=%s;matcher=%s", aid, updater, matcher);
 
         return rt;
     }
@@ -1372,10 +1389,12 @@ public class SpuBizSummaryProc {
         }
         // 去除 Saga 字段
         FaiList<Param> infoList = Util.removeSpecificColumn(new FaiList<>(list), SagaEntity.Common.XID, SagaEntity.Common.BRANCH_ID, SagaEntity.Common.SAGA_OP, SagaEntity.Common.SAGA_TIME);
+
         int rt = m_daoCtrl.batchInsert(infoList, null, false);
         if (rt != Errno.OK) {
             throw new MgException(rt, "batch insert err;flow=%d;aid=%d;infoList=%s", m_flow, aid, infoList);
         }
+        Log.logStd("rollback4Del insert;aid=%d;", aid);
         Log.logStd("rollback del ok;flow=%d;aid=%d", m_flow, aid);
     }
 
@@ -1420,6 +1439,7 @@ public class SpuBizSummaryProc {
         if (rt != Errno.OK) {
             throw new MgException(rt, "batch update err;flow=%d;aid=%d;dataList=%d", m_flow, aid, dataList);
         }
+        Log.logStd("rollback4Update update;aid=%d;updater=%s", aid, dataList);
         Log.logStd("rollback update ok;flow=%d;aid=%d", m_flow, aid);
     }
 
@@ -1441,6 +1461,7 @@ public class SpuBizSummaryProc {
             if (rt != Errno.OK) {
                 throw new MgException(rt, "delete err;flow=%d;aid=%d;unionPriId=%d;pdIdList=%s", m_flow, aid, unionPriId, pdIdList);
             }
+            Log.logStd("rollback4Add del;aid=%d;unionPriId=%d;matcher=%s", aid, unionPriId, matcher);
         }
         Log.logStd("rollback add ok;flow=%d;aid=%d", m_flow, aid);
     }

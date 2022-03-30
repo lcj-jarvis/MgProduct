@@ -103,11 +103,14 @@ public class StoreSalesSkuProc {
             dataList.add(data);
         }
 
+        HashSet<Long> skuIdSet = new HashSet<>(Utils.getValList(dataList, StoreSalesSkuEntity.Info.SKU_ID));
+        HashSet<Long> unionPriIds = new HashSet<>(Utils.getValList(dataList, StoreSalesSkuEntity.Info.UNION_PRI_ID));
         int rt = m_daoCtrl.batchInsert(dataList, null, !isSaga);
         if (rt != Errno.OK) {
             Log.logErr(rt, "batchAdd dao.error;flow=%d;aid=%d", m_flow, aid);
             return rt;
         }
+        Log.logStd("batchAdd insert;aid=%d;skuIdSet=%d;unionPriIds=%s", aid, skuIdSet, unionPriIds);
 
         // 如果开启了分布式事务 需要向当前表的Saga表 插入Saga记录
         if (isSaga) {
@@ -129,6 +132,8 @@ public class StoreSalesSkuProc {
             Log.logErr(rt, "clear old list error;flow=%d;aid=%d;fuid=%s;tuid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
             return rt;
         }
+        Log.logStd("cloneBizBind del;aid=%d;delMatcher=%s", aid, delMatcher);
+
         return copyBizBind(aid, fromUnionPriId, toUnionPriId, null, false);
     }
 
@@ -174,11 +179,15 @@ public class StoreSalesSkuProc {
             }
         }
         if (!Utils.isEmptyList(list)) {
+            HashSet<Long> skuIdSet = new HashSet<>();
+            HashSet<Integer> unionPriIdSet = new HashSet<>();
+            getSkuIdAndUnionPriIdSet(list, skuIdSet, unionPriIdSet);
             rt = m_daoCtrl.batchInsert(list, null, true);
             if(rt != Errno.OK) {
                 Log.logErr(rt, "cloneBizBind error;flow=%d;aid=%d;fromUid=%s;toUid=%s;", m_flow, aid, fromUnionPriId, toUnionPriId);
                 return rt;
             }
+            Log.logStd("copyBizBind insert;aid=%d;skuIdSet=%s;unionPriIdSet=%s", aid, skuIdSet, unionPriIdSet);
         }
         rt = Errno.OK;
         Log.logStd("copyBizBind ok;flow=%d;aid=%d;fromUid=%s;toUid=%s;pdIds=%s;", m_flow, aid, fromUnionPriId, toUnionPriId, pdIds);
@@ -238,6 +247,7 @@ public class StoreSalesSkuProc {
                     Log.logStd(rt, "dao.batchUpdate err;flow=%s;aid=%s;batchUpdateDataList=%s;", m_flow, aid, batchUpdateDataList);
                     return rt;
                 }
+                Log.logStd("batchSynchronousSPU2SKU update;aid=%d;batchUpdateDataList=%s", aid, batchUpdateDataList);
             }
             if(!skuId_salesStoreDataMap.isEmpty()){
                 FaiList<Param> addDataList = new FaiList<>(skuId_salesStoreDataMap.size());
@@ -263,6 +273,7 @@ public class StoreSalesSkuProc {
                     Log.logStd(rt, "dao.batchInsert err;flow=%s;aid=%s;addDataList=%s;", m_flow, aid, addDataList);
                     return rt;
                 }
+                Log.logStd("batchSynchronousSPU2SKU insert;aid=%d;unionPriId=%d;skuIdSet=%s;", aid, unionPriId, skuId_salesStoreDataMap.keySet());
             }
 
             Log.logStd("doing;flow=%s;aid=%s;unionPruId=%s;skuIdList=%s;", m_flow, aid, unionPriId, skuIdList);
@@ -387,6 +398,7 @@ public class StoreSalesSkuProc {
             Log.logErr(rt, "dao.batchUpdate error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
             return rt;
         }
+        Log.logStd("restoreSoftDelBizPds update;aid=%d;updater=%s;", aid, dataList);
 
         return rt;
     }
@@ -439,6 +451,7 @@ public class StoreSalesSkuProc {
                 Log.logStd(rt, "soft del err;flow=%s;aid=%s;delMatcher=%s;", m_flow, aid, delMatcher.toJson());
                 return rt;
             }
+            Log.logStd("doBatchDel update;aid=%d;updater=%s;matcher=%s", aid, updater, delMatcher);
         }else {
             if (isSaga) {
                 rt = addDelOp4Saga(aid, delMatcher);
@@ -452,6 +465,7 @@ public class StoreSalesSkuProc {
                 Log.logStd(rt, "dao.delete err;flow=%s;aid=%s;delMatcher=%s;", m_flow, aid, delMatcher.toJson());
                 return rt;
             }
+            Log.logStd("doBatchDel update;aid=%d;delMatcher=%s", aid, delMatcher);
         }
 
         Log.logStd("ok;flow=%s;aid=%s;delMatcher=%s;", m_flow, aid, delMatcher.toJson());
@@ -582,7 +596,7 @@ public class StoreSalesSkuProc {
             Log.logErr(rt, "dao.batchUpdate error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
             return rt;
         }
-        Log.logDbg("flow=%d;aid=%d;pdId=%s;doBatchUpdater.json=%s;dataList=%s;",  m_flow, aid, pdId, doBatchUpdater, dataList);
+        Log.logStd("flow=%d;aid=%d;pdId=%s;doBatchUpdater.json=%s;dataList=%s;",  m_flow, aid, pdId, doBatchUpdater, dataList);
         Log.logStd("ok;flow=%d;aid=%d;pdId=%s;", m_flow, aid, pdId);
         return rt;
     }
@@ -646,7 +660,7 @@ public class StoreSalesSkuProc {
             Log.logErr(rt, "dao.batchUpdate error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
             return rt;
         }
-        Log.logDbg("flow=%d;aid=%d;doBatchUpdater.json=%s;dataList=%s;",  m_flow, aid, doBatchUpdater, dataList);
+        Log.logStd("flow=%d;aid=%d;doBatchUpdater.json=%s;dataList=%s;",  m_flow, aid, doBatchUpdater, dataList);
         Log.logStd("ok;flow=%d;aid=%d;updaterList=%s;", m_flow, aid, updaterList);
         return rt;
     }
@@ -808,6 +822,8 @@ public class StoreSalesSkuProc {
             Log.logStd(rt,"dao update err;matcher=%s", matcher.toJson());
             return rt;
         }
+        Log.logStd("reduceStore update;aid=%d;updater=%s;matcher=%s;", aid, updater, matcher);
+
         if(refRowCount.value <= 0){ // 库存不足
             Log.logStd("store shortage;matcher=%s", matcher.toJson());
             return MgProductErrno.Store.SHORTAGE;
@@ -892,6 +908,7 @@ public class StoreSalesSkuProc {
             Log.logStd("store err;matcher=%s", matcher.toJson());
             return Errno.ERROR;
         }
+        Log.logStd("makeUpStore update;matcher=%s;updater=%s", matcher, updater.toJson());
         Log.logStd("ok;flow=%d;aid=%s;unionPriId=%s;skuId=%s;count=%s;", m_flow, aid, unionPriId, skuId, count);
         return rt;
     }
@@ -1050,6 +1067,7 @@ public class StoreSalesSkuProc {
                 Log.logStd("store err;matcher=%s", matcher.toJson());
                 return MgProductErrno.Store.SHORTAGE;
             }
+            Log.logStd("batchChangeStore update;matcher=%s;updater=%s", matcher, updater.toJson());
         }
         /* 批量更新不能根据影响的行数来判断更新是否成功。
         FaiList<Param> dataList = new FaiList<>(skuBizChangeCountMap.size());
@@ -1138,6 +1156,7 @@ public class StoreSalesSkuProc {
             Log.logErr(rt, "dao.batchUpdate error;flow=%d;aid=%s;dataList=%s;", m_flow, aid, dataList);
             return rt;
         }
+        Log.logStd("batchChangeStore update;flow=%d;aid=%d;matcher=%s;updater=%s", m_flow, aid, matcher, updater.toJson());
         Log.logStd("ok!;flow=%s;aid=%s;", m_flow, aid);
         return rt;
     }
@@ -1428,7 +1447,7 @@ public class StoreSalesSkuProc {
         return rt;
     }
 
-    public int migrateYKService(int aid, FaiList<Param> storeSkuList) {
+    /*public int migrateYKService(int aid, FaiList<Param> storeSkuList) {
         int rt;
         Log.logDbg("joke:storeSkuList=%s", storeSkuList);
         rt = m_daoCtrl.batchInsert(storeSkuList, null, false);
@@ -1438,7 +1457,7 @@ public class StoreSalesSkuProc {
         }
         Log.logStd("migrate StoreSku ok;flow=%d;aid=%d", m_flow, aid);
         return rt;
-    }
+    }*/
 
     public void restoreData(int aid, FaiList<Integer> pdIds, boolean isSaga) {
         int rt;
@@ -1465,6 +1484,7 @@ public class StoreSalesSkuProc {
         if (rt != Errno.OK) {
             throw new MgException(rt, "dao.restore data error;flow=%d;aid=%d;pdIds=%s", m_flow, aid, pdIds);
         }
+        Log.logStd("restoreData update;flow=%d;aid=%d;matcher=%s;updater=%s", m_flow, aid, matcher, updater.toJson());
     }
 
     private void initReportInfoList(FaiList<Param> list){
@@ -1492,14 +1512,14 @@ public class StoreSalesSkuProc {
             ;
     //========================== 用于汇总 ↑↑↑ ===================================//
 
-    public void migrateYKDel(int aid, FaiList<Integer> pdIds) {
+    /*public void migrateYKDel(int aid, FaiList<Integer> pdIds) {
         ParamMatcher matcher = new ParamMatcher(StoreSalesSkuEntity.Info.AID, ParamMatcher.EQ, aid);
         matcher.and(StoreSalesSkuEntity.Info.PD_ID, ParamMatcher.IN, pdIds);
         int rt = m_daoCtrl.delete(matcher);
         if (rt != Errno.OK) {
             throw new MgException(rt, "dao.migrateYKDel error;flow=%d;aid=%d;matcher=%s", m_flow, aid, matcher);
         }
-    }
+    }*/
 
     public boolean deleteDirtyCache(int aid) {
         return cacheManage.deleteDirtyCache(aid);
@@ -1805,6 +1825,18 @@ public class StoreSalesSkuProc {
                     ", unionPriId=" + unionPriId +
                     ", skuId=" + skuId +
                     '}';
+        }
+    }
+
+    private void getSkuIdAndUnionPriIdSet(FaiList<Param> list, Set<Long> skuIdSet, Set<Integer> unionPriIdSet) {
+        if (Utils.isEmptyList(list)) {
+            return;
+        }
+        for (Param info : list) {
+            Long skuId = info.getLong(StoreSalesSkuEntity.Info.SKU_ID);
+            Integer unionPriId = info.getInt(StoreSalesSkuEntity.Info.UNION_PRI_ID, 0);
+            skuIdSet.add(skuId);
+            unionPriIdSet.add(unionPriId);
         }
     }
 }

@@ -1282,7 +1282,7 @@ public class ProductSpecSkuProc {
     }
 
     // 门店迁移服务使用，之后废弃
-    public FaiList<Param> migrateYkService(int aid, FaiList<Param> skuList) {
+    /*public FaiList<Param> migrateYkService(int aid, FaiList<Param> skuList) {
         int rt = Errno.ARGS_ERROR;
         if(aid <= 0){
             throw new MgException(rt, "error;flow=%d;aid=%s;", m_flow, aid);
@@ -1332,7 +1332,7 @@ public class ProductSpecSkuProc {
         Log.logStd("ok;flow=%d;aid=%d;skuIds=%s", m_flow, aid, skuIdList);
 
         return returnList;
-    }
+    }*/
 
     public void restoreData(int aid, FaiList<Integer> pdIds, boolean isSaga) {
         int rt;

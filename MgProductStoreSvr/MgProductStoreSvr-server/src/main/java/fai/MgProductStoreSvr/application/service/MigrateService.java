@@ -1,21 +1,7 @@
 package fai.MgProductStoreSvr.application.service;
 
-import fai.MgProductStoreSvr.domain.comm.LockUtil;
-import fai.MgProductStoreSvr.domain.serviceProc.SkuSummaryProc;
-import fai.MgProductStoreSvr.domain.serviceProc.SpuBizSummaryProc;
-import fai.MgProductStoreSvr.domain.serviceProc.SpuSummaryProc;
-import fai.MgProductStoreSvr.domain.serviceProc.StoreSalesSkuProc;
-import fai.comm.jnetkit.server.fai.FaiSession;
-import fai.comm.util.*;
-import fai.middleground.svrutil.annotation.SuccessRt;
-import fai.middleground.svrutil.exception.MgException;
-import fai.middleground.svrutil.misc.Utils;
-import fai.middleground.svrutil.repository.TransactionCtrl;
-
-import java.io.IOException;
-
 public class MigrateService {
-    public int migrate(FaiSession session, int flow, int aid, FaiList<Param> spuList) throws IOException {
+    /*public int migrate(FaiSession session, int flow, int aid, FaiList<Param> spuList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -59,9 +45,9 @@ public class MigrateService {
             stat.end(rt != Errno.OK, rt);
         }
         return rt;
-    }
+    }*/
 
-    public int migrateYKService(FaiSession session, int flow, int aid, FaiList<Param> spuList) throws IOException {
+    /*public int migrateYKService(FaiSession session, int flow, int aid, FaiList<Param> spuList) throws IOException {
         int rt = Errno.ERROR;
         Oss.SvrStat stat = new Oss.SvrStat(flow);
         try {
@@ -102,9 +88,9 @@ public class MigrateService {
             stat.end(rt != Errno.OK, rt);
         }
         return rt;
-    }
+    }*/
 
-    @SuccessRt(Errno.OK)
+    /*@SuccessRt(Errno.OK)
     public int migrateYKServiceDel(FaiSession session, int flow, int aid, FaiList<Integer> pdIds) throws IOException {
         int rt = Errno.ERROR;
         if (pdIds == null || pdIds.isEmpty()) {
@@ -144,5 +130,5 @@ public class MigrateService {
         FaiBuffer sendBuf = new FaiBuffer(true);
         session.write(sendBuf);
         return rt;
-    }
+    }*/
 }

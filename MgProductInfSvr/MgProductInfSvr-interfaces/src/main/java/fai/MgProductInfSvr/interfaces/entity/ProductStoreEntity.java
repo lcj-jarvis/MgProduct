@@ -145,7 +145,8 @@ public class ProductStoreEntity {
         public static final String UNION_PRI_ID = "unionPriId";
         public static final String PD_ID = "pdId";
         public static final String WEIGHT = "weight";
-
+        public static final String MIN_AMOUNT = "minAmount";                        // int 起购量
+        public static final String MAX_AMOUNT = "maxAmount";                        // int 限购量
 
 
         public static final FaiList<String> MANAGE_FIELDS; // 管理态字段

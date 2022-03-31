@@ -645,6 +645,8 @@ public class SpuBizSummaryProc {
             data.assign(info, SpuBizSummaryEntity.Info.HOLDING_COUNT);
             data.assign(info, SpuBizSummaryEntity.Info.DISTRIBUTE_LIST);
             data.assign(info, SpuBizSummaryEntity.Info.WEIGHT);
+            data.assign(info, SpuBizSummaryEntity.Info.MIN_AMOUNT);
+            data.assign(info, SpuBizSummaryEntity.Info.MAX_AMOUNT);
             data.setCalendar(SpuBizSummaryEntity.Info.SYS_CREATE_TIME, now);
             data.setCalendar(SpuBizSummaryEntity.Info.SYS_UPDATE_TIME, now);
             addList.add(data);

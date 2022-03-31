@@ -110,7 +110,7 @@ public class StoreSalesSkuProc {
             Log.logErr(rt, "batchAdd dao.error;flow=%d;aid=%d", m_flow, aid);
             return rt;
         }
-        Log.logStd("batchAdd insert;aid=%d;skuIdSet=%d;unionPriIds=%s", aid, skuIdSet, unionPriIds);
+        Log.logStd("batchAdd insert;aid=%d;skuIdSet=%s;unionPriIds=%s", aid, skuIdSet, unionPriIds);
 
         // 如果开启了分布式事务 需要向当前表的Saga表 插入Saga记录
         if (isSaga) {

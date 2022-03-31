@@ -248,7 +248,6 @@ public class SkuSummaryProc {
             if(rt != Errno.OK){
                 Log.logStd("dao.batchUpdate error;flow=%d;aid=%s;batchUpdateDataList=%s;", m_flow, aid, batchUpdateDataList);
             }
-            Log.logStd("report update;aid=%d;updater=%s;", aid, batchUpdateDataList);
         }
 
 

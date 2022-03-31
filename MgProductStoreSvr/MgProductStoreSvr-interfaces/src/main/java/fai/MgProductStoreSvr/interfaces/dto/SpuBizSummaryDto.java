@@ -30,6 +30,8 @@ public class SpuBizSummaryDto {
         g_dtoDef.add(SpuBizSummaryEntity.Info.SYS_TYPE, 19, Var.Type.INT);
         g_dtoDef.add(SpuBizSummaryEntity.Info.STATUS, 20, Var.Type.INT);
         g_dtoDef.add(SpuBizSummaryEntity.Info.WEIGHT, 21, Var.Type.DOUBLE);
+        g_dtoDef.add(SpuBizSummaryEntity.Info.MIN_AMOUNT, 23, Var.Type.INT);
+        g_dtoDef.add(SpuBizSummaryEntity.Info.MAX_AMOUNT, 24, Var.Type.INT);
     }
 
     public static ParamDef getInfoDto() {

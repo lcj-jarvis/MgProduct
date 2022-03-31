@@ -1903,6 +1903,7 @@ public class MgProductInfService extends ServicePub {
                             importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.FLAG, StoreSalesSkuEntity.Info.FLAG);
                             importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.COST_PRICE, StoreSalesSkuEntity.Info.COST_PRICE);
                             importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.STATUS, StoreSalesSkuEntity.Info.STATUS);
+                            importStoreSaleSkuInfo.assign(storeSale, ProductStoreEntity.StoreSalesSkuInfo.WEIGHT, StoreSalesSkuEntity.Info.WEIGHT);
                             importStoreSaleSkuInfo.setList(StoreSalesSkuEntity.Info.IN_PD_SC_STR_ID_LIST, inPdScStrIdList);
                             storeSaleSkuList.add(importStoreSaleSkuInfo);
                         }

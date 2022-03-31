@@ -124,6 +124,8 @@ public class ProductStoreDto {
             g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.DISTRIBUTE_LIST, 21, Var.Type.STRING);
             g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.STATUS, 22, Var.Type.INT);
             g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.WEIGHT, 23, Var.Type.DOUBLE);
+            g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.MIN_AMOUNT, 24, Var.Type.INT);
+            g_infoDtoDef.add(ProductStoreEntity.SpuBizSummaryInfo.MAX_AMOUNT, 25, Var.Type.INT);
         }
         public static ParamDef getInfoDto() {
             return g_infoDtoDef;

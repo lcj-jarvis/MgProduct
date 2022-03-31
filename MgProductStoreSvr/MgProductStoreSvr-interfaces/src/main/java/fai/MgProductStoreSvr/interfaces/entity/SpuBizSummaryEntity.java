@@ -33,6 +33,8 @@ public class SpuBizSummaryEntity {
         public static final String KEEP_INT_PROP1 = "keepIntProp1";                 // int 整型 保留字段1 TODO
         public static final String STATUS = "status";                               // int 数据状态
         public static final String WEIGHT = "weight";                               // double 重量
+        public static final String MIN_AMOUNT = "minAmount";                        // int 起购量
+        public static final String MAX_AMOUNT = "maxAmount";                        // int 限购量
     }
 
     public static final FaiList<String> MANAGE_FIELDS; // 管理态字段
